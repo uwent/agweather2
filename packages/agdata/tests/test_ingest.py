@@ -193,3 +193,34 @@ def test_refetching_precip_keeps_hours_neither_source_has(tmp_path, monkeypatch)
     assert refetch_precipitation(store, START, 3, workers=2) == 3
     t0 = store.index_of(START)
     np.testing.assert_allclose(store.read_point("precipitation", 900, 1400, t0, t0 + 3), [0.03, 0.12, 0.1])
+
+
+def test_a_store_from_before_a_new_soil_level_opens_with_it_empty(tmp_path):
+    from agdata.store import HOURLY, GridStore
+
+    older = [v for v in HOURLY_VARIABLES if v.name != "soil_temperature_30cm"]
+    GridStore.create(tmp_path, HOURLY, 2025, WINDOW, older)
+    store = open_or_create_hourly(tmp_path, 2025, WINDOW)
+    t0 = store.index_of(START)
+    assert np.isnan(store.read_point("soil_temperature_30cm", 900, 1400, t0, t0 + 3)).all()
+    assert store.sources("soil_temperature_30cm")[t0] is None
+
+
+def test_refetching_a_soil_level_fills_only_it(tmp_path, monkeypatch):
+    from agdata.ingest import refetch_soil_temperature
+
+    store = open_or_create_hourly(tmp_path, 2025, WINDOW)
+    store.write(START, {"soil_temperature_10cm": np.full((3, *WINDOW.shape), 5.0)}, source="hrrr")
+
+    def fetch(when, window, session, names):
+        if when == START + timedelta(hours=2):
+            raise FileNotFoundError("not published")
+        assert names == ("soil_temperature_30cm",)
+        return {"soil_temperature_30cm": np.full(window.shape, 7.0 + (when - START) / timedelta(hours=1))}
+
+    monkeypatch.setattr(ingest.hrrr, "fetch_soil_temperature", fetch)
+    assert refetch_soil_temperature(store, START, 3, ("soil_temperature_30cm",), workers=2) == 2
+    t0 = store.index_of(START)
+    np.testing.assert_allclose(store.read_point("soil_temperature_30cm", 900, 1400, t0, t0 + 3), [7.0, 8.0, np.nan])
+    np.testing.assert_allclose(store.read_point("soil_temperature_10cm", 900, 1400, t0, t0 + 3), 5.0)
+    assert store.sources("soil_temperature_30cm")[t0 : t0 + 3] == ["hrrr", "hrrr", None]

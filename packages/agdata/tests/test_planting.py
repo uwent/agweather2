@@ -67,5 +67,6 @@ def test_the_table_is_consistent():
 
 def test_crop_models_have_planting_dates():
     for model in all_models().values():
-        if model.SPEC.group == "crop":
+        biofix = model.SPEC.biofix
+        if model.SPEC.group == "crop" and biofix is not None and biofix.label.startswith("Planting"):
             assert model.SPEC.topics[0] in CROPS, model.SPEC.id

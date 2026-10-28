@@ -210,6 +210,48 @@ def refetch_precipitation(
     return sum(1 for s in sources if s)
 
 
+def refetch_soil_temperature(
+    store: GridStore,
+    start: datetime,
+    hours: int,
+    names: tuple[str, ...],
+    workers: int = 8,
+    session_factory=requests.Session,
+) -> int:
+    """Fetches only the HRRR soil levels `names` for `hours` from `start` (a level added to the catalog after those
+    hours were ingested); hours HRRR doesn't have keep what they had. Returns the hours written. Each level is one
+    message of the analysis file (a few MB), fetched by byte range."""
+    t0 = store.index_of(start)
+    values = {name: store.read_steps(name, t0, t0 + hours) for name in names}
+    sources = {name: store.sources(name)[t0 : t0 + hours] for name in names}
+
+    def one(n: int) -> None:
+        session = _session(session_factory)
+        when = start + n * HOUR
+        for attempt in range(1, ATTEMPTS + 1):
+            try:
+                found = hrrr.fetch_soil_temperature(when, store.window, session, names)
+            except FileNotFoundError:
+                return
+            except Exception as error:  # transient network errors; the hour keeps what it had after the last
+                if attempt == ATTEMPTS:
+                    logger.warning("refetching soil temperature for %s failed %d times: %r", when, ATTEMPTS, error)
+                    return
+                time.sleep(RETRY_SECONDS * attempt)
+                continue
+            for name, field_values in found.items():
+                values[name][n] = check_range(store.variables[name], field_values)[0]
+                sources[name][n] = "hrrr"
+            return
+
+    with ThreadPoolExecutor(workers) as pool:
+        list(pool.map(one, range(hours)))
+    store.write(start, values, source=None)
+    for name in names:
+        store.set_sources(name, start, sources[name])
+    return sum(1 for s in sources[names[0]] if s)
+
+
 def stale_hours(
     data_dir: Path, window: Window, start: datetime, stop: datetime, urma_published: Callable[[datetime], bool]
 ) -> list[datetime]:
@@ -248,8 +290,10 @@ def hour_runs(hours: list[datetime]) -> list[tuple[datetime, int]]:
 
 
 def open_or_create_hourly(data_dir: Path, year: int, window: Window) -> GridStore:
+    """A year's hourly store; a variable added to the catalog since it was made is added empty (fill it with a
+    refetch, as `refetch_soil_temperature` does for a new soil level)."""
     try:
-        store = GridStore.open(data_dir, HOURLY, year, HOURLY_VARIABLES)
+        store = GridStore.open(data_dir, HOURLY, year, HOURLY_VARIABLES, add_missing=True)
     except FileNotFoundError:
         return GridStore.create(data_dir, HOURLY, year, window, HOURLY_VARIABLES)
     if store.window != window:

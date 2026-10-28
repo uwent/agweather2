@@ -27,7 +27,7 @@ from typing import Literal, Protocol
 import numpy as np
 
 Status = Literal["beta", "stable", "retired"]
-Group = Literal["disease", "insect", "crop", "degree_days"]
+Group = Literal["disease", "insect", "crop", "agronomic", "degree_days"]  # agronomic: field management (volunteers)
 
 SEVERITY_LEVELS = ("Very low", "Low", "Moderate", "High", "Very high")
 PROBABILITY_LEVELS = ("Very low", "Low", "Moderate", "High")

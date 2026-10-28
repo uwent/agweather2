@@ -62,6 +62,30 @@ def calendar_features(
     }
 
 
+# Potato tubers die after enough hours below 27 °F (the potato volunteer model, Kirk and Wharton, MSU)
+KILLING_SOIL_C = (27 - 32) / 1.8
+
+
+EIGHT_INCHES_CM = 20.32
+
+
+def soil_between(depth_cm: float, upper_cm: float, upper_c, lower_cm: float, lower_c) -> np.ndarray:
+    """Soil temperature at `depth_cm`, linear between two stored levels (HRRR stores 4, 10 and 30 cm)."""
+    weight = (depth_cm - upper_cm) / (lower_cm - upper_cm)
+    return (1 - weight) * np.asarray(upper_c, dtype=float) + weight * np.asarray(lower_c, dtype=float)
+
+
+def soil_features(soil_4cm_c: np.ndarray, soil_10cm_c: np.ndarray, soil_30cm_c: np.ndarray) -> dict[str, np.ndarray]:
+    """Hours of a calendar day with soil below 27 °F at 2, 4 and 8 in: HRRR's 4 and 10 cm levels (D9), and 8 in
+    (20.3 cm) interpolated between 10 and 30 cm."""
+    eight_inches = soil_between(EIGHT_INCHES_CM, 10, soil_10cm_c, 30, soil_30cm_c)
+    return {
+        "hours_soil_4cm_below_27f": hours_below(soil_4cm_c, KILLING_SOIL_C),
+        "hours_soil_10cm_below_27f": hours_below(soil_10cm_c, KILLING_SOIL_C),
+        "hours_soil_8in_below_27f": hours_below(eight_inches, KILLING_SOIL_C),
+    }
+
+
 def from_8pm_features(temperature_c: np.ndarray, rh_percent: np.ndarray, night: np.ndarray) -> dict[str, np.ndarray]:
     """Features over a day from 8 pm (20:00 the evening before through 19:59); `night` marks its night hours
     (bool, broadcast against the hours axis)."""
@@ -100,6 +124,9 @@ def daily_features(
     precipitation_mm: np.ndarray,
     midnight_ends_day: bool = True,
     dew_point_c: np.ndarray | None = None,
+    soil_4cm_c: np.ndarray | None = None,
+    soil_10cm_c: np.ndarray | None = None,
+    soil_30cm_c: np.ndarray | None = None,
 ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     """A point's hourly series (local datetime64 instants, consecutive) → (dates, features per date).
 
@@ -119,6 +146,8 @@ def daily_features(
         features = calendar_features(temperature_c[today], rh_percent[today], dew_point)
         features["precipitation_sum"] = _sum_all(precipitation_mm[today])
         features |= daily_statistics("air_temperature", temperature_c[today])
+        if soil_4cm_c is not None and soil_10cm_c is not None and soil_30cm_c is not None:
+            features |= soil_features(soil_4cm_c[today], soil_10cm_c[today], soil_30cm_c[today])
         evening = from_8pm == day
         features |= from_8pm_features(temperature_c[evening], rh_percent[evening], is_night(hour[evening]))
         for name, value in features.items():

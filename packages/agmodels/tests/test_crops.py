@@ -61,7 +61,7 @@ def test_crop_models_have_stages_and_no_risk():
     assert {"corn-stages", "soybean-stages"} <= set(crops)
     for model in crops.values():
         assert model.SPEC.risk is None and not hasattr(model, "risk")
-        assert model.SPEC.biofix is not None and "Planting" in model.SPEC.biofix.label
+        assert model.SPEC.biofix is not None
         assert cast(CropModel, model).stages()
 
 
@@ -240,3 +240,21 @@ def test_tar_spot_and_don_windows_over_a_season():
     assert susceptible(tar)[0] < susceptible(don)[0] and susceptible(don)[-1] < susceptible(tar)[-1]
     assert np.sum(tar == MARGIN) == 2 * corn.MARGIN_DAYS
     assert disease_susceptibility(all_models()["late-blight-dsv"].SPEC, stage) is None
+
+
+# Alfalfa
+
+
+def test_alfalfa_gdd_are_the_tools_difference_of_sines():
+    from agmodels.degree_days import degree_days_sine
+    from agmodels.models import alfalfa_growth as alfalfa
+
+    doy, lo, hi, _ = season("lincoln", 2004)
+    out = alfalfa.outputs({"air_temperature_min": lo, "air_temperature_max": hi})
+    lo_f, hi_f = lo * 1.8 + 32, hi * 1.8 + 32
+    tool = degree_days_sine(lo_f, hi_f, 41) - degree_days_sine(lo_f, hi_f, 86)  # gdd_sine(41) − gdd_sine(86)
+    np.testing.assert_allclose(out["gdd"], tool, atol=1e-9)
+    cut = first_day(doy, out["stage"], alfalfa.STAGES, "Cut")
+    late = first_day(doy, out["stage"], alfalfa.STAGES, "Late")
+    assert out["gdd_total"][doy == cut][0] >= 900 and cut < late
+    assert [alfalfa.explore(g)["stage"] for g in (0, 899, 900, 1099, 1100)] == [0, 0, 1, 1, 2]

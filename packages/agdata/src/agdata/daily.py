@@ -94,11 +94,17 @@ def rollup_days(data_dir: Path, window: Window, first: date, last: date) -> int:
                 "temperature": temperature,
                 "dew_point": dew_point,
                 "rh": relative_humidity_percent(temperature, dew_point),
+                "soil_4cm": hourly.read("soil_temperature_4cm", feature_start, span_stop, band),
+                "soil_10cm": hourly.read("soil_temperature_10cm", feature_start, span_stop, band),
+                "soil_30cm": hourly.read("soil_temperature_30cm", feature_start, span_stop, band),
             }
             out |= day_zones.each_window(
                 hours,
                 feature_start,
-                lambda h, _: features.calendar_features(h["temperature"], h["rh"], h["dew_point"]),
+                lambda h, _: (
+                    features.calendar_features(h["temperature"], h["rh"], h["dew_point"])
+                    | features.soil_features(h["soil_4cm"], h["soil_10cm"], h["soil_30cm"])
+                ),
             )
             out |= _DayZones(evenings, band_zones, zones).each_window(
                 hours,
@@ -217,7 +223,7 @@ class _HourlyReader:
     def _store(self, year: int) -> GridStore | None:
         if year not in self.stores:
             try:
-                self.stores[year] = GridStore.open(self.data_dir, HOURLY, year, VARIABLES.values())
+                self.stores[year] = GridStore.open(self.data_dir, HOURLY, year, VARIABLES.values(), add_missing=True)
             except FileNotFoundError:
                 self.stores[year] = None
         return self.stores[year]

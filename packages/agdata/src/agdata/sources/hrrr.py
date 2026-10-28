@@ -6,12 +6,14 @@ Checked 2026-10-27:
   instantaneous values at 15, 30, 45 and 60 min; their mean stands in (it shifts the hour about 7.5 minutes late,
   which doesn't change daily sums). `wrfsfc`'s DSWRF is instantaneous only.
 - Soil temperature is in `wrfprs` (not `wrfsfc` or `wrfnat`), TSOIL at 0, 1, 4, 10, 30, 60, 100 cm; the analysis
-  (f00) of run T gives the hour T. The potato model's 2 in and 4 in use the 4 and 10 cm levels.
+  (f00) of run T gives the hour T. The potato model's 2 in and 4 in use the 4 and 10 cm levels, and 8 in is
+  interpolated between 10 and 30 cm.
 HRRR's grid is a 3 km Lambert conformal grid in its own projection, so fields are interpolated (`agdata.regrid`),
 not offset.
 """
 
 import contextlib
+from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 
 import numpy as np
@@ -35,7 +37,11 @@ HRRR_GRID = LambertGrid(
     first_lon=237.280472,
 )
 
-SOIL_LEVELS = {"soil_temperature_4cm": "0.04-0.04 m below ground", "soil_temperature_10cm": "0.1-0.1 m below ground"}
+SOIL_LEVELS = {
+    "soil_temperature_4cm": "0.04-0.04 m below ground",
+    "soil_temperature_10cm": "0.1-0.1 m below ground",
+    "soil_temperature_30cm": "0.3-0.3 m below ground",
+}
 
 
 def subhourly_url(run: datetime) -> str:
@@ -64,11 +70,11 @@ def fetch_shortwave(hour_end: datetime, window: Window, session: requests.Sessio
 
 
 def fetch_soil_temperature(
-    hour: datetime, window: Window, session: requests.Session | None = None
+    hour: datetime, window: Window, session: requests.Session | None = None, names: Iterable[str] | None = None
 ) -> dict[str, np.ndarray]:
-    """Soil temperature (°C) at the catalog's levels at `hour`, on the window."""
+    """Soil temperature (°C) at the catalog's levels at `hour` (or only `names`), on the window."""
     grib = RemoteGrib(pressure_url(hour), session)
-    wanted = {("TSOIL", level): name for name, level in SOIL_LEVELS.items()}
+    wanted = {("TSOIL", SOIL_LEVELS[name]): name for name in (SOIL_LEVELS if names is None else names)}
     fields = grib.fields(wanted)
     return {
         wanted[key]: convert(regrid(field.values, HRRR_GRID, window), "K", variable(wanted[key]).unit)

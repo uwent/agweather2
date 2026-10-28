@@ -138,10 +138,16 @@ def test_grid_features_match_the_point_path(tmp_path):
     hour = np.arange(n)
     temperature = np.round(20 + 8 * np.sin(2 * np.pi * (hour - 15) / 24), 1)  # a daily cycle, at stored precision
     dew_point = 17 + 0 * hour  # humid at night, dry by day
+    soil = {  # one depth crossing 27 °F (−2.8 °C) each day, one always above
+        "soil_temperature_4cm": np.round(-3 + 1.5 * np.sin(2 * np.pi * hour / 24), 1),
+        "soil_temperature_10cm": np.full(n, -1.0),
+        "soil_temperature_30cm": np.full(n, -5.0),  # so 8 in, between them, is below 27 °F
+    }
     store = GridStore.create(tmp_path, HOURLY, 2025, WINDOW, VARIABLES.values())
     grid = (n, *WINDOW.shape)
     store.write(start, {"air_temperature": np.broadcast_to(temperature[:, None, None], grid)}, source="test")
     store.write(start, {"dew_point": np.broadcast_to(dew_point[:, None, None], grid)}, source="test")
+    store.write(start, {k: np.broadcast_to(v[:, None, None], grid) for k, v in soil.items()}, source="test")
     rollup_days(tmp_path, WINDOW, date(2025, 7, 2), date(2025, 7, 3))
 
     # The point path over the same hours, as a Central cell sees them
@@ -150,7 +156,15 @@ def test_grid_features_match_the_point_path(tmp_path):
         dtype="datetime64[h]",
     )
     rh = relative_humidity_percent(temperature, dew_point)
-    days, point = features.daily_features(local, temperature, rh, np.zeros(n))
+    days, point = features.daily_features(
+        local,
+        temperature,
+        rh,
+        np.zeros(n),
+        soil_4cm_c=soil["soil_temperature_4cm"],
+        soil_10cm_c=soil["soil_temperature_10cm"],
+        soil_30cm_c=soil["soil_temperature_30cm"],
+    )
     for day in (date(2025, 7, 2), date(2025, 7, 3)):
         k = [str(d) for d in days].index(str(day))
         for name in (
@@ -159,10 +173,16 @@ def test_grid_features_match_the_point_path(tmp_path):
             "hours_rh_over_80_from_8pm",
             "hours_rh_over_90_night",
             "temperature_mean_rh_over_80_from_8pm",
+            "hours_soil_4cm_below_27f",
+            "hours_soil_10cm_below_27f",
+            "hours_soil_8in_below_27f",
         ):
             grid_value = read(tmp_path, name, day)[:, 1:]  # Central columns
             np.testing.assert_allclose(grid_value, point[name][k], atol=0.05, err_msg=f"{name} {day}")
     assert read(tmp_path, "hours_rh_over_80_from_8pm", date(2025, 7, 2))[0, 1] > 0  # the test has humid hours
+    assert 0 < read(tmp_path, "hours_soil_4cm_below_27f", date(2025, 7, 2))[0, 1] < 24
+    assert read(tmp_path, "hours_soil_10cm_below_27f", date(2025, 7, 2))[0, 1] == 0
+    assert read(tmp_path, "hours_soil_8in_below_27f", date(2025, 7, 2))[0, 1] == 24
 
 
 def test_a_store_from_before_new_features_opens_with_them_stale(tmp_path):

@@ -36,6 +36,7 @@ def fake_fetch(rtma_from: datetime | None = None, down: set[datetime] | None = N
                 "shortwave_radiation": 300.0 if 11 <= when.hour <= 23 else 0.0,
                 "soil_temperature_4cm": 20.0,
                 "soil_temperature_10cm": 19.0,
+                "soil_temperature_30cm": 17.0,
             }.items()
         }
         analysis = "rtma" if rtma_from and when >= rtma_from else "urma"

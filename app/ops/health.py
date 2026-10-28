@@ -68,7 +68,9 @@ def _recent_sources(data_dir: Path, now: datetime) -> tuple[np.ndarray, np.ndarr
     times, codes, found = [], [], False
     for year in (now.year - 1, now.year):
         try:
-            year_codes = GridStore.open(data_dir, HOURLY, year, VARIABLES.values()).read_meta("air_temperature.source")
+            # only the analysis variable: a store made before a catalog addition still opens
+            store = GridStore.open(data_dir, HOURLY, year, [VARIABLES["air_temperature"]])
+            year_codes = store.read_meta("air_temperature.source")
             found = True
         except FileNotFoundError:
             year_codes = np.zeros(steps_in_year(year, "hour"), dtype=np.uint8)  # a year not started: all missing
