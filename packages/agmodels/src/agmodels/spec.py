@@ -12,6 +12,10 @@ the API and charts show (the Crop Risk Tool's view):
 - `explore(**values) -> dict`: the model's core at single values of its explorer inputs, for the model page's
   interactive chart (through the API, so the page never re-implements the math).
 
+Crop growth-stage models (group `crop`, `agmodels.crops`, D32) have no risk layer: their `SPEC.risk` is None and they
+define no `risk`. They're shown on their own page and under the crop's disease models, which use the stages they
+reach to grey out risk where the crop isn't susceptible (D33).
+
 Inputs name daily features (`agmodels.features`) or daily statistics from the catalog. Missing stays missing:
 a day without its inputs has NaN outputs, not 0 (CLAUDE.md).
 """
@@ -106,11 +110,13 @@ class ModelSpec:
     citations: tuple[Citation, ...]
     inputs: tuple[Quantity, ...]
     outputs: tuple[Quantity, ...]  # the first is the primary output (risk coloring, maps)
-    risk: Risk
+    risk: Risk | None  # None for crop growth-stage models
     explorer: tuple[ExplorerInput, ...]
     sweep: Mapping[str, tuple[float, ...]] = field(default_factory=dict)  # explorer values to run, for snapshots
     options: tuple[Option, ...] = ()
     lookback_days: int = 0  # days of inputs needed before the first output (moving averages)
+    # values the runner supplies from the place and the dates rather than the weather: "day_of_year", "latitude"
+    context: tuple[str, ...] = ()
     region: tuple[str, ...] = ()  # state abbreviations where it's valid; empty: anywhere
     season: tuple[str, str] | None = None  # MM-DD first and last day it's shown
     biofix: Biofix | None = None

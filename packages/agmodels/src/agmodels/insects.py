@@ -94,6 +94,7 @@ class InsectModel:
             explorer=(ExplorerInput("dd_total", "Degree days since the biofix", "degF_day", 0, 4000, 10, 500),),
             sweep={"dd_total": tuple(float(d) for d in range(0, 4001, 100))},
             biofix=Biofix(insect.biofix, insect.biofix_label),
+            context=("day_of_year",),  # the freeze reduction; without it there's none
             changelog=(Change("1.0", "2026-10-28", f"Ported from {insect.source}."),),
         )
 

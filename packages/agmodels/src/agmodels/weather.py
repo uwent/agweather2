@@ -94,6 +94,19 @@ def solar_elevation_deg(times, latitude_deg, longitude_deg):
     return np.degrees(np.arcsin(np.clip(sin_elevation, -1, 1)))
 
 
+def day_length_hours(day_of_year, latitude_deg, sun_elevation_deg=-0.83):
+    """Hours in the day with the sun's centre above `sun_elevation_deg` (−0.83°: sunrise to sunset, the disk's top
+    edge on the horizon with refraction; −6°: civil twilight), from FAO-56's declination (eq. 24). 24 or 0 where
+    the sun doesn't cross that elevation."""
+    j = np.asarray(day_of_year, dtype=float)
+    declination = 0.409 * np.sin(2 * np.pi * j / 365 - 1.39)
+    lat = np.radians(latitude_deg)
+    cos_h = (np.sin(np.radians(sun_elevation_deg)) - np.sin(lat) * np.sin(declination)) / (
+        np.cos(lat) * np.cos(declination)
+    )
+    return 24 / np.pi * np.arccos(np.clip(cos_h, -1, 1))
+
+
 def extraterrestrial_radiation_hourly(hour_end, latitude_deg, longitude_deg):
     """Ra over the hour ending at each time, MJ m-2 h-1, FAO-56 eq. 28 (0 when the sun is down)."""
     mid = np.asarray(hour_end, dtype="datetime64[s]") - np.timedelta64(1800, "s")
