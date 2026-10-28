@@ -33,7 +33,7 @@ jobs:
       # GRIB decoding uses the system ecCodes (CLAUDE.md)
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libeccodes-dev
 
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.2  # setup-uv publishes no floating major tag
         with:
           enable-cache: true
 
