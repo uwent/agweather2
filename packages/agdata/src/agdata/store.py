@@ -157,10 +157,12 @@ class GridStore:
 
     # Writing
 
-    def write(self, start: datetime | date, values: dict[str, np.ndarray], source: str) -> None:
-        """Writes consecutive steps from `start`: each array is (steps, y, x) over the window, in the stored unit."""
+    def write(self, start: datetime | date, values: dict[str, np.ndarray], source: str | None) -> None:
+        """Writes consecutive steps from `start`: each array is (steps, y, x) over the window, in the stored unit.
+
+        `source` marks every written step; pass None and call `set_sources` when steps came from different sources.
+        """
         t0 = self.index_of(start)
-        code = SOURCES[source]
         now = datetime.now(UTC).timestamp()
         for name, block in values.items():
             v = self._variable(name)
@@ -173,8 +175,19 @@ class GridStore:
             if t1 > self.length:
                 raise IndexError(f"{name}: steps run past the end of {self.year}")
             self._array(name)[t0:t1] = v.encode(block)
-            self._array(f"_meta/{name}.source")[t0:t1] = code
             self._array(f"_meta/{name}.written")[t0:t1] = now
+            if source is not None:
+                self._array(f"_meta/{name}.source")[t0:t1] = SOURCES[source]
+
+    def set_sources(self, name: str, start: datetime | date, sources: list[str | None]) -> None:
+        """Records which source filled each step from `start` (None: nothing)."""
+        t0 = self.index_of(start)
+        codes = np.array([SOURCES[s] if s else 0 for s in sources], dtype=np.uint8)
+        self._array(f"_meta/{name}.source")[t0 : t0 + len(codes)] = codes
+
+    def has_data(self, name: str, start: int = 0, stop: int | None = None) -> np.ndarray:
+        """Whether each step in start..stop-1 has been written from some source."""
+        return np.asarray(self._array(f"_meta/{name}.source")[start:stop]) > 0
 
     # Reading
 

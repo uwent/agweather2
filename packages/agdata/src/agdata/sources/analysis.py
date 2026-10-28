@@ -65,11 +65,19 @@ class AnalysisSource:
             values[name] = convert(place(field, window), grib_unit, variable(name).unit)
 
         if precip:
-            found = _first_existing(self.precip_urls(when), [PRECIP], session)
-            if found and PRECIP in found:
-                rain = convert(place(found[PRECIP], window), "kg_m2", variable("precipitation").unit)
+            rain = self.fetch_precip(when, window, session)
+            if rain is not None:
                 values["precipitation"] = rain
         return values
+
+    def fetch_precip(
+        self, when: datetime, window: Window, session: requests.Session | None = None
+    ) -> np.ndarray | None:
+        """Precip (mm) in the hour ending at `when` over a window, or None where this product has none."""
+        found = _first_existing(self.precip_urls(when), [PRECIP], session or requests.Session())
+        if not found or PRECIP not in found:
+            return None
+        return convert(place(found[PRECIP], window), "kg_m2", variable("precipitation").unit)
 
 
 def _first_existing(urls: list[str], keys, session: requests.Session):

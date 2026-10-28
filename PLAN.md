@@ -277,7 +277,7 @@ Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) pl
 
 **F. Ingest jobs and the backfill CLI**
 
-- [ ] `manage.py backfill --start --end [--box] [--workers] [--sources urma,hrrr]`: downloads in parallel, writes month blocks, rolls up the affected days; idempotent and resumable (skips hours already ingested from the same or a better source).
+- [x] `manage.py backfill --start --end [--box] [--workers] [--block-days] [--redo]` (`app/ops`), over `agdata.ingest.ingest_block`: fetches hours in parallel (URMA, else RTMA; RTMA precip before URMA's; HRRR) with 3 retries, range-checks and packs each hour, then spikes, short gaps, RH and ET0 over the block, and records each hour's source per variable. Blocks of at most 10 days by default (a month of Wisconsin in one block needs about 12 GB; 10 days peak at 3.9 GB); about 1,750 hours per hour of wall time here. Resumable: blocks already all-URMA are skipped. Rolling up days comes with E.
 - [ ] Hourly Procrastinate job: ingest every missing or RTMA-only hour of the last 7 days, then roll up the touched days; daily rollup job after midnight local time; yearly roll in January (drop the oldest year's directories, rebuild the internal climatology).
 - [ ] Health check (Phase 8 style, started now): ingest lag (newest URMA hour; newest any-source hour), failed jobs, missing hours in the last week; `/up` reports it and admins get an email when it's degraded.
 - [ ] Run the backfill (D24): Wisconsin for 2024–2025 locally (about 17,500 hours, a day of downloads at home) for the gate checks; the full window on the server for the configured box when it's ready (about 4 TB of downloads, docs/pilot.md).
