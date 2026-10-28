@@ -13,11 +13,13 @@ hour missing is missing (D25), and so is a mean over hours none of which qualify
 each cell's zone and calls the same reducers. Humidity thresholds use RH from temperature and dew point.
 """
 
+import warnings
 from collections.abc import Mapping
 
 import numpy as np
 
 NIGHT_FIRST_HOUR, NIGHT_LAST_HOUR = 20, 6  # local clock hours, inclusive
+MIN_HOURS = 20  # a day's min, mean or max needs this many of its hours (D25); counts and sums need them all
 
 
 def hours_at_or_above(values: np.ndarray, threshold: float) -> np.ndarray:
@@ -83,7 +85,7 @@ def across_days(daily: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
         # Any hot day makes it hot; otherwise a missing day leaves it unknown (as R's any() with NA)
         hot_past_5[n] = np.where((window == 1).any(axis=0), 1, np.where(np.isnan(window).any(axis=0), np.nan, 0))
     under_70 = np.asarray(daily["hours_rh_under_70"], dtype=float)
-    precip = np.asarray(daily["precipitation_mm"], dtype=float)
+    precip = np.asarray(daily["precipitation_sum"], dtype=float)
     dry = np.where(np.isnan(under_70) | np.isnan(precip), np.nan, (under_70 >= 6) & (precip < 1))
     return {"hot_past_5_days": hot_past_5, "dry": dry}
 
@@ -110,13 +112,24 @@ def daily_features(
     for day in days:
         today = dates == day
         features = calendar_features(temperature_c[today], rh_percent[today])
-        features["precipitation_mm"] = _sum_all(precipitation_mm[today])
+        features["precipitation_sum"] = _sum_all(precipitation_mm[today])
+        features |= daily_statistics("air_temperature", temperature_c[today])
         evening = from_8pm == day
         features |= from_8pm_features(temperature_c[evening], rh_percent[evening], is_night(hour[evening]))
         for name, value in features.items():
             out.setdefault(name, []).append(value)
     daily = {name: np.array(values, dtype=float) for name, values in out.items()}
     return days, daily | across_days(daily)
+
+
+def daily_statistics(name: str, hours: np.ndarray) -> dict[str, np.ndarray]:
+    """`{name}_min`, `_mean`, `_max` over a day's hours, NaN with fewer than MIN_HOURS of them (D25)."""
+    hours = np.asarray(hours, dtype=float)
+    enough = np.isfinite(hours).sum(axis=0) >= MIN_HOURS
+    with np.errstate(invalid="ignore"), warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)  # all-NaN cells
+        stats = {"min": np.nanmin(hours, axis=0), "mean": np.nanmean(hours, axis=0), "max": np.nanmax(hours, axis=0)}
+    return {f"{name}_{stat}": np.where(enough, value, np.nan) for stat, value in stats.items()}
 
 
 def _sum_all(values: np.ndarray) -> np.ndarray:

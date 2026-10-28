@@ -14,6 +14,7 @@ from typing import Literal
 import numpy as np
 
 from agdata.units import unit
+from agmodels import features
 
 DailyStat = Literal["min", "max", "mean", "sum"]
 
@@ -214,7 +215,7 @@ VARIABLES: dict[str, Variable] = {
 
 # Daily statistics (PLAN.md §5.2): each hourly variable's `daily` stats over each cell's local calendar day.
 # Min, max and mean keep the hourly unit and precision; sums have their own (shortwave's in MJ/m²).
-DAILY_MIN_HOURS = 20  # min, max and mean need this many hours of the day; sums need every hour (D25)
+DAILY_MIN_HOURS = features.MIN_HOURS  # min, max and mean need this many hours of the day; sums need every hour (D25)
 _SUMS: dict[str, tuple[str, float, float, float, float]] = {
     # hourly name: (unit, factor from the hourly unit, scale, offset, valid max)
     # Precip spends all of int16 on 0..1310 mm (offset) for 0.02 mm steps: at 0.1 mm, trace days rounded to 0 (D28)

@@ -14,6 +14,8 @@ from collections.abc import Mapping
 
 import numpy as np
 
+from agmodels.accumulate import rolling_sum, running_total
+from agmodels.lookup import steps_over
 from agmodels.spec import (
     SEVERITY_LEVELS,
     Biofix,
@@ -91,16 +93,11 @@ def dsv(temperature_c, hours) -> np.ndarray:
     h = np.asarray(hours, dtype=float)
     steps = np.select(
         [t < 7.2, t <= 11.6, t <= 15.0, t <= 26.6],
-        [np.zeros_like(h), _over(h, 15, 18, 21), _over(h, 12, 15, 18, 21), _over(h, 9, 12, 15, 18)],
+        [np.zeros_like(h), steps_over(h, 15, 18, 21), steps_over(h, 12, 15, 18, 21), steps_over(h, 9, 12, 15, 18)],
         0.0,
     )
     # No humid hours means no DSV (and no temperature to average); missing hours mean unknown
     return np.where(h == 0, 0.0, np.where(np.isnan(h) | np.isnan(t), np.nan, steps))
-
-
-def _over(hours: np.ndarray, *thresholds: float) -> np.ndarray:
-    """How many of the thresholds the hours exceed (booleans added in NumPy would OR, so count as numbers)."""
-    return sum(((hours > x).astype(float) for x in thresholds), np.zeros_like(hours))
 
 
 def outputs(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
@@ -123,12 +120,4 @@ def explore(temperature: float, hours: float) -> dict[str, float]:
 
 
 def _accumulated(values: np.ndarray, start: int) -> dict[str, np.ndarray]:
-    """Season total and 14-day total from `start`; a missing day adds nothing (NaN before `start`)."""
-    counted = np.where(
-        np.arange(values.shape[0]).reshape(-1, *([1] * (values.ndim - 1))) >= start, np.nan_to_num(values), 0
-    )
-    total = np.cumsum(counted, axis=0)
-    recent = total - np.concatenate([np.zeros((14, *values.shape[1:])), total[:-14]])[: values.shape[0]]
-    before = np.arange(values.shape[0]) < start
-    total[before], recent[before] = np.nan, np.nan
-    return {"dsv_total": total, "dsv_14_day": recent}
+    return {"dsv_total": running_total(values, start), "dsv_14_day": rolling_sum(values, 14, start)}

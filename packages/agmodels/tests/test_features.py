@@ -16,7 +16,9 @@ CRT_NAMES = {
     "temperature_mean_rh_over_90_from_8pm": "temperature_mean_rh_over_90",
     "hot_past_5_days": "hot_past_5_days",
     "dry": "dry",
-    "precipitation_mm": "precipitation_daily",
+    "precipitation_sum": "precipitation_daily",
+    "air_temperature_min": "temperature_min",
+    "air_temperature_max": "temperature_max",
 }
 
 
@@ -64,4 +66,4 @@ def test_v2_days_close_at_midnight():
     local = np.datetime64("2025-07-01T01", "h") + np.arange(24)  # hours ending 01:00 .. 24:00
     days, daily = f.daily_features(local, np.full(24, 25.0), np.full(24, 95.0), np.ones(24))
     assert [str(d) for d in days] == ["2025-07-01"]
-    assert daily["precipitation_mm"].tolist() == [24.0]
+    assert daily["precipitation_sum"].tolist() == [24.0]
