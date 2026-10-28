@@ -296,6 +296,9 @@ DAILY_FEATURES: dict[str, Variable] = {
         Variable("hours_rh_under_70", "Hours with RH below 70%", **_HOURS),
         Variable("hours_rh_over_80", "Hours with RH at or above 80%", **_HOURS),
         Variable("hours_rh_over_90", "Hours with RH at or above 90%", **_HOURS),
+        Variable(
+            "hours_rh_over_90_temperature_over_70f", "Hours with RH at or above 90% and at least 70 °F", **_HOURS
+        ),
         Variable("hours_rh_over_80_from_8pm", "Hours with RH at or above 80%, day from 8 pm", **_HOURS),
         Variable("hours_rh_over_90_from_8pm", "Hours with RH at or above 90%, day from 8 pm", **_HOURS),
         Variable("hours_rh_over_80_night", "Night hours (8 pm to 7 am) with RH at or above 80%", **_HOURS),

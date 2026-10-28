@@ -132,6 +132,12 @@
       "from": "deg",
       "to": "deg",
       "expected": 270
+    },
+    {
+      "value": 1000,
+      "from": "lb_ac",
+      "to": "kg_ha",
+      "expected": 1120.851156194
     }
   ],
   "display": [
@@ -214,6 +220,16 @@
       "stored": "percent",
       "system": "imperial",
       "unit": "percent"
+    },
+    {
+      "stored": "lb_ac",
+      "system": "metric",
+      "unit": "kg_ha"
+    },
+    {
+      "stored": "lb_ac",
+      "system": "imperial",
+      "unit": "lb_ac"
     }
   ]
 }

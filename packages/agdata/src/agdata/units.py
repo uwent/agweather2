@@ -57,6 +57,9 @@ UNITS: dict[str, Unit] = {
         Unit("MJ_m2", "MJ/m²", "radiant_exposure", digits=1),
         Unit("kWh_m2", "kWh/m²", "radiant_exposure", factor=3.6, digits=2),
         Unit("ly", "ly", "radiant_exposure", factor=0.041868, digits=0),
+        # mass per area: biomass, yield (base kg/ha); a pound per acre is 0.45359237 kg per 0.40468564224 ha
+        Unit("kg_ha", "kg/ha", "areal_mass", digits=0),
+        Unit("lb_ac", "lb/ac", "areal_mass", factor=0.45359237 / 0.40468564224, digits=0),
         # fractions and angles (no conversion)
         Unit("percent", "%", "fraction", digits=0),
         Unit("deg", "°", "angle", digits=0),
@@ -76,6 +79,7 @@ DISPLAY: dict[System, dict[str, str]] = {
         "speed": "km_h",
         "pressure": "kPa",
         "radiant_exposure": "MJ_m2",
+        "areal_mass": "kg_ha",
     },
     "imperial": {
         "temperature": "degF",
@@ -84,6 +88,7 @@ DISPLAY: dict[System, dict[str, str]] = {
         "speed": "mph",
         "pressure": "inHg",
         "radiant_exposure": "MJ_m2",
+        "areal_mass": "lb_ac",
     },
 }
 

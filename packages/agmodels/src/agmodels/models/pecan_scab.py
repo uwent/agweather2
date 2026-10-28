@@ -1,0 +1,81 @@
+"""Pecan scab hours: hours with RH at or above 90% and temperature at or above 70 °F, since March 1 or the last spray.
+
+The Oklahoma Mesonet's Pecan Scab Advisor (March 1 to August 31): spraying is recommended once 10 scab hours have
+accumulated for highly susceptible varieties, 20 for moderately and 30 for low susceptibility, and it has been 30 days
+since March 1 or 5 to 14 days since the last fungicide application. Risk here is the tool's: Low below 10 hours,
+Moderate from 10 (the highly susceptible varieties' threshold), High from 20, Very high from 30 (every variety's).
+Scab hours are counted from hourly values as a daily feature (`hours_rh_over_90_temperature_over_70f`, the calendar
+day), so the model itself reads days.
+
+Ported from the Crop Risk Tool (`build_pecan_scab`), whose code counts RH at or above 92% and temperature above
+21.1 °C, where its docs and the Mesonet say 90% and 70 °F: v2 follows the Mesonet (intended difference). Southern,
+beta: run at points through Open-Meteo until the box reaches the South.
+"""
+
+from collections.abc import Mapping
+
+import numpy as np
+
+from agmodels.accumulate import rolling_sum, running_total
+from agmodels.lookup import level_reached
+from agmodels.spec import Biofix, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk
+
+THRESHOLDS = (10, 20, 30)  # highly, moderately and low susceptible varieties' spray thresholds (scab hours)
+PECAN_STATES = ("AL", "AR", "AZ", "CA", "FL", "GA", "KS", "LA", "MO", "MS", "NC", "NM", "OK", "SC", "TN", "TX")
+
+SPEC = ModelSpec(
+    id="pecan-scab",
+    name="Pecan scab hours",
+    group="disease",
+    version="1.0",
+    status="beta",
+    summary="Hours warm (70 °F or more) and humid (RH 90% or more) since March 1 or the last fungicide spray, "
+    "against the spray thresholds for highly, moderately and low susceptible pecan varieties.",
+    topics=("pecan-scab",),
+    crops=("Pecan",),
+    citations=(
+        Citation(
+            "Oklahoma Mesonet: Pecan Scab Advisor.",
+            "https://www.mesonet.org/agriculture/horticulture/pecan/pecan-scab-advisor",
+        ),
+        Citation("University of Arkansas: Pecan scab.", "https://pecanscab.uada.edu/"),
+    ),
+    inputs=(
+        Quantity("hours_rh_over_90_temperature_over_70f", "Scab hours (RH ≥ 90% and ≥ 70 °F)", "hour", "Calendar day"),
+    ),
+    outputs=(
+        Quantity("scab_hours_total", "Scab hours since March 1 or the last spray", "hour"),
+        Quantity("scab_hours", "Scab hours", "hour"),
+        Quantity("scab_hours_14_day", "Scab hours in the last 14 days", "hour"),
+    ),
+    risk=Risk(
+        ("Low", "Moderate", "High", "Very high"),
+        "Scab hours since March 1 or the last spray: Low below 10, Moderate from 10 (spray highly susceptible "
+        "varieties such as Desirable, Pawnee and Wichita), High from 20 (moderately susceptible, such as Caddo, "
+        "Kiowa and Stuart), Very high from 30 (low susceptibility, such as Excel, Kanza and Lakota). The Mesonet also "
+        "waits 30 days after March 1, or 5 to 14 days after the last spray.",
+    ),
+    explorer=(ExplorerInput("scab_hours_total", "Scab hours since March 1 or the last spray", "hour", 0, 60, 1, 10),),
+    sweep={"scab_hours_total": tuple(float(h) for h in range(0, 41))},
+    region=PECAN_STATES,
+    season=("03-01", "08-31"),
+    biofix=Biofix("03-01", "March 1, or the last fungicide application"),
+    changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool, with the Mesonet's thresholds."),),
+)
+
+
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+    hours = np.asarray(inputs["hours_rh_over_90_temperature_over_70f"], dtype=float)
+    return {
+        "scab_hours_total": running_total(hours, biofix_index),
+        "scab_hours": hours,
+        "scab_hours_14_day": rolling_sum(hours, 14, biofix_index),
+    }
+
+
+def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
+    return level_reached(outputs["scab_hours_total"], *THRESHOLDS)
+
+
+def explore(scab_hours_total: float) -> dict[str, float]:
+    return {"risk": float(level_reached(scab_hours_total, *THRESHOLDS))}

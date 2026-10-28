@@ -43,6 +43,17 @@ def mean_where(values: np.ndarray, condition: np.ndarray) -> np.ndarray:
     return np.where(missing | (count == 0), np.nan, mean)
 
 
+# Pecan scab hours (Oklahoma Mesonet's Pecan Scab Advisor): RH at or above 90% and temperature at or above 70 °F
+SCAB_C = (70 - 32) / 1.8
+
+
+def hours_humid_and_warm(temperature_c, rh_percent, rh_from: float, temperature_from_c: float) -> np.ndarray:
+    """Hours with RH at or above `rh_from` and temperature at or above `temperature_from_c` together."""
+    t, rh = np.asarray(temperature_c, dtype=float), np.asarray(rh_percent, dtype=float)
+    missing = np.isnan(t).any(axis=0) | np.isnan(rh).any(axis=0)
+    return np.where(missing, np.nan, ((rh >= rh_from) & (t >= temperature_from_c)).sum(axis=0))
+
+
 def is_night(local_hour: np.ndarray) -> np.ndarray:
     hour = np.asarray(local_hour)
     return (hour >= NIGHT_FIRST_HOUR) | (hour <= NIGHT_LAST_HOUR)
@@ -59,6 +70,7 @@ def calendar_features(
         "hours_rh_under_70": hours_below(rh_percent, 70),
         "hours_rh_over_80": hours_at_or_above(rh_percent, 80),
         "hours_rh_over_90": hours_at_or_above(rh_percent, 90),
+        "hours_rh_over_90_temperature_over_70f": hours_humid_and_warm(temperature_c, rh_percent, 90, SCAB_C),
     }
 
 

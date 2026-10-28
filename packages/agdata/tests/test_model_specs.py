@@ -30,3 +30,12 @@ def test_every_insect_has_degree_day_cubes():
     for insect in INSECTS:
         thresholds = {insect.base_f} | ({insect.upper_f} if insect.upper_f is not None else set())
         assert thresholds <= set(DD_SINE_THRESHOLDS_F), insect.id
+
+
+def test_regions_are_states():
+    """Region masks come from the county grid's states (`agdata.places`), so every state a model names must be in it."""
+    from agdata.places import counties
+
+    states = {c.state for c in counties() if c}
+    for model in all_models().values():
+        assert set(model.SPEC.region) <= states, model.SPEC.id
