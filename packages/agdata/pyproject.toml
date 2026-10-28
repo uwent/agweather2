@@ -1,0 +1,13 @@
+[project]
+name = "agdata"
+version = "0.1.0"
+description = "Grid, variable catalog, Zarr stores, source adapters and tile encoding"
+requires-python = ">=3.13,<3.14"
+dependencies = ["agmodels", "numpy", "pyproj", "xarray", "zarr"]
+
+[build-system]
+requires = ["uv_build>=0.9,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+agmodels = { workspace = true }

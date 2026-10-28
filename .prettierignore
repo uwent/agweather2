@@ -1,0 +1,13 @@
+# generated from the Pydantic and OpenAPI schemas (CI checks they are current)
+frontend/types/generated
+
+node_modules
+app/static
+coverage
+playwright-report
+test-results
+tmp
+data
+.venv
+pnpm-lock.yaml
+uv.lock

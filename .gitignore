@@ -1,0 +1,33 @@
+# Scratch area: anything goes, nothing is committed
+/tmp/*
+!/tmp/.keep
+
+# Local data: the Zarr archive, GRIB downloads and pilot output live outside git
+/data/
+
+# Secrets: env files are never committed
+/.env*
+!/.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+/.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+/htmlcov/
+
+# Frontend
+node_modules/
+/app/static/vite/
+
+# Playwright
+/test-results/
+/playwright-report/
+
+# Editors / OS
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json

@@ -1,0 +1,10 @@
+[project]
+name = "agmodels"
+version = "0.1.0"
+description = "Degree-day, disease and insect models: pure functions on hourly and daily weather"
+requires-python = ">=3.13,<3.14"
+dependencies = ["numpy", "pandas", "xarray"]
+
+[build-system]
+requires = ["uv_build>=0.9,<0.14"]
+build-backend = "uv_build"

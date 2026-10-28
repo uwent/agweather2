@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# The same checks run locally (bin/ci) and on GitHub Actions (.github/workflows/ci.yml)
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+step() {
+  local name=$1; shift
+  printf '\n\033[1m== %s\033[0m  (%s)\n' "$name" "$*"
+  local start=$SECONDS
+  if ! "$@"; then
+    printf '\n\033[31mFAILED: %s\033[0m\n' "$name"
+    exit 1
+  fi
+  printf '\033[32mok\033[0m %ss\n' $((SECONDS - start))
+}
+
+step "Setup: Python" uv sync --locked
+step "Setup: frontend" pnpm install --frozen-lockfile
+
+step "Style: Python" uv run ruff format --check .
+step "Lint: Python" uv run ruff check .
+step "Style: frontend" pnpm format:check
+step "Lint: frontend" pnpm lint
+step "Types: Python" pnpm typecheck:py
+step "Types: Svelte/TypeScript" pnpm check
+
+step "Tests: Python" uv run pytest
+step "Tests: frontend" pnpm test
+
+printf '\n\033[32mAll checks passed\033[0m\n'

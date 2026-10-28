@@ -1,0 +1,41 @@
+# Workspace root: not a package itself. Members are the two libraries and the Django app.
+[project]
+name = "agweather2"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = ["agmodels", "agdata", "agweather-app"]
+
+[dependency-groups]
+dev = ["pytest", "pytest-socket", "ruff"]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/*", "app"]
+
+[tool.uv.sources]
+agmodels = { workspace = true }
+agdata = { workspace = true }
+agweather-app = { workspace = true }
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+extend-exclude = ["tmp", "data", "node_modules"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "DTZ", "RUF"]
+
+[tool.pytest.ini_options]
+# Tests never use the network (CLAUDE.md); fixtures are recorded
+addopts = "--import-mode=importlib --disable-socket --allow-unix-socket"
+testpaths = ["packages/agmodels/tests", "packages/agdata/tests", "app"]
+
+[tool.pyright]
+include = ["packages", "app"]
+exclude = ["**/node_modules", "**/__pycache__", "tmp", "data"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.13"
+typeCheckingMode = "basic"
