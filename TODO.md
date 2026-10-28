@@ -31,6 +31,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
   kill $(cat data/write.lock)         # stop it; the current block is lost, finished blocks are kept
   ```
   After a WSL restart it isn't running: start it again with the same command.
+- [ ] **Phase 2 exit review:** once Claude has rerun `docs/validation-archive.md` over the whole backfill, read it and agree the tolerances (PLAN.md Phase 2 H). Leave `bin/dev` running for a week afterwards so the hourly job and `/up` can be checked.
 
 ## Phase 3: Model library (ahead of time)
 
