@@ -86,3 +86,12 @@ write(
   ),
   "risk_from_prob_sweep"
 )
+
+# Insects: degree days from the tool's sine, the key's severity and stage, and the end-of-season freeze, over the year
+for (id in names(insect_models)) {
+  m <- insect_models[[id]]
+  write(
+    build_insect(daily, m$tmin, m$tmax, m$key) |> select(date, gdd_f, cum_gdd, freezing, kill, severity, label),
+    paste0("insect_", id, "_eau_claire_2025")
+  )
+}

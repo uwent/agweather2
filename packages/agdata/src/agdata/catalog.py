@@ -238,11 +238,18 @@ def _daily_statistic(v: Variable, stat: DailyStat) -> DailyStatistic:
     if stat == "sum":
         unit_, factor, scale, offset, high = _SUMS[v.name]
         long_name = f"{v.long_name}, daily total"
-        daily = Variable(name, long_name, unit_, scale=scale, offset=offset, valid_min=0, valid_max=high)
+        daily = Variable(name, long_name, unit_, scale=scale, offset=offset, valid_min=0, valid_max=high, derived=True)
         return DailyStatistic(daily, v.name, stat, factor)
     long_name = f"{v.long_name}, daily {stat}"
     daily = Variable(
-        name, long_name, v.unit, scale=v.scale, offset=v.offset, valid_min=v.valid_min, valid_max=v.valid_max
+        name,
+        long_name,
+        v.unit,
+        scale=v.scale,
+        offset=v.offset,
+        valid_min=v.valid_min,
+        valid_max=v.valid_max,
+        derived=True,
     )
     return DailyStatistic(daily, v.name, stat)
 
@@ -295,9 +302,14 @@ DAILY_VARIABLES.update(DAILY_FEATURES)
 # Running totals from local January 1 (D26, D27): any range is cum[end] - cum[start - 1]. Degree days are
 # cubes per threshold: single sine is linear, so a sine pair is the difference of its two thresholds' cubes.
 # Thresholds are those the planned models use (°F, D18); corn's modified average isn't linear, so it has its own.
-DD_SINE_THRESHOLDS_F: tuple[float, ...] = (39.2, 41, 42.8, 45, 48, 50, 52, 55, 80.1, 86, 90, 92)
+DD_SINE_THRESHOLDS_F: tuple[float, ...] = (39.2, 41, 42.8, 45, 48.2, 50, 52, 55, 80.1, 86, 90, 92)
 DD_MODIFIED_PAIRS_F: tuple[tuple[float, float], ...] = ((50, 86),)
-_DD_RANGE = {"scale": 0.5, "valid_min": 0, "valid_max": 16000}  # a base-39.2 year in Florida is about 13,000
+_DD_RANGE = {
+    "scale": 0.5,
+    "valid_min": 0,
+    "valid_max": 16000,
+    "derived": True,
+}  # a base-39.2 year in Florida is about 13,000
 
 
 def dd_name(method: Literal["sine", "modified"], base: float, upper: float | None = None) -> str:
@@ -323,14 +335,24 @@ def _cumulative() -> list[Variable]:
         for base, upper in DD_MODIFIED_PAIRS_F
     ]
     totals = [
-        Variable("precipitation", "Precipitation since Jan 1", "mm", scale=0.2, valid_min=0, valid_max=6000),
-        Variable("et0", "FAO-56 grass reference ET since Jan 1", "mm", scale=0.1, valid_min=0, valid_max=3000),
+        Variable(
+            "precipitation", "Precipitation since Jan 1", "mm", scale=0.2, valid_min=0, valid_max=6000, derived=True
+        ),
+        Variable(
+            "et0", "FAO-56 grass reference ET since Jan 1", "mm", scale=0.1, valid_min=0, valid_max=3000, derived=True
+        ),
     ]
     # Running counts of days in the totals that were estimated across a gap or left out (D25). Every DD cube
     # comes from the daily min and max temperature, so they share the temperature counts
     counts = [
         Variable(
-            f"{basis}_{kind}_days", f"Days with {basis} {kind} since Jan 1", "day", scale=1, valid_min=0, valid_max=366
+            f"{basis}_{kind}_days",
+            f"Days with {basis} {kind} since Jan 1",
+            "day",
+            scale=1,
+            valid_min=0,
+            valid_max=366,
+            derived=True,
         )
         for basis, kinds in (
             ("temperature", ("estimated", "missing")),

@@ -1,0 +1,366 @@
+date,gdd_f,cum_gdd,freezing,kill,severity,label
+2025-01-01,0,0,1,0,0,Before spring emergence
+2025-01-02,0,0,2,0,0,Before spring emergence
+2025-01-03,0,0,3,0,0,Before spring emergence
+2025-01-04,0,0,4,0,0,Before spring emergence
+2025-01-05,0,0,5,0,0,Before spring emergence
+2025-01-06,0,0,6,0,0,Before spring emergence
+2025-01-07,0,0,7,0,0,Before spring emergence
+2025-01-08,0,0,8,0,0,Before spring emergence
+2025-01-09,0,0,9,0,0,Before spring emergence
+2025-01-10,0,0,10,0,0,Before spring emergence
+2025-01-11,0,0,11,0,0,Before spring emergence
+2025-01-12,0,0,12,0,0,Before spring emergence
+2025-01-13,0,0,13,0,0,Before spring emergence
+2025-01-14,0,0,14,0,0,Before spring emergence
+2025-01-15,0,0,14,0,0,Before spring emergence
+2025-01-16,0,0,14,0,0,Before spring emergence
+2025-01-17,0,0,14,0,0,Before spring emergence
+2025-01-18,0,0,14,0,0,Before spring emergence
+2025-01-19,0,0,14,0,0,Before spring emergence
+2025-01-20,0,0,14,0,0,Before spring emergence
+2025-01-21,0,0,14,0,0,Before spring emergence
+2025-01-22,0,0,14,0,0,Before spring emergence
+2025-01-23,0,0,14,0,0,Before spring emergence
+2025-01-24,0,0,14,0,0,Before spring emergence
+2025-01-25,0,0,14,0,0,Before spring emergence
+2025-01-26,0,0,14,0,0,Before spring emergence
+2025-01-27,0,0,14,0,0,Before spring emergence
+2025-01-28,0.4194952669025947,0.4194952669025947,14,0,0,Before spring emergence
+2025-01-29,0,0.4194952669025947,14,0,0,Before spring emergence
+2025-01-30,2.1707328521384173,2.590228119041012,14,0,0,Before spring emergence
+2025-01-31,0.2547032227655724,2.8449313418065842,14,0,0,Before spring emergence
+2025-02-01,0,2.8449313418065842,14,0,0,Before spring emergence
+2025-02-02,0.9721116208262095,3.8170429626327937,13,0,0,Before spring emergence
+2025-02-03,0,3.8170429626327937,13,0,0,Before spring emergence
+2025-02-04,0,3.8170429626327937,13,0,0,Before spring emergence
+2025-02-05,0,3.8170429626327937,13,0,0,Before spring emergence
+2025-02-06,0,3.8170429626327937,13,0,0,Before spring emergence
+2025-02-07,0,3.8170429626327937,13,0,0,Before spring emergence
+2025-02-08,0,3.8170429626327937,13,0,0,Before spring emergence
+2025-02-09,0,3.8170429626327937,13,0,0,Before spring emergence
+2025-02-10,0,3.8170429626327937,13,0,0,Before spring emergence
+2025-02-11,0,3.8170429626327937,13,0,0,Before spring emergence
+2025-02-12,0,3.8170429626327937,13,0,0,Before spring emergence
+2025-02-13,0,3.8170429626327937,13,0,0,Before spring emergence
+2025-02-14,0,3.8170429626327937,13,0,0,Before spring emergence
+2025-02-15,0,3.8170429626327937,13,0,0,Before spring emergence
+2025-02-16,0,3.8170429626327937,14,0,0,Before spring emergence
+2025-02-17,0,3.8170429626327937,14,0,0,Before spring emergence
+2025-02-18,0,3.8170429626327937,14,0,0,Before spring emergence
+2025-02-19,0,3.8170429626327937,14,0,0,Before spring emergence
+2025-02-20,0,3.8170429626327937,14,0,0,Before spring emergence
+2025-02-21,0,3.8170429626327937,14,0,0,Before spring emergence
+2025-02-22,0,3.8170429626327937,14,0,0,Before spring emergence
+2025-02-23,0,3.8170429626327937,14,0,0,Before spring emergence
+2025-02-24,5.056803785852204,8.873846748484999,13,0,0,Before spring emergence
+2025-02-25,1.721327680272518,10.595174428757517,12,0,0,Before spring emergence
+2025-02-26,4.188893410354929,14.784067839112446,11,0,0,Before spring emergence
+2025-02-27,0.8992086093356592,15.683276448448105,10,0,0,Before spring emergence
+2025-02-28,1.5428986314954523,17.226175079943555,10,0,0,Before spring emergence
+2025-03-01,0,17.226175079943555,10,0,0,Before spring emergence
+2025-03-02,0,17.226175079943555,10,0,0,Before spring emergence
+2025-03-03,3.528224246667562,20.754399326611118,9,0,0,Before spring emergence
+2025-03-04,3.574781150174568,24.329180476785687,8,0,0,Before spring emergence
+2025-03-05,0,24.329180476785687,8,0,0,Before spring emergence
+2025-03-06,0,24.329180476785687,8,0,0,Before spring emergence
+2025-03-07,0,24.329180476785687,8,0,0,Before spring emergence
+2025-03-08,0,24.329180476785687,8,0,0,Before spring emergence
+2025-03-09,3.842597208308471,28.171777685094156,7,0,0,Before spring emergence
+2025-03-10,10.671374192322574,38.84315187741673,7,0,0,Before spring emergence
+2025-03-11,1.025351495135338,39.86850337255207,8,0,0,Before spring emergence
+2025-03-12,5.071695520344603,44.940198892896674,8,0,0,Before spring emergence
+2025-03-13,8.099525471966672,53.039724364863346,8,0,0,Before spring emergence
+2025-03-14,19.89,72.92972436486335,7,0,0,Before spring emergence
+2025-03-15,4.375842714829022,77.30556707969237,6,0,0,Before spring emergence
+2025-03-16,0,77.30556707969237,6,0,0,Before spring emergence
+2025-03-17,6.455434331496658,83.76100141118903,7,0,0,Before spring emergence
+2025-03-18,4.185369705154223,87.94637111634324,7,0,0,Before spring emergence
+2025-03-19,0,87.94637111634324,6,0,0,Before spring emergence
+2025-03-20,0.4946284709407247,88.44099958728397,6,0,0,Before spring emergence
+2025-03-21,5.160075400938674,93.60107498822265,5,0,0,Before spring emergence
+2025-03-22,0,93.60107498822265,5,0,0,Before spring emergence
+2025-03-23,1.5959546319496711,95.19702962017232,5,0,0,Before spring emergence
+2025-03-24,0.7600573809139064,95.95708700108622,6,0,0,Before spring emergence
+2025-03-25,2.719474166837183,98.67656116792341,6,0,0,Before spring emergence
+2025-03-26,4.416557420867885,103.0931185887913,7,0,0,Before spring emergence
+2025-03-27,7.754689372629058,110.84780796142034,7,0,0,Before spring emergence
+2025-03-28,19.62,130.46780796142036,7,0,0,Before spring emergence
+2025-03-29,0.8651050558831429,131.3329130173035,7,0,0,Before spring emergence
+2025-03-30,0,131.3329130173035,6,0,0,Before spring emergence
+2025-03-31,0,131.3329130173035,6,0,0,Before spring emergence
+2025-04-01,0.4363264503052827,131.76923946760877,7,0,0,Before spring emergence
+2025-04-02,3.0626600095645586,134.83189947717332,7,0,0,Before spring emergence
+2025-04-03,1.6615776058793876,136.4934770830527,6,0,0,Before spring emergence
+2025-04-04,3.3969255291399216,139.89040261219264,6,0,0,Before spring emergence
+2025-04-05,0.7647663752169142,140.65516898740955,5,0,0,Before spring emergence
+2025-04-06,4.888871415892167,145.54404040330172,6,0,0,Before spring emergence
+2025-04-07,0,145.54404040330172,6,0,0,Before spring emergence
+2025-04-08,0.8642738010300299,146.40831420433176,6,0,0,Before spring emergence
+2025-04-09,6.0741229180713985,152.48243712240316,5,0,0,Before spring emergence
+2025-04-10,2.720315517231507,155.20275263963467,5,0,0,Before spring emergence
+2025-04-11,3.6364166505646196,158.8391692901993,5,0,0,Before spring emergence
+2025-04-12,9.370471886018331,168.20964117621762,5,0,0,Before spring emergence
+2025-04-13,16.38,184.5896411762176,5,0,0,Before spring emergence
+2025-04-14,7.793226194099259,192.38286737031686,4,0,0,Before spring emergence
+2025-04-15,3.504386251035931,195.8872536213528,3,0,0,Before spring emergence
+2025-04-16,5.171638231689085,201.0588918530419,3,0,0,Before spring emergence
+2025-04-17,13.319999999999999,214.3788918530419,3,0,0,Before spring emergence
+2025-04-18,12.690000000000001,227.0688918530419,3,0,0,Before spring emergence
+2025-04-19,4.454556460621663,231.52344831366355,3,0,0,Before spring emergence
+2025-04-20,5.98197014616005,237.5054184598236,2,0,0,Before spring emergence
+2025-04-21,6.967198430170752,244.47261688999436,1,0,0,Before spring emergence
+2025-04-22,15.120000000000001,259.59261688999436,0,0,0,Before spring emergence
+2025-04-23,17.37,276.96261688999437,0,0,0,Before spring emergence
+2025-04-24,12.870000000000001,289.83261688999437,0,0,0,Before spring emergence
+2025-04-25,8.01,297.84261688999436,0,0,1,1st gen: Low abundance and risk of damage
+2025-04-26,8.404993266732472,306.2476101567268,0,0,1,1st gen: Low abundance and risk of damage
+2025-04-27,13.5,319.7476101567268,0,0,2,1st gen: Medium abundance and risk of damage
+2025-04-28,19.08,338.82761015672685,0,0,3,1st gen: High abundance and risk of damage
+2025-04-29,11.43,350.2576101567268,0,0,4,1st gen: Peak adult flight and risk of damage
+2025-04-30,11.132155073764428,361.38976523049126,0,0,4,1st gen: Peak adult flight and risk of damage
+2025-05-01,14.040000000000001,375.4297652304912,0,0,4,1st gen: Peak adult flight and risk of damage
+2025-05-02,6.75,382.1797652304912,0,0,4,1st gen: Peak adult flight and risk of damage
+2025-05-03,9.369740621879254,391.5495058523705,0,0,4,1st gen: Peak adult flight and risk of damage
+2025-05-04,19.259999999999998,410.8095058523705,0,0,4,1st gen: Peak adult flight and risk of damage
+2025-05-05,18.900000000000002,429.7095058523705,0,0,4,1st gen: Peak adult flight and risk of damage
+2025-05-06,22.14,451.8495058523705,0,0,4,1st gen: Peak adult flight and risk of damage
+2025-05-07,18.45,470.2995058523705,0,0,4,1st gen: Peak adult flight and risk of damage
+2025-05-08,12.258287956767665,482.55779380913816,0,0,4,1st gen: Peak adult flight and risk of damage
+2025-05-09,19.98,502.5377938091382,0,0,4,1st gen: Peak adult flight and risk of damage
+2025-05-10,20.52,523.0577938091382,0,0,3,1st gen: High abundance and risk of damage
+2025-05-11,25.2,548.2577938091382,0,0,3,1st gen: High abundance and risk of damage
+2025-05-12,29.52,577.7777938091382,0,0,3,1st gen: High abundance and risk of damage
+2025-05-13,31.86,609.6377938091382,0,0,2,1st gen: Medium abundance and risk of damage
+2025-05-14,31.319999999999997,640.9577938091381,0,0,2,1st gen: Medium abundance and risk of damage
+2025-05-15,33.66,674.6177938091382,0,0,1,1st gen: Low abundance and risk of damage
+2025-05-16,21.419999999999998,696.0377938091382,0,0,1,1st gen: Low abundance and risk of damage
+2025-05-17,11.790000000000001,707.8277938091381,0,0,1,1st gen: Low abundance and risk of damage
+2025-05-18,11.519999999999998,719.3477938091381,0,0,1,1st gen: Low abundance and risk of damage
+2025-05-19,9.487780199392793,728.8355740085309,0,0,1,1st gen: Low abundance and risk of damage
+2025-05-20,6.3,735.135574008531,0,0,1,1st gen: Low abundance and risk of damage
+2025-05-21,7.920000000000001,743.0555740085309,0,0,1,1st gen: Low abundance and risk of damage
+2025-05-22,11.340000000000002,754.395574008531,0,0,1,1st gen: Low abundance and risk of damage
+2025-05-23,9.72,764.115574008531,0,0,1,1st gen: Low abundance and risk of damage
+2025-05-24,12.15,776.265574008531,0,0,1,1st gen: Low abundance and risk of damage
+2025-05-25,15.03,791.2955740085309,0,0,1,1st gen: Low abundance and risk of damage
+2025-05-26,18.180000000000003,809.475574008531,0,0,1,1st gen: Low abundance and risk of damage
+2025-05-27,20.7,830.1755740085309,0,0,0,1st gen: Absent or very low abundance
+2025-05-28,17.1,847.275574008531,0,0,0,1st gen: Absent or very low abundance
+2025-05-29,21.509999999999998,868.785574008531,0,0,0,1st gen: Absent or very low abundance
+2025-05-30,27.090000000000003,895.875574008531,0,0,0,1st gen: Absent or very low abundance
+2025-05-31,26.280000000000005,922.155574008531,0,0,0,1st gen: Absent or very low abundance
+2025-06-01,24.840000000000003,946.995574008531,0,0,0,1st gen: Absent or very low abundance
+2025-06-02,34.830000000000005,981.825574008531,0,0,0,1st gen: Absent or very low abundance
+2025-06-03,26.009999999999998,1007.835574008531,0,0,1,2nd gen: Low abundance and risk of damage
+2025-06-04,23.130000000000003,1030.965574008531,0,0,2,2nd gen: Medium abundance and risk of damage
+2025-06-05,24.569999999999997,1055.535574008531,0,0,4,2nd gen: Peak adult flight and risk of damage
+2025-06-06,25.919999999999998,1081.455574008531,0,0,4,2nd gen: Peak adult flight and risk of damage
+2025-06-07,26.46,1107.915574008531,0,0,4,2nd gen: Peak adult flight and risk of damage
+2025-06-08,23.580000000000002,1131.4955740085309,0,0,4,2nd gen: Peak adult flight and risk of damage
+2025-06-09,18.81,1150.305574008531,0,0,4,2nd gen: Peak adult flight and risk of damage
+2025-06-10,24.75,1175.055574008531,0,0,4,2nd gen: Peak adult flight and risk of damage
+2025-06-11,28.71,1203.765574008531,0,0,4,2nd gen: Peak adult flight and risk of damage
+2025-06-12,26.280000000000005,1230.045574008531,0,0,4,2nd gen: Peak adult flight and risk of damage
+2025-06-13,16.56,1246.605574008531,0,0,3,2nd gen: High abundance and risk of damage
+2025-06-14,20.52,1267.125574008531,0,0,3,2nd gen: High abundance and risk of damage
+2025-06-15,24.480000000000004,1291.605574008531,0,0,3,2nd gen: High abundance and risk of damage
+2025-06-16,31.590000000000003,1323.195574008531,0,0,3,2nd gen: High abundance and risk of damage
+2025-06-17,31.139999999999997,1354.335574008531,0,0,2,2nd gen: Medium abundance and risk of damage
+2025-06-18,30.330000000000002,1384.665574008531,0,0,2,2nd gen: Medium abundance and risk of damage
+2025-06-19,30.869999999999997,1415.535574008531,0,0,1,2nd gen: Low abundance and risk of damage
+2025-06-20,37.53,1453.065574008531,0,0,1,2nd gen: Low abundance and risk of damage
+2025-06-21,41.67,1494.7355740085309,0,0,1,2nd gen: Low abundance and risk of damage
+2025-06-22,46.71,1541.445574008531,0,0,1,2nd gen: Low abundance and risk of damage
+2025-06-23,41.13,1582.575574008531,0,0,0,2nd gen: Absent or very low abundance
+2025-06-24,33.660000000000004,1616.235574008531,0,0,0,2nd gen: Absent or very low abundance
+2025-06-25,27.990000000000002,1644.2255740085309,0,0,0,2nd gen: Absent or very low abundance
+2025-06-26,27,1671.2255740085309,0,0,1,3rd gen: Low abundance and risk of damage
+2025-06-27,27.81,1699.035574008531,0,0,1,3rd gen: Low abundance and risk of damage
+2025-06-28,33.21,1732.245574008531,0,0,3,3rd gen: High abundance and risk of damage
+2025-06-29,36.72,1768.965574008531,0,0,4,3rd gen: Peak adult flight and risk of damage
+2025-06-30,32.67,1801.635574008531,0,0,4,3rd gen: Peak adult flight and risk of damage
+2025-07-01,32.580000000000005,1834.215574008531,0,0,4,3rd gen: Peak adult flight and risk of damage
+2025-07-02,34.65,1868.865574008531,0,0,4,3rd gen: Peak adult flight and risk of damage
+2025-07-03,37.88999999999999,1906.755574008531,0,0,4,3rd gen: Peak adult flight and risk of damage
+2025-07-04,39.78,1946.535574008531,0,0,4,3rd gen: Peak adult flight and risk of damage
+2025-07-05,35.63999999999999,1982.175574008531,0,0,4,3rd gen: Peak adult flight and risk of damage
+2025-07-06,35.010000000000005,2017.185574008531,0,0,3,3rd gen: High abundance and risk of damage
+2025-07-07,32.4,2049.585574008531,0,0,3,3rd gen: High abundance and risk of damage
+2025-07-08,33.57,2083.155574008531,0,0,2,3rd gen: Medium abundance and risk of damage
+2025-07-09,31.14,2114.295574008531,0,0,2,3rd gen: Medium abundance and risk of damage
+2025-07-10,31.41,2145.705574008531,0,0,2,3rd gen: Medium abundance and risk of damage
+2025-07-11,30.96,2176.665574008531,0,0,1,3rd gen: Low abundance and risk of damage
+2025-07-12,32.04,2208.705574008531,0,0,1,3rd gen: Low abundance and risk of damage
+2025-07-13,31.41,2240.115574008531,0,0,1,3rd gen: Low abundance and risk of damage
+2025-07-14,37.35,2277.465574008531,0,0,1,3rd gen: Low abundance and risk of damage
+2025-07-15,40.14,2317.6055740085308,0,0,1,3rd gen: Low abundance and risk of damage
+2025-07-16,23.31,2340.915574008531,0,0,1,3rd gen: Low abundance and risk of damage
+2025-07-17,22.5,2363.415574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-07-18,25.02,2388.435574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-07-19,31.5,2419.935574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-07-20,27.989999999999995,2447.925574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-07-21,30.6,2478.525574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-07-22,38.43000000000001,2516.955574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-07-23,40.230000000000004,2557.185574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-07-24,36.45,2593.635574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-07-25,34.2,2627.835574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-07-26,37.89,2665.725574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-07-27,39.6,2705.325574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-07-28,39.06000000000001,2744.385574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-07-29,37.71,2782.095574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-07-30,33.03,2815.125574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-07-31,26.91,2842.035574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-01,25.919999999999998,2867.955574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-02,26.639999999999997,2894.595574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-03,28.44,2923.035574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-04,29.97,2953.005574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-05,31.230000000000004,2984.235574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-06,34.11,3018.345574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-07,37.080000000000005,3055.425574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-08,40.95,3096.375574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-09,35.28,3131.655574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-10,33.66,3165.315574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-11,30.780000000000005,3196.095574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-12,33.12,3229.215574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-13,29.790000000000003,3259.005574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-14,32.67,3291.675574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-15,37.35,3329.025574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-16,34.29,3363.315574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-17,32.85,3396.165574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-18,28.619999999999997,3424.785574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-19,33.66,3458.445574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-20,32.85,3491.295574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-21,31.95,3523.245574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-22,31.590000000000003,3554.8355740085312,0,0,0,3rd gen: Absent or very low abundance
+2025-08-23,24.480000000000004,3579.3155740085313,0,0,0,3rd gen: Absent or very low abundance
+2025-08-24,20.97,3600.285574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-25,19.62,3619.905574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-26,21.780000000000005,3641.685574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-27,25.830000000000002,3667.515574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-28,27,3694.515574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-29,20.43,3714.945574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-30,23.85,3738.795574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-08-31,24.569999999999997,3763.365574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-01,24.840000000000003,3788.205574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-02,25.11,3813.3155740085313,0,0,0,3rd gen: Absent or very low abundance
+2025-09-03,15.75,3829.0655740085313,0,0,0,3rd gen: Absent or very low abundance
+2025-09-04,11.07,3840.135574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-05,10.8,3850.935574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-06,13.05,3863.985574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-07,12.6,3876.5855740085312,0,0,0,3rd gen: Absent or very low abundance
+2025-09-08,20.97,3897.555574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-09,27.990000000000002,3925.545574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-10,26.91,3952.455574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-11,25.830000000000002,3978.285574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-12,29.25,4007.535574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-13,32.67,4040.205574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-14,34.019999999999996,4074.225574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-15,34.47,4108.695574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-16,35.730000000000004,4144.425574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-17,34.56,4178.985574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-18,33.57,4212.555574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-19,29.880000000000003,4242.435574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-20,27.540000000000003,4269.975574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-21,26.369999999999997,4296.345574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-22,26.64,4322.985574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-23,25.919999999999998,4348.905574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-24,23.22,4372.125574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-25,23.22,4395.345574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-26,25.47,4420.815574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-27,24.389999999999997,4445.205574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-28,19.980000000000004,4465.185574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-29,28.35,4493.535574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-09-30,30.780000000000005,4524.315574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-10-01,28.980000000000004,4553.295574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-10-02,31.589999999999996,4584.885574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-10-03,34.74,4619.625574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-10-04,36.63,4656.255574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-10-05,30.330000000000002,4686.585574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-10-06,16.02,4702.605574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-10-07,13.589999999999998,4716.195574008531,0,0,0,3rd gen: Absent or very low abundance
+2025-10-08,7.800984962315631,4723.996558970846,0,0,0,3rd gen: Absent or very low abundance
+2025-10-09,12.51643814002061,4736.512997110867,0,0,0,3rd gen: Absent or very low abundance
+2025-10-10,17.730000000000004,4754.242997110868,0,0,0,3rd gen: Absent or very low abundance
+2025-10-11,11.37061982763518,4765.613616938503,0,0,0,3rd gen: Absent or very low abundance
+2025-10-12,18.180000000000003,4783.793616938502,0,0,0,3rd gen: Absent or very low abundance
+2025-10-13,16.380000000000003,4800.173616938502,0,0,0,3rd gen: Absent or very low abundance
+2025-10-14,10.08,4810.253616938502,0,0,0,3rd gen: Absent or very low abundance
+2025-10-15,11.969999999999997,4822.223616938502,0,0,0,3rd gen: Absent or very low abundance
+2025-10-16,16.830000000000002,4839.053616938502,0,0,0,3rd gen: Absent or very low abundance
+2025-10-17,26.010000000000005,4865.0636169385025,0,0,0,3rd gen: Absent or very low abundance
+2025-10-18,17.64,4882.703616938503,0,0,0,3rd gen: Absent or very low abundance
+2025-10-19,9.090000000000002,4891.793616938502,0,0,0,3rd gen: Absent or very low abundance
+2025-10-20,10.590079991259321,4902.383696929762,0,0,0,3rd gen: Absent or very low abundance
+2025-10-21,4.41,4906.793696929762,0,0,0,3rd gen: Absent or very low abundance
+2025-10-22,3.267343085117019,4910.061040014879,0,0,0,3rd gen: Absent or very low abundance
+2025-10-23,2.3083646089458507,4912.369404623824,0,0,0,3rd gen: Absent or very low abundance
+2025-10-24,2.5620242067551047,4914.9314288305795,1,1,0,3rd gen: Absent or very low abundance
+2025-10-25,5.309999999999999,4920.24142883058,1,1,0,3rd gen: Absent or very low abundance
+2025-10-26,9.14875542687112,4929.3901842574505,1,1,0,3rd gen: Absent or very low abundance
+2025-10-27,8.751543205683856,4938.141727463135,1,1,0,3rd gen: Absent or very low abundance
+2025-10-28,6.684529035741444,4944.826256498876,1,1,0,3rd gen: Absent or very low abundance
+2025-10-29,6.5284816381336475,4951.35473813701,1,1,0,3rd gen: Absent or very low abundance
+2025-10-30,3.4440614038489494,4954.7987995408585,1,1,0,3rd gen: Absent or very low abundance
+2025-10-31,2.244893894966759,4957.043693435826,1,1,0,3rd gen: Absent or very low abundance
+2025-11-01,2.187921357414511,4959.23161479324,1,1,0,3rd gen: Absent or very low abundance
+2025-11-02,2.628848343100609,4961.8604631363405,1,1,0,3rd gen: Absent or very low abundance
+2025-11-03,8.01,4969.870463136341,1,1,0,3rd gen: Absent or very low abundance
+2025-11-04,7.866773823501071,4977.7372369598415,1,1,0,3rd gen: Absent or very low abundance
+2025-11-05,6.03863234102408,4983.775869300865,1,1,0,3rd gen: Absent or very low abundance
+2025-11-06,3.7516022120729247,4987.527471512939,1,1,0,3rd gen: Absent or very low abundance
+2025-11-07,3.9173788760664916,4991.444850389005,0,0,0,3rd gen: Absent or very low abundance
+2025-11-08,0,4991.444850389005,1,1,0,3rd gen: Absent or very low abundance
+2025-11-09,0,4991.444850389005,2,1,0,3rd gen: Absent or very low abundance
+2025-11-10,0,4991.444850389005,3,1,0,3rd gen: Absent or very low abundance
+2025-11-11,1.2420256691490277,4992.686876058155,4,1,0,3rd gen: Absent or very low abundance
+2025-11-12,3.6661735056472233,4996.3530495638015,4,1,0,3rd gen: Absent or very low abundance
+2025-11-13,3.740688817482258,5000.093738381283,5,1,0,3rd gen: Absent or very low abundance
+2025-11-14,8.312015818479175,5008.405754199763,5,1,0,3rd gen: Absent or very low abundance
+2025-11-15,8.969306152454546,5017.375060352218,5,1,0,3rd gen: Absent or very low abundance
+2025-11-16,1.101742724255271,5018.476803076473,6,1,0,3rd gen: Absent or very low abundance
+2025-11-17,0.2275520644814785,5018.704355140954,7,1,0,3rd gen: Absent or very low abundance
+2025-11-18,0,5018.704355140954,8,1,0,3rd gen: Absent or very low abundance
+2025-11-19,0,5018.704355140954,9,1,0,3rd gen: Absent or very low abundance
+2025-11-20,3.0200367939288664,5021.724391934883,9,1,0,3rd gen: Absent or very low abundance
+2025-11-21,1.1606867637619271,5022.885078698645,10,1,0,3rd gen: Absent or very low abundance
+2025-11-22,2.024379114919998,5024.909457813565,10,1,0,3rd gen: Absent or very low abundance
+2025-11-23,3.8125401837977866,5028.721997997362,9,1,0,3rd gen: Absent or very low abundance
+2025-11-24,4.1381900575292345,5032.860188054892,8,1,0,3rd gen: Absent or very low abundance
+2025-11-25,4.5,5037.360188054892,7,1,0,3rd gen: Absent or very low abundance
+2025-11-26,0,5037.360188054892,8,1,0,3rd gen: Absent or very low abundance
+2025-11-27,0,5037.360188054892,8,1,0,3rd gen: Absent or very low abundance
+2025-11-28,0,5037.360188054892,9,1,0,3rd gen: Absent or very low abundance
+2025-11-29,0,5037.360188054892,10,1,0,3rd gen: Absent or very low abundance
+2025-11-30,0,5037.360188054892,10,1,0,3rd gen: Absent or very low abundance
+2025-12-01,0,5037.360188054892,10,1,0,3rd gen: Absent or very low abundance
+2025-12-02,0,5037.360188054892,10,1,0,3rd gen: Absent or very low abundance
+2025-12-03,0,5037.360188054892,10,1,0,3rd gen: Absent or very low abundance
+2025-12-04,0,5037.360188054892,11,1,0,3rd gen: Absent or very low abundance
+2025-12-05,0,5037.360188054892,11,1,0,3rd gen: Absent or very low abundance
+2025-12-06,0,5037.360188054892,11,1,0,3rd gen: Absent or very low abundance
+2025-12-07,0,5037.360188054892,12,1,0,3rd gen: Absent or very low abundance
+2025-12-08,0,5037.360188054892,13,1,0,3rd gen: Absent or very low abundance
+2025-12-09,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-10,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-11,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-12,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-13,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-14,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-15,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-16,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-17,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-18,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-19,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-20,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-21,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-22,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-23,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-24,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-25,0,5037.360188054892,14,1,0,3rd gen: Absent or very low abundance
+2025-12-26,0,5037.360188054892,13,1,0,3rd gen: Absent or very low abundance
+2025-12-27,0,5037.360188054892,12,1,0,3rd gen: Absent or very low abundance
+2025-12-28,0,5037.360188054892,12,1,0,3rd gen: Absent or very low abundance
+2025-12-29,0,5037.360188054892,12,1,0,3rd gen: Absent or very low abundance
+2025-12-30,0,5037.360188054892,12,1,0,3rd gen: Absent or very low abundance
+2025-12-31,0,5037.360188054892,12,1,0,3rd gen: Absent or very low abundance

@@ -19,3 +19,14 @@ def test_inputs_are_in_the_daily_store(model_id):
 
     spec = all_models()[model_id].SPEC
     assert {q.name for q in spec.inputs} <= set(DAILY_VARIABLES), "the grid can only run models on stored days"
+    assert spec.lookback_days >= 0
+
+
+def test_every_insect_has_degree_day_cubes():
+    """Maps of an insect come from the running-total cubes: one per threshold, a pair being their difference (D26)."""
+    from agdata.catalog import DD_SINE_THRESHOLDS_F
+    from agmodels.insect_list import INSECTS
+
+    for insect in INSECTS:
+        thresholds = {insect.base_f} | ({insect.upper_f} if insect.upper_f is not None else set())
+        assert thresholds <= set(DD_SINE_THRESHOLDS_F), insect.id

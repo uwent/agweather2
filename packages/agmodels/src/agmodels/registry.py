@@ -1,4 +1,4 @@
-"""Every model under `agmodels.models`, by id."""
+"""Every model by id: the modules under `agmodels.models` and the insects (`agmodels.insect_list`)."""
 
 import importlib
 import pkgutil
@@ -6,6 +6,8 @@ from functools import cache
 from typing import cast
 
 from agmodels import models
+from agmodels.insect_list import INSECTS
+from agmodels.insects import InsectModel
 from agmodels.spec import Model
 
 
@@ -18,6 +20,11 @@ def all_models() -> dict[str, Model]:
         if spec.id in found:
             raise ValueError(f"two models have the id {spec.id!r}")
         found[spec.id] = module
+    for insect in INSECTS:
+        insect_model = InsectModel(insect)
+        if insect_model.SPEC.id in found:
+            raise ValueError(f"two models have the id {insect_model.SPEC.id!r}")
+        found[insect_model.SPEC.id] = cast(Model, insect_model)
     return found
 
 

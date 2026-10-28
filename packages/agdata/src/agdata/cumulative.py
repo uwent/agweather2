@@ -30,7 +30,7 @@ BAND_CELL_DAYS = 3_000_000  # cells × days per band: about 300 bytes each at pe
 
 def open_or_create_cumulative(data_dir: Path, year: int, window: Window) -> GridStore:
     try:
-        store = GridStore.open(data_dir, CUMULATIVE, year, CUMULATIVE_VARIABLES.values())
+        store = GridStore.open(data_dir, CUMULATIVE, year, CUMULATIVE_VARIABLES.values(), add_missing=True)
     except FileNotFoundError:
         return GridStore.create(data_dir, CUMULATIVE, year, window, CUMULATIVE_VARIABLES.values())
     if store.window != window:
