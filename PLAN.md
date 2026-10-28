@@ -316,40 +316,54 @@ Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) pl
 - Later (server backfill, Phase 9's CONUS): the same comparisons over the whole configured box, with stations (ACIS) and Open-Meteo as the references outside Wisconsin, where the old API doesn't reach.
 - **Exit:** v2 daily min/max/DD/precip agree with the old API within stated tolerances, 2016–present (Wisconsin first; the full box after the server backfill); ET0 checked against Open-Meteo and SSEC; hourly ingest has run unattended for a week with the health check green.
 
-### Phase 3: Model library (December–January) — proposed 2026-10-28, awaiting approval
+### Phase 3: Model library (December–January) — revised 2026-10-28 after Ben's review, awaiting approval
 
-Every model from the old API, VDIFN and the three R apps as one readable Python file in `agmodels`, with its spec (citations, version, status, region, season, sweep), running the same code on a point series and on the grid, checked against the code it replaces. Models consume a standard daily frame of "features" built from hours; maps and the API (Phases 5–6) read precomputed features and running totals, so a map of any model over any date range doesn't touch the hourly store. Each port is reviewed against its cited source (CLAUDE.md), and the differences go in this section.
+Every model from the old API, VDIFN and the three R apps as one readable Python file in `agmodels`, built on foundations for what the web app will show (docs/landscape.md): each model's weather inputs, its output and its risk score on one time axis (the Crop Risk Tool is the reference for this); runs through observed weather, the forecast and a climate projection to the end of the year; any point in the US through Open-Meteo, the grid in the box; pages for each disease and insect and for each model, with an interactive explorer. Each port is reviewed against its cited source (CLAUDE.md), with differences recorded here.
 
-**A. Framework (`agmodels.spec`, `agmodels.registry`)**
+**0. Survey** — [x] docs/landscape.md: NEWA, Enviroweather, USPest/DDRP, USA-NPN, U2U, Climate Smart Farming and our three apps; what v2 must match and their weaknesses to avoid.
 
-- [ ] `ModelSpec` (frozen dataclass): id, name, crops, group (disease, insect, crop, degree days), version, status (beta, stable, retired), citations (text, DOI or URL), region (state list, rasterized to a grid mask in `agdata`), season (start and end day of year), biofix (default and label), the features it reads, its outputs (name, unit), how a value maps to risk 0–4 (thresholds or a function), a changelog, and a sweep (input grids for the about page and snapshot tests). One module per model under `agmodels/models/`, found by the registry.
-- [ ] Functions take NumPy arrays with time on axis 0, so a point (time,) and the grid (time, y, x) share code, as `degree_days` does now. pandas and xarray are adapters at the edges, not inside models.
-- [ ] Sweep snapshot tests: each spec's sweep runs and is compared with a committed JSON snapshot, so a change in output fails CI unless the version is bumped and the snapshot updated (`--update-snapshots`).
+**A. Model spec and the three layers (`agmodels.spec`, `agmodels.registry`)**
 
-**B. Daily features (`agmodels.features`, written to the daily store at rollup)**
+- [ ] `ModelSpec` (frozen dataclass), one module per model under `agmodels/models/`, found by the registry: id, name, topic ids (the diseases or insects it predicts), crops, group, version, status (beta, stable, retired), citations, region (state list → grid mask in `agdata`), season, biofix (default, label, what it means), changelog.
+- [ ] Three layers, each declared with names, units and labels so the API and charts can show any of them: **inputs** (the daily features or hourly variables it reads, the Crop Risk Tool's "dependent weather variables"), **outputs** (index, probability, degree days, life stage; one primary, others optional, like the tool's `ycol`), and **risk** (a function from outputs to 0–4 with words, colors and an explanation of the criteria, kept apart from the output so a change to the criteria never touches stored data).
+- [ ] An **explorer** declaration: the inputs a person can vary on the model page (name, unit, range, default), evaluated by the same Python through the API (Phase 5, `POST /api/v2/models/{id}/evaluate`), so the page never re-implements the math. Sweeps (fixed input grids) drive the snapshot tests and static charts.
+- [ ] Functions take NumPy arrays with time on axis 0 (a point (time,) or the grid (time, y, x)), as `degree_days` does; pandas and xarray only at the edges.
 
-- [ ] What the models read beyond the daily statistics: hours with RH ≥ 80 and ≥ 90 and the mean temperature during them (late blight, Botcast, Cercospora, Alternaria, frogeye), night-time windows by civil sunset/sunrise per cell (tar spot's night RH ≥ 90 hours), dew point and dew point depression statistics, soil temperature hours below thresholds (potato volunteer: hours below 27 °F at 2 and 4 in), and hourly extremes. Defined once in `agmodels.features` as hour → day functions over a local day, and added to the daily rollup and catalog (so they follow the raw-only rule, D25).
-- [ ] Moving averages (7, 14, 21, 30 days) computed on read from the daily store, not stored.
-- [ ] Additive daily indices (late blight DSV, P-days, carrot DSV, Cercospora DIV, Botcast DSI) get running totals in the cumulative store like DD, so a map of "DSVs since emergence" is one subtraction.
+**B. Hourly-native features (`agmodels.features`) and where they're computed**
 
-**C. Ports, in order**
+- [ ] Hour → day functions for everything the models read beyond the daily statistics, matching the Crop Risk Tool's `build_daily`: hours with temperature over 20 and 30 °C, RH under 70 and over 80 and 90 (all day and at night, night from each cell's civil sunset and sunrise), mean temperature during RH ≥ 80 and ≥ 90, "hot past 5 days" and "dry", soil temperature hours below thresholds (potato volunteer), plus each disease index's daily value (DSV, P-days, DIV, DSI) computed from hours. They take a standard hourly frame from any source, so the grid rollup, the Open-Meteo point path (Phase 4) and the forecast all run the same code.
+- [ ] Moving averages (7, 14, 21, 30 days) computed on read.
+- [ ] **Precomputed with versions.** In the box, features and additive indices are computed at rollup into the daily store, and the indices get running totals like DD. Each derived catalog variable has a version (the version of the feature or model code that writes it), recorded in the store's array attributes. A changed version marks that variable stale everywhere: `manage.py rebuild --stale` recomputes it from the hourly store (run on deploy, like migrate), the health check lists stale variables until it's done, and reads of a stale variable compute from hours instead of serving old values. Risk scores are never stored, so changing risk criteria needs no rebuild.
 
-- [ ] 1. Daily vegetable disease indices, in both old forms: the old API's daily versions (`../ag-weather` `pest_models.rb`, served by VDIFN with its severity rules in `app/models/diseases/`) and the Crop Risk Tool's (`src/models.R`): early blight P-days, late blight DSV (Wallin), carrot foliar (Alternaria) DSV, Cercospora beet DIV, Botcast DSI. One version each, chosen after comparing the two with the sources; parity fixtures from both codes.
-- [ ] 2. The Crop Risk Tool's field-crop models (logistic fits on moving averages): tar spot, gray leaf spot, DON, white mold (dry and irrigated), frogeye leaf spot, soybean Cercospora, red crown rot, wheat scab. Coefficients in versioned data beside the code. Parity: R sweeps of each `predict_*` and `build_*` over the tool's recorded hourly weather (`tests/testthat/test_hourly_wx.rds`).
-- [ ] 3. Insects as declarative specs: VDIFN's ~30 (`db/seeds.rb`: DD pair, biofix, `risk_array` of start/peak/end per generation, ramped by a sine to 0–4, less a freeze adjustment) and the Crop Risk Tool's 3 (`Insect()` key tables of start/severity/label), merged where they overlap (seedcorn maggot, alfalfa weevil, Colorado potato beetle); oak wilt vector flight (Jagemann 2018, `app/models/insects/oak_wilt.rb`). Parity with the Ruby severity functions.
-- [ ] 4. Corn growth stages from planting (modified 50/86 GDD, D26) as a model with stages.
-- [ ] 5. Potato volunteer tuber survival (hours below 27 °F at 2 and 4 in against 120 h; HRRR 4 and 10 cm stand in for 2 and 4 in, D9) and the alfalfa tool's growth since cutting (sine 41/86 GDD, cut window 900–1,100); the alfalfa projections need the forecast and climatology (Phases 4 and 6).
-- [ ] 6. Southern models, beta and region-masked until the box covers them: pecan scab (hourly), cotton planting, winter rye biomass.
-- [ ] Custom degree-day model (any base and upper): already `agmodels.degree_days`; the spec wraps it.
+**C. Time series through the season (foundation now, data in Phases 4 and 6)**
 
-**D. Parity fixtures**
+- [ ] Models run over one series that carries each day's source: observed, forecast (NBM in the box, Open-Meteo outside; Phase 4) and climate projection (Phase 6). A model doesn't know the difference; outputs carry the source so charts mark forecast and projection.
+- [ ] Projection to the end of the year as U2U does it: after the forecast, each day's normal accumulation (Phase 6 climatology, nClimGrid/gridMET), with a band for the year-to-year spread. Designed now as a third segment of the series; built in Phase 6.
 
-- [ ] Ruby (installed): `tests/fixtures/make_*.rb` run the old API's and VDIFN's functions over sweeps, as for degree days.
-- [ ] R (4.6 installed, packages not): restore the Crop Risk Tool's renv library into `tmp/shiny/crop-risk-tool` (binary packages from Posit Package Manager), then `make_*.R` scripts write the fixtures as CSV.
+**D. Ports, in order** (parity with the code each replaces, or its intended differences recorded)
 
-- **Exit:** every model in C has a spec, passes parity with the code it replaces (or has its intended differences recorded here), and has a sweep snapshot; features are in the daily store for the backfilled range; a point and the grid give the same answer for each model.
+- [ ] 1. Vegetable disease indices, hourly-native (the Crop Risk Tool's workflow): early blight P-days, late blight DSV (Wallin), carrot foliar (Alternaria) DSV, Cercospora beet DIV, Botcast DSI. Parity with the tool's R functions; the old API's daily versions (`pest_models.rb`) and VDIFN's severity rules (`app/models/diseases/`) as regression references, differences explained.
+- [ ] 2. The Crop Risk Tool's field-crop models (logistic fits on moving averages): tar spot, gray leaf spot, DON, white mold (dry and irrigated), frogeye leaf spot, soybean Cercospora, red crown rot, wheat scab. Coefficients in versioned data beside the code.
+- [ ] 3. Insects as declarative specs showing degree days, life stage and crop risk: VDIFN's ~30 (`db/seeds.rb`: DD pair, biofix, `risk_array` per generation ramped by a sine to 0–4, a freeze adjustment) and the Crop Risk Tool's 3 (`Insect()` key tables with stage labels), merged where they overlap (seedcorn maggot, alfalfa weevil, Colorado potato beetle); stage labels for VDIFN's where its text gives them; oak wilt vector flight (Jagemann 2018).
+- [ ] 4. Corn growth stages from planting (modified 50/86 GDD, D26).
+- [ ] 5. Potato volunteer tuber survival (hours below 27 °F at 2 and 4 in; HRRR 4 and 10 cm, D9) and the alfalfa tool's growth since cutting (sine 41/86 GDD; projections in Phase 6).
+- [ ] 6. Southern models prototyped (beta, region-masked): pecan scab (hourly), cotton planting, winter rye biomass; run at points through Open-Meteo until the box reaches the South.
+- [ ] Custom degree days (any base, upper, method, biofix): `agmodels.degree_days` behind a spec.
+
+**E. Content structure (pages written in Phase 6)**
+
+- [ ] Topics (diseases, insects, crop stages) and models as Markdown files in the repo with front matter: a topic page describes the pest and lists the models that predict it; a model page adds the math, inputs, risk criteria, citations, validation and changelog. The specs reference topic ids, and a test checks every model has a topic and every topic its page. The Crop Risk Tool's `docs/` and VDIFN's seed texts are the starting content.
+
+**F. Parity fixtures**
+
+- [ ] Ruby (installed): `tests/fixtures/make_*.rb` run the old API's and VDIFN's functions over sweeps.
+- [x] R: the Crop Risk Tool's renv library restored into `tmp/shiny/crop-risk-tool/renv-linux-lib` (Posit's Noble binaries) without its GIS stack (sf/terra need system GDAL and PROJ; the models don't use them); `tests/fixtures/crt_env.R` loads the tool's code. `make_crt_fixtures.R` writes each model's `build_*` output over the tool's recorded weather (`test_hourly_wx.rds`) and `predict_*` sweeps as CSV.
+
+- **Exit:** every model in D has a spec with its three layers and an explorer declaration, passes parity (or has its differences recorded), and has a sweep snapshot; features and indices are in the daily and cumulative stores for the backfilled range with versions; a point and the grid give the same answer; every model has a topic.
 
 ### Phase 4: Forecast and blending (January) — sketch
+
+Foundation from Phase 3: models run over a series with each day's source. Also: the Open-Meteo point path feeds `agmodels.features` with an hourly frame, so every model (the southern ones too) runs at any US point.
 
 NBM ingest into a forecast store on the same grid; obs + forecast stitching with source flags; models through the forecast window; Open-Meteo per-cell cache for out-of-box and pre-window points; region masks.
 
@@ -357,11 +371,15 @@ NBM ingest into a forecast store on the same grid; obs + forecast stitching with
 
 ### Phase 5: API v2 (January–February) — sketch
 
+Model endpoints return the three layers (inputs, outputs, risk) with sources and the model version; `POST /api/v2/models/{id}/evaluate` runs a model on given inputs for the model pages' explorer.
+
 Points, grids, data tiles, models, DD table, freeze counts, downloads, dataset status, OpenAPI docs, changelog page, API feedback form; Caddy cache for past dates; latency checks against §3 targets. Veg Path and DATCP switch.
 
 - **Exit:** v2 GDD matches the old API for DATCP's query; DATCP has the new endpoints.
 
 ### Phase 6: Web app (February–March) — sketch
+
+From Phase 3 and docs/landscape.md: a model view with weather inputs, output and risk on one time axis (the Crop Risk Tool's view) through observed, forecast and projection; insect views with degree days, life stage and crop risk to the end of the year (U2U-style projection from the climatology built here); topic pages and model pages with the interactive explorer; custom DD maps with any thresholds and biofix.
 
 Map explorer with the WebGL data-tile layer, sites dashboard and both feeds, charts and downloads, model catalog and about pages (text and citations; sweeps in P1), climatology cubes and current-vs-normal comparisons (D22: nClimGrid-daily 1991–2020 and gridMET reduced to day-of-year statistics on the grid, plus 5- and 10-year normals from the archive), DOY calendar, changelog, glossary and notes from WISP 3; accessibility and keyboard tests on every page.
 
