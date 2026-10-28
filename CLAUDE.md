@@ -69,6 +69,8 @@ Frontend:
 - **Charts:** ECharts through one `Chart.svelte` taking a pure, unit-tested `build(palette)` option builder. Colors come from color-blind-validated `--color-chart-*` tokens. No dual-axis charts: stack grids or use small multiples.
 - **Chromium fires `blur` on a focused input that's removed**; jsdom doesn't, so component tests of edit/cancel flows fire it themselves.
 - **Playwright dismisses dialogs by default**, so a stray `confirm` cancels a navigation in a test; handle it with `page.once('dialog', …)`.
+- **Colors:** components use the semantic tokens (`surface`, `surface-raised`, `ink`, `ink-muted`, `line`, `frame`, `brand-*`, `danger`, `success`), never the named palette (`sand-*`, `gold-*`, `bark-*`, the current AgWeather site's colors) or raw hex. The tokens pick from the palette per mode in `application.css`; check a new text pair for 4.5:1 in both modes (axe does, on pages it scans).
+- **Prettier's Tailwind plugin reorders class lists** on commit, so match a class string as it's written in the file now, not as you first wrote it.
 - **Tailwind scans `app/` for classes in Django templates** (`@source '../../app'` in `application.css`); a glob over the template folders matched nothing. Don't write a glob with `*/` in a CSS comment: it ends the comment.
 - **Vite's `server.origin`** must stay set: without it, fonts and images imported by CSS load from Django's port in development and 404.
 - **lint-staged runs Prettier on committed JSON.** Large data files go in `.prettierignore`, or they're expanded to thousands of lines.

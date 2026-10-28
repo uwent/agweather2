@@ -22,7 +22,7 @@
     >Skip to main content</a
   >
   <BrandBar />
-  <header class="border-line bg-surface-raised border-b">
+  <header class="border-frame bg-surface-raised border-b-4">
     <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
       <Link href="/" class="text-ink flex"><Logo /></Link>
 
@@ -31,7 +31,7 @@
           <Link
             href={item.href}
             class="shrink-0 rounded-md px-3 py-1.5 text-sm font-medium
-              {isCurrent(item.href) ? 'bg-brand-50 text-brand-700' : 'text-ink-muted hover:text-ink'}"
+              {isCurrent(item.href) ? 'bg-brand-100 text-brand-700' : 'text-ink-muted hover:text-ink'}"
             aria-current={isCurrent(item.href) ? 'page' : undefined}
           >
             {item.label}
@@ -49,7 +49,7 @@
     {@render children()}
   </main>
 
-  <footer class="border-line text-ink-muted space-y-1 border-t px-4 py-4 text-center text-xs">
+  <footer class="border-frame bg-surface-raised text-ink-muted space-y-1 border-t-4 px-4 py-4 text-center text-xs">
     <p>AgWeather</p>
     <p>
       Developed by the <a href="https://cals.wisc.edu/" class="hover:text-ink underline"

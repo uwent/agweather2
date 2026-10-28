@@ -19,12 +19,35 @@
     sans-serif;
   --font-display: 'Red Hat Display Variable', var(--font-sans);
 
-  /* Brand: blue, kept clear of the green-to-red risk scale that maps and feeds use */
-  --color-brand-50: oklch(97% 0.02 230);
-  --color-brand-100: oklch(93% 0.04 230);
-  --color-brand-500: oklch(60% 0.13 235);
-  --color-brand-600: oklch(52% 0.13 238);
-  --color-brand-700: oklch(45% 0.12 240);
+  /* Palette: the sand, khaki and olive-brown of the current AgWeather site (soils-ag-wx colors.scss:
+     page #f7f5ee, content #e9e4d0, nav #aea686, frame #8b846a, sidebar #544e38, its gold #ceb085),
+     with darker browns (bark) for dark mode. Components don't use these directly: they use the
+     semantic tokens below, which pick from them per mode. All text pairs pass WCAG AA (4.5:1) */
+  --color-sand-50: #f7f5ee;
+  --color-sand-100: #e9e4d0;
+  --color-sand-200: #ddd6bf;
+  --color-sand-300: #d3caa9;
+  --color-sand-400: #aea686;
+  --color-sand-500: #8b846a;
+  --color-sand-600: #5f5a47;
+  --color-sand-700: #544e38;
+  --color-sand-800: #3f3c2d;
+  --color-sand-900: #26241a;
+  --color-gold-300: #e0c9a0;
+  --color-gold-400: #ceb085;
+  --color-gold-500: #b0915f;
+  --color-bark-600: #463f2e;
+  --color-bark-700: #3a3426;
+  --color-bark-800: #2f2b20;
+  --color-bark-900: #262319;
+  --color-bark-950: #1c1a14;
+
+  /* Brand: the olive-brown, gold in dark mode; kept clear of the green-to-red risk scale maps use */
+  --color-brand-50: var(--color-sand-100);
+  --color-brand-100: var(--color-sand-200);
+  --color-brand-500: var(--color-sand-500);
+  --color-brand-600: var(--color-sand-700);
+  --color-brand-700: var(--color-sand-800);
 
   /* University of Wisconsin–Madison colors (UW theme, _uw_vars.scss), for the branding bar and email.
      The reds are the CALS theme's (UW's own are #c5050c and #9b0000); the darker red is for dark
@@ -43,12 +66,14 @@
   --color-danger: oklch(55% 0.2 27);
   --color-success: oklch(53% 0.14 155);
 
-  /* Surfaces and text, switched for dark mode below */
-  --color-surface: oklch(98.5% 0.003 240);
-  --color-surface-raised: oklch(100% 0 0);
-  --color-ink: oklch(22% 0.02 250);
-  --color-ink-muted: oklch(48% 0.02 250);
-  --color-line: oklch(90% 0.01 250);
+  /* Surfaces and text, switched for dark mode below. Raised surfaces (header, cards) are the old
+     site's content tan; the frame is its khaki border */
+  --color-surface: var(--color-sand-50);
+  --color-surface-raised: var(--color-sand-100);
+  --color-ink: var(--color-sand-900);
+  --color-ink-muted: var(--color-sand-600);
+  --color-line: var(--color-sand-300);
+  --color-frame: var(--color-sand-500);
 }
 
 /*
@@ -58,30 +83,32 @@
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --color-surface: oklch(18% 0.015 250);
-    --color-surface-raised: oklch(23% 0.015 250);
-    --color-ink: oklch(94% 0.01 250);
-    --color-ink-muted: oklch(72% 0.015 250);
-    --color-line: oklch(32% 0.015 250);
-    --color-brand-50: oklch(28% 0.05 235);
-    --color-brand-100: oklch(33% 0.06 235);
-    --color-brand-500: oklch(70% 0.12 232);
-    --color-brand-600: oklch(74% 0.11 230);
-    --color-brand-700: oklch(80% 0.09 228);
+    --color-surface: var(--color-bark-950);
+    --color-surface-raised: var(--color-bark-900);
+    --color-ink: var(--color-sand-100);
+    --color-ink-muted: var(--color-sand-400);
+    --color-line: var(--color-bark-600);
+    --color-frame: var(--color-bark-600);
+    --color-brand-50: var(--color-bark-700);
+    --color-brand-100: var(--color-bark-600);
+    --color-brand-500: var(--color-gold-500);
+    --color-brand-600: var(--color-gold-400);
+    --color-brand-700: var(--color-gold-300);
   }
 }
 
 :root[data-theme='dark'] {
-  --color-surface: oklch(18% 0.015 250);
-  --color-surface-raised: oklch(23% 0.015 250);
-  --color-ink: oklch(94% 0.01 250);
-  --color-ink-muted: oklch(72% 0.015 250);
-  --color-line: oklch(32% 0.015 250);
-  --color-brand-50: oklch(28% 0.05 235);
-  --color-brand-100: oklch(33% 0.06 235);
-  --color-brand-500: oklch(70% 0.12 232);
-  --color-brand-600: oklch(74% 0.11 230);
-  --color-brand-700: oklch(80% 0.09 228);
+  --color-surface: var(--color-bark-950);
+  --color-surface-raised: var(--color-bark-900);
+  --color-ink: var(--color-sand-100);
+  --color-ink-muted: var(--color-sand-400);
+  --color-line: var(--color-bark-600);
+  --color-frame: var(--color-bark-600);
+  --color-brand-50: var(--color-bark-700);
+  --color-brand-100: var(--color-bark-600);
+  --color-brand-500: var(--color-gold-500);
+  --color-brand-600: var(--color-gold-400);
+  --color-brand-700: var(--color-gold-300);
 }
 
 /* Tailwind's dark: variant, matching the rules above */
