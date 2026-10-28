@@ -32,6 +32,8 @@ class Variable:
     valid_max: float = np.inf
     daily: tuple[DailyStat, ...] = ()
     derived: bool = False  # computed from other variables at ingest, not read from a source
+    fillable: bool = True  # short gaps may be interpolated in time (not for sums like precip, or directions)
+    spike_c: float | None = None  # QC: a value this far from both neighbors in time, the same way, is a spike
     notes: str = ""
     sources: dict[str, str] = field(default_factory=dict)  # source name → what it reads
 
@@ -68,6 +70,7 @@ VARIABLES: dict[str, Variable] = {
             "air_temperature",
             "Air temperature at 2 m",
             "degC",
+            spike_c=12,
             scale=0.1,
             valid_min=-60,
             valid_max=60,
@@ -78,6 +81,7 @@ VARIABLES: dict[str, Variable] = {
             "dew_point",
             "Dew point at 2 m",
             "degC",
+            spike_c=12,
             scale=0.1,
             valid_min=-70,
             valid_max=40,
@@ -119,6 +123,7 @@ VARIABLES: dict[str, Variable] = {
             "wind_direction",
             "Wind direction at 10 m, from",
             "deg",
+            fillable=False,
             scale=1,
             valid_min=0,
             valid_max=360,
@@ -149,6 +154,7 @@ VARIABLES: dict[str, Variable] = {
             "precipitation",
             "Precipitation in the hour ending at the time",
             "mm",
+            fillable=False,
             scale=0.1,
             valid_min=0,
             valid_max=300,
@@ -171,6 +177,7 @@ VARIABLES: dict[str, Variable] = {
             "et0",
             "FAO-56 grass reference evapotranspiration in the hour",
             "mm",
+            fillable=False,
             scale=0.001,
             valid_min=0,
             valid_max=3,

@@ -266,8 +266,8 @@ Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) pl
 
 **D. QC and gaps**
 
-- [ ] Range checks from the catalog (values outside become NaN and are counted per hour in the ingest record), and a spike check on temperature and dew point (a cell far from both its neighbors in time).
-- [ ] Short gaps (up to 3 hours) in continuous variables filled by linear interpolation per cell, flagged in the step's source as `filled`; longer gaps and all precip gaps stay NaN (CLAUDE.md: missing is never 0).
+- [x] Range checks from the catalog (values outside become NaN and are counted per hour in the ingest record), and a spike check on temperature and dew point (more than 12 °C from both neighbors in time, the same way): `agdata.qc`.
+- [x] Short gaps (up to 3 hours) in continuous variables filled by linear interpolation per cell (`agdata.qc.fill_short_gaps`; the catalog's `fillable` excludes precip, ET0 and wind direction); longer gaps stay NaN (CLAUDE.md: missing is never 0). Recording filled steps in the store comes with the ingest job (F).
 
 **E. Daily rollups and running totals**
 
