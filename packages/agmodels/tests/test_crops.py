@@ -258,3 +258,33 @@ def test_alfalfa_gdd_are_the_tools_difference_of_sines():
     late = first_day(doy, out["stage"], alfalfa.STAGES, "Late")
     assert out["gdd_total"][doy == cut][0] >= 900 and cut < late
     assert [alfalfa.explore(g)["stage"] for g in (0, 899, 900, 1099, 1100)] == [0, 0, 1, 1, 2]
+
+
+# Spring wheat
+
+
+def test_spring_wheat_gdd_rules_and_ndawn_table():
+    from agmodels.models import spring_wheat_stages as wheat
+
+    days = 120
+    hot = {"air_temperature_min": np.full(days, 15.0), "air_temperature_max": np.full(days, 30.0)}  # 59 / 86 °F
+    out = wheat.outputs(hot)
+    assert out["gdd"][0] == (70 + 59) / 2 - 32  # capped at 70 °F before Haun 2.0
+    late = int(np.argmax(out["gdd_total"] >= 395)) + 1
+    assert out["gdd"][late] == (86 + 59) / 2 - 32  # then at 95 °F, which 86 °F is under
+    cold = wheat.outputs({"air_temperature_min": np.full(3, -10.0), "air_temperature_max": np.full(3, -1.0)})
+    assert (cold["gdd"] == 0).all()  # both raised to 32 °F
+    codes = [s.code for s in wheat.STAGES]
+    t = dict(zip(codes, wheat.THRESHOLDS, strict=True))
+    assert t["H0.5"] == 180 and t["H2.0"] == 395 and t["H10.2"] == 1567 and t["H11.4"] == 1739
+    assert np.all(np.diff(wheat.THRESHOLDS) > 0)
+    assert wheat.explore(1739)["stage"] == codes.index("H11.4") and wheat.explore(100)["stage"] == -1
+
+
+def test_spring_wheat_over_a_season():
+    from agmodels.models import spring_wheat_stages as wheat
+
+    doy, lo, hi, _ = season("lincoln", 2004)
+    out = wheat.outputs({"air_temperature_min": lo, "air_temperature_max": hi}, biofix_index=20)  # Apr 21
+    flowering = first_day(doy, out["stage"], wheat.STAGES, "H11.4")
+    assert 160 < flowering < 200  # mid-June to mid-July
