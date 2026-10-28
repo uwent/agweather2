@@ -5,8 +5,10 @@ import numpy as np
 import pytest
 
 from agdata.grid import Window, service_window
-from agdata.sources import urma
+from agdata.sources import hrrr
 from agdata.sources.grib import RemoteGrib, decode, describe_message_head, parse_idx, place, scan_index
+from agdata.sources.rtma import RTMA
+from agdata.sources.urma import URMA
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -18,6 +20,7 @@ def test_parse_idx():
     assert ("TCDC", "entire atmosphere (considered as a single layer)") in keys
     assert refs[0].offset == 0 and refs[0].length == refs[1].offset
     assert refs[-1].length is None  # runs to the end of the file
+    assert refs[0].detail == "anl"
 
 
 def test_describe_message_head_of_a_2016_file():
@@ -48,20 +51,26 @@ def test_decode_and_place_on_the_window():
 
 
 def test_urls_by_era():
-    assert urma.analysis_url(datetime(2016, 7, 1, 18, tzinfo=UTC)).endswith("urma2p5.t18z.2dvaranl_ndfd.grb2_ext")
-    assert urma.analysis_url(datetime(2017, 5, 1, 0, tzinfo=UTC)).endswith("grb2_wexp")
-    assert urma.precip_url(datetime(2017, 12, 4, 23, tzinfo=UTC)) is None
-    assert urma.precip_url(datetime(2018, 7, 1, 18, tzinfo=UTC)).endswith(  # pyright: ignore[reportOptionalMemberAccess]
+    july_2016 = datetime(2016, 7, 1, 18, tzinfo=UTC)
+    assert URMA.analysis_urls(july_2016)[0].endswith("urma2p5.t18z.2dvaranl_ndfd.grb2_ext")
+    assert URMA.analysis_urls(datetime(2017, 5, 1, 0, tzinfo=UTC))[0].endswith("grb2_wexp")
+    assert RTMA.analysis_urls(datetime(2017, 5, 1, 12, tzinfo=UTC))[0].endswith("grb2_ext")
+    assert RTMA.analysis_urls(july_2016)[1].endswith("grb2_wexp")  # the fallback
+    assert URMA.precip_urls(datetime(2017, 12, 4, 23, tzinfo=UTC)) == []
+    assert URMA.precip_urls(datetime(2018, 7, 1, 18, tzinfo=UTC))[0].endswith(
         "urma2p5.20180701/pcpurma_g184.2018070118.01h.grb2"
     )
-    assert urma.precip_url(datetime(2025, 7, 15, 18, tzinfo=UTC)).endswith(  # pyright: ignore[reportOptionalMemberAccess]
+    assert URMA.precip_urls(datetime(2025, 7, 15, 18, tzinfo=UTC))[0].endswith(
         "urma2p5.20250715/urma2p5.2025071518.pcp_01h.wexp.grb2"
     )
+    assert RTMA.precip_urls(july_2016) == [
+        "https://noaa-rtma-pds.s3.amazonaws.com/rtma2p5.20160701/rtma2p5.2016070118.pcp.184.grb2"
+    ]
 
 
 def test_fetch_hour_needs_an_aware_time_on_the_hour():
     with pytest.raises(ValueError):
-        urma.fetch_hour(datetime(2025, 7, 15, 18), service_window("wisconsin"))  # noqa: DTZ001
+        URMA.fetch_hour(datetime(2025, 7, 15, 18), service_window("wisconsin"))  # noqa: DTZ001
 
 
 @pytest.mark.network
@@ -69,7 +78,7 @@ def test_fetch_hour_needs_an_aware_time_on_the_hour():
 @pytest.mark.parametrize("when", [datetime(2016, 7, 1, 18, tzinfo=UTC), datetime(2025, 7, 15, 18, tzinfo=UTC)])
 def test_fetch_a_real_hour_over_wisconsin(when):
     window = service_window("wisconsin")
-    values = urma.fetch_hour(when, window)
+    values = URMA.fetch_hour(when, window)
     temp = values["air_temperature"]
     assert temp.shape == window.shape
     assert 5 < np.nanmean(temp) < 40  # a July afternoon, °C
@@ -81,5 +90,25 @@ def test_fetch_a_real_hour_over_wisconsin(when):
 @pytest.mark.network
 @pytest.mark.enable_socket
 def test_remote_index_without_idx_matches_shape():
-    old = RemoteGrib(urma.analysis_url(datetime(2016, 7, 1, 18, tzinfo=UTC)))
+    old = RemoteGrib(URMA.analysis_urls(datetime(2016, 7, 1, 18, tzinfo=UTC))[0])
     assert {("TMP", "2 m above ground"), ("PRES", "surface")} <= {ref.key for ref in old.index()}
+
+
+@pytest.mark.network
+@pytest.mark.enable_socket
+def test_rtma_precip_in_2016_and_a_missing_hour():
+    window = service_window("wisconsin")
+    values = RTMA.fetch_hour(datetime(2016, 7, 1, 18, tzinfo=UTC), window)
+    assert "precipitation" in values and np.nanmax(values["precipitation"]) >= 0
+    with pytest.raises(FileNotFoundError):
+        URMA.fetch_hour(datetime(2030, 1, 1, tzinfo=UTC), window)
+
+
+@pytest.mark.network
+@pytest.mark.enable_socket
+@pytest.mark.parametrize("when", [datetime(2016, 7, 1, 19, tzinfo=UTC), datetime(2025, 7, 15, 19, tzinfo=UTC)])
+def test_hrrr_shortwave_and_soil_over_wisconsin(when):
+    values = hrrr.fetch_hour(when, service_window("wisconsin"))
+    assert 600 < np.nanmean(values["shortwave_radiation"]) < 1100  # early afternoon CDT in July, W/m²
+    assert 15 < np.nanmean(values["soil_temperature_10cm"]) < 30
+    assert np.isfinite(values["soil_temperature_4cm"]).all()

@@ -100,7 +100,7 @@ Outside services:
 - **Nominatim** (place search) forbids search-as-you-type: search only on Enter or Go. Proxy it or switch providers if use grows.
 - **Map overlays:** NOAA's MRMS image service labels its values inches but returns millimeters; NOAA's radar image service stores rendered colors, so radar values come from IEM's tiles (WISP 3's `lib/map/radar.ts`).
 - **RTMA on AWS** (`noaa-rtma-pds`): the same names and grids as URMA's analysis; hourly precip `rtma2p5.YYYYMMDDHH.pcp.184.grb2` (2145 × 1377) in every year since 2016, which is what the old API read.
-- **HRRR on AWS** (`noaa-hrrr-bdp-pds`): a 3 km grid in a different projection (regrid, don't offset). `wrfsfc` DSWRF is instantaneous; hourly means come from `wrfsubhf01`'s four 15-minute averages. Soil temperature (TSOIL) is in `wrfprs`, not `wrfsfc` or `wrfnat`.
+- **HRRR on AWS** (`noaa-hrrr-bdp-pds`): a 3 km grid in a different projection (regrid, don't offset). `wrfsfc` DSWRF is instantaneous; hourly means come from `wrfsubhf01`'s four 15-minute averages (2016's have only instantaneous 15-minute values). Its 15-minute messages share name and level, so match on `MessageRef.detail` (the .idx's time field). Soil temperature (TSOIL) is in `wrfprs`, not `wrfsfc` or `wrfnat`.
 - **URMA on AWS** (`noaa-urma-pds`): file names, grids and precip products change in 2017-05 and 2017-12/2018-11 (table in `agdata/sources/urma.py`). Files before 2017-05 have no `.idx`; `RemoteGrib` scans their GRIB2 section headers instead, so only wanted messages download. Every message is a whole CONUS field (~5 MB) whatever the window. Older grids are aligned sub-windows of NDFD (offset 0, 200).
 
 Working here:

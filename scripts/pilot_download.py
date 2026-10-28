@@ -15,7 +15,7 @@ import numpy as np
 import requests
 
 from agdata.grid import service_window
-from agdata.sources import urma
+from agdata.sources.urma import URMA
 from pilot_encoding import pilot_variable
 
 
@@ -44,7 +44,7 @@ def main():
 
         session = sessions.setdefault(threading.get_ident(), requests.Session())
         began = time.time()
-        values = urma.fetch_hour(when, window, session)
+        values = URMA.fetch_hour(when, window, session)
         fetched = time.time() - began
         packed = {name: pilot_variable(name).encode(array) for name, array in values.items()}
         np.savez(out / f"{when:%Y%m%d%H}.npz", **packed)

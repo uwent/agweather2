@@ -31,6 +31,7 @@ class MessageRef:
     key: Key
     offset: int
     length: int | None  # None: to the end of the file
+    detail: str = ""  # the .idx's time field, e.g. "anl" or "15-30 min ave fcst" ("" when scanned)
 
 
 @dataclass
@@ -77,10 +78,12 @@ def parse_idx(text: str) -> list[MessageRef]:
         parts = line.split(":")
         if len(parts) < 5:
             continue
-        rows.append((int(parts[1]), (parts[3], parts[4])))
+        rows.append((int(parts[1]), (parts[3], parts[4]), parts[5] if len(parts) > 5 else ""))
     return [
-        MessageRef(key=key, offset=offset, length=(rows[n + 1][0] - offset) if n + 1 < len(rows) else None)
-        for n, (offset, key) in enumerate(rows)
+        MessageRef(
+            key=key, offset=offset, length=(rows[n + 1][0] - offset) if n + 1 < len(rows) else None, detail=detail
+        )
+        for n, (offset, key, detail) in enumerate(rows)
     ]
 
 
@@ -174,8 +177,10 @@ class RemoteGrib:
             if response.status_code == 200:
                 self._index = parse_idx(response.text)
             else:
-                size = int(self.session.head(self.url, timeout=self.timeout).headers["Content-Length"])
-                self._index = scan_index(self._read_range, size)
+                head = self.session.head(self.url, timeout=self.timeout)
+                if head.status_code != 200:
+                    raise FileNotFoundError(f"{self.url}: HTTP {head.status_code}")
+                self._index = scan_index(self._read_range, int(head.headers["Content-Length"]))
         return self._index
 
     def fields(self, keys: Iterable[Key]) -> dict[Key, Field]:
@@ -188,6 +193,17 @@ class RemoteGrib:
                 field = decode(self._read_range(ref.offset, end))
                 field.key = ref.key
                 found[ref.key] = field
+        return found
+
+    def fields_where(self, predicate: Callable[[MessageRef], bool]) -> list[tuple[MessageRef, Field]]:
+        """Downloads and decodes every message the predicate accepts, in file order."""
+        found = []
+        for ref in self.index():
+            if predicate(ref):
+                end = ref.offset + ref.length - 1 if ref.length else None
+                field = decode(self._read_range(ref.offset, end))
+                field.key = ref.key
+                found.append((ref, field))
         return found
 
     def _read_range(self, start: int, end: int | None) -> bytes:
