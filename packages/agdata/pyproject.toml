@@ -3,7 +3,15 @@ name = "agdata"
 version = "0.1.0"
 description = "Grid, variable catalog, Zarr stores, source adapters and tile encoding"
 requires-python = ">=3.13,<3.14"
-dependencies = ["agmodels", "numpy", "pyproj", "xarray", "zarr"]
+dependencies = [
+    "agmodels",
+    "eccodes>=2.50.0",
+    "numpy",
+    "pyproj",
+    "requests>=2.34.2",
+    "xarray",
+    "zarr",
+]
 
 [build-system]
 requires = ["uv_build>=0.9,<0.14"]

@@ -46,7 +46,8 @@ DJANGO_SETTINGS_MODULE = "config.settings"
 
 [tool.pyright]
 include = ["packages", "app"]
-exclude = ["**/node_modules", "**/__pycache__", "tmp", "data"]
+# The fixture makers are one-off scripts that read the network
+exclude = ["**/node_modules", "**/__pycache__", "tmp", "data", "**/tests/fixtures/make_*.py"]
 venvPath = "."
 venv = ".venv"
 pythonVersion = "3.13"

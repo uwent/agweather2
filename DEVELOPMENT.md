@@ -12,7 +12,7 @@ Written for Ubuntu 24.04 under WSL2.
 | Node.js | 24 (`.node-version`) | Vite, the frontend tests, pyright |
 | pnpm | from `packageManager` in `package.json` | JavaScript packages |
 | PostgreSQL | 18 | App data and the job queue (CI uses 18) |
-| eccodes | 2.34 or newer (`libeccodes0`, `libeccodes-tools`) | GRIB decoding |
+| ecCodes | 2.34 or newer (`libeccodes0`, `libeccodes-tools`) | GRIB decoding, through the system library (not the eccodeslib wheel; CLAUDE.md) |
 | Docker | Engine or Desktop with WSL integration | Only for the container build (`infra/`) |
 
 ```bash
@@ -48,6 +48,7 @@ bin/e2e smoke.spec.ts --project desktop
 bin/types                             # after changing a props.py; commit frontend/types/generated
 uv run app/manage.py createsuperuser  # for /admin
 uv run pytest packages/agmodels       # one package's tests
+uv run pytest --network               # also the tests that read NOAA's bucket (not run in CI)
 uv run ruff format . && uv run ruff check --fix .
 pnpm typecheck:py                     # pyright
 pnpm check                            # svelte-check and TypeScript

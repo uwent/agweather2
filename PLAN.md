@@ -32,7 +32,7 @@ One Django app that replaces the AgWeather API, the AgWeather website, VDIFN and
 | D3 | **Rolling 11-year window**, 2016–2026 to start, dropping the oldest year each January. Open-Meteo covers earlier dates | 2026-10-25 |
 | D4 | **Service box is configuration**: Upper Midwest (≈35–50° N, 100–75° W) now; CONUS later by backfill | 2026-10-25 |
 | D5 | **Zarr for gridded data** (one store per year), Postgres for app data. Postgres on RDS in production | 2026-10-26 |
-| D6 | **Hourly precip from 2018**; 2016–2017 keep URMA 6-hour totals | 2026-10-25 |
+| D6 | **Hourly precip from 2017-12-05** (when URMA's hourly files begin; first set as 2018, corrected 2026-10-27); earlier dates keep URMA 6-hour totals | 2026-10-25 |
 | D7 | **Solar radiation from HRRR** analysis shortwave, regridded; SSEC is a development check only | 2026-10-26 |
 | D8 | **ET0 is hourly FAO-56 grass reference**, summed to daily, matching Open-Meteo's method | 2026-10-26 |
 | D9 | **Soil temperature modeled everywhere** (HRRR in the box, Open-Meteo outside); no Wisconet dependency | 2026-10-26 |
@@ -220,15 +220,15 @@ Each phase ends with an exit gate. Dates are estimates for Ben and Claude; the o
 
 **C. Grid, catalog and store layout (`agdata`)**
 
-- [ ] `agdata.grid`: NDFD 2.5 km Lambert conformal definition, service-box presets (D20) → index window, lat/lon ↔ (y, x), cell polygons for tiles; tests against lat/lon arrays from a cropped real URMA fixture.
-- [ ] `agdata.catalog`: the §5.2 variables with SI units (D18), scale/offset, QC ranges, daily aggregations.
-- [ ] `agdata.units`: unit registry and conversions (SI ↔ display), used by the API's `units=` and mirrored by `frontend/lib/units.ts` with a shared test table so the two can't drift.
-- [ ] `agdata.store`: create/open a year's hourly and daily stores for the window, write an hour, read a point series and a daily tile window; source flag and ingest time per hour; tests on synthetic data in `tmp_path`.
-- [ ] `agdata.sources.urma`: fetch one hour via Herbie (byte range where an index exists, whole file otherwise), crop to the window, map GRIB fields to catalog variables.
+- [x] `agdata.grid`: NDFD 2.5 km Lambert conformal definition (from the GRIB2 grid section), service-box presets (D20) → index window, lat/lon ↔ (j, i), aligned sub-grid offsets; tested against 30 cell centers from a real URMA message. Windows: `wisconsin` 245 × 236 (57,820 cells), `upper_midwest` 742 × 911 (675,962), `conus` 1597 × 2345. Cell polygons for tiles move to Phase 5.
+- [x] `agdata.catalog`: the §5.2 variables with SI units (D18), int16 scale/offset packing (checked to hold each QC range), QC ranges, daily statistics, sources. Soil temperature waits for Phase 2 (HRRR levels); daily-store variables (units of daily sums) are defined with the rollups in Phase 2.
+- [x] `agdata.units`: unit registry and conversions (SI ↔ display), used by the API's `units=` and mirrored by `frontend/lib/units.ts` with a shared test table (`packages/agdata/tests/fixtures/units_cases.json`) so the two can't drift.
+- [x] `agdata.store`: create/open a year's hourly and daily stores for the window, write a block of steps, read a point series and a tile window; source and write time per step per variable; tests on synthetic data in `tmp_path`. Writes touch whole time chunks, so the pilot decides how hourly ingest writes (straight into the archive, or a small recent store compacted later).
+- [x] `agdata.sources.urma`: fetch one hour (analysis + hourly precip) for a window in SI, for every era of the bucket (file names, grids and precip changed in 2017 and 2018; see the module docstring). Our own range-request reader (`sources/grib.py`) instead of Herbie, whose URMA template knows only current names: it reads the `.idx`, or scans GRIB2 section headers where there's none (2016–2017), so only wanted messages download either way. Network tests (`--network`) fetch a 2016 and a 2025 hour.
 
 **D. One-month pilot**
 
-- [ ] Ingest July 2025 (all hourly variables available) for the `wisconsin` box into `data/` locally, plus a day of 2016 to time the whole-file path.
+- [ ] Ingest July 2025 (all hourly variables available) for the `wisconsin` box into `data/` locally, plus a day of 2016 to time the header-scan path. Each message is a whole CONUS field (~5 MB) whatever the window, so a month is ~30 GB of downloads: measure the rate first and extrapolate the 11-year backfill.
 - [ ] Measure: compressed size per variable per month (compare int16 scaled vs float32, zstd levels, chunk shapes), download and decode time per hour, point-season read time, daily tile read time.
 - [ ] Write `docs/pilot.md` with the measurements, chosen chunking and codecs, and the extrapolated 11-year size for each preset (measured on `wisconsin`, scaled by cell count); update §5.3 and the IT sizing in TODO.md.
 

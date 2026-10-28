@@ -1,0 +1,219 @@
+{
+  "_comment": "Shared by agdata/tests/test_units.py and frontend/lib/units.test.ts, so the two unit tables can't drift. Expected values are exact conversions, compared to 1e-6.",
+  "convert": [
+    {
+      "value": 0,
+      "from": "degC",
+      "to": "degF",
+      "expected": 32.0
+    },
+    {
+      "value": 100,
+      "from": "degC",
+      "to": "degF",
+      "expected": 212.0
+    },
+    {
+      "value": -40,
+      "from": "degF",
+      "to": "degC",
+      "expected": -40.0
+    },
+    {
+      "value": 32,
+      "from": "degF",
+      "to": "degC",
+      "expected": 0.0
+    },
+    {
+      "value": 293.15,
+      "from": "K",
+      "to": "degC",
+      "expected": 20.0
+    },
+    {
+      "value": 300,
+      "from": "K",
+      "to": "degF",
+      "expected": 80.33
+    },
+    {
+      "value": 10,
+      "from": "degC_day",
+      "to": "degF_day",
+      "expected": 18.0
+    },
+    {
+      "value": 1000,
+      "from": "degF_day",
+      "to": "degC_day",
+      "expected": 555.555555556
+    },
+    {
+      "value": 25.4,
+      "from": "mm",
+      "to": "in",
+      "expected": 1.0
+    },
+    {
+      "value": 1,
+      "from": "in",
+      "to": "mm",
+      "expected": 25.4
+    },
+    {
+      "value": 3.5,
+      "from": "kg_m2",
+      "to": "mm",
+      "expected": 3.5
+    },
+    {
+      "value": 12,
+      "from": "cm",
+      "to": "in",
+      "expected": 4.724409449
+    },
+    {
+      "value": 10,
+      "from": "m_s",
+      "to": "mph",
+      "expected": 22.369362921
+    },
+    {
+      "value": 36,
+      "from": "km_h",
+      "to": "m_s",
+      "expected": 10.0
+    },
+    {
+      "value": 20,
+      "from": "kn",
+      "to": "m_s",
+      "expected": 10.288888889
+    },
+    {
+      "value": 101.325,
+      "from": "kPa",
+      "to": "inHg",
+      "expected": 29.921252402
+    },
+    {
+      "value": 101325,
+      "from": "Pa",
+      "to": "kPa",
+      "expected": 101.325
+    },
+    {
+      "value": 1013.25,
+      "from": "hPa",
+      "to": "kPa",
+      "expected": 101.325
+    },
+    {
+      "value": 20,
+      "from": "MJ_m2",
+      "to": "ly",
+      "expected": 477.691793255
+    },
+    {
+      "value": 1,
+      "from": "kWh_m2",
+      "to": "MJ_m2",
+      "expected": 3.6
+    },
+    {
+      "value": 55,
+      "from": "percent",
+      "to": "percent",
+      "expected": 55
+    },
+    {
+      "value": 270,
+      "from": "deg",
+      "to": "deg",
+      "expected": 270
+    }
+  ],
+  "display": [
+    {
+      "stored": "degC",
+      "system": "metric",
+      "unit": "degC"
+    },
+    {
+      "stored": "degC",
+      "system": "imperial",
+      "unit": "degF"
+    },
+    {
+      "stored": "degF_day",
+      "system": "metric",
+      "unit": "degC_day"
+    },
+    {
+      "stored": "degF_day",
+      "system": "imperial",
+      "unit": "degF_day"
+    },
+    {
+      "stored": "mm",
+      "system": "metric",
+      "unit": "mm"
+    },
+    {
+      "stored": "mm",
+      "system": "imperial",
+      "unit": "in"
+    },
+    {
+      "stored": "m_s",
+      "system": "metric",
+      "unit": "km_h"
+    },
+    {
+      "stored": "m_s",
+      "system": "imperial",
+      "unit": "mph"
+    },
+    {
+      "stored": "kPa",
+      "system": "metric",
+      "unit": "kPa"
+    },
+    {
+      "stored": "kPa",
+      "system": "imperial",
+      "unit": "inHg"
+    },
+    {
+      "stored": "W_m2",
+      "system": "metric",
+      "unit": "W_m2"
+    },
+    {
+      "stored": "W_m2",
+      "system": "imperial",
+      "unit": "W_m2"
+    },
+    {
+      "stored": "MJ_m2",
+      "system": "metric",
+      "unit": "MJ_m2"
+    },
+    {
+      "stored": "MJ_m2",
+      "system": "imperial",
+      "unit": "MJ_m2"
+    },
+    {
+      "stored": "percent",
+      "system": "metric",
+      "unit": "percent"
+    },
+    {
+      "stored": "percent",
+      "system": "imperial",
+      "unit": "percent"
+    }
+  ]
+}

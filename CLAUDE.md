@@ -82,17 +82,24 @@ Django and tests:
 - **django-types lags Django 6:** symbols new in 6 (`django.utils.csp`, `ASGIStaticFilesHandler`) need a `# pyright: ignore[...]` with the reason.
 - **uvicorn doesn't serve static files**: `config/asgi.py` wraps the app in `ASGIStaticFilesHandler` in development and tests; Caddy serves them in production.
 - **honcho sets `PORT`** (5000, 5100, …) for every process, so `Procfile.dev` uses `DJANGO_PORT`.
-- **pytest-socket** blocks the network; only localhost (Postgres) is allowed. Tests run in importlib mode with `app/` on the path.
+- **pytest-socket** blocks the network; only localhost (Postgres) is allowed. Tests run in importlib mode with `app/` on the path. A test that must read a real service is marked `@pytest.mark.network` and `@pytest.mark.enable_socket`, and runs only with `uv run pytest --network` (not in CI).
+
+Data (`agdata`):
+
+- **Grid indices are (j, i)**: rows south to north, columns west to east, from NDFD's southwest corner. A `Window` is half-open; stores hold one window and take grid indices (`read_point(name, j, i)`), converting to local ones themselves.
+- **ecCodes is the system library** (`libeccodes0`), not the `eccodeslib` wheel: that wheel bundles its own PROJ, and a process that loads it before pyproj crashes on exit (double free). Import eccodes through `agdata.sources.grib`, which silences the bindings' "2.42 recommended" warning.
+- **Use eccodes' typed getters** (`codes_get_long`, `codes_get_double`, `codes_get_string`); plain `codes_get` returns a union pyright rejects.
 
 Outside services:
 
 - **Open-Meteo:** the forecast API reaches only ~92 days back (older days need the historical-forecast API or the archive). best_match, GFS and NBM have no soil variables over North America; ECMWF IFS does. Multi-model requests suffix each variable with the model name; multi-location requests return a list (one location, an object). Coastal points snap to a land cell, so the API's coordinates can differ from our cell's.
 - **Nominatim** (place search) forbids search-as-you-type: search only on Enter or Go. Proxy it or switch providers if use grows.
 - **Map overlays:** NOAA's MRMS image service labels its values inches but returns millimeters; NOAA's radar image service stores rendered colors, so radar values come from IEM's tiles (WISP 3's `lib/map/radar.ts`).
-- **URMA on AWS** (`noaa-urma-pds`): 2016–2023 files have no `.idx`, so each hour is a whole ~69 MB download; later years allow byte-range reads. Hourly precip (`pcp_01h`) starts around 2018–2019.
+- **URMA on AWS** (`noaa-urma-pds`): file names, grids and precip products change in 2017-05 and 2017-12/2018-11 (table in `agdata/sources/urma.py`). Files before 2017-05 have no `.idx`; `RemoteGrib` scans their GRIB2 section headers instead, so only wanted messages download. Every message is a whole CONUS field (~5 MB) whatever the window. Older grids are aligned sub-windows of NDFD (offset 0, 200).
 
 Working here:
 
 - **Propose a plan before building a new feature** unless it's a simple change: the design, the data model and any choices to make, then wait for Ben's go-ahead before implementing.
 - Things only Ben can do go in `TODO.md` under the current phase, with the exact commands.
+- `tmp/herbie`, `tmp/urma`: downloaded GRIB for exploring; the fixture makers in `packages/agdata/tests/fixtures/make_*.py` rebuild the committed fixtures.
 - `pkill -f` with a pattern that's also in the command line kills the shell running it; stop dev servers by port or PID.
