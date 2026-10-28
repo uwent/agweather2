@@ -23,8 +23,11 @@ step "Style: frontend" pnpm format:check
 step "Lint: frontend" pnpm lint
 step "Types: Python" pnpm typecheck:py
 step "Types: Svelte/TypeScript" pnpm check
+step "Generated types are current" bash -c "bin/types && git diff --exit-code frontend/types/generated"
+step "Migrations are current" uv run app/manage.py makemigrations --check --dry-run
 
 step "Tests: Python" uv run pytest
 step "Tests: frontend" pnpm test
+step "Tests: browser" bin/e2e
 
 printf '\n\033[32mAll checks passed\033[0m\n'

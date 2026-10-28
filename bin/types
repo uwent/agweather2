@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Regenerates frontend/types/generated from the Pydantic page props (each app's props.py). Commit the output;
+# bin/ci fails when it's stale.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+mkdir -p tmp
+DJANGO_ENV=test uv run app/manage.py export_types > tmp/props.schema.json
+node scripts/generate-types.js tmp/props.schema.json frontend/types/generated/props.ts

@@ -4,7 +4,7 @@ Guidance for Claude Code when working in this repository.
 
 ## Project
 
-AgWeather v2: one Django app replacing the AgWeather API (`../ag-weather`), the AgWeather website (`../soils-ag-wx`), VDIFN (`../ag-vdifn`) and three R Shiny apps (Crop Risk Tool, alfalfa, potato volunteer; not on this machine, Ben can copy them in). It stores hourly weather on the native 2.5 km NDFD grid in Zarr, runs every degree-day, disease and insect model from one Python package, and serves maps, sites, charts, alerts and a public API. Target: live before April 1, 2027.
+AgWeather v2: one Django app replacing the AgWeather API (`../ag-weather`), the AgWeather website (`../soils-ag-wx`), VDIFN (`../ag-vdifn`) and three R Shiny apps (Crop Risk Tool, alfalfa, potato volunteer; copies with their data in `tmp/shiny/`). It stores hourly weather on the native 2.5 km NDFD grid in Zarr, runs every degree-day, disease and insect model from one Python package, and serves maps, sites, charts, alerts and a public API. Target: live before April 1, 2027.
 
 - `PLAN.md`: architecture, recorded decisions (D#), phases and open questions (Q#). The current phase is detailed; later phases are sketches that get detailed when they start. Check it before starting work, and tick its checklists as work lands.
 - `TODO.md`: things only Ben can do (installs, accounts, IT, data copies, exit checks), by phase.
@@ -15,20 +15,30 @@ AgWeather v2: one Django app replacing the AgWeather API (`../ag-weather`), the 
 ## Commands
 
 ```bash
-bin/ci                           # full CI: ruff, prettier/eslint, pyright, svelte-check, pytest, vitest
+bin/dev                          # Django (uvicorn :8000) + Vite (:5173) + Procrastinate worker, via honcho
+bin/ci                           # full CI: ruff, prettier/eslint, pyright, svelte-check, generated types, migrations, pytest, vitest, Playwright
 uv run pytest packages/agmodels  # one package's tests
 uv run ruff format . && uv run ruff check --fix .
 pnpm typecheck:py                # pyright
 pnpm check                       # svelte-check + tsc
 pnpm test                        # vitest
+bin/e2e                          # Playwright on a production build and its own database (args go to playwright test)
+bin/types                        # after changing any props.py; commit frontend/types/generated
+uv run app/manage.py migrate     # or any other manage.py command
 ```
 
-Setup and the rest are in `DEVELOPMENT.md`. `bin/dev` (Django + Vite) arrives with Phase 1 B.
+Setup and the rest are in `DEVELOPMENT.md`.
 
 ## Architecture
 
 - uv workspace: `packages/agmodels` (pure model functions), `packages/agdata` (grid, variable catalog, Zarr stores, source adapters, tile encoding), `app/` (Django project). pnpm for `frontend/`. Python 3.13, Node 24.
-- Django renders Svelte pages through Inertia (inertia-django), as WISP 3 does with Rails. The public API is Django Ninja under `/api/v2` with generated OpenAPI docs.
+- Django project in `app/`: `config/` (settings from env; `DJANGO_ENV` = development, test (automatic under pytest) or production), and top-level apps `web` (Inertia glue and pages), `ops` (`/up`, jobs), `api` (Ninja). Run commands as `uv run app/manage.py …`.
+- Pages: a view returns `web.inertia.render(request, "Folder/Page", SomeProps(...))`, which maps to `frontend/pages/Folder/Page.svelte`. Props are Pydantic models subclassing `web.inertia.Props`, defined in each app's `props.py`; `bin/types` generates their TypeScript types (`@/types`), and CI fails if they're stale. Every page uses `AppLayout`.
+- Shared props (`web.middleware.SharedPropsMiddleware`): `app` (`SharedProps`) and `errors`. Flash is Django's messages framework, which inertia-django sends as `page.flash.messages` (`{level, message}`).
+- Forms: on a validation failure, `redirect_with_errors(request, path, {"input.name": ["message"]})`; the next page gets them as `errors` once. inertia-django has no errors handling of its own.
+- Public API: Django Ninja under `/api/v2` (`api/api.py`), docs at `/api/v2/docs`.
+- Jobs: Procrastinate (`procrastinate.contrib.django`); tasks in each app's `tasks.py`, run by `manage.py procrastinate worker` (started by `bin/dev`).
+- Vite: root `frontend/`, served under `/static/vite/`. django-vite loads `entrypoints/inertia.ts` from the dev server in development and unit tests (`VITE_DEV_MODE`), and from the build's manifest in `app/static/vite` otherwise.
 - Gridded weather lives in Zarr (one store per year), never in Postgres rows. Postgres holds app data: users, sites, alert rules, job queue, ingest status.
 
 ## Rules
@@ -52,14 +62,25 @@ Frontend:
 - **Svelte trims whitespace** at the start of `{#if}` blocks and inside elements, so "Site{#if x} · Crop{/if}" renders "Site· Crop": put separators and trailing spaces in expressions (``{` · ${crop}`}``, `{'Within '}`). When part of a button's text is hidden on small screens, give it an `aria-label` so its accessible name stays whole.
 - **An `$effect` that calls code writing state it also reads** loops; run that call in `untrack`.
 - **Accessibility (WCAG 2.1 AA):** an axe test runs on every page in light and dark, so add new pages to it; findings and fixes go in `docs/accessibility.md`. Links inside sentences are always underlined. An `sr-only` span inside a control needs the control to be `relative`. A grid of editable cells is one tab stop (roving tabindex); a bits-ui menu's items are left out rather than hidden with CSS.
-- **Content Security Policy:** scripts load only from our origin, so an inline `<script>` needs the nonce. A violation shows as a console error, which the smoke tests fail on.
+- **Content Security Policy** (`SECURE_CSP` in settings, Django 6's built-in middleware): scripts load only from our origin, so an inline `<script>` needs `nonce="{{ csp_nonce }}"`. Development adds the Vite dev server. A violation shows as a console error, which the smoke tests fail on.
 - **Tailwind v4 only emits theme variables some class uses.** Tokens read from JavaScript (chart colors, map palettes) go in an `@theme static` block.
 - **ECharts and MapLibre can't parse `oklch()`**: convert tokens to rgb on a canvas (WISP 3's `readPalette()` in `lib/charts/palette.ts`).
 - **MapLibre** sets `position: relative` on its container, so size the container (`h-full w-full`) rather than positioning it absolutely. Its worker URL breaks under Vite unless loaded through a `loadMapLibre()` helper with `worker.format: 'es'` in `vite.config.ts` (WISP 3's `lib/map/maplibre.ts`).
 - **Charts:** ECharts through one `Chart.svelte` taking a pure, unit-tested `build(palette)` option builder. Colors come from color-blind-validated `--color-chart-*` tokens. No dual-axis charts: stack grids or use small multiples.
 - **Chromium fires `blur` on a focused input that's removed**; jsdom doesn't, so component tests of edit/cancel flows fire it themselves.
 - **Playwright dismisses dialogs by default**, so a stray `confirm` cancels a navigation in a test; handle it with `page.once('dialog', …)`.
+- **Tailwind scans `app/` for classes in Django templates** (`@source '../../app'` in `application.css`); a glob over the template folders matched nothing. Don't write a glob with `*/` in a CSS comment: it ends the comment.
+- **Vite's `server.origin`** must stay set: without it, fonts and images imported by CSS load from Django's port in development and 404.
 - **lint-staged runs Prettier on committed JSON.** Large data files go in `.prettierignore`, or they're expanded to thousands of lines.
+
+Django and tests:
+
+- **inertia-django 2.0** implements the Inertia v3 protocol (once, deferred with rescue, scroll and merge props, history encryption, 409 on a stale `INERTIA_VERSION`), but not validation errors (see `web/inertia.py`). Its 303 conversion applies only to PUT/PATCH/DELETE redirects.
+- **CSRF:** the Inertia v3 client sends the `XSRF-TOKEN` cookie back as `X-XSRF-TOKEN`; settings rename Django's cookie and header to match.
+- **django-types lags Django 6:** symbols new in 6 (`django.utils.csp`, `ASGIStaticFilesHandler`) need a `# pyright: ignore[...]` with the reason.
+- **uvicorn doesn't serve static files**: `config/asgi.py` wraps the app in `ASGIStaticFilesHandler` in development and tests; Caddy serves them in production.
+- **honcho sets `PORT`** (5000, 5100, …) for every process, so `Procfile.dev` uses `DJANGO_PORT`.
+- **pytest-socket** blocks the network; only localhost (Postgres) is allowed. Tests run in importlib mode with `app/` on the path.
 
 Outside services:
 

@@ -1,0 +1,26 @@
+{% load django_vite static %}<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="application-name" content="AgWeather">
+    <meta name="description" content="AgWeather: weather, degree days, and crop disease and insect risk for the Upper Midwest, from the University of Wisconsin–Madison.">
+    <title>AgWeather</title>
+    <link rel="icon" href="{% static 'icon.svg' %}" type="image/svg+xml">
+
+    {# The light/dark choice from the theme toggle (frontend/lib/theme.ts), applied before the page paints #}
+    <script nonce="{{ csp_nonce }}">
+      try {
+        var theme = localStorage.getItem("agweather-theme");
+        if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    </script>
+
+    {% vite_hmr_client %}
+    {% vite_asset 'entrypoints/inertia.ts' %}
+  </head>
+
+  <body class="min-h-dvh bg-surface text-ink antialiased">
+    {% block inertia %}{% endblock %}
+  </body>
+</html>

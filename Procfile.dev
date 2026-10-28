@@ -1,0 +1,3 @@
+web: uv run uvicorn --app-dir app config.asgi:application --reload --reload-dir app --reload-dir packages --lifespan off --port ${DJANGO_PORT:-8000}
+vite: pnpm exec vite
+worker: uv run app/manage.py procrastinate worker

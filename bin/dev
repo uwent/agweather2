@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Django (uvicorn, http://localhost:8000), the Vite dev server and the job worker, until Ctrl-C
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+exec uv run honcho start -f Procfile.dev "$@"

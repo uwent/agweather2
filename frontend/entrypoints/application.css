@@ -1,0 +1,162 @@
+@import 'tailwindcss';
+/* Classes in Django templates (base.html's <body>) as well as the Svelte files. Tailwind needs the
+   directory here: a glob over the apps' template folders matched nothing */
+@source '../../app';
+/* Red Hat Text for body copy, Red Hat Display for headings: self-hosted variable fonts */
+@import '@fontsource-variable/red-hat-text';
+@import '@fontsource-variable/red-hat-display';
+
+@plugin '@tailwindcss/typography';
+@plugin '@tailwindcss/forms';
+
+/*
+ * Design tokens. Components use these names (bg-surface, text-ink, bg-brand-600, ...) rather than
+ * raw palette colors, so light/dark colors are defined once.
+ */
+@theme {
+  --font-sans:
+    'Red Hat Text Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-display: 'Red Hat Display Variable', var(--font-sans);
+
+  /* Brand: blue, kept clear of the green-to-red risk scale that maps and feeds use */
+  --color-brand-50: oklch(97% 0.02 230);
+  --color-brand-100: oklch(93% 0.04 230);
+  --color-brand-500: oklch(60% 0.13 235);
+  --color-brand-600: oklch(52% 0.13 238);
+  --color-brand-700: oklch(45% 0.12 240);
+
+  /* University of Wisconsin–Madison colors (UW theme, _uw_vars.scss), for the branding bar and email.
+     The reds are the CALS theme's (UW's own are #c5050c and #9b0000); the darker red is for dark
+     mode. Keep the red to the branding bar, where it can't be mistaken for high risk */
+  --color-uw-red: #cf0a1b;
+  --color-uw-red-dark: #a3030e;
+  --color-uw-gray-dark: #282728;
+  --color-uw-gray-light: #e1e5e7;
+  --color-uw-gray-lightest: #f3f3f3;
+  --color-uw-border: #cfcfcf;
+  --color-uw-black: #121212;
+  --color-uw-link: #036796;
+  --color-uw-link-dark: #023d54;
+
+  /* Messages: errors and confirmations (FlashMessages), as tinted fills behind ink text */
+  --color-danger: oklch(55% 0.2 27);
+  --color-success: oklch(53% 0.14 155);
+
+  /* Surfaces and text, switched for dark mode below */
+  --color-surface: oklch(98.5% 0.003 240);
+  --color-surface-raised: oklch(100% 0 0);
+  --color-ink: oklch(22% 0.02 250);
+  --color-ink-muted: oklch(48% 0.02 250);
+  --color-line: oklch(90% 0.01 250);
+}
+
+/*
+ * Dark mode follows the system unless the theme toggle (lib/theme.ts) set data-theme on <html>.
+ * The same values appear twice: under the media query (system dark, no override) and for an
+ * explicit data-theme="dark".
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-surface: oklch(18% 0.015 250);
+    --color-surface-raised: oklch(23% 0.015 250);
+    --color-ink: oklch(94% 0.01 250);
+    --color-ink-muted: oklch(72% 0.015 250);
+    --color-line: oklch(32% 0.015 250);
+    --color-brand-50: oklch(28% 0.05 235);
+    --color-brand-100: oklch(33% 0.06 235);
+    --color-brand-500: oklch(70% 0.12 232);
+    --color-brand-600: oklch(74% 0.11 230);
+    --color-brand-700: oklch(80% 0.09 228);
+  }
+}
+
+:root[data-theme='dark'] {
+  --color-surface: oklch(18% 0.015 250);
+  --color-surface-raised: oklch(23% 0.015 250);
+  --color-ink: oklch(94% 0.01 250);
+  --color-ink-muted: oklch(72% 0.015 250);
+  --color-line: oklch(32% 0.015 250);
+  --color-brand-50: oklch(28% 0.05 235);
+  --color-brand-100: oklch(33% 0.06 235);
+  --color-brand-500: oklch(70% 0.12 232);
+  --color-brand-600: oklch(74% 0.11 230);
+  --color-brand-700: oklch(80% 0.09 228);
+}
+
+/* Tailwind's dark: variant, matching the rules above */
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme='light']), :root:not([data-theme='light']) *) {
+      @slot;
+    }
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+    accent-color: var(--color-brand-600);
+  }
+
+  :root[data-theme='light'] {
+    color-scheme: light;
+  }
+
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+  }
+
+  /* @tailwindcss/forms resets inputs to white, in rules that come after this one with the same
+     specificity; the :not() outranks them (but not their :focus or :checked styles) so inputs
+     follow the theme */
+  :is(input, select, textarea):not([type='checkbox'], [type='radio']) {
+    background-color: var(--color-surface-raised);
+    color: var(--color-ink);
+    border-color: var(--color-line);
+  }
+}
+
+/* Long-form text (model about pages): the typography plugin's colors from the design tokens, so prose
+   follows light and dark mode like everything else */
+.prose {
+  --tw-prose-body: var(--color-ink);
+  --tw-prose-headings: var(--color-ink);
+  --tw-prose-lead: var(--color-ink-muted);
+  --tw-prose-links: var(--color-brand-600);
+  --tw-prose-bold: var(--color-ink);
+  --tw-prose-counters: var(--color-ink-muted);
+  --tw-prose-bullets: var(--color-ink-muted);
+  --tw-prose-hr: var(--color-line);
+  --tw-prose-quotes: var(--color-ink);
+  --tw-prose-quote-borders: var(--color-line);
+  --tw-prose-captions: var(--color-ink-muted);
+  --tw-prose-code: var(--color-ink);
+  --tw-prose-th-borders: var(--color-line);
+  --tw-prose-td-borders: var(--color-line);
+}
+
+/* Reduced motion (WCAG 2.3.3): transitions and animations, Svelte's slides included, end at once.
+   MapLibre jumps instead of flying on its own; smooth scrolling checks the setting where it's used */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -17,6 +17,7 @@
     "globals": "^17.13.0",
     "husky": "^9.1.7",
     "jsdom": "^30.1.1",
+    "json-schema-to-typescript": "^16.0.0",
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.9",
     "prettier-plugin-svelte": "^4.1.1",
@@ -34,8 +35,8 @@
     "typecheck:py": "pyright",
     "test": "vitest run",
     "build": "vite build",
-    "format": "prettier --write frontend *.ts *.js",
-    "format:check": "prettier --check frontend *.ts *.js",
+    "format": "prettier --write frontend e2e scripts *.ts *.js",
+    "format:check": "prettier --check frontend e2e scripts *.ts *.js",
     "prepare": "husky",
     "lint": "eslint ."
   },

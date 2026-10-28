@@ -21,6 +21,7 @@ __pycache__/
 # Frontend
 node_modules/
 /app/static/vite/
+/staticfiles/
 
 # Playwright
 /test-results/

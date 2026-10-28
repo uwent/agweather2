@@ -25,6 +25,7 @@ jobs:
 
     env:
       DATABASE_URL: postgres://postgres:password@localhost:5432/agweather2_test
+      E2E_DATABASE_URL: postgres://postgres:password@localhost:5432/agweather2_e2e
 
     steps:
       - uses: actions/checkout@v7
@@ -40,4 +41,15 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec playwright install --with-deps chromium
+
       - run: bin/ci
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

@@ -46,6 +46,7 @@ One Django app that replaces the AgWeather API, the AgWeather website, VDIFN and
 | D17 | **Procrastinate** job queue (Postgres-backed, periodic tasks) for ingest and app jobs (Q1) | 2026-10-27 |
 | D18 | **SI units in storage** (°C, mm, m/s, W/m², kPa), converted by one units module (`agdata.units`, with a mirror in `frontend/lib/units.ts`) at the API and display edge; degree days stay in each model's own unit (mostly °F-days), labeled in the catalog (Q2) | 2026-10-27 |
 | D19 | **Public GitHub repo `uwent/agweather2`** (Q3) | 2026-10-27 |
+| D20 | **Named service-box presets** (`wisconsin`, `upper_midwest`, `conus`) chosen by `SERVICE_BOX`; development starts with `wisconsin` and scales up by switching the preset and backfilling | 2026-10-27 |
 
 ---
 
@@ -100,7 +101,7 @@ Package boundaries: `agmodels` imports nothing from the others. `agdata` may imp
 ### 5.1 Grid and service box
 
 - The NDFD CONUS 2.5 km Lambert conformal grid (2,345 × 1,597), defined once in `agdata.grid` with pyproj, checked against the lat/lon arrays in a real URMA file.
-- The **service box** is a lat/lon bounding box in settings, converted to a `(y, x)` index window on the full grid. Stores hold only the window, plus its offsets, so widening the box later is a new window and a backfill, not a new grid.
+- The **service box** is a named preset (D20) chosen by `SERVICE_BOX` (`wisconsin` for development, `upper_midwest` for launch, `conus` later), or explicit `south,west,north,east` degrees for experiments. It is converted to a `(y, x)` index window on the full grid. Stores hold only the window, plus its offsets, so widening the box later is a new window and a backfill, not a new grid.
 - Cell lookup: lat/lon → (y, x) nearest cell, and back; out-of-box points go to Open-Meteo (§7).
 
 ### 5.2 Variable catalog
@@ -200,7 +201,7 @@ Each phase ends with an exit gate. Dates are estimates for Ben and Claude; the o
 
 **A. Repo and tooling**
 
-- [x] Ben: install uv and Docker (2026-10-27). Docker socket permission and the GitHub repo remain (TODO.md).
+- [x] Ben: install uv and Docker, create `uwent/agweather2` (2026-10-27). First push 7e7c19d; CI green on GitHub Actions.
 - [x] uv workspace: root `pyproject.toml` with members `packages/agmodels`, `packages/agdata`, `app`; Python 3.13 pinned; `uv.lock` committed.
 - [x] Python tooling: ruff (format + lint, config in root `pyproject.toml`), pyright (basic mode, run through pnpm; django-types added in 1B), pytest with pytest-socket (importlib mode).
 - [x] Frontend tooling copied from WISP 3 with paths changed to `frontend/`: `package.json` (pnpm pinned through `packageManager`), Prettier (with svelte and tailwind plugins), ESLint, `tsconfig.json`, `svelte.config.js`, vitest config, `pnpm-workspace.yaml`. Playwright config and `e2e/` move to 1B, when there is a server to test.
@@ -210,16 +211,16 @@ Each phase ends with an exit gate. Dates are estimates for Ben and Claude; the o
 
 **B. Django skeleton**
 
-- [ ] Django project in `app/` (`config/settings.py` driven by env, local Postgres `agweather2_development`/`_test`), ASGI under uvicorn.
-- [ ] Inertia: inertia-django + django-vite; check which Inertia v3 protocol features it supports (props merging, deferred props, `<Form>` errors, history encryption) and note gaps in CLAUDE.md. A home page renders a Svelte page through `AppLayout`.
-- [ ] Port WISP 3's shell: `application.css` tokens (status and chart colors, light/dark), fonts, `AppLayout`, units and dates libs, axe test on the home page.
-- [ ] Django Ninja at `/api/v2` with a `status` endpoint and OpenAPI docs; `/up` health JSON; Django admin on.
-- [ ] Procrastinate installed (D17) with one periodic no-op task, run by `bin/dev`.
-- [ ] Prop-type generation spike: one Pydantic schema → TypeScript type used by the home page, with a CI freshness check.
+- [x] Django 6.1 project in `app/` (`config/settings.py` driven by env, local Postgres `agweather2_development`/`_test`), ASGI under uvicorn; `bin/dev` runs Django, Vite and the worker with honcho.
+- [x] Inertia: inertia-django 2.0 + django-vite. It implements the v3 protocol except validation errors, which `web/inertia.py` adds (errors through the session, shared once); CSRF cookie and header renamed for the v3 client. Notes in CLAUDE.md. The home page renders through `AppLayout`.
+- [x] Port WISP 3's shell: `application.css` tokens (brand, surfaces, UW colors, light/dark; chart tokens wait for charts), fonts, `AppLayout`, brand bar and theme toggle, flash messages, `lib/dates.ts`; Playwright smoke (no console errors) and axe tests in light and dark, run by `bin/e2e` and `bin/ci`. `lib/units.ts` moved to 1C, built with `agdata.units`.
+- [x] Django Ninja at `/api/v2` with a `status` endpoint and OpenAPI docs; `/up` health JSON; Django admin on; Content Security Policy (Django 6's) with the nonce for the theme script.
+- [x] Procrastinate installed (D17) with one periodic heartbeat task, run by `bin/dev`.
+- [x] Prop types: Pydantic `Props` subclasses → JSON Schema (`manage.py export_types`) → TypeScript (`bin/types`, json-schema-to-typescript), used by the home page and shared props; CI fails when stale.
 
 **C. Grid, catalog and store layout (`agdata`)**
 
-- [ ] `agdata.grid`: NDFD 2.5 km Lambert conformal definition, service box → index window, lat/lon ↔ (y, x), cell polygons for tiles; tests against lat/lon arrays from a cropped real URMA fixture.
+- [ ] `agdata.grid`: NDFD 2.5 km Lambert conformal definition, service-box presets (D20) → index window, lat/lon ↔ (y, x), cell polygons for tiles; tests against lat/lon arrays from a cropped real URMA fixture.
 - [ ] `agdata.catalog`: the §5.2 variables with SI units (D18), scale/offset, QC ranges, daily aggregations.
 - [ ] `agdata.units`: unit registry and conversions (SI ↔ display), used by the API's `units=` and mirrored by `frontend/lib/units.ts` with a shared test table so the two can't drift.
 - [ ] `agdata.store`: create/open a year's hourly and daily stores for the window, write an hour, read a point series and a daily tile window; source flag and ingest time per hour; tests on synthetic data in `tmp_path`.
@@ -227,9 +228,9 @@ Each phase ends with an exit gate. Dates are estimates for Ben and Claude; the o
 
 **D. One-month pilot**
 
-- [ ] Ingest July 2025 (all hourly variables available) for the Upper Midwest box into `data/` locally, plus a day of 2016 to time the whole-file path.
+- [ ] Ingest July 2025 (all hourly variables available) for the `wisconsin` box into `data/` locally, plus a day of 2016 to time the whole-file path.
 - [ ] Measure: compressed size per variable per month (compare int16 scaled vs float32, zstd levels, chunk shapes), download and decode time per hour, point-season read time, daily tile read time.
-- [ ] Write `docs/pilot.md` with the measurements, chosen chunking and codecs, and the extrapolated 11-year size for the Upper Midwest and CONUS; update §5.3 and the IT sizing in TODO.md.
+- [ ] Write `docs/pilot.md` with the measurements, chosen chunking and codecs, and the extrapolated 11-year size for each preset (measured on `wisconsin`, scaled by cell count); update §5.3 and the IT sizing in TODO.md.
 
 **E. Containers**
 

@@ -6,7 +6,14 @@ requires-python = ">=3.13,<3.14"
 dependencies = ["agmodels", "agdata", "agweather-app"]
 
 [dependency-groups]
-dev = ["pytest", "pytest-socket", "ruff"]
+dev = [
+    "django-types>=0.24.0",
+    "honcho>=2.0.0",
+    "pytest",
+    "pytest-django>=4.14.0",
+    "pytest-socket",
+    "ruff",
+]
 
 [tool.uv]
 package = false
@@ -27,10 +34,15 @@ extend-exclude = ["tmp", "data", "node_modules"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "DTZ", "RUF"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["agmodels", "agdata", "config", "web", "ops", "api"]
+
 [tool.pytest.ini_options]
-# Tests never use the network (CLAUDE.md); fixtures are recorded
-addopts = "--import-mode=importlib --disable-socket --allow-unix-socket"
+# Tests never use the network (CLAUDE.md); fixtures are recorded. Postgres on localhost is the exception.
+addopts = "--import-mode=importlib --disable-socket --allow-unix-socket --allow-hosts=127.0.0.1,::1,localhost"
 testpaths = ["packages/agmodels/tests", "packages/agdata/tests", "app"]
+pythonpath = ["app"]
+DJANGO_SETTINGS_MODULE = "config.settings"
 
 [tool.pyright]
 include = ["packages", "app"]
@@ -38,4 +50,5 @@ exclude = ["**/node_modules", "**/__pycache__", "tmp", "data"]
 venvPath = "."
 venv = ".venv"
 pythonVersion = "3.13"
+extraPaths = ["app"]
 typeCheckingMode = "basic"

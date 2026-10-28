@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Playwright browser tests against a production build, on their own database (args go to playwright test)
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+export E2E_DATABASE_URL="${E2E_DATABASE_URL:-postgres://postgres:password@localhost:5432/agweather2_e2e}"
+
+pnpm build > /dev/null
+DJANGO_ENV=test DATABASE_URL="$E2E_DATABASE_URL" uv run python - <<'PY'
+import os
+import dj_database_url
+import psycopg
+
+config = dj_database_url.parse(os.environ["DATABASE_URL"])
+admin = f"host={config['HOST']} port={config['PORT'] or 5432} user={config['USER']} password={config['PASSWORD']} dbname=postgres"
+with psycopg.connect(admin, autocommit=True) as conn:
+    if not conn.execute("SELECT 1 FROM pg_database WHERE datname = %s", [config["NAME"]]).fetchone():
+        conn.execute(f'CREATE DATABASE "{config["NAME"]}"')
+PY
+DJANGO_ENV=test DATABASE_URL="$E2E_DATABASE_URL" uv run app/manage.py migrate --verbosity 0
+
+exec pnpm exec playwright test "$@"
