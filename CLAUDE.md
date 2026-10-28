@@ -50,6 +50,8 @@ Setup and the rest are in `DEVELOPMENT.md`.
 - **Weather is fetched by jobs, never in a request**, except Open-Meteo for points outside the box or before the window, which goes through the per-cell cache.
 - **Tests never use the network.** Record GRIB slices and API responses as fixtures (small, cropped) under each package's `tests/fixtures`.
 - **Legacy code:** when porting from `../ag-weather`, `../ag-vdifn`, `../soils-ag-wx` or the R apps, port the behavior with a parity test against its outputs, and record any intended difference in PLAN.md.
+- **Evaluate ported logic critically.** Legacy code may be wrong or suboptimal (edge cases, unit slips, ad hoc thresholds, outdated methods). Check it against its cited source, then keep it, fix it or replace it. Record what you changed and why in PLAN.md, and limit the parity test to the cases that should still match.
+- **Gaps:** raw values (an hour's or a day's temperature) show as missing wherever they're displayed. Cumulative values (running DD, ET0) bridge gaps with a named, tested, documented estimate, and every estimate is flagged so the interface can say "includes N estimated days". Precipitation is never estimated.
 - **Python style:** ruff (format and lint, rules in the root `pyproject.toml`), pyright in basic mode, type hints on public functions. pytest runs in importlib mode, so test files may share names across packages. Prefer plain functions and small modules for domain math; no Django signals cascading recalculation.
 
 ## Gotchas

@@ -50,7 +50,10 @@ One Django app that replaces the AgWeather API, the AgWeather website, VDIFN and
 | D21 | **Coarse stored precision**: 0.1 °C temperature and dew point, 0.1 m/s wind and gust, 1 % cloud and RH, 1° direction, 0.1 mm precip, 0.1 kPa pressure (Q6, docs/pilot.md) | 2026-10-27 |
 | D22 | **Climatology moves to Phase 6**, with the climate comparisons it feeds (Q7) | 2026-10-27 |
 | D23 | **RTMA hourly precip before 2017-12-05**, when URMA has only 6-hour totals; supersedes D6's 6-hour plan (Q8) | 2026-10-27 |
-| D24 | **Local backfill: Wisconsin 2024–2025**; the 11-year backfill runs on the server (Q9) | 2026-10-27 |
+| D24 | **Local backfill: Wisconsin 2024–2025**, changed to 2025-01-01 to now for the pilot (2026-10-28); the 11-year backfill runs on the server (Q9) | 2026-10-27 |
+| D25 | **Gaps:** hourly and daily stores hold raw values only (no fill at ingest; days need 20 hours for min/max/mean and every hour for sums). Cumulative totals bridge gaps of up to 7 days: DD from linearly interpolated daily min/max, shortwave and ET0 from clear-sky radiation scaled by neighbouring hours' Rs/Rso. Precip is never estimated. Each cumulative variable keeps a running count of estimated (precip: missing) days, so the API and interface can bridge or blank a range (`gaps=estimate\|missing`). Longer gaps leave ranges across them blank until a fallback source fills them | 2026-10-28 |
+| D26 | **DD cubes by threshold, not by pair:** single-sine DD with a horizontal cutoff are linear, so DD(base, upper) = DD(base) − DD(upper), daily and cumulative. Twelve sine cubes (39.2, 41, 42.8, 45, 48, 50, 52, 55, 80.1, 86, 90, 92 °F) give the planned models' 13 pairs and any pair of those thresholds; corn gets a modified 50/86 cube (not decomposable). The legacy pairs no model uses (32, 38/75, 50/87.8, 52/86) are computed on demand. Daily DD aren't stored (they come from daily min/max) | 2026-10-28 |
+| D27 | **Cumulative stores rebuild each year from Jan 1** whenever a day changes, so rounding never compounds; cumulative DD at 0.5 °F·d (any pair's range within ±1 °F·d) | 2026-10-28 |
 
 ---
 
@@ -256,7 +259,7 @@ Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) pl
 **A. Store settings from the pilot**
 
 - [x] pcodec level 8 and the pilot's chunk shapes as `agdata.store` defaults; catalog scales at D21's precision (shortwave stays 0.1 W/m² and hourly ET0 0.001 mm, which D21 doesn't cover).
-- [ ] Add the daily-store variables to the catalog: each hourly variable's daily statistics (`air_temperature_max`, `precipitation_sum`, …) with their own units and scales (shortwave's daily sum is MJ/m², not W/m²), plus the per-day counts models need (hours with data).
+- [ ] Add the daily-store variables to the catalog: each hourly variable's daily statistics (`air_temperature_max`, `precipitation_sum`, …) with their own units and scales (shortwave's daily sum is MJ/m², not W/m²). No per-day counts: the completeness rules (D25) make a day NaN instead, and counts like hours of RH > 90 belong to the Phase 3 models.
 
 **B. Sources**
 
@@ -275,12 +278,15 @@ Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) pl
 
 - [x] Range checks from the catalog (values outside become NaN and are counted per hour in the ingest record), and a spike check on temperature and dew point (more than 12 °C from both neighbors in time, the same way): `agdata.qc`.
 - [x] Short gaps (up to 3 hours) in continuous variables filled by linear interpolation per cell (`agdata.qc.fill_short_gaps`; the catalog's `fillable` excludes precip, ET0 and wind direction); longer gaps stay NaN (CLAUDE.md: missing is never 0). Recording filled steps in the store comes with the ingest job (F).
+- [ ] Stop filling at ingest (D25): stored hours stay raw, so a gap shows as one; `fill_short_gaps` stays for read-time and model use.
 
 **E. Daily rollups and running totals**
 
-- [ ] Each cell's local calendar day (Central or Eastern time, from a time-zone lookup per cell; daylight saving included), so a "day" matches what growers and the old API mean. Days with fewer than 20 of their hours present are NaN for that statistic.
-- [ ] Daily store: the catalog's daily statistics, ET0 and precip sums, shortwave in MJ/m².
-- [ ] Degree days from daily min/max for the 17 legacy base/upper pairs and methods (sine, average, modified; ported from `../ag-weather` with parity tests) into a cumulative store: running totals from January 1, so any range is `cum[end] − cum[start − 1]`. Precip and ET0 get running totals too. (The full model library is Phase 3; DD are here because the Phase 2 gate and the maps need them.)
+- [ ] Each cell's local calendar day (Central or Eastern time, from a time-zone lookup per cell with `timezonefinder`; daylight saving included, so days have 23, 24 or 25 hours). The Wisconsin box is not all Central: it reaches Michigan's Eastern-time Upper Peninsula and Lake Michigan shore. Local Dec 31 reads the next year's first UTC hours.
+- [ ] Daily store: the catalog's daily statistics, ET0 and precip sums, shortwave in MJ/m²; raw (D25): min/max/mean need 20 hours, sums every hour.
+- [ ] `agmodels.degree_days`: sine, average and modified methods, ported from `../ag-weather` (`degree_days_calculator.rb`) with a parity fixture from the Ruby code. Reviewed against Baskerville & Emin (1969): the sine formulas match (and the alfalfa tool's R); the legacy default upper of 150 is applied in the call's unit (150 °C for Celsius calls), which the port doesn't copy.
+- [ ] Cumulative store (D26, D27): running totals from local Jan 1 for the 12 sine threshold cubes, corn's modified 50/86, precip and ET0, each with a running count of estimated (precip: missing) days; gaps up to 7 days bridged (D25). Any range is `cum[end] − cum[start − 1]`; a sine pair is the difference of two cubes.
+- [ ] `manage.py rollup --start --end`, and the backfill rolls up each block's complete days and rebuilds the year's running totals.
 
 **F. Ingest jobs and the backfill CLI**
 
