@@ -20,12 +20,17 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 
 ## Phase 2: Hourly archive
 
-- [ ] **Decide the local backfill range** (D24 said Wisconsin 2024–2025). It downloads about 50 MB per hour of data, so two years is about **0.9 TB** over your connection (about 10 hours); check that against any monthly data cap. Options: the full two years; the 2025 season only (Apr–Oct, about 250 GB, 3 hours); or wait for the server, where downloads from AWS are free and fast. Then run (or ask the next session to run):
+- [x] **Decide the local backfill range:** 2025-01-01 to now (decided 2026-10-28). About 0.8 TB of downloads; it runs at about 6 s per hour of data here (about 27 hours in all) with 1.3 GB of memory.
+- [ ] **Let the backfill finish** (started 2026-10-28). Only one runs at a time (a second one exits naming the first's pid), and rerunning resumes, skipping complete 5-day blocks:
   ```bash
   cd ~/code/agweather2
-  setsid nohup uv run app/manage.py backfill --start 2025-04-01 --end 2025-11-01 --workers 12 > tmp/backfill.log 2>&1 &
-  tail -f tmp/backfill.log     # one line per 10-day block; rerunning resumes
+  setsid nohup uv run app/manage.py backfill --start 2025-01-01 --end 2026-10-28 > tmp/backfill.log 2>&1 < /dev/null &
+  tail -f tmp/backfill.log            # a line every 6 hours of data, with time left; Ctrl-C stops watching, not the backfill
+  pgrep -af 'manage.py backfill'      # is it running?
+  cat data/backfill.lock              # its pid
+  kill $(cat data/backfill.lock)      # stop it; the current block is lost, finished blocks are kept
   ```
+  After a WSL restart it isn't running: start it again with the same command.
 
 ## Phase 3: Model library (ahead of time)
 

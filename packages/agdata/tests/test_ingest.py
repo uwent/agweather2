@@ -114,6 +114,18 @@ def test_a_failing_hour_is_retried_then_left_missing(tmp_path):
     assert report.failed == [START + timedelta(hours=4)]
 
 
+def test_progress_counts_every_hour_including_failed_ones(tmp_path):
+    def fetch(when, window, session):
+        if when == START + timedelta(hours=1):
+            raise ConnectionError("down")
+        return fake_fetch()(when, window, session)
+
+    seen = []
+    store = open_or_create_hourly(tmp_path, 2025, WINDOW)
+    ingest_block(store, START, 4, fetch=fetch, workers=2, progress=seen.append)
+    assert sorted(seen) == [1, 2, 3, 4]
+
+
 def test_every_hourly_variable_is_in_the_store(tmp_path):
     store = open_or_create_hourly(tmp_path, 2025, WINDOW)
     assert set(store.variables) == {v.name for v in HOURLY_VARIABLES}

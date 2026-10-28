@@ -74,3 +74,28 @@ On a server, settings go in `infra/.env` (gitignored): `SECRET_KEY`, `DATABASE_U
 
 - `tmp/` is gitignored scratch (downloads, one-off scripts). The Shiny apps used for model parity are in `tmp/shiny/`.
 - `data/` (gitignored, or `DATA_DIR`) holds the local Zarr archive and GRIB downloads.
+
+## 6. Managing data from the console
+
+`backfill` fills the hourly archive (`data/hourly/<year>.zarr`) for the `SERVICE_BOX` window from NOAA's AWS buckets
+(URMA, RTMA, HRRR). It downloads about 50 MB per hour of data and runs at about 6 s per hour of data on a home
+connection, so run it detached, so that it outlives the terminal:
+
+```bash
+setsid nohup uv run app/manage.py backfill --start 2025-01-01 --end 2026-10-28 > tmp/backfill.log 2>&1 < /dev/null &
+tail -f tmp/backfill.log            # a line every 6 hours of data, with time left; Ctrl-C stops watching, not the backfill
+pgrep -af 'manage.py backfill'      # is it running?
+cat data/backfill.lock              # its pid
+kill $(cat data/backfill.lock)      # stop it; the current block is lost, finished blocks are kept
+du -sh data/hourly                  # archive size
+```
+
+- `--end` is the day after the last one. Days are UTC.
+- It works in 5-day blocks (`--block-days`) and writes each one when it's finished. Rerunning skips complete blocks,
+  so restarting after a stop or a WSL restart is safe. `--redo` refetches them anyway.
+- Only one backfill runs at a time: a second one exits naming the first one's pid. Several at once would write the
+  same Zarr chunks and run WSL out of memory.
+- `--workers` (default 4) is how many hours download in parallel. The connection is the limit here, not the CPU.
+  Memory peaks at about 1.8 GB.
+- Blocks with hours URMA hasn't published yet use RTMA for them and aren't counted as complete, so a later rerun
+  replaces those hours with URMA.

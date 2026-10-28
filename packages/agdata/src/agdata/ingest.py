@@ -8,6 +8,7 @@ whole block, then RH and ET0 are derived. Every variable records each hour's sou
 """
 
 import logging
+import threading
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -90,16 +91,28 @@ def ingest_block(
     fetch: Fetcher = fetch_hour,
     workers: int = 8,
     session_factory: Callable[[], requests.Session] = requests.Session,
+    progress: Callable[[int], None] | None = None,
 ) -> BlockReport:
-    """Fetches, QCs, derives and writes `hours` consecutive hours from `start` (all within the store's year)."""
+    """Fetches, QCs, derives and writes `hours` consecutive hours from `start` (all within the store's year).
+    `progress` is called with the number of hours fetched so far as each one finishes."""
     times = [start + timedelta(hours=n) for n in range(hours)]
     store.index_of(times[-1])  # the block must fit in the store's year
     window = store.window
     packed = {v.name: np.full((hours, *window.shape), FILL, dtype=np.int16) for v in HOURLY_VARIABLES}
     sources: dict[str, list[str | None]] = {v.name: [None] * hours for v in HOURLY_VARIABLES}
     report = BlockReport(start, hours, {}, {}, {}, {})
+    done = 0
+    done_lock = threading.Lock()
 
     def one(n: int) -> None:
+        nonlocal done
+        fetch_one(n)
+        with done_lock:
+            done += 1
+            if progress is not None:
+                progress(done)
+
+    def fetch_one(n: int) -> None:
         session = _session(session_factory)
         for attempt in range(1, ATTEMPTS + 1):
             try:
@@ -183,8 +196,6 @@ def blocks(start: datetime, end: datetime, max_days: int = 31) -> list[tuple[dat
 
 
 def _session(factory: Callable[[], requests.Session]) -> requests.Session:
-    import threading
-
     local = _session.__dict__.setdefault("local", threading.local())
     if not hasattr(local, "session"):
         local.session = factory()
