@@ -124,8 +124,31 @@ class GridStore:
         missing = set(wanted) - set(store.group.array_keys())
         if missing:
             raise KeyError(f"{path} has no {', '.join(sorted(missing))}")
+        for name, v in wanted.items():
+            attrs = store._array(name).attrs
+            if (attrs.get("scale"), attrs.get("offset")) != (v.scale, v.offset):
+                raise ValueError(
+                    f"{path}: {name} is stored at scale {attrs.get('scale')}, offset {attrs.get('offset')}, but the "
+                    f"catalog says {v.scale}, {v.offset}; run GridStore.rescale on it"
+                )
         store.variables = wanted
         return store
+
+    @classmethod
+    def rescale(cls, data_dir: Path, layout: StoreLayout, year: int, variable: Variable, steps: int = 720) -> None:
+        """Repacks a variable stored at another scale or offset to the catalog's, `steps` at a time. Values keep
+        the old precision; refetch them for the new one."""
+        group = zarr.open_group(layout.path(data_dir, year), mode="r+")
+        array = group[variable.name]
+        assert isinstance(array, zarr.Array)
+        attrs: dict[str, Any] = dict(array.attrs)
+        scale, offset = float(attrs["scale"]), float(attrs["offset"])
+        for t in range(0, array.shape[0], steps):
+            packed = np.asarray(array[t : t + steps])
+            values = packed.astype(np.float64) * scale + offset
+            values[packed == FILL] = np.nan
+            array[t : t + steps] = variable.encode(values)
+        array.attrs.update({"scale": variable.scale, "offset": variable.offset})
 
     # Time
 

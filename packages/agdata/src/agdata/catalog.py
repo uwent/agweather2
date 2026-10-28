@@ -155,11 +155,11 @@ VARIABLES: dict[str, Variable] = {
             "Precipitation in the hour ending at the time",
             "mm",
             fillable=False,
-            scale=0.1,
+            scale=0.01,  # D28: at 0.1, light-snow hours under 0.05 mm round to 0 (January totals 6.6% low)
             valid_min=0,
             valid_max=300,
             daily=("sum",),
-            notes="URMA hourly from 2017-12-05; before that only 6-hour totals (PLAN.md D6)",
+            notes="URMA hourly from 2017-12-05; RTMA's hourly precip before that (PLAN.md D23)",
             sources={"urma": "APCP:surface, 1-hour accumulation"},
         ),
         Variable(
@@ -214,11 +214,12 @@ VARIABLES: dict[str, Variable] = {
 # Daily statistics (PLAN.md §5.2): each hourly variable's `daily` stats over each cell's local calendar day.
 # Min, max and mean keep the hourly unit and precision; sums have their own (shortwave's in MJ/m²).
 DAILY_MIN_HOURS = 20  # min, max and mean need this many hours of the day; sums need every hour (D25)
-_SUMS: dict[str, tuple[str, float, float, float]] = {
-    # hourly name: (unit, factor from the hourly unit, scale, valid max)
-    "precipitation": ("mm", 1.0, 0.1, 1000),
-    "shortwave_radiation": ("MJ_m2", 0.0036, 0.01, 50),  # W/m² mean over an hour → MJ/m²
-    "et0": ("mm", 1.0, 0.01, 20),
+_SUMS: dict[str, tuple[str, float, float, float, float]] = {
+    # hourly name: (unit, factor from the hourly unit, scale, offset, valid max)
+    # Precip spends all of int16 on 0..1310 mm (offset) for 0.02 mm steps: at 0.1 mm, trace days rounded to 0 (D28)
+    "precipitation": ("mm", 1.0, 0.02, 655.34, 1300),
+    "shortwave_radiation": ("MJ_m2", 0.0036, 0.01, 0.0, 50),  # W/m² mean over an hour → MJ/m²
+    "et0": ("mm", 1.0, 0.01, 0.0, 20),
 }
 
 
@@ -233,9 +234,9 @@ class DailyStatistic:
 def _daily_statistic(v: Variable, stat: DailyStat) -> DailyStatistic:
     name = f"{v.name}_{stat}"
     if stat == "sum":
-        unit_, factor, scale, high = _SUMS[v.name]
+        unit_, factor, scale, offset, high = _SUMS[v.name]
         long_name = f"{v.long_name}, daily total"
-        daily = Variable(name, long_name, unit_, scale=scale, valid_min=0, valid_max=high)
+        daily = Variable(name, long_name, unit_, scale=scale, offset=offset, valid_min=0, valid_max=high)
         return DailyStatistic(daily, v.name, stat, factor)
     long_name = f"{v.long_name}, daily {stat}"
     daily = Variable(

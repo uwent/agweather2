@@ -25,7 +25,7 @@ from agdata.store import CUMULATIVE, DAILY, GridStore, steps_in_year
 from agmodels.degree_days import degree_days_modified, degree_days_sine
 
 MAX_BRIDGE_DAYS = 7
-BAND_ROWS = 128
+BAND_CELL_DAYS = 3_000_000  # cells × days per band: about 300 bytes each at peak, so about 1 GB
 
 
 def open_or_create_cumulative(data_dir: Path, year: int, window: Window) -> GridStore:
@@ -54,8 +54,9 @@ def rebuild_year(data_dir: Path, window: Window, year: int, changed_from: date |
     skip = 0
     if changed_from is not None and changed_from.year == year:
         skip = max(0, min((changed_from - date(year, 1, 1)).days - MAX_BRIDGE_DAYS, n - 1))
-    for j in range(window.j0, window.j1, BAND_ROWS):
-        band = Window(j, min(j + BAND_ROWS, window.j1), window.i0, window.i1)
+    rows = max(1, BAND_CELL_DAYS // ((n + 2 * MAX_BRIDGE_DAYS) * window.shape[1]))
+    for j in range(window.j0, window.j1, rows):
+        band = Window(j, min(j + rows, window.j1), window.i0, window.i1)
         names = ("air_temperature_min", "air_temperature_max", "et0_sum", "precipitation_sum", "et0_sum_estimate")
         tmin, tmax, et0, precip, et0_estimate = (days.read_with_neighbours(name, band, n) for name in names)
         out = running_totals(tmin, tmax, et0, precip, et0_estimate)
@@ -87,8 +88,8 @@ def running_totals(
         out[dd_name("sine", t)] = _cumsum(degree_days_sine(lo_f, hi_f, t), usable)
     for base, upper in DD_MODIFIED_PAIRS_F:
         out[dd_name("modified", base, upper)] = _cumsum(degree_days_modified(lo_f, hi_f, base, upper), usable)
-    out["temperature_estimated_days"] = np.cumsum(usable & ~known[year], axis=0)
-    out["temperature_missing_days"] = np.cumsum(~usable, axis=0)
+    out["temperature_estimated_days"] = np.cumsum(usable & ~known[year], axis=0, dtype=np.int16)
+    out["temperature_missing_days"] = np.cumsum(~usable, axis=0, dtype=np.int16)
 
     if et0_estimate_mm is not None:
         et0_mm_or_estimate = np.where(np.isfinite(et0_mm), et0_mm, et0_estimate_mm)
@@ -97,17 +98,18 @@ def running_totals(
     et0, _ = fill_short_gaps(et0_mm_or_estimate, MAX_BRIDGE_DAYS)
     et0 = et0[year]
     out["et0"] = _cumsum(et0, np.isfinite(et0))
-    out["et0_estimated_days"] = np.cumsum(np.isfinite(et0) & ~np.isfinite(et0_mm[year]), axis=0)
-    out["et0_missing_days"] = np.cumsum(~np.isfinite(et0), axis=0)
+    out["et0_estimated_days"] = np.cumsum(np.isfinite(et0) & ~np.isfinite(et0_mm[year]), axis=0, dtype=np.int16)
+    out["et0_missing_days"] = np.cumsum(~np.isfinite(et0), axis=0, dtype=np.int16)
 
     precip = precip_mm[year]
     out["precipitation"] = _cumsum(precip, np.isfinite(precip))
-    out["precipitation_missing_days"] = np.cumsum(~np.isfinite(precip), axis=0)
+    out["precipitation_missing_days"] = np.cumsum(~np.isfinite(precip), axis=0, dtype=np.int16)
     return out
 
 
 def _cumsum(values: np.ndarray, usable: np.ndarray) -> np.ndarray:
-    return np.cumsum(np.where(usable, values, 0.0), axis=0, dtype=np.float64)
+    """Summed in float64 and kept as float32 (exact to about 0.001 at 16,000, far inside the stored 0.5)."""
+    return np.cumsum(np.where(usable, values, 0.0), axis=0, dtype=np.float64).astype(np.float32)
 
 
 class _DailyYear:
@@ -128,7 +130,7 @@ class _DailyYear:
         """Days 1..`days` of the year, with MAX_BRIDGE_DAYS of the years before and after on either side."""
         assert self.store is not None
         pad = MAX_BRIDGE_DAYS
-        out = np.full((days + 2 * pad, *window.shape), np.nan)
+        out = np.full((days + 2 * pad, *window.shape), np.nan, dtype=np.float32)
         out[pad : pad + days] = self.store.read_steps(name, 0, days, window)
         before = self._open(self.year - 1)
         if before is not None:

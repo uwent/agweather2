@@ -173,3 +173,23 @@ def test_a_spike_at_the_edge_of_a_block_is_caught_using_the_stored_neighbours(tm
     ingest_block(store, START + timedelta(hours=3), 1, fetch=fake_fetch(spike=(3, 1, 1)), workers=1)
     t0 = store.index_of(START)
     assert np.isnan(store.read_point("air_temperature", 901, 1401, t0 + 3, t0 + 4)).all()
+
+
+def test_refetching_precip_keeps_hours_neither_source_has(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from agdata.ingest import refetch_precipitation
+
+    store = open_or_create_hourly(tmp_path, 2025, WINDOW)
+    store.write(START, {"precipitation": np.full((3, *WINDOW.shape), 0.1)}, source="urma")
+    urma_hours = {START: 0.03, START + timedelta(hours=1): 0.12}
+    urma = SimpleNamespace(
+        name="urma",
+        fetch_precip=lambda when, window, s: np.full(window.shape, urma_hours[when]) if when in urma_hours else None,
+    )
+    rtma = SimpleNamespace(name="rtma", fetch_precip=lambda when, window, s: None)
+    monkeypatch.setattr(ingest, "URMA", urma)
+    monkeypatch.setattr(ingest, "RTMA", rtma)
+    assert refetch_precipitation(store, START, 3, workers=2) == 3
+    t0 = store.index_of(START)
+    np.testing.assert_allclose(store.read_point("precipitation", 900, 1400, t0, t0 + 3), [0.03, 0.12, 0.1])

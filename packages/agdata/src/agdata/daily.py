@@ -77,11 +77,16 @@ def rollup_days(data_dir: Path, window: Window, first: date, last: date) -> int:
                     for s in stats:
                         out[s.variable.name] = day_zones.each_day(hours, span_start, s)
             out["et0_sum_estimate"] = np.full_like(out["et0_sum"], np.nan)
-            if np.isnan(out["et0_sum"]).any():
-                start, stop = span_start - ESTIMATE_CONTEXT, span_stop + ESTIMATE_CONTEXT
+            short = np.flatnonzero(np.isnan(out["et0_sum"]).any(axis=(1, 2)))
+            if short.size:
+                # Only over the days missing some ET0, with context: the estimate's arrays are many times the hours'
+                d0, d1 = int(short[0]), int(short[-1]) + 1
+                some = _DayZones(groups[d0:d1], day_zones.zone_index)
+                start = min(b[0] for g in some.groups for b in g) - ESTIMATE_CONTEXT
+                stop = max(b[1] for g in some.groups for b in g) + HOUR + ESTIMATE_CONTEXT
                 et0 = _estimated_et0_hours(hourly, start, stop, band)
-                estimate = day_zones.each_day(et0, start, DAILY_STATISTICS["et0_sum"])
-                out["et0_sum_estimate"] = np.where(np.isnan(out["et0_sum"]), estimate, np.nan)
+                estimate = some.each_day(et0, start, DAILY_STATISTICS["et0_sum"])
+                out["et0_sum_estimate"][d0:d1] = np.where(np.isnan(out["et0_sum"][d0:d1]), estimate, np.nan)
             store.write(days[0], out, source="derived", window=band)
         written += len(days)
     return written

@@ -85,3 +85,19 @@ def test_daily_store_by_date(tmp_path):
 def test_create_refuses_to_overwrite(tmp_path, hourly):
     with pytest.raises(FileExistsError):
         GridStore.create(tmp_path, HOURLY, 2025, WINDOW, [TEMP])
+
+
+def test_a_store_at_another_scale_must_be_rescaled_before_it_opens(tmp_path):
+    from dataclasses import replace
+
+    old = replace(RAIN, scale=0.1)
+    store = GridStore.create(tmp_path, HOURLY, 2025, WINDOW, [TEMP, old], chunks=(48, 16, 16))
+    start = datetime(2025, 1, 14, 6, tzinfo=UTC)
+    store.write(start, {"precipitation": np.full((2, *WINDOW.shape), [[[0.3]], [[np.nan]]])}, source="urma")
+    with pytest.raises(ValueError, match="rescale"):
+        GridStore.open(tmp_path, HOURLY, 2025, [TEMP, RAIN])
+    GridStore.rescale(tmp_path, HOURLY, 2025, RAIN, steps=1000)
+    reopened = GridStore.open(tmp_path, HOURLY, 2025, [TEMP, RAIN])
+    t0 = reopened.index_of(start)
+    np.testing.assert_allclose(reopened.read_point("precipitation", 900, 1400, t0, t0 + 2), [0.3, np.nan])
+    assert reopened.sources("precipitation")[t0] == "urma"

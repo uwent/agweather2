@@ -74,17 +74,17 @@ class Command(BaseCommand):
                 f"failed fetches {len(report.failed)}; missing hours {missing or 'none'}; "
                 f"spikes {sum(report.spikes.values())}"
             )
-            self.roll_up(window, block_start, hours)
+            self.roll_up(window, block_start, hours, start)
         self.say("Done")
 
     def say(self, line: str) -> None:
         self.stdout.write(f"{datetime.now().astimezone():%H:%M:%S} {line}")
         self.stdout.flush()  # stdout to a file is block-buffered
 
-    def roll_up(self, window, block_start: datetime, hours: int) -> None:
+    def roll_up(self, window, block_start: datetime, hours: int, start: datetime) -> None:
         """Local days this block finished: the day before it started (its last hours were in this block) through
         the second-to-last UTC day it covers (the last runs into the next block's hours in every US zone)."""
-        first = (block_start - timedelta(days=1)).date()
+        first = max((block_start - timedelta(days=1)).date(), start.date())  # the day before the start can't finish
         last = (block_start + timedelta(hours=hours) - timedelta(days=2)).date()
         if last < first:
             return

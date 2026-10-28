@@ -109,6 +109,10 @@ after changing a daily statistic or for days a backfill skipped:
 uv run app/manage.py rollup --start 2025-01-01 --end 2025-01-30    # local days, inclusive; about 17 s a month here
 ```
 
+When a variable's stored scale changes in the catalog, stores written before refuse to open until they're
+repacked (`GridStore.rescale`). For precip, `refetch_precip --start --end --rescale` repacks and fetches the hours
+again at the new precision (precip files are small: about 2 minutes a month).
+
 Stored hours and days are raw: a missing hour or an incomplete day stays missing. Only the running totals
 estimate across gaps (up to 7 days), and they count the estimated and missing days (PLAN.md D25).
 

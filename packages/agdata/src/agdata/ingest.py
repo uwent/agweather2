@@ -174,6 +174,42 @@ def ingest_block(
     return report
 
 
+def refetch_precipitation(
+    store: GridStore, start: datetime, hours: int, workers: int = 8, session_factory=requests.Session
+) -> int:
+    """Fetches only hourly precip again (URMA, else RTMA) for `hours` from `start` and writes it at the catalog's
+    precision; hours neither has keep what they had. Returns the hours written. Precip files are small (about
+    250 KB an hour), so this is cheap next to a full ingest."""
+    variable = store.variables["precipitation"]
+    t0 = store.index_of(start)
+    values = store.read_steps("precipitation", t0, t0 + hours)
+    sources = store.sources("precipitation")[t0 : t0 + hours]
+
+    def one(n: int) -> None:
+        session = _session(session_factory)
+        when = start + n * HOUR
+        for attempt in range(1, ATTEMPTS + 1):
+            try:
+                for source in (URMA, RTMA):
+                    found = source.fetch_precip(when, store.window, session)
+                    if found is not None:
+                        values[n] = check_range(variable, found)[0]
+                        sources[n] = source.name
+                        return
+                return
+            except Exception as error:  # transient network errors; the hour keeps what it had after the last
+                if attempt == ATTEMPTS:
+                    logger.warning("refetching precip for %s failed %d times: %r", when, ATTEMPTS, error)
+                    return
+                time.sleep(RETRY_SECONDS * attempt)
+
+    with ThreadPoolExecutor(workers) as pool:
+        list(pool.map(one, range(hours)))
+    store.write(start, {"precipitation": values}, source=None)
+    store.set_sources("precipitation", start, sources)
+    return sum(1 for s in sources if s)
+
+
 def stale_hours(
     data_dir: Path, window: Window, start: datetime, stop: datetime, urma_published: Callable[[datetime], bool]
 ) -> list[datetime]:
