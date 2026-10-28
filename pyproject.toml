@@ -3,7 +3,11 @@
 name = "agweather2"
 version = "0.1.0"
 requires-python = ">=3.13,<3.14"
-dependencies = ["agmodels", "agdata", "agweather-app"]
+dependencies = [
+    "agmodels",
+    "agdata",
+    "agweather-app",
+]
 
 [dependency-groups]
 dev = [

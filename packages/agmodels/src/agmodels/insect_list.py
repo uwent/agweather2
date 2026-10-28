@@ -207,6 +207,7 @@ INSECTS: tuple[Insect, ...] = (
             (275, 690, 1090),
             (1090, 1690, 2500),
         ),
+        topic="colorado-potato-beetle",
     ),
     Insect(
         "colorado-potato-beetle-larvae",
@@ -222,6 +223,7 @@ INSECTS: tuple[Insect, ...] = (
             "decline steadily through the end of the season (around 2500 FDD)."
         ),
         generations=((485, 905, 2500),),
+        topic="colorado-potato-beetle",
     ),
     Insect(
         "corn-earworm",

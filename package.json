@@ -35,8 +35,8 @@
     "typecheck:py": "pyright",
     "test": "vitest run",
     "build": "vite build",
-    "format": "prettier --write frontend e2e scripts *.ts *.js",
-    "format:check": "prettier --check frontend e2e scripts *.ts *.js",
+    "format": "prettier --write frontend e2e scripts content *.ts *.js",
+    "format:check": "prettier --check frontend e2e scripts content *.ts *.js",
     "prepare": "husky",
     "lint": "eslint ."
   },

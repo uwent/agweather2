@@ -61,6 +61,7 @@ class Insect:
     source: str = "VDIFN"
     status: str = "stable"
     citations: tuple[Citation, ...] = ()
+    topic: str = ""  # the pest's topic page, when several models share one (Colorado potato beetle); default its id
 
 
 class InsectModel:
@@ -77,7 +78,7 @@ class InsectModel:
             status=insect.status,  # type: ignore[arg-type]
             summary=f"{insect.name} development from degree days (base {insect.base_f:g} °F, {upper}), with the "
             "risk of damage it implies.",
-            topics=(insect.id,),
+            topics=(insect.topic or insect.id,),
             crops=insect.crops,
             citations=insect.citations or (Citation(f"{insect.source} (UW–Madison Vegetable Entomology)"),),
             inputs=(
