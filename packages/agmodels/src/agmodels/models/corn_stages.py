@@ -63,6 +63,8 @@ MATURITY = Option(
     "2500",
 )  # NCH-40's classes: early season 2100–2400, mid-season 2400–2800, full season 2900–3200
 
+MARGIN_DAYS = 3  # VE, R1 and R6 came within 3 days of observed on Yang et al.'s seasons
+
 STAGES = (
     CropStage("VE", "Emergence", "The coleoptile breaks the soil surface."),
     *(CropStage(f"V{n}", f"{n} leaf collars", "Leaf collars visible on the main stem.") for n in range(1, MAX_LEAVES)),

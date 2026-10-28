@@ -15,7 +15,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels.probability import logistic, moving_mean, risk_level
-from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk
+from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk, Susceptibility
 
 KMH_PER_MS = 3.6
 SPECIES = {  # output name: (label, risk thresholds in %)
@@ -39,6 +39,10 @@ SPEC = ModelSpec(
         Citation(
             "Crop Protection Network: Cercospora leaf blight of soybean.",
             "https://cropprotectionnetwork.org/encyclopedia/cercospora-leaf-blight-of-soybean",
+        ),
+        Citation(
+            "Crop Protection Network: An overview of Cercospora leaf blight of soybean.",
+            "https://cropprotectionnetwork.org/publications/an-overview-of-cercospora-leaf-blight-of-soybean",
         ),
     ),
     inputs=(
@@ -71,6 +75,13 @@ SPEC = ModelSpec(
         "hours_rh90_14day": (2.0, 10.0),
     },
     lookback_days=14,
+    susceptible=Susceptibility(
+        "soybean-stages",
+        "R3",
+        "R6",
+        "Provisional: CPN (symptoms from beginning seed set)",
+        "The fit is unpublished and its author gave no risk period: confirm with Webster.",
+    ),
     changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool."),),
 )
 

@@ -12,7 +12,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels.probability import attenuate_for_cold, logistic, moving_mean, risk_level
-from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk
+from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk, Susceptibility
 
 SPEC = ModelSpec(
     id="tar-spot",
@@ -56,6 +56,9 @@ SPEC = ModelSpec(
     },
     lookback_days=30,
     season=("07-01", "08-15"),
+    susceptible=Susceptibility(
+        "corn-stages", "V10", "R3", "The Crop Risk Tool (V10–R3, 10th leaf to milk); Tarspotter's fungicide window"
+    ),
     changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool."),),
 )
 

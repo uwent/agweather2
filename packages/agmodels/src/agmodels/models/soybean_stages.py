@@ -70,6 +70,8 @@ DEPTH = Option(
     "seeding_depth_in", "Seeding depth", (("1.0", "1 in"), ("1.25", "1¼ in"), ("1.5", "1½ in")), "1.5"
 )  # the hypocotyl reaches 5 cm at most, so no deeper than 1¾ in
 
+MARGIN_DAYS = 5  # Setiyono et al.'s generalized mode: RMSE 3.6 days, R1 up to 6 days off on their seasons
+
 STAGES = (
     CropStage("VE", "Emergence", "Cotyledons above the soil surface."),
     CropStage("VC", "Cotyledon", "Unifoliate leaves unrolled so their edges don't touch."),

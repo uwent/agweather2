@@ -14,7 +14,7 @@ import numpy as np
 
 from agmodels.accumulate import rolling_sum
 from agmodels.probability import logistic, moving_mean, risk_level
-from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk
+from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk, Susceptibility
 
 SPEC = ModelSpec(
     id="gibberella-ear-rot-don",
@@ -60,6 +60,12 @@ SPEC = ModelSpec(
     },
     lookback_days=21,
     season=("07-01", "08-07"),
+    susceptible=Susceptibility(
+        "corn-stages",
+        "R1",
+        "R1",
+        "The Crop Risk Tool (susceptible during silking); the model's windows end on silking day",
+    ),
     changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool; missing precip isn't counted as dry."),),
 )
 

@@ -12,7 +12,7 @@ Stages a model estimates between the ones its source predicts are flagged `estim
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, cast
 
 import numpy as np
 
@@ -29,6 +29,7 @@ class CropStage:
 
 class CropModel(Protocol):
     SPEC: ModelSpec
+    MARGIN_DAYS: int  # how far off its stage dates typically are, either way: the muted margin of gated risk (D33)
 
     def stages(self, **options: str) -> tuple[CropStage, ...]: ...
 
@@ -68,3 +69,40 @@ def number_option(options: dict[str, str], option: Option) -> float:
         return float(value)
     except ValueError:
         raise ValueError(f"{option.name} must be a number, got {value!r}") from None
+
+
+# Disease risk by crop stage (D33)
+
+NOT_SUSCEPTIBLE, MARGIN, SUSCEPTIBLE = 0.0, 1.0, 2.0
+
+
+def susceptibility(stage, stages: tuple[CropStage, ...], first: str, last: str, margin_days: int) -> np.ndarray:
+    """Each day: SUSCEPTIBLE while the crop is from `first` through `last`, MARGIN within `margin_days` of such a
+    day (stage estimates are a few days off either way), NOT_SUSCEPTIBLE otherwise, NaN where the stage is unknown
+    (before planting). Days on axis 0; a risk chart greys NOT_SUSCEPTIBLE days and mutes MARGIN ones."""
+    s = np.asarray(stage, dtype=float)
+    codes = [st.code for st in stages]
+    lo, hi = codes.index(first), codes.index(last)
+    if lo > hi:
+        raise ValueError(f"{first} comes after {last}")
+    inside = (s >= lo) & (s <= hi)
+    # any susceptible day within margin_days either side: a window count over the padded series
+    count = np.cumsum(np.concatenate([np.zeros((1, *s.shape[1:])), inside.astype(float)]), axis=0)
+    n = s.shape[0]
+    days = np.arange(n)
+    upper = np.minimum(days + margin_days + 1, n)
+    lower = np.maximum(days - margin_days, 0)
+    near = (count[upper] - count[lower]) > 0
+    level = np.where(inside, SUSCEPTIBLE, np.where(near, MARGIN, NOT_SUSCEPTIBLE))
+    return np.where(np.isnan(s), np.nan, level)
+
+
+def disease_susceptibility(spec: ModelSpec, crop_stage: np.ndarray, **crop_options: str) -> np.ndarray | None:
+    """`susceptibility` for a disease model from its crop model's `stage` output; None if the model isn't gated."""
+    if spec.susceptible is None:
+        return None
+    from agmodels.registry import model  # the registry imports the crop modules, which import this one
+
+    gate = spec.susceptible
+    crop = cast(CropModel, model(gate.crop))
+    return susceptibility(crop_stage, crop.stages(**crop_options), gate.first, gate.last, crop.MARGIN_DAYS)

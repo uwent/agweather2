@@ -13,7 +13,17 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels.probability import attenuate_for_cold, logistic, moving_mean, risk_level
-from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Option, Quantity, Risk
+from agmodels.spec import (
+    PROBABILITY_LEVELS,
+    Change,
+    Citation,
+    ExplorerInput,
+    ModelSpec,
+    Option,
+    Quantity,
+    Risk,
+    Susceptibility,
+)
 
 SPEC = ModelSpec(
     id="white-mold",
@@ -65,6 +75,9 @@ SPEC = ModelSpec(
     ),
     lookback_days=30,
     season=("06-15", "08-07"),
+    susceptible=Susceptibility(
+        "soybean-stages", "R1", "R3", "The Crop Risk Tool (R1–R3); Sporecaster runs only with flowers present"
+    ),
     changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool."),),
 )
 

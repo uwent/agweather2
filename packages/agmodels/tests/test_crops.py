@@ -8,7 +8,15 @@ from typing import cast
 import numpy as np
 import pytest
 
-from agmodels.crops import CropModel, stage_days, stage_reached
+from agmodels.crops import (
+    MARGIN,
+    SUSCEPTIBLE,
+    CropModel,
+    disease_susceptibility,
+    stage_days,
+    stage_reached,
+    susceptibility,
+)
 from agmodels.degree_days import degree_days_modified
 from agmodels.models import corn_stages as corn
 from agmodels.models import soybean_stages as soy
@@ -191,3 +199,44 @@ def test_soybean_on_the_grid():
     assert out["stage"].shape == temp.shape
     r1 = [first_day(doy, out["stage"][:, k], soy.STAGES, "R1") for k in range(3)]
     assert r1[0] < r1[2]  # same weather, longer days in the north delay flowering
+
+
+# Disease risk by crop stage (D33)
+
+
+def test_susceptibility_with_margins():
+    stages = soy.STAGES
+    r = [s.code for s in stages].index
+    stage = np.array([np.nan] + [r("V3")] * 6 + [r("R1")] * 3 + [r("R2")] * 2 + [r("R4")] * 4 + [r("R5")] * 8)
+    level = susceptibility(stage, stages, "R1", "R3", margin_days=2)
+    np.testing.assert_array_equal(level, [np.nan, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 2, 1, 1, 0, 0, *[0] * 8])
+    with pytest.raises(ValueError):
+        susceptibility(stage, stages, "R3", "R1", 2)
+
+
+def test_gated_models_name_real_stages():
+    gated = {k: m.SPEC for k, m in all_models().items() if m.SPEC.susceptible is not None}
+    assert {"tar-spot", "gray-leaf-spot", "gibberella-ear-rot-don", "white-mold", "frogeye-leaf-spot"} <= set(gated)
+    for spec in gated.values():
+        gate = spec.susceptible
+        assert gate is not None and gate.source
+        crop = cast(CropModel, all_models()[gate.crop])
+        codes = [s.code for s in crop.stages()]
+        assert codes.index(gate.first) <= codes.index(gate.last)
+        assert set(crop.SPEC.crops) & set(spec.crops)
+    anchored = all_models()["red-crown-rot"].SPEC.biofix_stage
+    assert anchored is not None and anchored[1] in [s.code for s in soy.STAGES]
+
+
+def test_tar_spot_and_don_windows_over_a_season():
+    doy, lo, hi, _ = season("lincoln", 2000)
+    stage = corn.outputs({"air_temperature_min": lo, "air_temperature_max": hi}, biofix_index=21)["stage"]  # Apr 22
+    tar = disease_susceptibility(all_models()["tar-spot"].SPEC, stage)
+    don = disease_susceptibility(all_models()["gibberella-ear-rot-don"].SPEC, stage)
+    assert tar is not None and don is not None
+    susceptible = lambda level: doy[level == SUSCEPTIBLE]  # noqa: E731
+    assert 60 > len(susceptible(tar)) > 25  # V10 to the end of milk: about six weeks
+    assert 3 <= len(susceptible(don)) <= 10  # silking
+    assert susceptible(tar)[0] < susceptible(don)[0] and susceptible(don)[-1] < susceptible(tar)[-1]
+    assert np.sum(tar == MARGIN) == 2 * corn.MARGIN_DAYS
+    assert disease_susceptibility(all_models()["late-blight-dsv"].SPEC, stage) is None

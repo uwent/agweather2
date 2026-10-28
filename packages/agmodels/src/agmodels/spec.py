@@ -91,6 +91,18 @@ class Biofix:
 
 
 @dataclass(frozen=True)
+class Susceptibility:
+    """The crop stages a disease affects (D33): its risk shows only from `first` through `last` (inclusive: until
+    the stage after `last`), muted for the crop model's margin either side, grey elsewhere."""
+
+    crop: str  # the crop model's id
+    first: str  # stage codes in that model's list
+    last: str
+    source: str  # where the window comes from
+    note: str = ""
+
+
+@dataclass(frozen=True)
 class Change:
     version: str
     date: str
@@ -117,6 +129,10 @@ class ModelSpec:
     lookback_days: int = 0  # days of inputs needed before the first output (moving averages)
     # values the runner supplies from the place and the dates rather than the weather: "day_of_year", "latitude"
     context: tuple[str, ...] = ()
+    susceptible: Susceptibility | None = None  # crop stages the disease affects; None: shown all season
+    biofix_stage: tuple[str, str] | None = (
+        None  # (crop model id, stage code) whose predicted date is the default biofix
+    )
     region: tuple[str, ...] = ()  # state abbreviations where it's valid; empty: anywhere
     season: tuple[str, str] | None = None  # MM-DD first and last day it's shown
     biofix: Biofix | None = None

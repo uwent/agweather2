@@ -71,6 +71,7 @@ SPEC = ModelSpec(
     },
     lookback_days=WINDOW,
     biofix=Biofix("07-01", "R1 (beginning flowering)"),
+    biofix_stage=("soybean-stages", "R1"),  # the soybean model's R1 is the default when it has run
     changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool."),),
 )
 

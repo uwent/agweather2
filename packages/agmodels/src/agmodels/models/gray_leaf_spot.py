@@ -11,7 +11,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels.probability import logistic, moving_mean, risk_level
-from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk
+from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk, Susceptibility
 
 SPEC = ModelSpec(
     id="gray-leaf-spot",
@@ -43,6 +43,7 @@ SPEC = ModelSpec(
     sweep={"temperature_min_21day": (10.0, 15.0, 20.0), "dew_point_min_30day": (5.0, 10.0, 15.0, 20.0)},
     lookback_days=30,
     season=("07-01", "08-15"),
+    susceptible=Susceptibility("corn-stages", "V10", "R3", "The Crop Risk Tool (V10–R3, 10th leaf to milk)"),
     changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool."),),
 )
 
