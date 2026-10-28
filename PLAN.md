@@ -248,8 +248,8 @@ Each phase ends with an exit gate. Dates are estimates for Ben and Claude; the o
 ### Phase 2: Hourly archive (November–December) — next, approved 2026-10-27
 
 > **Handoff (end of session 2026-10-28).** Done in Phase 2: A (precision, codec), B (URMA, RTMA, HRRR sources), C (RH, ET0, sun), D (QC), and F's backfill command and ingest pipeline. Next, in order:
-> 1. **Local backfill: running** (TODO.md has the commands), 2025-01-01 to 2026-10-28 (D24's range changed to this for the pilot), about 27 hours at 6 s per hour of data. The command prints progress every 6 hours of data, holds `data/backfill.lock` so only one runs (several at once with 12 workers each crashed WSL), and defaults to 4 workers and 5-day blocks (about 1.3 GB). It resumes, skipping complete blocks.
-> 2. **E: daily rollups and degree days.** Local day per cell (time zone per cell; Wisconsin is all Central), daily store variables in the catalog (sums in their own units: shortwave MJ/m²), the 17 legacy DD pairs ported from `../ag-weather` (`app/models/degree_days_calculator.rb`) with parity tests, and the cumulative store. `tmp/bf-test` holds 10 real days (2025-07-01 to 07-10, Wisconsin) for trying them.
+> 1. **Local backfill: running** (TODO.md has the commands), 2025-01-01 to 2026-10-28 (D24's range changed to this for the pilot), about 18 hours at about 4 s per hour of data. The command prints progress every 6 hours of data, holds `data/write.lock` so only one writer runs (several at once with 12 workers each crashed WSL), defaults to 4 workers and 5-day blocks (about 1.8 GB), and rolls up each block's finished days and the year's running totals. It resumes, skipping complete blocks.
+> 2. **E: done** (2026-10-28): daily store per local day (`agdata.daily`, `agdata.timezones`), degree days (`agmodels.degree_days`, parity with the Ruby calculator), running totals with gap estimates (`agdata.cumulative`, `agdata.gaps`), `manage.py rollup`. Still to check in H: January 2025 precip at Madison sums to only 1.6 mm (URMA snow vs the old API's RTMA).
 > 3. **F, the rest:** `ops.IngestRecord` in Postgres (per block or hour: sources, failed hours, QC counts) and the admin page; the hourly Procrastinate job (the last 7 days' missing or RTMA-only hours, then their days); the health check with ingest lag.
 > 4. **H: validation** against the old API (`/api/weather?lat=&lng=&start_date=&end_date=` and the `grid` endpoints), reducing v2 like the old API does (mean of the 2.5 km cells rounding to each 0.1° point, Central days, RTMA) — needs the backfill.
 > Notes: the ingest writes `None` sources for failed hours, and short gaps are filled but not yet flagged as filled in the store. HRRR soil temperature over Lake Superior and Michigan is water temperature (about 2 °C in July); models should mask water cells.
@@ -259,7 +259,7 @@ Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) pl
 **A. Store settings from the pilot**
 
 - [x] pcodec level 8 and the pilot's chunk shapes as `agdata.store` defaults; catalog scales at D21's precision (shortwave stays 0.1 W/m² and hourly ET0 0.001 mm, which D21 doesn't cover).
-- [ ] Add the daily-store variables to the catalog: each hourly variable's daily statistics (`air_temperature_max`, `precipitation_sum`, …) with their own units and scales (shortwave's daily sum is MJ/m², not W/m²). No per-day counts: the completeness rules (D25) make a day NaN instead, and counts like hours of RH > 90 belong to the Phase 3 models.
+- [x] Add the daily-store variables to the catalog: each hourly variable's daily statistics (`air_temperature_max`, `precipitation_sum`, …) with their own units and scales (shortwave's daily sum is MJ/m², not W/m²). No per-day counts: the completeness rules (D25) make a day NaN instead, and counts like hours of RH > 90 belong to the Phase 3 models.
 
 **B. Sources**
 
@@ -278,15 +278,15 @@ Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) pl
 
 - [x] Range checks from the catalog (values outside become NaN and are counted per hour in the ingest record), and a spike check on temperature and dew point (more than 12 °C from both neighbors in time, the same way): `agdata.qc`.
 - [x] Short gaps (up to 3 hours) in continuous variables filled by linear interpolation per cell (`agdata.qc.fill_short_gaps`; the catalog's `fillable` excludes precip, ET0 and wind direction); longer gaps stay NaN (CLAUDE.md: missing is never 0). Recording filled steps in the store comes with the ingest job (F).
-- [ ] Stop filling at ingest (D25): stored hours stay raw, so a gap shows as one; `fill_short_gaps` stays for read-time and model use.
+- [x] Stop filling at ingest (D25): stored hours stay raw, so a gap shows as one; `fill_short_gaps` stays for read-time and model use.
 
 **E. Daily rollups and running totals**
 
-- [ ] Each cell's local calendar day (Central or Eastern time, from a time-zone lookup per cell with `timezonefinder`; daylight saving included, so days have 23, 24 or 25 hours). The Wisconsin box is not all Central: it reaches Michigan's Eastern-time Upper Peninsula and Lake Michigan shore. Local Dec 31 reads the next year's first UTC hours.
-- [ ] Daily store: the catalog's daily statistics, ET0 and precip sums, shortwave in MJ/m²; raw (D25): min/max/mean need 20 hours, sums every hour.
-- [ ] `agmodels.degree_days`: sine, average and modified methods, ported from `../ag-weather` (`degree_days_calculator.rb`) with a parity fixture from the Ruby code. Reviewed against Baskerville & Emin (1969): the sine formulas match (and the alfalfa tool's R); the legacy default upper of 150 is applied in the call's unit (150 °C for Celsius calls), which the port doesn't copy.
-- [ ] Cumulative store (D26, D27): running totals from local Jan 1 for the 12 sine threshold cubes, corn's modified 50/86, precip and ET0, each with a running count of estimated (precip: missing) days; gaps up to 7 days bridged (D25). Any range is `cum[end] − cum[start − 1]`; a sine pair is the difference of two cubes.
-- [ ] `manage.py rollup --start --end`, and the backfill rolls up each block's complete days and rebuilds the year's running totals.
+- [x] Each cell's local calendar day (Central or Eastern time, from a time-zone lookup per cell with `timezonefinder`; daylight saving included, so days have 23, 24 or 25 hours). The Wisconsin box is not all Central: it reaches Michigan's Eastern-time Upper Peninsula and Lake Michigan shore. Local Dec 31 reads the next year's first UTC hours.
+- [x] Daily store: the catalog's daily statistics, ET0 and precip sums, shortwave in MJ/m²; raw (D25): min/max/mean need 20 hours, sums every hour.
+- [x] `agmodels.degree_days`: sine, average and modified methods, ported from `../ag-weather` (`degree_days_calculator.rb`) with a parity fixture from the Ruby code. Reviewed against Baskerville & Emin (1969): the sine formulas match (and the alfalfa tool's R); the legacy default upper of 150 is applied in the call's unit (150 °C for Celsius calls), which the port doesn't copy.
+- [x] Cumulative store (D26, D27): running totals from local Jan 1 for the 12 sine threshold cubes, corn's modified 50/86, precip and ET0, each with a running count of estimated (precip: missing) days; gaps up to 7 days bridged (D25). Any range is `cum[end] − cum[start − 1]`; a sine pair is the difference of two cubes. Done in `agdata.cumulative`; a day missing some ET0 hours gets `et0_sum_estimate` in the daily store from `agdata.gaps` (clear-sky shortwave × neighbouring Rs/Rso, inputs bridged up to 6 h), used only by the totals. A month of Wisconsin rolls up in about 17 s and 630 MB.
+- [x] `manage.py rollup --start --end`, and the backfill rolls up each block's complete days and rebuilds the year's running totals.
 
 **F. Ingest jobs and the backfill CLI**
 

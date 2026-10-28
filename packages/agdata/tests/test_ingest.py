@@ -55,8 +55,8 @@ def test_a_day_through_qc_derivation_and_the_store(tmp_path):
 
     t0 = store.index_of(START)
     temp = store.read_point("air_temperature", 901, 1401, t0, t0 + 24)
-    assert np.isfinite(temp).all()  # the missing hour and the spike were both filled from neighbors
-    assert report.missing["air_temperature"] == 1 and report.filled["air_temperature"] >= 20 + 1
+    assert np.isnan(temp[[5, 12]]).all() and np.isfinite(np.delete(temp, [5, 12])).all()  # the gap and the spike
+    assert report.missing["air_temperature"] == 1
     assert report.spikes["air_temperature"] == 1
 
     rain = store.read_point("precipitation", 901, 1401, t0, t0 + 24)

@@ -3,8 +3,9 @@
 One call handles a block of consecutive hours in one year (a backfill does a month at a time; the hourly job a
 few hours). Each hour comes from URMA, or RTMA where URMA hasn't published it yet; precip from RTMA before URMA's
 hourly precip begins (D23); shortwave and soil temperature from HRRR. Hours are range-checked and packed to int16
-as they arrive, so a month of the window fits in memory; spikes and short gaps are handled per variable over the
-whole block, then RH and ET0 are derived. Every variable records each hour's source.
+as they arrive, so a month of the window fits in memory; spikes are removed per variable over the whole block,
+then RH and ET0 are derived. Gaps stay gaps (D25): estimates belong to the running totals. Every variable
+records each hour's source.
 """
 
 import logging
@@ -21,7 +22,7 @@ import requests
 
 from agdata.catalog import FILL, VARIABLES, Variable
 from agdata.grid import NDFD, Window
-from agdata.qc import check_range, fill_short_gaps, remove_spikes
+from agdata.qc import check_range, remove_spikes
 from agdata.sources import hrrr
 from agdata.sources.rtma import RTMA
 from agdata.sources.urma import URMA
@@ -80,7 +81,6 @@ class BlockReport:
     missing: dict[str, int]  # hours with no data, per variable
     out_of_range: dict[str, int]  # cells
     spikes: dict[str, int]
-    filled: dict[str, int]  # cells interpolated
     failed: list[datetime] = field(default_factory=list)  # hours whose fetch failed after retries
 
 
@@ -100,7 +100,7 @@ def ingest_block(
     window = store.window
     packed = {v.name: np.full((hours, *window.shape), FILL, dtype=np.int16) for v in HOURLY_VARIABLES}
     sources: dict[str, list[str | None]] = {v.name: [None] * hours for v in HOURLY_VARIABLES}
-    report = BlockReport(start, hours, {}, {}, {}, {})
+    report = BlockReport(start, hours, {}, {}, {})
     done = 0
     done_lock = threading.Lock()
 
@@ -134,7 +134,7 @@ def ingest_block(
     with ThreadPoolExecutor(workers) as pool:
         list(pool.map(one, range(hours)))
 
-    # Spikes and short gaps, over the block, for measured variables
+    # Spikes, over the block, for measured variables
     decoded: dict[str, np.ndarray] = {}
     for variable in HOURLY_VARIABLES:
         if variable.derived:
@@ -142,9 +142,6 @@ def ingest_block(
         values = variable.decode(packed[variable.name]).astype(np.float32)  # halves the block's memory
         if variable.spike_c is not None:
             values, report.spikes[variable.name] = remove_spikes(values, variable.spike_c)
-        if variable.fillable:
-            values, filled = fill_short_gaps(values)
-            report.filled[variable.name] = int(filled.sum())
         report.missing[variable.name] = sum(1 for s in sources[variable.name] if s is None)
         decoded[variable.name] = values
 

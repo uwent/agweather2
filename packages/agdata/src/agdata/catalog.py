@@ -248,6 +248,17 @@ DAILY_STATISTICS: dict[str, DailyStatistic] = {
     s.variable.name: s for v in VARIABLES.values() for s in (_daily_statistic(v, stat) for stat in v.daily)
 }
 DAILY_VARIABLES: dict[str, Variable] = {name: s.variable for name, s in DAILY_STATISTICS.items()}
+# Where a day's ET0 total is missing because some hours are, the total with those hours estimated
+# (`agdata.gaps`), for running totals only; the raw `et0_sum` stays missing (D25)
+DAILY_VARIABLES["et0_sum_estimate"] = Variable(
+    "et0_sum_estimate",
+    "FAO-56 grass reference evapotranspiration, daily total with missing hours estimated",
+    "mm",
+    scale=0.01,
+    valid_min=0,
+    valid_max=20,
+    derived=True,
+)
 
 
 # Running totals from local January 1 (D26, D27): any range is cum[end] - cum[start - 1]. Degree days are

@@ -101,3 +101,27 @@ def test_the_store_keeps_the_time_zones(tmp_path):
     zones, index = cell_timezones(open_or_create_daily(tmp_path, 2025, WINDOW))
     assert zones == ["America/Detroit", "America/Chicago"]
     assert index[:, 0].tolist() == [0, 0]
+
+
+def test_a_day_missing_et0_hours_gets_an_estimate_beside_the_raw_total(tmp_path):
+    start = datetime(2025, 7, 1, tzinfo=UTC)
+    store = hourly_store(tmp_path, 2025, start, 96, temperature=25.0)
+    shape = (96, *WINDOW.shape)
+    store.write(
+        start,
+        {
+            "dew_point": np.full(shape, 15.0),
+            "wind_speed": np.full(shape, 3.0),
+            "surface_pressure": np.full(shape, 98.5),
+            "shortwave_radiation": np.full(shape, 0.0),  # stays dark, so the missing hour's ET0 is small
+            "et0": np.full(shape, 0.1),
+        },
+        source="test",
+    )
+    store.write(start + 30 * HOUR, {"et0": np.full((1, *WINDOW.shape), np.nan)}, source="test")
+    rollup_days(tmp_path, WINDOW, date(2025, 7, 1), date(2025, 7, 2))
+    assert np.isnan(read(tmp_path, "et0_sum", date(2025, 7, 2))[:, 1:]).all()  # the hour is in Central Jul 2
+    estimate = read(tmp_path, "et0_sum_estimate", date(2025, 7, 2))[:, 1:]
+    assert np.all((estimate > 2.3) & (estimate < 2.6))  # 23 × 0.1 plus the estimated hour
+    np.testing.assert_allclose(read(tmp_path, "et0_sum", date(2025, 7, 1))[:, 1:], 2.4)
+    assert np.isnan(read(tmp_path, "et0_sum_estimate", date(2025, 7, 1))).all()  # only where the raw is missing

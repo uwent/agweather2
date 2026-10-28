@@ -27,8 +27,8 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
   setsid nohup uv run app/manage.py backfill --start 2025-01-01 --end 2026-10-28 > tmp/backfill.log 2>&1 < /dev/null &
   tail -f tmp/backfill.log            # a line every 6 hours of data, with time left; Ctrl-C stops watching, not the backfill
   pgrep -af 'manage.py backfill'      # is it running?
-  cat data/backfill.lock              # its pid
-  kill $(cat data/backfill.lock)      # stop it; the current block is lost, finished blocks are kept
+  cat data/write.lock                 # its pid
+  kill $(cat data/write.lock)         # stop it; the current block is lost, finished blocks are kept
   ```
   After a WSL restart it isn't running: start it again with the same command.
 
