@@ -45,6 +45,7 @@ class StoreLayout:
 
 HOURLY = StoreLayout("hourly", "hour")
 DAILY = StoreLayout("daily", "day")
+CUMULATIVE = StoreLayout("cumulative", "day")
 
 
 def steps_in_year(year: int, step: Step) -> int:
@@ -157,24 +158,33 @@ class GridStore:
 
     # Writing
 
-    def write(self, start: datetime | date, values: dict[str, np.ndarray], source: str | None) -> None:
-        """Writes consecutive steps from `start`: each array is (steps, y, x) over the window, in the stored unit.
+    def write(
+        self,
+        start: datetime | date,
+        values: dict[str, np.ndarray],
+        source: str | None,
+        window: Window | None = None,
+    ) -> None:
+        """Writes consecutive steps from `start`: each array is (steps, y, x) over the window (default the
+        store's; a sub-window writes part of each step), in the stored unit.
 
         `source` marks every written step; pass None and call `set_sources` when steps came from different sources.
         """
         t0 = self.index_of(start)
         now = datetime.now(UTC).timestamp()
+        rows, cols = self._local_slices(window)
         for name, block in values.items():
             v = self._variable(name)
             block = np.asarray(block)
             if block.ndim == 2:
                 block = block[np.newaxis]
-            if block.shape[1:] != self.window.shape:
-                raise ValueError(f"{name}: shape {block.shape[1:]} doesn't match the window {self.window.shape}")
+            shape = (window or self.window).shape
+            if block.shape[1:] != shape:
+                raise ValueError(f"{name}: shape {block.shape[1:]} doesn't match the window {shape}")
             t1 = t0 + block.shape[0]
             if t1 > self.length:
                 raise IndexError(f"{name}: steps run past the end of {self.year}")
-            self._array(name)[t0:t1] = v.encode(block)
+            self._array(name)[t0:t1, rows, cols] = v.encode(block)
             self._array(f"_meta/{name}.written")[t0:t1] = now
             if source is not None:
                 self._array(f"_meta/{name}.source")[t0:t1] = SOURCES[source]
@@ -199,13 +209,25 @@ class GridStore:
 
     def read_block(self, name: str, index: int, window: Window | None = None) -> np.ndarray:
         """One step over a window (grid indices; default the whole store), in the stored unit."""
+        return self.read_steps(name, index, index + 1, window)[0]
+
+    def read_steps(self, name: str, start: int, stop: int, window: Window | None = None) -> np.ndarray:
+        """Steps start..stop-1 over a window (default the whole store), (steps, y, x) in the stored unit."""
+        rows, cols = self._local_slices(window)
+        packed = self._array(name)[start:stop, rows, cols]
+        return self._variable(name).decode(np.asarray(packed))
+
+    def _local_slices(self, window: Window | None) -> tuple[slice, slice]:
         window = window or self.window
         y0, x0 = self.window.local(window.j0, window.i0)
         y1, x1 = y0 + window.shape[0], x0 + window.shape[1]
         if y1 > self.window.shape[0] or x1 > self.window.shape[1]:
             raise IndexError(f"{window} reaches outside the store's {self.window}")
-        packed = self._array(name)[index, y0:y1, x0:x1]
-        return self._variable(name).decode(np.asarray(packed))
+        return slice(y0, y1), slice(x0, x1)
+
+    def read_meta(self, name: str) -> np.ndarray:
+        """A whole `_meta` array (per-step sources and write times, or a daily store's time zones)."""
+        return np.asarray(self._array(f"_meta/{name}")[:])
 
     def sources(self, name: str) -> list[str | None]:
         codes = np.asarray(self._array(f"_meta/{name}.source")[:])

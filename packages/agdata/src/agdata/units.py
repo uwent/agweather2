@@ -60,6 +60,8 @@ UNITS: dict[str, Unit] = {
         # fractions and angles (no conversion)
         Unit("percent", "%", "fraction", digits=0),
         Unit("deg", "°", "angle", digits=0),
+        # counts
+        Unit("day", "d", "duration", digits=0),
     ]
 }
 

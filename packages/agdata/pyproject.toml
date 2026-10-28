@@ -10,6 +10,7 @@ dependencies = [
     "pcodec>=1.0.4",
     "pyproj",
     "requests>=2.34.2",
+    "timezonefinder>=9.2.0",
     "xarray",
     "zarr",
 ]

@@ -211,6 +211,98 @@ VARIABLES: dict[str, Variable] = {
 }
 
 
+# Daily statistics (PLAN.md §5.2): each hourly variable's `daily` stats over each cell's local calendar day.
+# Min, max and mean keep the hourly unit and precision; sums have their own (shortwave's in MJ/m²).
+DAILY_MIN_HOURS = 20  # min, max and mean need this many hours of the day; sums need every hour (D25)
+_SUMS: dict[str, tuple[str, float, float, float]] = {
+    # hourly name: (unit, factor from the hourly unit, scale, valid max)
+    "precipitation": ("mm", 1.0, 0.1, 1000),
+    "shortwave_radiation": ("MJ_m2", 0.0036, 0.01, 50),  # W/m² mean over an hour → MJ/m²
+    "et0": ("mm", 1.0, 0.01, 20),
+}
+
+
+@dataclass(frozen=True)
+class DailyStatistic:
+    variable: Variable  # stored in the daily store
+    hourly: str
+    stat: DailyStat
+    factor: float = 1.0  # hourly unit → daily unit
+
+
+def _daily_statistic(v: Variable, stat: DailyStat) -> DailyStatistic:
+    name = f"{v.name}_{stat}"
+    if stat == "sum":
+        unit_, factor, scale, high = _SUMS[v.name]
+        long_name = f"{v.long_name}, daily total"
+        daily = Variable(name, long_name, unit_, scale=scale, valid_min=0, valid_max=high)
+        return DailyStatistic(daily, v.name, stat, factor)
+    long_name = f"{v.long_name}, daily {stat}"
+    daily = Variable(
+        name, long_name, v.unit, scale=v.scale, offset=v.offset, valid_min=v.valid_min, valid_max=v.valid_max
+    )
+    return DailyStatistic(daily, v.name, stat)
+
+
+DAILY_STATISTICS: dict[str, DailyStatistic] = {
+    s.variable.name: s for v in VARIABLES.values() for s in (_daily_statistic(v, stat) for stat in v.daily)
+}
+DAILY_VARIABLES: dict[str, Variable] = {name: s.variable for name, s in DAILY_STATISTICS.items()}
+
+
+# Running totals from local January 1 (D26, D27): any range is cum[end] - cum[start - 1]. Degree days are
+# cubes per threshold: single sine is linear, so a sine pair is the difference of its two thresholds' cubes.
+# Thresholds are those the planned models use (°F, D18); corn's modified average isn't linear, so it has its own.
+DD_SINE_THRESHOLDS_F: tuple[float, ...] = (39.2, 41, 42.8, 45, 48, 50, 52, 55, 80.1, 86, 90, 92)
+DD_MODIFIED_PAIRS_F: tuple[tuple[float, float], ...] = ((50, 86),)
+_DD_RANGE = {"scale": 0.5, "valid_min": 0, "valid_max": 16000}  # a base-39.2 year in Florida is about 13,000
+
+
+def dd_name(method: Literal["sine", "modified"], base: float, upper: float | None = None) -> str:
+    """`dd_sine_39p2`, `dd_modified_50_86`: the legacy naming, with the method."""
+
+    def f(t: float) -> str:
+        return f"{t:g}".replace(".", "p")
+
+    return f"dd_{method}_{f(base)}" + (f"_{f(upper)}" if upper is not None else "")
+
+
+def _cumulative() -> list[Variable]:
+    dd = [
+        Variable(dd_name("sine", t), f"Single-sine degree days above {t:g} °F since Jan 1", "degF_day", **_DD_RANGE)
+        for t in DD_SINE_THRESHOLDS_F
+    ] + [
+        Variable(
+            dd_name("modified", base, upper),
+            f"Modified-average degree days {base:g}/{upper:g} °F since Jan 1",
+            "degF_day",
+            **_DD_RANGE,
+        )
+        for base, upper in DD_MODIFIED_PAIRS_F
+    ]
+    totals = [
+        Variable("precipitation", "Precipitation since Jan 1", "mm", scale=0.2, valid_min=0, valid_max=6000),
+        Variable("et0", "FAO-56 grass reference ET since Jan 1", "mm", scale=0.1, valid_min=0, valid_max=3000),
+    ]
+    # Running counts of days in the totals that were estimated across a gap or left out (D25). Every DD cube
+    # comes from the daily min and max temperature, so they share the temperature counts
+    counts = [
+        Variable(
+            f"{basis}_{kind}_days", f"Days with {basis} {kind} since Jan 1", "day", scale=1, valid_min=0, valid_max=366
+        )
+        for basis, kinds in (
+            ("temperature", ("estimated", "missing")),
+            ("precipitation", ("missing",)),
+            ("et0", ("estimated", "missing")),
+        )
+        for kind in kinds
+    ]
+    return dd + totals + counts
+
+
+CUMULATIVE_VARIABLES: dict[str, Variable] = {v.name: v for v in _cumulative()}
+
+
 def variable(name: str) -> Variable:
     try:
         return VARIABLES[name]

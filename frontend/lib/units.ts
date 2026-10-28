@@ -46,6 +46,7 @@ export const UNITS: Record<string, Unit> = {
   ly: u('ly', 'radiant_exposure', 0, 0.041868),
   percent: u('%', 'fraction', 0),
   deg: u('°', 'angle', 0),
+  day: u('d', 'duration', 0),
 }
 
 const DISPLAY: Record<UnitSystem, Record<string, string>> = {
