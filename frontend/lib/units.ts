@@ -47,6 +47,8 @@ export const UNITS: Record<string, Unit> = {
   percent: u('%', 'fraction', 0),
   deg: u('°', 'angle', 0),
   day: u('d', 'duration', 0),
+  hour: u('h', 'duration', 0, 1 / 24),
+  index: u('', 'index', 1),
 }
 
 const DISPLAY: Record<UnitSystem, Record<string, string>> = {

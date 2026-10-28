@@ -62,6 +62,8 @@ UNITS: dict[str, Unit] = {
         Unit("deg", "°", "angle", digits=0),
         # counts
         Unit("day", "d", "duration", digits=0),
+        Unit("hour", "h", "duration", factor=1 / 24, digits=0),
+        Unit("index", "", "index", digits=1),  # model indices (DSVs, P-days): no conversion
     ]
 }
 
