@@ -129,3 +129,23 @@ def test_a_daily_et0_estimate_is_used_and_counted():
     out = running_totals(tmin, tmax, et0, precip, estimate)
     np.testing.assert_allclose(out["et0"][-1], 3 * (DAYS - 1) + 2.5)
     assert out["et0_estimated_days"][-1] == 1
+
+
+def test_a_partial_rebuild_writes_the_same_totals_from_the_changed_day(tmp_path):
+    daily = open_or_create_daily(tmp_path, 2025, WINDOW)
+    tmin, tmax, et0, precip = (a[PAD : PAD + DAYS] for a in series())
+    shape = (DAYS, *WINDOW.shape)
+    names = ("air_temperature_min", "air_temperature_max", "et0_sum", "precipitation_sum")
+    daily.write(
+        date(2025, 1, 1),
+        {n: np.broadcast_to(v, shape) for n, v in zip(names, (tmin, tmax, et0, precip), strict=True)},
+        source="derived",
+    )
+    rebuild_year(tmp_path, WINDOW, 2025)
+    store = GridStore.open(tmp_path, CUMULATIVE, 2025, CUMULATIVE_VARIABLES.values())
+    full = store.read_point("dd_sine_45", 900, 1400, 0, DAYS)
+    daily.write(date(2025, 1, 30), {"air_temperature_max": np.full((1, *WINDOW.shape), np.nan)}, source="derived")
+    rebuild_year(tmp_path, WINDOW, 2025, changed_from=date(2025, 1, 30))
+    partial = store.read_point("dd_sine_45", 900, 1400, 0, DAYS)
+    np.testing.assert_array_equal(partial[:29], full[:29])
+    assert store.read_point("temperature_estimated_days", 900, 1400, DAYS - 1, DAYS)[0] == 1  # Jan 30 bridged

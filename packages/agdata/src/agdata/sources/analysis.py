@@ -44,6 +44,11 @@ class AnalysisSource:
         first, second = ("wexp", "ext") if t.date() >= self.wexp_from else ("ext", "wexp")
         return [base + first, base + second]
 
+    def has_hour(self, when: datetime, session: requests.Session | None = None) -> bool:
+        """Whether the hour's analysis is published (HEAD requests only)."""
+        session = session or requests.Session()
+        return any(RemoteGrib(url, session).exists() for url in self.analysis_urls(when))
+
     def fetch_hour(
         self, when: datetime, window: Window, session: requests.Session | None = None, precip: bool = True
     ) -> dict[str, np.ndarray]:

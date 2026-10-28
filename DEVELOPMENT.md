@@ -111,3 +111,12 @@ uv run app/manage.py rollup --start 2025-01-01 --end 2025-01-30    # local days,
 
 Stored hours and days are raw: a missing hour or an incomplete day stays missing. Only the running totals
 estimate across gaps (up to 7 days), and they count the estimated and missing days (PLAN.md D25).
+
+Keeping the archive current is the `ingest_recent` job, which the worker in `bin/dev` runs at :40 each hour: it
+fetches the last week's missing and RTMA-only hours (RTMA hours only once URMA has published them), then rolls
+up their days. It skips while a backfill or rollup holds the lock. Each run and each backfill block is listed
+in Django admin under Operations → Ingest records, and `/up` shows how far behind the archive is:
+
+```bash
+curl -s localhost:8000/up | python3 -m json.tool    # status ok, degraded (with problems) or down
+```

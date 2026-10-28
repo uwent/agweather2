@@ -4,11 +4,14 @@ from datetime import UTC, datetime, timedelta
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
 
 from agdata.cumulative import update_days
 from agdata.grid import service_window
 from agdata.ingest import blocks, ingest_block, open_or_create_hourly
+from ops.ingest import record_run
 from ops.locks import hold_write_lock
+from ops.models import IngestRecord
 
 PROGRESS_EVERY = 6  # hours fetched between progress lines
 
@@ -33,7 +36,8 @@ class Command(BaseCommand):
             end = datetime.fromisoformat(options["end"]).replace(tzinfo=UTC)
         except ValueError as error:
             raise CommandError(error) from error
-        window = service_window(options["box"] or settings.SERVICE_BOX)
+        box = options["box"] or settings.SERVICE_BOX
+        window = service_window(box)
         data_dir = settings.DATA_DIR
         self.lock = hold_write_lock(data_dir)  # held until the process exits
         self.say(f"Backfill {start:%Y-%m-%d} to {end:%Y-%m-%d}, window {window}, into {data_dir} (pid {os.getpid()})")
@@ -57,7 +61,13 @@ class Command(BaseCommand):
                     f"{elapsed / 60:.0f} min, ~{left / 60:.0f} min left"
                 )
 
-            report = ingest_block(store, block_start, hours, workers=options["workers"], progress=progress)
+            started = timezone.now()
+            try:
+                report = ingest_block(store, block_start, hours, workers=options["workers"], progress=progress)
+            except Exception as error:
+                record_run(IngestRecord.Kind.BACKFILL, box, store, block_start, hours, started, None, repr(error))
+                raise
+            record_run(IngestRecord.Kind.BACKFILL, box, store, block_start, hours, started, report)
             missing = {name: n for name, n in report.missing.items() if n}
             self.say(
                 f"{block_start:%Y-%m-%d}: {hours} hours in {time.time() - began:.0f}s; "

@@ -38,8 +38,11 @@ def open_or_create_cumulative(data_dir: Path, year: int, window: Window) -> Grid
     return store
 
 
-def rebuild_year(data_dir: Path, window: Window, year: int) -> date | None:
-    """Rebuilds a year's running totals from its daily store; returns the last day with data (None: no data)."""
+def rebuild_year(data_dir: Path, window: Window, year: int, changed_from: date | None = None) -> date | None:
+    """Rebuilds a year's running totals from its daily store; returns the last day with data (None: no data).
+
+    Totals are always summed from Jan 1, but only days from `changed_from` (less the bridging reach, since an
+    estimate can move) are written: earlier ones can't have changed, and each day is a chunk to write."""
     days = _DailyYear(data_dir, year)
     if days.store is None:
         return None
@@ -48,12 +51,16 @@ def rebuild_year(data_dir: Path, window: Window, year: int) -> date | None:
         return None
     n = last.timetuple().tm_yday  # days Jan 1 .. last
     store = open_or_create_cumulative(data_dir, year, window)
+    skip = 0
+    if changed_from is not None and changed_from.year == year:
+        skip = max(0, min((changed_from - date(year, 1, 1)).days - MAX_BRIDGE_DAYS, n - 1))
     for j in range(window.j0, window.j1, BAND_ROWS):
         band = Window(j, min(j + BAND_ROWS, window.j1), window.i0, window.i1)
         names = ("air_temperature_min", "air_temperature_max", "et0_sum", "precipitation_sum", "et0_sum_estimate")
         tmin, tmax, et0, precip, et0_estimate = (days.read_with_neighbours(name, band, n) for name in names)
         out = running_totals(tmin, tmax, et0, precip, et0_estimate)
-        store.write(date(year, 1, 1), out, source="derived", window=band)
+        out = {name: values[skip:] for name, values in out.items()}
+        store.write(date(year, 1, 1) + timedelta(days=skip), out, source="derived", window=band)
     return last
 
 
@@ -146,4 +153,4 @@ def update_days(data_dir: Path, window: Window, first: date, last: date) -> list
     rollup_days(data_dir, window, first, last)
     reach = timedelta(days=MAX_BRIDGE_DAYS)
     years = list(range((first - reach).year, (last + reach).year + 1))
-    return [year for year in years if rebuild_year(data_dir, window, year) is not None]
+    return [year for year in years if rebuild_year(data_dir, window, year, changed_from=first) is not None]

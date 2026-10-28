@@ -36,6 +36,11 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "DTZ", "RUF"]
 # Scientific notation in docstrings and comments (FAO-56's symbols, ranges, minus signs)
 allowed-confusables = ["–", "−", "×", "γ", "σ", "α"]
 
+[tool.ruff.lint.per-file-ignores]
+# Django's declarative class attributes (Meta, ModelAdmin, migrations) are lists by convention
+"app/**/{models,admin}.py" = ["RUF012"]
+"app/**/migrations/*.py" = ["RUF012"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["agmodels", "agdata", "config", "web", "ops", "api", "pilot_encoding"]
 

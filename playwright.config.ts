@@ -21,7 +21,12 @@ export default defineConfig({
   webServer: {
     command: `uv run uvicorn --app-dir app config.asgi:application --lifespan off --port ${port}`,
     url: `http://localhost:${port}/up`,
-    env: { DJANGO_ENV: 'test', VITE_DEV_MODE: '0', DATABASE_URL: process.env.E2E_DATABASE_URL! },
+    env: {
+      DJANGO_ENV: 'test',
+      VITE_DEV_MODE: '0',
+      DATABASE_URL: process.env.E2E_DATABASE_URL!,
+      DATA_DIR: `${process.cwd()}/tmp/e2e-data`, // an empty archive, so health doesn't depend on local data
+    },
     reuseExistingServer: false,
     timeout: 120_000,
   },

@@ -5,7 +5,15 @@ import pytest
 
 from agdata import ingest
 from agdata.grid import NDFD, Window
-from agdata.ingest import HOURLY_VARIABLES, Hour, blocks, ingest_block, open_or_create_hourly
+from agdata.ingest import (
+    HOURLY_VARIABLES,
+    Hour,
+    blocks,
+    hour_runs,
+    ingest_block,
+    open_or_create_hourly,
+    stale_hours,
+)
 from agmodels.weather import solar_elevation_deg
 
 WINDOW = Window(900, 904, 1400, 1405)  # 4 x 5 cells near Madison
@@ -129,3 +137,39 @@ def test_progress_counts_every_hour_including_failed_ones(tmp_path):
 def test_every_hourly_variable_is_in_the_store(tmp_path):
     store = open_or_create_hourly(tmp_path, 2025, WINDOW)
     assert set(store.variables) == {v.name for v in HOURLY_VARIABLES}
+
+
+def test_stale_hours_are_missing_incomplete_or_rtma_with_urma_out(tmp_path):
+    store = open_or_create_hourly(tmp_path, 2025, WINDOW)
+    shape = (1, *WINDOW.shape)
+    for n, analysis in enumerate(["urma", "rtma", "rtma", "urma", None]):
+        when = START + timedelta(hours=n)
+        if analysis:
+            store.write(when, {"air_temperature": np.zeros(shape)}, source=analysis)
+        store.write(when, {"shortwave_radiation": np.zeros(shape)}, source="hrrr")
+        if n != 3:
+            store.write(when, {"precipitation": np.zeros(shape)}, source=analysis or "rtma")
+    published = {START + timedelta(hours=2)}  # URMA is out for hour 2, not hour 1
+    asked = []
+
+    def urma_published(when):
+        asked.append(when)
+        return when in published
+
+    stale = stale_hours(tmp_path, WINDOW, START, START + timedelta(hours=6), urma_published)
+    assert stale == [START + timedelta(hours=n) for n in (2, 3, 4, 5)]  # 3: no precip; 4: no analysis; 5: nothing
+    assert asked == [START + timedelta(hours=1), START + timedelta(hours=2)]  # only RTMA hours cost a request
+
+
+def test_hour_runs_split_at_gaps_and_years():
+    new_year = datetime(2026, 1, 1, tzinfo=UTC)
+    hours = [new_year + timedelta(hours=n) for n in (-2, -1, 0, 1, 5)]
+    assert hour_runs(hours) == [(new_year - timedelta(hours=2), 2), (new_year, 2), (new_year + timedelta(hours=5), 1)]
+
+
+def test_a_spike_at_the_edge_of_a_block_is_caught_using_the_stored_neighbours(tmp_path):
+    store = open_or_create_hourly(tmp_path, 2025, WINDOW)
+    ingest_block(store, START, 6, fetch=fake_fetch(), workers=2)
+    ingest_block(store, START + timedelta(hours=3), 1, fetch=fake_fetch(spike=(3, 1, 1)), workers=1)
+    t0 = store.index_of(START)
+    assert np.isnan(store.read_point("air_temperature", 901, 1401, t0 + 3, t0 + 4)).all()

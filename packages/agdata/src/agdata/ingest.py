@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 ATTEMPTS = 3
 RETRY_SECONDS = 5.0
+HOUR = timedelta(hours=1)
 
 # Every variable of the hourly store, in catalog order
 HOURLY_VARIABLES: list[Variable] = list(VARIABLES.values())
@@ -141,7 +142,12 @@ def ingest_block(
             continue
         values = variable.decode(packed[variable.name]).astype(np.float32)  # halves the block's memory
         if variable.spike_c is not None:
-            values, report.spikes[variable.name] = remove_spikes(values, variable.spike_c)
+            # The stored hours on either side let the block's first and last hours be checked too
+            padded = np.concatenate(
+                [_stored_hour(store, start - HOUR, variable), values, _stored_hour(store, times[-1] + HOUR, variable)]
+            )
+            padded, report.spikes[variable.name] = remove_spikes(padded, variable.spike_c)
+            values = padded[1:-1].astype(np.float32)
         report.missing[variable.name] = sum(1 for s in sources[variable.name] if s is None)
         decoded[variable.name] = values
 
@@ -168,6 +174,43 @@ def ingest_block(
     return report
 
 
+def stale_hours(
+    data_dir: Path, window: Window, start: datetime, stop: datetime, urma_published: Callable[[datetime], bool]
+) -> list[datetime]:
+    """Hours ending in start..stop (exclusive) to fetch again: those without an analysis, precip or HRRR
+    shortwave yet, and RTMA hours whose URMA has since been published (asked only for those)."""
+    out = []
+    by_year: dict[int, dict[str, list[str | None]]] = {}
+    t = start
+    while t < stop:
+        if t.year not in by_year:
+            store = open_or_create_hourly(data_dir, t.year, window)
+            names = ("air_temperature", "precipitation", "shortwave_radiation")
+            by_year[t.year] = {name: store.sources(name) for name in names}
+        sources = by_year[t.year]
+        n = int((t - datetime(t.year, 1, 1, tzinfo=UTC)) / HOUR)
+        analysis = sources["air_temperature"][n]
+        if None in (analysis, sources["precipitation"][n], sources["shortwave_radiation"][n]) or (
+            analysis == "rtma" and urma_published(t)
+        ):
+            out.append(t)
+        t += HOUR
+    return out
+
+
+def hour_runs(hours: list[datetime]) -> list[tuple[datetime, int]]:
+    """Consecutive hours as (first, count) runs, each within one year (as `ingest_block` needs)."""
+    runs: list[tuple[datetime, int]] = []
+    for t in sorted(hours):
+        if runs:
+            first, n = runs[-1]
+            if first + n * HOUR == t and t.year == first.year:
+                runs[-1] = (first, n + 1)
+                continue
+        runs.append((t, 1))
+    return runs
+
+
 def open_or_create_hourly(data_dir: Path, year: int, window: Window) -> GridStore:
     try:
         store = GridStore.open(data_dir, HOURLY, year, HOURLY_VARIABLES)
@@ -190,6 +233,15 @@ def blocks(start: datetime, end: datetime, max_days: int = 31) -> list[tuple[dat
         out.append((t, int((stop - t) / timedelta(hours=1))))
         t = stop
     return out
+
+
+def _stored_hour(store: GridStore, when: datetime, variable: Variable) -> np.ndarray:
+    """One stored hour beside a block, (1, y, x); NaN outside the store's year or where nothing is stored."""
+    try:
+        index = store.index_of(when)
+    except IndexError:
+        return np.full((1, *store.window.shape), np.nan, dtype=np.float32)
+    return store.read_steps(variable.name, index, index + 1).astype(np.float32)
 
 
 def _session(factory: Callable[[], requests.Session]) -> requests.Session:

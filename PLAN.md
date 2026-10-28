@@ -222,7 +222,7 @@ Each phase ends with an exit gate. Dates are estimates for Ben and Claude; the o
 - [x] Inertia: inertia-django 2.0 + django-vite. It implements the v3 protocol except validation errors, which `web/inertia.py` adds (errors through the session, shared once); CSRF cookie and header renamed for the v3 client. Notes in CLAUDE.md. The home page renders through `AppLayout`.
 - [x] Port WISP 3's shell: `application.css` tokens (brand, surfaces, UW colors, light/dark; chart tokens wait for charts), fonts, `AppLayout`, brand bar and theme toggle, flash messages, `lib/dates.ts`; Playwright smoke (no console errors) and axe tests in light and dark, run by `bin/e2e` and `bin/ci`. `lib/units.ts` moved to 1C, built with `agdata.units`.
 - [x] Django Ninja at `/api/v2` with a `status` endpoint and OpenAPI docs; `/up` health JSON; Django admin on; Content Security Policy (Django 6's) with the nonce for the theme script.
-- [x] Procrastinate installed (D17) with one periodic heartbeat task, run by `bin/dev`.
+- [x] Procrastinate installed (D17) with one periodic heartbeat task, run by `bin/dev` (replaced by the ingest job in Phase 2).
 - [x] Prop types: Pydantic `Props` subclasses → JSON Schema (`manage.py export_types`) → TypeScript (`bin/types`, json-schema-to-typescript), used by the home page and shared props; CI fails when stale.
 
 **C. Grid, catalog and store layout (`agdata`)**
@@ -250,7 +250,7 @@ Each phase ends with an exit gate. Dates are estimates for Ben and Claude; the o
 > **Handoff (end of session 2026-10-28).** Done in Phase 2: A (precision, codec), B (URMA, RTMA, HRRR sources), C (RH, ET0, sun), D (QC), and F's backfill command and ingest pipeline. Next, in order:
 > 1. **Local backfill: running** (TODO.md has the commands), 2025-01-01 to 2026-10-28 (D24's range changed to this for the pilot), about 18 hours at about 4 s per hour of data. The command prints progress every 6 hours of data, holds `data/write.lock` so only one writer runs (several at once with 12 workers each crashed WSL), defaults to 4 workers and 5-day blocks (about 1.8 GB), and rolls up each block's finished days and the year's running totals. It resumes, skipping complete blocks.
 > 2. **E: done** (2026-10-28): daily store per local day (`agdata.daily`, `agdata.timezones`), degree days (`agmodels.degree_days`, parity with the Ruby calculator), running totals with gap estimates (`agdata.cumulative`, `agdata.gaps`), `manage.py rollup`. Precip checks for H are listed there.
-> 3. **F, the rest:** `ops.IngestRecord` in Postgres (per block or hour: sources, failed hours, QC counts) and the admin page; the hourly Procrastinate job (the last 7 days' missing or RTMA-only hours, then their days); the health check with ingest lag.
+> 3. **F: done** (2026-10-28): `ops.IngestRecord` and its admin, the hourly job (`ops.tasks.ingest_recent` at :40), `/up`'s ingest health. Locally the job waits (skips) until the backfill finishes, then keeps the archive current while `bin/dev` runs.
 > 4. **H: validation** against the old API (`/api/weather?lat=&lng=&start_date=&end_date=` and the `grid` endpoints), reducing v2 like the old API does (mean of the 2.5 km cells rounding to each 0.1° point, Central days, RTMA) — needs the backfill.
 > Notes: the ingest writes `None` sources for failed hours, and short gaps are filled but not yet flagged as filled in the store. HRRR soil temperature over Lake Superior and Michigan is water temperature (about 2 °C in July); models should mask water cells.
 
@@ -266,7 +266,7 @@ Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) pl
 - [ ] URMA (done in 1C). Before 2017-12-05, when URMA has only 6-hour precip, hourly precip comes from RTMA (D23).
 - [x] RTMA (`noaa-rtma-pds`) for the hours URMA hasn't published yet (URMA runs about 6 h behind); the same reader and grid. Its files follow URMA's (`rtma2p5.tHHz.2dvaranl_ndfd.grb2_ext` until 2017-04, `_wexp` after), and its hourly precip `rtma2p5.YYYYMMDDHH.pcp.184.grb2` (the 2145 × 1377 grid) exists for every year since 2016 (checked 2026-10-27). An RTMA hour is replaced when URMA's arrives (the store's per-step source makes that visible). URMA and RTMA share `sources/analysis.py`; near a naming change the other naming is tried too (RTMA switched 2017-05-02, a day after URMA).
 - [x] HRRR (`noaa-hrrr-bdp-pds`, 3 km Lambert, a different projection), regridded to NDFD by precomputed bilinear weights. Checked 2026-10-27: `wrfsfc` has only instantaneous DSWRF, so the hourly mean shortwave (D7) comes from the sub-hourly file `wrfsubhf01` (four 15-minute averages: 0-15 … 45-60 min, back to 2016); soil temperature is in `wrfprs` (TSOIL at 0, 1, 4, 10, 30, 60, 100 cm, and 160, 300 cm in 2016), so the potato model's 2 in and 4 in come from the 4 and 10 cm levels. 2016's sub-hourly files carry only instantaneous 15-minute values (no averages); their mean stands in. Done in `sources/hrrr.py` with `agdata.regrid` (bilinear, cached weights); soil temperature is stored at 4 and 10 cm. Still to check: how the HRRR versions (v2 2016, v3 2018, v4 2020) shift shortwave and soil temperature, and HRRR's soil temperature against Wisconet at a few stations (development check only, D9).
-- [ ] Each source records what it ingested in Postgres (`ops.IngestRecord`: source, valid hour, variables, status, error, written at), shown in Django admin.
+- [x] Ingest runs are recorded in Postgres (`ops.IngestRecord`, one row per backfill block or hourly run: status ok/partial/failed, failed hours, missing hours, spikes and out-of-range cells per variable, hours per source, error), read-only in Django admin. Which source filled each hour stays in the hourly store's metadata.
 
 **C. Derived variables (`agmodels.weather`, pure functions with unit tests)**
 
@@ -291,8 +291,8 @@ Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) pl
 **F. Ingest jobs and the backfill CLI**
 
 - [x] `manage.py backfill --start --end [--box] [--workers] [--block-days] [--redo]` (`app/ops`), over `agdata.ingest.ingest_block`: fetches hours in parallel (URMA, else RTMA; RTMA precip before URMA's; HRRR) with 3 retries, range-checks and packs each hour, then spikes, short gaps, RH and ET0 over the block, and records each hour's source per variable. Blocks of at most 10 days by default (a month of Wisconsin in one block needs about 12 GB; 10 days peak at 3.9 GB); about 1,750 hours per hour of wall time here. Resumable: blocks already all-URMA are skipped. Rolling up days comes with E.
-- [ ] Hourly Procrastinate job: ingest every missing or RTMA-only hour of the last 7 days, then roll up the touched days; daily rollup job after midnight local time; yearly roll in January (drop the oldest year's directories, rebuild the internal climatology).
-- [ ] Health check (Phase 8 style, started now): ingest lag (newest URMA hour; newest any-source hour), failed jobs, missing hours in the last week; `/up` reports it and admins get an email when it's degraded.
+- [x] Hourly Procrastinate job (`ops.tasks.ingest_recent`, at :40): the last 7 days' hours without an analysis, precip or HRRR shortwave, and RTMA hours whose URMA is out (a HEAD request each, so RTMA hours aren't refetched until URMA can replace them), in runs of consecutive hours; then their local days and the running totals from the earliest changed day. It takes `data/write.lock` and skips while a backfill or rollup holds it. Spike checks at a run's edges use the stored neighbouring hours. The touched days' rollup makes a separate daily job unnecessary. The yearly roll moves to Phase 8.
+- [x] Health check on `/up` (`ops.health`): newest hour and newest URMA hour with their lags, missing hours in the last week, failed jobs in the last day, the last run; `degraded` (still 200) past 3 h, 12 h for URMA, or with failed jobs; `down` (503) only without the database; an empty archive is "not started". The browser tests run against an empty `tmp/e2e-data`. Admin alerts: a morning email report (Phase 8).
 - [ ] Run the backfill (D24): Wisconsin for 2024–2025 locally (about 17,500 hours, a day of downloads at home) for the gate checks; the full window on the server for the configured box when it's ready (about 4 TB of downloads, docs/pilot.md).
 
 **G. Climatology: moved to Phase 6 (D22)**
@@ -339,7 +339,7 @@ allauth sign-in by link or code, synced sites, settings (units, beta models, ale
 
 ### Phase 8: Launch (by April 1, 2027) — sketch
 
-Production deploy (`docs/deployment.md`), VDIFN and soils-ag-wx redirect to v2, soils-ag-wx emails stop, v1 API URLs redirect to the old production server.
+Production deploy (`docs/deployment.md`), VDIFN and soils-ag-wx redirect to v2, soils-ag-wx emails stop, v1 API URLs redirect to the old production server. Ops: a morning email report to admins (`/up`'s ingest health and problems, the night's ingest records, failed jobs; decided 2026-10-28); the yearly roll each January (drop the oldest year's directories, rebuild the internal climatology).
 
 ### Phase 9: Refinement and CONUS (2027 season onward) — sketch
 
