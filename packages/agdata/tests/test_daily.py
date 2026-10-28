@@ -125,3 +125,57 @@ def test_a_day_missing_et0_hours_gets_an_estimate_beside_the_raw_total(tmp_path)
     assert np.all((estimate > 2.3) & (estimate < 2.6))  # 23 × 0.1 plus the estimated hour
     np.testing.assert_allclose(read(tmp_path, "et0_sum", date(2025, 7, 1))[:, 1:], 2.4)
     assert np.isnan(read(tmp_path, "et0_sum_estimate", date(2025, 7, 1))).all()  # only where the raw is missing
+
+
+def test_grid_features_match_the_point_path(tmp_path):
+    from zoneinfo import ZoneInfo
+
+    from agmodels import features
+    from agmodels.weather import relative_humidity_percent
+
+    start = datetime(2025, 7, 1, tzinfo=UTC)
+    n = 96
+    hour = np.arange(n)
+    temperature = np.round(20 + 8 * np.sin(2 * np.pi * (hour - 15) / 24), 1)  # a daily cycle, at stored precision
+    dew_point = 17 + 0 * hour  # humid at night, dry by day
+    store = GridStore.create(tmp_path, HOURLY, 2025, WINDOW, VARIABLES.values())
+    grid = (n, *WINDOW.shape)
+    store.write(start, {"air_temperature": np.broadcast_to(temperature[:, None, None], grid)}, source="test")
+    store.write(start, {"dew_point": np.broadcast_to(dew_point[:, None, None], grid)}, source="test")
+    rollup_days(tmp_path, WINDOW, date(2025, 7, 2), date(2025, 7, 3))
+
+    # The point path over the same hours, as a Central cell sees them
+    local = np.array(
+        [(start + k * HOUR).astimezone(ZoneInfo("America/Chicago")).replace(tzinfo=None) for k in range(n)],
+        dtype="datetime64[h]",
+    )
+    rh = relative_humidity_percent(temperature, dew_point)
+    days, point = features.daily_features(local, temperature, rh, np.zeros(n))
+    for day in (date(2025, 7, 2), date(2025, 7, 3)):
+        k = [str(d) for d in days].index(str(day))
+        for name in (
+            "hours_rh_over_90",
+            "hours_temperature_over_20c",
+            "hours_rh_over_80_from_8pm",
+            "hours_rh_over_90_night",
+            "temperature_mean_rh_over_80_from_8pm",
+        ):
+            grid_value = read(tmp_path, name, day)[:, 1:]  # Central columns
+            np.testing.assert_allclose(grid_value, point[name][k], atol=0.05, err_msg=f"{name} {day}")
+    assert read(tmp_path, "hours_rh_over_80_from_8pm", date(2025, 7, 2))[0, 1] > 0  # the test has humid hours
+
+
+def test_a_store_from_before_new_features_opens_with_them_stale(tmp_path):
+    from dataclasses import replace
+
+    from agdata.catalog import DAILY_FEATURES, DAILY_VARIABLES
+    from agdata.store import DAILY
+
+    old = [v for name, v in DAILY_VARIABLES.items() if name not in DAILY_FEATURES]
+    GridStore.create(tmp_path, DAILY, 2025, WINDOW, old)
+    store = GridStore.open(tmp_path, DAILY, 2025, DAILY_VARIABLES.values(), add_missing=True)
+    assert store.stale == set(DAILY_FEATURES)
+    store.mark_current(DAILY_FEATURES)
+    assert GridStore.open(tmp_path, DAILY, 2025, DAILY_VARIABLES.values()).stale == set()
+    bumped = [replace(v, version=2) if v.name == "hours_rh_over_90" else v for v in DAILY_VARIABLES.values()]
+    assert GridStore.open(tmp_path, DAILY, 2025, bumped).stale == {"hours_rh_over_90"}

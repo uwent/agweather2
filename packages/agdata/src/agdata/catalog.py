@@ -32,6 +32,7 @@ class Variable:
     valid_max: float = np.inf
     daily: tuple[DailyStat, ...] = ()
     derived: bool = False  # computed from other variables at ingest, not read from a source
+    version: int = 1  # of the code that computes it; bump when its output changes so stores rebuild it (D29)
     fillable: bool = True  # short gaps may be interpolated in time (not for sums like precip, or directions)
     spike_c: float | None = None  # QC: a value this far from both neighbors in time, the same way, is a spike
     notes: str = ""
@@ -260,6 +261,31 @@ DAILY_VARIABLES["et0_sum_estimate"] = Variable(
     valid_max=20,
     derived=True,
 )
+
+
+# Daily features the models read (`agmodels.features`, PLAN.md Phase 3 B): counts of hours over the calendar day
+# and over the day from 8 pm (20:00 the evening before through 19:59), night hours (20:00-06:59), and the mean
+# temperature during humid hours. Features that look across days (hot past 5 days, dry) and moving averages are
+# computed on read. Bump a feature's version when `agmodels.features` changes what it computes (D29).
+_HOURS = {"unit": "hour", "scale": 1, "valid_min": 0, "valid_max": 25, "derived": True}
+_TEMPERATURE = {"unit": "degC", "scale": 0.1, "valid_min": -60, "valid_max": 60, "derived": True}
+DAILY_FEATURES: dict[str, Variable] = {
+    v.name: v
+    for v in [
+        Variable("hours_temperature_over_20c", "Hours with temperature at or above 20 °C", **_HOURS),
+        Variable("hours_temperature_over_30c", "Hours with temperature at or above 30 °C", **_HOURS),
+        Variable("hours_rh_under_70", "Hours with RH below 70%", **_HOURS),
+        Variable("hours_rh_over_80", "Hours with RH at or above 80%", **_HOURS),
+        Variable("hours_rh_over_90", "Hours with RH at or above 90%", **_HOURS),
+        Variable("hours_rh_over_80_from_8pm", "Hours with RH at or above 80%, day from 8 pm", **_HOURS),
+        Variable("hours_rh_over_90_from_8pm", "Hours with RH at or above 90%, day from 8 pm", **_HOURS),
+        Variable("hours_rh_over_80_night", "Night hours (8 pm to 7 am) with RH at or above 80%", **_HOURS),
+        Variable("hours_rh_over_90_night", "Night hours (8 pm to 7 am) with RH at or above 90%", **_HOURS),
+        Variable("temperature_mean_rh_over_80_from_8pm", "Mean temperature, RH ≥ 80%, day from 8 pm", **_TEMPERATURE),
+        Variable("temperature_mean_rh_over_90_from_8pm", "Mean temperature, RH ≥ 90%, day from 8 pm", **_TEMPERATURE),
+    ]
+}  # fmt: skip
+DAILY_VARIABLES.update(DAILY_FEATURES)
 
 
 # Running totals from local January 1 (D26, D27): any range is cum[end] - cum[start - 1]. Degree days are

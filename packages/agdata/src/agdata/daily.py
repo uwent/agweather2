@@ -8,10 +8,11 @@ in bands of rows so a large box fits in memory.
 """
 
 import warnings
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import numpy as np
 
@@ -19,7 +20,9 @@ from agdata.catalog import DAILY_MIN_HOURS, DAILY_STATISTICS, DAILY_VARIABLES, V
 from agdata.gaps import estimate_et0_hourly_mm
 from agdata.grid import NDFD, Window
 from agdata.store import DAILY, HOURLY, GridStore
-from agdata.timezones import day_bounds, window_timezones
+from agdata.timezones import day_bounds, from_8pm_bounds, window_timezones
+from agmodels import features
+from agmodels.weather import relative_humidity_percent
 
 BAND_ROWS = 128
 MAX_DAYS_PER_PASS = 31
@@ -30,7 +33,7 @@ ESTIMATE_CONTEXT = timedelta(hours=30)  # hours read around a pass for the ET0 e
 def open_or_create_daily(data_dir: Path, year: int, window: Window) -> GridStore:
     """The year's daily store, created with each cell's time zone on first use."""
     try:
-        store = GridStore.open(data_dir, DAILY, year, DAILY_VARIABLES.values())
+        store = GridStore.open(data_dir, DAILY, year, DAILY_VARIABLES.values(), add_missing=True)
     except FileNotFoundError:
         store = GridStore.create(data_dir, DAILY, year, window, DAILY_VARIABLES.values())
         zones, index = window_timezones(window)
@@ -56,19 +59,17 @@ def rollup_days(data_dir: Path, window: Window, first: date, last: date) -> int:
     for days in _passes(first, last):
         store = open_or_create_daily(data_dir, days[0].year, window)
         zones, zone_index = cell_timezones(store)
-        # Per day, the zones grouped by their (first, last) hour ends
-        groups: list[dict[tuple[datetime, datetime], list[int]]] = []
-        for day in days:
-            by_bounds: dict[tuple[datetime, datetime], list[int]] = {}
-            for k, zone in enumerate(zones):
-                by_bounds.setdefault(day_bounds(day, zone), []).append(k)
-            groups.append(by_bounds)
+        # Per day, the zones grouped by their (first, last) hour ends, for calendar days and days from 8 pm
+        groups = _group_zones(days, zones, day_bounds)
+        evenings = _group_zones(days, zones, from_8pm_bounds)
         span_start = min(b[0] for g in groups for b in g)
         span_stop = max(b[1] for g in groups for b in g) + HOUR
+        feature_start = min(span_start, *(b[0] for g in evenings for b in g))
 
         for band in _bands(window):
             y0, _ = window.local(band.j0, band.i0)
-            day_zones = _DayZones(groups, zone_index[y0 : y0 + band.shape[0]])
+            band_zones = zone_index[y0 : y0 + band.shape[0]]
+            day_zones = _DayZones(groups, band_zones, zones)
             out: dict[str, np.ndarray] = {}
             for name in VARIABLES:
                 stats = [s for s in DAILY_STATISTICS.values() if s.hourly == name]
@@ -81,23 +82,77 @@ def rollup_days(data_dir: Path, window: Window, first: date, last: date) -> int:
             if short.size:
                 # Only over the days missing some ET0, with context: the estimate's arrays are many times the hours'
                 d0, d1 = int(short[0]), int(short[-1]) + 1
-                some = _DayZones(groups[d0:d1], day_zones.zone_index)
+                some = _DayZones(groups[d0:d1], day_zones.zone_index, zones)
                 start = min(b[0] for g in some.groups for b in g) - ESTIMATE_CONTEXT
                 stop = max(b[1] for g in some.groups for b in g) + HOUR + ESTIMATE_CONTEXT
                 et0 = _estimated_et0_hours(hourly, start, stop, band)
                 estimate = some.each_day(et0, start, DAILY_STATISTICS["et0_sum"])
                 out["et0_sum_estimate"][d0:d1] = np.where(np.isnan(out["et0_sum"][d0:d1]), estimate, np.nan)
+            temperature = hourly.read("air_temperature", feature_start, span_stop, band)
+            rh = relative_humidity_percent(temperature, hourly.read("dew_point", feature_start, span_stop, band))
+            hours = {"temperature": temperature, "rh": rh}
+            out |= day_zones.each_window(
+                hours, feature_start, lambda h, _: features.calendar_features(h["temperature"], h["rh"])
+            )
+            out |= _DayZones(evenings, band_zones, zones).each_window(
+                hours,
+                feature_start,
+                lambda h, local_hour: features.from_8pm_features(
+                    h["temperature"], h["rh"], features.is_night(local_hour)
+                ),
+            )
             store.write(days[0], out, source="derived", window=band)
         written += len(days)
     return written
 
 
+Bounds = Callable[[date, str], tuple[datetime, datetime]]
+
+
+def _group_zones(
+    days: list[date], zones: list[str], bounds: Bounds
+) -> list[dict[tuple[datetime, datetime], list[int]]]:
+    groups = []
+    for day in days:
+        by_bounds: dict[tuple[datetime, datetime], list[int]] = {}
+        for k, zone in enumerate(zones):
+            by_bounds.setdefault(bounds(day, zone), []).append(k)
+        groups.append(by_bounds)
+    return groups
+
+
 class _DayZones:
     """A pass's days over a band: each cell's day follows its zone, and zones sharing bounds go together."""
 
-    def __init__(self, groups: list[dict[tuple[datetime, datetime], list[int]]], zone_index: np.ndarray):
+    def __init__(
+        self, groups: list[dict[tuple[datetime, datetime], list[int]]], zone_index: np.ndarray, zones: list[str]
+    ):
         self.groups = groups
         self.zone_index = zone_index
+        self.zones = zones
+
+    def each_window(
+        self,
+        hours: dict[str, np.ndarray],
+        first_hour: datetime,
+        reduce: Callable[[dict[str, np.ndarray], np.ndarray], dict[str, np.ndarray]],
+    ) -> dict[str, np.ndarray]:
+        """`reduce(window's hours, their local clock hours)` for each day's window; hours from first_hour on."""
+        result: dict[str, np.ndarray] = {}
+        for d, by_bounds in enumerate(self.groups):
+            for (begin, end), ids in by_bounds.items():
+                mask = np.isin(self.zone_index, ids)
+                if not mask.any():
+                    continue
+                i0, i1 = (begin - first_hour) // HOUR, (end - first_hour) // HOUR + 1
+                tz = ZoneInfo(self.zones[ids[0]])  # zones with the same bounds share the day's offsets
+                local_hour = np.array([(begin + n * HOUR).astimezone(tz).hour for n in range(i1 - i0)])
+                for name, value in reduce({k: v[i0:i1] for k, v in hours.items()}, local_hour).items():
+                    target = result.setdefault(
+                        name, np.full((len(self.groups), *self.zone_index.shape), np.nan, dtype=np.float32)
+                    )
+                    target[d][mask] = value[mask]
+        return result
 
     def each_day(self, hours: np.ndarray, first_hour: datetime, s: DailyStatistic) -> np.ndarray:
         """The statistic for each day, from hours ending at first_hour, first_hour + 1 h, …"""

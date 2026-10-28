@@ -65,6 +65,7 @@ class GridStore:
         w = attrs["window"]
         self.window = Window(w["j0"], w["j1"], w["i0"], w["i1"])
         self.variables: dict[str, Variable] = {}
+        self.stale: set[str] = set()  # derived variables to recompute (D29)
 
     # Creating and opening
 
@@ -83,8 +84,7 @@ class GridStore:
         if path.exists():
             raise FileExistsError(f"{path} exists; open it, or delete it to rebuild")
         n = steps_in_year(year, layout.step)
-        chunk_t, chunk_y, chunk_x = chunks or DEFAULT_CHUNKS[layout.step]
-        chunk_shape = (min(chunk_t, n), min(chunk_y, window.shape[0]), min(chunk_x, window.shape[1]))
+        chunk_shape = _clamp(chunks or DEFAULT_CHUNKS[layout.step], n, window)
         group = zarr.open_group(path, mode="w")
         group.attrs.update(
             {
@@ -95,36 +95,60 @@ class GridStore:
                 "window": {"j0": window.j0, "j1": window.j1, "i0": window.i0, "i1": window.i1},
             }
         )
-        meta = group.create_group("_meta")
-        for v in variables:
-            group.create_array(
-                v.name,
-                shape=(n, *window.shape),
-                chunks=chunk_shape,
-                dtype="int16",
-                fill_value=int(FILL),
-                serializer=PCodec(level=pcodec_level),
-                compressors=(),
-                dimension_names=("time", "y", "x"),
-                attributes={"long_name": v.long_name, "unit": v.unit, "scale": v.scale, "offset": v.offset},
-            )
-            meta.create_array(f"{v.name}.source", shape=(n,), chunks=(n,), dtype="uint8", fill_value=0)
-            meta.create_array(f"{v.name}.written", shape=(n,), chunks=(n,), dtype="float64", fill_value=np.nan)
+        group.attrs["chunks"] = list(chunk_shape)
+        group.attrs["pcodec_level"] = pcodec_level
+        group.create_group("_meta")
         store = cls(group, path)
+        for v in variables:
+            store._add_array(v, v.version)
         store.variables = {v.name: v for v in variables}
         return store
 
+    def _add_array(self, v: Variable, version: int) -> None:
+        attrs: dict[str, Any] = dict(self.group.attrs)
+        n = self.length
+        self.group.create_array(
+            v.name,
+            shape=(n, *self.window.shape),
+            chunks=tuple(attrs.get("chunks") or _clamp(DEFAULT_CHUNKS[self.step], n, self.window)),
+            dtype="int16",
+            fill_value=int(FILL),
+            serializer=PCodec(level=int(attrs.get("pcodec_level", 8))),
+            compressors=(),
+            dimension_names=("time", "y", "x"),
+            attributes={
+                "long_name": v.long_name,
+                "unit": v.unit,
+                "scale": v.scale,
+                "offset": v.offset,
+                "version": version,
+            },
+        )
+        meta = self.group["_meta"]
+        assert isinstance(meta, zarr.Group)
+        meta.create_array(f"{v.name}.source", shape=(n,), chunks=(n,), dtype="uint8", fill_value=0)
+        meta.create_array(f"{v.name}.written", shape=(n,), chunks=(n,), dtype="float64", fill_value=np.nan)
+
     @classmethod
-    def open(cls, data_dir: Path, layout: StoreLayout, year: int, variables: Iterable[Variable]) -> "GridStore":
+    def open(
+        cls, data_dir: Path, layout: StoreLayout, year: int, variables: Iterable[Variable], add_missing: bool = False
+    ) -> "GridStore":
+        """Opens a year's store for `variables`. A variable it lacks is an error unless `add_missing`, which adds
+        it empty and stale; a derived variable written by another version of its code is stale (D29)."""
         path = layout.path(data_dir, year)
         if not path.exists():
             raise FileNotFoundError(path)
         store = cls(zarr.open_group(path, mode="r+"), path)
         wanted = {v.name: v for v in variables}
         missing = set(wanted) - set(store.group.array_keys())
-        if missing:
+        if missing and not add_missing:
             raise KeyError(f"{path} has no {', '.join(sorted(missing))}")
+        for name in sorted(missing):
+            store._add_array(wanted[name], version=0)  # nothing computed yet for the days already stored
         for name, v in wanted.items():
+            stored: Any = store._array(name).attrs.get("version", 1)
+            if v.derived and int(stored) != v.version:
+                store.stale.add(name)
             attrs = store._array(name).attrs
             if (attrs.get("scale"), attrs.get("offset")) != (v.scale, v.offset):
                 raise ValueError(
@@ -133,6 +157,24 @@ class GridStore:
                 )
         store.variables = wanted
         return store
+
+    @classmethod
+    def stale_variables(cls, data_dir: Path, layout: StoreLayout, year: int, variables: Iterable[Variable]) -> set[str]:
+        """Read-only: the derived variables the store lacks or holds from another version of their code."""
+        group = zarr.open_group(layout.path(data_dir, year), mode="r")
+        present = set(group.array_keys())
+        stale = set()
+        for v in variables:
+            if not v.derived:
+                continue
+            if v.name not in present:
+                stale.add(v.name)
+                continue
+            array = group[v.name]
+            stored: Any = array.attrs.get("version", 1)
+            if int(stored) != v.version:
+                stale.add(v.name)
+        return stale
 
     @classmethod
     def rescale(cls, data_dir: Path, layout: StoreLayout, year: int, variable: Variable, steps: int = 720) -> None:
@@ -248,6 +290,12 @@ class GridStore:
             raise IndexError(f"{window} reaches outside the store's {self.window}")
         return slice(y0, y1), slice(x0, x1)
 
+    def mark_current(self, names: Iterable[str]) -> None:
+        """Records that these variables were recomputed throughout by their catalog version's code."""
+        for name in names:
+            self._array(name).attrs["version"] = self._variable(name).version
+            self.stale.discard(name)
+
     def read_meta(self, name: str) -> np.ndarray:
         """A whole `_meta` array (per-step sources and write times, or a daily store's time zones)."""
         return np.asarray(self._array(f"_meta/{name}")[:])
@@ -267,3 +315,7 @@ class GridStore:
             return self.variables[name]
         except KeyError:
             raise KeyError(f"{name} isn't open in this store") from None
+
+
+def _clamp(chunks: tuple[int, int, int], steps: int, window: Window) -> tuple[int, int, int]:
+    return (min(chunks[0], steps), min(chunks[1], window.shape[0]), min(chunks[2], window.shape[1]))

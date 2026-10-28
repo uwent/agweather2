@@ -62,3 +62,17 @@ def test_a_stale_archive_is_degraded_but_up(client, settings, tmp_path):
     assert body["status"] == "degraded"
     assert body["problems"] == ["newest hour more than 3 h old", "newest URMA hour more than 12 h old"]
     assert body["ingest"]["missing_hours_7d"] > 0
+
+
+@pytest.mark.django_db
+def test_stale_derived_data_makes_it_degraded(client, settings, tmp_path):
+    from agdata.daily import open_or_create_daily
+
+    settings.DATA_DIR = tmp_path
+    newest = timezone.now().astimezone(UTC).replace(minute=0, second=0, microsecond=0)
+    write_hours(tmp_path, newest, 24 * 8)
+    daily = open_or_create_daily(tmp_path, newest.year, service_window(BOX))
+    daily._array("hours_rh_over_90").attrs["version"] = 0  # written by older code
+    body = client.get("/up").json()
+    assert body["status"] == "degraded"
+    assert body["ingest"]["stale"] == {f"daily/{newest.year}": ["hours_rh_over_90"]}

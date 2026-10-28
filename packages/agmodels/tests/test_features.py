@@ -24,7 +24,9 @@ CRT_NAMES = {
 def ours(crt):
     h = crt("hourly_eau_claire_2025")
     local = h["local_time"].astype("datetime64[h]")
-    return f.daily_features(local, h["temperature"], h["relative_humidity"], h["precipitation"])
+    return f.daily_features(
+        local, h["temperature"], h["relative_humidity"], h["precipitation"], midnight_ends_day=False
+    )
 
 
 @pytest.mark.parametrize("name", list(CRT_NAMES))
@@ -40,7 +42,7 @@ def test_a_missing_hour_makes_counts_missing_but_not_other_days():
     rh = np.full((48,), 95.0)
     rh[30] = np.nan
     local = np.datetime64("2025-07-01T00", "h") + np.arange(48)
-    _, daily = f.daily_features(local, temperature, rh, np.zeros(48))
+    _, daily = f.daily_features(local, temperature, rh, np.zeros(48), midnight_ends_day=False)
     assert daily["hours_rh_over_90"].tolist()[0] == 24
     assert np.isnan(daily["hours_rh_over_90"][1])
     assert np.isnan(daily["temperature_mean_rh_over_90_from_8pm"][1])
@@ -56,3 +58,10 @@ def test_the_grid_shape_works():
     rh = np.full((24, 3, 4), 92.0)
     out = f.calendar_features(temperature, rh)
     assert out["hours_temperature_over_30c"].shape == (3, 4) and (out["hours_rh_over_90"] == 24).all()
+
+
+def test_v2_days_close_at_midnight():
+    local = np.datetime64("2025-07-01T01", "h") + np.arange(24)  # hours ending 01:00 .. 24:00
+    days, daily = f.daily_features(local, np.full(24, 25.0), np.full(24, 95.0), np.ones(24))
+    assert [str(d) for d in days] == ["2025-07-01"]
+    assert daily["precipitation_mm"].tolist() == [24.0]

@@ -89,17 +89,22 @@ def across_days(daily: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
 
 
 def daily_features(
-    local_time: np.ndarray, temperature_c: np.ndarray, rh_percent: np.ndarray, precipitation_mm: np.ndarray
+    local_time: np.ndarray,
+    temperature_c: np.ndarray,
+    rh_percent: np.ndarray,
+    precipitation_mm: np.ndarray,
+    midnight_ends_day: bool = True,
 ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     """A point's hourly series (local datetime64 instants, consecutive) → (dates, features per date).
 
-    An instant at local midnight belongs to the day it starts, as in the Crop Risk Tool's Open-Meteo frames; pass
-    instants an hour earlier for hour-ending data that should count midnight with the day before.
+    v2's calendar day is the hours ending 01:00–24:00 (`midnight_ends_day`), as in the stores: the reading at
+    midnight closes the day, and an hour's precip, stamped at its end, falls in the day it fell. The Crop Risk
+    Tool counts the instants 00:00–23:00 (pass False to match it), which puts each day's precip an hour early.
     """
     t = np.asarray(local_time, dtype="datetime64[h]")
-    dates = t.astype("datetime64[D]")
+    dates = (t - np.timedelta64(1 if midnight_ends_day else 0, "h")).astype("datetime64[D]")
     from_8pm = (t + np.timedelta64(4, "h")).astype("datetime64[D]")
-    hour = (t - dates).astype(int)
+    hour = (t - t.astype("datetime64[D]")).astype(int)
     days = np.unique(dates)
     out: dict[str, list] = {}
     for day in days:

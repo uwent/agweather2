@@ -42,3 +42,13 @@ def day_bounds(day: date, zone: str) -> tuple[datetime, datetime]:
 def _fixed_zone(lon: float) -> str:
     hours = round(-lon / 15)
     return "Etc/GMT" + (f"+{hours}" if hours > 0 else f"-{-hours}" if hours < 0 else "")  # POSIX sign: west is +
+
+
+def from_8pm_bounds(day: date, zone: str) -> tuple[datetime, datetime]:
+    """The UTC instants of a day from 8 pm: local 20:00 the evening before through 19:00 (hourly instants, as
+    the Crop Risk Tool's frames; 23 to 25 of them across daylight-saving changes)."""
+    tz = ZoneInfo(zone)
+    before = day - timedelta(days=1)
+    start = datetime(before.year, before.month, before.day, 20, tzinfo=tz).astimezone(UTC)
+    end = datetime(day.year, day.month, day.day, 19, tzinfo=tz).astimezone(UTC)
+    return start, end

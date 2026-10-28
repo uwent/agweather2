@@ -31,6 +31,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
   kill $(cat data/write.lock)         # stop it; the current block is lost, finished blocks are kept
   ```
   After a WSL restart it isn't running: start it again with the same command.
+- [ ] **After the backfill finishes:** `uv run app/manage.py rebuild --stale` (about an hour for 2025–2026: rolls the days up again for the model features added 2026-10-28); `uv run app/manage.py rebuild --check` should then print nothing. Claude can run it.
 - [ ] **Phase 2 exit review:** once Claude has rerun `docs/validation-archive.md` over the whole backfill, read it and agree the tolerances (PLAN.md Phase 2 H). Leave `bin/dev` running for a week afterwards so the hourly job and `/up` can be checked.
 
 ## Phase 3: Model library (ahead of time)

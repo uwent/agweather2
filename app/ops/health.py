@@ -8,6 +8,7 @@ import numpy as np
 from procrastinate.contrib.django.models import ProcrastinateJob
 
 from agdata.catalog import VARIABLES
+from agdata.rebuild import find_stale
 from agdata.store import HOURLY, SOURCES, GridStore, steps_in_year
 from ops.models import IngestRecord
 
@@ -48,7 +49,11 @@ def ingest_health(data_dir: Path, now: datetime) -> tuple[dict[str, Any], list[s
         if last is None
         else {"kind": last.kind, "status": last.status, "finished_at": last.finished_at.isoformat()},
     }
+    stale = find_stale(data_dir).stale
+    info["stale"] = stale
     problems = []
+    if stale:
+        problems.append("derived data from older code: run manage.py rebuild --stale")
     if info["lag_hours"] is None or info["lag_hours"] > MAX_LAG_HOURS:
         problems.append(f"newest hour more than {MAX_LAG_HOURS} h old")
     if info["urma_lag_hours"] is None or info["urma_lag_hours"] > MAX_URMA_LAG_HOURS:

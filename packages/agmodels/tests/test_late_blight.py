@@ -28,7 +28,11 @@ def test_a_season_matches_the_crop_risk_tool_from_its_inputs(crt):
 def test_pairing_hours_with_their_own_window_changes_few_days(crt):
     h = crt("hourly_eau_claire_2025")
     _, daily = f.daily_features(
-        h["local_time"].astype("datetime64[h]"), h["temperature"], h["relative_humidity"], h["precipitation"]
+        h["local_time"].astype("datetime64[h]"),
+        h["temperature"],
+        h["relative_humidity"],
+        h["precipitation"],
+        midnight_ends_day=False,  # the tool's calendar days, to isolate the window pairing
     )
     ours = lb.outputs(daily)["dsv"]
     theirs = crt("late_blight_eau_claire_2025")["dsv"]
