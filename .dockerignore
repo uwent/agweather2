@@ -1,0 +1,13 @@
+.git
+.venv
+node_modules
+data
+tmp
+staticfiles
+app/static/vite
+test-results
+playwright-report
+**/__pycache__
+**/.pytest_cache
+.env
+infra/.env

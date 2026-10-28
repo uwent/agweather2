@@ -32,3 +32,6 @@ node_modules/
 .idea
 .vscode/*
 !.vscode/extensions.json
+
+# infra/.env holds the server's secrets
+/infra/.env

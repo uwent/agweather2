@@ -7,6 +7,7 @@ dependencies = [
     "agmodels",
     "eccodes>=2.50.0",
     "numpy",
+    "pcodec>=1.0.4",
     "pyproj",
     "requests>=2.34.2",
     "xarray",

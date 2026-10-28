@@ -97,7 +97,7 @@ USE_I18N = False
 USE_TZ = True
 
 STATIC_URL = "/static/"
-STATIC_ROOT = REPO_DIR / "staticfiles"
+STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", REPO_DIR / "staticfiles"))
 STATICFILES_DIRS = [APP_DIR / "static"]
 
 # Inertia v3's client sends the CSRF token from the XSRF-TOKEN cookie in an X-XSRF-TOKEN header

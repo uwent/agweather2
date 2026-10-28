@@ -57,7 +57,20 @@ pnpm test                             # Vitest
 
 The browser tests fail on any console error (a CSP violation included) and run axe on every page in light and dark. GitHub Actions runs `bin/ci` on every push to `main` and on pull requests. Tests never use the network: pytest-socket blocks it, and fixtures are recorded.
 
-## 4. Scratch and data
+## 4. Containers
+
+The production image and stack are in `infra/` (PLAN.md §13). To try them on a laptop, with a Postgres container
+in place of RDS:
+
+```bash
+SECRET_KEY=anything docker compose -f infra/compose.yaml --profile local up --build    # http://localhost:8080
+SECRET_KEY=anything docker compose -f infra/compose.yaml --profile local down -v       # stop and delete its volumes
+```
+
+On a server, settings go in `infra/.env` (gitignored): `SECRET_KEY`, `DATABASE_URL` (RDS), `ALLOWED_HOSTS`,
+`SITE_ADDRESS` (the hostname, so Caddy gets a certificate), `HTTP_PORT=80`, `HTTPS_PORT=443`, `APP_VERSION`.
+
+## 5. Scratch and data
 
 - `tmp/` is gitignored scratch (downloads, one-off scripts). The Shiny apps used for model parity are in `tmp/shiny/`.
 - `data/` (gitignored, or `DATA_DIR`) holds the local Zarr archive and GRIB downloads.

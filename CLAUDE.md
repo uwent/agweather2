@@ -90,6 +90,10 @@ Data (`agdata`):
 - **ecCodes is the system library** (`libeccodes0`), not the `eccodeslib` wheel: that wheel bundles its own PROJ, and a process that loads it before pyproj crashes on exit (double free). Import eccodes through `agdata.sources.grib`, which silences the bindings' "2.42 recommended" warning.
 - **Use eccodes' typed getters** (`codes_get_long`, `codes_get_double`, `codes_get_string`); plain `codes_get` returns a union pyright rejects.
 
+Deploy:
+
+- **One image, three containers** (`infra/`): `web` migrates and collects static into the volume Caddy serves before starting uvicorn, `worker` runs Procrastinate, `caddy` terminates TLS. Settings come from the environment (`infra/.env` on a server); `DJANGO_ENV=production` in the image.
+
 Outside services:
 
 - **Open-Meteo:** the forecast API reaches only ~92 days back (older days need the historical-forecast API or the archive). best_match, GFS and NBM have no soil variables over North America; ECMWF IFS does. Multi-model requests suffix each variable with the model name; multi-location requests return a list (one location, an object). Coastal points snap to a land cell, so the API's coordinates can differ from our cell's.

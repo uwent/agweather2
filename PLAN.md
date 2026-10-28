@@ -234,7 +234,7 @@ Each phase ends with an exit gate. Dates are estimates for Ben and Claude; the o
 
 **E. Containers**
 
-- [ ] `infra/Dockerfile` (multi-stage: Node build of `frontend/`, then Python 3.13 slim with eccodes) and `compose.yaml` (`web`, `worker`, `caddy`, local `postgres` for testing only); `docker compose up` serves the home page.
+- [x] `infra/Dockerfile` (multi-stage: Node build of `frontend/`, then `python:3.13-slim-trixie` with the system ecCodes 2.41 and uv; 1.2 GB) and `infra/compose.yaml` (`web` runs migrations and collects static into a volume, then uvicorn; `worker`; `caddy` serving static with immutable caching for Vite's hashed files and proxying the rest; `postgres` only with `--profile local`). Checked locally: health, pages with no console or CSP errors, admin static, API, and the worker running periodic and deferred jobs.
 
 - **Exit:** `bin/ci` passes locally and on GitHub Actions; the home page renders through Inertia; the pilot report is written; server requirements confirmed with IT.
 

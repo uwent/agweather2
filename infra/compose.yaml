@@ -1,0 +1,77 @@
+# AgWeather v2 on one server: Django (web), the job worker, and Caddy in front.
+# Production uses Postgres on RDS (DATABASE_URL in .env); `--profile local` adds a Postgres container for trying
+# the stack on a laptop:
+#   docker compose -f infra/compose.yaml --profile local up --build
+# then http://localhost:8080. Settings come from infra/.env (see .env.example at the repo root).
+
+x-app: &app
+  build:
+    context: ..
+    dockerfile: infra/Dockerfile
+    args:
+      APP_VERSION: ${APP_VERSION:-dev}
+  image: agweather2:${APP_VERSION:-dev}
+  restart: unless-stopped
+  environment:
+    DATABASE_URL: ${DATABASE_URL:-postgres://postgres:password@postgres:5432/agweather2}
+    SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY}
+    ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost}
+    SERVICE_BOX: ${SERVICE_BOX:-wisconsin}
+    OPEN_METEO_API_KEY: ${OPEN_METEO_API_KEY:-}
+  volumes:
+    - data:/data
+
+services:
+  web:
+    <<: *app
+    # Migrations and static files (into the volume Caddy serves) before the server starts; there is one web container
+    command: sh -c "python app/manage.py migrate --noinput && python app/manage.py collectstatic --noinput --clear --verbosity 0 && exec uvicorn --app-dir app config.asgi:application --host 0.0.0.0 --port 8000 --workers ${WEB_WORKERS:-2} --lifespan off --proxy-headers --forwarded-allow-ips '*'"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/up')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+    volumes:
+      - data:/data
+      - static:/srv/static
+
+  worker:
+    <<: *app
+    command: python app/manage.py procrastinate worker
+    depends_on:
+      web:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+      - "${HTTPS_PORT:-8443}:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - static:/srv/static:ro
+      - caddy_data:/data
+    depends_on:
+      web:
+        condition: service_healthy
+
+  postgres:
+    profiles: [local]
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: agweather2
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+
+volumes:
+  data:
+  static:
+  caddy_data:
+  postgres:

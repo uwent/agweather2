@@ -23,6 +23,7 @@ dependencies = [
     { name = "agmodels" },
     { name = "eccodes" },
     { name = "numpy" },
+    { name = "pcodec" },
     { name = "pyproj" },
     { name = "requests" },
     { name = "xarray" },
@@ -34,6 +35,7 @@ requires-dist = [
     { name = "agmodels", editable = "packages/agmodels" },
     { name = "eccodes", specifier = ">=2.50.0" },
     { name = "numpy" },
+    { name = "pcodec", specifier = ">=1.0.4" },
     { name = "pyproj" },
     { name = "requests", specifier = ">=2.34.2" },
     { name = "xarray" },
@@ -544,6 +546,24 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/7f/72/0cb19cea2e6afbb0854cbde0ed1345b61600e0de84eb7b73583fde3e3b55/pandas-3.1.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:39c67ed9e56ad3ac0727dc2ae6a1eef766988c762d5ce2e2a162613d81c8990b", size = 13045764, upload-time = "2026-10-22T11:55:39.969Z" },
     { url = "https://files.pythonhosted.org/packages/e3/5c/ea5472e8444f5871427f3a6818725684fcdce74223ca1b22aa7ca345d490/pandas-3.1.0-cp313-cp313-win_amd64.whl", hash = "sha256:07807035ad66de0d833d68f9bee05801dbf08b88d56a233b0e9fd189372c3261", size = 10729719, upload-time = "2026-10-22T11:55:42.008Z" },
     { url = "https://files.pythonhosted.org/packages/45/f7/8cdd350c67bc62865d1e30cd7add43dd631420223487ba42dfcfd0d0e052/pandas-3.1.0-cp313-cp313-win_arm64.whl", hash = "sha256:54fed4a50b8321ff8d413b46b7e31a023cecefd06c7210c02aa980a9836428b2", size = 10116651, upload-time = "2026-10-22T11:55:44.367Z" },
+]
+
+[[package]]
+name = "pcodec"
+version = "1.0.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3e/8a/50467d0f14ff213466daa237ae5c229c13e860f75570321fdf1ee40b9f32/pcodec-1.0.4.tar.gz", hash = "sha256:f1ba6caae1536a11f9e5c39c8ef231cb7477fe9c860c172443eea76025af9b39", size = 155122, upload-time = "2026-10-05T17:33:30.192Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7c/fc/c7932ae3bfa2ff1cad95045fc1c60b1694ad35961aca34fe9ac6f5ac7793/pcodec-1.0.4-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:6dc02637624076f4486b976677aa003b76f6ab42c0e68ad00ac824a56761c94e", size = 564380, upload-time = "2026-10-05T17:33:24.263Z" },
+    { url = "https://files.pythonhosted.org/packages/22/a0/93c20120e52852b8c3fc729b2bcd86ca6ea3db32bc96c44f0b62f758b951/pcodec-1.0.4-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:26ed380213fa15fdc0117323a101cb663d19cfbc9f61280a8f97cb925cbc33fa", size = 520498, upload-time = "2026-10-05T17:33:13.282Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/56/ec384786f6962348016d6f9554a447e863ce56e65031e90a76bd383e2934/pcodec-1.0.4-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:578e904b8017beaff75df97e32e63974c80b2f3e95ec1d189fe54d572208db1f", size = 548560, upload-time = "2026-10-05T17:32:27.539Z" },
+    { url = "https://files.pythonhosted.org/packages/80/df/a4fdf88bdd5aba19cd964d0c8aad761ff22bfd4f527f5cfa8b2da1928395/pcodec-1.0.4-cp313-cp313-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:334c35ede5288a306b322c77954f5cf6aa21ca27e1ed30cf62c84042ea2a5d39", size = 566491, upload-time = "2026-10-05T17:32:39.618Z" },
+    { url = "https://files.pythonhosted.org/packages/ac/be/8c5a509568100886ac6be5572a6426fc23c5ce245d74151e15a7f12388bf/pcodec-1.0.4-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1a0f0c11d911eb35d3a2681a4ec80915a99796f44691c318e916f08556ea5a3f", size = 586384, upload-time = "2026-10-05T17:33:02.042Z" },
+    { url = "https://files.pythonhosted.org/packages/d9/f0/7ae8318d0b4e260922998fd58b29eb04172aaba216d47e7b87895230d7a9/pcodec-1.0.4-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:f9a85f6d24e5113c346159dc835003f608ee297ab0cd70de63f86f051cddd0a8", size = 607509, upload-time = "2026-10-05T17:32:51.072Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/57/3f0e3625035ca035ac12ff9d5bbc4b1a5729a395efaf17cd6be5e6fb520e/pcodec-1.0.4-cp313-cp313-win_amd64.whl", hash = "sha256:05bef6ca686e0280ced01400e9755da520d2a908ddf99238641ed6f6bcd0d6b3", size = 480161, upload-time = "2026-10-05T17:33:36.472Z" },
 ]
 
 [[package]]
