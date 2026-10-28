@@ -108,4 +108,6 @@ Working here:
 - **Propose a plan before building a new feature** unless it's a simple change: the design, the data model and any choices to make, then wait for Ben's go-ahead before implementing.
 - Things only Ben can do go in `TODO.md` under the current phase, with the exact commands.
 - `tmp/herbie`, `tmp/urma`: downloaded GRIB for exploring; the fixture makers in `packages/agdata/tests/fixtures/make_*.py` rebuild the committed fixtures.
+- **Checking CI on GitHub:** filter by workflow (`gh run list --workflow CI`, `gh run watch <id>`). GitHub's "Dependency Graph" runs on every push too, and the newest run is often that one.
+- **GitHub Actions versions:** some actions (setup-uv) publish only exact tags, no floating major; check with `gh api repos/<owner>/<repo>/git/ref/tags/<tag>` before pinning.
 - `pkill -f` with a pattern that's also in the command line kills the shell running it; stop dev servers by port or PID.
