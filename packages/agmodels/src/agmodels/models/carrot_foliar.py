@@ -46,6 +46,7 @@ SPEC = ModelSpec(
             "Madden, L., Pennypacker, S. P. and MacNab, A. A. (1978). FAST, a forecast system for Alternaria "
             "solani on tomato. Phytopathology 68, 1354–1358.",
             "https://www.apsnet.org/publications/phytopathology/backissues/Documents/1978Articles/Phyto68n09_1354.PDF",
+            doi="10.1094/Phyto-68-1354",
         ),
         Citation(
             "UW Vegetable Pathology: Carrot Alternaria and Cercospora leaf blights.",

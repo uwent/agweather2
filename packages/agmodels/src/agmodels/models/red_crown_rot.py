@@ -41,7 +41,7 @@ SPEC = ModelSpec(
         Citation(
             "Ochi, S., Kishi, S., Kawaguchi, A. and Akamatsu, H. (2026). Meteorological and agronomic factors "
             "analysis on the field-level incidence of red crown rot of soybean. Phytopathology 116, 1405–1413.",
-            "https://doi.org/10.1094/PHYTO-06-25-0207-R",
+            doi="10.1094/PHYTO-06-25-0207-R",
         ),
         Citation(
             "Crop Protection Network: Red crown rot of soybean.",

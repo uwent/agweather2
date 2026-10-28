@@ -30,7 +30,7 @@ SPEC = ModelSpec(
             "Willbur, J. F., Fall, M. L., Blackwell, T., et al. (2018). Weather-based models for assessing the "
             "risk of Sclerotinia sclerotiorum apothecial presence in soybean (Glycine max) fields. Plant Disease "
             "102, 73–84.",
-            "https://doi.org/10.1094/PDIS-04-17-0504-RE",
+            doi="10.1094/PDIS-04-17-0504-RE",
         ),
         Citation(
             "Crop Protection Network: White mold of soybean.",

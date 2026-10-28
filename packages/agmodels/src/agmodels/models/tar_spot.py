@@ -29,7 +29,7 @@ SPEC = ModelSpec(
             "Webster, R. W., Nicolli, C., Allen, T. W., et al. (2023). Uncovering the environmental conditions "
             "required for Phyllachora maydis infection and tar spot development on corn in the United States for "
             "use as predictive models for future epidemics. Scientific Reports 13, 17064.",
-            "https://doi.org/10.1038/s41598-023-44338-6",
+            doi="10.1038/s41598-023-44338-6",
         ),
         Citation(
             "Crop Protection Network: Tar spot of corn.",

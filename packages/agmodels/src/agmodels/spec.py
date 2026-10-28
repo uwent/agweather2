@@ -31,8 +31,16 @@ PROBABILITY_LEVELS = ("Very low", "Low", "Moderate", "High")
 
 @dataclass(frozen=True)
 class Citation:
+    """A source: the reference as text, its DOI where it has one (bare, `10.…`), and a URL for a copy to read or a
+    source with no DOI (an extension page, a report)."""
+
     text: str
     url: str = ""
+    doi: str = ""
+
+    @property
+    def doi_url(self) -> str:
+        return f"https://doi.org/{self.doi}" if self.doi else ""
 
 
 @dataclass(frozen=True)

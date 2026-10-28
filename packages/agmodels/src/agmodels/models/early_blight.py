@@ -41,12 +41,12 @@ SPEC = ModelSpec(
         Citation(
             "Sands, P. J., Hackett, C. and Nix, H. A. (1979). A model of the development and bulking of potatoes "
             "(Solanum tuberosum L.). I. Derivation from well-managed field crops. Field Crops Research 2, 309–331.",
-            "https://doi.org/10.1016/0378-4290(79)90031-7",
+            doi="10.1016/0378-4290(79)90031-5",
         ),
         Citation(
             "Pscheidt, J. W. and Stevenson, W. R. (1988). The critical period for control of early blight "
             "(Alternaria solani) of potato. American Potato Journal 65, 425–438.",
-            "https://doi.org/10.1007/BF02854357",
+            doi="10.1007/BF02854357",
         ),
         Citation(
             "UW Vegetable Pathology: Potato early blight.",

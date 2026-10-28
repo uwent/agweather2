@@ -33,7 +33,7 @@ SPEC = ModelSpec(
             "Jagemann, S. M., Juzwik, J., Tobin, P. C. and Raffa, K. F. (2018). Seasonal and regional distributions, "
             "degree-day models, and phoresy rates of the major sap beetle (Coleoptera: Nitidulidae) vectors of the oak "
             "wilt fungus, Bretziella fagacearum, in Wisconsin. Environmental Entomology 47, 1152–1164.",
-            "https://doi.org/10.1093/ee/nvy080",
+            doi="10.1093/ee/nvy080",
         ),
     ),
     inputs=(

@@ -44,7 +44,7 @@ SPEC = ModelSpec(
             "Sutton, J. C., James, T. D. W. and Rowell, P. M. (1986). BOTCAST: a forecasting system to time the "
             "initial fungicide spray for managing Botrytis leaf blight of onions. Agriculture, Ecosystems and "
             "Environment 18, 123–143.",
-            "https://doi.org/10.1016/0167-8809(86)90136-2",
+            doi="10.1016/0167-8809(86)90136-2",
         ),
         Citation(
             "UW Vegetable Pathology: Onion Botrytis leaf blight.",

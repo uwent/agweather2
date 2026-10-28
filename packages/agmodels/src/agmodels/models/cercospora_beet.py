@@ -39,7 +39,7 @@ SPEC = ModelSpec(
         Citation(
             "Windels, C. E., Lamey, H. A., Hilde, D., Widner, J. and Knudsen, T. (1998). A Cercospora leaf spot "
             "model for sugar beet: in practice by an industry. Plant Disease 82, 716–726.",
-            "https://doi.org/10.1094/PDIS.1998.82.7.716",
+            doi="10.1094/PDIS.1998.82.7.716",
         ),
         Citation(
             "Cornell Vegetables: Cercospora leaf spot of table beet.",

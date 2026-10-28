@@ -41,7 +41,7 @@ SPEC = ModelSpec(
         Citation(
             "Wallin, J. R. (1962). Summary of recent progress in predicting late blight epidemics in United "
             "States and Canada. American Potato Journal 39, 306–312.",
-            "https://doi.org/10.1007/BF02862200",
+            doi="10.1007/BF02862155",
         ),
         Citation(
             "Krause, R. A., Massie, L. B. and Hyre, R. A. (1975). Blitecast: a computerized forecast of potato "
