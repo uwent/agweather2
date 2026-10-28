@@ -53,7 +53,7 @@ LAYOUTS = {
 }
 
 
-# --coarse: what the archive would cost at coarser precision than URMA's own (0.01 for most fields); the factor
+# --coarse: D21's precision, coarser than URMA's own (0.01 for most fields); the factor
 # divides the catalog's packed int16 values (e.g. 0.01 °C x 10 = 0.1 °C)
 COARSE = {
     "air_temperature": 10,
@@ -63,6 +63,7 @@ COARSE = {
     "cloud_cover": 100,
     "wind_direction": 10,
     "precipitation": 10,
+    "surface_pressure": 10,  # 0.01 → 0.1 kPa (D21)
 }
 
 

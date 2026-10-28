@@ -121,7 +121,7 @@ One table in `agdata.catalog`: name, long name, stored unit, dtype and scale/off
 | `cumulative/{year}.zarr` | day × y × x per fixed DD model and additive index | 1 × 256 × 256 | Running total from Jan 1; range sum = `cum[end] − cum[start−1]` |
 | `climatology/` | doy × y × x per statistic | 1 × 256 × 256 | 30-year external and 5/10-year internal |
 
-Zarr v3 with a sharding codec if file counts get large; chunk sizes are confirmed by the Phase 1 pilot. Every hour carries a source flag (urma, rtma, nbm, openmeteo) and an ingest timestamp, so the archive can be revised (RTMA → URMA) idempotently.
+Zarr v3, int16 with pcodec (docs/pilot.md); a sharding codec if file counts get large. Every hour carries a source flag (urma, rtma, nbm, openmeteo) and an ingest timestamp, so the archive can be revised (RTMA → URMA) idempotently.
 
 ### 5.4 Time and days
 
@@ -232,9 +232,9 @@ Each phase ends with an exit gate. Dates are estimates for Ben and Claude; the o
 
 **D. One-month pilot**
 
-- [ ] Ingest July 2025 (all hourly variables available) for the `wisconsin` box into `data/` locally, plus a day of 2016 to time the header-scan path. Each message is a whole CONUS field (~5 MB) whatever the window, so a month is ~30 GB of downloads: measure the rate first and extrapolate the 11-year backfill.
-- [ ] Measure: compressed size per variable per month (compare int16 scaled vs float32, zstd levels, chunk shapes), download and decode time per hour, point-season read time, daily tile read time.
-- [ ] Write `docs/pilot.md` with the measurements, chosen chunking and codecs, and the extrapolated 11-year size for each preset (measured on `wisconsin`, scaled by cell count); update §5.3 and the IT sizing in TODO.md.
+- [x] Ingest July 2025 (all hourly variables available) for the `wisconsin` box into `data/` locally (744 hours, no errors); the 2016 header-scan path was timed on single files (about 1.7 s per file to index). Each message is a whole CONUS field (~5 MB) whatever the window, so a month is ~30 GB of downloads: measure the rate first and extrapolate the 11-year backfill.
+- [x] Measure: compressed size per variable per month (compare int16 scaled vs float32, zstd levels, chunk shapes), download and decode time per hour, point-season read time, daily tile read time.
+- [x] `docs/pilot.md`: int16 + pcodec, 720 × 32 × 32 hourly chunks, D21 precision; the Upper Midwest's 11-year hourly store is about 342 GB (about 510 GB with the daily, cumulative and climatology cubes), so 1 TB covers it; CONUS about 2–3 TB. §5.3 and TODO.md updated.
 
 **E. Containers**
 

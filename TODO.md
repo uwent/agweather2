@@ -12,7 +12,10 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
   - [x] The socket still says "permission denied": open a new WSL terminal (or `newgrp docker`) so the `docker` group applies, then check with `docker run --rm hello-world`.
 - [x] **Create the GitHub repo** (`uwent/agweather2`, public; PLAN.md Q3), then add it as `origin`.
 - [x] Answer PLAN.md Q1–Q3 (now D17–D19).
-- [ ] **Server request to IT** (Phase 1 gate): send the Server requirements section of `docs/project-plan.md`, with the pilot's measured sizes once `docs/pilot.md` exists. Ask for EC2, the EBS data volume and RDS in the same region and AZ.
+- [ ] **Server request to IT** (Phase 1 gate; IT is setting up infrastructure as of 2026-10-27): the Server requirements section of `docs/project-plan.md`, with EC2, the EBS data volume and RDS in the same region and AZ. The pilot (`docs/pilot.md`) confirms the sizes:
+  - Data volume: **1 TB gp3** holds the Upper Midwest's 11 years (about 510 GB: 342 GB hourly, the rest daily, cumulative and climatology). CONUS later needs 2–3 TB, or older years in S3.
+  - The 11-year backfill downloads about 4 TB from NOAA's bucket; from inside AWS that takes hours, not the ~5 days it would take from campus or home. A temporary scale-up for it (16–32 vCPU for a day or two) still stands.
+  - Hourly ingest is light: about 40 MB downloaded and under a minute of work per hour for the Upper Midwest.
 - [ ] Optional: put the Open-Meteo API key in `.env` as `OPEN_METEO_API_KEY` (needed from Phase 4).
 
 ## Phase 3: Model library (ahead of time)

@@ -1,65 +1,75 @@
 # Phase 1 pilot: archive size and layout
 
-PLAN.md Phase 1 D. One summer month of URMA hourly analyses over the `wisconsin` box (245 × 236 cells), stored in several Zarr layouts, to choose the archive's chunking, codec and precision and to size the server. **Draft:** the numbers below are from the first 9 days (216 hours) and will be replaced by the full month of July 2025.
+PLAN.md Phase 1 D, run 2026-10-27. All 744 hours of URMA analyses for July 2025 over the `wisconsin` box (245 × 236 = 57,820 cells, 8 variables), stored in a dozen Zarr layouts to choose the archive's chunking, codec and precision and to size the server.
 
-Scripts: `scripts/pilot_download.py` (download), `scripts/pilot_measure.py` (build each layout and time it), `scripts/pilot_report.py` (these tables).
+Scripts: `scripts/pilot_download.py` (download), `scripts/pilot_measure.py` (build each layout and time it), `scripts/pilot_report.py` (the tables). The raw hours are in `data/pilot/raw` (660 MB, packed at URMA's own precision by `scripts/pilot_encoding.py`).
 
-## Recommendations
+## Decisions it led to
 
-1. **Hourly store: int16 packed by the catalog's scale, pcodec level 8, chunks of 720 hours × 32 × 32 cells.** One cell's month reads in about 2 ms (a season of all variables well under the 300 ms target), and it is the smallest layout among those fast for point reads. The tile-shaped chunks (24 × 256 × 256) are 10–15% smaller still but take 10× longer for a point series, the archive's main use; daily and cumulative stores keep tile-shaped chunks for maps (PLAN.md §5.3).
-2. **pcodec over zstd**: 25–45% smaller for the same reads and writes. Shuffle filters help zstd but not as much; a delta along time makes zstd worse (most fields change more hour to hour than cell to cell at 2.5 km).
-3. **Precision is the bigger lever (a decision for Ben, PLAN.md Q6).** URMA carries 0.01 for temperature, dew point, wind and cloud cover; the analysis is good to around 1 °C, so the last digit is mostly noise that doesn't compress. Rounding to 0.1 °C, 0.1 m/s, 1 % cloud, 1° direction and 0.1 mm precip makes the archive 1.7× smaller (pcodec: 2.4× → 4.1× vs raw int16). Degree days, DSVs and ET0 don't change at that precision. Surface pressure (0.01 kPa) then becomes the largest variable; 0.1 kPa would be enough for ET0.
-4. **Hourly ingest writes straight into the archive.** Rewriting one hour of every variable costs about 2 s for Wisconsin with month-long chunks, roughly 25 s for the Upper Midwest (it scales with the number of chunks). That's acceptable once an hour; a staging store compacted monthly is only worth it at CONUS scale.
-5. **Size the volume for coarse precision, or 1 TB is tight.** See below.
+1. **Hourly store: int16 packed by the catalog's scale, pcodec level 8, chunks of 720 hours × 32 × 32 cells** (now `agdata.store`'s defaults). One cell's month reads in under 4 ms, so a season of every variable stays far inside the 300 ms target. Tile-shaped chunks (24 × 256 × 256) are 15% smaller but take over 10× longer for a point series, the hourly archive's main use; daily and cumulative stores keep tile-shaped chunks for maps (PLAN.md §5.3).
+2. **pcodec over zstd**: about 28% smaller than plain zstd and 11% smaller than zstd with a shuffle filter, at the same read speed. A delta along time makes zstd worse; most fields change more from hour to hour than from cell to cell at 2.5 km.
+3. **Coarse precision (D21)**: 0.1 °C, 0.1 m/s, 1 % cloud, 1° direction, 0.1 mm precip, 0.1 kPa pressure. URMA carries 0.01, mostly noise at the analysis's accuracy of about 1 °C, and noise doesn't compress. Coarse precision makes the archive 1.85× smaller (pcodec: 2.5× → 4.6× vs raw int16).
+4. **Hourly ingest writes straight into the archive.** Rewriting one hour of every variable costs 3–4 s for Wisconsin with month-long chunks, roughly 40 s for the Upper Midwest (it scales with the number of chunks). That's acceptable once an hour; a staging store compacted monthly is only worth it at CONUS scale.
+5. **A 1 TB data volume covers the Upper Midwest.** See below.
 
 ## Size
 
-Extrapolated to a year (× 8766 / measured hours), to 12 hourly variables (the pilot stored URMA's 8; the archive adds RH, shortwave radiation, ET0 and soil temperature), and to each preset by cell count. July is likely the hardest month to compress (convective precipitation and cloud), so a year may come in smaller. CONUS is overstated: its ocean, Canada and Mexico cells compress to almost nothing.
+The chosen layout at D21's precision, extrapolated to a year (× 8766 / 744 hours), to the archive's 12 hourly variables (the pilot stored URMA's 8; the archive adds RH, shortwave, ET0 and soil temperature) and to each preset by cell count:
 
-| Hourly store, 11 years | URMA precision | Coarse precision |
+| Hourly store | Per year | 11 years |
 |---|---|---|
-| Wisconsin (57,820 cells) | 55 GB | 33 GB |
-| Upper Midwest (675,962 cells) | 640 GB | 380 GB |
-| CONUS (3,744,965 cells) | 3.5 TB (less in practice) | 2.1 TB (less in practice) |
+| Wisconsin (57,820 cells) | 2.7 GB | 30 GB |
+| Upper Midwest (675,962 cells) | 31 GB | **342 GB** |
+| CONUS (3,744,965 cells) | 172 GB | 1.9 TB (an upper bound) |
 
-Daily, cumulative and climatology cubes add roughly 15 GB a year for the Upper Midwest (project-plan.md), about 165 GB over 11 years. With coarse precision the Upper Midwest totals about 550 GB, which fits the 1 TB volume with room for the backfill's scratch files; at URMA precision it is about 800 GB.
+- July is likely the hardest month to compress (convective precipitation and cloud), so a year may come in smaller.
+- CONUS is overstated: its ocean, Canada and Mexico cells compress to almost nothing.
+- Daily, cumulative and climatology cubes add roughly 15 GB a year for the Upper Midwest (project-plan.md), about 165 GB over 11 years.
+- **Upper Midwest total: about 510 GB**, so 1 TB holds it with room for scratch and growth. CONUS needs 2–3 TB, or older years moved to S3.
+- At URMA's own precision the Upper Midwest hourly store would have been 633 GB (about 800 GB in all).
 
-## Download
+## Download and decode
 
-- Every message is a whole CONUS field (about 5 MB) whatever the window, so an hour of URMA (8 fields) is about 40 MB. The window doesn't change the download, only the decode and storage.
-- From this WSL machine: one hour in 11–16 s on one connection; 8–16 parallel connections reach about 700 hours of data per hour of wall time, limited by the downlink (about 80 Mbit/s).
-- **The 11-year backfill is about 96,000 hours, roughly 4 TB of downloads.** From here that would be about 6 days; on the server in AWS (from the same region as the bucket, or any region at no charge) at several Gbit/s, expect hours rather than days. Decoding is cheap (eccodes takes about 21 ms per CONUS field, and cropping to the window 4 ms), so even 16 cores of decode keep up with a fast network; the store writes, a month per block, are the other cost.
+- Every message is a whole CONUS field (about 5 MB) whatever the window, so an hour of URMA (8 fields) is about 40 MB; the window changes only the decode and the storage.
+- From this WSL machine (about 80 Mbit/s down): one hour in 11–16 s on one connection; 12 parallel connections reached 820 hours of data per hour of wall time, limited by the downlink. The month took about an hour.
+- **The 11-year backfill is about 96,000 hours, roughly 4 TB of downloads**: about 5 days from here, hours on the server in AWS. Decoding is cheap (eccodes takes about 21 ms per CONUS field, and cropping to the window 4 ms), so with the network fast, store writes in month blocks are the main cost; parallelize by month.
 - 2016–2017 files have no `.idx`; reading their GRIB2 headers costs two small requests per message and about 1.7 s per file, then only the wanted messages download.
 
-## Measurements (9 days, draft)
+## Measurements
 
-Write all = the 9 days in one block; Write 1 h = rewriting one hour of all 8 variables in place; Point read = one cell's series over the measured hours; Hour read = one hour over the whole window. Local WSL disk.
+Write all = the month in one block; Write 1 h = rewriting one hour of all 8 variables in place; Point read = one cell's month; Hour read = one hour over the whole window. Local WSL disk.
 
-URMA precision:
-
-| Layout | MB | × vs int16 | Write all | Write 1 h | Point read | Hour read |
-|---|---|---|---|---|---|---|
-| int16 pcodec8 24×256×256 | 72.3 | 2.8 | 0.8 s | 0.37 s | 19.9 ms | 5 ms |
-| int16 pcodec8 720×32×32 | 81.7 | 2.4 | 1.6 s | 1.92 s | 2.2 ms | 63 ms |
-| int16 pcodec8 168×64×64 | 82.3 | 2.4 | 1.3 s | 0.91 s | 4.6 ms | 21 ms |
-| int16 blosc-zstd5-bitshuffle 720×32×32 | 90.8 | 2.2 | 1.3 s | 1.61 s | 2.7 ms | 71 ms |
-| int16 zstd3 720×32×32 | 112.7 | 1.8 | 1.5 s | 1.77 s | 2.7 ms | 71 ms |
-| int16 delta-time zstd3 720×32×32 | 120.9 | 1.7 | 1.8 s | 2.46 s | 4.4 ms | 116 ms |
-| float32 zstd3 720×32×32 | 144.5 | 1.4 | 2.8 s | 2.03 s | 3.3 ms | 76 ms |
-
-Coarse precision:
+URMA's own precision (0.01):
 
 | Layout | MB | × vs int16 | Write all | Write 1 h | Point read | Hour read |
 |---|---|---|---|---|---|---|
-| int16 pcodec8 24×256×256 | 42.4 | 4.7 | 0.6 s | 0.26 s | 17.6 ms | 5 ms |
-| int16 pcodec8 720×32×32 | 48.8 | 4.1 | 1.4 s | 1.73 s | 2.2 ms | 66 ms |
-| int16 blosc-zstd5-bitshuffle 720×32×32 | 54.0 | 3.7 | 1.3 s | 1.63 s | 2.9 ms | 77 ms |
-| int16 zstd3 720×32×32 | 63.7 | 3.1 | 1.1 s | 1.50 s | 2.5 ms | 70 ms |
+| int16 pcodec8 24×256×256 | 247.9 | 2.8 | 2.5 s | 0.33 s | 47.1 ms | 5 ms |
+| int16 pcodec8 168×64×64 | 270.1 | 2.5 | 3.1 s | 0.74 s | 8.0 ms | 17 ms |
+| int16 pcodec8 720×32×32 | 278.6 | 2.5 | 4.1 s | 3.22 s | 3.8 ms | 70 ms |
+| int16 delta-x zstd3 720×32×32 | 307.5 | 2.2 | 2.9 s | 2.58 s | 6.2 ms | 113 ms |
+| int16 blosc-zstd5-shuffle 720×32×32 | 313.9 | 2.2 | 3.8 s | 3.13 s | 2.8 ms | 65 ms |
+| int16 blosc-zstd5-bitshuffle 720×32×32 | 316.3 | 2.2 | 3.8 s | 2.20 s | 3.7 ms | 72 ms |
+| int16 zstd9 720×32×32 | 363.8 | 1.9 | 6.6 s | 5.57 s | 4.4 ms | 76 ms |
+| int16 zstd3 168×64×64 | 380.7 | 1.8 | 2.2 s | 0.56 s | 9.0 ms | 21 ms |
+| int16 zstd3 24×256×256 | 384.3 | 1.8 | 1.6 s | 0.21 s | 50.6 ms | 5 ms |
+| int16 zstd3 720×32×32 | 386.3 | 1.8 | 3.0 s | 2.45 s | 3.9 ms | 87 ms |
+| int16 delta-time zstd3 720×32×32 | 410.4 | 1.7 | 4.3 s | 3.02 s | 6.0 ms | 112 ms |
+| float32 zstd3 720×32×32 | 490.7 | 1.4 | 10.4 s | 3.46 s | 5.8 ms | 94 ms |
 
-Per variable (pcodec, URMA precision → coarse), MB for 9 days: wind direction 12.5 → 7.4, dew point 10.6 → 5.4, air temperature 10.5 → 5.3, wind speed 10.2 → 5.2, cloud cover 9.5 → 4.5, gust 8.9 → 4.9, surface pressure 8.9 → 8.9, precipitation 1.2 → 0.7.
+D21's precision:
 
-## Not measured yet
+| Layout | MB | × vs int16 | Write all | Write 1 h | Point read | Hour read |
+|---|---|---|---|---|---|---|
+| int16 pcodec8 24×256×256 | 128.9 | 5.3 | 3.3 s | 0.30 s | 54.7 ms | 5 ms |
+| int16 pcodec8 720×32×32 | 150.3 | 4.6 | 5.0 s | 3.72 s | 3.5 ms | 68 ms |
 
-- Daily and cumulative cubes (built in Phase 2 from the hourly store; their size is small next to it).
+Coarse precision except pressure (kept at 0.01 kPa), for the other layouts: pcodec8 168×64×64 160.2 MB, blosc-zstd5-bitshuffle 188.9 MB, zstd3 217.3 MB, float32 269.6 MB; the order is the same as at full precision.
+
+Per variable for the month (pcodec8 24×256×256, URMA precision → D21): wind direction 42.8 → 25.4 MB, dew point 36.1 → 18.4, air temperature 35.6 → 17.9, wind speed 34.9 → 17.7, cloud cover 32.7 → 15.7, surface pressure 30.7 → 14.7, gust 30.5 → 16.5, precipitation 4.5 → 2.5.
+
+## Not measured
+
+- Daily and cumulative cubes (built in Phase 2 from the hourly store; small next to it).
 - A winter month, to check July is the worst case.
 - Reads from the server's EBS gp3 volume instead of a local disk.
+- HRRR (shortwave from the 15-minute file, soil temperature): different files and a regrid, timed when Phase 2 adds them.
