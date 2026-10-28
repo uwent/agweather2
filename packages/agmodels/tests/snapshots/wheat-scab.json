@@ -1,0 +1,8 @@
+{"version": "1.0", "rows": [
+{"inputs":{"rh_mean_14day":50.0},"outputs":{"probability_vs":0.255349678,"probability_s":0.130308208,"probability_ms":0.072322394,"probability_mr":0.05123518}},
+{"inputs":{"rh_mean_14day":60.0},"outputs":{"probability_vs":0.364546649,"probability_s":0.200425081,"probability_ms":0.115377284,"probability_mr":0.082857708}},
+{"inputs":{"rh_mean_14day":70.0},"outputs":{"probability_vs":0.489729577,"probability_s":0.295453467,"probability_ms":0.179114691,"probability_mr":0.131296794}},
+{"inputs":{"rh_mean_14day":80.0},"outputs":{"probability_vs":0.616214005,"probability_s":0.412304612,"probability_ms":0.267418377,"probability_mr":0.201822166}},
+{"inputs":{"rh_mean_14day":90.0},"outputs":{"probability_vs":0.728713642,"probability_s":0.539952232,"probability_ms":0.379148567,"probability_mr":0.297266687}},
+{"inputs":{"rh_mean_14day":100.0},"outputs":{"probability_vs":0.817977213,"probability_s":0.662565285,"probability_ms":0.505358045,"probability_mr":0.414413146}}
+]}

@@ -72,7 +72,7 @@ SPEC = ModelSpec(
         ExplorerInput("tmin", "Minimum temperature", "degC", -5, 35, 0.5, 12),
         ExplorerInput("tmax", "Maximum temperature", "degC", -5, 40, 0.5, 26),
     ),
-    sweep={"tmin": tuple(float(t) for t in range(0, 32, 4)), "tmax": tuple(float(t) for t in range(8, 40, 4))},
+    sweep={"tmin": tuple(float(t) for t in range(-2, 34)), "tmax": tuple(float(t) for t in range(4, 40))},
     season=("05-01", "09-30"),
     biofix=Biofix("05-15", "Crop emergence"),
     changelog=(

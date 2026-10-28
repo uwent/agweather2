@@ -40,3 +40,8 @@ def _number(value: str) -> float:
         return np.nan
     booleans = {"TRUE": 1.0, "FALSE": 0.0}
     return booleans[value] if value in booleans else float(value)
+
+
+@pytest.fixture
+def update_snapshots(request) -> bool:
+    return bool(request.config.getoption("--update-snapshots", default=False))

@@ -1,0 +1,14 @@
+{"version": "1.0", "rows": [
+{"inputs":{"temperature_min_21day":10.0,"dew_point_min_30day":5.0},"outputs":{"probability":0.486853031}},
+{"inputs":{"temperature_min_21day":10.0,"dew_point_min_30day":10.0},"outputs":{"probability":0.961372593}},
+{"inputs":{"temperature_min_21day":10.0,"dew_point_min_30day":15.0},"outputs":{"probability":0.998470678}},
+{"inputs":{"temperature_min_21day":10.0,"dew_point_min_30day":20.0},"outputs":{"probability":0.999941615}},
+{"inputs":{"temperature_min_21day":15.0,"dew_point_min_30day":5.0},"outputs":{"probability":0.440520477}},
+{"inputs":{"temperature_min_21day":15.0,"dew_point_min_30day":10.0},"outputs":{"probability":0.953820962}},
+{"inputs":{"temperature_min_21day":15.0,"dew_point_min_30day":15.0},"outputs":{"probability":0.998157798}},
+{"inputs":{"temperature_min_21day":15.0,"dew_point_min_30day":20.0},"outputs":{"probability":0.999929649}},
+{"inputs":{"temperature_min_21day":20.0,"dew_point_min_30day":5.0},"outputs":{"probability":0.3952014}},
+{"inputs":{"temperature_min_21day":20.0,"dew_point_min_30day":10.0},"outputs":{"probability":0.94487764}},
+{"inputs":{"temperature_min_21day":20.0,"dew_point_min_30day":15.0},"outputs":{"probability":0.997781051}},
+{"inputs":{"temperature_min_21day":20.0,"dew_point_min_30day":20.0},"outputs":{"probability":0.999915231}}
+]}

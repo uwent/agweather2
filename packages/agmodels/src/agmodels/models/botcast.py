@@ -83,8 +83,8 @@ SPEC = ModelSpec(
         ExplorerInput("dry_yesterday", "Yesterday was dry (0 or 1)", "index", 0, 1, 1, 0),
     ),
     sweep={
-        "temperature": tuple(float(t) for t in range(2, 32, 3)),
-        "hours": tuple(float(h) for h in range(0, 25, 3)),
+        "temperature": tuple(float(t) for t in range(0, 33)),
+        "hours": tuple(float(h) for h in range(25)),
         "hot": (0.0, 1.0),
         "dry_yesterday": (0.0, 1.0),
     },

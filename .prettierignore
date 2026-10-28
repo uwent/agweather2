@@ -11,3 +11,4 @@ data
 .venv
 pnpm-lock.yaml
 uv.lock
+packages/agmodels/tests/snapshots

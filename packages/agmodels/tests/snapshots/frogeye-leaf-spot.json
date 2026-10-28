@@ -1,0 +1,22 @@
+{"version": "1.0", "rows": [
+{"inputs":{"temperature_max_30day":20.0,"hours_rh_80_30day":0.0},"outputs":{"probability":0.029792595}},
+{"inputs":{"temperature_max_30day":20.0,"hours_rh_80_30day":6.0},"outputs":{"probability":0.079901214}},
+{"inputs":{"temperature_max_30day":20.0,"hours_rh_80_30day":12.0},"outputs":{"probability":0.197161561}},
+{"inputs":{"temperature_max_30day":20.0,"hours_rh_80_30day":18.0},"outputs":{"probability":0.40985375}},
+{"inputs":{"temperature_max_30day":20.0,"hours_rh_80_30day":24.0},"outputs":{"probability":0.662619602}},
+{"inputs":{"temperature_max_30day":25.0,"hours_rh_80_30day":0.0},"outputs":{"probability":0.05351212}},
+{"inputs":{"temperature_max_30day":25.0,"hours_rh_80_30day":6.0},"outputs":{"probability":0.137846807}},
+{"inputs":{"temperature_max_30day":25.0,"hours_rh_80_30day":12.0},"outputs":{"probability":0.311368328}},
+{"inputs":{"temperature_max_30day":25.0,"hours_rh_80_30day":18.0},"outputs":{"probability":0.561149857}},
+{"inputs":{"temperature_max_30day":25.0,"hours_rh_80_30day":24.0},"outputs":{"probability":0.783365877}},
+{"inputs":{"temperature_max_30day":30.0,"hours_rh_80_30day":0.0},"outputs":{"probability":0.09428095}},
+{"inputs":{"temperature_max_30day":30.0,"hours_rh_80_30day":6.0},"outputs":{"probability":0.227428264}},
+{"inputs":{"temperature_max_30day":30.0,"hours_rh_80_30day":12.0},"outputs":{"probability":0.454295439}},
+{"inputs":{"temperature_max_30day":30.0,"hours_rh_80_30day":18.0},"outputs":{"probability":0.701872392}},
+{"inputs":{"temperature_max_30day":30.0,"hours_rh_80_30day":24.0},"outputs":{"probability":0.869414294}},
+{"inputs":{"temperature_max_30day":35.0,"hours_rh_80_30day":0.0},"outputs":{"probability":0.160832079}},
+{"inputs":{"temperature_max_30day":35.0,"hours_rh_80_30day":6.0},"outputs":{"probability":0.351491405}},
+{"inputs":{"temperature_max_30day":35.0,"hours_rh_80_30day":12.0},"outputs":{"probability":0.605173795}},
+{"inputs":{"temperature_max_30day":35.0,"hours_rh_80_30day":18.0},"outputs":{"probability":0.812544622}},
+{"inputs":{"temperature_max_30day":35.0,"hours_rh_80_30day":24.0},"outputs":{"probability":0.924574624}}
+]}

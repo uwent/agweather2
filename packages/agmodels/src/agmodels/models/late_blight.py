@@ -72,7 +72,7 @@ SPEC = ModelSpec(
         ExplorerInput("temperature", "Mean temperature during RH ≥ 90%", "degC", 0, 30, 0.5, 16),
         ExplorerInput("hours", "Hours with RH ≥ 90%", "hour", 0, 24, 1, 14),
     ),
-    sweep={"temperature": tuple(float(t) for t in range(4, 30, 2)), "hours": tuple(float(h) for h in range(0, 25, 3))},
+    sweep={"temperature": tuple(float(t) for t in range(0, 31)), "hours": tuple(float(h) for h in range(25))},
     region=(),
     season=("05-01", "09-30"),
     biofix=Biofix("05-15", "Crop emergence or the last fungicide application"),
