@@ -18,7 +18,7 @@ from typing import Any, Literal
 
 import numpy as np
 import zarr
-from zarr.codecs import ZstdCodec
+from zarr.codecs.numcodecs import PCodec
 
 from agdata.catalog import FILL, Variable
 from agdata.grid import NDFD, Window
@@ -29,7 +29,8 @@ Step = Literal["hour", "day"]
 SOURCES = {"urma": 1, "rtma": 2, "hrrr": 3, "nbm": 4, "openmeteo": 5, "derived": 6, "test": 99}
 SOURCE_NAMES = {code: name for name, code in SOURCES.items()}
 
-# Default chunks (time steps, y, x): hourly for point reads, daily for map tiles. The pilot tunes these.
+# Chunks (time steps, y, x): hourly for point reads (a cell's month is one chunk), daily for map tiles.
+# pcodec compresses the packed int16 values 25-45% better than zstd at the same speed (docs/pilot.md).
 DEFAULT_CHUNKS: dict[Step, tuple[int, int, int]] = {"hour": (720, 32, 32), "day": (1, 256, 256)}
 
 
@@ -75,7 +76,7 @@ class GridStore:
         window: Window,
         variables: Iterable[Variable],
         chunks: tuple[int, int, int] | None = None,
-        zstd_level: int = 3,
+        pcodec_level: int = 8,
     ) -> "GridStore":
         path = layout.path(data_dir, year)
         if path.exists():
@@ -101,7 +102,8 @@ class GridStore:
                 chunks=chunk_shape,
                 dtype="int16",
                 fill_value=int(FILL),
-                compressors=[ZstdCodec(level=zstd_level)],
+                serializer=PCodec(level=pcodec_level),
+                compressors=(),
                 dimension_names=("time", "y", "x"),
                 attributes={"long_name": v.long_name, "unit": v.unit, "scale": v.scale, "offset": v.offset},
             )

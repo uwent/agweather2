@@ -2,8 +2,10 @@
 
 Stores keep each variable as int16 with a scale and offset (value = stored * scale + offset), which keeps
 the archive small (PLAN.md §5.3); `encode`/`decode` do the packing, and the int16 minimum marks a missing
-value. Units are symbols from `agdata.units` (SI, PLAN.md D18). A variable's QC range is what's physically
-plausible in the service area; values outside it are treated as missing by QC (Phase 2).
+value. Scales are the stored precision (D21): coarser than URMA's 0.01, whose last digit is noise at the
+analysis's accuracy and doesn't compress (docs/pilot.md). Units are symbols from `agdata.units` (SI, D18).
+A variable's QC range is what's physically plausible in the service area; values outside it are treated as
+missing by QC (Phase 2).
 """
 
 from dataclasses import dataclass, field
@@ -66,7 +68,7 @@ VARIABLES: dict[str, Variable] = {
             "air_temperature",
             "Air temperature at 2 m",
             "degC",
-            scale=0.01,
+            scale=0.1,
             valid_min=-60,
             valid_max=60,
             daily=("min", "max", "mean"),
@@ -76,7 +78,7 @@ VARIABLES: dict[str, Variable] = {
             "dew_point",
             "Dew point at 2 m",
             "degC",
-            scale=0.01,
+            scale=0.1,
             valid_min=-70,
             valid_max=40,
             daily=("min", "max", "mean"),
@@ -86,7 +88,7 @@ VARIABLES: dict[str, Variable] = {
             "relative_humidity",
             "Relative humidity at 2 m",
             "percent",
-            scale=0.01,
+            scale=1,
             valid_min=0,
             valid_max=100,
             daily=("min", "max", "mean"),
@@ -97,7 +99,7 @@ VARIABLES: dict[str, Variable] = {
             "wind_speed",
             "Wind speed at 10 m",
             "m_s",
-            scale=0.01,
+            scale=0.1,
             valid_min=0,
             valid_max=75,
             daily=("mean", "max"),
@@ -107,7 +109,7 @@ VARIABLES: dict[str, Variable] = {
             "wind_gust",
             "Wind gust at 10 m",
             "m_s",
-            scale=0.01,
+            scale=0.1,
             valid_min=0,
             valid_max=100,
             daily=("max",),
@@ -117,7 +119,7 @@ VARIABLES: dict[str, Variable] = {
             "wind_direction",
             "Wind direction at 10 m, from",
             "deg",
-            scale=0.1,
+            scale=1,
             valid_min=0,
             valid_max=360,
             notes="Daily means of directions need vector averaging, so there is no plain daily statistic",
@@ -127,8 +129,7 @@ VARIABLES: dict[str, Variable] = {
             "surface_pressure",
             "Surface pressure",
             "kPa",
-            scale=0.01,
-            offset=80,
+            scale=0.1,
             valid_min=50,
             valid_max=110,
             daily=("mean",),
@@ -138,7 +139,7 @@ VARIABLES: dict[str, Variable] = {
             "cloud_cover",
             "Total cloud cover",
             "percent",
-            scale=0.01,
+            scale=1,
             valid_min=0,
             valid_max=100,
             daily=("mean",),
@@ -148,7 +149,7 @@ VARIABLES: dict[str, Variable] = {
             "precipitation",
             "Precipitation in the hour ending at the time",
             "mm",
-            scale=0.01,
+            scale=0.1,
             valid_min=0,
             valid_max=300,
             daily=("sum",),

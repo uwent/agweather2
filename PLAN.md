@@ -47,6 +47,10 @@ One Django app that replaces the AgWeather API, the AgWeather website, VDIFN and
 | D18 | **SI units in storage** (°C, mm, m/s, W/m², kPa), converted by one units module (`agdata.units`, with a mirror in `frontend/lib/units.ts`) at the API and display edge; degree days stay in each model's own unit (mostly °F-days), labeled in the catalog (Q2) | 2026-10-27 |
 | D19 | **Public GitHub repo `uwent/agweather2`** (Q3) | 2026-10-27 |
 | D20 | **Named service-box presets** (`wisconsin`, `upper_midwest`, `conus`) chosen by `SERVICE_BOX`; development starts with `wisconsin` and scales up by switching the preset and backfilling | 2026-10-27 |
+| D21 | **Coarse stored precision**: 0.1 °C temperature and dew point, 0.1 m/s wind and gust, 1 % cloud and RH, 1° direction, 0.1 mm precip, 0.1 kPa pressure (Q6, docs/pilot.md) | 2026-10-27 |
+| D22 | **Climatology moves to Phase 6**, with the climate comparisons it feeds (Q7) | 2026-10-27 |
+| D23 | **RTMA hourly precip before 2017-12-05**, when URMA has only 6-hour totals; supersedes D6's 6-hour plan (Q8) | 2026-10-27 |
+| D24 | **Local backfill: Wisconsin 2024–2025**; the 11-year backfill runs on the server (Q9) | 2026-10-27 |
 
 ---
 
@@ -238,18 +242,18 @@ Each phase ends with an exit gate. Dates are estimates for Ben and Claude; the o
 
 - **Exit:** `bin/ci` passes locally and on GitHub Actions; the home page renders through Inertia; the pilot report is written; server requirements confirmed with IT.
 
-### Phase 2: Hourly archive (November–December) — next, detailed for review
+### Phase 2: Hourly archive (November–December) — next, approved 2026-10-27
 
 Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) plus HRRR radiation and soil temperature, QC'd, with derived humidity and ET0, rolled up to local days and running totals, filled by a backfill CLI and kept current by jobs. The data layout follows docs/pilot.md (int16 + pcodec; hourly chunks 720 × 32 × 32, daily and cumulative 1 × 256 × 256). Development runs on the `wisconsin` box locally; the 11-year backfill runs on the server once IT has it up.
 
 **A. Store settings from the pilot**
 
-- [ ] pcodec level 8 and the pilot's chunk shapes as `agdata.store` defaults; precision per Q6 (catalog scales).
+- [x] pcodec level 8 and the pilot's chunk shapes as `agdata.store` defaults; catalog scales at D21's precision (shortwave stays 0.1 W/m² and hourly ET0 0.001 mm, which D21 doesn't cover).
 - [ ] Add the daily-store variables to the catalog: each hourly variable's daily statistics (`air_temperature_max`, `precipitation_sum`, …) with their own units and scales (shortwave's daily sum is MJ/m², not W/m²), plus the per-day counts models need (hours with data).
 
 **B. Sources**
 
-- [ ] URMA (done in 1C). Before 2017-12-05, when URMA has only 6-hour precip, hourly precip comes from RTMA (Q8).
+- [ ] URMA (done in 1C). Before 2017-12-05, when URMA has only 6-hour precip, hourly precip comes from RTMA (D23).
 - [ ] RTMA (`noaa-rtma-pds`) for the hours URMA hasn't published yet (URMA runs about 6 h behind); the same reader and grid. Its files follow URMA's (`rtma2p5.tHHz.2dvaranl_ndfd.grb2_ext` until 2017-04, `_wexp` after), and its hourly precip `rtma2p5.YYYYMMDDHH.pcp.184.grb2` (the 2145 × 1377 grid) exists for every year since 2016 (checked 2026-10-27). An RTMA hour is replaced when URMA's arrives (the store's per-step source makes that visible).
 - [ ] HRRR (`noaa-hrrr-bdp-pds`, 3 km Lambert, a different projection), regridded to NDFD by precomputed bilinear weights. Checked 2026-10-27: `wrfsfc` has only instantaneous DSWRF, so the hourly mean shortwave (D7) comes from the sub-hourly file `wrfsubhf01` (four 15-minute averages: 0-15 … 45-60 min, back to 2016); soil temperature is in `wrfprs` (TSOIL at 0, 1, 4, 10, 30, 60, 100 cm, and 160, 300 cm in 2016), so the potato model's 2 in and 4 in come from the 4 and 10 cm levels. Still to check: how the HRRR versions (v2 2016, v3 2018, v4 2020) shift shortwave and soil temperature, and HRRR's soil temperature against Wisconet at a few stations (development check only, D9).
 - [ ] Each source records what it ingested in Postgres (`ops.IngestRecord`: source, valid hour, variables, status, error, written at), shown in Django admin.
@@ -276,9 +280,9 @@ Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) pl
 - [ ] `manage.py backfill --start --end [--box] [--workers] [--sources urma,hrrr]`: downloads in parallel, writes month blocks, rolls up the affected days; idempotent and resumable (skips hours already ingested from the same or a better source).
 - [ ] Hourly Procrastinate job: ingest every missing or RTMA-only hour of the last 7 days, then roll up the touched days; daily rollup job after midnight local time; yearly roll in January (drop the oldest year's directories, rebuild the internal climatology).
 - [ ] Health check (Phase 8 style, started now): ingest lag (newest URMA hour; newest any-source hour), failed jobs, missing hours in the last week; `/up` reports it and admins get an email when it's degraded.
-- [ ] Run the backfill: Wisconsin for 2024–2025 locally (about 17,500 hours, a day of downloads at home) for the gate checks; the full window on the server for the configured box when it's ready (about 4 TB of downloads, docs/pilot.md).
+- [ ] Run the backfill (D24): Wisconsin for 2024–2025 locally (about 17,500 hours, a day of downloads at home) for the gate checks; the full window on the server for the configured box when it's ready (about 4 TB of downloads, docs/pilot.md).
 
-**G. Climatology (may move: Q7)**
+**G. Climatology: moved to Phase 6 (D22)**
 
 - [ ] nClimGrid-daily (1991–2020) and gridMET reduced to day-of-year statistics on the NDFD window (mean, percentiles, frost and freeze probabilities, cumulative GDD for the fixed pairs), and the same from the internal archive for 5 and 10 years.
 
@@ -309,7 +313,7 @@ Points, grids, data tiles, models, DD table, freeze counts, downloads, dataset s
 
 ### Phase 6: Web app (February–March) — sketch
 
-Map explorer with the WebGL data-tile layer, sites dashboard and both feeds, charts and downloads, model catalog and about pages (text and citations; sweeps in P1), DOY calendar, changelog, glossary and notes from WISP 3; accessibility and keyboard tests on every page.
+Map explorer with the WebGL data-tile layer, sites dashboard and both feeds, charts and downloads, model catalog and about pages (text and citations; sweeps in P1), climatology cubes and current-vs-normal comparisons (D22: nClimGrid-daily 1991–2020 and gridMET reduced to day-of-year statistics on the grid, plus 5- and 10-year normals from the archive), DOY calendar, changelog, glossary and notes from WISP 3; accessibility and keyboard tests on every page.
 
 - **Exit:** beta users on the new site.
 
@@ -336,7 +340,4 @@ P1 (alfalfa, potato volunteer, climate comparisons, downloads, about-page sweeps
 | Q1–Q3 | Job queue, stored units, repo | **Resolved** → D17, D18, D19 (2026-10-27) | – |
 | Q4 | Server size, region and pricing | With IT; minimum and CONUS sizes in project-plan.md | Phase 1 exit |
 | Q5 | Production domain | Does v2 take over agweather.cals.wisc.edu at launch, or run beside it (e.g. v2.agweather…) during the beta? | Phase 6 |
-| Q6 | Stored precision | **Coarse**: 0.1 °C temperature and dew point, 0.1 m/s wind and gust, 1 % cloud and RH, 1° direction, 0.1 mm precip, 0.1 kPa pressure. URMA carries 0.01, mostly noise at its ~1 °C accuracy; coarse makes the archive about 1.7× smaller (Upper Midwest 11 years: about 380 GB hourly instead of 640 GB, docs/pilot.md) and changes no model output that matters | Phase 2 A |
-| Q7 | When to build climatology | **Move it to Phase 6** (with the climate comparisons it feeds, P1 priority), so Phase 2 stays on what launch needs: archive, rollups, DD, ingest | Phase 2 |
-| Q8 | Precip before 2017-12-05 | URMA has only 6-hour totals then, but **RTMA has hourly precip for every year** (what the old API uses). **Use RTMA's hourly precip until URMA's begins**, with the source recorded per hour; the 6-hour URMA totals stay a cross-check. Supersedes D6's 6-hour plan | Phase 2 B |
-| Q9 | Local backfill before the server exists | **Wisconsin, 2024–2025** (a day of downloads here) for development and the Phase 2 checks; the 11-year backfill waits for the server | Phase 2 F |
+| Q6–Q9 | Precision, climatology timing, early precip, local backfill | **Resolved** → D21–D24 (2026-10-27) | – |

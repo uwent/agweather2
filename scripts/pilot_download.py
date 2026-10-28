@@ -14,9 +14,9 @@ from pathlib import Path
 import numpy as np
 import requests
 
-from agdata.catalog import variable
 from agdata.grid import service_window
 from agdata.sources import urma
+from pilot_encoding import pilot_variable
 
 
 def main():
@@ -46,7 +46,7 @@ def main():
         began = time.time()
         values = urma.fetch_hour(when, window, session)
         fetched = time.time() - began
-        packed = {name: variable(name).encode(array) for name, array in values.items()}
+        packed = {name: pilot_variable(name).encode(array) for name, array in values.items()}
         np.savez(out / f"{when:%Y%m%d%H}.npz", **packed)
         return when, fetched, sorted(values)
 

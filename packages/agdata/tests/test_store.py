@@ -33,10 +33,10 @@ def test_write_block_then_read_point_and_block(tmp_path, hourly):
     t0 = reopened.index_of(start)
     series = reopened.read_point("air_temperature", 910, 1420, t0 - 1, t0 + 6)
     assert np.isnan(series[0]) and np.isnan(series[-1])  # never written
-    np.testing.assert_allclose(series[1:6], block[:, 10, 20], atol=0.005)
+    np.testing.assert_allclose(series[1:6], block[:, 10, 20], atol=0.05)
 
     tile = reopened.read_block("air_temperature", t0 + 2, Window(905, 915, 1410, 1430))
-    np.testing.assert_allclose(tile, block[2, 5:15, 10:30], atol=0.005)
+    np.testing.assert_allclose(tile, block[2, 5:15, 10:30], atol=0.05)
 
     sources = reopened.sources("air_temperature")
     assert sources[t0 : t0 + 5] == ["urma"] * 5

@@ -16,9 +16,10 @@ import zarr
 from zarr.codecs import BloscCodec, BytesCodec, TransposeCodec, ZstdCodec
 from zarr.codecs.numcodecs import Delta, PCodec
 
-from agdata.catalog import FILL, VARIABLES
+from agdata.catalog import FILL
 from agdata.grid import service_window
 from agdata.store import steps_in_year
+from pilot_encoding import pilot_variable
 
 LAYOUTS = {
     # name: (chunks (time, y, x), compressors, dtype, filters)
@@ -136,7 +137,7 @@ def main():
         def as_stored(name: str, block: np.ndarray, dtype: str = dtype) -> np.ndarray:
             if dtype == "int16":
                 return block
-            decoded = VARIABLES[name].decode(block) * (COARSE.get(name, 1) if args.coarse else 1)
+            decoded = pilot_variable(name).decode(block) * (COARSE.get(name, 1) if args.coarse else 1)
             return decoded.astype(np.float32)
 
         began = time.perf_counter()
