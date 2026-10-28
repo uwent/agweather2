@@ -244,6 +244,13 @@ Each phase ends with an exit gate. Dates are estimates for Ben and Claude; the o
 
 ### Phase 2: Hourly archive (November–December) — next, approved 2026-10-27
 
+> **Handoff (end of session 2026-10-28).** Done in Phase 2: A (precision, codec), B (URMA, RTMA, HRRR sources), C (RH, ET0, sun), D (QC), and F's backfill command and ingest pipeline. Next, in order:
+> 1. **Local backfill: waiting on Ben** (TODO.md). Two years of Wisconsin is about 0.9 TB of downloads (about 50 MB an hour for URMA + HRRR) and about 10 hours here. A smaller range works the same way, e.g. the 2025 season: `uv run app/manage.py backfill --start 2025-04-01 --end 2025-11-01 --workers 12`. Run it detached (`setsid nohup … > tmp/backfill.log 2>&1 &`) so it outlives the session; it resumes, skipping complete blocks.
+> 2. **E: daily rollups and degree days.** Local day per cell (time zone per cell; Wisconsin is all Central), daily store variables in the catalog (sums in their own units: shortwave MJ/m²), the 17 legacy DD pairs ported from `../ag-weather` (`app/models/degree_days_calculator.rb`) with parity tests, and the cumulative store. `tmp/bf-test` holds 10 real days (2025-07-01 to 07-10, Wisconsin) for trying them.
+> 3. **F, the rest:** `ops.IngestRecord` in Postgres (per block or hour: sources, failed hours, QC counts) and the admin page; the hourly Procrastinate job (the last 7 days' missing or RTMA-only hours, then their days); the health check with ingest lag.
+> 4. **H: validation** against the old API (`/api/weather?lat=&lng=&start_date=&end_date=` and the `grid` endpoints), reducing v2 like the old API does (mean of the 2.5 km cells rounding to each 0.1° point, Central days, RTMA) — needs the backfill.
+> Notes: the ingest writes `None` sources for failed hours, and short gaps are filled but not yet flagged as filled in the store. HRRR soil temperature over Lake Superior and Michigan is water temperature (about 2 °C in July); models should mask water cells.
+
 Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) plus HRRR radiation and soil temperature, QC'd, with derived humidity and ET0, rolled up to local days and running totals, filled by a backfill CLI and kept current by jobs. The data layout follows docs/pilot.md (int16 + pcodec; hourly chunks 720 × 32 × 32, daily and cumulative 1 × 256 × 256). Development runs on the `wisconsin` box locally; the 11-year backfill runs on the server once IT has it up.
 
 **A. Store settings from the pilot**

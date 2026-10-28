@@ -18,6 +18,15 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
   - Hourly ingest is light: about 40 MB downloaded and under a minute of work per hour for the Upper Midwest.
 - [ ] Optional: put the Open-Meteo API key in `.env` as `OPEN_METEO_API_KEY` (needed from Phase 4).
 
+## Phase 2: Hourly archive
+
+- [ ] **Decide the local backfill range** (D24 said Wisconsin 2024–2025). It downloads about 50 MB per hour of data, so two years is about **0.9 TB** over your connection (about 10 hours); check that against any monthly data cap. Options: the full two years; the 2025 season only (Apr–Oct, about 250 GB, 3 hours); or wait for the server, where downloads from AWS are free and fast. Then run (or ask the next session to run):
+  ```bash
+  cd ~/code/agweather2
+  setsid nohup uv run app/manage.py backfill --start 2025-04-01 --end 2025-11-01 --workers 12 > tmp/backfill.log 2>&1 &
+  tail -f tmp/backfill.log     # one line per 10-day block; rerunning resumes
+  ```
+
 ## Phase 3: Model library (ahead of time)
 
 - [x] **Copy the Shiny apps in** from OneDrive, with their data and `.rds` fixtures, to `tmp/shiny/` (Crop Risk Tool, alfalfa, potato volunteer). The git repos alone lack the data the parity tests need.
