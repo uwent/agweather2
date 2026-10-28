@@ -50,3 +50,14 @@ Station months with every day reported (traces as 0), against v2 at the station'
 | 2025-01 | 622 | 8.4 | 10.2 | +22% | 3.7 | 9.4 | +13% | 7.4 |
 | 2025-02 | 585 | 22.4 | 27.7 | +24% | 7.4 | 24.0 | +7% | 11.7 |
 | 2025-03 | 577 | 67.7 | 77.3 | +14% | 14.2 | 86.7 | +28% | 26.7 |
+
+## ET0 and shortwave at WISP 3's points
+
+12 Wisconsin irrigated-area points (WISP 3's comparison set), daily: v2 at the point's cell against Open-Meteo's historical-forecast API (FAO-56 ET0, the method v2 follows) and the old API at the 0.1° point (its own ET; SSEC satellite insolation). Bias and MAE in mm or MJ/m²; ratio is of the totals.
+
+| Variable | Against | Bias | MAE | RMSE | r | Days | v2 / other |
+|---|---|---|---|---|---|---|---|
+| ET0, mm | Open-Meteo | -0.16 | 0.16 | 0.19 | 0.993 | 1,056 | 0.88 |
+| ET0, mm | old API | +0.55 | 0.55 | 0.66 | 0.922 | 1,056 | 1.95 |
+| Shortwave, MJ/m² | Open-Meteo | -0.27 | 0.43 | 0.65 | 0.993 | 1,056 | 0.98 |
+| Shortwave, MJ/m² | old API (SSEC) | +3.25 | 3.28 | 4.11 | 0.854 | 1,056 | 1.40 |

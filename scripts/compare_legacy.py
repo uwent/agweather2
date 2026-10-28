@@ -70,6 +70,7 @@ def main():
 
     report = write_report(args, days, points, v2, old)
     report += station_report(data_dir, window, days)
+    report += point_report(data_dir, window, days)
     Path(args.out).write_text(report)
     print(f"wrote {args.out}")
 
@@ -297,6 +298,85 @@ def station_report(data_dir: Path, window, days: list[date]) -> str:
             f"| {np.abs(n_ - o).mean():.1f} | {p_.mean():.1f} | {(p_.mean() / o.mean() - 1):+.0%} "
             f"| {np.abs(p_ - o).mean():.1f} |"
         )
+    return "\n".join(lines) + "\n"
+
+
+# WISP 3's comparison points (Wisconsin irrigated areas, app/services/weather/comparison.rb)
+WISP_POINTS = [
+    ("Hancock", 44.12, -89.53), ("Plainfield", 44.21, -89.49), ("Coloma", 44.03, -89.52),
+    ("Almond", 44.26, -89.41), ("Bancroft", 44.31, -89.51), ("Plover", 44.45, -89.54),
+    ("Wautoma", 44.07, -89.29), ("Grand Marsh", 43.89, -89.71), ("Arena", 43.17, -89.91),
+    ("Spring Green", 43.18, -90.07), ("Antigo", 45.14, -89.15), ("Janesville", 42.68, -89.02),
+]  # fmt: skip
+
+
+def open_meteo_daily(lat: float, lon: float, first: date, last: date) -> dict:
+    """Open-Meteo's historical-forecast daily ET0 (mm) and shortwave (MJ/m²) on Central days, cached."""
+    path = CACHE / f"openmeteo_{lat}_{lon}_{first}_{last}.json"
+    if not path.exists():
+        response = requests.get(
+            "https://historical-forecast-api.open-meteo.com/v1/forecast",
+            params={
+                "latitude": lat,
+                "longitude": lon,
+                "start_date": str(first),
+                "end_date": str(last),
+                "daily": "et0_fao_evapotranspiration,shortwave_radiation_sum",
+                "timezone": "America/Chicago",
+            },
+            timeout=60,
+        )
+        response.raise_for_status()
+        CACHE.mkdir(parents=True, exist_ok=True)
+        path.write_text(response.text)
+    return json.loads(path.read_text())["daily"]
+
+
+def point_report(data_dir: Path, window, days: list[date]) -> str:
+    """Daily ET0 and shortwave at WISP 3's points: v2 against Open-Meteo and the old API (ET; SSEC insolation)."""
+    from agdata.catalog import DAILY_VARIABLES
+    from agdata.store import DAILY
+
+    daily = GridStore.open(data_dir, DAILY, days[0].year, DAILY_VARIABLES.values())
+    t0 = daily.index_of(days[0])
+    v2_et0 = daily.read_steps("et0_sum", t0, t0 + len(days))
+    v2_sw = daily.read_steps("shortwave_radiation_sum", t0, t0 + len(days))
+    old_et = [legacy(f"evapotranspirations/grid?date={day}&units=mm", "", window) for day in days]
+    old_sw = [legacy(f"insolations/grid?date={day}", "", window) for day in days]
+    pairs: dict[str, tuple[list, list]] = {k: ([], []) for k in ("et0_om", "et0_old", "sw_om", "sw_old")}
+    for _name, lat, lon in WISP_POINTS:
+        y, x = window.local(*NDFD.cell_of(lat, lon))
+        key = f"[{round(lat, 1):.1f}, {round(lon, 1):.1f}]"
+        om = open_meteo_daily(lat, lon, days[0], days[-1])
+        for n in range(len(days)):
+            for name, v2, other in [
+                ("et0_om", v2_et0[n, y, x], om["et0_fao_evapotranspiration"][n]),
+                ("et0_old", v2_et0[n, y, x], old_et[n].get(key)),
+                ("sw_om", v2_sw[n, y, x], om["shortwave_radiation_sum"][n]),
+                ("sw_old", v2_sw[n, y, x], old_sw[n].get(key)),
+            ]:
+                pairs[name][0].append(v2)
+                pairs[name][1].append(np.nan if other is None else other)
+    lines = [
+        "",
+        "## ET0 and shortwave at WISP 3's points",
+        "",
+        f"{len(WISP_POINTS)} Wisconsin irrigated-area points (WISP 3's comparison set), daily: v2 at the point's cell "
+        "against Open-Meteo's historical-forecast API (FAO-56 ET0, the method v2 follows) and the old API at the "
+        "0.1° point (its own ET; SSEC satellite insolation). Bias and MAE in mm or MJ/m²; ratio is of the totals.",
+        "",
+        "| Variable | Against | Bias | MAE | RMSE | r | Days | v2 / other |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for key, label, other in [
+        ("et0_om", "ET0, mm", "Open-Meteo"),
+        ("et0_old", "ET0, mm", "old API"),
+        ("sw_om", "Shortwave, MJ/m²", "Open-Meteo"),
+        ("sw_old", "Shortwave, MJ/m²", "old API (SSEC)"),
+    ]:
+        a, b = (np.array(v, dtype=float) for v in pairs[key])
+        ok = np.isfinite(a) & np.isfinite(b)
+        lines.append(f"| {label} | {other} | {stats(a, b)} | {a[ok].sum() / b[ok].sum():.2f} |")
     return "\n".join(lines) + "\n"
 
 
