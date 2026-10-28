@@ -89,10 +89,16 @@ def rollup_days(data_dir: Path, window: Window, first: date, last: date) -> int:
                 estimate = some.each_day(et0, start, DAILY_STATISTICS["et0_sum"])
                 out["et0_sum_estimate"][d0:d1] = np.where(np.isnan(out["et0_sum"][d0:d1]), estimate, np.nan)
             temperature = hourly.read("air_temperature", feature_start, span_stop, band)
-            rh = relative_humidity_percent(temperature, hourly.read("dew_point", feature_start, span_stop, band))
-            hours = {"temperature": temperature, "rh": rh}
+            dew_point = hourly.read("dew_point", feature_start, span_stop, band)
+            hours = {
+                "temperature": temperature,
+                "dew_point": dew_point,
+                "rh": relative_humidity_percent(temperature, dew_point),
+            }
             out |= day_zones.each_window(
-                hours, feature_start, lambda h, _: features.calendar_features(h["temperature"], h["rh"])
+                hours,
+                feature_start,
+                lambda h, _: features.calendar_features(h["temperature"], h["rh"], h["dew_point"]),
             )
             out |= _DayZones(evenings, band_zones, zones).each_window(
                 hours,

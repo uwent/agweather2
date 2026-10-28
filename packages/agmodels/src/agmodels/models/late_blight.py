@@ -100,12 +100,12 @@ def dsv(temperature_c, hours) -> np.ndarray:
     return np.where(h == 0, 0.0, np.where(np.isnan(h) | np.isnan(t), np.nan, steps))
 
 
-def outputs(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
     values = dsv(inputs["temperature_mean_rh_over_90_from_8pm"], inputs["hours_rh_over_90_from_8pm"])
     return {"dsv": values, **_accumulated(values, 0)}
 
 
-def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0) -> np.ndarray:
+def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
     totals = _accumulated(np.asarray(outputs["dsv"], dtype=float), biofix_index)
     total, recent = totals["dsv_total"], totals["dsv_14_day"]
     level = np.select(

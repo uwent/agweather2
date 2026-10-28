@@ -67,3 +67,19 @@ def test_v2_days_close_at_midnight():
     days, daily = f.daily_features(local, np.full(24, 25.0), np.full(24, 95.0), np.ones(24))
     assert [str(d) for d in days] == ["2025-07-01"]
     assert daily["precipitation_sum"].tolist() == [24.0]
+
+
+def test_dew_point_depression_matches_the_crop_risk_tool(crt):
+    h = crt("hourly_eau_claire_2025")
+    local = h["local_time"].astype("datetime64[h]")
+    _, daily = f.daily_features(
+        local,
+        h["temperature"],
+        h["relative_humidity"],
+        h["precipitation"],
+        midnight_ends_day=False,
+        dew_point_c=h["dew_point"],
+    )
+    more = crt("daily_more_eau_claire_2025")
+    np.testing.assert_allclose(daily["dew_point_depression_mean"], more["dew_point_depression_mean"], atol=1e-9)
+    np.testing.assert_allclose(daily["dew_point_depression_max"], more["dew_point_depression_max"], atol=1e-9)

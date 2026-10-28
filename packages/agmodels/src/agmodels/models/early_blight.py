@@ -98,12 +98,12 @@ def pdays(tmin_c, tmax_c, last_term: str = "tmax") -> np.ndarray:
     return (5 * p(lo) + 8 * p(2 * lo / 3 + hi / 3) + 8 * p(2 * hi / 3 + lo / 3) + 3 * last) / 24
 
 
-def outputs(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
     values = pdays(inputs["air_temperature_min"], inputs["air_temperature_max"])
     return {"pdays": values, **_accumulated(values, 0)}
 
 
-def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0) -> np.ndarray:
+def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
     totals = _accumulated(np.asarray(outputs["pdays"], dtype=float), biofix_index)
     total, recent = totals["pdays_total"], totals["pdays_7_day_mean"]
     by_total, by_rate = level_reached(total, 200, 250, 300, 350), level_reached(recent, 1, 3, 5, 9)

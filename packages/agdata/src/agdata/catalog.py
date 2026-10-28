@@ -282,6 +282,9 @@ DAILY_FEATURES: dict[str, Variable] = {
         Variable("hours_rh_over_90_from_8pm", "Hours with RH at or above 90%, day from 8 pm", **_HOURS),
         Variable("hours_rh_over_80_night", "Night hours (8 pm to 7 am) with RH at or above 80%", **_HOURS),
         Variable("hours_rh_over_90_night", "Night hours (8 pm to 7 am) with RH at or above 90%", **_HOURS),
+        Variable("dew_point_depression_min", "Dew point depression, daily min", **_TEMPERATURE),
+        Variable("dew_point_depression_mean", "Dew point depression, daily mean", **_TEMPERATURE),
+        Variable("dew_point_depression_max", "Dew point depression, daily max", **_TEMPERATURE),
         Variable("temperature_mean_rh_over_80_from_8pm", "Mean temperature, RH ≥ 80%, day from 8 pm", **_TEMPERATURE),
         Variable("temperature_mean_rh_over_90_from_8pm", "Mean temperature, RH ≥ 90%, day from 8 pm", **_TEMPERATURE),
     ]

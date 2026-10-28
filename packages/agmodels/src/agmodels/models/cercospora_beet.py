@@ -113,12 +113,12 @@ def div(temperature_c, hours) -> np.ndarray:
     return np.where(h == 0, 0.0, np.where(np.isnan(h) | np.isnan(t), np.nan, table))
 
 
-def outputs(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
     values = div(inputs["temperature_mean_rh_over_90_from_8pm"], inputs["hours_rh_over_90_from_8pm"])
     return {"div": values, **_accumulated(values, 0)}
 
 
-def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0) -> np.ndarray:
+def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
     a = _accumulated(np.asarray(outputs["div"], dtype=float), biofix_index)
     week, two = a["div_7_day_mean"], a["div_2_day_mean"]
     level = np.select(

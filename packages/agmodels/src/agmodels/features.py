@@ -48,9 +48,12 @@ def is_night(local_hour: np.ndarray) -> np.ndarray:
     return (hour >= NIGHT_FIRST_HOUR) | (hour <= NIGHT_LAST_HOUR)
 
 
-def calendar_features(temperature_c: np.ndarray, rh_percent: np.ndarray) -> dict[str, np.ndarray]:
-    """Features over a calendar day's hours."""
-    return {
+def calendar_features(
+    temperature_c: np.ndarray, rh_percent: np.ndarray, dew_point_c: np.ndarray | None = None
+) -> dict[str, np.ndarray]:
+    """Features over a calendar day's hours (with the dew point, its depression's daily statistics too)."""
+    extra = {} if dew_point_c is None else daily_statistics("dew_point_depression", temperature_c - dew_point_c)
+    return extra | {
         "hours_temperature_over_20c": hours_at_or_above(temperature_c, 20),
         "hours_temperature_over_30c": hours_at_or_above(temperature_c, 30),
         "hours_rh_under_70": hours_below(rh_percent, 70),
@@ -96,6 +99,7 @@ def daily_features(
     rh_percent: np.ndarray,
     precipitation_mm: np.ndarray,
     midnight_ends_day: bool = True,
+    dew_point_c: np.ndarray | None = None,
 ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     """A point's hourly series (local datetime64 instants, consecutive) → (dates, features per date).
 
@@ -111,7 +115,8 @@ def daily_features(
     out: dict[str, list] = {}
     for day in days:
         today = dates == day
-        features = calendar_features(temperature_c[today], rh_percent[today])
+        dew_point = None if dew_point_c is None else dew_point_c[today]
+        features = calendar_features(temperature_c[today], rh_percent[today], dew_point)
         features["precipitation_sum"] = _sum_all(precipitation_mm[today])
         features |= daily_statistics("air_temperature", temperature_c[today])
         evening = from_8pm == day

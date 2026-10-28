@@ -3,10 +3,12 @@
 Every model is one module under `agmodels.models` with a `SPEC` and three functions, matching the three layers
 the API and charts show (the Crop Risk Tool's view):
 
-- `outputs(inputs) -> dict`: the model's outputs (an index, a probability, degree days, a life stage) from its
-  inputs, daily arrays with time on axis 0 (a point's series or the grid);
-- `risk(outputs, biofix_index) -> array`: the risk level (0 … len(levels) − 1, NaN where unknown) over the same
-  days, from outputs accumulated from the biofix; never stored, so changing the criteria changes nothing on disk;
+- `outputs(inputs, biofix_index, **options) -> dict`: the model's outputs (an index, a probability, degree days, a
+  life stage) from its inputs, daily arrays with time on axis 0 (a point's series or the grid); most models ignore
+  the biofix here, but one anchored to a growth stage (red crown rot's R1) can't;
+- `risk(outputs, biofix_index, **options) -> array`: the risk level (0 … len(levels) − 1, NaN where unknown) over
+  the same days, from outputs accumulated from the biofix; never stored, so changing the criteria changes nothing
+  on disk;
 - `explore(**values) -> dict`: the model's core at single values of its explorer inputs, for the model page's
   interactive chart (through the API, so the page never re-implements the math).
 
@@ -61,6 +63,16 @@ class ExplorerInput:
 
 
 @dataclass(frozen=True)
+class Option:
+    """A choice that changes the model (a resistance class, irrigation, a growth-stage date)."""
+
+    name: str
+    label: str
+    choices: tuple[tuple[str, str], ...]  # (value, label); empty for a date or number given by the user
+    default: str
+
+
+@dataclass(frozen=True)
 class Biofix:
     default: str  # MM-DD
     label: str  # what the date means to a grower, e.g. "Crop emergence or last fungicide application"
@@ -89,6 +101,8 @@ class ModelSpec:
     risk: Risk
     explorer: tuple[ExplorerInput, ...]
     sweep: Mapping[str, tuple[float, ...]] = field(default_factory=dict)  # explorer values to run, for snapshots
+    options: tuple[Option, ...] = ()
+    lookback_days: int = 0  # days of inputs needed before the first output (moving averages)
     region: tuple[str, ...] = ()  # state abbreviations where it's valid; empty: anywhere
     season: tuple[str, str] | None = None  # MM-DD first and last day it's shown
     biofix: Biofix | None = None
@@ -98,8 +112,10 @@ class ModelSpec:
 class Model(Protocol):
     SPEC: ModelSpec
 
-    def outputs(self, inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]: ...
+    def outputs(
+        self, inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str
+    ) -> dict[str, np.ndarray]: ...
 
-    def risk(self, outputs: Mapping[str, np.ndarray], biofix_index: int = 0) -> np.ndarray: ...
+    def risk(self, outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray: ...
 
     def explore(self, **values: float) -> dict[str, float]: ...

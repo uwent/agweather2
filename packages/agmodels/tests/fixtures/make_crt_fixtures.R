@@ -53,3 +53,36 @@ write(
   "botcast_dinov_sweep"
 )
 write(build_botrytis(daily) |> select(date, dsi = dsv, total, severity), "botcast_eau_claire_2025")
+
+# Field crops: the daily inputs they read (beyond crt_daily) and each build over the year
+write(
+  daily |> select(date, temperature_mean, relative_humidity_min, relative_humidity_mean, relative_humidity_max,
+                  dew_point_min, dew_point_depression_mean, dew_point_depression_max, wind_speed_max),
+  "daily_more_eau_claire_2025"
+)
+write(build_tar_spot(daily) |> select(date, probability), "tar_spot_eau_claire_2025")
+write(build_gray_leaf_spot(daily) |> select(date, probability), "gray_leaf_spot_eau_claire_2025")
+write(build_don(daily) |> select(date, probability), "don_eau_claire_2025")
+write(build_white_mold(daily, irrigated = FALSE) |> select(date, probability), "white_mold_dry_eau_claire_2025")
+write(build_white_mold(daily, irrigated = TRUE, row_spacing = "30") |> select(date, probability), "white_mold_irrigated_30_eau_claire_2025")
+write(build_white_mold(daily, irrigated = TRUE, row_spacing = "15") |> select(date, probability), "white_mold_irrigated_15_eau_claire_2025")
+write(build_frogeye_leaf_spot(daily) |> select(date, probability), "frogeye_eau_claire_2025")
+write(
+  build_soybean_cercospora(daily) |> select(date, species, probability) |> pivot_wider(names_from = species, values_from = probability),
+  "soybean_cercospora_eau_claire_2025"
+)
+write(
+  build_red_crown_rot(daily, "2025-07-01") |> select(date, temperature_mean_rep, precipitation_veg, precipitation_rep, incidence),
+  "red_crown_rot_r1_2025_07_01_eau_claire_2025"
+)
+write(
+  build_wheat_scab(daily) |> select(date, resistance, probability) |> pivot_wider(names_from = resistance, values_from = probability),
+  "wheat_scab_eau_claire_2025"
+)
+write(
+  tibble(probability = seq(0, 1, 0.005)) |> mutate(
+    risk_1_20_35 = as.integer(risk_from_prob(probability, 1, 20, 35)$risk) - 1,
+    risk_1_5_10 = as.integer(risk_from_prob(probability, 1, 5, 10)$risk) - 1
+  ),
+  "risk_from_prob_sweep"
+)

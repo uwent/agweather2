@@ -134,7 +134,7 @@ def infection(temperature_c, hours) -> np.ndarray:
     )
 
 
-def outputs(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
     days = across_days(inputs)
     dry = np.asarray(days["dry"], dtype=float)
     dry_yesterday = np.concatenate([np.zeros((1, *dry.shape[1:])), dry[:-1]])  # before the first day: not dry
@@ -145,7 +145,7 @@ def outputs(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
     return {"dsi": dsi, "inoculum": inoc, "infection": infect, "dsi_total": running_total(dsi, 0)}
 
 
-def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0) -> np.ndarray:
+def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
     total = running_total(np.asarray(outputs["dsi"], dtype=float), biofix_index)
     return np.where(np.isnan(total), np.nan, steps_over(total, 10, 20, 30, 40))
 
