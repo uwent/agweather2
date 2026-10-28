@@ -316,11 +316,38 @@ Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) pl
 - Later (server backfill, Phase 9's CONUS): the same comparisons over the whole configured box, with stations (ACIS) and Open-Meteo as the references outside Wisconsin, where the old API doesn't reach.
 - **Exit:** v2 daily min/max/DD/precip agree with the old API within stated tolerances, 2016–present (Wisconsin first; the full box after the server backfill); ET0 checked against Open-Meteo and SSEC; hourly ingest has run unattended for a week with the health check green.
 
-### Phase 3: Model library (December–January) — sketch
+### Phase 3: Model library (December–January) — proposed 2026-10-28, awaiting approval
 
-Port the API/VDIFN daily models (DD 17 pairs, DSV, P-days, carrot DSV, Cercospora DIV, Botcast, oak wilt, ~30 insects) and the Crop Risk Tool's R models (tar spot, gray leaf spot, DON, white mold, frogeye, soybean Cercospora, red crown rot, wheat scab, pecan scab, cotton planting, winter rye), hourly-native where they exist; corn stages; specs with citations, versions, regions, seasons, sweeps. The R apps and their data are in `tmp/shiny/` (crop-risk-tool with `tests/testthat`, alfalfa-tool, potato-volunteer-risk).
+Every model from the old API, VDIFN and the three R apps as one readable Python file in `agmodels`, with its spec (citations, version, status, region, season, sweep), running the same code on a point series and on the grid, checked against the code it replaces. Models consume a standard daily frame of "features" built from hours; maps and the API (Phases 5–6) read precomputed features and running totals, so a map of any model over any date range doesn't touch the hourly store. Each port is reviewed against its cited source (CLAUDE.md), and the differences go in this section.
 
-- **Exit:** parity tests pass against the R fixtures and old API outputs.
+**A. Framework (`agmodels.spec`, `agmodels.registry`)**
+
+- [ ] `ModelSpec` (frozen dataclass): id, name, crops, group (disease, insect, crop, degree days), version, status (beta, stable, retired), citations (text, DOI or URL), region (state list, rasterized to a grid mask in `agdata`), season (start and end day of year), biofix (default and label), the features it reads, its outputs (name, unit), how a value maps to risk 0–4 (thresholds or a function), a changelog, and a sweep (input grids for the about page and snapshot tests). One module per model under `agmodels/models/`, found by the registry.
+- [ ] Functions take NumPy arrays with time on axis 0, so a point (time,) and the grid (time, y, x) share code, as `degree_days` does now. pandas and xarray are adapters at the edges, not inside models.
+- [ ] Sweep snapshot tests: each spec's sweep runs and is compared with a committed JSON snapshot, so a change in output fails CI unless the version is bumped and the snapshot updated (`--update-snapshots`).
+
+**B. Daily features (`agmodels.features`, written to the daily store at rollup)**
+
+- [ ] What the models read beyond the daily statistics: hours with RH ≥ 80 and ≥ 90 and the mean temperature during them (late blight, Botcast, Cercospora, Alternaria, frogeye), night-time windows by civil sunset/sunrise per cell (tar spot's night RH ≥ 90 hours), dew point and dew point depression statistics, soil temperature hours below thresholds (potato volunteer: hours below 27 °F at 2 and 4 in), and hourly extremes. Defined once in `agmodels.features` as hour → day functions over a local day, and added to the daily rollup and catalog (so they follow the raw-only rule, D25).
+- [ ] Moving averages (7, 14, 21, 30 days) computed on read from the daily store, not stored.
+- [ ] Additive daily indices (late blight DSV, P-days, carrot DSV, Cercospora DIV, Botcast DSI) get running totals in the cumulative store like DD, so a map of "DSVs since emergence" is one subtraction.
+
+**C. Ports, in order**
+
+- [ ] 1. Daily vegetable disease indices, in both old forms: the old API's daily versions (`../ag-weather` `pest_models.rb`, served by VDIFN with its severity rules in `app/models/diseases/`) and the Crop Risk Tool's (`src/models.R`): early blight P-days, late blight DSV (Wallin), carrot foliar (Alternaria) DSV, Cercospora beet DIV, Botcast DSI. One version each, chosen after comparing the two with the sources; parity fixtures from both codes.
+- [ ] 2. The Crop Risk Tool's field-crop models (logistic fits on moving averages): tar spot, gray leaf spot, DON, white mold (dry and irrigated), frogeye leaf spot, soybean Cercospora, red crown rot, wheat scab. Coefficients in versioned data beside the code. Parity: R sweeps of each `predict_*` and `build_*` over the tool's recorded hourly weather (`tests/testthat/test_hourly_wx.rds`).
+- [ ] 3. Insects as declarative specs: VDIFN's ~30 (`db/seeds.rb`: DD pair, biofix, `risk_array` of start/peak/end per generation, ramped by a sine to 0–4, less a freeze adjustment) and the Crop Risk Tool's 3 (`Insect()` key tables of start/severity/label), merged where they overlap (seedcorn maggot, alfalfa weevil, Colorado potato beetle); oak wilt vector flight (Jagemann 2018, `app/models/insects/oak_wilt.rb`). Parity with the Ruby severity functions.
+- [ ] 4. Corn growth stages from planting (modified 50/86 GDD, D26) as a model with stages.
+- [ ] 5. Potato volunteer tuber survival (hours below 27 °F at 2 and 4 in against 120 h; HRRR 4 and 10 cm stand in for 2 and 4 in, D9) and the alfalfa tool's growth since cutting (sine 41/86 GDD, cut window 900–1,100); the alfalfa projections need the forecast and climatology (Phases 4 and 6).
+- [ ] 6. Southern models, beta and region-masked until the box covers them: pecan scab (hourly), cotton planting, winter rye biomass.
+- [ ] Custom degree-day model (any base and upper): already `agmodels.degree_days`; the spec wraps it.
+
+**D. Parity fixtures**
+
+- [ ] Ruby (installed): `tests/fixtures/make_*.rb` run the old API's and VDIFN's functions over sweeps, as for degree days.
+- [ ] R (4.6 installed, packages not): restore the Crop Risk Tool's renv library into `tmp/shiny/crop-risk-tool` (binary packages from Posit Package Manager), then `make_*.R` scripts write the fixtures as CSV.
+
+- **Exit:** every model in C has a spec, passes parity with the code it replaces (or has its intended differences recorded here), and has a sweep snapshot; features are in the daily store for the backfilled range; a point and the grid give the same answer for each model.
 
 ### Phase 4: Forecast and blending (January) — sketch
 
