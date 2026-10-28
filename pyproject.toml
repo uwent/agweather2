@@ -33,6 +33,8 @@ extend-exclude = ["tmp", "data", "node_modules"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "DTZ", "RUF"]
+# Scientific notation in docstrings and comments (FAO-56's symbols, ranges, minus signs)
+allowed-confusables = ["–", "−", "×", "γ", "σ", "α"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["agmodels", "agdata", "config", "web", "ops", "api", "pilot_encoding"]

@@ -260,9 +260,9 @@ Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) pl
 
 **C. Derived variables (`agmodels.weather`, pure functions with unit tests)**
 
-- [ ] Relative humidity and vapor pressure from temperature and dew point (Magnus over water, as the CPN tool uses; check against its R code).
-- [ ] Hourly FAO-56 Penman-Monteith grass reference ET0 (Allen et al. 1998, eq. 53) from temperature, humidity, 10 m wind (to 2 m, eq. 47), surface pressure, and shortwave radiation, with net longwave from the cloudiness ratio Rs/Rso and G = 0.1 Rn by day, 0.5 Rn at night; tested against FAO-56's hourly worked example (Example 19) and against Open-Meteo's `et0_fao_evapotranspiration` at a few points.
-- [ ] Sun position per cell and hour (solar elevation; civil sunrise and sunset by local day), for ET0's day/night split now and day/night model windows in Phase 3.
+- [x] Relative humidity and vapor pressure from temperature and dew point (FAO-56 eq. 11/14, the Magnus–Tetens form). Still to check against the CPN tool's R code in Phase 3.
+- [x] Hourly FAO-56 Penman-Monteith grass reference ET0 (Allen et al. 1998, eq. 53) from temperature, humidity, 10 m wind (to 2 m, eq. 47), surface pressure, and shortwave radiation, with net longwave from the cloudiness ratio Rs/Rso and G = 0.1 Rn by day, 0.5 Rn at night; tested against FAO-56's hourly worked example (Example 19: Ra, Rso, Rn and ET0 for its day and night hours; note the example's clock is UTC − 1). Night Rs/Rso carries the last value from a sun above 17.2° (ASCE-EWRI), 0.8 before any. Done in `agmodels.weather` (`et0_hourly_series` takes stored variables); the Open-Meteo comparison is in H.
+- [x] Sun position per cell and hour (solar elevation, FAO-56's solar time) for ET0's day/night split. Civil sunrise and sunset by local day, for model windows, come with Phase 3.
 
 **D. QC and gaps**
 
