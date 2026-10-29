@@ -28,6 +28,8 @@ def test_every_insect_has_degree_day_cubes():
     from agmodels.registry import all_insects
 
     for insect in all_insects():
+        if insect.dd_method != "sine":  # an average needs only the day's min and max, computed on read
+            continue
         thresholds = {insect.base_f} | ({insect.upper_f} if insect.upper_f is not None else set())
         assert thresholds <= set(DD_SINE_THRESHOLDS_F), insect.id
 

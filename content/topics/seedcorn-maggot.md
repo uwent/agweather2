@@ -8,28 +8,54 @@ crops:
   - Cucumber
   - Melon
   - Pumpkin and Squash
-scientific_name: ''
-summary: ''
+scientific_name: Delia platura
+summary: A fly whose maggots feed on germinating seed and seedlings of many vegetable and field crops in spring; damage can be prevented but not treated.
 image: images/seedcorn-maggot.jpg
 image_credit: to confirm
 status: draft
 sources:
   - Crop Risk Tool docs/insects/scm.md
   - VDIFN db/seeds.rb (seedcorn-maggot)
+  - UW Vegetable Entomology, seedcorn maggot (vegento.russell.wisc.edu, updated 2026-08-12)
+  - University of Minnesota Extension, seedcorn maggot (Potter, reviewed 2018)
+  - Throne and Eckenrode 1985; Funderburk, Higley and Pedigo 1984
 ---
 
-The seedcorn maggot (_Delia platura_) is a perennial pest of the germinating seeds and young seedlings of a wide range of vegetable and agronomic crops. In addition to corn, seedcorn maggots (SCM) has a large host range including numerous common vegetable crops. SCM can cause economic damage to seeds of artichoke, beet, Brussels sprouts, cabbage, cantaloupe, carrot, cauliflower, cucumber, kale, lettuce, bean (lima, snap, red), onion, pea, pumpkin, tomato, and turnip. In high numbers SCM can decimate entire crop stands if left untreated. SCM can be an increasing problem when susceptible crop crops are planted in succession.
+The seedcorn maggot (_Delia platura_) attacks the germinating seeds and young seedlings of a wide range of vegetable and field crops: beans (snap, lima, dry), peas, sweet and field corn, soybeans, cucumbers, melons, pumpkins and squash, onions, beets, carrots, cabbage and other crucifers, lettuce, tomatoes and more. In high numbers it can wipe out a stand, and it's often worse where susceptible crops are planted one after another.
 
-Larvae are typical of many other fly maggots: 7 mm when fully grown, cream-colored, legless, and wedge-shaped. The head of the maggot is sharply pointed. SCM pupae are dark brown, 5 mm long, cylindrical in shape, and evenly rounded on both ends. SCM spends between 7-14 days in the pupal stage at normal summer time temperatures (~70°F). Adult flies resemble miniature houseflies. They are dark gray with black legs, 4-5 mm long and commonly hold their opaque wings flat over their abdomen when at rest.
+## Identification
 
-Seed corn maggots overwinter as pupae in the soil. Adult flies begin emerging in the late spring, peak emergence for the first generation occurs in early to mid-May. Adult SCM often swarm over recently tilled fields or gardens. Preferred egg deposition sites are locations with germinating or decaying seeds, plant residue, incorporated green manures or where organic fertilizers have been recently applied. Adults often mate and lay eggs within 2-3 days of emergence. Eggs hatch 2-4 days later depending on soil temperature.
+- **Adults** look like small houseflies: dark gray, 4–5 mm long, with the wings held flat over the body.
+- **Larvae** are cream-colored, legless, wedge-shaped maggots with a pointed head, about 7 mm long when grown. They live in the soil.
+- **Pupae** are dark brown, 5 mm long and rounded at both ends.
 
-The larval portion of the SCM life cycle occurs below ground over the course of a few weeks. Once hatched larvae burrow into the soil 6-8 cm to locate food resources. A complete life cycle for SCM can range from 15-77 days, in a typical season 16-21 days is sufficient. In Wisconsin, there are typically 3-5 generations per year.
+## Life cycle
 
-We use a base 39.2°F (4°C) degree day model.
+Seedcorn maggots spend the winter as pupae in the soil. Flies start emerging in April, and most of the over-wintered generation emerges by early to mid May in Wisconsin. Females lay eggs within a few days of emerging, in moist soil near germinating or decaying seeds, crop residue, incorporated green manure or recently applied manure. Eggs hatch in 2–4 days, and the maggots feed for a few weeks before pupating. A generation takes as little as 16–21 days in warm weather, and Wisconsin has 3–5 a year. Flies are most numerous in spring; in hot summers many pass the summer as dormant pupae, and flies emerge from over-wintered pupae over a long period, so a few can be found all season.
 
-## More information
+## Damage
 
-- <https://vegento.russell.wisc.edu/pests/seedcorn-maggot/>
+Maggots tunnel into germinating seed and feed on the sprout, so seeds fail to emerge or seedlings come up weak, stunted or with scarred, malformed seed leaves (bean "snakeheads"). Look for gaps in the row and thin, uneven stands. Cool, wet soils that slow germination make damage worse, and the uneven emergence can look like _Pythium_ seed rot, so dig up missing seeds to check. By the time a stand loss is noticed, often only pupae or empty pupal cases are left.
 
-- More: <https://vegento.russell.wisc.edu/pests/seedcorn-maggot/>
+## What raises the risk
+
+- Fresh manure, an incorporated cover crop or green manure, or a heavy stand of weeds turned under.
+- Freshly tilled soil, which attracts egg-laying flies.
+- Planting during a flight: AgWeather's model marks these windows.
+- Slow emergence: cool, wet soil, or seed planted deep.
+- Planting susceptible crops in succession in the same area.
+
+## Monitoring
+
+- The degree-day model shows when each generation of flies is active.
+- Yellow sticky traps, yellow pans of soapy water along field edges (three or four, about 100 ft apart, checked every 4–6 days) or cone traps baited with molasses show whether flies are active locally, especially after tillage and before planting.
+- After planting, dig up seeds that haven't emerged and check for maggots and feeding.
+
+## Management
+
+There's no economic threshold and no rescue treatment: once maggots are feeding, it's too late. Management is about avoiding exposure and protecting the seed.
+
+- **Timing:** where you can, plant susceptible crops outside the flight windows, and wait at least 2–3 weeks (about 450 degree days) after working in manure or green material before planting.
+- **Fast emergence:** plant into warm soil (at least 50 °F for most crops; peas and radishes from 40 °F), as shallow as is practical.
+- **Seed treatments:** insecticide seed treatments protect seed and seedlings in high-risk fields and plantings. In field corn and soybeans, routine treatment isn't usually needed because damaging populations are sporadic and fairly predictable. Check current registrations in _Commercial Vegetable Production in Wisconsin_ (A3422).
+- **Natural enemies:** ground beetles eat eggs, larvae and pupae, and fungal diseases can kill many flies in humid weather. Avoid broadcast insecticides that kill the beetles.

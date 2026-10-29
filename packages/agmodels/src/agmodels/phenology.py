@@ -31,11 +31,12 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import cache
+from typing import Literal
 
 import numpy as np
 
 from agmodels.accumulate import rolling_sum, running_total
-from agmodels.degree_days import degree_days_sine
+from agmodels.degree_days import degree_days_average, degree_days_sine
 from agmodels.spec import (
     SEVERITY_LEVELS,
     Biofix,
@@ -82,6 +83,23 @@ class LifeStage:
 
 
 @dataclass(frozen=True, kw_only=True)
+class DerivedStage:
+    """A stage timed from another (D36): present from `lag` degree days after each individual enters the stage it
+    follows, for `duration` (larvae from egg-laying adults: pre-oviposition and egg, then the larval period). Its
+    generations are the followed stage's."""
+
+    label: str
+    follows: str  # the label of a `LifeStage`
+    lag: float
+    duration: float
+    weight: float = 1.0
+
+    @property
+    def key(self) -> str:
+        return slug(self.label)
+
+
+@dataclass(frozen=True, kw_only=True)
 class ActionWindow:
     """When to act (D36): the days a life stage is between two fractions of complete in some generation."""
 
@@ -109,7 +127,8 @@ class Insect:
     status: str = "stable"
     citations: tuple[Citation, ...] = ()
     topic: str = ""  # the pest's topic page, when several models share one (Colorado potato beetle); default its id
-    life_stages: tuple[LifeStage, ...] = ()
+    life_stages: tuple[LifeStage | DerivedStage, ...] = ()  # the first a LifeStage; it sets the default spread
+    dd_method: Literal["sine", "average"] = "sine"  # the method its source's thresholds use (D37)
     generation_dd: float | None = None  # degree days between generations; None: one generation
     generation_sd: float | None = None  # SD of a generation's time; None: the first stage's first-generation SD
     action_windows: tuple[ActionWindow, ...] = ()
@@ -119,6 +138,12 @@ class Insect:
 
     def __post_init__(self):
         stages = {s.label for s in self.life_stages}
+        timed = {s.label for s in self.life_stages if isinstance(s, LifeStage)}
+        if self.life_stages and not isinstance(self.life_stages[0], LifeStage):
+            raise ValueError(f"{self.id}: the first life stage needs its own start, peak and end")
+        for s in self.life_stages:
+            if isinstance(s, DerivedStage) and s.follows not in timed:
+                raise ValueError(f"{self.id}: {s.label!r} follows {s.follows!r}, which isn't a timed life stage")
         for w in self.action_windows:
             if w.stage not in stages:
                 raise ValueError(f"{self.id}: action window {w.label!r} follows an unknown stage {w.stage!r}")
@@ -181,7 +206,7 @@ class InsectModel:
     def outputs(self, inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
         i = self.insect
         lo, hi = (np.asarray(inputs[k], dtype=float) * 1.8 + 32 for k in ("air_temperature_min", "air_temperature_max"))
-        dd = degree_days_sine(lo, hi, i.base_f, i.upper_f)
+        dd = insect_degree_days(insect=i, min_f=lo, max_f=hi)
         total = running_total(dd, biofix_index)
         reduction = (
             freeze_reduction(inputs["air_temperature_min"], inputs["day_of_year"])
@@ -231,7 +256,7 @@ class PhenologyModel(InsectModel):
     def outputs(self, inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
         i = self.insect
         lo, hi = (np.asarray(inputs[k], dtype=float) * 1.8 + 32 for k in ("air_temperature_min", "air_temperature_max"))
-        dd = degree_days_sine(lo, hi, i.base_f, i.upper_f)
+        dd = insect_degree_days(insect=i, min_f=lo, max_f=hi)
         total = running_total(dd, biofix_index)
         factor = (
             freeze_factor(tmin_c=inputs["air_temperature_min"], day_of_year=inputs["day_of_year"])
@@ -297,6 +322,14 @@ def dd_grid() -> np.ndarray:
     return np.arange(0, DD_MAX + DD_STEP, DD_STEP)
 
 
+def insect_degree_days(insect: Insect, min_f: np.ndarray, max_f: np.ndarray) -> np.ndarray:
+    """Daily degree days by the insect's method: single sine, or the simple average with both temperatures capped
+    at the upper threshold."""
+    if insect.dd_method == "average":
+        return degree_days_average(min_f, max_f, base=insect.base_f, upper=insect.upper_f)
+    return degree_days_sine(min_f, max_f, base=insect.base_f, upper=insect.upper_f)
+
+
 def generation_densities(insect: Insect, stage: LifeStage) -> list[np.ndarray]:
     """A stage's density in each generation on `dd_grid()` (each integrating to 1 within the grid)."""
     x = dd_grid()
@@ -304,6 +337,7 @@ def generation_densities(insect: Insect, stage: LifeStage) -> list[np.ndarray]:
     if insect.generation_dd is None:
         return [first]
     first_stage = insect.life_stages[0]
+    assert isinstance(first_stage, LifeStage)
     sd = insect.generation_sd or pert_sd(start=first_stage.start, peak=first_stage.peak, end=first_stage.end)
     mean = insect.generation_dd
     size = 1 << math.ceil(math.log2(2 * len(x)))
@@ -327,9 +361,14 @@ def curves(insect: Insect) -> dict[str, np.ndarray]:
     tables: dict[str, np.ndarray] = {}
     complete: dict[str, list[np.ndarray]] = {}
     for stage in insect.life_stages:
-        densities = generation_densities(insect=insect, stage=stage)
-        tables[f"activity_{stage.key}"] = np.sum(densities, axis=0) / densities[0].max()
-        complete[stage.label] = [np.minimum(np.cumsum(d) * DD_STEP, 1.0) for d in densities]
+        if isinstance(stage, LifeStage):
+            present = generation_densities(insect=insect, stage=stage)
+            complete[stage.label] = [np.minimum(np.cumsum(d) * DD_STEP, 1.0) for d in present]
+        else:  # entered `lag` after the followed stage, left `duration` later
+            entered = [_shift(f, by=stage.lag) for f in complete[stage.follows]]
+            complete[stage.label] = [_shift(f, by=stage.lag + stage.duration) for f in complete[stage.follows]]
+            present = [a - b for a, b in zip(entered, complete[stage.label], strict=True)]
+        tables[f"activity_{stage.key}"] = np.sum(present, axis=0) / present[0].max()
         tables[f"generations_{stage.key}"] = np.sum(complete[stage.label], axis=0)
     for w in insect.action_windows:
         low, high = w.between
@@ -338,6 +377,12 @@ def curves(insect: Insect) -> dict[str, np.ndarray]:
             open_ |= (fraction >= low) & (fraction <= high)
         tables[f"window_{w.key}"] = open_.astype(float)
     return tables
+
+
+def _shift(values: np.ndarray, by: float) -> np.ndarray:
+    """A table moved `by` degree days later on the grid (0 before)."""
+    steps = round(by / DD_STEP)
+    return np.r_[np.zeros(steps), values[: len(values) - steps]]
 
 
 def evaluate(insect: Insect, dd_total: np.ndarray) -> dict[str, np.ndarray]:
@@ -379,9 +424,8 @@ def window_periods(open_: np.ndarray) -> list[tuple[int, int]]:
 def phenology_criteria(insect: Insect) -> str:
     """How life stages become risk, in words."""
     upper = "no upper threshold" if insect.upper_f is None else f"upper {insect.upper_f:g} °F"
-    stages = "; ".join(
-        f"{s.label.lower()} {s.start:,g}, {s.peak:,g} and {s.end:,g} (weight {s.weight:g})" for s in insect.life_stages
-    )
+    method = "Single-sine" if insect.dd_method == "sine" else "Average"
+    stages = "; ".join(_stage_words(s) for s in insect.life_stages)
     repeat = (
         f" Later generations follow every {insect.generation_dd:,g} degree days, spreading as each generation's "
         "timing varies."
@@ -392,10 +436,18 @@ def phenology_criteria(insect: Insect) -> str:
         f"{word} from {t:g}" for word, t in zip(SEVERITY_LEVELS[1:], insect.risk_thresholds, strict=True)
     )
     return (
-        f"Degree days (base {insect.base_f:g} °F, {upper}) since the biofix time each life stage's first generation "
-        f"(start, peak and end: {stages}).{repeat} Risk is the sum of each stage's weight times its activity (1 at "
+        f"{method} degree days (base {insect.base_f:g} °F, {upper}) since the biofix time each life stage's first "
+        f"generation ({stages}).{repeat} Risk is the sum of each stage's weight times its activity (1 at "
         f"the first generation's peak): {levels}. After day 250, fall freezes end the season."
     )
+
+
+def _stage_words(stage: LifeStage | DerivedStage) -> str:
+    if isinstance(stage, LifeStage):
+        when = f"start, peak and end {stage.start:,g}, {stage.peak:,g} and {stage.end:,g}"
+    else:
+        when = f"from {stage.lag:,g} after {stage.follows.lower()} for {stage.duration:,g}"
+    return f"{stage.label.lower()}: {when}, weight {stage.weight:g}"
 
 
 def criteria(insect: Insect) -> str:

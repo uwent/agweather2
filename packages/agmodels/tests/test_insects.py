@@ -47,7 +47,9 @@ def test_oak_wilt_matches_vdifn():
 
 
 @pytest.mark.parametrize(
-    ("crt_id", "model_id"), [("scm", "seedcorn-maggot"), ("afw", "alfalfa-weevil"), ("cpb", "colorado-potato-beetle")]
+    # Seedcorn maggot left the tool's step table in 2.0 (D36, D37), so only these two still match it
+    ("crt_id", "model_id"),
+    [("afw", "alfalfa-weevil"), ("cpb", "colorado-potato-beetle")],
 )
 def test_crop_risk_tool_insects_match_over_a_year(crt, crt_id, model_id):
     daily, theirs = crt("daily_eau_claire_2025"), crt(f"insect_{crt_id}_eau_claire_2025")
@@ -80,9 +82,9 @@ def test_every_insect_is_a_model_with_a_severity_rule():
     insects = [m for m in all_models().values() if isinstance(m, InsectModel)]
     assert len(insects) == len(all_insects()) == 26
     for m in insects:
-        assert m.insect.stages or m.insect.generations, m.insect.id
+        assert m.insect.life_stages or m.insect.stages or m.insect.generations, m.insect.id
         assert m.SPEC.crops, m.insect.id
-        assert m.explore(dd_total=0)["severity"] == 0
+        assert m.explore(dd_total=0)["risk" if m.insect.life_stages else "severity"] == 0
 
 
 def test_a_grid_runs():

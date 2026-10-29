@@ -26,10 +26,12 @@ def degree_days_sine(min_temp, max_temp, base, upper=None):
     return _valid(min_temp, max_temp, np.maximum(dd, 0.0))
 
 
-def degree_days_average(min_temp, max_temp, base):
-    """Simple average: (min + max) / 2 − base, at least 0."""
+def degree_days_average(min_temp, max_temp, base, upper=None):
+    """Simple average: (min + max) / 2 − base, at least 0, with both capped at `upper` first if given (Funderburk
+    et al. 1984's seedcorn maggot thermal units, capped at 29 °C)."""
     lo, hi = _arrays(min_temp, max_temp)
-    return _valid(lo, hi, np.maximum((lo + hi) / 2 - base, 0.0))
+    cap = np.inf if upper is None else upper
+    return _valid(lo, hi, np.maximum((np.minimum(lo, cap) + np.minimum(hi, cap)) / 2 - base, 0.0))
 
 
 def degree_days_modified(min_temp, max_temp, base, upper=None):

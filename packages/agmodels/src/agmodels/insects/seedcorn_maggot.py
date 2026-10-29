@@ -1,41 +1,43 @@
-"""Seedcorn maggot, from the Crop Risk Tool."""
+"""Seedcorn maggot, from the Crop Risk Tool, rebuilt on its sources (D36, D37)."""
 
 from agmodels.insects import CRT
-from agmodels.phenology import Insect, Stage
-from agmodels.spec import Citation
+from agmodels.phenology import ActionWindow, DerivedStage, Insect, LifeStage
+from agmodels.spec import Change, Citation
 
 INSECT = Insect(
     id="seedcorn-maggot",
     name="Seedcorn maggot",
     crops=("Corn (Field and Sweet)", "Bean", "Cucumber", "Melon", "Pumpkin and Squash"),
-    base_f=39.2,
-    upper_f=86,
+    # The sources' method (D37): simple average above 3.9 °C (39 °F), temperatures capped at 29 °C (84.2 °F)
+    base_f=39,
+    upper_f=84.2,
+    dd_method="average",
     biofix="01-01",
-    stages=(
-        Stage(start=295, severity=1, label="1st gen: Low abundance and risk of damage"),
-        Stage(start=315, severity=2, label="1st gen: Medium abundance and risk of damage"),
-        Stage(start=330, severity=3, label="1st gen: High abundance and risk of damage"),
-        Stage(start=340, severity=4, label="1st gen: Peak adult flight and risk of damage"),
-        Stage(start=510, severity=3, label="1st gen: High abundance and risk of damage"),
-        Stage(start=585, severity=2, label="1st gen: Medium abundance and risk of damage"),
-        Stage(start=660, severity=1, label="1st gen: Low abundance and risk of damage"),
-        Stage(start=810, severity=0, label="1st gen: Absent or very low abundance"),
-        Stage(start=990, severity=1, label="2nd gen: Low abundance and risk of damage"),
-        Stage(start=1020, severity=2, label="2nd gen: Medium abundance and risk of damage"),
-        Stage(start=1035, severity=3, label="2nd gen: High abundance and risk of damage"),
-        Stage(start=1050, severity=4, label="2nd gen: Peak adult flight and risk of damage"),
-        Stage(start=1245, severity=3, label="2nd gen: High abundance and risk of damage"),
-        Stage(start=1325, severity=2, label="2nd gen: Medium abundance and risk of damage"),
-        Stage(start=1405, severity=1, label="2nd gen: Low abundance and risk of damage"),
-        Stage(start=1570, severity=0, label="2nd gen: Absent or very low abundance"),
-        Stage(start=1650, severity=1, label="3rd gen: Low abundance and risk of damage"),
-        Stage(start=1700, severity=2, label="3rd gen: Medium abundance and risk of damage"),
-        Stage(start=1725, severity=3, label="3rd gen: High abundance and risk of damage"),
-        Stage(start=1750, severity=4, label="3rd gen: Peak adult flight and risk of damage"),
-        Stage(start=1985, severity=3, label="3rd gen: High abundance and risk of damage"),
-        Stage(start=2080, severity=2, label="3rd gen: Medium abundance and risk of damage"),
-        Stage(start=2175, severity=1, label="3rd gen: Low abundance and risk of damage"),
-        Stage(start=2360, severity=0, label="3rd gen: Absent or very low abundance"),
+    life_stages=(
+        # Over-wintered flies: first emergence 54–94 FDD in New York (Olaya-Arenas et al. 2024) and 50% at 347 in
+        # Wisconsin (Sanborn 1981 in Funderburk et al. 1984); this curve's 10, 50 and 90% are 201, 345 and 495
+        LifeStage(label="Adult flight", start=70, peak=340, end=650),
+        # Pre-oviposition 15.7 and egg 30 °C·d (28 + 54 FDD), then the larva's 204 °C·d (367 FDD; Sanborn et al.
+        # 1982, Funderburk et al. 1984): oviposition leads to the feeding, so both carry the risk (Ben, 2026-10-29)
+        DerivedStage(label="Larval feeding", follows="Adult flight", lag=82, duration=367),
+    ),
+    # Adult to adult 392 °C·d (706 FDD) in the lab (Funderburk et al. 1984); Wisconsin's field peaks 704 then 860 apart
+    generation_dd=720,
+    # Individuals' development rates ranged about ±20% of the mean in the lab (Sanborn et al. 1982, Table 1, larvae
+    # at 14.6 °C), about ±2 SD, so an SD near 8% of a generation; the first flight's own spread (~120) is wider
+    # because over-wintered emergence is drawn out (Throne and Eckenrode 1985), not because development varies
+    generation_sd=60,
+    action_windows=(ActionWindow(label="Avoid planting during adult flight", stage="Adult flight"),),
+    version="2.0",
+    status="beta",
+    changelog=(
+        Change(
+            version="2.0",
+            date="2026-10-29",
+            note="Life stages as curves (D36): adult flight from 70 FDD, half done by 345, and larval feeding timed "
+            "from it, in every generation 720 FDD apart; degree days by the sources' average method (D37) rather than "
+            "single sine, which ran 5–7 days early in spring. Replaces the Crop Risk Tool's step table.",
+        ),
     ),
     source=CRT,
     citations=(

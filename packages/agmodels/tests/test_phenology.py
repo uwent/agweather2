@@ -1,11 +1,15 @@
 """Insect phenology as curves (D36): PERT life stages, generations spreading as a distributed delay, summed risk,
 action windows and the freeze factor that ends the season."""
 
+from dataclasses import replace
+
 import numpy as np
 import pytest
 
+from agmodels.degree_days import degree_days_average
 from agmodels.phenology import (
     ActionWindow,
+    DerivedStage,
     Insect,
     LifeStage,
     PhenologyModel,
@@ -167,3 +171,42 @@ def test_spec_declares_every_output():
     out = m.outputs({"air_temperature_min": np.full(5, 10.0), "air_temperature_max": np.full(5, 25.0)})
     assert [q.name for q in m.SPEC.outputs] == list(out)
     assert m.SPEC.risk is not None and len(m.SPEC.risk.thresholds) == len(m.SPEC.risk.levels) - 1
+
+
+LARVAE = DerivedStage(label="Larvae", follows="Adult flight", lag=80, duration=370)
+DERIVED = Insect(
+    id="derived", name="x", crops=(), base_f=39, upper_f=84.2, biofix="01-01", dd_method="average",
+    life_stages=(FLIGHT, LARVAE), generation_dd=720,
+)  # fmt: skip
+
+
+def test_a_derived_stage_is_present_from_its_lag_for_its_duration():
+    """Larvae enter `lag` after each fly's flight and leave `duration` later, so the share present is the flight's
+    fraction complete shifted by the lag, less the same shifted by lag + duration."""
+    single = replace(DERIVED, generation_dd=None)
+    flight = np.cumsum(generation_densities(insect=single, stage=FLIGHT)[0])
+    tables = curves(single)
+    peak_present = (np.interp(X - 80, X, flight) - np.interp(X - 450, X, flight)).max()
+    at = np.array([250 + 80, 540 + 80, 250 + 450, 540 + 450, 2000.0])
+    activity = np.interp(at, X, tables["activity_larvae"]) * peak_present
+    np.testing.assert_allclose(activity[:4], [0, 1, 1, 0], atol=1e-3)  # none, all, all (370 > flight's width), none
+    assert np.interp(700, X, tables["generations_larvae"]) == pytest.approx(0)
+    assert np.interp(990, X, tables["generations_larvae"]) == pytest.approx(1, abs=1e-3)
+
+
+def test_derived_stages_are_checked():
+    with pytest.raises(ValueError, match="isn't a timed life stage"):
+        Insect(
+            id="x", name="x", crops=(), base_f=50, upper_f=None, biofix="01-01",
+            life_stages=(FLIGHT, DerivedStage(label="Larvae", follows="Eggs", lag=10, duration=100)),
+        )  # fmt: skip
+    with pytest.raises(ValueError, match="first life stage"):
+        Insect(id="x", name="x", crops=(), base_f=50, upper_f=None, biofix="01-01", life_stages=(LARVAE, FLIGHT))
+
+
+def test_the_average_method_caps_both_temperatures():
+    assert degree_days_average(60, 100, base=39, upper=84.2) == pytest.approx((60 + 84.2) / 2 - 39)
+    assert degree_days_average(60, 100, base=39) == pytest.approx(41)
+    m = PhenologyModel(insect=DERIVED, summary="")
+    out = m.outputs({"air_temperature_min": np.array([0.0, 20]), "air_temperature_max": np.array([10.0, 40])})
+    np.testing.assert_allclose(out["dd"], [max((32 + 50) / 2 - 39, 0), (68 + 84.2) / 2 - 39])
