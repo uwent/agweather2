@@ -54,7 +54,6 @@ class Insect:
     base_f: float
     upper_f: float | None
     biofix: str  # MM-DD
-    criteria: str  # what the degree days mean, for the model page and legend
     stages: tuple[Stage, ...] = ()
     generations: tuple[tuple[float, float, float], ...] = ()
     biofix_label: str = "January 1, or the biofix event named in the description"
@@ -65,19 +64,17 @@ class Insect:
 
 
 class InsectModel:
-    """An `agmodels.spec.Model` for one insect."""
+    """An `agmodels.spec.Model` for one insect; its summary is the `summary` in its page's front matter."""
 
-    def __init__(self, insect: Insect):
+    def __init__(self, insect: Insect, summary: str):
         self.insect = insect
-        upper = "no upper threshold" if insect.upper_f is None else f"upper {insect.upper_f:g} °F"
         self.SPEC = ModelSpec(
             id=insect.id,
             name=insect.name,
             group="insect",
             version="1.0",
             status=insect.status,  # type: ignore[arg-type]
-            summary=f"{insect.name} development from degree days (base {insect.base_f:g} °F, {upper}), with the "
-            "risk of damage it implies.",
+            summary=summary,
             topics=(insect.topic or insect.id,),
             crops=insect.crops,
             citations=insect.citations or (Citation(text=f"{insect.source} (UW–Madison Vegetable Entomology)"),),
@@ -91,7 +88,7 @@ class InsectModel:
                 Quantity(name="stage", label="Life stage", unit="index"),
                 Quantity(name="freeze_reduction", label="Severity removed by recent freezes", unit="index"),
             ),
-            risk=Risk(levels=SEVERITY_LEVELS, criteria=insect.criteria),
+            risk=Risk(levels=SEVERITY_LEVELS, criteria=criteria(insect)),
             explorer=(
                 ExplorerInput(
                     name="dd_total",
@@ -131,6 +128,22 @@ class InsectModel:
             "severity": float(severity(total, self.insect)[0]),
             "stage": float(stage_index(total, self.insect.stages)[0]),
         }
+
+
+def criteria(insect: Insect) -> str:
+    """How degree days become severity, in words, from the stage table or generations."""
+    upper = "no upper threshold" if insect.upper_f is None else f"upper {insect.upper_f:g} °F"
+    dd = f"Degree days (base {insect.base_f:g} °F, {upper}) since the biofix"
+    if insect.stages:
+        steps = ", ".join(f"{s.severity} from {s.start:,g}" for s in insect.stages)
+        rule = f"{dd} set the severity: {steps}."
+    else:
+        spans = "; ".join(f"{a:,g}, {b:,g} and {c:,g}" for a, b, c in insect.generations)
+        rule = (
+            f"{dd} set the severity, rising along a half sine from each generation's start to 4 at its peak and "
+            f"falling to its end (start, peak and end: {spans})."
+        )
+    return f"{rule} After day 250, less 1 for each day at or below −2 °C in the last 14."
 
 
 def stage_index(dd_total: np.ndarray, stages: tuple[Stage, ...]) -> np.ndarray:

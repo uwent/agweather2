@@ -1,6 +1,7 @@
 ---
 id: tarnished-plant-bug
 status: draft
+summary: Lygus bugs are active most of the summer after early-season nymph development (starting 275 FDD).
 sources:
   - VDIFN db/seeds.rb (tarnished-plant-bug)
 ---

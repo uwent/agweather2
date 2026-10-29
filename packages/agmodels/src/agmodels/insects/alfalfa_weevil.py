@@ -10,9 +10,6 @@ INSECT = Insect(
     base_f=48.2,  # 9 °C
     upper_f=86,  # 30 °C
     biofix="01-01",
-    criteria="Alfalfa weevil egg hatch begins around 300 FDD. Light feeding damage expected during 1st and 2nd "
-    "instar life stages (350-500 FDD). Heavy feeding damage expected during 3rd and 4th instar development, "
-    "approx. 400-600 FDD.",
     stages=(
         Stage(start=300, severity=1, label="Egg hatch, begin scouting"),
         Stage(start=370, severity=2, label="2nd instar larvae"),

@@ -23,9 +23,5 @@ INSECT = Insect(
     base_f=50,
     upper_f=86,
     biofix="05-15",
-    criteria=(
-        "Egg hatch begins around 180 FDD, with leaf cutting and larval development starting around 300 FDD and "
-        "extending through 1000 FDD."
-    ),
     generations=((300, 700, 1000),),
 )

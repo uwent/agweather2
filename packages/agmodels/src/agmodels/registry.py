@@ -12,6 +12,7 @@ from types import ModuleType
 from typing import cast
 
 from agmodels import insects, models
+from agmodels.pages import read_page
 from agmodels.phenology import Insect, InsectModel
 from agmodels.spec import Model
 
@@ -25,7 +26,9 @@ def _modules(package: ModuleType) -> Iterator[ModuleType]:
 def _found() -> dict[str, tuple[Model, Path]]:
     found: dict[str, tuple[Model, Path]] = {}
     pairs = [(cast(Model, m), m.__file__) for m in _modules(models)]
-    pairs += [(cast(Model, InsectModel(m.INSECT)), m.__file__) for m in _modules(insects)]
+    for m in _modules(insects):
+        page = read_page(Path(cast(str, m.__file__)).with_suffix(".md"), page_id=m.INSECT.id)
+        pairs.append((cast(Model, InsectModel(insect=m.INSECT, summary=page.front["summary"])), m.__file__))
     for found_model, source in pairs:
         if found_model.SPEC.id in found:
             raise ValueError(f"two models have the id {found_model.SPEC.id!r}")

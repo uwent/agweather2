@@ -32,7 +32,6 @@ def test_vdifn_generations_match_its_severity(array):
         base_f=50,
         upper_f=None,
         biofix="01-01",
-        criteria="",
         generations=VDIFN_ARRAYS[array],
     )
     dd = np.array([float(r["dd"]) for r in rows])

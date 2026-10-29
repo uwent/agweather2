@@ -23,9 +23,5 @@ INSECT = Insect(
     base_f=45,
     upper_f=80.1,
     biofix="05-01",
-    criteria=(
-        "Egg-laying peaks around 900 FDD with larval populations active from around 1150 FDD through 1900 FDD, "
-        "with end of larval stage around 2100 FDD."
-    ),
     generations=((900, 1450, 2100),),
 )

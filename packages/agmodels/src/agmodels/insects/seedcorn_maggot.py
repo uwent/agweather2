@@ -10,10 +10,6 @@ INSECT = Insect(
     base_f=39.2,
     upper_f=86,
     biofix="01-01",
-    criteria="In Wisconsin there are typically 3-5 generations per year, with maximum risk coinciding with peak "
-    "adult flight times: First (overwintering) generation flight peaks around 360 FDD, second generation flight "
-    "peaks around 1080 FDD, third generation peaks around 1800 FDD. Wait 450 FDD after peak flight for larval "
-    "pupation and minimum risk to crops.",
     stages=(
         Stage(start=295, severity=1, label="1st gen: Low abundance and risk of damage"),
         Stage(start=315, severity=2, label="1st gen: Medium abundance and risk of damage"),

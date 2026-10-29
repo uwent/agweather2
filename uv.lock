@@ -51,6 +51,7 @@ source = { editable = "packages/agmodels" }
 dependencies = [
     { name = "numpy" },
     { name = "pandas" },
+    { name = "pyyaml" },
     { name = "xarray" },
 ]
 
@@ -58,6 +59,7 @@ dependencies = [
 requires-dist = [
     { name = "numpy" },
     { name = "pandas" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "xarray" },
 ]
 

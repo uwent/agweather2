@@ -9,6 +9,5 @@ INSECT = Insect(
     base_f=52,
     upper_f=None,
     biofix="01-01",
-    criteria="Lygus bugs are active most of the summer after early-season nymph development (starting 275 FDD).",
     generations=((275, 1000, 2000),),
 )

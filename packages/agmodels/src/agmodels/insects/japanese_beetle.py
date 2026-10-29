@@ -27,9 +27,5 @@ INSECT = Insect(
     base_f=50,
     upper_f=None,
     biofix="01-01",
-    criteria=(
-        "Adults emerge starting around 970 FDD, with peak feeding around 1600 FDD, and end of feeding by around "
-        "2150 FDD."
-    ),
     generations=((970, 1600, 2150),),
 )
