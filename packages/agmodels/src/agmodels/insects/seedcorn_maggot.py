@@ -2,6 +2,7 @@
 
 from agmodels.insects import CRT
 from agmodels.phenology import Insect, Stage
+from agmodels.spec import Citation
 
 INSECT = Insect(
     id="seedcorn-maggot",
@@ -37,4 +38,30 @@ INSECT = Insect(
         Stage(start=2360, severity=0, label="3rd gen: Absent or very low abundance"),
     ),
     source=CRT,
+    citations=(
+        Citation(text="The Crop Risk Tool (UW–Madison Vegetable Entomology)."),
+        Citation(
+            text="Sanborn, S. M., Wyman, J. A. and Chapman, R. K. (1982). Threshold temperature and heat unit "
+            "summations for seedcorn maggot development under controlled conditions. Annals of the Entomological "
+            "Society of America 75, 103–106.",
+            doi="10.1093/aesa/75.1.103",
+        ),
+        Citation(
+            text="Funderburk, J. E., Higley, L. G. and Pedigo, L. P. (1984). Seedcorn maggot (Diptera: Anthomyiidae) "
+            "phenology in central Iowa and examination of a thermal-unit system to predict development under field "
+            "conditions. Environmental Entomology 13, 105–109.",
+            doi="10.1093/ee/13.1.105",
+        ),
+        Citation(
+            text="Throne, J. E. and Eckenrode, C. J. (1985). Emergence patterns of the seedcorn maggot, Delia platura "
+            "(Diptera: Anthomyiidae). Environmental Entomology 14, 182–186.",
+            doi="10.1093/ee/14.2.182",
+        ),
+        Citation(
+            text="Olaya-Arenas, P., Cho, C. Y. L., Olmstead, D., et al. (2024). Degree-day models for predicting "
+            "adult Delia platura (Diptera: Anthomyiidae) spring flight and first emergence in New York State. "
+            "Journal of Economic Entomology 117, 2181–2185.",
+            doi="10.1093/jee/toae148",
+        ),
+    ),
 )
