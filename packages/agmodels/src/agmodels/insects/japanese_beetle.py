@@ -3,9 +3,9 @@
 from agmodels.phenology import Insect
 
 INSECT = Insect(
-    "japanese-beetle",
-    "Japanese Beetle",
-    (
+    id="japanese-beetle",
+    name="Japanese Beetle",
+    crops=(
         "Asparagus",
         "Bean",
         "Beet",

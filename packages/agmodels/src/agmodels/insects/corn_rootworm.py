@@ -3,9 +3,9 @@
 from agmodels.phenology import Insect
 
 INSECT = Insect(
-    "corn-rootworm",
-    "Corn Rootworm",
-    ("Corn (Field and Sweet)",),
+    id="corn-rootworm",
+    name="Corn Rootworm",
+    crops=("Corn (Field and Sweet)",),
     base_f=52,
     upper_f=None,
     biofix="01-01",

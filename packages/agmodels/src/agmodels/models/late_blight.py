@@ -39,48 +39,65 @@ SPEC = ModelSpec(
     crops=("Potato", "Tomato"),
     citations=(
         Citation(
-            "Wallin, J. R. (1962). Summary of recent progress in predicting late blight epidemics in United "
+            text="Wallin, J. R. (1962). Summary of recent progress in predicting late blight epidemics in United "
             "States and Canada. American Potato Journal 39, 306–312.",
             doi="10.1007/BF02862155",
         ),
         Citation(
-            "Krause, R. A., Massie, L. B. and Hyre, R. A. (1975). Blitecast: a computerized forecast of potato "
+            text="Krause, R. A., Massie, L. B. and Hyre, R. A. (1975). Blitecast: a computerized forecast of potato "
             "late blight. Plant Disease Reporter 59, 95–98."
         ),
-        Citation("UC IPM: Potato late blight.", "https://ipm.ucanr.edu/DISEASE/DATABASE/potatolateblight.html"),
         Citation(
-            "UW Vegetable Pathology: Potato late blight.",
-            "https://vegpath.plantpath.wisc.edu/diseases/potato-late-blight/",
+            text="UC IPM: Potato late blight.", url="https://ipm.ucanr.edu/DISEASE/DATABASE/potatolateblight.html"
+        ),
+        Citation(
+            text="UW Vegetable Pathology: Potato late blight.",
+            url="https://vegpath.plantpath.wisc.edu/diseases/potato-late-blight/",
         ),
     ),
     inputs=(
-        Quantity("hours_rh_over_90_from_8pm", "Hours with RH ≥ 90%", "hour", "Day from 8 pm the evening before"),
-        Quantity("temperature_mean_rh_over_90_from_8pm", "Mean temperature during RH ≥ 90%", "degC"),
+        Quantity(
+            name="hours_rh_over_90_from_8pm",
+            label="Hours with RH ≥ 90%",
+            unit="hour",
+            description="Day from 8 pm the evening before",
+        ),
+        Quantity(name="temperature_mean_rh_over_90_from_8pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
     ),
     outputs=(
-        Quantity("dsv", "Disease severity values", "index"),
-        Quantity("dsv_14_day", "DSVs in the last 14 days", "index"),
-        Quantity("dsv_total", "DSVs since emergence", "index"),
+        Quantity(name="dsv", label="Disease severity values", unit="index"),
+        Quantity(name="dsv_14_day", label="DSVs in the last 14 days", unit="index"),
+        Quantity(name="dsv_total", label="DSVs since emergence", unit="index"),
     ),
     risk=Risk(
-        SEVERITY_LEVELS,
-        "Very high: 21 or more DSVs in the last 14 days once the season total reaches 30. High: 14 or more in "
+        levels=SEVERITY_LEVELS,
+        criteria="Very high: 21 or more DSVs in the last 14 days once the season total reaches 30. High: 14 or more in "
         "14 days once the total reaches 18. Moderate: a season total of 18 or more (the usual first-spray "
         "threshold). Low: any DSVs in the last 14 days. Very low: none.",
     ),
     explorer=(
-        ExplorerInput("temperature", "Mean temperature during RH ≥ 90%", "degC", 0, 30, 0.5, 16),
-        ExplorerInput("hours", "Hours with RH ≥ 90%", "hour", 0, 24, 1, 14),
+        ExplorerInput(
+            name="temperature",
+            label="Mean temperature during RH ≥ 90%",
+            unit="degC",
+            minimum=0,
+            maximum=30,
+            step=0.5,
+            default=16,
+        ),
+        ExplorerInput(
+            name="hours", label="Hours with RH ≥ 90%", unit="hour", minimum=0, maximum=24, step=1, default=14
+        ),
     ),
     sweep={"temperature": tuple(float(t) for t in range(0, 31)), "hours": tuple(float(h) for h in range(25))},
     region=(),
     season=("05-01", "09-30"),
-    biofix=Biofix("05-15", "Crop emergence or the last fungicide application"),
+    biofix=Biofix(default="05-15", label="Crop emergence or the last fungicide application"),
     changelog=(
         Change(
-            "1.0",
-            "2026-10-28",
-            "Ported from the Crop Risk Tool; humid hours and their temperature from "
+            version="1.0",
+            date="2026-10-28",
+            note="Ported from the Crop Risk Tool; humid hours and their temperature from "
             "the same window (the day from 8 pm).",
         ),
     ),

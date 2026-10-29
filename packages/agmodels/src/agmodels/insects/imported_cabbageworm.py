@@ -3,9 +3,9 @@
 from agmodels.phenology import Insect
 
 INSECT = Insect(
-    "imported-cabbageworm",
-    "Imported Cabbageworm",
-    ("Cole Crops",),
+    id="imported-cabbageworm",
+    name="Imported Cabbageworm",
+    crops=("Cole Crops",),
     base_f=50,
     upper_f=None,
     biofix="01-01",

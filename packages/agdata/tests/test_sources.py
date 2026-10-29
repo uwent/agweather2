@@ -44,7 +44,7 @@ def test_decode_and_place_on_the_window():
     assert np.isnan(field.values[0, 0])  # the bitmap's missing cell
 
     # The fixture covers NDFD rows 900-939 and columns 1400-1449; this window overlaps part of it
-    window = Window(930, 950, 1440, 1460)
+    window = Window(j0=930, j1=950, i0=1440, i1=1460)
     placed = place(field, window)
     np.testing.assert_allclose(placed[:10, :10], expected[30:40, 40:50], atol=0.01)
     assert np.isnan(placed[10:, :]).all() and np.isnan(placed[:, 10:]).all()

@@ -54,6 +54,7 @@ Setup and the rest are in `DEVELOPMENT.md`.
 - **Evaluate ported logic critically.** Legacy code may be wrong or suboptimal (edge cases, unit slips, ad hoc thresholds, outdated methods). Check it against its cited source, then keep it, fix it or replace it. Record what you changed and why in PLAN.md, and limit the parity test to the cases that should still match.
 - **Gaps:** raw values (an hour's or a day's temperature) show as missing wherever they're displayed. Cumulative values (running DD, ET0) bridge gaps with a named, tested, documented estimate, and every estimate is flagged so the interface can say "includes N estimated days". Precipitation is never estimated.
 - **Python style:** ruff (format and lint, rules in the root `pyproject.toml`), pyright in basic mode, type hints on public functions. pytest runs in importlib mode, so test files may share names across packages. Prefer plain functions and small modules for domain math; no Django signals cascading recalculation.
+- **Name the arguments in calls** (Ben, 2026-10-29): `Insect(id="…", name="…", crops=(…))`, not positional. Every dataclass is `kw_only=True`, so pyright enforces it there; calls to the project's own functions name their arguments too. Positional is fine for a function's one obvious argument (`len(x)`, `running_total(dd)`) and for library calls whose convention is positional (`np.where(c, a, b)`).
 
 ## Gotchas
 

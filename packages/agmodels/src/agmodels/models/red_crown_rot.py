@@ -39,30 +39,67 @@ SPEC = ModelSpec(
     crops=("Soybean",),
     citations=(
         Citation(
-            "Ochi, S., Kishi, S., Kawaguchi, A. and Akamatsu, H. (2026). Meteorological and agronomic factors "
+            text="Ochi, S., Kishi, S., Kawaguchi, A. and Akamatsu, H. (2026). Meteorological and agronomic factors "
             "analysis on the field-level incidence of red crown rot of soybean. Phytopathology 116, 1405–1413.",
             doi="10.1094/PHYTO-06-25-0207-R",
         ),
         Citation(
-            "Crop Protection Network: Red crown rot of soybean.",
-            "https://cropprotectionnetwork.org/encyclopedia/red-crown-rot-of-soybean",
+            text="Crop Protection Network: Red crown rot of soybean.",
+            url="https://cropprotectionnetwork.org/encyclopedia/red-crown-rot-of-soybean",
         ),
     ),
     inputs=(
-        Quantity("air_temperature_mean", "Mean temperature", "degC", "Mean over the 31 days from R1"),
-        Quantity("precipitation_sum", "Precipitation", "mm", "Totals over the 31 days before and from R1"),
+        Quantity(
+            name="air_temperature_mean",
+            label="Mean temperature",
+            unit="degC",
+            description="Mean over the 31 days from R1",
+        ),
+        Quantity(
+            name="precipitation_sum",
+            label="Precipitation",
+            unit="mm",
+            description="Totals over the 31 days before and from R1",
+        ),
     ),
     outputs=(
-        Quantity("incidence", "Predicted incidence", "percent"),
-        Quantity("temperature_mean_reproductive", "Mean temperature from R1", "degC"),
-        Quantity("precipitation_vegetative", "Precipitation, 31 days before R1", "mm"),
-        Quantity("precipitation_reproductive", "Precipitation from R1 (prorated to 31 days)", "mm"),
+        Quantity(name="incidence", label="Predicted incidence", unit="percent"),
+        Quantity(name="temperature_mean_reproductive", label="Mean temperature from R1", unit="degC"),
+        Quantity(name="precipitation_vegetative", label="Precipitation, 31 days before R1", unit="mm"),
+        Quantity(name="precipitation_reproductive", label="Precipitation from R1 (prorated to 31 days)", unit="mm"),
     ),
-    risk=Risk(PROBABILITY_LEVELS, "Provisional: Very low below 5%, Low from 5%, Moderate from 30%, High from 60%."),
+    risk=Risk(
+        levels=PROBABILITY_LEVELS,
+        criteria="Provisional: Very low below 5%, Low from 5%, Moderate from 30%, High from 60%.",
+    ),
     explorer=(
-        ExplorerInput("temperature_reproductive", "Mean temperature, 31 days from R1", "degC", 15, 35, 0.5, 25),
-        ExplorerInput("precipitation_vegetative", "Precipitation, 31 days before R1", "mm", 0, 400, 5, 100),
-        ExplorerInput("precipitation_reproductive", "Precipitation, 31 days from R1", "mm", 0, 400, 5, 100),
+        ExplorerInput(
+            name="temperature_reproductive",
+            label="Mean temperature, 31 days from R1",
+            unit="degC",
+            minimum=15,
+            maximum=35,
+            step=0.5,
+            default=25,
+        ),
+        ExplorerInput(
+            name="precipitation_vegetative",
+            label="Precipitation, 31 days before R1",
+            unit="mm",
+            minimum=0,
+            maximum=400,
+            step=5,
+            default=100,
+        ),
+        ExplorerInput(
+            name="precipitation_reproductive",
+            label="Precipitation, 31 days from R1",
+            unit="mm",
+            minimum=0,
+            maximum=400,
+            step=5,
+            default=100,
+        ),
     ),
     sweep={
         "temperature_reproductive": (20.0, 24.0, 28.0),
@@ -70,9 +107,9 @@ SPEC = ModelSpec(
         "precipitation_reproductive": (25.0, 100.0, 250.0),
     },
     lookback_days=WINDOW,
-    biofix=Biofix("07-01", "R1 (beginning flowering)"),
+    biofix=Biofix(default="07-01", label="R1 (beginning flowering)"),
     biofix_stage=("soybean-stages", "R1"),  # the soybean model's R1 is the default when it has run
-    changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool."),),
+    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

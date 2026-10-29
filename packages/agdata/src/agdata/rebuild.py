@@ -25,7 +25,7 @@ KINDS: list[tuple[StoreLayout, dict]] = [
 ]
 
 
-@dataclass
+@dataclass(kw_only=True)
 class StaleReport:
     stale: dict[str, list[str]] = field(default_factory=dict)  # "daily/2025" → variable names
 

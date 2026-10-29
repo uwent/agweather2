@@ -34,7 +34,7 @@ SOURCE_NAMES = {code: name for name, code in SOURCES.items()}
 DEFAULT_CHUNKS: dict[Step, tuple[int, int, int]] = {"hour": (720, 32, 32), "day": (1, 256, 256)}
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class StoreLayout:
     kind: str  # directory name: hourly, daily, cumulative, …
     step: Step
@@ -43,9 +43,9 @@ class StoreLayout:
         return Path(data_dir) / self.kind / f"{year}.zarr"
 
 
-HOURLY = StoreLayout("hourly", "hour")
-DAILY = StoreLayout("daily", "day")
-CUMULATIVE = StoreLayout("cumulative", "day")
+HOURLY = StoreLayout(kind="hourly", step="hour")
+DAILY = StoreLayout(kind="daily", step="day")
+CUMULATIVE = StoreLayout(kind="cumulative", step="day")
 
 
 def steps_in_year(year: int, step: Step) -> int:
@@ -63,7 +63,7 @@ class GridStore:
         self.year = int(attrs["year"])
         self.step: Step = attrs["step"]
         w = attrs["window"]
-        self.window = Window(w["j0"], w["j1"], w["i0"], w["i1"])
+        self.window = Window(j0=w["j0"], j1=w["j1"], i0=w["i0"], i1=w["i1"])
         self.variables: dict[str, Variable] = {}
         self.stale: set[str] = set()  # derived variables to recompute (D29)
 

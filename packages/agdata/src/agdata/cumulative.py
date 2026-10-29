@@ -56,7 +56,7 @@ def rebuild_year(data_dir: Path, window: Window, year: int, changed_from: date |
         skip = max(0, min((changed_from - date(year, 1, 1)).days - MAX_BRIDGE_DAYS, n - 1))
     rows = max(1, BAND_CELL_DAYS // ((n + 2 * MAX_BRIDGE_DAYS) * window.shape[1]))
     for j in range(window.j0, window.j1, rows):
-        band = Window(j, min(j + rows, window.j1), window.i0, window.i1)
+        band = Window(j0=j, j1=min(j + rows, window.j1), i0=window.i0, i1=window.i1)
         names = ("air_temperature_min", "air_temperature_max", "et0_sum", "precipitation_sum", "et0_sum_estimate")
         tmin, tmax, et0, precip, et0_estimate = (days.read_with_neighbours(name, band, n) for name in names)
         out = running_totals(tmin, tmax, et0, precip, et0_estimate)

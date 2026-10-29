@@ -37,32 +37,68 @@ SPEC = ModelSpec(
     crops=("Soybean",),
     citations=(
         Citation(
-            "Willbur, J. F., Fall, M. L., Blackwell, T., et al. (2018). Weather-based models for assessing the "
+            text="Willbur, J. F., Fall, M. L., Blackwell, T., et al. (2018). Weather-based models for assessing the "
             "risk of Sclerotinia sclerotiorum apothecial presence in soybean (Glycine max) fields. Plant Disease "
             "102, 73–84.",
             doi="10.1094/PDIS-04-17-0504-RE",
         ),
         Citation(
-            "Crop Protection Network: White mold of soybean.",
-            "https://cropprotectionnetwork.org/encyclopedia/white-mold-of-soybean",
+            text="Crop Protection Network: White mold of soybean.",
+            url="https://cropprotectionnetwork.org/encyclopedia/white-mold-of-soybean",
         ),
     ),
     inputs=(
-        Quantity("air_temperature_max", "Maximum temperature", "degC", "30-day moving average"),
-        Quantity("relative_humidity_max", "Maximum RH", "percent", "30-day moving average"),
-        Quantity("wind_speed_max", "Maximum wind speed", "m_s", "30-day moving average (non-irrigated)"),
-        Quantity("air_temperature_min", "Minimum temperature", "degC", "21-day moving average, for cold attenuation"),
+        Quantity(
+            name="air_temperature_max", label="Maximum temperature", unit="degC", description="30-day moving average"
+        ),
+        Quantity(name="relative_humidity_max", label="Maximum RH", unit="percent", description="30-day moving average"),
+        Quantity(
+            name="wind_speed_max",
+            label="Maximum wind speed",
+            unit="m_s",
+            description="30-day moving average (non-irrigated)",
+        ),
+        Quantity(
+            name="air_temperature_min",
+            label="Minimum temperature",
+            unit="degC",
+            description="21-day moving average, for cold attenuation",
+        ),
     ),
-    outputs=(Quantity("probability", "Apothecia probability", "percent"),),
+    outputs=(Quantity(name="probability", label="Apothecia probability", unit="percent"),),
     risk=Risk(
-        PROBABILITY_LEVELS,
-        "Non-irrigated: Very low below 1%, Low from 1%, Moderate from 20%, High from 35%. Irrigated: Very low "
+        levels=PROBABILITY_LEVELS,
+        criteria="Non-irrigated: Very low below 1%, Low from 1%, Moderate from 20%, High from 35%. Irrigated: Very low "
         "below 1%, Low from 1%, Moderate from 5%, High from 10%.",
     ),
     explorer=(
-        ExplorerInput("temperature_max_30day", "Maximum temperature, 30-day average", "degC", 10, 40, 0.5, 27),
-        ExplorerInput("rh_max_30day", "Maximum RH, 30-day average", "percent", 50, 100, 1, 95),
-        ExplorerInput("wind_max_30day", "Maximum wind, 30-day average", "m_s", 0, 15, 0.5, 5),
+        ExplorerInput(
+            name="temperature_max_30day",
+            label="Maximum temperature, 30-day average",
+            unit="degC",
+            minimum=10,
+            maximum=40,
+            step=0.5,
+            default=27,
+        ),
+        ExplorerInput(
+            name="rh_max_30day",
+            label="Maximum RH, 30-day average",
+            unit="percent",
+            minimum=50,
+            maximum=100,
+            step=1,
+            default=95,
+        ),
+        ExplorerInput(
+            name="wind_max_30day",
+            label="Maximum wind, 30-day average",
+            unit="m_s",
+            minimum=0,
+            maximum=15,
+            step=0.5,
+            default=5,
+        ),
     ),
     sweep={
         "temperature_max_30day": (20.0, 25.0, 30.0),
@@ -70,15 +106,28 @@ SPEC = ModelSpec(
         "wind_max_30day": (2.0, 5.0, 8.0),
     },
     options=(
-        Option("irrigation", "Irrigation", (("dry", "Non-irrigated"), ("irrigated", "Irrigated")), "dry"),
-        Option("row_spacing", "Row spacing (irrigated)", (("30", "30 in"), ("15", "15 in")), "30"),
+        Option(
+            name="irrigation",
+            label="Irrigation",
+            choices=(("dry", "Non-irrigated"), ("irrigated", "Irrigated")),
+            default="dry",
+        ),
+        Option(
+            name="row_spacing",
+            label="Row spacing (irrigated)",
+            choices=(("30", "30 in"), ("15", "15 in")),
+            default="30",
+        ),
     ),
     lookback_days=30,
     season=("06-15", "08-07"),
     susceptible=Susceptibility(
-        "soybean-stages", "R1", "R3", "The Crop Risk Tool (R1–R3); Sporecaster runs only with flowers present"
+        crop="soybean-stages",
+        first="R1",
+        last="R3",
+        source="The Crop Risk Tool (R1–R3); Sporecaster runs only with flowers present",
     ),
-    changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool."),),
+    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

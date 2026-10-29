@@ -3,9 +3,9 @@
 from agmodels.phenology import Insect
 
 INSECT = Insect(
-    "variegated-cutworm",
-    "Variegated Cutworm",
-    (
+    id="variegated-cutworm",
+    name="Variegated Cutworm",
+    crops=(
         "Asparagus",
         "Bean",
         "Beet",

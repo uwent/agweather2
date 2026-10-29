@@ -16,7 +16,7 @@ from agdata.ingest import (
 )
 from agmodels.weather import solar_elevation_deg
 
-WINDOW = Window(900, 904, 1400, 1405)  # 4 x 5 cells near Madison
+WINDOW = Window(j0=900, j1=904, i0=1400, i1=1405)  # 4 x 5 cells near Madison
 START = datetime(2025, 7, 15, 6, tzinfo=UTC)  # 1 am CDT
 
 
@@ -52,7 +52,7 @@ def fake_fetch(missing_hour: int | None = None, spike: tuple[int, int, int] | No
             "soil_temperature_10cm": temp - 4,
         }
         sources = {name: ("hrrr" if name.startswith(("shortwave", "soil")) else "urma") for name in values}
-        return Hour(values, sources)
+        return Hour(values=values, sources=sources)
 
     return fetch
 
@@ -86,7 +86,7 @@ def test_reopening_checks_the_window(tmp_path):
     open_or_create_hourly(tmp_path, 2025, WINDOW)
     assert open_or_create_hourly(tmp_path, 2025, WINDOW).window == WINDOW
     with pytest.raises(ValueError):
-        open_or_create_hourly(tmp_path, 2025, Window(0, 4, 0, 5))
+        open_or_create_hourly(tmp_path, 2025, Window(j0=0, j1=4, i0=0, i1=5))
 
 
 def test_month_blocks():

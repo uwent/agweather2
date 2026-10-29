@@ -13,7 +13,7 @@ from agdata.catalog import Variable
 MAX_FILL_HOURS = 3
 
 
-@dataclass
+@dataclass(kw_only=True)
 class QcResult:
     values: np.ndarray
     out_of_range: int
@@ -77,4 +77,4 @@ def run_qc(variable: Variable, values: np.ndarray) -> QcResult:
         cleaned, filled = fill_short_gaps(cleaned)
     else:
         filled = np.zeros(cleaned.shape, dtype=bool)
-    return QcResult(cleaned, out_of_range, spikes, filled)
+    return QcResult(values=cleaned, out_of_range=out_of_range, spikes=spikes, filled=filled)

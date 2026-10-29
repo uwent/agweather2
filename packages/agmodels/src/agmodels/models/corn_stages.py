@@ -50,9 +50,9 @@ GRAIN_FILL = (
 )
 
 MATURITY = Option(
-    "black_layer_gdd",
-    "Hybrid maturity: GDD from planting to black layer",
-    (
+    name="black_layer_gdd",
+    label="Hybrid maturity: GDD from planting to black layer",
+    choices=(
         ("2100", "2100 GDD (early season)"),
         ("2300", "2300 GDD (early season)"),
         ("2500", "2500 GDD (mid-season)"),
@@ -60,22 +60,31 @@ MATURITY = Option(
         ("2900", "2900 GDD (full season)"),
         ("3100", "3100 GDD (full season)"),
     ),
-    "2500",
+    default="2500",
 )  # NCH-40's classes: early season 2100–2400, mid-season 2400–2800, full season 2900–3200
 
 MARGIN_DAYS = 3  # VE, R1 and R6 came within 3 days of observed on Yang et al.'s seasons
 
 STAGES = (
-    CropStage("VE", "Emergence", "The coleoptile breaks the soil surface."),
-    *(CropStage(f"V{n}", f"{n} leaf collars", "Leaf collars visible on the main stem.") for n in range(1, MAX_LEAVES)),
-    CropStage("VT", "Tasseling", "The last branch of the tassel is fully visible.", estimated=True),
-    CropStage("R1", "Silking", "Silks visible outside the husks; pollination."),
-    CropStage("R2", "Blister", "Kernels white and blister-like, filled with clear fluid."),
-    CropStage("R3", "Milk", "Kernels yellow outside with milky white fluid inside."),
-    CropStage("R4", "Dough", "Kernel contents thicken to a pasty consistency."),
-    CropStage("R5", "Dent", "Kernels at the top of the ear begin to dent; the milk line forms."),
-    CropStage("R5.5", "Half milk line", "The milk line is halfway down the kernel."),
-    CropStage("R6", "Black layer", "Physiological maturity: kernels have reached their maximum dry weight."),
+    CropStage(code="VE", name="Emergence", description="The coleoptile breaks the soil surface."),
+    *(
+        CropStage(code=f"V{n}", name=f"{n} leaf collars", description="Leaf collars visible on the main stem.")
+        for n in range(1, MAX_LEAVES)
+    ),
+    CropStage(
+        code="VT", name="Tasseling", description="The last branch of the tassel is fully visible.", estimated=True
+    ),
+    CropStage(code="R1", name="Silking", description="Silks visible outside the husks; pollination."),
+    CropStage(code="R2", name="Blister", description="Kernels white and blister-like, filled with clear fluid."),
+    CropStage(code="R3", name="Milk", description="Kernels yellow outside with milky white fluid inside."),
+    CropStage(code="R4", name="Dough", description="Kernel contents thicken to a pasty consistency."),
+    CropStage(code="R5", name="Dent", description="Kernels at the top of the ear begin to dent; the milk line forms."),
+    CropStage(code="R5.5", name="Half milk line", description="The milk line is halfway down the kernel."),
+    CropStage(
+        code="R6",
+        name="Black layer",
+        description="Physiological maturity: kernels have reached their maximum dry weight.",
+    ),
 )
 
 SPEC = ModelSpec(
@@ -90,44 +99,60 @@ SPEC = ModelSpec(
     crops=("Corn",),
     citations=(
         Citation(
-            "Neild, R. E. and Newman, J. E. (1987). Growing season characteristics and requirements in the Corn Belt. "
-            "National Corn Handbook NCH-40, Purdue University.",
-            "https://www.extension.purdue.edu/extmedia/nch/nch-40.html",
+            text="Neild, R. E. and Newman, J. E. (1987). Growing season characteristics and requirements in the Corn "
+            "Belt. National Corn Handbook NCH-40, Purdue University.",
+            url="https://www.extension.purdue.edu/extmedia/nch/nch-40.html",
         ),
         Citation(
-            "Yang, H. S., Dobermann, A., Lindquist, J. L., Walters, D. T., Arkebauer, T. J. and Cassman, K. G. (2004). "
-            "Hybrid-maize: a maize simulation model that combines two crop modeling approaches. Field Crops "
+            text="Yang, H. S., Dobermann, A., Lindquist, J. L., Walters, D. T., Arkebauer, T. J. and Cassman, K. G. "
+            "(2004). Hybrid-maize: a maize simulation model that combines two crop modeling approaches. Field Crops "
             "Research 87, 131–154.",
             doi="10.1016/j.fcr.2003.10.003",
         ),
         Citation(
-            "Nielsen, R. L. Use thermal time to predict leaf stage development in corn. Corny News Network, Purdue "
-            "University.",
-            "https://www.agry.purdue.edu/ext/corn/news/timeless/VStagePrediction.html",
+            text="Nielsen, R. L. Use thermal time to predict leaf stage development in corn. Corny News Network, "
+            "Purdue University.",
+            url="https://www.agry.purdue.edu/ext/corn/news/timeless/VStagePrediction.html",
         ),
         Citation(
-            "Nielsen, R. L. Grain fill stages in corn. Corny News Network, Purdue University.",
-            "https://www.agry.purdue.edu/ext/corn/news/timeless/GrainFill.html",
+            text="Nielsen, R. L. Grain fill stages in corn. Corny News Network, Purdue University.",
+            url="https://www.agry.purdue.edu/ext/corn/news/timeless/GrainFill.html",
         ),
         Citation(
-            "Abendroth, L. J., Elmore, R. W., Boyer, M. J. and Marlay, S. K. (2011). Corn growth and development. "
+            text="Abendroth, L. J., Elmore, R. W., Boyer, M. J. and Marlay, S. K. (2011). Corn growth and development. "
             "PMR 1009, Iowa State University Extension.",
-            "https://shop.iastate.edu/extension/farm-environment/crops-and-soils/agronomic-crops/pmr1009.html",
+            url="https://shop.iastate.edu/extension/farm-environment/crops-and-soils/agronomic-crops/pmr1009.html",
         ),
     ),
     inputs=(
-        Quantity("air_temperature_min", "Minimum temperature", "degC"),
-        Quantity("air_temperature_max", "Maximum temperature", "degC"),
+        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
     ),
     outputs=(
-        Quantity("stage", "Growth stage", "index", "Index in the crop's stage list"),
-        Quantity("gdd_total", "GDD since planting", "degF_day"),
-        Quantity("gdd", "GDD (modified 50/86 °F)", "degF_day"),
+        Quantity(name="stage", label="Growth stage", unit="index", description="Index in the crop's stage list"),
+        Quantity(name="gdd_total", label="GDD since planting", unit="degF_day"),
+        Quantity(name="gdd", label="GDD (modified 50/86 °F)", unit="degF_day"),
     ),
     risk=None,
     explorer=(
-        ExplorerInput("gdd_total", "GDD since planting", "degF_day", 0, 3500, 10, 1000),
-        ExplorerInput("black_layer_gdd", "GDD from planting to black layer", "degF_day", 1800, 3400, 50, 2500),
+        ExplorerInput(
+            name="gdd_total",
+            label="GDD since planting",
+            unit="degF_day",
+            minimum=0,
+            maximum=3500,
+            step=10,
+            default=1000,
+        ),
+        ExplorerInput(
+            name="black_layer_gdd",
+            label="GDD from planting to black layer",
+            unit="degF_day",
+            minimum=1800,
+            maximum=3400,
+            step=50,
+            default=2500,
+        ),
     ),
     sweep={
         "gdd_total": tuple(float(g) for g in range(0, 3501, 25)),
@@ -135,8 +160,8 @@ SPEC = ModelSpec(
     },
     options=(MATURITY,),
     season=("04-01", "10-31"),
-    biofix=Biofix("05-10", "Planting date"),
-    changelog=(Change("1.0", "2026-10-28", "First version."),),
+    biofix=Biofix(default="05-10", label="Planting date"),
+    changelog=(Change(version="1.0", date="2026-10-28", note="First version."),),
 )
 
 

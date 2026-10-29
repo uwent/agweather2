@@ -43,52 +43,68 @@ SPEC = ModelSpec(
     crops=("Carrot",),
     citations=(
         Citation(
-            "Pitblado, R. E. (1992). TOM-CAST: a weather-timed fungicide spray program for field tomatoes. "
+            text="Pitblado, R. E. (1992). TOM-CAST: a weather-timed fungicide spray program for field tomatoes. "
             "Ridgetown College of Agricultural Technology, Ontario.",
-            "https://atrium.lib.uoguelph.ca/server/api/core/bitstreams/5c7ec712-43ef-4b73-b8b8-e85c29d3d58b/content",
+            url="https://atrium.lib.uoguelph.ca/server/api/core/bitstreams/5c7ec712-43ef-4b73-b8b8-e85c29d3d58b/content",
         ),
         Citation(
-            "Madden, L., Pennypacker, S. P. and MacNab, A. A. (1978). FAST, a forecast system for Alternaria "
+            text="Madden, L., Pennypacker, S. P. and MacNab, A. A. (1978). FAST, a forecast system for Alternaria "
             "solani on tomato. Phytopathology 68, 1354–1358.",
-            "https://www.apsnet.org/publications/phytopathology/backissues/Documents/1978Articles/Phyto68n09_1354.PDF",
+            url="https://www.apsnet.org/publications/phytopathology/backissues/Documents/1978Articles/Phyto68n09_1354.PDF",
             doi="10.1094/Phyto-68-1354",
         ),
         Citation(
-            "UW Vegetable Pathology: Carrot Alternaria and Cercospora leaf blights.",
-            "https://vegpath.plantpath.wisc.edu/diseases/carrot-alternaria-and-cercospora-leaf-blights/",
+            text="UW Vegetable Pathology: Carrot Alternaria and Cercospora leaf blights.",
+            url="https://vegpath.plantpath.wisc.edu/diseases/carrot-alternaria-and-cercospora-leaf-blights/",
         ),
     ),
     inputs=(
-        Quantity("hours_rh_over_90_from_8pm", "Hours with RH ≥ 90%", "hour", "Day from 8 pm the evening before"),
-        Quantity("temperature_mean_rh_over_90_from_8pm", "Mean temperature during RH ≥ 90%", "degC"),
+        Quantity(
+            name="hours_rh_over_90_from_8pm",
+            label="Hours with RH ≥ 90%",
+            unit="hour",
+            description="Day from 8 pm the evening before",
+        ),
+        Quantity(name="temperature_mean_rh_over_90_from_8pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
     ),
     outputs=(
-        Quantity("dsv", "Disease severity values", "index"),
-        Quantity("dsv_7_day", "DSVs in the last 7 days", "index"),
-        Quantity("dsv_total", "DSVs since planting", "index"),
+        Quantity(name="dsv", label="Disease severity values", unit="index"),
+        Quantity(name="dsv_7_day", label="DSVs in the last 7 days", unit="index"),
+        Quantity(name="dsv_total", label="DSVs since planting", unit="index"),
     ),
     risk=Risk(
-        SEVERITY_LEVELS,
-        "The last 7 days' DSVs: Very low below 5, Low from 5, Moderate from 10, High from 15, Very high from 20.",
+        levels=SEVERITY_LEVELS,
+        criteria="The last 7 days' DSVs: Very low below 5, Low from 5, Moderate from 10, High from 15, Very high "
+        "from 20.",
     ),
     explorer=(
-        ExplorerInput("temperature", "Mean temperature during RH ≥ 90%", "degC", 5, 35, 0.5, 20),
-        ExplorerInput("hours", "Hours with RH ≥ 90%", "hour", 0, 24, 1, 10),
+        ExplorerInput(
+            name="temperature",
+            label="Mean temperature during RH ≥ 90%",
+            unit="degC",
+            minimum=5,
+            maximum=35,
+            step=0.5,
+            default=20,
+        ),
+        ExplorerInput(
+            name="hours", label="Hours with RH ≥ 90%", unit="hour", minimum=0, maximum=24, step=1, default=10
+        ),
     ),
     sweep={"temperature": tuple(float(t) for t in range(8, 35)), "hours": tuple(float(h) for h in range(25))},
     season=("06-01", "09-30"),
-    biofix=Biofix("06-01", "Planting or the last fungicide application"),
+    biofix=Biofix(default="06-01", label="Planting or the last fungicide application"),
     changelog=(
         Change(
-            "1.0",
-            "2026-10-28",
-            "Ported from the Crop Risk Tool; humid hours and their temperature from "
+            version="1.0",
+            date="2026-10-28",
+            note="Ported from the Crop Risk Tool; humid hours and their temperature from "
             "the same window (the day from 8 pm).",
         ),
         Change(
-            "1.1",
-            "2026-10-28",
-            "FAST's table (Madden et al. 1978): the first step at 13–17 °C from 7 h and at 18–20 °C from 4 h, and "
+            version="1.1",
+            date="2026-10-28",
+            note="FAST's table (Madden et al. 1978): the first step at 13–17 °C from 7 h and at 18–20 °C from 4 h, and "
             "18, 21 and 26 °C in the band above.",
         ),
     ),

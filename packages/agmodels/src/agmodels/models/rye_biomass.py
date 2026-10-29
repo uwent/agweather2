@@ -36,36 +36,56 @@ SPEC = ModelSpec(
     topics=("cereal-rye-cover-crop",),
     crops=("Rye",),
     citations=(
-        Citation("Unpublished logistic growth fit on Wisconsin data, as in the Crop Risk Tool."),
+        Citation(text="Unpublished logistic growth fit on Wisconsin data, as in the Crop Risk Tool."),
         Citation(
-            "UW–Madison Extension: Biomass thresholds for cereal rye cover crop goals.",
-            "https://cropsandsoils.extension.wisc.edu/articles/biomass-thresholds-for-cereal-rye-cover-crop-goals/",
+            text="UW–Madison Extension: Biomass thresholds for cereal rye cover crop goals.",
+            url="https://cropsandsoils.extension.wisc.edu/articles/biomass-thresholds-for-cereal-rye-cover-crop-goals/",
         ),
         Citation(
-            "Badger Crop Network: How much cereal rye cover crop biomass is needed to suppress troublesome weeds in "
-            "Wisconsin?",
-            "https://badgercropnetwork.com/how-much-cereal-rye-cover-crop-biomass-is-needed-to-suppress-troublesome-weeds-in-wisconsin/",
+            text="Badger Crop Network: How much cereal rye cover crop biomass is needed to suppress troublesome weeds "
+            "in Wisconsin?",
+            url="https://badgercropnetwork.com/how-much-cereal-rye-cover-crop-biomass-is-needed-to-suppress-troublesome-weeds-in-wisconsin/",
         ),
     ),
     inputs=(
-        Quantity("air_temperature_min", "Minimum temperature", "degC"),
-        Quantity("air_temperature_max", "Maximum temperature", "degC"),
-        Quantity("precipitation_sum", "Precipitation", "mm", "From planting through December 31"),
+        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
+        Quantity(
+            name="precipitation_sum", label="Precipitation", unit="mm", description="From planting through December 31"
+        ),
     ),
     outputs=(
-        Quantity("biomass", "Predicted biomass", "lb_ac"),
-        Quantity("gdd_total", "GDD (0/35 °C) since planting", "degC_day"),
-        Quantity("precipitation_fall", "Precipitation from planting through December 31", "mm"),
+        Quantity(name="biomass", label="Predicted biomass", unit="lb_ac"),
+        Quantity(name="gdd_total", label="GDD (0/35 °C) since planting", unit="degC_day"),
+        Quantity(name="precipitation_fall", label="Precipitation from planting through December 31", unit="mm"),
     ),
     risk=Risk(
-        ("Low", "Moderate", "High"),
-        "Biomass: Low below 2,000 lb/ac (modest nitrate leaching reduction), Moderate from 2,000 (erosion, runoff "
-        "phosphorus and nitrate), High from 4,500 (weed suppression as well).",
+        levels=("Low", "Moderate", "High"),
+        criteria="Biomass: Low below 2,000 lb/ac (modest nitrate leaching reduction), Moderate from 2,000 (erosion, "
+        "runoff phosphorus and nitrate), High from 4,500 (weed suppression as well).",
     ),
     explorer=(
-        ExplorerInput("gdd_total", "GDD (0/35 °C) since planting", "degC_day", 0, 3000, 10, 1200),
-        ExplorerInput("planting_day", "Planting day of year", "day", 230, 330, 1, 274),
-        ExplorerInput("precipitation_fall", "Precipitation from planting through December 31", "mm", 0, 400, 5, 100),
+        ExplorerInput(
+            name="gdd_total",
+            label="GDD (0/35 °C) since planting",
+            unit="degC_day",
+            minimum=0,
+            maximum=3000,
+            step=10,
+            default=1200,
+        ),
+        ExplorerInput(
+            name="planting_day", label="Planting day of year", unit="day", minimum=230, maximum=330, step=1, default=274
+        ),
+        ExplorerInput(
+            name="precipitation_fall",
+            label="Precipitation from planting through December 31",
+            unit="mm",
+            minimum=0,
+            maximum=400,
+            step=5,
+            default=100,
+        ),
     ),
     sweep={
         "gdd_total": tuple(float(g) for g in range(0, 3001, 100)),
@@ -75,8 +95,8 @@ SPEC = ModelSpec(
     context=("day_of_year",),
     region=("WI", "MN", "IA", "IL", "MI"),
     season=("09-01", "06-30"),
-    biofix=Biofix("10-01", "Fall planting date"),
-    changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool."),),
+    biofix=Biofix(default="10-01", label="Fall planting date"),
+    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

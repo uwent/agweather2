@@ -39,7 +39,7 @@ HOUR = timedelta(hours=1)
 HOURLY_VARIABLES: list[Variable] = list(VARIABLES.values())
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Hour:
     """One hour's fields over the window, in stored units, and which source gave each."""
 
@@ -75,7 +75,7 @@ def fetch_hour(when: datetime, window: Window, session: requests.Session) -> Hou
     return hour
 
 
-@dataclass
+@dataclass(kw_only=True)
 class BlockReport:
     start: datetime
     hours: int
@@ -101,7 +101,7 @@ def ingest_block(
     window = store.window
     packed = {v.name: np.full((hours, *window.shape), FILL, dtype=np.int16) for v in HOURLY_VARIABLES}
     sources: dict[str, list[str | None]] = {v.name: [None] * hours for v in HOURLY_VARIABLES}
-    report = BlockReport(start, hours, {}, {}, {})
+    report = BlockReport(start=start, hours=hours, missing={}, out_of_range={}, spikes={})
     done = 0
     done_lock = threading.Lock()
 

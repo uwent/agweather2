@@ -3,9 +3,9 @@
 from agmodels.phenology import Insect
 
 INSECT = Insect(
-    "colorado-potato-beetle-larvae",
-    "Colorado Potato Beetle (Larvae)",
-    ("Eggplant", "Potato", "Tomato"),
+    id="colorado-potato-beetle-larvae",
+    name="Colorado Potato Beetle (Larvae)",
+    crops=("Eggplant", "Potato", "Tomato"),
     base_f=50,
     upper_f=86,
     biofix="01-01",

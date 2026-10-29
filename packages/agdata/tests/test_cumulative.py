@@ -12,7 +12,7 @@ from agmodels.degree_days import degree_days_modified, degree_days_sine
 
 PAD = MAX_BRIDGE_DAYS
 DAYS = 40
-WINDOW = Window(900, 902, 1400, 1403)
+WINDOW = Window(j0=900, j1=902, i0=1400, i1=1403)
 
 
 def series(days=DAYS):

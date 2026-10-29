@@ -16,7 +16,7 @@ import numpy as np
 System = Literal["metric", "imperial"]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Unit:
     symbol: str
     label: str
@@ -30,43 +30,43 @@ UNITS: dict[str, Unit] = {
     unit.symbol: unit
     for unit in [
         # temperature (base °C)
-        Unit("degC", "°C", "temperature", digits=1),
-        Unit("degF", "°F", "temperature", factor=5 / 9, offset=-32 * 5 / 9, digits=0),
-        Unit("K", "K", "temperature", offset=-273.15, digits=1),
+        Unit(symbol="degC", label="°C", dimension="temperature", digits=1),
+        Unit(symbol="degF", label="°F", dimension="temperature", factor=5 / 9, offset=-32 * 5 / 9, digits=0),
+        Unit(symbol="K", label="K", dimension="temperature", offset=-273.15, digits=1),
         # degree days and other temperature-time sums (base °C·d)
-        Unit("degC_day", "°C·d", "degree_days", digits=0),
-        Unit("degF_day", "°F·d", "degree_days", factor=5 / 9, digits=0),
+        Unit(symbol="degC_day", label="°C·d", dimension="degree_days", digits=0),
+        Unit(symbol="degF_day", label="°F·d", dimension="degree_days", factor=5 / 9, digits=0),
         # depth of water: precipitation, ET (base mm; kg/m² of water is 1 mm)
-        Unit("mm", "mm", "depth", digits=1),
-        Unit("kg_m2", "kg/m²", "depth", digits=1),
-        Unit("cm", "cm", "depth", factor=10, digits=1),
-        Unit("in", "in", "depth", factor=25.4, digits=2),
+        Unit(symbol="mm", label="mm", dimension="depth", digits=1),
+        Unit(symbol="kg_m2", label="kg/m²", dimension="depth", digits=1),
+        Unit(symbol="cm", label="cm", dimension="depth", factor=10, digits=1),
+        Unit(symbol="in", label="in", dimension="depth", factor=25.4, digits=2),
         # speed (base m/s)
-        Unit("m_s", "m/s", "speed", digits=1),
-        Unit("km_h", "km/h", "speed", factor=1 / 3.6, digits=0),
-        Unit("mph", "mph", "speed", factor=0.44704, digits=0),
-        Unit("kn", "kn", "speed", factor=1852 / 3600, digits=0),
+        Unit(symbol="m_s", label="m/s", dimension="speed", digits=1),
+        Unit(symbol="km_h", label="km/h", dimension="speed", factor=1 / 3.6, digits=0),
+        Unit(symbol="mph", label="mph", dimension="speed", factor=0.44704, digits=0),
+        Unit(symbol="kn", label="kn", dimension="speed", factor=1852 / 3600, digits=0),
         # pressure (base kPa)
-        Unit("kPa", "kPa", "pressure", digits=1),
-        Unit("Pa", "Pa", "pressure", factor=0.001, digits=0),
-        Unit("hPa", "hPa", "pressure", factor=0.1, digits=0),
-        Unit("inHg", "inHg", "pressure", factor=3.386389, digits=2),
+        Unit(symbol="kPa", label="kPa", dimension="pressure", digits=1),
+        Unit(symbol="Pa", label="Pa", dimension="pressure", factor=0.001, digits=0),
+        Unit(symbol="hPa", label="hPa", dimension="pressure", factor=0.1, digits=0),
+        Unit(symbol="inHg", label="inHg", dimension="pressure", factor=3.386389, digits=2),
         # irradiance, a rate (base W/m²)
-        Unit("W_m2", "W/m²", "irradiance", digits=0),
+        Unit(symbol="W_m2", label="W/m²", dimension="irradiance", digits=0),
         # radiant exposure, a sum over time (base MJ/m²)
-        Unit("MJ_m2", "MJ/m²", "radiant_exposure", digits=1),
-        Unit("kWh_m2", "kWh/m²", "radiant_exposure", factor=3.6, digits=2),
-        Unit("ly", "ly", "radiant_exposure", factor=0.041868, digits=0),
+        Unit(symbol="MJ_m2", label="MJ/m²", dimension="radiant_exposure", digits=1),
+        Unit(symbol="kWh_m2", label="kWh/m²", dimension="radiant_exposure", factor=3.6, digits=2),
+        Unit(symbol="ly", label="ly", dimension="radiant_exposure", factor=0.041868, digits=0),
         # mass per area: biomass, yield (base kg/ha); a pound per acre is 0.45359237 kg per 0.40468564224 ha
-        Unit("kg_ha", "kg/ha", "areal_mass", digits=0),
-        Unit("lb_ac", "lb/ac", "areal_mass", factor=0.45359237 / 0.40468564224, digits=0),
+        Unit(symbol="kg_ha", label="kg/ha", dimension="areal_mass", digits=0),
+        Unit(symbol="lb_ac", label="lb/ac", dimension="areal_mass", factor=0.45359237 / 0.40468564224, digits=0),
         # fractions and angles (no conversion)
-        Unit("percent", "%", "fraction", digits=0),
-        Unit("deg", "°", "angle", digits=0),
+        Unit(symbol="percent", label="%", dimension="fraction", digits=0),
+        Unit(symbol="deg", label="°", dimension="angle", digits=0),
         # counts
-        Unit("day", "d", "duration", digits=0),
-        Unit("hour", "h", "duration", factor=1 / 24, digits=0),
-        Unit("index", "", "index", digits=1),  # model indices (DSVs, P-days): no conversion
+        Unit(symbol="day", label="d", dimension="duration", digits=0),
+        Unit(symbol="hour", label="h", dimension="duration", factor=1 / 24, digits=0),
+        Unit(symbol="index", label="", dimension="index", digits=1),  # model indices (DSVs, P-days): no conversion
     ]
 }
 

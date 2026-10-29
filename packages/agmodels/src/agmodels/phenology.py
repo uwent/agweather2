@@ -39,14 +39,14 @@ FREEZE_C = -2.0
 SEASON_END_DAY = 250
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Stage:
     start: float  # degree days (°F) from the biofix
     severity: int
     label: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Insect:
     id: str
     name: str
@@ -80,23 +80,33 @@ class InsectModel:
             "risk of damage it implies.",
             topics=(insect.topic or insect.id,),
             crops=insect.crops,
-            citations=insect.citations or (Citation(f"{insect.source} (UW–Madison Vegetable Entomology)"),),
+            citations=insect.citations or (Citation(text=f"{insect.source} (UW–Madison Vegetable Entomology)"),),
             inputs=(
-                Quantity("air_temperature_min", "Minimum temperature", "degC"),
-                Quantity("air_temperature_max", "Maximum temperature", "degC"),
+                Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+                Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
             ),
             outputs=(
-                Quantity("dd_total", "Degree days since the biofix", "degF_day"),
-                Quantity("dd", "Degree days", "degF_day"),
-                Quantity("stage", "Life stage", "index"),
-                Quantity("freeze_reduction", "Severity removed by recent freezes", "index"),
+                Quantity(name="dd_total", label="Degree days since the biofix", unit="degF_day"),
+                Quantity(name="dd", label="Degree days", unit="degF_day"),
+                Quantity(name="stage", label="Life stage", unit="index"),
+                Quantity(name="freeze_reduction", label="Severity removed by recent freezes", unit="index"),
             ),
-            risk=Risk(SEVERITY_LEVELS, insect.criteria),
-            explorer=(ExplorerInput("dd_total", "Degree days since the biofix", "degF_day", 0, 4000, 10, 500),),
+            risk=Risk(levels=SEVERITY_LEVELS, criteria=insect.criteria),
+            explorer=(
+                ExplorerInput(
+                    name="dd_total",
+                    label="Degree days since the biofix",
+                    unit="degF_day",
+                    minimum=0,
+                    maximum=4000,
+                    step=10,
+                    default=500,
+                ),
+            ),
             sweep={"dd_total": tuple(float(d) for d in range(0, 4001, 100))},
-            biofix=Biofix(insect.biofix, insect.biofix_label),
+            biofix=Biofix(default=insect.biofix, label=insect.biofix_label),
             context=("day_of_year",),  # the freeze reduction; without it there's none
-            changelog=(Change("1.0", "2026-10-28", f"Ported from {insect.source}."),),
+            changelog=(Change(version="1.0", date="2026-10-28", note=f"Ported from {insect.source}."),),
         )
 
     def outputs(self, inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:

@@ -18,7 +18,7 @@ def test_a_linear_field_regrids_exactly():
 
 
 def test_missing_neighbors_and_cells_outside_the_source_are_nan():
-    window = Window(800, 810, 1400, 1410)
+    window = Window(j0=800, j1=810, i0=1400, i1=1410)
     field = np.ones((HRRR_GRID.ny, HRRR_GRID.nx))
     w = bilinear_weights(HRRR_GRID, window)
     field[w.j0[1, 1], w.i0[1, 1]] = np.nan
@@ -26,10 +26,10 @@ def test_missing_neighbors_and_cells_outside_the_source_are_nan():
     # Neighboring 2.5 km cells can share a 3 km source corner, so check a cell well away from it
     assert np.isnan(out[1, 1]) and np.isfinite(out[9, 9])
     # NDFD's far northwest corner is beyond HRRR's grid
-    corner = regrid(np.ones((HRRR_GRID.ny, HRRR_GRID.nx)), HRRR_GRID, Window(1590, 1597, 0, 5))
+    corner = regrid(np.ones((HRRR_GRID.ny, HRRR_GRID.nx)), HRRR_GRID, Window(j0=1590, j1=1597, i0=0, i1=5))
     assert np.isnan(corner).all()
 
 
 def test_shape_is_checked():
     with pytest.raises(ValueError):
-        regrid(np.ones((10, 10)), HRRR_GRID, Window(0, 2, 0, 2))
+        regrid(np.ones((10, 10)), HRRR_GRID, Window(j0=0, j1=2, i0=0, i1=2))

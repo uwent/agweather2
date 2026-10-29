@@ -35,36 +35,103 @@ SPEC = ModelSpec(
     topics=("soybean-cercospora-leaf-blight",),
     crops=("Soybean",),
     citations=(
-        Citation("Richard Webster (North Dakota State University), as implemented in the Crop Risk Tool."),
+        Citation(text="Richard Webster (North Dakota State University), as implemented in the Crop Risk Tool."),
         Citation(
-            "Crop Protection Network: Cercospora leaf blight of soybean.",
-            "https://cropprotectionnetwork.org/encyclopedia/cercospora-leaf-blight-of-soybean",
+            text="Crop Protection Network: Cercospora leaf blight of soybean.",
+            url="https://cropprotectionnetwork.org/encyclopedia/cercospora-leaf-blight-of-soybean",
         ),
         Citation(
-            "Crop Protection Network: An overview of Cercospora leaf blight of soybean.",
-            "https://cropprotectionnetwork.org/publications/an-overview-of-cercospora-leaf-blight-of-soybean",
+            text="Crop Protection Network: An overview of Cercospora leaf blight of soybean.",
+            url="https://cropprotectionnetwork.org/publications/an-overview-of-cercospora-leaf-blight-of-soybean",
         ),
     ),
     inputs=(
-        Quantity("air_temperature_min", "Minimum temperature", "degC", "5-day moving average"),
-        Quantity("dew_point_depression_mean", "Mean dew point depression", "degC", "5-day moving average"),
-        Quantity("dew_point_depression_max", "Maximum dew point depression", "degC", "5-day moving average"),
-        Quantity("wind_speed_max", "Maximum wind speed", "m_s", "14-day moving average"),
-        Quantity("hours_rh_over_90", "Hours with RH ≥ 90%", "hour", "10- and 14-day moving averages"),
+        Quantity(
+            name="air_temperature_min", label="Minimum temperature", unit="degC", description="5-day moving average"
+        ),
+        Quantity(
+            name="dew_point_depression_mean",
+            label="Mean dew point depression",
+            unit="degC",
+            description="5-day moving average",
+        ),
+        Quantity(
+            name="dew_point_depression_max",
+            label="Maximum dew point depression",
+            unit="degC",
+            description="5-day moving average",
+        ),
+        Quantity(name="wind_speed_max", label="Maximum wind speed", unit="m_s", description="14-day moving average"),
+        Quantity(
+            name="hours_rh_over_90",
+            label="Hours with RH ≥ 90%",
+            unit="hour",
+            description="10- and 14-day moving averages",
+        ),
     ),
-    outputs=tuple(Quantity(name, f"{label} spore probability", "percent") for name, (label, _) in SPECIES.items()),
+    outputs=tuple(
+        Quantity(name=name, label=f"{label} spore probability", unit="percent") for name, (label, _) in SPECIES.items()
+    ),
     risk=Risk(
-        PROBABILITY_LEVELS,
-        "The highest of the three species' levels. C. flagellaris: Low from 1%, Moderate from 10%, High from 15%. "
-        "C. cf. sigesbeckiae and C. kikuchii: Low from 1%, Moderate from 5%, High from 10%.",
+        levels=PROBABILITY_LEVELS,
+        criteria="The highest of the three species' levels. C. flagellaris: Low from 1%, Moderate from 10%, High from "
+        "15%. C. cf. sigesbeckiae and C. kikuchii: Low from 1%, Moderate from 5%, High from 10%.",
     ),
     explorer=(
-        ExplorerInput("min_temp_5day", "Minimum temperature, 5-day average", "degC", 0, 30, 0.5, 18),
-        ExplorerInput("mean_dpd_5day", "Mean dew point depression, 5-day average", "degC", 0, 15, 0.5, 4),
-        ExplorerInput("max_dpd_5day", "Maximum dew point depression, 5-day average", "degC", 0, 25, 0.5, 10),
-        ExplorerInput("max_wind_14day", "Maximum wind, 14-day average", "m_s", 0, 15, 0.5, 5),
-        ExplorerInput("hours_rh90_10day", "Hours RH ≥ 90%, 10-day average", "hour", 0, 24, 0.5, 6),
-        ExplorerInput("hours_rh90_14day", "Hours RH ≥ 90%, 14-day average", "hour", 0, 24, 0.5, 6),
+        ExplorerInput(
+            name="min_temp_5day",
+            label="Minimum temperature, 5-day average",
+            unit="degC",
+            minimum=0,
+            maximum=30,
+            step=0.5,
+            default=18,
+        ),
+        ExplorerInput(
+            name="mean_dpd_5day",
+            label="Mean dew point depression, 5-day average",
+            unit="degC",
+            minimum=0,
+            maximum=15,
+            step=0.5,
+            default=4,
+        ),
+        ExplorerInput(
+            name="max_dpd_5day",
+            label="Maximum dew point depression, 5-day average",
+            unit="degC",
+            minimum=0,
+            maximum=25,
+            step=0.5,
+            default=10,
+        ),
+        ExplorerInput(
+            name="max_wind_14day",
+            label="Maximum wind, 14-day average",
+            unit="m_s",
+            minimum=0,
+            maximum=15,
+            step=0.5,
+            default=5,
+        ),
+        ExplorerInput(
+            name="hours_rh90_10day",
+            label="Hours RH ≥ 90%, 10-day average",
+            unit="hour",
+            minimum=0,
+            maximum=24,
+            step=0.5,
+            default=6,
+        ),
+        ExplorerInput(
+            name="hours_rh90_14day",
+            label="Hours RH ≥ 90%, 14-day average",
+            unit="hour",
+            minimum=0,
+            maximum=24,
+            step=0.5,
+            default=6,
+        ),
     ),
     sweep={
         "min_temp_5day": (12.0, 20.0),
@@ -76,13 +143,13 @@ SPEC = ModelSpec(
     },
     lookback_days=14,
     susceptible=Susceptibility(
-        "soybean-stages",
-        "R3",
-        "R6",
-        "Provisional: CPN (symptoms from beginning seed set)",
-        "The fit is unpublished and its author gave no risk period: confirm with Webster.",
+        crop="soybean-stages",
+        first="R3",
+        last="R6",
+        source="Provisional: CPN (symptoms from beginning seed set)",
+        note="The fit is unpublished and its author gave no risk period: confirm with Webster.",
     ),
-    changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool."),),
+    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

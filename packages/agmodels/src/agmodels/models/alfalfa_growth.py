@@ -26,9 +26,17 @@ CUT_FROM, CUT_UNTIL = 900.0, 1100.0
 MARGIN_DAYS = 0  # no disease is gated on alfalfa's stages yet
 
 STAGES = (
-    CropStage("Regrowth", "Growing", "Regrowing since spring green-up or the last cutting."),
-    CropStage("Cut", "Ready to cut", "900–1100 GDD since spring or the last cutting: the window for cutting."),
-    CropStage("Late", "Past the cut window", "Over 1100 GDD: forage quality declines as the crop matures."),
+    CropStage(code="Regrowth", name="Growing", description="Regrowing since spring green-up or the last cutting."),
+    CropStage(
+        code="Cut",
+        name="Ready to cut",
+        description="900–1100 GDD since spring or the last cutting: the window for cutting.",
+    ),
+    CropStage(
+        code="Late",
+        name="Past the cut window",
+        description="Over 1100 GDD: forage quality declines as the crop matures.",
+    ),
 )
 THRESHOLDS = np.array([0.0, CUT_FROM, CUT_UNTIL])
 
@@ -44,34 +52,45 @@ SPEC = ModelSpec(
     crops=("Alfalfa",),
     citations=(
         Citation(
-            "Newell, S. Managing fall alfalfa cutting for persistence. UW–Madison Extension Crops and Soils (written "
-            "with the UW alfalfa cutting tool, whose 900–1100 GDD cutting window this follows).",
-            "https://cropsandsoils.extension.wisc.edu/articles/managing-fall-alfalfa-cutting-for-persistence/",
+            text="Newell, S. Managing fall alfalfa cutting for persistence. UW–Madison Extension Crops and Soils "
+            "(written with the UW alfalfa cutting tool, whose 900–1100 GDD cutting window this follows).",
+            url="https://cropsandsoils.extension.wisc.edu/articles/managing-fall-alfalfa-cutting-for-persistence/",
         ),
         Citation(
-            "Iowa State University Extension: Should I take a late fall alfalfa cutting? (the 900 and 360 GDD rule).",
-            "https://crops.extension.iastate.edu/post/should-i-take-late-fall-alfalfa-cutting-it-too-late-or-warm",
+            text="Iowa State University Extension: Should I take a late fall alfalfa cutting? (the 900 and 360 GDD "
+            "rule).",
+            url="https://crops.extension.iastate.edu/post/should-i-take-late-fall-alfalfa-cutting-it-too-late-or-warm",
         ),
         Citation(
-            "UW–Madison Extension: Timing of fall alfalfa harvest can impact long-term viability of the stand.",
-            "https://cropsandsoils.extension.wisc.edu/timing-of-fall-alfalfa-harvest-can-impact-long-term-viability-of-the-stand",
+            text="UW–Madison Extension: Timing of fall alfalfa harvest can impact long-term viability of the stand.",
+            url="https://cropsandsoils.extension.wisc.edu/timing-of-fall-alfalfa-harvest-can-impact-long-term-viability-of-the-stand",
         ),
     ),
     inputs=(
-        Quantity("air_temperature_min", "Minimum temperature", "degC"),
-        Quantity("air_temperature_max", "Maximum temperature", "degC"),
+        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
     ),
     outputs=(
-        Quantity("stage", "Growth stage", "index", "Index in the crop's stage list"),
-        Quantity("gdd_total", "GDD (41/86 °F) since spring or the last cutting", "degF_day"),
-        Quantity("gdd", "GDD (41/86 °F, single sine)", "degF_day"),
+        Quantity(name="stage", label="Growth stage", unit="index", description="Index in the crop's stage list"),
+        Quantity(name="gdd_total", label="GDD (41/86 °F) since spring or the last cutting", unit="degF_day"),
+        Quantity(name="gdd", label="GDD (41/86 °F, single sine)", unit="degF_day"),
     ),
     risk=None,
-    explorer=(ExplorerInput("gdd_total", "GDD since spring or the last cutting", "degF_day", 0, 1500, 10, 500),),
+    explorer=(
+        ExplorerInput(
+            name="gdd_total",
+            label="GDD since spring or the last cutting",
+            unit="degF_day",
+            minimum=0,
+            maximum=1500,
+            step=10,
+            default=500,
+        ),
+    ),
     sweep={"gdd_total": tuple(float(g) for g in range(0, 1501, 10))},
     season=("03-01", "11-30"),
-    biofix=Biofix("01-01", "January 1 in spring, or the date of the last cutting"),
-    changelog=(Change("1.0", "2026-10-28", "Ported from the UW alfalfa tool."),),
+    biofix=Biofix(default="01-01", label="January 1 in spring, or the date of the last cutting"),
+    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the UW alfalfa tool."),),
 )
 
 

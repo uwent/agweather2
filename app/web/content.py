@@ -26,7 +26,7 @@ TOPIC_FIELDS = ("id", "title", "kind", "crops", "scientific_name", "summary", "i
 STATUSES = ("draft", "reviewed")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Page:
     id: str
     front: dict[str, Any] = field(hash=False)
@@ -43,7 +43,7 @@ def read_page(path: Path, page_id: str | None = None) -> Page:
     front = yaml.safe_load(front_text) or {}
     if front.get("id") != page_id:
         raise ValueError(f"{path}: front matter id {front.get('id')!r} isn't {page_id!r}")
-    return Page(page_id, front, body.strip())
+    return Page(id=page_id, front=front, body=body.strip())
 
 
 @cache

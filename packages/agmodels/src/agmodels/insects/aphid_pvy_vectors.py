@@ -3,9 +3,9 @@
 from agmodels.phenology import Insect
 
 INSECT = Insect(
-    "aphid-pvy-vectors",
-    "Aphid PVY Vectors",
-    ("Potato",),
+    id="aphid-pvy-vectors",
+    name="Aphid PVY Vectors",
+    crops=("Potato",),
     base_f=39.2,
     upper_f=86,
     biofix="01-01",

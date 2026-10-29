@@ -3,9 +3,9 @@
 from agmodels.phenology import Insect
 
 INSECT = Insect(
-    "western-flower-thrips",
-    "Western Flower Thrips",
-    ("Cucumber", "Eggplant", "Onion", "Pepper", "Tomato"),
+    id="western-flower-thrips",
+    name="Western Flower Thrips",
+    crops=("Cucumber", "Eggplant", "Onion", "Pepper", "Tomato"),
     base_f=45,
     upper_f=None,
     biofix="01-01",

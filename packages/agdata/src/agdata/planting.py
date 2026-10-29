@@ -24,7 +24,7 @@ SOURCES = {  # by a row's level
 }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class PlantingDate:
     crop: str
     early: str  # MM-DD: Deines's 10% planted, NASS's start of most active (15%)
@@ -42,7 +42,9 @@ class PlantingDate:
 def _table() -> dict[tuple[str, str], PlantingDate]:
     with (DATA / "planting_dates.csv").open() as f:
         return {
-            (r["crop"], r["area"]): PlantingDate(r["crop"], r["early"], r["typical"], r["late"], r["level"], r["area"])
+            (r["crop"], r["area"]): PlantingDate(
+                crop=r["crop"], early=r["early"], typical=r["typical"], late=r["late"], level=r["level"], area=r["area"]
+            )
             for r in csv.DictReader(f)
         }
 

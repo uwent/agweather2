@@ -26,7 +26,7 @@ from agdata.grid import NDFD, LambertGrid, Window
 Key = tuple[str, str]  # (name, level), as in a wgrib2 .idx line
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class MessageRef:
     key: Key
     offset: int
@@ -34,7 +34,7 @@ class MessageRef:
     detail: str = ""  # the .idx's time field, e.g. "anl" or "15-30 min ave fcst" ("" when scanned)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Field:
     key: Key
     values: np.ndarray  # (ny, nx), NaN where the message has no value

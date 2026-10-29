@@ -40,7 +40,7 @@ STAGES_GDD = (  # (Haun stage, accumulated GDD from planting, description), NDAW
     ("11.6", 1768, "Flowering complete on the main stem and early tillers."),
     ("12.0", 1825, "Kernels watery ripe: kernel size set, little dry matter yet."),
 )
-STAGES = tuple(CropStage(f"H{code}", f"Haun {code}", text) for code, _, text in STAGES_GDD)
+STAGES = tuple(CropStage(code=f"H{code}", name=f"Haun {code}", description=text) for code, _, text in STAGES_GDD)
 THRESHOLDS = np.array([gdd for _, gdd, _ in STAGES_GDD], dtype=float)
 
 SPEC = ModelSpec(
@@ -55,29 +55,33 @@ SPEC = ModelSpec(
     crops=("Wheat",),
     citations=(
         Citation(
-            "Bauer, A., Fanning, C., Enz, J. W. and Eberlein, C. V. (1984). Use of growing-degree days to determine "
-            "spring wheat growth stages. North Dakota Cooperative Extension Service EB-37.",
+            text="Bauer, A., Fanning, C., Enz, J. W. and Eberlein, C. V. (1984). Use of growing-degree days to "
+            "determine spring wheat growth stages. North Dakota Cooperative Extension Service EB-37.",
         ),
         Citation(
-            "NDAWN (North Dakota Agricultural Weather Network): Wheat growing degree days.",
-            "https://ndawn.ndsu.nodak.edu/help-wheat-growing-degree-days.html",
+            text="NDAWN (North Dakota Agricultural Weather Network): Wheat growing degree days.",
+            url="https://ndawn.ndsu.nodak.edu/help-wheat-growing-degree-days.html",
         ),
     ),
     inputs=(
-        Quantity("air_temperature_min", "Minimum temperature", "degC"),
-        Quantity("air_temperature_max", "Maximum temperature", "degC"),
+        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
     ),
     outputs=(
-        Quantity("stage", "Growth stage", "index", "Index in the crop's stage list"),
-        Quantity("gdd_total", "GDD (base 32 °F) since planting", "degF_day"),
-        Quantity("gdd", "GDD (base 32 °F)", "degF_day"),
+        Quantity(name="stage", label="Growth stage", unit="index", description="Index in the crop's stage list"),
+        Quantity(name="gdd_total", label="GDD (base 32 °F) since planting", unit="degF_day"),
+        Quantity(name="gdd", label="GDD (base 32 °F)", unit="degF_day"),
     ),
     risk=None,
-    explorer=(ExplorerInput("gdd_total", "GDD since planting", "degF_day", 0, 2000, 10, 800),),
+    explorer=(
+        ExplorerInput(
+            name="gdd_total", label="GDD since planting", unit="degF_day", minimum=0, maximum=2000, step=10, default=800
+        ),
+    ),
     sweep={"gdd_total": tuple(float(g) for g in range(0, 2001, 10))},
     season=("03-15", "09-15"),
-    biofix=Biofix("04-25", "Planting date"),
-    changelog=(Change("1.0", "2026-10-28", "First version."),),
+    biofix=Biofix(default="04-25", label="Planting date"),
+    changelog=(Change(version="1.0", date="2026-10-28", note="First version."),),
 )
 
 

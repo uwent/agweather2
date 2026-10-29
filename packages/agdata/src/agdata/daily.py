@@ -242,4 +242,4 @@ def _passes(first: date, last: date) -> Iterator[list[date]]:
 
 def _bands(window: Window) -> Iterator[Window]:
     for j in range(window.j0, window.j1, BAND_ROWS):
-        yield Window(j, min(j + BAND_ROWS, window.j1), window.i0, window.i1)
+        yield Window(j0=j, j1=min(j + BAND_ROWS, window.j1), i0=window.i0, i1=window.i1)

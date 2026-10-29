@@ -3,9 +3,9 @@
 from agmodels.phenology import Insect
 
 INSECT = Insect(
-    "spotted-wing-drosophila",
-    "Spotted Wing Drosophila",
-    ("Blackberry", "Cherry", "Raspberry"),
+    id="spotted-wing-drosophila",
+    name="Spotted Wing Drosophila",
+    crops=("Blackberry", "Cherry", "Raspberry"),
     base_f=45,
     upper_f=86,
     biofix="01-01",

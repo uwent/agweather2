@@ -13,7 +13,7 @@ import numpy as np
 from agdata.grid import NDFD, LambertGrid, Window
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class BilinearWeights:
     j0: np.ndarray  # lower-left source row of each target cell
     i0: np.ndarray

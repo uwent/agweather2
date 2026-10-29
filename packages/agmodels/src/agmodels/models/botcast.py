@@ -41,46 +41,80 @@ SPEC = ModelSpec(
     crops=("Onion",),
     citations=(
         Citation(
-            "Sutton, J. C., James, T. D. W. and Rowell, P. M. (1986). BOTCAST: a forecasting system to time the "
+            text="Sutton, J. C., James, T. D. W. and Rowell, P. M. (1986). BOTCAST: a forecasting system to time the "
             "initial fungicide spray for managing Botrytis leaf blight of onions. Agriculture, Ecosystems and "
             "Environment 18, 123–143.",
             doi="10.1016/0167-8809(86)90136-2",
         ),
         Citation(
-            "UW Vegetable Pathology: Onion Botrytis leaf blight.",
-            "https://vegpath.plantpath.wisc.edu/diseases/onion-botrytis/",
+            text="UW Vegetable Pathology: Onion Botrytis leaf blight.",
+            url="https://vegpath.plantpath.wisc.edu/diseases/onion-botrytis/",
         ),
     ),
     inputs=(
-        Quantity("hours_rh_over_90_from_8pm", "Hours with RH ≥ 90%", "hour", "Day from 8 pm the evening before"),
-        Quantity("temperature_mean_rh_over_90_from_8pm", "Mean temperature during RH ≥ 90%", "degC"),
         Quantity(
-            "hours_temperature_over_30c",
-            "Hours at or above 30 °C",
-            "hour",
-            "Four or more on any of the last 5 days makes inoculum unlikely",
+            name="hours_rh_over_90_from_8pm",
+            label="Hours with RH ≥ 90%",
+            unit="hour",
+            description="Day from 8 pm the evening before",
+        ),
+        Quantity(name="temperature_mean_rh_over_90_from_8pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
+        Quantity(
+            name="hours_temperature_over_30c",
+            label="Hours at or above 30 °C",
+            unit="hour",
+            description="Four or more on any of the last 5 days makes inoculum unlikely",
         ),
         Quantity(
-            "hours_rh_under_70", "Hours with RH below 70%", "hour", "With under 1 mm of rain, 6 or more make a dry day"
+            name="hours_rh_under_70",
+            label="Hours with RH below 70%",
+            unit="hour",
+            description="With under 1 mm of rain, 6 or more make a dry day",
         ),
-        Quantity("precipitation_sum", "Precipitation", "mm"),
+        Quantity(name="precipitation_sum", label="Precipitation", unit="mm"),
     ),
     outputs=(
-        Quantity("dsi", "Disease severity index", "index"),
-        Quantity("inoculum", "Inoculum value (0 or 1)", "index"),
-        Quantity("infection", "Infection value (0–2)", "index"),
-        Quantity("dsi_total", "DSI since emergence", "index"),
+        Quantity(name="dsi", label="Disease severity index", unit="index"),
+        Quantity(name="inoculum", label="Inoculum value (0 or 1)", unit="index"),
+        Quantity(name="infection", label="Infection value (0–2)", unit="index"),
+        Quantity(name="dsi_total", label="DSI since emergence", unit="index"),
     ),
     risk=Risk(
-        SEVERITY_LEVELS,
-        "The season's DSI total: Very low up to 10, Low above 10, Moderate above 20, High above 30, "
+        levels=SEVERITY_LEVELS,
+        criteria="The season's DSI total: Very low up to 10, Low above 10, Moderate above 20, High above 30, "
         "Very high above 40.",
     ),
     explorer=(
-        ExplorerInput("temperature", "Mean temperature during RH ≥ 90%", "degC", 0, 32, 0.5, 15),
-        ExplorerInput("hours", "Hours with RH ≥ 90%", "hour", 0, 24, 1, 12),
-        ExplorerInput("hot", "Hot spell in the last 5 days (0 or 1)", "index", 0, 1, 1, 0),
-        ExplorerInput("dry_yesterday", "Yesterday was dry (0 or 1)", "index", 0, 1, 1, 0),
+        ExplorerInput(
+            name="temperature",
+            label="Mean temperature during RH ≥ 90%",
+            unit="degC",
+            minimum=0,
+            maximum=32,
+            step=0.5,
+            default=15,
+        ),
+        ExplorerInput(
+            name="hours", label="Hours with RH ≥ 90%", unit="hour", minimum=0, maximum=24, step=1, default=12
+        ),
+        ExplorerInput(
+            name="hot",
+            label="Hot spell in the last 5 days (0 or 1)",
+            unit="index",
+            minimum=0,
+            maximum=1,
+            step=1,
+            default=0,
+        ),
+        ExplorerInput(
+            name="dry_yesterday",
+            label="Yesterday was dry (0 or 1)",
+            unit="index",
+            minimum=0,
+            maximum=1,
+            step=1,
+            default=0,
+        ),
     ),
     sweep={
         "temperature": tuple(float(t) for t in range(0, 33)),
@@ -89,12 +123,12 @@ SPEC = ModelSpec(
         "dry_yesterday": (0.0, 1.0),
     },
     season=("05-15", "09-15"),
-    biofix=Biofix("05-15", "Crop emergence"),
+    biofix=Biofix(default="05-15", label="Crop emergence"),
     changelog=(
         Change(
-            "1.0",
-            "2026-10-28",
-            "Ported from the Crop Risk Tool; humid hours and their temperature from "
+            version="1.0",
+            date="2026-10-28",
+            note="Ported from the Crop Risk Tool; humid hours and their temperature from "
             "the same window; missing inputs give no DSI.",
         ),
     ),

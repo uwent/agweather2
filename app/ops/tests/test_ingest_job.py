@@ -41,7 +41,7 @@ def fake_fetch(rtma_from: datetime | None = None, down: set[datetime] | None = N
         }
         analysis = "rtma" if rtma_from and when >= rtma_from else "urma"
         sources = {name: "hrrr" if name.startswith(("shortwave", "soil")) else analysis for name in values}
-        return Hour(values, sources)
+        return Hour(values=values, sources=sources)
 
     return fetch
 

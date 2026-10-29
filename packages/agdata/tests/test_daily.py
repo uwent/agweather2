@@ -10,7 +10,7 @@ from agdata.grid import Window
 from agdata.store import HOURLY, GridStore
 from agdata.timezones import day_bounds
 
-WINDOW = Window(900, 902, 1400, 1403)  # 2 x 3 cells near Madison
+WINDOW = Window(j0=900, j1=902, i0=1400, i1=1403)  # 2 x 3 cells near Madison
 HOUR = timedelta(hours=1)
 
 

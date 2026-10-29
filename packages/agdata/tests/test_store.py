@@ -7,7 +7,7 @@ from agdata.catalog import variable
 from agdata.grid import Window
 from agdata.store import DAILY, HOURLY, GridStore, steps_in_year
 
-WINDOW = Window(900, 940, 1400, 1450)  # 40 x 50 cells in Wisconsin
+WINDOW = Window(j0=900, j1=940, i0=1400, i1=1450)  # 40 x 50 cells in Wisconsin
 TEMP, RAIN = variable("air_temperature"), variable("precipitation")
 
 
@@ -35,7 +35,7 @@ def test_write_block_then_read_point_and_block(tmp_path, hourly):
     assert np.isnan(series[0]) and np.isnan(series[-1])  # never written
     np.testing.assert_allclose(series[1:6], block[:, 10, 20], atol=0.05)
 
-    tile = reopened.read_block("air_temperature", t0 + 2, Window(905, 915, 1410, 1430))
+    tile = reopened.read_block("air_temperature", t0 + 2, Window(j0=905, j1=915, i0=1410, i1=1430))
     np.testing.assert_allclose(tile, block[2, 5:15, 10:30], atol=0.05)
 
     sources = reopened.sources("air_temperature")

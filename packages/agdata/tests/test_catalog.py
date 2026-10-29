@@ -37,6 +37,6 @@ def test_every_variable_can_hold_its_qc_range():
 
 def test_a_variable_that_cant_hold_its_range_is_rejected():
     with pytest.raises(ValueError):
-        Variable("bad", "Too narrow", "mm", scale=0.001, valid_min=0, valid_max=1000)
+        Variable(name="bad", long_name="Too narrow", unit="mm", scale=0.001, valid_min=0, valid_max=1000)
     with pytest.raises(ValueError):
-        Variable("bad", "Unknown unit", "furlongs", scale=1)
+        Variable(name="bad", long_name="Unknown unit", unit="furlongs", scale=1)

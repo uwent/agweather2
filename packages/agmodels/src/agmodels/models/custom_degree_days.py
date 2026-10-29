@@ -19,14 +19,21 @@ from agmodels.degree_days import degree_days_average, degree_days_modified, degr
 from agmodels.spec import Biofix, Change, Citation, ExplorerInput, ModelSpec, Option, Quantity
 
 METHOD = Option(
-    "method",
-    "Method",
-    (("sine", "Single sine"), ("average", "Simple average"), ("modified", "Modified average (corn GDD)")),
-    "sine",
+    name="method",
+    label="Method",
+    choices=(("sine", "Single sine"), ("average", "Simple average"), ("modified", "Modified average (corn GDD)")),
+    default="sine",
 )
-UNIT = Option("unit", "Unit of the thresholds", (("F", "°F"), ("C", "°C")), "F")
-BASE = Option("base", "Base (lower threshold)", (("41", "41"), ("50", "50"), ("10", "10")), "50")
-UPPER = Option("upper", "Upper threshold (none for no cutoff)", (("none", "None"), ("86", "86"), ("30", "30")), "86")
+UNIT = Option(name="unit", label="Unit of the thresholds", choices=(("F", "°F"), ("C", "°C")), default="F")
+BASE = Option(
+    name="base", label="Base (lower threshold)", choices=(("41", "41"), ("50", "50"), ("10", "10")), default="50"
+)
+UPPER = Option(
+    name="upper",
+    label="Upper threshold (none for no cutoff)",
+    choices=(("none", "None"), ("86", "86"), ("30", "30")),
+    default="86",
+)
 
 SPEC = ModelSpec(
     id="degree-days",
@@ -39,31 +46,35 @@ SPEC = ModelSpec(
     crops=(),
     citations=(
         Citation(
-            "Baskerville, G. L. and Emin, P. (1969). Rapid estimation of heat accumulation from maximum and minimum "
-            "temperatures. Ecology 50, 514–517.",
+            text="Baskerville, G. L. and Emin, P. (1969). Rapid estimation of heat accumulation from maximum and "
+            "minimum temperatures. Ecology 50, 514–517.",
             doi="10.2307/1933912",
         ),
     ),
     inputs=(
-        Quantity("air_temperature_min", "Minimum temperature", "degC"),
-        Quantity("air_temperature_max", "Maximum temperature", "degC"),
+        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
     ),
     outputs=(
-        Quantity("dd_total", "Degree days since the biofix", "degF_day"),
-        Quantity("dd", "Degree days", "degF_day"),
+        Quantity(name="dd_total", label="Degree days since the biofix", unit="degF_day"),
+        Quantity(name="dd", label="Degree days", unit="degF_day"),
     ),
     risk=None,
     explorer=(
-        ExplorerInput("min_temp", "Minimum temperature", "degF", -20, 100, 1, 50),
-        ExplorerInput("max_temp", "Maximum temperature", "degF", -10, 115, 1, 80),
+        ExplorerInput(
+            name="min_temp", label="Minimum temperature", unit="degF", minimum=-20, maximum=100, step=1, default=50
+        ),
+        ExplorerInput(
+            name="max_temp", label="Maximum temperature", unit="degF", minimum=-10, maximum=115, step=1, default=80
+        ),
     ),
     sweep={
         "min_temp": tuple(float(t) for t in range(30, 91, 5)),
         "max_temp": tuple(float(t) for t in range(40, 111, 5)),
     },
     options=(METHOD, UNIT, BASE, UPPER),
-    biofix=Biofix("01-01", "January 1, or any date (planting, an insect's first catch)"),
-    changelog=(Change("1.0", "2026-10-28", "First version."),),
+    biofix=Biofix(default="01-01", label="January 1, or any date (planting, an insect's first catch)"),
+    changelog=(Change(version="1.0", date="2026-10-28", note="First version."),),
 )
 
 

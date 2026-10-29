@@ -36,15 +36,20 @@ COVARIANCE = np.array(
 )
 COTTON_STATES = ("AL", "AR", "AZ", "CA", "FL", "GA", "KS", "LA", "MO", "MS", "NC", "NM", "OK", "SC", "TN", "TX", "VA")
 
-PYTHIUM = Option("pythium", "Pythium", (("present", "Present"), ("absent", "Absent")), "present")
+PYTHIUM = Option(
+    name="pythium", label="Pythium", choices=(("present", "Present"), ("absent", "Absent")), default="present"
+)
 PLANTING = Option(
-    "planting_population",
-    "Seeding rate (seeds per acre)",
-    tuple((str(n), f"{n:,}") for n in (30000, 40000, 50000)),
-    "40000",
+    name="planting_population",
+    label="Seeding rate (seeds per acre)",
+    choices=tuple((str(n), f"{n:,}") for n in (30000, 40000, 50000)),
+    default="40000",
 )
 LIMITING = Option(
-    "limiting_population", "Yield-limiting stand (plants per acre)", (("15000", "15,000"), ("20000", "20,000")), "15000"
+    name="limiting_population",
+    label="Yield-limiting stand (plants per acre)",
+    choices=(("15000", "15,000"), ("20000", "20,000")),
+    default="15000",
 )
 
 SPEC = ModelSpec(
@@ -58,31 +63,57 @@ SPEC = ModelSpec(
     topics=("cotton-stand-establishment",),
     crops=("Cotton",),
     citations=(
-        Citation("Zachary Noel (Auburn University), with funding from Cotton Incorporated, as in the Crop Risk Tool."),
         Citation(
-            "Adams, C., Thapa, S. and Kimura, E. (2019). Determination of a plant population density threshold for "
-            "optimizing cotton lint yield: a synthesis. Field Crops Research 230, 11–16.",
+            text="Zachary Noel (Auburn University), with funding from Cotton Incorporated, as in the Crop Risk Tool."
+        ),
+        Citation(
+            text="Adams, C., Thapa, S. and Kimura, E. (2019). Determination of a plant population density threshold "
+            "for optimizing cotton lint yield: a synthesis. Field Crops Research 230, 11–16.",
             doi="10.1016/j.fcr.2018.10.005",
         ),
         Citation(
-            "Rothrock, C. S., Winters, S. A., Miller, P. K., et al. (2012). Importance of fungicide seed treatment and "
-            "environment on seedling diseases of cotton. Plant Disease 96, 1805–1817.",
+            text="Rothrock, C. S., Winters, S. A., Miller, P. K., et al. (2012). Importance of fungicide seed "
+            "treatment and environment on seedling diseases of cotton. Plant Disease 96, 1805–1817.",
             doi="10.1094/PDIS-01-12-0031-SR",
         ),
     ),
     inputs=(
-        Quantity("precipitation_sum", "Precipitation", "mm", "Total over the 3 days from planting"),
-        Quantity("air_temperature_min", "Minimum temperature", "degC", "Mean over the 9 days from planting"),
+        Quantity(
+            name="precipitation_sum",
+            label="Precipitation",
+            unit="mm",
+            description="Total over the 3 days from planting",
+        ),
+        Quantity(
+            name="air_temperature_min",
+            label="Minimum temperature",
+            unit="degC",
+            description="Mean over the 9 days from planting",
+        ),
     ),
     outputs=(
-        Quantity("probability", "Probability of a stand below the limit", "percent"),
-        Quantity("emergence", "Predicted emergence", "percent"),
+        Quantity(name="probability", label="Probability of a stand below the limit", unit="percent"),
+        Quantity(name="emergence", label="Predicted emergence", unit="percent"),
     ),
-    risk=Risk(PROBABILITY_LEVELS, "Very low below 1%, Low from 1%, Moderate from 20%, High from 35%."),
+    risk=Risk(levels=PROBABILITY_LEVELS, criteria="Very low below 1%, Low from 1%, Moderate from 20%, High from 35%."),
     explorer=(
-        ExplorerInput("rain_3day", "Rain over the 3 days from planting", "mm", 0, 100, 1, 10),
         ExplorerInput(
-            "min_temp_9day", "Mean minimum temperature over the 9 days from planting", "degC", 0, 30, 0.5, 15
+            name="rain_3day",
+            label="Rain over the 3 days from planting",
+            unit="mm",
+            minimum=0,
+            maximum=100,
+            step=1,
+            default=10,
+        ),
+        ExplorerInput(
+            name="min_temp_9day",
+            label="Mean minimum temperature over the 9 days from planting",
+            unit="degC",
+            minimum=0,
+            maximum=30,
+            step=0.5,
+            default=15,
         ),
     ),
     sweep={
@@ -93,7 +124,7 @@ SPEC = ModelSpec(
     context=("year",),
     region=COTTON_STATES,
     season=("03-15", "06-30"),
-    changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool."),),
+    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

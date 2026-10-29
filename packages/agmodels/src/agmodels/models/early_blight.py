@@ -39,44 +39,52 @@ SPEC = ModelSpec(
     crops=("Potato",),
     citations=(
         Citation(
-            "Sands, P. J., Hackett, C. and Nix, H. A. (1979). A model of the development and bulking of potatoes "
+            text="Sands, P. J., Hackett, C. and Nix, H. A. (1979). A model of the development and bulking of potatoes "
             "(Solanum tuberosum L.). I. Derivation from well-managed field crops. Field Crops Research 2, 309–331.",
             doi="10.1016/0378-4290(79)90031-5",
         ),
         Citation(
-            "Pscheidt, J. W. and Stevenson, W. R. (1988). The critical period for control of early blight "
+            text="Pscheidt, J. W. and Stevenson, W. R. (1988). The critical period for control of early blight "
             "(Alternaria solani) of potato. American Potato Journal 65, 425–438.",
             doi="10.1007/BF02854357",
         ),
         Citation(
-            "UW Vegetable Pathology: Potato early blight.",
-            "https://vegpath.plantpath.wisc.edu/diseases/potato-early-blight/",
+            text="UW Vegetable Pathology: Potato early blight.",
+            url="https://vegpath.plantpath.wisc.edu/diseases/potato-early-blight/",
         ),
     ),
     inputs=(
-        Quantity("air_temperature_min", "Minimum temperature", "degC"),
-        Quantity("air_temperature_max", "Maximum temperature", "degC"),
+        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
     ),
     outputs=(
-        Quantity("pdays", "P-days", "index"),
-        Quantity("pdays_total", "P-days since emergence", "index"),
-        Quantity("pdays_7_day_mean", "Mean P-days, last 7 days", "index"),
+        Quantity(name="pdays", label="P-days", unit="index"),
+        Quantity(name="pdays_total", label="P-days since emergence", unit="index"),
+        Quantity(name="pdays_7_day_mean", label="Mean P-days, last 7 days", unit="index"),
     ),
     risk=Risk(
-        SEVERITY_LEVELS,
-        "Until 400 P-days since emergence, the total sets the risk: Low from 200, Moderate from 250, High from "
-        "300 (the usual first-spray threshold) and Very high from 350. From 400, the last 7 days' mean does: Very "
+        levels=SEVERITY_LEVELS,
+        criteria="Until 400 P-days since emergence, the total sets the risk: Low from 200, Moderate from 250, High "
+        "from 300 (the usual first-spray threshold) and Very high from 350. From 400, the last 7 days' mean does: Very "
         "low below 1 a day, Low from 1, Moderate from 3, High from 5 and Very high from 9.",
     ),
     explorer=(
-        ExplorerInput("tmin", "Minimum temperature", "degC", -5, 35, 0.5, 12),
-        ExplorerInput("tmax", "Maximum temperature", "degC", -5, 40, 0.5, 26),
+        ExplorerInput(
+            name="tmin", label="Minimum temperature", unit="degC", minimum=-5, maximum=35, step=0.5, default=12
+        ),
+        ExplorerInput(
+            name="tmax", label="Maximum temperature", unit="degC", minimum=-5, maximum=40, step=0.5, default=26
+        ),
     ),
     sweep={"tmin": tuple(float(t) for t in range(-2, 34)), "tmax": tuple(float(t) for t in range(4, 40))},
     season=("05-01", "09-30"),
-    biofix=Biofix("05-15", "Crop emergence"),
+    biofix=Biofix(default="05-15", label="Crop emergence"),
     changelog=(
-        Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool; the last term weighs P(Tmax), as Sands et al."),
+        Change(
+            version="1.0",
+            date="2026-10-28",
+            note="Ported from the Crop Risk Tool; the last term weighs P(Tmax), as Sands et al.",
+        ),
     ),
 )
 

@@ -33,7 +33,7 @@ SEVERITY_LEVELS = ("Very low", "Low", "Moderate", "High", "Very high")
 PROBABILITY_LEVELS = ("Very low", "Low", "Moderate", "High")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Citation:
     """A source: the reference as text, its DOI where it has one (bare, `10.…`), and a URL for a copy to read or a
     source with no DOI (an extension page, a report)."""
@@ -47,7 +47,7 @@ class Citation:
         return f"https://doi.org/{self.doi}" if self.doi else ""
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Quantity:
     """An input or output series: its name in the frame, a label for charts and its unit (`agdata.units`)."""
 
@@ -57,13 +57,13 @@ class Quantity:
     description: str = ""
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Risk:
     levels: tuple[str, ...]
     criteria: str  # how outputs become each level, in words, for the model page and chart legends
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class ExplorerInput:
     name: str
     label: str
@@ -74,7 +74,7 @@ class ExplorerInput:
     default: float
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Option:
     """A choice that changes the model (a resistance class, irrigation, a growth-stage date)."""
 
@@ -84,13 +84,13 @@ class Option:
     default: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Biofix:
     default: str  # MM-DD
     label: str  # what the date means to a grower, e.g. "Crop emergence or last fungicide application"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Susceptibility:
     """The crop stages a disease affects (D33): its risk shows only from `first` through `last` (inclusive: until
     the stage after `last`), muted for the crop model's margin either side, grey elsewhere."""
@@ -102,14 +102,14 @@ class Susceptibility:
     note: str = ""
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Change:
     version: str
     date: str
     note: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class ModelSpec:
     id: str
     name: str

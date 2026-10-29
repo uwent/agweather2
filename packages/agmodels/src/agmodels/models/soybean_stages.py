@@ -58,39 +58,63 @@ T_R1_R7 = (0.0, 21.5, 38.7)
 P_POST_FLOWERING = (12.0, 18.0)  # optimum, critical (h)
 
 MATURITY = Option(
-    "maturity_group",
-    "Maturity group",
-    tuple((f"{g:.1f}", f"MG {g:.1f}") for g in np.arange(0, 4.01, 0.5)),
-    "2.0",
+    name="maturity_group",
+    label="Maturity group",
+    choices=tuple((f"{g:.1f}", f"MG {g:.1f}") for g in np.arange(0, 4.01, 0.5)),
+    default="2.0",
 )
 BIOFIX_EVENT = Option(
-    "biofix_event", "The biofix is", (("planting", "Planting"), ("emergence", "Emergence")), "planting"
+    name="biofix_event",
+    label="The biofix is",
+    choices=(("planting", "Planting"), ("emergence", "Emergence")),
+    default="planting",
 )
 DEPTH = Option(
-    "seeding_depth_in", "Seeding depth", (("1.0", "1 in"), ("1.25", "1¼ in"), ("1.5", "1½ in")), "1.5"
+    name="seeding_depth_in",
+    label="Seeding depth",
+    choices=(("1.0", "1 in"), ("1.25", "1¼ in"), ("1.5", "1½ in")),
+    default="1.5",
 )  # the hypocotyl reaches 5 cm at most, so no deeper than 1¾ in
 
 MARGIN_DAYS = 5  # Setiyono et al.'s generalized mode: RMSE 3.6 days, R1 up to 6 days off on their seasons
 
 STAGES = (
-    CropStage("VE", "Emergence", "Cotyledons above the soil surface."),
-    CropStage("VC", "Cotyledon", "Unifoliate leaves unrolled so their edges don't touch."),
+    CropStage(code="VE", name="Emergence", description="Cotyledons above the soil surface."),
+    CropStage(code="VC", name="Cotyledon", description="Unifoliate leaves unrolled so their edges don't touch."),
     *(
-        CropStage(f"V{n}", f"{n} nodes", "Fully developed leaves at n nodes on the main stem, from the unifoliate.")
+        CropStage(
+            code=f"V{n}",
+            name=f"{n} nodes",
+            description="Fully developed leaves at n nodes on the main stem, from the unifoliate.",
+        )
         for n in range(1, MAX_NODES)
     ),
-    CropStage("R1", "Beginning bloom", "One open flower at any node on the main stem."),
-    CropStage("R2", "Full bloom", "An open flower at one of the two uppermost main-stem nodes.", estimated=True),
-    CropStage("R3", "Beginning pod", "A pod 3/16 in long at one of the four uppermost nodes.", estimated=True),
-    CropStage("R4", "Full pod", "A pod 3/4 in long at one of the four uppermost nodes.", estimated=True),
-    CropStage("R5", "Beginning seed", "A seed 1/8 in long in a pod at one of the four uppermost nodes."),
+    CropStage(code="R1", name="Beginning bloom", description="One open flower at any node on the main stem."),
     CropStage(
-        "R6",
-        "Full seed",
-        "A pod with a green seed filling its cavity at one of the four uppermost nodes.",
+        code="R2",
+        name="Full bloom",
+        description="An open flower at one of the two uppermost main-stem nodes.",
         estimated=True,
     ),
-    CropStage("R7", "Beginning maturity", "One normal pod on the main stem at its mature color."),
+    CropStage(
+        code="R3",
+        name="Beginning pod",
+        description="A pod 3/16 in long at one of the four uppermost nodes.",
+        estimated=True,
+    ),
+    CropStage(
+        code="R4", name="Full pod", description="A pod 3/4 in long at one of the four uppermost nodes.", estimated=True
+    ),
+    CropStage(
+        code="R5", name="Beginning seed", description="A seed 1/8 in long in a pod at one of the four uppermost nodes."
+    ),
+    CropStage(
+        code="R6",
+        name="Full seed",
+        description="A pod with a green seed filling its cavity at one of the four uppermost nodes.",
+        estimated=True,
+    ),
+    CropStage(code="R7", name="Beginning maturity", description="One normal pod on the main stem at its mature color."),
 )
 _INDEX = {s.code: i for i, s in enumerate(STAGES)}
 
@@ -106,26 +130,32 @@ SPEC = ModelSpec(
     crops=("Soybean",),
     citations=(
         Citation(
-            "Setiyono, T. D., Weiss, A., Specht, J., Bastidas, A. M., Cassman, K. G. and Dobermann, A. (2007). "
+            text="Setiyono, T. D., Weiss, A., Specht, J., Bastidas, A. M., Cassman, K. G. and Dobermann, A. (2007). "
             "Understanding and modeling the effect of temperature and daylength on soybean phenology under "
             "high-yield conditions. Field Crops Research 100, 257–271.",
             doi="10.1016/j.fcr.2006.07.011",
         ),
         Citation(
-            "Fehr, W. R. and Caviness, C. E. (1977). Stages of soybean development. Special Report 80, Iowa State "
+            text="Fehr, W. R. and Caviness, C. E. (1977). Stages of soybean development. Special Report 80, Iowa State "
             "University.",
         ),
     ),
-    inputs=(Quantity("air_temperature_mean", "Mean temperature", "degC"),),
+    inputs=(Quantity(name="air_temperature_mean", label="Mean temperature", unit="degC"),),
     outputs=(
-        Quantity("stage", "Growth stage", "index", "Index in the crop's stage list"),
-        Quantity("nodes", "Main-stem nodes (V-stage)", "index"),
+        Quantity(name="stage", label="Growth stage", unit="index", description="Index in the crop's stage list"),
+        Quantity(name="nodes", label="Main-stem nodes (V-stage)", unit="index"),
     ),
     risk=None,
     explorer=(
-        ExplorerInput("temperature", "Mean temperature", "degC", 0, 45, 0.5, 22),
-        ExplorerInput("day_length", "Day length", "hour", 10, 18, 0.25, 15),
-        ExplorerInput("maturity_group", "Maturity group", "index", 0, 4, 0.1, 2),
+        ExplorerInput(
+            name="temperature", label="Mean temperature", unit="degC", minimum=0, maximum=45, step=0.5, default=22
+        ),
+        ExplorerInput(
+            name="day_length", label="Day length", unit="hour", minimum=10, maximum=18, step=0.25, default=15
+        ),
+        ExplorerInput(
+            name="maturity_group", label="Maturity group", unit="index", minimum=0, maximum=4, step=0.1, default=2
+        ),
     ),
     sweep={
         "temperature": tuple(float(t) for t in range(0, 46)),
@@ -135,8 +165,8 @@ SPEC = ModelSpec(
     options=(MATURITY, BIOFIX_EVENT, DEPTH),
     context=("day_of_year", "latitude"),  # day length
     season=("04-15", "10-31"),
-    biofix=Biofix("05-17", "Planting date (or emergence, with that option)"),
-    changelog=(Change("1.0", "2026-10-28", "First version."),),
+    biofix=Biofix(default="05-17", label="Planting date (or emergence, with that option)"),
+    changelog=(Change(version="1.0", date="2026-10-28", note="First version."),),
 )
 
 

@@ -3,9 +3,9 @@
 from agmodels.phenology import Insect
 
 INSECT = Insect(
-    "squash-vine-borer",
-    "Squash Vine Borer",
-    ("Cucumber", "Melon", "Pumpkin and Squash"),
+    id="squash-vine-borer",
+    name="Squash Vine Borer",
+    crops=("Cucumber", "Melon", "Pumpkin and Squash"),
     base_f=50,
     upper_f=None,
     biofix="01-01",

@@ -16,7 +16,7 @@ import numpy as np
 from pyproj import CRS, Transformer
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Box:
     """A latitude/longitude bounding box in degrees (west and east negative in the western hemisphere)."""
 
@@ -39,7 +39,7 @@ BOXES: dict[str, Box | None] = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Window:
     """A half-open block of grid cells: rows j0..j1-1 and columns i0..i1-1."""
 
@@ -70,7 +70,7 @@ class Window:
         return (j - self.j0, i - self.i0)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class LambertGrid:
     """A Lambert conformal grid on a sphere, located by its first (southwest) point."""
 
@@ -102,7 +102,7 @@ class LambertGrid:
 
     @property
     def window(self) -> Window:
-        return Window(0, self.ny, 0, self.nx)
+        return Window(j0=0, j1=self.ny, i0=0, i1=self.nx)
 
     def fractional_index(self, lat, lon) -> tuple[np.ndarray, np.ndarray]:
         """Latitude/longitude → fractional (j, i); cell centers fall on whole numbers."""
@@ -153,7 +153,7 @@ class LambertGrid:
         fj, fi = self.fractional_index(lats, lons)
         j0, j1 = int(np.floor(fj.min())), int(np.ceil(fj.max())) + 1
         i0, i1 = int(np.floor(fi.min())), int(np.ceil(fi.max())) + 1
-        window = Window(max(j0, 0), min(j1, self.ny), max(i0, 0), min(i1, self.nx))
+        window = Window(j0=max(j0, 0), j1=min(j1, self.ny), i0=max(i0, 0), i1=min(i1, self.nx))
         if window.j0 >= window.j1 or window.i0 >= window.i1:
             raise ValueError(f"{box} is outside the {self.name} grid")
         return window

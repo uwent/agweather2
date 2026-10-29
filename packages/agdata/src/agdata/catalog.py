@@ -22,7 +22,7 @@ FILL = np.int16(np.iinfo(np.int16).min)  # missing
 _INT16_MAX = np.iinfo(np.int16).max
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Variable:
     name: str
     long_name: str
@@ -69,9 +69,9 @@ VARIABLES: dict[str, Variable] = {
     v.name: v
     for v in [
         Variable(
-            "air_temperature",
-            "Air temperature at 2 m",
-            "degC",
+            name="air_temperature",
+            long_name="Air temperature at 2 m",
+            unit="degC",
             spike_c=12,
             scale=0.1,
             valid_min=-60,
@@ -80,9 +80,9 @@ VARIABLES: dict[str, Variable] = {
             sources={"urma": "TMP:2 m above ground"},
         ),
         Variable(
-            "dew_point",
-            "Dew point at 2 m",
-            "degC",
+            name="dew_point",
+            long_name="Dew point at 2 m",
+            unit="degC",
             spike_c=12,
             scale=0.1,
             valid_min=-70,
@@ -91,9 +91,9 @@ VARIABLES: dict[str, Variable] = {
             sources={"urma": "DPT:2 m above ground"},
         ),
         Variable(
-            "relative_humidity",
-            "Relative humidity at 2 m",
-            "percent",
+            name="relative_humidity",
+            long_name="Relative humidity at 2 m",
+            unit="percent",
             scale=1,
             valid_min=0,
             valid_max=100,
@@ -102,9 +102,9 @@ VARIABLES: dict[str, Variable] = {
             notes="From air temperature and dew point (Magnus formula over water)",
         ),
         Variable(
-            "wind_speed",
-            "Wind speed at 10 m",
-            "m_s",
+            name="wind_speed",
+            long_name="Wind speed at 10 m",
+            unit="m_s",
             scale=0.1,
             valid_min=0,
             valid_max=75,
@@ -112,9 +112,9 @@ VARIABLES: dict[str, Variable] = {
             sources={"urma": "WIND:10 m above ground"},
         ),
         Variable(
-            "wind_gust",
-            "Wind gust at 10 m",
-            "m_s",
+            name="wind_gust",
+            long_name="Wind gust at 10 m",
+            unit="m_s",
             scale=0.1,
             valid_min=0,
             valid_max=100,
@@ -122,9 +122,9 @@ VARIABLES: dict[str, Variable] = {
             sources={"urma": "GUST:10 m above ground"},
         ),
         Variable(
-            "wind_direction",
-            "Wind direction at 10 m, from",
-            "deg",
+            name="wind_direction",
+            long_name="Wind direction at 10 m, from",
+            unit="deg",
             fillable=False,
             scale=1,
             valid_min=0,
@@ -133,9 +133,9 @@ VARIABLES: dict[str, Variable] = {
             sources={"urma": "WDIR:10 m above ground"},
         ),
         Variable(
-            "surface_pressure",
-            "Surface pressure",
-            "kPa",
+            name="surface_pressure",
+            long_name="Surface pressure",
+            unit="kPa",
             scale=0.1,
             valid_min=50,
             valid_max=110,
@@ -143,9 +143,9 @@ VARIABLES: dict[str, Variable] = {
             sources={"urma": "PRES:surface"},
         ),
         Variable(
-            "cloud_cover",
-            "Total cloud cover",
-            "percent",
+            name="cloud_cover",
+            long_name="Total cloud cover",
+            unit="percent",
             scale=1,
             valid_min=0,
             valid_max=100,
@@ -153,9 +153,9 @@ VARIABLES: dict[str, Variable] = {
             sources={"urma": "TCDC:entire atmosphere (considered as a single layer)"},
         ),
         Variable(
-            "precipitation",
-            "Precipitation in the hour ending at the time",
-            "mm",
+            name="precipitation",
+            long_name="Precipitation in the hour ending at the time",
+            unit="mm",
             fillable=False,
             scale=0.01,  # D28: at 0.1, light-snow hours under 0.05 mm round to 0 (January totals 6.6% low)
             valid_min=0,
@@ -165,9 +165,9 @@ VARIABLES: dict[str, Variable] = {
             sources={"urma": "APCP:surface, 1-hour accumulation"},
         ),
         Variable(
-            "shortwave_radiation",
-            "Downward shortwave radiation at the surface, mean over the hour",
-            "W_m2",
+            name="shortwave_radiation",
+            long_name="Downward shortwave radiation at the surface, mean over the hour",
+            unit="W_m2",
             scale=0.1,
             valid_min=0,
             valid_max=1500,
@@ -176,9 +176,9 @@ VARIABLES: dict[str, Variable] = {
             sources={"hrrr": "DSWRF:surface, wrfsubhf01"},
         ),
         Variable(
-            "soil_temperature_4cm",
-            "Soil temperature at 4 cm",
-            "degC",
+            name="soil_temperature_4cm",
+            long_name="Soil temperature at 4 cm",
+            unit="degC",
             scale=0.1,
             valid_min=-40,
             valid_max=60,
@@ -187,9 +187,9 @@ VARIABLES: dict[str, Variable] = {
             sources={"hrrr": "TSOIL:0.04-0.04 m below ground"},
         ),
         Variable(
-            "soil_temperature_10cm",
-            "Soil temperature at 10 cm",
-            "degC",
+            name="soil_temperature_10cm",
+            long_name="Soil temperature at 10 cm",
+            unit="degC",
             scale=0.1,
             valid_min=-40,
             valid_max=60,
@@ -198,9 +198,9 @@ VARIABLES: dict[str, Variable] = {
             sources={"hrrr": "TSOIL:0.1-0.1 m below ground"},
         ),
         Variable(
-            "soil_temperature_30cm",
-            "Soil temperature at 30 cm",
-            "degC",
+            name="soil_temperature_30cm",
+            long_name="Soil temperature at 30 cm",
+            unit="degC",
             scale=0.1,
             valid_min=-40,
             valid_max=60,
@@ -209,9 +209,9 @@ VARIABLES: dict[str, Variable] = {
             sources={"hrrr": "TSOIL:0.3-0.3 m below ground"},
         ),
         Variable(
-            "et0",
-            "FAO-56 grass reference evapotranspiration in the hour",
-            "mm",
+            name="et0",
+            long_name="FAO-56 grass reference evapotranspiration in the hour",
+            unit="mm",
             fillable=False,
             scale=0.001,
             valid_min=0,
@@ -236,7 +236,7 @@ _SUMS: dict[str, tuple[str, float, float, float, float]] = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class DailyStatistic:
     variable: Variable  # stored in the daily store
     hourly: str
@@ -249,20 +249,29 @@ def _daily_statistic(v: Variable, stat: DailyStat) -> DailyStatistic:
     if stat == "sum":
         unit_, factor, scale, offset, high = _SUMS[v.name]
         long_name = f"{v.long_name}, daily total"
-        daily = Variable(name, long_name, unit_, scale=scale, offset=offset, valid_min=0, valid_max=high, derived=True)
-        return DailyStatistic(daily, v.name, stat, factor)
+        daily = Variable(
+            name=name,
+            long_name=long_name,
+            unit=unit_,
+            scale=scale,
+            offset=offset,
+            valid_min=0,
+            valid_max=high,
+            derived=True,
+        )
+        return DailyStatistic(variable=daily, hourly=v.name, stat=stat, factor=factor)
     long_name = f"{v.long_name}, daily {stat}"
     daily = Variable(
-        name,
-        long_name,
-        v.unit,
+        name=name,
+        long_name=long_name,
+        unit=v.unit,
         scale=v.scale,
         offset=v.offset,
         valid_min=v.valid_min,
         valid_max=v.valid_max,
         derived=True,
     )
-    return DailyStatistic(daily, v.name, stat)
+    return DailyStatistic(variable=daily, hourly=v.name, stat=stat)
 
 
 DAILY_STATISTICS: dict[str, DailyStatistic] = {
@@ -272,9 +281,9 @@ DAILY_VARIABLES: dict[str, Variable] = {name: s.variable for name, s in DAILY_ST
 # Where a day's ET0 total is missing because some hours are, the total with those hours estimated
 # (`agdata.gaps`), for running totals only; the raw `et0_sum` stays missing (D25)
 DAILY_VARIABLES["et0_sum_estimate"] = Variable(
-    "et0_sum_estimate",
-    "FAO-56 grass reference evapotranspiration, daily total with missing hours estimated",
-    "mm",
+    name="et0_sum_estimate",
+    long_name="FAO-56 grass reference evapotranspiration, daily total with missing hours estimated",
+    unit="mm",
     scale=0.01,
     valid_min=0,
     valid_max=20,
@@ -291,28 +300,46 @@ _TEMPERATURE = {"unit": "degC", "scale": 0.1, "valid_min": -60, "valid_max": 60,
 DAILY_FEATURES: dict[str, Variable] = {
     v.name: v
     for v in [
-        Variable("hours_temperature_over_20c", "Hours with temperature at or above 20 °C", **_HOURS),
-        Variable("hours_temperature_over_30c", "Hours with temperature at or above 30 °C", **_HOURS),
-        Variable("hours_rh_under_70", "Hours with RH below 70%", **_HOURS),
-        Variable("hours_rh_over_80", "Hours with RH at or above 80%", **_HOURS),
-        Variable("hours_rh_over_90", "Hours with RH at or above 90%", **_HOURS),
+        Variable(name="hours_temperature_over_20c", long_name="Hours with temperature at or above 20 °C", **_HOURS),
+        Variable(name="hours_temperature_over_30c", long_name="Hours with temperature at or above 30 °C", **_HOURS),
+        Variable(name="hours_rh_under_70", long_name="Hours with RH below 70%", **_HOURS),
+        Variable(name="hours_rh_over_80", long_name="Hours with RH at or above 80%", **_HOURS),
+        Variable(name="hours_rh_over_90", long_name="Hours with RH at or above 90%", **_HOURS),
         Variable(
-            "hours_rh_over_90_temperature_over_70f", "Hours with RH at or above 90% and at least 70 °F", **_HOURS
+            name="hours_rh_over_90_temperature_over_70f",
+            long_name="Hours with RH at or above 90% and at least 70 °F",
+            **_HOURS,
         ),
-        Variable("hours_rh_over_80_from_8pm", "Hours with RH at or above 80%, day from 8 pm", **_HOURS),
-        Variable("hours_rh_over_90_from_8pm", "Hours with RH at or above 90%, day from 8 pm", **_HOURS),
-        Variable("hours_rh_over_80_night", "Night hours (8 pm to 7 am) with RH at or above 80%", **_HOURS),
-        Variable("hours_rh_over_90_night", "Night hours (8 pm to 7 am) with RH at or above 90%", **_HOURS),
-        Variable("hours_soil_4cm_below_27f", "Hours with soil at 4 cm below 27 °F", **_HOURS),
-        Variable("hours_soil_10cm_below_27f", "Hours with soil at 10 cm below 27 °F", **_HOURS),
-        Variable("hours_soil_8in_below_27f", "Hours with soil at 8 in (10–30 cm interpolated) below 27 °F", **_HOURS),
-        Variable("dew_point_depression_min", "Dew point depression, daily min", **_TEMPERATURE),
-        Variable("dew_point_depression_mean", "Dew point depression, daily mean", **_TEMPERATURE),
-        Variable("dew_point_depression_max", "Dew point depression, daily max", **_TEMPERATURE),
-        Variable("temperature_mean_rh_over_80_from_8pm", "Mean temperature, RH ≥ 80%, day from 8 pm", **_TEMPERATURE),
-        Variable("temperature_mean_rh_over_90_from_8pm", "Mean temperature, RH ≥ 90%, day from 8 pm", **_TEMPERATURE),
+        Variable(name="hours_rh_over_80_from_8pm", long_name="Hours with RH at or above 80%, day from 8 pm", **_HOURS),
+        Variable(name="hours_rh_over_90_from_8pm", long_name="Hours with RH at or above 90%, day from 8 pm", **_HOURS),
+        Variable(
+            name="hours_rh_over_80_night", long_name="Night hours (8 pm to 7 am) with RH at or above 80%", **_HOURS
+        ),
+        Variable(
+            name="hours_rh_over_90_night", long_name="Night hours (8 pm to 7 am) with RH at or above 90%", **_HOURS
+        ),
+        Variable(name="hours_soil_4cm_below_27f", long_name="Hours with soil at 4 cm below 27 °F", **_HOURS),
+        Variable(name="hours_soil_10cm_below_27f", long_name="Hours with soil at 10 cm below 27 °F", **_HOURS),
+        Variable(
+            name="hours_soil_8in_below_27f",
+            long_name="Hours with soil at 8 in (10–30 cm interpolated) below 27 °F",
+            **_HOURS,
+        ),
+        Variable(name="dew_point_depression_min", long_name="Dew point depression, daily min", **_TEMPERATURE),
+        Variable(name="dew_point_depression_mean", long_name="Dew point depression, daily mean", **_TEMPERATURE),
+        Variable(name="dew_point_depression_max", long_name="Dew point depression, daily max", **_TEMPERATURE),
+        Variable(
+            name="temperature_mean_rh_over_80_from_8pm",
+            long_name="Mean temperature, RH ≥ 80%, day from 8 pm",
+            **_TEMPERATURE,
+        ),
+        Variable(
+            name="temperature_mean_rh_over_90_from_8pm",
+            long_name="Mean temperature, RH ≥ 90%, day from 8 pm",
+            **_TEMPERATURE,
+        ),
     ]
-}  # fmt: skip
+}
 DAILY_VARIABLES.update(DAILY_FEATURES)
 
 
@@ -340,32 +367,49 @@ def dd_name(method: Literal["sine", "modified"], base: float, upper: float | Non
 
 def _cumulative() -> list[Variable]:
     dd = [
-        Variable(dd_name("sine", t), f"Single-sine degree days above {t:g} °F since Jan 1", "degF_day", **_DD_RANGE)
+        Variable(
+            name=dd_name("sine", t),
+            long_name=f"Single-sine degree days above {t:g} °F since Jan 1",
+            unit="degF_day",
+            **_DD_RANGE,
+        )
         for t in DD_SINE_THRESHOLDS_F
     ] + [
         Variable(
-            dd_name("modified", base, upper),
-            f"Modified-average degree days {base:g}/{upper:g} °F since Jan 1",
-            "degF_day",
+            name=dd_name("modified", base, upper),
+            long_name=f"Modified-average degree days {base:g}/{upper:g} °F since Jan 1",
+            unit="degF_day",
             **_DD_RANGE,
         )
         for base, upper in DD_MODIFIED_PAIRS_F
     ]
     totals = [
         Variable(
-            "precipitation", "Precipitation since Jan 1", "mm", scale=0.2, valid_min=0, valid_max=6000, derived=True
+            name="precipitation",
+            long_name="Precipitation since Jan 1",
+            unit="mm",
+            scale=0.2,
+            valid_min=0,
+            valid_max=6000,
+            derived=True,
         ),
         Variable(
-            "et0", "FAO-56 grass reference ET since Jan 1", "mm", scale=0.1, valid_min=0, valid_max=3000, derived=True
+            name="et0",
+            long_name="FAO-56 grass reference ET since Jan 1",
+            unit="mm",
+            scale=0.1,
+            valid_min=0,
+            valid_max=3000,
+            derived=True,
         ),
     ]
     # Running counts of days in the totals that were estimated across a gap or left out (D25). Every DD cube
     # comes from the daily min and max temperature, so they share the temperature counts
     counts = [
         Variable(
-            f"{basis}_{kind}_days",
-            f"Days with {basis} {kind} since Jan 1",
-            "day",
+            name=f"{basis}_{kind}_days",
+            long_name=f"Days with {basis} {kind} since Jan 1",
+            unit="day",
             scale=1,
             valid_min=0,
             valid_max=366,

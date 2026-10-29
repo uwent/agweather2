@@ -30,7 +30,7 @@ FIELDS: dict[Key, tuple[str, str]] = {
 PRECIP: Key = ("APCP", "surface")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class AnalysisSource:
     name: str  # store source name: urma, rtma
     bucket: str

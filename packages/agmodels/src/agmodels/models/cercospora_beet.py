@@ -37,42 +37,57 @@ SPEC = ModelSpec(
     crops=("Beet",),
     citations=(
         Citation(
-            "Windels, C. E., Lamey, H. A., Hilde, D., Widner, J. and Knudsen, T. (1998). A Cercospora leaf spot "
+            text="Windels, C. E., Lamey, H. A., Hilde, D., Widner, J. and Knudsen, T. (1998). A Cercospora leaf spot "
             "model for sugar beet: in practice by an industry. Plant Disease 82, 716–726.",
             doi="10.1094/PDIS.1998.82.7.716",
         ),
         Citation(
-            "Cornell Vegetables: Cercospora leaf spot of table beet.",
-            "https://www.vegetables.cornell.edu/pest-management/disease-factsheets/cercospora-leaf-spot-of-table-beet/",
+            text="Cornell Vegetables: Cercospora leaf spot of table beet.",
+            url="https://www.vegetables.cornell.edu/pest-management/disease-factsheets/cercospora-leaf-spot-of-table-beet/",
         ),
     ),
     inputs=(
-        Quantity("hours_rh_over_90_from_8pm", "Hours with RH ≥ 90%", "hour", "Day from 8 pm the evening before"),
-        Quantity("temperature_mean_rh_over_90_from_8pm", "Mean temperature during RH ≥ 90%", "degC"),
+        Quantity(
+            name="hours_rh_over_90_from_8pm",
+            label="Hours with RH ≥ 90%",
+            unit="hour",
+            description="Day from 8 pm the evening before",
+        ),
+        Quantity(name="temperature_mean_rh_over_90_from_8pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
     ),
     outputs=(
-        Quantity("div", "Daily infection value", "index"),
-        Quantity("div_2_day_mean", "Mean DIV, last 2 days", "index"),
-        Quantity("div_7_day_mean", "Mean DIV, last 7 days", "index"),
-        Quantity("div_total", "DIVs since planting", "index"),
+        Quantity(name="div", label="Daily infection value", unit="index"),
+        Quantity(name="div_2_day_mean", label="Mean DIV, last 2 days", unit="index"),
+        Quantity(name="div_7_day_mean", label="Mean DIV, last 7 days", unit="index"),
+        Quantity(name="div_total", label="DIVs since planting", unit="index"),
     ),
     risk=Risk(
-        SEVERITY_LEVELS,
-        "Very high when the last 7 days average 5 or more DIV or the last 2 days 5.5; High from 3 (7 days) or "
+        levels=SEVERITY_LEVELS,
+        criteria="Very high when the last 7 days average 5 or more DIV or the last 2 days 5.5; High from 3 (7 days) or "
         "3.5 (2 days); Moderate from 1.5 or 2; Low from 0.5 or 1; Very low below those.",
     ),
     explorer=(
-        ExplorerInput("temperature", "Mean temperature during RH ≥ 90%", "degC", 10, 35, 0.5, 24),
-        ExplorerInput("hours", "Hours with RH ≥ 90%", "hour", 0, 24, 1, 12),
+        ExplorerInput(
+            name="temperature",
+            label="Mean temperature during RH ≥ 90%",
+            unit="degC",
+            minimum=10,
+            maximum=35,
+            step=0.5,
+            default=24,
+        ),
+        ExplorerInput(
+            name="hours", label="Hours with RH ≥ 90%", unit="hour", minimum=0, maximum=24, step=1, default=12
+        ),
     ),
     sweep={"temperature": tuple(t / 2 for t in range(28, 66)), "hours": tuple(float(h) for h in range(25))},
     season=("06-01", "09-30"),
-    biofix=Biofix("06-01", "Planting"),
+    biofix=Biofix(default="06-01", label="Planting"),
     changelog=(
         Change(
-            "1.0",
-            "2026-10-28",
-            "Ported from the Crop Risk Tool; humid hours and their temperature from "
+            version="1.0",
+            date="2026-10-28",
+            note="Ported from the Crop Risk Tool; humid hours and their temperature from "
             "the same window (the day from 8 pm).",
         ),
     ),

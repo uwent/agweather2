@@ -38,42 +38,57 @@ SPEC = ModelSpec(
     crops=("Potato",),
     citations=(
         Citation(
-            "Kirk, W. and Wharton, P. Potential survival of potato volunteers in Michigan. Michigan State University "
-            "Extension.",
-            "https://www.canr.msu.edu/news/potential_survival_of_potato_volunteers_in_mich",
+            text="Kirk, W. and Wharton, P. Potential survival of potato volunteers in Michigan. Michigan State "
+            "University Extension.",
+            url="https://www.canr.msu.edu/news/potential_survival_of_potato_volunteers_in_mich",
         ),
         Citation(
-            "UW Vegetable Pathology (2025). Deep frost this winter limits risk of potato volunteers.",
-            "https://vegpath.plantpath.wisc.edu/2025/04/22/potato-volunteer-risk/",
+            text="UW Vegetable Pathology (2025). Deep frost this winter limits risk of potato volunteers.",
+            url="https://vegpath.plantpath.wisc.edu/2025/04/22/potato-volunteer-risk/",
         ),
     ),
     inputs=(
         *(
-            Quantity(f"hours_soil_{d}_below_27f", f"Hours with soil at {label} below 27 °F", "hour")
+            Quantity(name=f"hours_soil_{d}_below_27f", label=f"Hours with soil at {label} below 27 °F", unit="hour")
             for d, label in DEPTHS.items()
         ),
         *(
-            Quantity(f"soil_temperature_{d}_min", f"Minimum soil temperature at {d[:-2]} cm", "degC", "Shown, not used")
+            Quantity(
+                name=f"soil_temperature_{d}_min",
+                label=f"Minimum soil temperature at {d[:-2]} cm",
+                unit="degC",
+                description="Shown, not used",
+            )
             for d in SHOWN_LEVELS
         ),
     ),
     outputs=tuple(
-        Quantity(f"killing_hours_{d}", f"Hours below 27 °F at {label} since October 1", "hour")
+        Quantity(name=f"killing_hours_{d}", label=f"Hours below 27 °F at {label} since October 1", unit="hour")
         for d, label in DEPTHS.items()
     ),
     risk=Risk(
-        ("Low", "Moderate", "High", "Very high"),
-        "The chance tubers survive, by the depths (2, 4 and 8 in) with at least 120 hours below 27 °F since "
+        levels=("Low", "Moderate", "High", "Very high"),
+        criteria="The chance tubers survive, by the depths (2, 4 and 8 in) with at least 120 hours below 27 °F since "
         "October 1: Low at all three, Moderate at two, High at one, Very high at none.",
     ),
     explorer=tuple(
-        ExplorerInput(f"killing_hours_{d}", f"Hours below 27 °F at {label}", "hour", 0, 500, 1, 60)
+        ExplorerInput(
+            name=f"killing_hours_{d}",
+            label=f"Hours below 27 °F at {label}",
+            unit="hour",
+            minimum=0,
+            maximum=500,
+            step=1,
+            default=60,
+        )
         for d, label in DEPTHS.items()
     ),
     sweep={f"killing_hours_{d}": (0.0, 60.0, 119.0, 120.0, 240.0) for d in DEPTHS},
     season=("10-01", "09-30"),
-    biofix=Biofix("10-01", "October 1, the start of the season (the winter's count carries through the next summer)"),
-    changelog=(Change("1.0", "2026-10-28", "Ported from the Wisconsin potato volunteer tool."),),
+    biofix=Biofix(
+        default="10-01", label="October 1, the start of the season (the winter's count carries through the next summer)"
+    ),
+    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Wisconsin potato volunteer tool."),),
 )
 
 

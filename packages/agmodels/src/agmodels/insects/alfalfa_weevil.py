@@ -4,9 +4,9 @@ from agmodels.insects import CRT
 from agmodels.phenology import Insect, Stage
 
 INSECT = Insect(
-    "alfalfa-weevil",
-    "Alfalfa weevil",
-    ("Alfalfa",),
+    id="alfalfa-weevil",
+    name="Alfalfa weevil",
+    crops=("Alfalfa",),
     base_f=48.2,  # 9 °C
     upper_f=86,  # 30 °C
     biofix="01-01",
@@ -14,13 +14,13 @@ INSECT = Insect(
     "instar life stages (350-500 FDD). Heavy feeding damage expected during 3rd and 4th instar development, "
     "approx. 400-600 FDD.",
     stages=(
-        Stage(300, 1, "Egg hatch, begin scouting"),
-        Stage(370, 2, "2nd instar larvae"),
-        Stage(440, 3, "3rd instar larvae"),
-        Stage(505, 4, "4th instar larvae"),
-        Stage(595, 2, "Pupal stage, end scouting"),
-        Stage(815, 1, "Adult emergence"),
-        Stage(1000, 0, "Adult diapause"),
+        Stage(start=300, severity=1, label="Egg hatch, begin scouting"),
+        Stage(start=370, severity=2, label="2nd instar larvae"),
+        Stage(start=440, severity=3, label="3rd instar larvae"),
+        Stage(start=505, severity=4, label="4th instar larvae"),
+        Stage(start=595, severity=2, label="Pupal stage, end scouting"),
+        Stage(start=815, severity=1, label="Adult emergence"),
+        Stage(start=1000, severity=0, label="Adult diapause"),
     ),
     source=CRT,
 )

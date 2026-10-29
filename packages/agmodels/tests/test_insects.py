@@ -25,7 +25,16 @@ def vdifn(name):
 @pytest.mark.parametrize("array", list(VDIFN_ARRAYS))
 def test_vdifn_generations_match_its_severity(array):
     rows = [r for r in vdifn("vdifn_insect_severity_sweep.csv") if r["array"] == array and r["freezing"] == "0"]
-    insect = Insect("x", "x", (), 50, None, "01-01", "", generations=VDIFN_ARRAYS[array])
+    insect = Insect(
+        id="x",
+        name="x",
+        crops=(),
+        base_f=50,
+        upper_f=None,
+        biofix="01-01",
+        criteria="",
+        generations=VDIFN_ARRAYS[array],
+    )
     dd = np.array([float(r["dd"]) for r in rows])
     np.testing.assert_array_equal(severity(dd, insect), [float(r["severity"]) for r in rows])
 

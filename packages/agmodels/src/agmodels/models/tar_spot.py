@@ -26,28 +26,64 @@ SPEC = ModelSpec(
     crops=("Corn",),
     citations=(
         Citation(
-            "Webster, R. W., Nicolli, C., Allen, T. W., et al. (2023). Uncovering the environmental conditions "
+            text="Webster, R. W., Nicolli, C., Allen, T. W., et al. (2023). Uncovering the environmental conditions "
             "required for Phyllachora maydis infection and tar spot development on corn in the United States for "
             "use as predictive models for future epidemics. Scientific Reports 13, 17064.",
             doi="10.1038/s41598-023-44338-6",
         ),
         Citation(
-            "Crop Protection Network: Tar spot of corn.",
-            "https://cropprotectionnetwork.org/encyclopedia/tar-spot-of-corn",
+            text="Crop Protection Network: Tar spot of corn.",
+            url="https://cropprotectionnetwork.org/encyclopedia/tar-spot-of-corn",
         ),
     ),
     inputs=(
-        Quantity("air_temperature_mean", "Mean temperature", "degC", "30-day moving average"),
-        Quantity("relative_humidity_max", "Maximum RH", "percent", "30-day moving average"),
-        Quantity("hours_rh_over_90_night", "Night hours with RH ≥ 90%", "hour", "14-day moving average"),
-        Quantity("air_temperature_min", "Minimum temperature", "degC", "21-day moving average, for cold attenuation"),
+        Quantity(
+            name="air_temperature_mean", label="Mean temperature", unit="degC", description="30-day moving average"
+        ),
+        Quantity(name="relative_humidity_max", label="Maximum RH", unit="percent", description="30-day moving average"),
+        Quantity(
+            name="hours_rh_over_90_night",
+            label="Night hours with RH ≥ 90%",
+            unit="hour",
+            description="14-day moving average",
+        ),
+        Quantity(
+            name="air_temperature_min",
+            label="Minimum temperature",
+            unit="degC",
+            description="21-day moving average, for cold attenuation",
+        ),
     ),
-    outputs=(Quantity("probability", "Spore probability", "percent"),),
-    risk=Risk(PROBABILITY_LEVELS, "Very low below 1%, Low from 1%, Moderate from 20%, High from 35%."),
+    outputs=(Quantity(name="probability", label="Spore probability", unit="percent"),),
+    risk=Risk(levels=PROBABILITY_LEVELS, criteria="Very low below 1%, Low from 1%, Moderate from 20%, High from 35%."),
     explorer=(
-        ExplorerInput("temperature_mean_30day", "Mean temperature, 30-day average", "degC", 10, 35, 0.5, 22),
-        ExplorerInput("rh_max_30day", "Maximum RH, 30-day average", "percent", 50, 100, 1, 90),
-        ExplorerInput("night_hours_rh_90_14day", "Night hours RH ≥ 90%, 14-day average", "hour", 0, 11, 0.5, 5),
+        ExplorerInput(
+            name="temperature_mean_30day",
+            label="Mean temperature, 30-day average",
+            unit="degC",
+            minimum=10,
+            maximum=35,
+            step=0.5,
+            default=22,
+        ),
+        ExplorerInput(
+            name="rh_max_30day",
+            label="Maximum RH, 30-day average",
+            unit="percent",
+            minimum=50,
+            maximum=100,
+            step=1,
+            default=90,
+        ),
+        ExplorerInput(
+            name="night_hours_rh_90_14day",
+            label="Night hours RH ≥ 90%, 14-day average",
+            unit="hour",
+            minimum=0,
+            maximum=11,
+            step=0.5,
+            default=5,
+        ),
     ),
     sweep={
         "temperature_mean_30day": (15.0, 20.0, 25.0, 30.0),
@@ -57,9 +93,12 @@ SPEC = ModelSpec(
     lookback_days=30,
     season=("07-01", "08-15"),
     susceptible=Susceptibility(
-        "corn-stages", "V10", "R3", "The Crop Risk Tool (V10–R3, 10th leaf to milk); Tarspotter's fungicide window"
+        crop="corn-stages",
+        first="V10",
+        last="R3",
+        source="The Crop Risk Tool (V10–R3, 10th leaf to milk); Tarspotter's fungicide window",
     ),
-    changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool."),),
+    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

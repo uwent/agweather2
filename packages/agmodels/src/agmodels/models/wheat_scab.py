@@ -31,23 +31,42 @@ SPEC = ModelSpec(
     topics=("wheat-scab",),
     crops=("Wheat",),
     citations=(
-        Citation("Erick De Wolf, as implemented in the Crop Risk Tool."),
+        Citation(text="Erick De Wolf, as implemented in the Crop Risk Tool."),
         Citation(
-            "Crop Protection Network: An overview of Fusarium head blight.",
-            "https://cropprotectionnetwork.org/publications/an-overview-of-fusarium-head-blight",
+            text="Crop Protection Network: An overview of Fusarium head blight.",
+            url="https://cropprotectionnetwork.org/publications/an-overview-of-fusarium-head-blight",
         ),
     ),
-    inputs=(Quantity("relative_humidity_mean", "Mean RH", "percent", "14-day moving average"),),
-    outputs=(
-        Quantity("probability", "Probability for the chosen resistance", "percent"),
-        *(Quantity(f"probability_{key}", label, "percent") for key, (label, _) in RESISTANCE.items()),
+    inputs=(
+        Quantity(name="relative_humidity_mean", label="Mean RH", unit="percent", description="14-day moving average"),
     ),
-    risk=Risk(PROBABILITY_LEVELS, "Very low below 1%, Low from 1%, Moderate from 24%, High from 32%."),
-    explorer=(ExplorerInput("rh_mean_14day", "Mean RH, 14-day average", "percent", 40, 100, 1, 80),),
+    outputs=(
+        Quantity(name="probability", label="Probability for the chosen resistance", unit="percent"),
+        *(Quantity(name=f"probability_{key}", label=label, unit="percent") for key, (label, _) in RESISTANCE.items()),
+    ),
+    risk=Risk(levels=PROBABILITY_LEVELS, criteria="Very low below 1%, Low from 1%, Moderate from 24%, High from 32%."),
+    explorer=(
+        ExplorerInput(
+            name="rh_mean_14day",
+            label="Mean RH, 14-day average",
+            unit="percent",
+            minimum=40,
+            maximum=100,
+            step=1,
+            default=80,
+        ),
+    ),
     sweep={"rh_mean_14day": (50.0, 60.0, 70.0, 80.0, 90.0, 100.0)},
-    options=(Option("resistance", "Cultivar resistance", tuple((k, v[0]) for k, v in RESISTANCE.items()), "s"),),
+    options=(
+        Option(
+            name="resistance",
+            label="Cultivar resistance",
+            choices=tuple((k, v[0]) for k, v in RESISTANCE.items()),
+            default="s",
+        ),
+    ),
     lookback_days=14,
-    changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool."),),
+    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

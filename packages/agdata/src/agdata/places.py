@@ -17,7 +17,7 @@ DATA = Path(__file__).parent / "data"
 NEAREST_STEPS = 4  # 0.1°, about 10 km
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class County:
     geoid: str  # five-digit FIPS code, state first
     name: str
@@ -35,7 +35,7 @@ def counties() -> tuple[County | None, ...]:
     """Counties by grid id (index 0 is no county)."""
     with (DATA / "counties.csv").open() as f:
         rows = list(csv.DictReader(f))
-    return (None, *(County(r["geoid"], r["name"], r["state"]) for r in rows))
+    return (None, *(County(geoid=r["geoid"], name=r["name"], state=r["state"]) for r in rows))
 
 
 def county_ids(latitude, longitude) -> np.ndarray:

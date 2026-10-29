@@ -19,7 +19,7 @@ import numpy as np
 from agmodels.spec import ModelSpec, Option
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class CropStage:
     code: str  # the staging system's label: VE, V6, R1, …
     name: str

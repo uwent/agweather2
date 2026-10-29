@@ -35,32 +35,49 @@ SPEC = ModelSpec(
     crops=("Pecan",),
     citations=(
         Citation(
-            "Oklahoma Mesonet: Pecan Scab Advisor.",
-            "https://www.mesonet.org/agriculture/horticulture/pecan/pecan-scab-advisor",
+            text="Oklahoma Mesonet: Pecan Scab Advisor.",
+            url="https://www.mesonet.org/agriculture/horticulture/pecan/pecan-scab-advisor",
         ),
-        Citation("University of Arkansas: Pecan scab.", "https://pecanscab.uada.edu/"),
+        Citation(text="University of Arkansas: Pecan scab.", url="https://pecanscab.uada.edu/"),
     ),
     inputs=(
-        Quantity("hours_rh_over_90_temperature_over_70f", "Scab hours (RH ≥ 90% and ≥ 70 °F)", "hour", "Calendar day"),
+        Quantity(
+            name="hours_rh_over_90_temperature_over_70f",
+            label="Scab hours (RH ≥ 90% and ≥ 70 °F)",
+            unit="hour",
+            description="Calendar day",
+        ),
     ),
     outputs=(
-        Quantity("scab_hours_total", "Scab hours since March 1 or the last spray", "hour"),
-        Quantity("scab_hours", "Scab hours", "hour"),
-        Quantity("scab_hours_14_day", "Scab hours in the last 14 days", "hour"),
+        Quantity(name="scab_hours_total", label="Scab hours since March 1 or the last spray", unit="hour"),
+        Quantity(name="scab_hours", label="Scab hours", unit="hour"),
+        Quantity(name="scab_hours_14_day", label="Scab hours in the last 14 days", unit="hour"),
     ),
     risk=Risk(
-        ("Low", "Moderate", "High", "Very high"),
-        "Scab hours since March 1 or the last spray: Low below 10, Moderate from 10 (spray highly susceptible "
+        levels=("Low", "Moderate", "High", "Very high"),
+        criteria="Scab hours since March 1 or the last spray: Low below 10, Moderate from 10 (spray highly susceptible "
         "varieties such as Desirable, Pawnee and Wichita), High from 20 (moderately susceptible, such as Caddo, "
         "Kiowa and Stuart), Very high from 30 (low susceptibility, such as Excel, Kanza and Lakota). The Mesonet also "
         "waits 30 days after March 1, or 5 to 14 days after the last spray.",
     ),
-    explorer=(ExplorerInput("scab_hours_total", "Scab hours since March 1 or the last spray", "hour", 0, 60, 1, 10),),
+    explorer=(
+        ExplorerInput(
+            name="scab_hours_total",
+            label="Scab hours since March 1 or the last spray",
+            unit="hour",
+            minimum=0,
+            maximum=60,
+            step=1,
+            default=10,
+        ),
+    ),
     sweep={"scab_hours_total": tuple(float(h) for h in range(0, 41))},
     region=PECAN_STATES,
     season=("03-01", "08-31"),
-    biofix=Biofix("03-01", "March 1, or the last fungicide application"),
-    changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool, with the Mesonet's thresholds."),),
+    biofix=Biofix(default="03-01", label="March 1, or the last fungicide application"),
+    changelog=(
+        Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool, with the Mesonet's thresholds."),
+    ),
 )
 
 

@@ -30,35 +30,46 @@ SPEC = ModelSpec(
     crops=("Oak",),
     citations=(
         Citation(
-            "Jagemann, S. M., Juzwik, J., Tobin, P. C. and Raffa, K. F. (2018). Seasonal and regional distributions, "
-            "degree-day models, and phoresy rates of the major sap beetle (Coleoptera: Nitidulidae) vectors of the oak "
-            "wilt fungus, Bretziella fagacearum, in Wisconsin. Environmental Entomology 47, 1152–1164.",
+            text="Jagemann, S. M., Juzwik, J., Tobin, P. C. and Raffa, K. F. (2018). Seasonal and regional "
+            "distributions, degree-day models, and phoresy rates of the major sap beetle (Coleoptera: Nitidulidae) "
+            "vectors of the oak wilt fungus, Bretziella fagacearum, in Wisconsin. Environmental Entomology 47, "
+            "1152–1164.",
             doi="10.1093/ee/nvy080",
         ),
     ),
     inputs=(
-        Quantity("air_temperature_min", "Minimum temperature", "degC"),
-        Quantity("air_temperature_max", "Maximum temperature", "degC"),
+        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
     ),
     outputs=(
-        Quantity("dd_total", "Degree days since January 1 (base 41 °F)", "degF_day"),
-        Quantity("dd", "Degree days", "degF_day"),
-        Quantity("flight", "Vector flight level", "index"),
+        Quantity(name="dd_total", label="Degree days since January 1 (base 41 °F)", unit="degF_day"),
+        Quantity(name="dd", label="Degree days", unit="degF_day"),
+        Quantity(name="flight", label="Vector flight level", unit="index"),
     ),
     risk=Risk(
-        SEVERITY_LEVELS,
-        "Vector flight by degree days: Low from 180 (under 5% of C. truncatus flying), Moderate from 231, High from "
-        "283, Very high from 388 to 913 (peak flight), then High to 1,792, Moderate to 2,172 and Low after. From "
-        "July 15 two levels lower and at most Low; from July 22 one lower again.",
+        levels=SEVERITY_LEVELS,
+        criteria="Vector flight by degree days: Low from 180 (under 5% of C. truncatus flying), Moderate from 231, "
+        "High from 283, Very high from 388 to 913 (peak flight), then High to 1,792, Moderate to 2,172 and Low after. "
+        "From July 15 two levels lower and at most Low; from July 22 one lower again.",
     ),
     explorer=(
-        ExplorerInput("dd_total", "Degree days since January 1", "degF_day", 0, 3000, 10, 500),
-        ExplorerInput("day_of_year", "Day of the year", "day", 1, 365, 1, 150),
+        ExplorerInput(
+            name="dd_total",
+            label="Degree days since January 1",
+            unit="degF_day",
+            minimum=0,
+            maximum=3000,
+            step=10,
+            default=500,
+        ),
+        ExplorerInput(
+            name="day_of_year", label="Day of the year", unit="day", minimum=1, maximum=365, step=1, default=150
+        ),
     ),
     sweep={"dd_total": tuple(float(d) for d in range(0, 3001, 100)), "day_of_year": (120.0, 196.0, 203.0)},
     season=("03-01", "07-31"),
-    biofix=Biofix("01-01", "January 1"),
-    changelog=(Change("1.0", "2026-10-28", "Ported from VDIFN."),),
+    biofix=Biofix(default="01-01", label="January 1"),
+    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from VDIFN."),),
 )
 
 

@@ -3,9 +3,9 @@
 from agmodels.phenology import Insect
 
 INSECT = Insect(
-    "corn-earworm",
-    "Corn Earworm",
-    ("Bean", "Corn (Field and Sweet)"),
+    id="corn-earworm",
+    name="Corn Earworm",
+    crops=("Bean", "Corn (Field and Sweet)"),
     base_f=55,
     upper_f=92,
     biofix="08-01",

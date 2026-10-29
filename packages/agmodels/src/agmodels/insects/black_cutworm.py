@@ -3,9 +3,9 @@
 from agmodels.phenology import Insect
 
 INSECT = Insect(
-    "black-cutworm",
-    "Black Cutworm",
-    (
+    id="black-cutworm",
+    name="Black Cutworm",
+    crops=(
         "Asparagus",
         "Bean",
         "Beet",

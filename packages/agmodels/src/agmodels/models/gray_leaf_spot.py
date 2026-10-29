@@ -24,27 +24,47 @@ SPEC = ModelSpec(
     topics=("gray-leaf-spot",),
     crops=("Corn",),
     citations=(
-        Citation("Damon Smith (UW–Madison) and Richard Webster (NDSU), as implemented in the Crop Risk Tool."),
+        Citation(text="Damon Smith (UW–Madison) and Richard Webster (NDSU), as implemented in the Crop Risk Tool."),
         Citation(
-            "Crop Protection Network: Gray leaf spot of corn.",
-            "https://cropprotectionnetwork.org/encyclopedia/gray-leaf-spot-of-corn",
+            text="Crop Protection Network: Gray leaf spot of corn.",
+            url="https://cropprotectionnetwork.org/encyclopedia/gray-leaf-spot-of-corn",
         ),
     ),
     inputs=(
-        Quantity("air_temperature_min", "Minimum temperature", "degC", "21-day moving average"),
-        Quantity("dew_point_min", "Minimum dew point", "degC", "30-day moving average"),
+        Quantity(
+            name="air_temperature_min", label="Minimum temperature", unit="degC", description="21-day moving average"
+        ),
+        Quantity(name="dew_point_min", label="Minimum dew point", unit="degC", description="30-day moving average"),
     ),
-    outputs=(Quantity("probability", "Spore probability", "percent"),),
-    risk=Risk(PROBABILITY_LEVELS, "Very low below 1%, Low from 1%, Moderate from 40%, High from 60%."),
+    outputs=(Quantity(name="probability", label="Spore probability", unit="percent"),),
+    risk=Risk(levels=PROBABILITY_LEVELS, criteria="Very low below 1%, Low from 1%, Moderate from 40%, High from 60%."),
     explorer=(
-        ExplorerInput("temperature_min_21day", "Minimum temperature, 21-day average", "degC", 0, 30, 0.5, 16),
-        ExplorerInput("dew_point_min_30day", "Minimum dew point, 30-day average", "degC", -5, 25, 0.5, 14),
+        ExplorerInput(
+            name="temperature_min_21day",
+            label="Minimum temperature, 21-day average",
+            unit="degC",
+            minimum=0,
+            maximum=30,
+            step=0.5,
+            default=16,
+        ),
+        ExplorerInput(
+            name="dew_point_min_30day",
+            label="Minimum dew point, 30-day average",
+            unit="degC",
+            minimum=-5,
+            maximum=25,
+            step=0.5,
+            default=14,
+        ),
     ),
     sweep={"temperature_min_21day": (10.0, 15.0, 20.0), "dew_point_min_30day": (5.0, 10.0, 15.0, 20.0)},
     lookback_days=30,
     season=("07-01", "08-15"),
-    susceptible=Susceptibility("corn-stages", "V10", "R3", "The Crop Risk Tool (V10–R3, 10th leaf to milk)"),
-    changelog=(Change("1.0", "2026-10-28", "Ported from the Crop Risk Tool."),),
+    susceptible=Susceptibility(
+        crop="corn-stages", first="V10", last="R3", source="The Crop Risk Tool (V10–R3, 10th leaf to milk)"
+    ),
+    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

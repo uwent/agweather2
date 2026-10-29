@@ -3,9 +3,9 @@
 from agmodels.phenology import Insect
 
 INSECT = Insect(
-    "european-corn-borer",
-    "European Corn Borer",
-    ("Bean", "Corn (Field and Sweet)", "Eggplant", "Pepper", "Potato"),
+    id="european-corn-borer",
+    name="European Corn Borer",
+    crops=("Bean", "Corn (Field and Sweet)", "Eggplant", "Pepper", "Potato"),
     base_f=50,
     upper_f=86,
     biofix="01-01",

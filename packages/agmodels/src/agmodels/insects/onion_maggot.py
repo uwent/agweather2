@@ -3,9 +3,9 @@
 from agmodels.phenology import Insect
 
 INSECT = Insect(
-    "onion-maggot",
-    "Onion Maggot",
-    ("Onion",),
+    id="onion-maggot",
+    name="Onion Maggot",
+    crops=("Onion",),
     base_f=39.2,
     upper_f=86,
     biofix="01-01",

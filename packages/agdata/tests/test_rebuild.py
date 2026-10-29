@@ -8,7 +8,7 @@ from agdata.grid import Window
 from agdata.rebuild import find_stale, rebuild_stale
 from agdata.store import DAILY, HOURLY, GridStore
 
-WINDOW = Window(900, 902, 1400, 1403)
+WINDOW = Window(j0=900, j1=902, i0=1400, i1=1403)
 
 
 def test_a_feature_from_older_code_is_found_and_recomputed(tmp_path):

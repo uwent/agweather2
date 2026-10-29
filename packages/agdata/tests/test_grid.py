@@ -52,7 +52,7 @@ def test_wisconsin_window_covers_the_state_and_fits_older_grids():
 def test_presets_and_explicit_boxes():
     assert service_window("conus") == NDFD.window
     assert parse_box(" Wisconsin ") == BOXES["wisconsin"]
-    assert parse_box("40,-95,45,-85") == Box(40, -95, 45, -85)
+    assert parse_box("40,-95,45,-85") == Box(south=40, west=-95, north=45, east=-85)
     um = service_window("upper_midwest")
     wi = service_window("wisconsin")
     assert um.j0 <= wi.j0 and um.i0 <= wi.i0 and um.j1 >= wi.j1 and um.i1 >= wi.i1
@@ -63,7 +63,7 @@ def test_presets_and_explicit_boxes():
 
 
 def test_window_local_indices():
-    window = Window(10, 20, 30, 40)
+    window = Window(j0=10, j1=20, i0=30, i1=40)
     assert window.shape == (10, 10)
     assert window.local(10, 39) == (0, 9)
     with pytest.raises(IndexError):
