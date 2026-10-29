@@ -13,7 +13,7 @@ layers: daily minimum and maximum temperature (inputs), degree days, their total
 and the severity less the freeze reduction (risk). `day_of_year` is supplied with the inputs by whoever runs the
 model (it isn't stored); without it there's no freeze reduction.
 
-The insect list is in `agmodels.insect_list`.
+The insects, one module each, are in `agmodels.insects`.
 """
 
 import math

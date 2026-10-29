@@ -1,13 +1,13 @@
-"""Seed `content/` (PLAN.md Phase 3 E) with draft topic and model pages from the Crop Risk Tool's docs and VDIFN's seed
-texts, and copy their images. Pages that exist are left alone (rewrites happen in place in Phase 6); pass --force to
-rebuild them all.
+"""Seed draft topic pages in `content/` and model pages beside their modules (PLAN.md Phase 3 E, D35) from the
+Crop Risk Tool's docs and VDIFN's seed texts, and copy their images. Pages that exist are left alone (rewrites
+happen in place in Phase 6); pass --force to rebuild them all.
 
 Sources: `tmp/shiny/crop-risk-tool/docs/` (Markdown: the text before "Model details" seeds the topic, the model
 sections the model page, "References"/"More information" go to the topic) and VDIFN's `db/seeds.rb`, dumped to JSON
 by `scripts/dump_vdifn_seeds.rb` (HTML `info` seeds the topic, `severity_info` the model page).
 
 Run: `ruby scripts/dump_vdifn_seeds.rb ../ag-vdifn/db/seeds.rb > tmp/content-import/vdifn_seeds.json`
-then `uv run python scripts/import_content.py` and `pnpm format` (CI checks `content/` with Prettier).
+then `uv run python scripts/import_content.py` and `pnpm format` (CI checks the pages with Prettier).
 """
 
 import html
@@ -19,7 +19,7 @@ from pathlib import Path
 
 import yaml
 
-from agmodels.registry import all_models
+from agmodels.registry import all_models, page_path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content"
@@ -95,7 +95,7 @@ def main(force: bool) -> None:
             [f"VDIFN db/seeds.rb ({seed['local_name']})"] if seed else []
         )
         _write(
-            CONTENT / "models" / f"{model_id}.md",
+            page_path(model_id),
             {"id": model_id, "status": "draft", "sources": sources},
             model_body or "To write: how the model works, how to read it, its validation and caveats.",
             force,

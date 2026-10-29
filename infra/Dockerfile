@@ -34,6 +34,8 @@ RUN mkdir -p packages/agmodels/src/agmodels packages/agdata/src/agdata \
 
 COPY packages packages
 COPY app app
+# Topic pages and their images (model pages are beside the models in packages/)
+COPY content content
 COPY --from=frontend /src/app/static/vite app/static/vite
 RUN uv sync --frozen --no-dev
 

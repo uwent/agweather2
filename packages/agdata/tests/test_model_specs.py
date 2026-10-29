@@ -25,9 +25,9 @@ def test_inputs_are_in_the_daily_store(model_id):
 def test_every_insect_has_degree_day_cubes():
     """Maps of an insect come from the running-total cubes: one per threshold, a pair being their difference (D26)."""
     from agdata.catalog import DD_SINE_THRESHOLDS_F
-    from agmodels.insect_list import INSECTS
+    from agmodels.registry import all_insects
 
-    for insect in INSECTS:
+    for insect in all_insects():
         thresholds = {insect.base_f} | ({insect.upper_f} if insect.upper_f is not None else set())
         assert thresholds <= set(DD_SINE_THRESHOLDS_F), insect.id
 

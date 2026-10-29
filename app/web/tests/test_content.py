@@ -1,12 +1,18 @@
-"""Every model has a page and its topics have pages; every topic page has models; front matter is whole (D31)."""
+"""Every model has a page and its topics have pages; every page has a model; front matter is whole (D31, D35)."""
 
-from agmodels.registry import all_models
+from pathlib import Path
+
+from agmodels import insects as insect_modules
+from agmodels import models as model_modules
+from agmodels.registry import all_models, page_path
 from web.content import CONTENT, STATUSES, TOPIC_FIELDS, TOPIC_KINDS, model_pages, topics
 
 
 def test_every_model_has_a_page_and_its_topics_have_pages():
     models = all_models()
-    assert set(model_pages()) == set(models), "model pages and specs differ"
+    assert set(models) - set(model_pages()) == set(), "models without a page beside their module"
+    pages = {p for package in (insect_modules, model_modules) for d in package.__path__ for p in Path(d).glob("*.md")}
+    assert pages - {page_path(m) for m in models} == set(), "pages without a model of the same name"
     named = {t for m in models.values() for t in m.SPEC.topics}
     assert named - set(topics()) == set(), "topics without a page"
     assert set(topics()) - named == set(), "topic pages no model names"

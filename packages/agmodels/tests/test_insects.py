@@ -4,10 +4,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from agmodels.insect_list import INSECTS
-from agmodels.insects import Insect, InsectModel, severity, stage_index
 from agmodels.models import oak_wilt
-from agmodels.registry import all_models, model
+from agmodels.phenology import Insect, InsectModel, severity, stage_index
+from agmodels.registry import all_insects, all_models, model
 
 FIXTURES = Path(__file__).parent / "fixtures"
 VDIFN_ARRAYS = {  # as in make_vdifn_fixtures.rb
@@ -51,7 +50,7 @@ def test_crop_risk_tool_insects_match_over_a_year(crt, crt_id, model_id):
         "day_of_year": (days - days.astype("datetime64[Y]")).astype(int) + 1,
     }
     m = model(model_id)
-    insect = next(i for i in INSECTS if i.id == model_id)
+    insect = next(i for i in all_insects() if i.id == model_id)
     out = m.outputs(inputs)
 
     # Degree days match except where the tool skips the upper cutoff: its gdd_sine returns mean - base whenever the
@@ -71,7 +70,7 @@ def test_crop_risk_tool_insects_match_over_a_year(crt, crt_id, model_id):
 
 def test_every_insect_is_a_model_with_a_severity_rule():
     insects = [m for m in all_models().values() if isinstance(m, InsectModel)]
-    assert len(insects) == len(INSECTS) == 26
+    assert len(insects) == len(all_insects()) == 26
     for m in insects:
         assert m.insect.stages or m.insect.generations, m.insect.id
         assert m.SPEC.crops, m.insect.id
