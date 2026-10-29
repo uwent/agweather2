@@ -6,9 +6,9 @@ the API and charts show (the Crop Risk Tool's view):
 - `outputs(inputs, biofix_index, **options) -> dict`: the model's outputs (an index, a probability, degree days, a
   life stage) from its inputs, daily arrays with time on axis 0 (a point's series or the grid); most models ignore
   the biofix here, but one anchored to a growth stage (red crown rot's R1) can't;
-- `risk(outputs, biofix_index, **options) -> array`: the risk level (0 … len(levels) − 1, NaN where unknown) over
-  the same days, from outputs accumulated from the biofix; never stored, so changing the criteria changes nothing
-  on disk;
+- `risk(outputs, biofix_index, **options) -> array`: the risk level (0 … len(levels) − 1, NaN where unknown), or a
+  continuous value whose levels start at `Risk.thresholds`, over the same days, from outputs accumulated from the
+  biofix; never stored, so changing the criteria changes nothing on disk;
 - `explore(**values) -> dict`: the model's core at single values of its explorer inputs, for the model page's
   interactive chart (through the API, so the page never re-implements the math).
 
@@ -61,6 +61,9 @@ class Quantity:
 class Risk:
     levels: tuple[str, ...]
     criteria: str  # how outputs become each level, in words, for the model page and chart legends
+    # Lower bounds of levels[1:] when `risk()` returns a continuous value (insects' summed activity, D36); empty when
+    # it returns the level itself
+    thresholds: tuple[float, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)
