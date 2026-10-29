@@ -21,7 +21,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 ## Phase 2: Hourly archive
 
 - [x] **Decide the local backfill range:** 2025-01-01 to now (decided 2026-10-28). About 0.8 TB of downloads; it runs at about 6 s per hour of data here (about 27 hours in all) with 1.3 GB of memory.
-- [ ] **Let the backfill finish** (started 2026-10-28). Only one runs at a time (a second one exits naming the first's pid), and rerunning resumes, skipping complete 5-day blocks:
+- [x] **Let the backfill finish** (started 2026-10-28; finished 2026-10-28 20:05, before the 2026-10-29 WSL crash; `data/write.lock` still names its pid, which is harmless). Only one runs at a time (a second one exits naming the first's pid), and rerunning resumes, skipping complete 5-day blocks:
   ```bash
   cd ~/code/agweather2
   setsid nohup uv run app/manage.py backfill --start 2025-01-01 --end 2026-10-28 > tmp/backfill.log 2>&1 < /dev/null &
@@ -31,7 +31,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
   kill $(cat data/write.lock)         # stop it; the current block is lost, finished blocks are kept
   ```
   After a WSL restart it isn't running: start it again with the same command.
-- [ ] **After the backfill finishes, first** fetch the 30 cm soil level added 2026-10-28 (HRRR's TSOIL at 30 cm, for the potato model's 8 in) over the backfilled hours; about 15,900 hours at ~3 MB each (~48 GB), then it rolls those days up. It holds the write lock, like the backfill. Claude can run it:
+- [ ] **Next (heavy, so pick a time the other session is idle):** fetch the 30 cm soil level added 2026-10-28 (HRRR's TSOIL at 30 cm, for the potato model's 8 in) over the backfilled hours; about 15,900 hours at ~3 MB each (~48 GB), then it rolls those days up. It holds the write lock, like the backfill. Claude can run it:
   ```bash
   setsid nohup uv run app/manage.py refetch_soil --start 2025-01-01 --end 2026-10-29 > tmp/refetch_soil.log 2>&1 < /dev/null &
   ```
@@ -41,3 +41,24 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 ## Phase 3: Model library (ahead of time)
 
 - [x] **Copy the Shiny apps in** from OneDrive, with their data and `.rds` fixtures, to `tmp/shiny/` (Crop Risk Tool, alfalfa, potato volunteer). The git repos alone lack the data the parity tests need.
+- [ ] **Insect model sources (D8 step 4).** The full list, with DOIs, is in [docs/insect-models.md](docs/insect-models.md). Put each PDF in `tmp/references/insects/<insect-id>/` (for example `cabbage-maggot/`); Claude converts an insect once its papers are in. Wisconsin sources first:
+  - Eckenrode and Chapman 1972, cabbage maggot field thermal units, [10.1093/aesa/65.1.151](https://doi.org/10.1093/aesa/65.1.151); and 1971, lab development, [10.1093/aesa/64.5.1079](https://doi.org/10.1093/aesa/64.5.1079)
+  - Litsinger and Apple 1973, alfalfa weevil in Wisconsin, [10.1093/jee/66.2.309](https://doi.org/10.1093/jee/66.2.309); Harcourt 1981 (USPest's source), [10.4039/Ent113601-7](https://doi.org/10.4039/Ent113601-7)
+  - Hanson et al. 2015, western bean cutworm flight, [10.1093/jee/tov110](https://doi.org/10.1093/jee/tov110)
+  - Luckmann et al. 1976, black cutworm, [10.1093/jee/69.3.386](https://doi.org/10.1093/jee/69.3.386); Story et al. 1984, [10.1093/jee/77.2.491](https://doi.org/10.1093/jee/77.2.491)
+  - Toba et al. 1973, cabbage looper, [10.1093/aesa/66.5.965](https://doi.org/10.1093/aesa/66.5.965)
+  - Levine 1983, stalk borer, [10.1093/aesa/76.5.892](https://doi.org/10.1093/aesa/76.5.892)
+  - Simonet et al. 1981, variegated cutworm, [10.4039/Ent113891-10](https://doi.org/10.4039/Ent113891-10)
+  - Régnière et al. 1981, Japanese beetle, [10.1093/ee/10.3.290](https://doi.org/10.1093/ee/10.3.290)
+  - Matteson and Decker 1965, European corn borer, [10.1093/jee/58.2.344](https://doi.org/10.1093/jee/58.2.344); Anderson et al. 1982, [10.1093/ee/11.6.1307](https://doi.org/10.1093/ee/11.6.1307)
+  - Eckenrode et al. 1975, onion maggot, [10.1093/ee/4.5.785](https://doi.org/10.1093/ee/4.5.785); Liu et al. 1982, [10.1093/ee/11.3.751](https://doi.org/10.1093/ee/11.3.751)
+  - The rest (asparagus beetle, corn rootworm, crucifer flea beetle, Lygus, SWD lab data) are under "Papers to find" in the doc.
+- [ ] **Reports with no DOI** (cited by USPest; probably Oregon State or USDA reports): Coop and Berry 1987 (variegated cutworm in peppermint); Berry et al. (mint flea beetle and mint root borer); Simko 2000 (Lygus in alfalfa seed); Hartstack et al. 1976 (MOTHZV-2, corn earworm).
+- [ ] **Questions on the insects** (answers go in `docs/insect-models.md`):
+  - What is "XHT1087", the spreadsheet's source for imported cabbageworm and onion maggot?
+  - Aphid PVY vectors and Colorado potato beetle (your analyses): which degree-day method, biofix and data did each fit use? Are VDIFN's CPB adult and larval models (50/86 °F) yours too, as cited now?
+  - Variegated cutworm: the events are Coop and Berry's at 41/88 °F, but VDIFN runs them at Simonet's 45/80.1. Keep Coop and Berry's pair, or rebuild on Simonet?
+  - Tarnished plant bug: the model is for _Lygus hesperus_ (Oregon and Idaho alfalfa seed). Keep it, or look for an _L. lineolaris_ model?
+  - Cabbage maggot: the Wisconsin source (Eckenrode and Chapman, modified average at 43 °F) or USPest's Oregon State model (sine at 39.7/86 °F)?
+  - Black cutworm, cabbage looper, corn earworm: their biofixes stand for trap catches or first silk. Default dates with a user-set biofix (as now), or something else?
+- [ ] **UW Vegetable Entomology's seedcorn maggot page** still says to count from spring ground thaw at 39/86 °F, with VDIFN's 360 + 720n peaks. Update it to match seedcorn maggot 2.0 (average method, 39 °F with an 84 °F cap, from January 1) once the new model is reviewed.

@@ -2,6 +2,7 @@
 
 from agmodels.insects import CRT
 from agmodels.phenology import Insect, Stage
+from agmodels.spec import Citation
 
 INSECT = Insect(
     id="colorado-potato-beetle",
@@ -23,4 +24,8 @@ INSECT = Insect(
         Stage(start=2265, severity=1, label="2nd gen adults mostly dispersed"),
     ),
     source=CRT,
+    citations=(
+        Citation(text="The Crop Risk Tool (UW–Madison Vegetable Entomology)."),
+        Citation(text="Bradford, B. Z. and Groves, R. L. Vegetable Entomology Lab, UW–Madison, unpublished analysis."),
+    ),
 )
