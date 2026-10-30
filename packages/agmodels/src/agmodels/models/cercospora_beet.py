@@ -29,7 +29,7 @@ SPEC = ModelSpec(
     id="cercospora-beet-div",
     name="Cercospora leaf spot daily infection values",
     group="disease",
-    version="1.0",
+    version="0.1",
     status="stable",
     summary="Daily infection values (0–7) from hours of high humidity and their temperature; their 2- and "
     "7-day means time fungicide sprays for Cercospora leaf spot of table and sugar beet.",
@@ -85,7 +85,7 @@ SPEC = ModelSpec(
     biofix=Biofix(default="06-01", label="Planting"),
     changelog=(
         Change(
-            version="1.0",
+            version="0.1",
             date="2026-10-28",
             note="Ported from the Crop Risk Tool; humid hours and their temperature from "
             "the same window (the day from 8 pm).",

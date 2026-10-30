@@ -1,4 +1,4 @@
-{"version": "1.0", "rows": [
+{"version": "0.1", "rows": [
 {"inputs":{"gdd_total":0.0,"planting_day":250.0,"precipitation_fall":0.0},"outputs":{"biomass":12.045939939,"level":0.0}},
 {"inputs":{"gdd_total":0.0,"planting_day":250.0,"precipitation_fall":100.0},"outputs":{"biomass":8.217560568,"level":0.0}},
 {"inputs":{"gdd_total":0.0,"planting_day":250.0,"precipitation_fall":300.0},"outputs":{"biomass":2.750403541,"level":0.0}},

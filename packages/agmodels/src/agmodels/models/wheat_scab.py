@@ -24,7 +24,7 @@ SPEC = ModelSpec(
     id="wheat-scab",
     name="Wheat scab (Fusarium head blight) probability",
     group="disease",
-    version="1.0",
+    version="0.1",
     status="stable",
     summary="The probability of a Fusarium head blight epidemic from two weeks of humidity, for the cultivar's "
     "resistance class; wheat is susceptible at flowering.",
@@ -66,7 +66,7 @@ SPEC = ModelSpec(
         ),
     ),
     lookback_days=14,
-    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

@@ -27,7 +27,7 @@ SPEC = ModelSpec(
     id="pecan-scab",
     name="Pecan scab hours",
     group="disease",
-    version="1.0",
+    version="0.1",
     status="beta",
     summary="Hours warm (70 °F or more) and humid (RH 90% or more) since March 1 or the last fungicide spray, "
     "against the spray thresholds for highly, moderately and low susceptible pecan varieties.",
@@ -76,7 +76,7 @@ SPEC = ModelSpec(
     season=("03-01", "08-31"),
     biofix=Biofix(default="03-01", label="March 1, or the last fungicide application"),
     changelog=(
-        Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool, with the Mesonet's thresholds."),
+        Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool, with the Mesonet's thresholds."),
     ),
 )
 

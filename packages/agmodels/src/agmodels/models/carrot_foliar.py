@@ -35,7 +35,7 @@ SPEC = ModelSpec(
     id="carrot-foliar-dsv",
     name="Carrot foliar blight disease severity values (TOMCAST)",
     group="disease",
-    version="1.1",
+    version="0.2",
     status="stable",
     summary="Daily disease severity values (0–4) from hours of leaf wetness and their temperature; the last "
     "7 days' total times fungicide sprays for Alternaria and Cercospora leaf blights of carrot.",
@@ -96,13 +96,13 @@ SPEC = ModelSpec(
     biofix=Biofix(default="06-01", label="Planting or the last fungicide application"),
     changelog=(
         Change(
-            version="1.0",
+            version="0.1",
             date="2026-10-28",
             note="Ported from the Crop Risk Tool; humid hours and their temperature from "
             "the same window (the day from 8 pm).",
         ),
         Change(
-            version="1.1",
+            version="0.2",
             date="2026-10-28",
             note="FAST's table (Madden et al. 1978): the first step at 13–17 °C from 7 h and at 18–20 °C from 4 h, and "
             "18, 21 and 26 °C in the band above.",

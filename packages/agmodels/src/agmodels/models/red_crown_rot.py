@@ -35,7 +35,7 @@ SPEC = ModelSpec(
     id="red-crown-rot",
     name="Red crown rot incidence",
     group="disease",
-    version="1.1",
+    version="0.2",
     status="beta",
     summary="Predicted share of soybean plants with red crown rot, from temperature and rain in the month either "
     "side of the beginning of flowering (R1).",
@@ -120,9 +120,9 @@ SPEC = ModelSpec(
     biofix=Biofix(default="07-01", label="R1 (beginning flowering)"),
     biofix_stage=("soybean-stages", "R1"),  # the soybean model's R1 is the default when it has run
     changelog=(
-        Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),
+        Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),
         Change(
-            version="1.1",
+            version="0.2",
             date="2026-10-30",
             note="Precipitation sums the known days and counts missing days as no rain, reporting how many; the "
             "tool's mean of the known days times 31 estimated them. Unchanged without gaps.",

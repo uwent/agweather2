@@ -29,7 +29,7 @@ SPEC = ModelSpec(
     id="white-mold",
     name="White mold apothecia probability",
     group="disease",
-    version="1.0",
+    version="0.1",
     status="stable",
     summary="The probability of white mold apothecia in soybean fields, from a month of temperature, humidity "
     "and wind (non-irrigated) or temperature, humidity and row spacing (irrigated); susceptible from R1 to R3.",
@@ -127,7 +127,7 @@ SPEC = ModelSpec(
         last="R3",
         source="The Crop Risk Tool (R1–R3); Sporecaster runs only with flowers present",
     ),
-    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

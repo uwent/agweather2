@@ -1,4 +1,4 @@
-{"version": "1.0", "rows": [
+{"version": "0.1", "rows": [
 {"inputs":{"temperature":0.0,"day_length":10.0,"maturity_group":0.0},"outputs":{"emergence_to_v1":0.0,"floral_induction":0.25,"r0_to_r1":0.0,"r1_to_r5":0.0,"r1_to_r7":0.0}},
 {"inputs":{"temperature":0.0,"day_length":10.0,"maturity_group":2.0},"outputs":{"emergence_to_v1":0.0,"floral_induction":0.25,"r0_to_r1":0.0,"r1_to_r5":0.0,"r1_to_r7":0.0}},
 {"inputs":{"temperature":0.0,"day_length":10.0,"maturity_group":4.0},"outputs":{"emergence_to_v1":0.0,"floral_induction":0.25,"r0_to_r1":0.0,"r1_to_r5":0.0,"r1_to_r7":0.0}},

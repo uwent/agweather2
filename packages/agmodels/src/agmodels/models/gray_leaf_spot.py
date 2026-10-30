@@ -17,7 +17,7 @@ SPEC = ModelSpec(
     id="gray-leaf-spot",
     name="Gray leaf spot spore probability",
     group="disease",
-    version="1.0",
+    version="0.1",
     status="stable",
     summary="The probability of gray leaf spot spores being present, from three weeks of minimum temperature "
     "and a month of minimum dew point; corn is susceptible from V10 to R3.",
@@ -64,7 +64,7 @@ SPEC = ModelSpec(
     susceptible=Susceptibility(
         crop="corn-stages", first="V10", last="R3", source="The Crop Risk Tool (V10–R3, 10th leaf to milk)"
     ),
-    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

@@ -22,7 +22,7 @@ SPEC = ModelSpec(
     id="oak-wilt-vectors",
     name="Oak wilt vector flight",
     group="insect",
-    version="1.0",
+    version="0.1",
     status="stable",
     summary="The risk of oak wilt spreading by its beetle vectors, from their flight timed by degree days (base "
     "41 °F) and the season (wounding before mid-July).",
@@ -69,7 +69,7 @@ SPEC = ModelSpec(
     sweep={"dd_total": tuple(float(d) for d in range(0, 3001, 100)), "day_of_year": (120.0, 196.0, 203.0)},
     season=("03-01", "07-31"),
     biofix=Biofix(default="01-01", label="January 1"),
-    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from VDIFN."),),
+    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from VDIFN."),),
 )
 
 

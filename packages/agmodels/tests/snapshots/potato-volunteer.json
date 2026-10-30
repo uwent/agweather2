@@ -1,4 +1,4 @@
-{"version": "1.0", "rows": [
+{"version": "0.1", "rows": [
 {"inputs":{"killing_hours_4cm":0.0,"killing_hours_10cm":0.0,"killing_hours_8in":0.0},"outputs":{"risk":3.0}},
 {"inputs":{"killing_hours_4cm":0.0,"killing_hours_10cm":0.0,"killing_hours_8in":60.0},"outputs":{"risk":3.0}},
 {"inputs":{"killing_hours_4cm":0.0,"killing_hours_10cm":0.0,"killing_hours_8in":119.0},"outputs":{"risk":3.0}},

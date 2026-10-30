@@ -33,7 +33,7 @@ SPEC = ModelSpec(
     id="botrytis-onion-botcast",
     name="Botrytis leaf blight (BOTCAST)",
     group="disease",
-    version="1.0",
+    version="0.1",
     status="stable",
     summary="BOTCAST's daily disease severity index from inoculum and infection conditions, accumulated from "
     "emergence to time fungicide sprays for Botrytis leaf blight of onion.",
@@ -126,7 +126,7 @@ SPEC = ModelSpec(
     biofix=Biofix(default="05-15", label="Crop emergence"),
     changelog=(
         Change(
-            version="1.0",
+            version="0.1",
             date="2026-10-28",
             note="Ported from the Crop Risk Tool; humid hours and their temperature from "
             "the same window; missing inputs give no DSI.",

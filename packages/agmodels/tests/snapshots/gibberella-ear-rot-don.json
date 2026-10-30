@@ -1,4 +1,4 @@
-{"version": "1.0", "rows": [
+{"version": "0.1", "rows": [
 {"inputs":{"w7_max_temp":26.0,"w7_min_temp":14.0,"w7_days_temp_over_25":0.0,"w7_days_precip":2.0,"w0_mean_rh":65.0,"w0_days_rh_over_80":0.0},"outputs":{"probability":0.457800628}},
 {"inputs":{"w7_max_temp":26.0,"w7_min_temp":14.0,"w7_days_temp_over_25":0.0,"w7_days_precip":2.0,"w0_mean_rh":65.0,"w0_days_rh_over_80":7.0},"outputs":{"probability":0.001300766}},
 {"inputs":{"w7_max_temp":26.0,"w7_min_temp":14.0,"w7_days_temp_over_25":0.0,"w7_days_precip":2.0,"w0_mean_rh":80.0,"w0_days_rh_over_80":0.0},"outputs":{"probability":0.961331724}},

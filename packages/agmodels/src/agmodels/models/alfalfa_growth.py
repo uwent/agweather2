@@ -44,7 +44,7 @@ SPEC = ModelSpec(
     id="alfalfa-growth",
     name="Alfalfa growth since cutting",
     group="crop",
-    version="1.0",
+    version="0.1",
     status="beta",
     summary="Growing degree days (base 41 °F, upper 86 °F) since spring or the last cutting, and when alfalfa is "
     "ready to cut (900–1100 GDD).",
@@ -90,7 +90,7 @@ SPEC = ModelSpec(
     sweep={"gdd_total": tuple(float(g) for g in range(0, 1501, 10))},
     season=("03-01", "11-30"),
     biofix=Biofix(default="01-01", label="January 1 in spring, or the date of the last cutting"),
-    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the UW alfalfa tool."),),
+    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the UW alfalfa tool."),),
 )
 
 

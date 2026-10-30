@@ -1,4 +1,4 @@
-{"version": "1.0", "rows": [
+{"version": "0.1", "rows": [
 {"inputs":{"gdd_total":0.0},"outputs":{"stage":0.0}},
 {"inputs":{"gdd_total":10.0},"outputs":{"stage":0.0}},
 {"inputs":{"gdd_total":20.0},"outputs":{"stage":0.0}},

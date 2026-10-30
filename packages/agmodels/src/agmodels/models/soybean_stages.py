@@ -122,7 +122,7 @@ SPEC = ModelSpec(
     id="soybean-stages",
     name="Soybean growth stages",
     group="crop",
-    version="1.0",
+    version="0.1",
     status="beta",
     summary="Soybean's vegetative and reproductive stages from planting, from temperature and day length, for any "
     "maturity group (SOYDEV).",
@@ -166,7 +166,7 @@ SPEC = ModelSpec(
     context=("day_of_year", "latitude"),  # day length
     season=("04-15", "10-31"),
     biofix=Biofix(default="05-17", label="Planting date (or emergence, with that option)"),
-    changelog=(Change(version="1.0", date="2026-10-28", note="First version."),),
+    changelog=(Change(version="0.1", date="2026-10-28", note="First version."),),
 )
 
 

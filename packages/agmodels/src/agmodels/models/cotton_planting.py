@@ -56,7 +56,7 @@ SPEC = ModelSpec(
     id="cotton-planting",
     name="Cotton planting stand risk",
     group="agronomic",
-    version="1.0",
+    version="0.1",
     status="beta",
     summary="For each possible planting date, the probability that the emerged cotton stand falls below a "
     "yield-limiting population, from the rain over the next 3 days and the minimum temperatures over the next 9.",
@@ -124,7 +124,7 @@ SPEC = ModelSpec(
     context=("year",),
     region=COTTON_STATES,
     season=("03-15", "06-30"),
-    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

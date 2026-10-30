@@ -1,4 +1,4 @@
-{"version": "1.0", "rows": [
+{"version": "0.1", "rows": [
 {"inputs":{"temperature_max_30day":20.0,"rh_max_30day":80.0,"wind_max_30day":2.0},"outputs":{"probability_dry":0.681225348,"probability_irrigated_30in":8.895e-06,"probability_irrigated_15in":9.6102e-05}},
 {"inputs":{"temperature_max_30day":20.0,"rh_max_30day":80.0,"wind_max_30day":5.0},"outputs":{"probability_dry":0.627323293,"probability_irrigated_30in":8.895e-06,"probability_irrigated_15in":9.6102e-05}},
 {"inputs":{"temperature_max_30day":20.0,"rh_max_30day":80.0,"wind_max_30day":8.0},"outputs":{"probability_dry":0.425899668,"probability_irrigated_30in":8.895e-06,"probability_irrigated_15in":9.6102e-05}},

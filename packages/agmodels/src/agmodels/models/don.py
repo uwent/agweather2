@@ -20,7 +20,7 @@ SPEC = ModelSpec(
     id="gibberella-ear-rot-don",
     name="Gibberella ear rot DON probability",
     group="disease",
-    version="1.0",
+    version="0.1",
     status="stable",
     summary="The probability of DON above 1 ppm from Gibberella ear rot, from temperature and rain 21 to 7 days "
     "before and humidity over the last 14 days; corn is susceptible during silking.",
@@ -141,7 +141,7 @@ SPEC = ModelSpec(
     ),
     changelog=(
         Change(
-            version="1.0",
+            version="0.1",
             date="2026-10-28",
             note="Ported from the Crop Risk Tool; missing precip isn't counted as dry.",
         ),

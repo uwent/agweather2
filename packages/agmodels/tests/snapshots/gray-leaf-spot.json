@@ -1,4 +1,4 @@
-{"version": "1.0", "rows": [
+{"version": "0.1", "rows": [
 {"inputs":{"temperature_min_21day":10.0,"dew_point_min_30day":5.0},"outputs":{"probability":0.486853031}},
 {"inputs":{"temperature_min_21day":10.0,"dew_point_min_30day":10.0},"outputs":{"probability":0.961372593}},
 {"inputs":{"temperature_min_21day":10.0,"dew_point_min_30day":15.0},"outputs":{"probability":0.998470678}},

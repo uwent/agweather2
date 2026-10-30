@@ -1,4 +1,4 @@
-{"version": "1.0", "rows": [
+{"version": "0.1", "rows": [
 {"inputs":{"temperature_max_30day":20.0,"hours_rh_80_30day":0.0},"outputs":{"probability":0.029792595}},
 {"inputs":{"temperature_max_30day":20.0,"hours_rh_80_30day":6.0},"outputs":{"probability":0.079901214}},
 {"inputs":{"temperature_max_30day":20.0,"hours_rh_80_30day":12.0},"outputs":{"probability":0.197161561}},

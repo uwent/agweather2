@@ -133,7 +133,7 @@ class Insect:
     generation_sd: float | None = None  # SD of a generation's time; None: the first stage's first-generation SD
     action_windows: tuple[ActionWindow, ...] = ()
     risk_thresholds: tuple[float, ...] = RISK_THRESHOLDS
-    version: str = "1.0"
+    version: str = "0.1"
     changelog: tuple[Change, ...] = ()  # after the port (1.0)
 
     def __post_init__(self):
@@ -189,7 +189,7 @@ class InsectModel:
             biofix=Biofix(default=insect.biofix, label=insect.biofix_label),
             context=("day_of_year",),  # the freeze reduction; without it there's none
             changelog=(
-                Change(version="1.0", date="2026-10-28", note=f"Ported from {insect.source}."),
+                Change(version="0.1", date="2026-10-28", note=f"Ported from {insect.source}."),
                 *insect.changelog,
             ),
         )

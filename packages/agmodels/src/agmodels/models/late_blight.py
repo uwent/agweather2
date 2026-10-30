@@ -31,7 +31,7 @@ SPEC = ModelSpec(
     id="late-blight-dsv",
     name="Late blight disease severity values",
     group="disease",
-    version="1.0",
+    version="0.1",
     status="stable",
     summary="Daily disease severity values (0–4) from hours of high humidity and their temperature, "
     "accumulated from crop emergence to time fungicide sprays for potato and tomato late blight.",
@@ -95,7 +95,7 @@ SPEC = ModelSpec(
     biofix=Biofix(default="05-15", label="Crop emergence or the last fungicide application"),
     changelog=(
         Change(
-            version="1.0",
+            version="0.1",
             date="2026-10-28",
             note="Ported from the Crop Risk Tool; humid hours and their temperature from "
             "the same window (the day from 8 pm).",

@@ -91,7 +91,7 @@ SPEC = ModelSpec(
     id="corn-stages",
     name="Corn growth stages",
     group="crop",
-    version="1.0",
+    version="0.1",
     status="beta",
     summary="Corn's vegetative and reproductive stages from planting, by growing degree days (modified 50/86 °F), "
     "for any hybrid maturity.",
@@ -161,7 +161,7 @@ SPEC = ModelSpec(
     options=(MATURITY,),
     season=("04-01", "10-31"),
     biofix=Biofix(default="05-10", label="Planting date"),
-    changelog=(Change(version="1.0", date="2026-10-28", note="First version."),),
+    changelog=(Change(version="0.1", date="2026-10-28", note="First version."),),
 )
 
 

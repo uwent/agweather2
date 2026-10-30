@@ -17,7 +17,7 @@ SPEC = ModelSpec(
     id="frogeye-leaf-spot",
     name="Frogeye leaf spot spore probability",
     group="disease",
-    version="1.0",
+    version="0.1",
     status="stable",
     summary="The probability of frogeye leaf spot spores being present, from a month of maximum temperature and "
     "humid hours; soybean is susceptible from R1 (flowering) to R5 (beginning seed).",
@@ -66,7 +66,7 @@ SPEC = ModelSpec(
     susceptible=Susceptibility(
         crop="soybean-stages", first="R1", last="R5", source="The Crop Risk Tool (R1–R5, flowering to beginning seed)"
     ),
-    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

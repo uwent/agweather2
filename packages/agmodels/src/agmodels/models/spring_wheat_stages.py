@@ -47,7 +47,7 @@ SPEC = ModelSpec(
     id="spring-wheat-stages",
     name="Spring wheat growth stages",
     group="crop",
-    version="1.0",
+    version="0.1",
     status="beta",
     summary="Spring wheat's Haun stages from planting through flowering and watery-ripe kernels, by growing degree "
     "days (base 32 °F).",
@@ -81,7 +81,7 @@ SPEC = ModelSpec(
     sweep={"gdd_total": tuple(float(g) for g in range(0, 2001, 10))},
     season=("03-15", "09-15"),
     biofix=Biofix(default="04-25", label="Planting date"),
-    changelog=(Change(version="1.0", date="2026-10-28", note="First version."),),
+    changelog=(Change(version="0.1", date="2026-10-28", note="First version."),),
 )
 
 

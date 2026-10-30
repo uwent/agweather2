@@ -1,4 +1,4 @@
-{"version": "1.0", "rows": [
+{"version": "0.1", "rows": [
 {"inputs":{"rain_3day":0.0,"min_temp_9day":0.0},"outputs":{"probability":4.83639434,"emergence":46.07061941}},
 {"inputs":{"rain_3day":0.0,"min_temp_9day":1.0},"outputs":{"probability":2.586098546,"emergence":47.048186489}},
 {"inputs":{"rain_3day":0.0,"min_temp_9day":2.0},"outputs":{"probability":1.187276421,"emergence":48.02802341}},

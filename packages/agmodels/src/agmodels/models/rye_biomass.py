@@ -29,7 +29,7 @@ SPEC = ModelSpec(
     id="rye-biomass",
     name="Winter rye cover crop biomass",
     group="agronomic",
-    version="1.0",
+    version="0.1",
     status="beta",
     summary="Spring biomass of a fall-planted cereal rye cover crop, from growing degree days (base 0 °C) since "
     "planting, the planting date and fall precipitation, against the biomass cover crop goals need.",
@@ -96,7 +96,7 @@ SPEC = ModelSpec(
     region=("WI", "MN", "IA", "IL", "MI"),
     season=("09-01", "06-30"),
     biofix=Biofix(default="10-01", label="Fall planting date"),
-    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

@@ -1,4 +1,4 @@
-{"version": "1.0", "rows": [
+{"version": "0.1", "rows": [
 {"inputs":{"rh_mean_14day":50.0},"outputs":{"probability_vs":0.255349678,"probability_s":0.130308208,"probability_ms":0.072322394,"probability_mr":0.05123518}},
 {"inputs":{"rh_mean_14day":60.0},"outputs":{"probability_vs":0.364546649,"probability_s":0.200425081,"probability_ms":0.115377284,"probability_mr":0.082857708}},
 {"inputs":{"rh_mean_14day":70.0},"outputs":{"probability_vs":0.489729577,"probability_s":0.295453467,"probability_ms":0.179114691,"probability_mr":0.131296794}},

@@ -28,11 +28,11 @@ INSECT = Insect(
     # because over-wintered emergence is drawn out (Throne and Eckenrode 1985), not because development varies
     generation_sd=60,
     action_windows=(ActionWindow(label="Avoid planting during adult flight", stage="Adult flight"),),
-    version="2.0",
+    version="0.2",
     status="beta",
     changelog=(
         Change(
-            version="2.0",
+            version="0.2",
             date="2026-10-29",
             note="Life stages as curves (D36): adult flight from 70 FDD, half done by 345, and larval feeding timed "
             "from it, in every generation 720 FDD apart; degree days by the sources' average method (D37) rather than "

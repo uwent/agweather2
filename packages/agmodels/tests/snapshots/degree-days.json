@@ -1,4 +1,4 @@
-{"version": "1.0", "rows": [
+{"version": "0.1", "rows": [
 {"inputs":{"min_temp":30.0,"max_temp":40.0},"outputs":{"sine":0.0,"modified":0.0,"average":0.0}},
 {"inputs":{"min_temp":30.0,"max_temp":45.0},"outputs":{"sine":0.0,"modified":0.0,"average":0.0}},
 {"inputs":{"min_temp":30.0,"max_temp":50.0},"outputs":{"sine":0.0,"modified":0.0,"average":0.0}},

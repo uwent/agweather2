@@ -39,7 +39,7 @@ SPEC = ModelSpec(
     id="degree-days",
     name="Custom degree days",
     group="degree_days",
-    version="1.0",
+    version="0.1",
     status="stable",
     summary="Degree days since a biofix, with any base and upper threshold, method and unit.",
     topics=("degree-days",),
@@ -74,7 +74,7 @@ SPEC = ModelSpec(
     },
     options=(METHOD, UNIT, BASE, UPPER),
     biofix=Biofix(default="01-01", label="January 1, or any date (planting, an insect's first catch)"),
-    changelog=(Change(version="1.0", date="2026-10-28", note="First version."),),
+    changelog=(Change(version="0.1", date="2026-10-28", note="First version."),),
 )
 
 

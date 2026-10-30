@@ -1,4 +1,4 @@
-{"version": "1.0", "rows": [
+{"version": "0.1", "rows": [
 {"inputs":{"min_temp_5day":12.0,"mean_dpd_5day":2.0,"max_dpd_5day":6.0,"max_wind_14day":3.0,"hours_rh90_10day":2.0,"hours_rh90_14day":2.0},"outputs":{"probability_flagellaris":0.026119918,"probability_sigesbeckiae":0.388978993,"probability_kikuchii":0.004308576}},
 {"inputs":{"min_temp_5day":12.0,"mean_dpd_5day":2.0,"max_dpd_5day":6.0,"max_wind_14day":3.0,"hours_rh90_10day":2.0,"hours_rh90_14day":10.0},"outputs":{"probability_flagellaris":0.026119918,"probability_sigesbeckiae":0.388978993,"probability_kikuchii":0.066006886}},
 {"inputs":{"min_temp_5day":12.0,"mean_dpd_5day":2.0,"max_dpd_5day":6.0,"max_wind_14day":3.0,"hours_rh90_10day":10.0,"hours_rh90_14day":2.0},"outputs":{"probability_flagellaris":0.026119918,"probability_sigesbeckiae":0.496558554,"probability_kikuchii":0.004308576}},

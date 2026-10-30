@@ -72,6 +72,7 @@ One Django app that replaces the AgWeather API, the AgWeather website, VDIFN and
 | D43 | **Forecast horizon is NBM's 11 days**, in the box and out; the Phase 6 projection takes over after (Q15) | 2026-10-29 |
 | D44 | **Soil temperature forecast past HRRR's 48 hours comes from Open-Meteo's ECMWF IFS, for points** (it forecasts soil for 11 days, which D41 assumed nobody did). Inside the box, a point's soil hours past HRRR's come from the cell's IFS series, sourced `openmeteo`; the grid keeps the gap rather than mixing sources. Supersedes D41 for points | 2026-10-30 |
 | D45 | **Gaps in a model's inputs get the variable's named estimate, and the model reports how many.** Precipitation over a window sums the known days, counts missing days as no rain, and reports how many were missing (never a mean times the window's length). Temperature-like variables are interpolated over short gaps, as D25 does for running totals. Ported models are expected to carry latent bugs and suboptimal methods: parity tests are evidence about where v2 differs and why, not a rule that v2 must match (Ben) | 2026-10-30 |
+| D46 | **Model versions are 0.x until launch** (Ben): nothing is settled until the app launches, so every model starts at 0.1 and counts up by changelog entry; all go to 1.0 at launch. Renumbered 2026-10-30 (1.0 → 0.1; 1.1 and seedcorn maggot's 2.0 → 0.2) | 2026-10-30 |
 
 ---
 
@@ -468,7 +469,7 @@ Every model from the old API, VDIFN and the three R apps as one readable Python 
 >      - The exit's "forecast maps for the fixed DD cubes in one read" works through `series.grid_total`, but nothing serves maps yet (Phase 5).
 >   3. **Then the Phase 4 exit:** a week of the forecast job running on its own (needs `bin/dev`), then plan Phase 5 in detail and ask Ben.
 > - **Questions for Ben (also under D and E below):**
->   - Answered 2026-10-30: red crown rot sums known rain and counts missing days (D45, done as 1.1); soil past 48 h from Open-Meteo IFS for points in the box (D44); the Phase 2 tolerances stay open until Wisconet's pyranometers are compared (Phase 2 H).
+>   - Answered 2026-10-30: red crown rot sums known rain and counts missing days (D45, done as 0.2 after D46's renumbering); soil past 48 h from Open-Meteo IFS for points in the box (D44); the Phase 2 tolerances stay open until Wisconet's pyranometers are compared (Phase 2 H).
 > - **Facts learned (details under A, B, C, E):**
 >   - NBM's messages scan alternate rows in opposite directions (scanning mode 80); `grib.decode` turned odd rows back only from 2026-10-30. Every NBM number measured before then (DSWRF's averaging, the clearness comparison) read half its rows from the mirrored side of CONUS.
 >   - NBM's DSWRF in the hourly range (f001–f036) matches the archive's hourly means as an instant or 1-hour mean, not the 1–6-hour means found on 2026-10-29 from mirrored fields.
@@ -538,7 +539,7 @@ Every model runs through the forecast at any US point and over the box. In the b
 - [ ] Region masks (§7) for maps: each model's `region` rasterized on the window from the county grid at startup. Outside it, the runner returns no value with a reason (points: done, `model_at_point` checks the county's state).
 - [x] End-to-end tests: a recorded NBM run plus archive hours through the runner, inside the box and, from a recorded Open-Meteo response, outside it, for every model. They extend `agdata/tests/test_point.py`'s point-equals-grid check.
   - Done 2026-10-29 (`agmodels.runner`, `tests/test_runner.py`; `agdata.series.model_at_point`): `required_inputs` (a model's and its gating crop model's), `first_day_needed` (biofix or planting, less the lookback), `default_biofix` (a season crossing New Year takes the year it begins; between seasons, the next), and `run`, which returns `ModelRun` (inputs, outputs, risk, risk as a level index, susceptibility, in-season days, action windows as date ranges, biofix, day kinds, id and version; `reason` when there's nothing: outside the region, biofix after the series). A biofix at a crop stage (red crown rot's R1) comes from the crop model run from the planting date; gated models are gated only with a planting date, which `model_at_point` takes from the typical dates (D34). Every model runs at a point through observed, partial and forecast days (`test_every_model_runs_at_a_point_through_the_forecast`).
-  - Red crown rot's vegetative-period rain was `nanmean × 31`, so missing days took the mean of the others. Ben (2026-10-30, D45): sum the known rain, count missing days as none, and report how many. Done as `red-crown-rot` 1.1 (`precipitation_days_missing`; the reproductive window is prorated over the days elapsed, not the known days). The parity test still holds: the 2025 fixture has no gaps.
+  - Red crown rot's vegetative-period rain was `nanmean × 31`, so missing days took the mean of the others. Ben (2026-10-30, D45): sum the known rain, count missing days as none, and report how many. Done as `red-crown-rot` 0.2 (then 1.1, before D46; `precipitation_days_missing`; the reproductive window is prorated over the days elapsed, not the known days). The parity test still holds: the 2025 fixture has no gaps.
 - [x] Gap estimates for every model's inputs (D45; Ben approved 2026-10-30). Every daily variable declares `gap_fill` in the catalog (`GAP_FILL`; a test checks all 45): `zero` for `precipitation_sum`, `interpolate` for the rest (temperature, humidity, wind, cloud, shortwave and ET0 totals, soil, hour counts and the 8 pm features). `agmodels.gaps` fills only interior gaps (days past the data are the future): interpolation across up to 7 days (D25's bridge), zero across any length. `runner.run(gap_fill=)` fills before the crop stage and the model, passes `<input>_estimated` masks to the model, keeps the raw inputs layer, and returns `ModelRun.estimated` (per input, the days filled). `series.run_at_point` passes the catalog's methods, so the archive, forecast and Open-Meteo paths all fill. Red crown rot counts runner-filled rain days as missing. `agdata.qc.fill_short_gaps` now calls `agmodels.gaps`. Measured first: the archive has no missing hours in 2025–2026 and no missing cell-days in 2025's daily store, so this is a safety net (outages, the 2016–2024 server backfill, Open-Meteo points, soil on the grid past 48 hours).
 
 **E. Open-Meteo for points outside the box and before the window (`agdata.sources.openmeteo`, `ops`)**
@@ -579,11 +580,11 @@ Every model runs through the forecast at any US point and over the box. In the b
 
 Ben: some models settle once a season and shouldn't run every day of the year. Potato volunteer is a winter count: it updates daily while the winter is open and is then one raster for the year (the intensity of subsoil freezing). Rerunning it through the summer adds nothing. The Shiny app's seasons exist so the user can switch winters, and its soil temperature charts beside the map are the other value it gives. Climate products (normals, frost dates) will be one raster per year too.
 
-- [ ] A model declares `cadence="season"` with its window (potato: November 1 to March 31, MSU's, rather than the tool's October 1 to September 30) and how seasons are named (a winter is "2025–26").
+- [ ] A model declares `cadence="season"` with a date window (the days counted) and a start date (when the season's product first appears, so it has data to chew on), and how seasons are named. Potato (Ben, 2026-10-30): window November 1 to March 31 (MSU's, rather than the tool's October 1 to September 30), appearing January 1; a winter is "2026" or "2025–26". Before the start date, the previous season's settled product is the current one.
 - [ ] `data/seasonal/{model_id}/{season}.zarr`: each output and the risk as one map, from the window's first day through its last observed day, with attributes: the season, `through` (the last day counted), `final`, the model's version, and per cell the estimated and missing days (D45). Small: a map per output.
 - [ ] The job: after each hourly ingest's rollup, while a season is open (and for a week after it closes, for late data), recompute its maps from the archive's daily store over the box, a sum over the window's days. Final once the window's last day is observed and the week has passed. `manage.py seasonal --season 2024-25` builds past seasons. Observed days only: the forecast adds little to a winter count.
 - [ ] Points: the season's value is read from its map. The chart is the point's daily soil temperatures (all three depths) and the running counts through the winter, from the point series, as the Shiny app shows.
-- [ ] `potato-volunteer` 2.0: the window above; out of season, the runner returns the settled season rather than running the model.
+- [ ] `potato-volunteer` 0.2: the window above; out of season, the runner returns the settled season rather than running the model.
 - [ ] The same store takes per-year climate products later (Phase 6's climatology).
 
 - **Exit:**
@@ -593,6 +594,19 @@ Ben: some models settle once a season and shouldn't run every day of the year. P
   - The backtest is written up, with its error by lead day.
 
 ### Phase 5: API v2 (January–February) — sketch
+
+**The interface it serves (Ben, 2026-10-30), and what it needs (proposed, Q17):**
+
+The main view is the Crop Risk Tool's, on a map. A model selector. A map showing the model's output as a gridded layer, with the model's name and the date across the top and a date slider along the bottom that scrubs back through the archive and forward through the forecast from today. Clicking the map drops a pin and highlights the cell, and a time series chart for that point opens on the right: the model's input weather, its output, or several outputs at once (every corn maturity group when none is chosen). A point can be pinned. Pinned sites list in a left sidebar and persist in the browser, or in the account when signed in, and their charts stack as cards in a feed on the right. The same map and slider show weather (hourly and daily variables, running totals) and climate (normals, current against normal). A seasonal product is one map per season (Phase 4 H), chosen by season rather than scrubbed by day.
+
+What exists: weather maps by date (`series.grid_day`, `grid_total`: one read per map day, archive then forecast), points with every model through the forecast (`model_at_point`, under a second), and per-point series with kinds and sources for the chart. What's missing:
+
+- [ ] **Model output stores (proposed D47):** a model's value on a day depends on every day since its biofix, so a slider can't wait for the season to be recomputed. Each model's display outputs (risk, and the output its map shows) for its default options, day × y × x, in `data/models/{model_id}/{year}.zarr`: the archive's days, rebuilt from the changed day after each daily rollup, and the forecast's in each run's directory (as the running totals are). Option sets with a few values (corn and soybean maturity groups, white mold's irrigation and spacing) are precomputed too. Free-form options (a user's own biofix or planting date) are computed on request over the window and cached. A year over Wisconsin is ~42 MB per output before compression (risk levels compress to little), and a model's season over the box takes seconds, so every model after every forecast run is a few minutes.
+- [ ] **A layer catalog** (`/api/v2/layers`): every mappable thing (a daily or hourly weather variable, a running total, a model output, a seasonal product, a climate normal or anomaly) with its time axis (hour, day, season, day of year), the range it has data for (archive, forecast), units and palette. The slider and pickers are driven by it, so a seasonal product shows a season picker and a weather layer an hour or day slider.
+- [ ] **Data tiles** for any layer and time (`agdata` tile encoding, Phase 5 as sketched), cached by Caddy for past dates, and the cell outline for the highlight (the cell's corners from `NDFD`).
+- [ ] **Charts with several outputs:** the point API returns a model's outputs for a list of option sets (every maturity group) in one call.
+- [ ] Seasonal products keep their daily running maps through the window as well as the settled one, so the slider can still scrub within a winter while it's open (they're the running counts, so it costs nothing extra).
+
 
 Model endpoints return the three layers (inputs, outputs, risk) with sources and the model version; `POST /api/v2/models/{id}/evaluate` runs a model on given inputs for the model pages' explorer.
 
@@ -618,7 +632,7 @@ allauth sign-in by link or code, synced sites, settings (units, beta models, ale
 
 ### Phase 8: Launch (by April 1, 2027) — sketch
 
-Production deploy (`docs/deployment.md`), VDIFN and soils-ag-wx redirect to v2, soils-ag-wx emails stop, v1 API URLs redirect to the old production server. Ops: a morning email report to admins (`/up`'s ingest health and problems, the night's ingest records, failed jobs; decided 2026-10-28); the yearly roll each January (drop the oldest year's directories, rebuild the internal climatology).
+Every model's version to 1.0 (D46). Production deploy (`docs/deployment.md`), VDIFN and soils-ag-wx redirect to v2, soils-ag-wx emails stop, v1 API URLs redirect to the old production server. Ops: a morning email report to admins (`/up`'s ingest health and problems, the night's ingest records, failed jobs; decided 2026-10-28); the yearly roll each January (drop the oldest year's directories, rebuild the internal climatology).
 
 ### Phase 9: Refinement and CONUS (2027 season onward) — sketch
 
@@ -647,4 +661,5 @@ A sweep across every model, one at a time, after launch or between phases (Ben, 
 | Q5 | Production domain | Does v2 take over agweather.cals.wisc.edu at launch, or run beside it (e.g. v2.agweather…) during the beta? | Phase 6 |
 | Q6–Q9 | Precision, climatology timing, early precip, local backfill | **Resolved** → D21–D24 (2026-10-27) | – |
 | Q10–Q15 | NBM runs, forecast min/max, Open-Meteo models, soil past 48 h, Open-Meteo cache, horizon | **Resolved** → D38–D43 (Ben, 2026-10-29, as recommended) | – |
-| Q16 | Seasonal products (Phase 4 H): potato volunteer's window and whether seasons count forecast days | November 1 to March 31 (MSU), updated daily while open, final a week after; observed days only | Phase 4 exit |
+| Q16 | Seasonal products (Phase 4 H): potato volunteer's window and whether seasons count forecast days | Window November 1 to March 31, appearing January 1 (Ben, 2026-10-30); updated daily while open, final a week after; observed days only | Phase 4 exit |
+| Q17 | Model output maps for the slider (Phase 5) | Precompute each model's display outputs for its default options and its few-valued option sets, day × y × x (D47 proposed); free-form options computed on request and cached | Phase 5 |

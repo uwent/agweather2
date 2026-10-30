@@ -28,7 +28,7 @@ SPEC = ModelSpec(
     id="soybean-cercospora",
     name="Soybean Cercospora leaf blight spore probability",
     group="disease",
-    version="1.0",
+    version="0.1",
     status="beta",
     summary="Spore probabilities for three Cercospora species causing leaf blight of soybean, from recent "
     "temperature, dew point depression, wind and humid hours.",
@@ -149,7 +149,7 @@ SPEC = ModelSpec(
         source="Provisional: CPN (symptoms from beginning seed set)",
         note="The fit is unpublished and its author gave no risk period: confirm with Webster.",
     ),
-    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
 

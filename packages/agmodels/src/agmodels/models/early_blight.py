@@ -31,7 +31,7 @@ SPEC = ModelSpec(
     id="early-blight-pdays",
     name="Early blight P-days",
     group="disease",
-    version="1.0",
+    version="0.1",
     status="stable",
     summary="Potato physiological days from daily minimum and maximum temperature, accumulated from emergence "
     "to time the first fungicide spray for early blight (about 300 P-days).",
@@ -81,7 +81,7 @@ SPEC = ModelSpec(
     biofix=Biofix(default="05-15", label="Crop emergence"),
     changelog=(
         Change(
-            version="1.0",
+            version="0.1",
             date="2026-10-28",
             note="Ported from the Crop Risk Tool; the last term weighs P(Tmax), as Sands et al.",
         ),

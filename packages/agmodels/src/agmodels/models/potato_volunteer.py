@@ -30,7 +30,7 @@ SPEC = ModelSpec(
     id="potato-volunteer",
     name="Potato volunteer survival",
     group="agronomic",
-    version="1.0",
+    version="0.1",
     status="beta",
     summary="Whether potato tubers left in the field are likely to survive the winter, from the hours of soil "
     "below 27 °F at 2, 4 and 8 in; surviving volunteers can carry late blight and insect pests into the next season.",
@@ -88,7 +88,7 @@ SPEC = ModelSpec(
     biofix=Biofix(
         default="10-01", label="October 1, the start of the season (the winter's count carries through the next summer)"
     ),
-    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Wisconsin potato volunteer tool."),),
+    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Wisconsin potato volunteer tool."),),
 )
 
 
