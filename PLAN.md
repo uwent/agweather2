@@ -457,45 +457,22 @@ Every model from the old API, VDIFN and the three R apps as one readable Python 
 
 ### Phase 4: Forecast and blending (January) — current, approved 2026-10-29
 
-> **Handoff (end of 2026-10-29; the session log is `tmp/session-log.md`, newest entry first).**
-> - **Done in Phase 4 (all committed, last f1d2c8d; 605 tests pass, pyright clean):**
->   - A, NBM: `agdata.sources.nbm`, `agdata.interpolate`, `hrrr.fetch_soil_forecast`.
->   - B, forecast stores: `agdata.forecast`, `build_run` in strips, peak 1.75 GB on Wisconsin.
->   - C, series: `agdata.series`, where each hour and day is observed, partial or forecast.
->   - D, runner: `agmodels.runner`.
->   - E, Open-Meteo: `agdata.sources.openmeteo`, `ops.openmeteo`, `ops.points.model_at_point` for any US point.
->   - F, jobs: the `ingest_forecast` job, `manage.py forecast`, the hourly job restitching, `/up`'s forecast section.
->   - Each item under A–F says what changed from the plan and what was measured.
-> - **State of `data/`:** `forecast/current` is the 2026-10-30 01z run. The archive ends 2026-10-27 23Z, because `bin/dev` (the hourly job and now the forecast job) isn't running; Ben starts it (TODO.md). Until then, a new run's stitch finds no recent observed hours (its days start partial or missing). `rebuild --check` was clean after the backfill.
+> **Handoff (end of 2026-10-30; the session log is `tmp/session-log.md`, newest entry first).**
+> - **Done today (all committed, last 0b9ddf2; 334 agdata/app tests + agmodels pass, pyright clean):**
+>   - **NBM decode bug fixed:** NBM's GRIB scans alternate rows in opposite directions; every forecast before 2026-10-30 was half mirrored. Forecast runs rebuilt.
+>   - **D44** (soil past HRRR's 48 h from Open-Meteo IFS for points), **D45** (gap estimates for every model's inputs), **D46** (model versions 0.x until launch), **D47** (model maps from precomputed ingredients, light during development), **D48** (shortwave corrected against Wisconet), Phase 4 H and Phase 5's interface needs written (seasonal products, layer catalog).
+>   - **Shortwave (D48):** HRRR read 18% high against 80 Wisconet pyranometers; the archive now keeps raw HRRR and derives corrected shortwave (1.00 against the stations, MAE 1.64 MJ/m²); 2025–2026 rebuilt. NBM's forecast shortwave has its own tables by lead and clearness (seeded; regenerate below). `agdata.clients` (old API, Wisconet, ACIS, Open-Meteo daily).
+>   - **Backtest (G)** done for 2025 (docs/validation-forecast.md, observed side refreshed after the correction). **D39 max:** the forecast now fetches NBM's TMAX and reshapes each day's warm hours to it (`forecast.adjust_hours`, shared with the backtest). A missing pressure no longer zeroes forecast shortwave.
+> - **Running when the session ended:** `uv run python scripts/backtest_forecast.py --start 2025-01-01 --end 2025-12-31 > tmp/backtest/run2.log` (~2 min a run; on run 13 of 73 at 12:10 CDT), re-fetching every run to cache its filled hours (`tmp/backtest/{cycle}_hours.npz`). It started before the script's refactor, so its caches hold the raw forecast (no adjustment) in the old layout, which is what the fits need. If it was killed, rerun the same command: it skips runs with both files.
 > - **Next, in order:**
->   1. **G, the backtest** (`scripts/backtest_forecast.py`, `docs/validation-forecast.md`): fetch past NBM runs over Wisconsin for 2025 (the archive covers it). Use `forecast.build_run` into a scratch data dir, or `nbm.fetch_run` + `to_hourly` and `daily_at_point` at the old 0.1° points. Compare lead days 1–10 with the archive: min, max, dew point, precip, DD 50/86, RH-hour features, shortwave/ET0. Settle D39 (the hours' extremes vs NBM's TMAX/TMIN: TMAX/TMIN aren't fetched yet; add them to `nbm.FIELDS` for the comparison). Then the Open-Meteo NBM comparison at 12 points. One run over Wisconsin is ~50 s to fetch (~1.7 GB); every 5th day of 2025 is ~73 runs, 1–2 hours and ~120 GB of reads. Keep memory small: Ben runs another session.
->   2. **Leftovers in A–F:**
->      - B: the verification archive (each run's daily values kept 45 days).
->      - D: region masks rasterized for maps.
->      - E: Open-Meteo as the fallback in the box when NBM is stale (points).
->      - F: Open-Meteo usage per day on the admin page.
->      - The exit's "forecast maps for the fixed DD cubes in one read" works through `series.grid_total`, but nothing serves maps yet (Phase 5).
->   3. **Then the Phase 4 exit:** a week of the forecast job running on its own (needs `bin/dev`), then plan Phase 5 in detail and ask Ben.
-> - **Questions for Ben (also under D and E below):**
->   - Answered 2026-10-30: red crown rot sums known rain and counts missing days (D45, done as 0.2 after D46's renumbering); soil past 48 h from Open-Meteo IFS for points in the box (D44); the Phase 2 tolerances stay open until Wisconet's pyranometers are compared (Phase 2 H).
-> - **Facts learned (details under A, B, C, E):**
->   - NBM's messages scan alternate rows in opposite directions (scanning mode 80); `grib.decode` turned odd rows back only from 2026-10-30. Every NBM number measured before then (DSWRF's averaging, the clearness comparison) read half its rows from the mirrored side of CONUS.
->   - NBM's DSWRF in the hourly range (f001–f036) matches the archive's hourly means as an instant or 1-hour mean, not the 1–6-hour means found on 2026-10-29 from mirrored fields.
->   - NBM's long runs carry 1-hour precip every hour to f264.
->   - A point's days are computed from its hours, because the daily store's chunks are map days (a season was ~300 chunk reads per variable).
->   - Store opens cost 40–90 ms, so cache them per call.
->   - Open-Meteo dates follow the `timezone` parameter: ask in GMT.
->   - Open-Meteo's NBM history starts somewhere between June 2024 and June 2025; best_match goes back to 2022.
-> - **Gotchas:**
->   - Run R with `Rscript --no-init-file`.
->   - NumPy adds boolean arrays as OR.
->   - Stores refuse a scale that differs from the catalog, and add new variables empty (`add_missing=True`).
->   - Ruff reflows long lines, so a scripted replace can miss: assert the old text is there.
->   - Never type a DOI from memory.
->   - `bin/e2e` runs on an empty `tmp/e2e-data`.
->   - Shared test helpers are conftest fixtures (`packages/agdata/tests/conftest.py` has `fx` and `fx_module`: a Central 2 × 3 window, a synthetic archive and NBM runs).
->   - JSON fixtures are in `.prettierignore`.
->   - Timing checks that touch whole windows can exhaust WSL's memory; keep them to small windows or strips.
+>   1. Delete `tmp/backtest/2025010113*.npz` and rerun the command above for that one run (it had no pressure; the fixed script falls back).
+>   2. `uv run python scripts/backtest_forecast.py --start 2025-01-01 --end 2025-12-31 --fit-shortwave`: regenerates `agdata/data/nbm_shortwave_correction.json` and docs/validation-forecast-shortwave.md. Check it against the seed (test runs' MAE day 1 ~1.55, day 5 ~3.10).
+>   3. D39's min and the humid hours, on the cached hours: the prototype is `tmp/backtest/d39_prototype.py` (gitignored; move it to `scripts/` if it becomes the method), but switch it to `backtest_forecast.derive` (which now reshapes the max as production does) and only add the night: lower each 00–12Z window's min by the hours' warm bias by lead (fit on alternate runs, test on the rest), then check RH ≥ 90 hours (were −1.4 → −3.5 h/day). If they're still short, try a night dew point adjustment. Whatever's kept goes in `forecast.adjust_hours`.
+>   4. Rerun the full backtest report with the new script (`--report` won't do: daily forecasts must be recomputed through `derive`; a `--rescore` mode replaying `_hours.npz` through `derive` would avoid fetching) and record it.
+>   5. Then: Open-Meteo shortwave correction for points (NBM 1.15, best_match 1.21 against Wisconet); the Phase 4 leftovers (verification archive, region masks, Open-Meteo fallback when NBM is stale, Open-Meteo usage on the admin page); Phase 4 H (seasonal products, approved with a start date); the week of unattended jobs; plan Phase 5.
+> - **Questions for Ben:** the soil seam at the HRRR → IFS handover (2.6 °C at Madison: taper or leave?); WISP's ET (its regressions were fitted to the old API's ET: decide which ET they expect before porting a correction); the Phase 2 tolerances (now with the corrected shortwave).
+> - **Facts learned today:** NBM scanning mode 80 (CLAUDE.md); NBM's DSWRF in f001–f036 is an instant or 1-hour mean; Wisconet stamps a daily total at the local midnight closing it and an hourly mean at the hour's end; HRRR's shortwave bias grows with cloud (1.10 clear → 1.54 overcast); Open-Meteo's shortwave is high too (NBM 1.15, IFS 1.13, best_match 1.21); the forecast's max runs cool and min warm (interpolation between 3-hourly steps), DD barely notice.
+> - **Gotchas:** the worker must be restarted to pick up agdata changes (it imports once); `rebuild --stale` holds the write lock, so the hourly job skips while it runs; ruff wraps long lines, so a scripted replace can split a statement (assert the old text, and check after).
 
 Every model runs through the forecast at any US point and over the box. In the box, NBM on our own grid, stitched to the archive hour by hour; outside the box (and before the archive's window), Open-Meteo, cached per cell. Each hour and day carries its source, so charts mark the forecast and the API reports it. Finishes Phase 3 C's series with sources (the projection segment waits for Phase 6). Ben approved it 2026-10-29 with the recommendations to Q10–Q15, now D38–D43.
 
