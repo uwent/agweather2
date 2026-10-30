@@ -12,3 +12,5 @@ data
 pnpm-lock.yaml
 uv.lock
 packages/agmodels/tests/snapshots
+# recorded API responses, kept as recorded
+packages/*/tests/fixtures/*.json
