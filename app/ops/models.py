@@ -8,6 +8,7 @@ class IngestRecord(models.Model):
     class Kind(models.TextChoices):
         BACKFILL = "backfill"
         HOURLY = "hourly"
+        FORECAST = "forecast"  # a published NBM run: first_hour and hours are its valid hours
 
     class Status(models.TextChoices):
         OK = "ok"

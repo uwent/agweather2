@@ -34,6 +34,7 @@ def test_an_empty_archive_is_ok_and_not_started(client, settings, tmp_path):
         "version": "dev",
         "database": "ok",
         "ingest": {"state": "not started"},
+        "forecast": {"state": "not started"},
         "problems": [],
     }
 
