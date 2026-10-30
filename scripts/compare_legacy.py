@@ -250,14 +250,23 @@ def acis_daily_precip(window, first: date, last: date) -> list[dict]:
     return stations
 
 
-def station_report(data_dir: Path, window, days: list[date]) -> str:
-    """Monthly precip at ACIS stations: v2 (the station's cell, its local days) and the old API (the 0.1° point)."""
+def read_daily(data_dir: Path, name: str, days: list[date]) -> np.ndarray:
+    """A daily variable over consecutive days (day, y, x), across the years' stores."""
     from agdata.catalog import DAILY_VARIABLES
     from agdata.store import DAILY
 
-    daily = GridStore.open(data_dir, DAILY, days[0].year, DAILY_VARIABLES.values())
-    t0 = daily.index_of(days[0])
-    v2_days = daily.read_steps("precipitation_sum", t0, t0 + len(days))
+    parts = []
+    for year in sorted({d.year for d in days}):
+        in_year = [d for d in days if d.year == year]
+        store = GridStore.open(data_dir, DAILY, year, DAILY_VARIABLES.values())
+        t0 = store.index_of(in_year[0])
+        parts.append(store.read_steps(name, t0, t0 + len(in_year)))
+    return np.concatenate(parts)
+
+
+def station_report(data_dir: Path, window, days: list[date]) -> str:
+    """Monthly precip at ACIS stations: v2 (the station's cell, its local days) and the old API (the 0.1° point)."""
+    v2_days = read_daily(data_dir, "precipitation_sum", days)
     old_days = [legacy(f"precips/grid?date={day}&units=mm", "", window) for day in days]
     rows = []
     for station in acis_daily_precip(window, days[0], days[-1]):
@@ -293,6 +302,8 @@ def station_report(data_dir: Path, window, days: list[date]) -> str:
             new.append(v2_series[idx].sum())
             prev.append(old_series[idx].sum())
         o, n_, p_ = np.array(obs), np.array(new), np.array(prev)
+        if not len(o):
+            continue  # no station reported every day (a month still in progress)
         lines.append(
             f"| {y}-{m:02d} | {len(o)} | {o.mean():.1f} | {n_.mean():.1f} | {(n_.mean() / o.mean() - 1):+.0%} "
             f"| {np.abs(n_ - o).mean():.1f} | {p_.mean():.1f} | {(p_.mean() / o.mean() - 1):+.0%} "
@@ -311,36 +322,44 @@ WISP_POINTS = [
 
 
 def open_meteo_daily(lat: float, lon: float, first: date, last: date) -> dict:
-    """Open-Meteo's historical-forecast daily ET0 (mm) and shortwave (MJ/m²) on Central days, cached."""
-    path = CACHE / f"openmeteo_{lat}_{lon}_{first}_{last}.json"
-    if not path.exists():
-        response = requests.get(
-            "https://historical-forecast-api.open-meteo.com/v1/forecast",
-            params={
-                "latitude": lat,
-                "longitude": lon,
-                "start_date": str(first),
-                "end_date": str(last),
-                "daily": "et0_fao_evapotranspiration,shortwave_radiation_sum",
-                "timezone": "America/Chicago",
-            },
-            timeout=60,
-        )
-        response.raise_for_status()
-        CACHE.mkdir(parents=True, exist_ok=True)
-        path.write_text(response.text)
-    return json.loads(path.read_text())["daily"]
+    """Open-Meteo's historical-forecast daily ET0 (mm) and shortwave (MJ/m²) on Central days, cached a year at a
+    time (a request for two years can time out)."""
+    daily: dict[str, list] = {}
+    for year in range(first.year, last.year + 1):
+        a, b = max(first, date(year, 1, 1)), min(last, date(year, 12, 31))
+        path = CACHE / f"openmeteo_{lat}_{lon}_{a}_{b}.json"
+        if not path.exists():
+            for attempt in range(3):
+                try:
+                    response = requests.get(
+                        "https://historical-forecast-api.open-meteo.com/v1/forecast",
+                        params={
+                            "latitude": lat,
+                            "longitude": lon,
+                            "start_date": str(a),
+                            "end_date": str(b),
+                            "daily": "et0_fao_evapotranspiration,shortwave_radiation_sum",
+                            "timezone": "America/Chicago",
+                        },
+                        timeout=120,
+                    )
+                    response.raise_for_status()
+                    break
+                except (requests.Timeout, requests.ConnectionError):
+                    if attempt == 2:
+                        raise
+                    time.sleep(10)
+            CACHE.mkdir(parents=True, exist_ok=True)
+            path.write_text(response.text)
+        for key, values in json.loads(path.read_text())["daily"].items():
+            daily.setdefault(key, []).extend(values)
+    return daily
 
 
 def point_report(data_dir: Path, window, days: list[date]) -> str:
     """Daily ET0 and shortwave at WISP 3's points: v2 against Open-Meteo and the old API (ET; SSEC insolation)."""
-    from agdata.catalog import DAILY_VARIABLES
-    from agdata.store import DAILY
-
-    daily = GridStore.open(data_dir, DAILY, days[0].year, DAILY_VARIABLES.values())
-    t0 = daily.index_of(days[0])
-    v2_et0 = daily.read_steps("et0_sum", t0, t0 + len(days))
-    v2_sw = daily.read_steps("shortwave_radiation_sum", t0, t0 + len(days))
+    v2_et0 = read_daily(data_dir, "et0_sum", days)
+    v2_sw = read_daily(data_dir, "shortwave_radiation_sum", days)
     old_et = [legacy(f"evapotranspirations/grid?date={day}&units=mm", "", window) for day in days]
     old_sw = [legacy(f"insolations/grid?date={day}", "", window) for day in days]
     pairs: dict[str, tuple[list, list]] = {k: ([], []) for k in ("et0_om", "et0_old", "sw_om", "sw_old")}

@@ -31,12 +31,16 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
   kill $(cat data/write.lock)         # stop it; the current block is lost, finished blocks are kept
   ```
   After a WSL restart it isn't running: start it again with the same command.
-- [ ] **Next (heavy, so pick a time the other session is idle):** fetch the 30 cm soil level added 2026-10-28 (HRRR's TSOIL at 30 cm, for the potato model's 8 in) over the backfilled hours; about 15,900 hours at ~3 MB each (~48 GB), then it rolls those days up. It holds the write lock, like the backfill. Claude can run it:
+- [x] **Next (heavy, so pick a time the other session is idle):** fetch the 30 cm soil level added 2026-10-28 (HRRR's TSOIL at 30 cm, for the potato model's 8 in) over the backfilled hours; about 15,900 hours at ~3 MB each (~48 GB), then it rolls those days up. It holds the write lock, like the backfill. Claude can run it:
   ```bash
   setsid nohup uv run app/manage.py refetch_soil --start 2025-01-01 --end 2026-10-29 > tmp/refetch_soil.log 2>&1 < /dev/null &
   ```
-- [ ] **Then:** `uv run app/manage.py rebuild --stale` (about an hour for 2025–2026: rolls the days up again for the model features and the 48.2 °F DD cube added 2026-10-28); `uv run app/manage.py rebuild --check` should then print nothing. Claude can run it.
-- [ ] **Phase 2 exit review:** once Claude has rerun `docs/validation-archive.md` over the whole backfill, read it and agree the tolerances (PLAN.md Phase 2 H). Leave `bin/dev` running for a week afterwards so the hourly job and `/up` can be checked.
+- [x] **Then:** `uv run app/manage.py rebuild --stale` (about an hour for 2025–2026: rolls the days up again for the model features and the 48.2 °F DD cube added 2026-10-28); `uv run app/manage.py rebuild --check` should then print nothing. Claude can run it.
+- [ ] **Phase 2 exit review:** once Claude has rerun `docs/validation-archive.md` over the whole backfill, read it and agree the tolerances (PLAN.md Phase 2 H). Leave `bin/dev` running for a week afterwards so the hourly job and `/up` can be checked. Not running as of 2026-10-29 (nothing on :8000). It needs to outlive Claude's sessions, so start it from your own terminal:
+  ```bash
+  bin/dev                             # Django, Vite and the Procrastinate worker; the hourly ingest runs at :40
+  curl -s localhost:8000/up           # should say ok; Claude can check it and the ingest records from here
+  ```
 
 ## Phase 3: Model library (ahead of time)
 
