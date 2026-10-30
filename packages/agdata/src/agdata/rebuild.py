@@ -3,8 +3,8 @@
 A derived variable is stale when the store records another version than the catalog's (its code changed), or
 when the catalog added it after the store was written. Daily variables are rolled up again from the hourly store
 over each year's days with data, and the year's running totals rebuilt; running totals are rebuilt from the
-daily store. Stale hourly variables (RH, ET0) are only reported: they're derived at ingest, so a refetch or a
-re-derivation step would be needed.
+daily store. The corrected shortwave and ET0 are re-derived from the stored raw HRRR (`agdata.shortwave`); other
+stale hourly variables are only reported: they're derived at ingest, so a refetch would be needed.
 """
 
 from dataclasses import dataclass, field
@@ -13,6 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
+from agdata import shortwave
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
 from agdata.cumulative import rebuild_year, update_days
 from agdata.grid import Window
@@ -42,14 +43,17 @@ def find_stale(data_dir: Path) -> StaleReport:
 
 
 def rebuild_stale(data_dir: Path, window: Window, log=print) -> StaleReport:
-    """Recomputes stale daily and cumulative variables; returns what's still stale (hourly ones)."""
+    """Recomputes stale variables: the corrected hourly shortwave and ET0 (D48), then daily and cumulative ones
+    (the days of a year whose shortwave changed included); returns what's still stale (other hourly ones)."""
+    corrected = set(shortwave.correct_archive(data_dir, window, log=log))
     for year in _years(data_dir, DAILY):
         store = GridStore.open(data_dir, DAILY, year, DAILY_VARIABLES.values(), add_missing=True)
-        if not store.stale:
+        if not store.stale and year not in corrected:
             continue
         days = _days_with_data(store)
         if days is not None:
-            log(f"daily/{year}: rolling up {days[0]} to {days[1]} for {', '.join(sorted(store.stale))}")
+            names = sorted(store.stale) or ["the corrected shortwave and ET0"]
+            log(f"daily/{year}: rolling up {days[0]} to {days[1]} for {', '.join(names)}")
             update_days(data_dir, window, *days)
         store.mark_current(list(store.stale))
     for year in _years(data_dir, CUMULATIVE):

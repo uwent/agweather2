@@ -4,8 +4,8 @@ One call handles a block of consecutive hours in one year (a backfill does a mon
 few hours). Each hour comes from URMA, or RTMA where URMA hasn't published it yet; precip from RTMA before URMA's
 hourly precip begins (D23); shortwave and soil temperature from HRRR. Hours are range-checked and packed to int16
 as they arrive, so a month of the window fits in memory; spikes are removed per variable over the whole block,
-then RH and ET0 are derived. Gaps stay gaps (D25): estimates belong to the running totals. Every variable
-records each hour's source.
+then RH, the corrected shortwave (D48) and ET0 are derived. Gaps stay gaps (D25): estimates belong to the
+running totals. Every variable records each hour's source.
 """
 
 import logging
@@ -23,6 +23,7 @@ import requests
 from agdata.catalog import FILL, VARIABLES, Variable
 from agdata.grid import NDFD, Window
 from agdata.qc import check_range, remove_spikes
+from agdata.shortwave import RAW, correct_w_m2
 from agdata.sources import hrrr
 from agdata.sources.rtma import RTMA
 from agdata.sources.urma import URMA
@@ -70,6 +71,7 @@ def fetch_hour(when: datetime, window: Window, session: requests.Session) -> Hou
             hour.values["precipitation"] = precip
             hour.sources["precipitation"] = RTMA.name
     for name, values in hrrr.fetch_hour(when, window, session).items():
+        name = RAW if name == "shortwave_radiation" else name  # corrected when the block is derived (D48)
         hour.values[name] = values
         hour.sources[name] = "hrrr"
     return hour
@@ -154,8 +156,11 @@ def ingest_block(
     # Derived variables
     decoded["relative_humidity"] = relative_humidity_percent(decoded["air_temperature"], decoded["dew_point"])
     lat, lon = NDFD.window_latlon(window)
+    hour_ends = np.array([t.replace(tzinfo=None) for t in times], dtype="datetime64[s]")
+    decoded["shortwave_radiation"] = correct_w_m2(hour_ends, lat, lon, decoded[RAW], decoded["surface_pressure"])
+    sources["shortwave_radiation"] = list(sources[RAW])
     decoded["et0"] = et0_hourly_series(
-        np.array([t.replace(tzinfo=None) for t in times], dtype="datetime64[s]"),
+        hour_ends,
         lat,
         lon,
         decoded["air_temperature"],

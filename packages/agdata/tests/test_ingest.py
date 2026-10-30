@@ -47,7 +47,7 @@ def fake_fetch(missing_hour: int | None = None, spike: tuple[int, int, int] | No
             "surface_pressure": np.full(window.shape, 98.0),
             "cloud_cover": np.full(window.shape, 20.0),
             "precipitation": np.full(window.shape, 2.0 if n == 10 else 0.0),
-            "shortwave_radiation": np.clip(800 * np.sin(np.radians(np.maximum(sun, 0))), 0, None),
+            "shortwave_radiation_hrrr": np.clip(800 * np.sin(np.radians(np.maximum(sun, 0))), 0, None),
             "soil_temperature_4cm": temp - 2,
             "soil_temperature_10cm": temp - 4,
         }

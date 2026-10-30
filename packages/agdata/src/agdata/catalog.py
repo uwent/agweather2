@@ -167,6 +167,16 @@ VARIABLES: dict[str, Variable] = {
             sources={"urma": "APCP:surface, 1-hour accumulation"},
         ),
         Variable(
+            name="shortwave_radiation_hrrr",
+            long_name="HRRR's downward shortwave radiation at the surface, mean over the hour, uncorrected",
+            unit="W_m2",
+            scale=0.1,
+            valid_min=0,
+            valid_max=1500,
+            notes="HRRR, mean of the hour's four 15-minute values, regridded (D7); reads ~18% high (D48)",
+            sources={"hrrr": "DSWRF:surface, wrfsubhf01"},
+        ),
+        Variable(
             name="shortwave_radiation",
             long_name="Downward shortwave radiation at the surface, mean over the hour",
             unit="W_m2",
@@ -174,8 +184,11 @@ VARIABLES: dict[str, Variable] = {
             valid_min=0,
             valid_max=1500,
             daily=("sum",),
-            notes="HRRR, mean of the hour's four 15-minute values, regridded (D7). Daily sums in MJ/m² (W/m² x 0.0036)",
-            sources={"hrrr": "DSWRF:surface, wrfsubhf01"},
+            derived=True,
+            version=2,  # 1 + the correction table's version (`agdata.shortwave`; a test checks it)
+            notes="In the archive, HRRR corrected against ground pyranometers by each hour's clearness (D48); in a "
+            "forecast run, NBM's. Daily sums in MJ/m² (W/m² x 0.0036)",
+            sources={"hrrr": "shortwave_radiation_hrrr, corrected (agdata.shortwave)"},
         ),
         Variable(
             name="soil_temperature_4cm",
