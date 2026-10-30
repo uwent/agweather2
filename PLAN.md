@@ -337,17 +337,13 @@ Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) pl
 - Later (server backfill, Phase 9's CONUS): the same comparisons over the whole configured box, with stations (ACIS) and Open-Meteo as the references outside Wisconsin, where the old API doesn't reach.
 - **Exit:** v2 daily min/max/DD/precip agree with the old API within stated tolerances, 2016–present (Wisconsin first; the full box after the server backfill); ET0 checked against Open-Meteo and SSEC; hourly ingest has run unattended for a week with the health check green.
 
-### Phase 3: Model library (December–January) — current, approved 2026-10-28
+### Phase 3: Model library (December–January) — approved 2026-10-28; insects and wheat wait for papers
 
-> **Handoff (2026-10-29, third session; the session log is `tmp/session-log.md`).**
-> - **Post-backfill steps done (2026-10-29):** the 30 cm soil refetch, `rebuild --stale` (`rebuild --check` prints nothing), and `compare_legacy.py` over 2025-01 to 2026-10, with proposed tolerances under Phase 2 H for Ben to agree. Still open for the Phase 2 exit: Ben starts `bin/dev` and leaves it a week (TODO.md); it wasn't running.
-> - **Phase 3 exit:** a point and the grid now give the same answer end to end (`agdata.point`, `agdata/tests/test_point.py`). Left: the explorer's evaluation (Phase 5), winter wheat (D7) and the insects (D8 step 4), which both wait for papers.
-> - **Phase 4 approved 2026-10-29 (D38–D43). Done: A (NBM adapter, filled hours, HRRR soil forecast), B's stores (`agdata.forecast`, built in strips), C (`agdata.series`) D (`agmodels.runner`, `series.model_at_point`; map region masks left) and F (`ops.forecast`, the `ingest_forecast` job, `manage.py forecast`). Next, in order: G (backtest; settles D39), then the leftovers (see the handoff).** NBM's DSWRF isn't instantaneous (it's used by solar day; see A). `data/forecast/current` holds the 2026-10-26 13z run from the live check.
-> - **Done in Phase 3:** 0, A (except the explorer's API, Phase 5), B, D1–D6, custom degree days, E (drafts), F; D7 spring wheat. 49 models; their pages are drafts in `content/`. Every port's parity and intended differences are under D; decisions D32–D34 (crop stages, stage gating, planting dates).
-> - **Next, in order:** (0) **Phase 4** (the papers for D7 and D8 are on hold). Then (1) **D7 winter wheat:** find a published GDD stage model (fall growth, vernalization and green-up make it unlike spring wheat; McMaster's PhenologyMMS and McMaster and Wilhelm's papers, base 0 °C with a 25 °C cap, are leads; ask Ben for PDFs), then spring wheat's grain fill to maturity (NDAWN's table stops at Haun 12.0), then gate wheat scab at flowering (Haun 11.4–11.6 in spring wheat; Feekes 10.5.1 in winter wheat). (2) Phase 3 exit check (PLAN.md Phase 3 Exit): the explorer declarations are in every spec, but evaluating them goes through the API (Phase 5); "a point and the grid give the same answer" is tested for features, not yet end to end. (3) Then Phase 4 (forecast and blending): plan it in detail first and ask Ben.
+> **Status (2026-10-29; the current handoff is at the top of Phase 4).**
+> - **Done in Phase 3:** 0, A (except the explorer's API, Phase 5), B, D1–D6, custom degree days, E (drafts), F; D7 spring wheat; D8 steps 1–3. 49 models; their pages are drafts beside the code. Every port's parity and intended differences are under D; decisions D32–D37. The exit's "a point and the grid give the same answer" is tested end to end (`agdata/tests/test_point.py`).
+> - **Waiting for papers (on hold while Phase 4 goes on):** D8 step 4, the other 25 insects (`docs/insect-models.md`, TODO.md); D7 winter wheat (McMaster's PhenologyMMS and McMaster and Wilhelm, base 0 °C with a 25 °C cap, are leads), spring wheat's grain fill (NDAWN's table stops at Haun 12.0), then gating wheat scab at flowering (Haun 11.4–11.6 spring; Feekes 10.5.1 winter).
 > - **Open questions for Ben or collaborators:** soybean Cercospora's risk period (R3–R6 provisional; Webster) and its wind unit (km/h or m/s); which years Noel's cotton fit covers (its year term extrapolates); image credits and licenses in `content/images` before launch (only pecan scab's is known; the repo is public); PMR 1009 (Abendroth et al. 2011) to confirm corn's VT and R5 placement.
 > - **Ben is fixing in the Crop Risk Tool:** `gdd_sine`'s upper cutoff, the TOMCAST cutoffs, P(Tmax) in P-days, and the humid-hours/temperature window pairing. When those land, regenerate the fixtures (`Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R`) and drop the tests' isolation of those differences (`fast_differs` for TOMCAST; late blight, vegetable diseases, insects).
-> - **Gotchas:** run R with `Rscript --no-init-file`; NumPy adds boolean arrays as OR (`agmodels.lookup.steps_over`); stores refuse a scale that differs from the catalog (`GridStore.rescale`) and add new variables empty (`add_missing=True`; hourly stores now do this too); ruff reflows long lines, so a scripted string replace can miss (check the assert, or edit the file whole); never type a DOI from memory (`test_citations.py --network` catches it); `bin/e2e` runs on an empty `tmp/e2e-data`; tests run in importlib mode, so shared test helpers are conftest fixtures.
 
 
 Every model from the old API, VDIFN and the three R apps as one readable Python file in `agmodels`, built on foundations for what the web app will show (docs/landscape.md): each model's weather inputs, its output and its risk score on one time axis (the Crop Risk Tool is the reference for this); runs through observed weather, the forecast and a climate projection to the end of the year; any point in the US through Open-Meteo, the grid in the box; pages for each disease and insect and for each model, with an interactive explorer. Each port is reviewed against its cited source (CLAUDE.md), with differences recorded here.
@@ -449,6 +445,47 @@ Every model from the old API, VDIFN and the three R apps as one readable Python 
   - Exit check (2026-10-29): a point and the grid give the same answer, tested end to end in `agdata/tests/test_point.py`. Two months of synthetic hours (two time zones, a humid week, rain, a 5-hour gap) go through the rollup. The new point path (`agdata.point.daily_at_point`, which Phase 4's Open-Meteo points will use) gives every daily variable within the store's rounding, with the same missing days. Every one of the 49 models gives each cell the same outputs and risk from the grid as from that cell's series alone. Still open: the explorer's evaluation (Phase 5) and the stores' features over the backfilled range (`rebuild --stale`, run 2026-10-29).
 
 ### Phase 4: Forecast and blending (January) — current, approved 2026-10-29
+
+> **Handoff (end of 2026-10-29; the session log is `tmp/session-log.md`, newest entry first).**
+> - **Done in Phase 4 (all committed, last f1d2c8d; 605 tests pass, pyright clean):**
+>   - A, NBM: `agdata.sources.nbm`, `agdata.interpolate`, `hrrr.fetch_soil_forecast`.
+>   - B, forecast stores: `agdata.forecast`, `build_run` in strips, peak 1.75 GB on Wisconsin.
+>   - C, series: `agdata.series`, where each hour and day is observed, partial or forecast.
+>   - D, runner: `agmodels.runner`.
+>   - E, Open-Meteo: `agdata.sources.openmeteo`, `ops.openmeteo`, `ops.points.model_at_point` for any US point.
+>   - F, jobs: the `ingest_forecast` job, `manage.py forecast`, the hourly job restitching, `/up`'s forecast section.
+>   - Each item under A–F says what changed from the plan and what was measured.
+> - **State of `data/`:** `forecast/current` is the 2026-10-30 01z run. The archive ends 2026-10-27 23Z, because `bin/dev` (the hourly job and now the forecast job) isn't running; Ben starts it (TODO.md). Until then, a new run's stitch finds no recent observed hours (its days start partial or missing). `rebuild --check` was clean after the backfill.
+> - **Next, in order:**
+>   1. **G, the backtest** (`scripts/backtest_forecast.py`, `docs/validation-forecast.md`): fetch past NBM runs over Wisconsin for 2025 (the archive covers it). Use `forecast.build_run` into a scratch data dir, or `nbm.fetch_run` + `to_hourly` and `daily_at_point` at the old 0.1° points. Compare lead days 1–10 with the archive: min, max, dew point, precip, DD 50/86, RH-hour features, shortwave/ET0. Settle D39 (the hours' extremes vs NBM's TMAX/TMIN: TMAX/TMIN aren't fetched yet; add them to `nbm.FIELDS` for the comparison). Then the Open-Meteo NBM comparison at 12 points. One run over Wisconsin is ~50 s to fetch (~1.7 GB); every 5th day of 2025 is ~73 runs, 1–2 hours and ~120 GB of reads. Keep memory small: Ben runs another session.
+>   2. **Leftovers in A–F:**
+>      - B: the verification archive (each run's daily values kept 45 days).
+>      - D: region masks rasterized for maps.
+>      - E: Open-Meteo as the fallback in the box when NBM is stale (points).
+>      - F: Open-Meteo usage per day on the admin page.
+>      - The exit's "forecast maps for the fixed DD cubes in one read" works through `series.grid_total`, but nothing serves maps yet (Phase 5).
+>   3. **Then the Phase 4 exit:** a week of the forecast job running on its own (needs `bin/dev`), then plan Phase 5 in detail and ask Ben.
+> - **Questions for Ben (also under D and E below):**
+>   - Red crown rot's vegetative rain is `nanmean × 31`, which estimates missing precip. Keep it as the paper's method, or make the total missing when any day is (a version bump)?
+>   - Open-Meteo's ECMWF IFS gives soil temperature for 11 days ahead, which contradicts D41's premise. Use it (inside the box too, past HRRR's 48 h), or blank it outside the box for consistency?
+>   - Agree the Phase 2 tolerances (under Phase 2 H).
+> - **Facts learned (details under A, B, C, E):**
+>   - NBM's DSWRF isn't instantaneous, despite its idx: it fits 1–6-hour means, varying with lead. It's used only by solar day.
+>   - NBM's long runs carry 1-hour precip every hour to f264.
+>   - A point's days are computed from its hours, because the daily store's chunks are map days (a season was ~300 chunk reads per variable).
+>   - Store opens cost 40–90 ms, so cache them per call.
+>   - Open-Meteo dates follow the `timezone` parameter: ask in GMT.
+>   - Open-Meteo's NBM history starts somewhere between June 2024 and June 2025; best_match goes back to 2022.
+> - **Gotchas:**
+>   - Run R with `Rscript --no-init-file`.
+>   - NumPy adds boolean arrays as OR.
+>   - Stores refuse a scale that differs from the catalog, and add new variables empty (`add_missing=True`).
+>   - Ruff reflows long lines, so a scripted replace can miss: assert the old text is there.
+>   - Never type a DOI from memory.
+>   - `bin/e2e` runs on an empty `tmp/e2e-data`.
+>   - Shared test helpers are conftest fixtures (`packages/agdata/tests/conftest.py` has `fx` and `fx_module`: a Central 2 × 3 window, a synthetic archive and NBM runs).
+>   - JSON fixtures are in `.prettierignore`.
+>   - Timing checks that touch whole windows can exhaust WSL's memory; keep them to small windows or strips.
 
 Every model runs through the forecast at any US point and over the box. In the box, NBM on our own grid, stitched to the archive hour by hour; outside the box (and before the archive's window), Open-Meteo, cached per cell. Each hour and day carries its source, so charts mark the forecast and the API reports it. Finishes Phase 3 C's series with sources (the projection segment waits for Phase 6). Ben approved it 2026-10-29 with the recommendations to Q10–Q15, now D38–D43.
 
