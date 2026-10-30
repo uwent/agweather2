@@ -19,10 +19,15 @@ import numpy as np
 from agdata import forecast
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
 from agdata.daily import cell_timezones
-from agdata.grid import Window
+from agdata.grid import NDFD, Window
+from agdata.places import county_at
+from agdata.planting import typical_planting
 from agdata.point import daily_at_point
 from agdata.store import CUMULATIVE, DAILY, HOURLY, GridStore, StoreLayout
 from agdata.timezones import day_bounds
+from agmodels import runner
+from agmodels.registry import model as find_model
+from agmodels.runner import ModelRun
 
 HOUR = timedelta(hours=1)
 MAX_RUN_AGE = timedelta(hours=12)  # past this a run's forecast isn't used (D43; the job runs every 6 hours)
@@ -133,7 +138,7 @@ def point_days(
     n = (last - first).days + 1
     dates = [first + timedelta(days=k) for k in range(n)]
     stores = _Stores([*VARIABLES, *totals])
-    zone = cell_zone(data_dir, j, i, first.year, stores)
+    zone = cell_zone(data_dir, j, i, range(first.year, last.year + 1), stores)
     start = _midnight(first - timedelta(days=1))  # before the first day's 8 pm-day in any zone
     end = _midnight(last + timedelta(days=1)) + timedelta(hours=8)  # past the last day's end in any zone
     frame = point_hours(data_dir, j, i, start, end, list(VARIABLES), now=now, stores=stores)
@@ -178,11 +183,12 @@ def grid_total(
     return _grid(data_dir, CUMULATIVE, name, day, window, now)
 
 
-def cell_zone(data_dir: Path, j: int, i: int, year: int, stores: "_Stores | None" = None) -> str:
-    """The time zone a cell's days follow, from the archive's daily store."""
-    store = (stores or _Stores([])).get(data_dir, DAILY, year)
+def cell_zone(data_dir: Path, j: int, i: int, years, stores: "_Stores | None" = None) -> str:
+    """The time zone a cell's days follow, from the archive's daily store of the latest of `years` that has one."""
+    stores = stores or _Stores([])
+    store = next((s for y in sorted(years, reverse=True) if (s := stores.get(data_dir, DAILY, y)) is not None), None)
     if store is None:
-        raise FileNotFoundError(f"no daily store for {year} in {data_dir}")
+        raise FileNotFoundError(f"no daily store for {sorted(years)} in {data_dir}")
     zones, index = cell_timezones(store)
     y, x = store.window.local(j, i)
     return zones[int(index[y, x])]
@@ -272,3 +278,48 @@ def _point_steps(
                 sources[k : k + count] = store.sources(name)[t : t + count]
         k += count
     return values, sources
+
+
+def model_at_point(
+    data_dir: Path,
+    latitude: float,
+    longitude: float,
+    model_id: str,
+    start: date,
+    end: date,
+    biofix: date | None = None,
+    planting: date | None = None,
+    options: dict[str, str] | None = None,
+    crop_options: dict[str, str] | None = None,
+    now: datetime | None = None,
+) -> ModelRun:
+    """A model's three layers at a point in the box from `start` to `end`, through the forecast (D30): the days it
+    needs (`runner.first_day_needed`) read from the archive and the current run, the region checked against the
+    county grid, and for a stage-gated model the typical planting date (D34) unless one is given."""
+    m = find_model(model_id)
+    cell = NDFD.cell_of(latitude, longitude)
+    if cell is None:
+        raise ValueError(f"({latitude}, {longitude}) is off the grid")
+    crops = runner.crop_models(m.SPEC)
+    if planting is None and crops:
+        typical = typical_planting(crops[0].removesuffix("-stages"), latitude, longitude)
+        if typical is not None:
+            month, day = (int(p) for p in typical.typical.split("-"))
+            planting = date(start.year, month, day)
+    county = county_at(latitude, longitude)
+    in_region = not m.SPEC.region or (county is not None and county.state in m.SPEC.region)
+    first = runner.first_day_needed(m, start, biofix=biofix, planting=planting)
+    days = point_days(data_dir, *cell, first, end, runner.required_inputs(m), now=now)
+    return runner.run(
+        m,
+        dates=days.dates,
+        daily=days.values,
+        latitude=latitude,
+        start=start,
+        kinds=days.kinds,
+        biofix=biofix,
+        planting=planting,
+        options=options,
+        crop_options=crop_options,
+        in_region=in_region,
+    )

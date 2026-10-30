@@ -67,3 +67,28 @@ def test_map_days_by_kind(world, fx_module):
     assert kind == "forecast"
     total, kind = series.grid_total(world, "dd_sine_50", date(2025, 7, 15), window, now=NOW)
     assert kind == "forecast" and np.isfinite(total).all()
+
+
+def test_every_model_runs_at_a_point_through_the_forecast(world):
+    from agdata.grid import NDFD
+    from agmodels.registry import all_models
+
+    lat, lon = (float(v) for v in NDFD.latlon(*CELL))
+    for model_id in sorted(all_models()):
+        result = series.model_at_point(world, lat, lon, model_id, date(2025, 7, 5), date(2025, 7, 20), now=NOW)
+        assert result.kinds[:5] == ["observed"] * 5 and result.kinds[5] == "partial", model_id
+        assert result.kinds[6:] == ["forecast"] * 10, model_id
+        region = all_models()[model_id].SPEC.region
+        if region and "WI" not in region:  # pecan scab, cotton planting
+            assert result.reason == "outside the model's region"
+        elif result.biofix is not None and result.biofix > date(2025, 7, 20):  # corn earworm's August 1
+            assert result.reason == "biofix after the series"
+        else:
+            assert result.reason is None, (model_id, result.reason)
+
+    # Degree days from a biofix inside the stored days: the forecast's warmer days add more
+    dd = series.model_at_point(
+        world, lat, lon, "degree-days", date(2025, 7, 5), date(2025, 7, 20), biofix=date(2025, 7, 2), now=NOW
+    )
+    daily = dd.outputs["dd"]
+    assert np.isfinite(daily).all() and daily[8] > daily[0] + 10

@@ -1,0 +1,167 @@
+from datetime import date, timedelta
+
+import numpy as np
+import pytest
+
+from agmodels import runner
+from agmodels.crops import SUSCEPTIBLE
+from agmodels.registry import all_models, model
+
+FIRST = date(2024, 9, 1)
+DAYS = 520  # to early February 2026
+DATES = [FIRST + timedelta(days=k) for k in range(DAYS)]
+LATITUDE = 43.1
+
+
+def year_of_weather() -> dict[str, np.ndarray]:
+    """A plausible Wisconsin daily series for every input any model reads."""
+    rng = np.random.default_rng(3)
+    doy = np.array([d.timetuple().tm_yday for d in DATES], dtype=float)
+    season = -np.cos(2 * np.pi * (doy - 15) / 365)  # −1 mid-January, +1 mid-July
+    mean = 8 + 16 * season + rng.normal(0, 2.5, DAYS)
+    rh_mean = 72 + 8 * rng.standard_normal(DAYS)
+    hours_humid = np.clip(np.round(6 + 4 * season + 3 * rng.standard_normal(DAYS)), 0, 24)
+    soil = 8 + 12 * season
+    return {
+        "air_temperature_mean": mean,
+        "air_temperature_min": mean - 6,
+        "air_temperature_max": mean + 6,
+        "dew_point_min": mean - 9,
+        "dew_point_depression_max": np.full(DAYS, 9.0),
+        "dew_point_depression_mean": np.full(DAYS, 4.0),
+        "relative_humidity_mean": np.clip(rh_mean, 30, 100),
+        "relative_humidity_max": np.clip(rh_mean + 20, 30, 100),
+        "precipitation_sum": np.where(rng.random(DAYS) < 0.3, rng.exponential(6, DAYS), 0.0),
+        "wind_speed_max": np.full(DAYS, 6.0),
+        "hours_rh_over_80": hours_humid + 3,
+        "hours_rh_over_90": hours_humid,
+        "hours_rh_over_90_from_8pm": hours_humid,
+        "hours_rh_over_90_night": np.minimum(hours_humid, 10),
+        "hours_rh_over_90_temperature_over_70f": np.where(mean > 21, hours_humid / 2, 0),
+        "hours_rh_under_70": 24 - hours_humid - 3,
+        "hours_temperature_over_30c": np.where(mean + 6 > 30, 3.0, 0.0),
+        "temperature_mean_rh_over_90_from_8pm": mean - 2,
+        "hours_soil_4cm_below_27f": np.where(soil - 4 < -3, 12.0, 0.0),
+        "hours_soil_10cm_below_27f": np.where(soil - 2 < -3, 8.0, 0.0),
+        "hours_soil_8in_below_27f": np.where(soil < -3, 4.0, 0.0),
+        "soil_temperature_4cm_min": soil - 4,
+        "soil_temperature_10cm_min": soil - 2,
+        "soil_temperature_30cm_min": soil,
+    }
+
+
+WEATHER = year_of_weather()
+
+
+@pytest.mark.parametrize("model_id", sorted(all_models()))
+def test_every_model_runs_through_the_runner(model_id):
+    m = model(model_id)
+    for name in runner.required_inputs(m):
+        assert name in WEATHER, name
+    start = date(2025, 6, 1) if m.SPEC.season is None or m.SPEC.season[0] < m.SPEC.season[1] else date(2025, 11, 1)
+    result = runner.run(m, dates=DATES, daily=WEATHER, latitude=LATITUDE, start=start, planting=date(2025, 5, 10))
+    assert result.reason is None, result.reason
+    assert result.model_id == model_id and result.version == m.SPEC.version
+    assert result.dates[0] == start and len(result.dates) == DAYS - (start - FIRST).days
+    for name, values in result.outputs.items():
+        assert values.shape[0] == len(result.dates), name
+    assert (result.risk is None) == (m.SPEC.risk is None)
+    if result.level is not None and m.SPEC.risk is not None:
+        finite = result.level[np.isfinite(result.level)]
+        assert ((finite >= 0) & (finite < len(m.SPEC.risk.levels))).all(), model_id
+
+
+def test_outputs_match_the_model_called_directly():
+    m = model("late-blight-dsv")
+    result = runner.run(m, dates=DATES, daily=WEATHER, latitude=LATITUDE, start=date(2025, 5, 1))
+    k = (date(2025, 5, 15) - FIRST).days
+    direct = m.outputs({q.name: WEATHER[q.name] for q in m.SPEC.inputs}, biofix_index=k)
+    shown = (date(2025, 5, 1) - FIRST).days
+    for name, values in direct.items():
+        np.testing.assert_array_equal(result.outputs[name], values[shown:])
+    assert result.biofix == date(2025, 5, 15)
+    # Late blight's season is May 1 to September 30
+    assert (
+        result.in_season is not None
+        and result.in_season[0]
+        and not result.in_season[(date(2025, 10, 1) - date(2025, 5, 1)).days]
+    )
+
+
+def test_default_biofix_follows_the_season():
+    assert runner.default_biofix(model("late-blight-dsv").SPEC, date(2025, 7, 1)) == date(2025, 5, 15)
+    potato = model("potato-volunteer").SPEC  # Oct 1 to Sep 30
+    assert runner.default_biofix(potato, date(2026, 1, 15)) == date(2025, 10, 1)
+    assert runner.default_biofix(potato, date(2025, 10, 2)) == date(2025, 10, 1)
+    rye = model("rye-biomass").SPEC  # Sep 1 to Jun 30, biofix Oct 1
+    assert runner.default_biofix(rye, date(2026, 3, 1)) == date(2025, 10, 1)
+    assert runner.default_biofix(rye, date(2025, 7, 15)) == date(2025, 10, 1)  # between seasons: the next one
+    assert runner.default_biofix(rye, date(2025, 9, 10)) == date(2025, 10, 1)
+    assert runner.default_biofix(model("tar-spot").SPEC, date(2025, 7, 1)) is None
+
+
+def test_stage_gating_needs_a_planting_date():
+    gated = runner.run("tar-spot", dates=DATES, daily=WEATHER, latitude=LATITUDE, planting=date(2025, 5, 10))
+    assert gated.susceptibility is not None and (gated.susceptibility == SUSCEPTIBLE).any()
+    assert runner.run("tar-spot", dates=DATES, daily=WEATHER, latitude=LATITUDE).susceptibility is None
+
+
+def test_a_biofix_at_a_crop_stage():
+    result = runner.run(
+        "red-crown-rot",
+        dates=DATES,
+        daily=WEATHER,
+        latitude=LATITUDE,
+        start=date(2025, 6, 1),
+        planting=date(2025, 5, 17),
+    )
+    soybean = runner.run(
+        "soybean-stages",
+        dates=DATES,
+        daily=WEATHER,
+        latitude=LATITUDE,
+        biofix=date(2025, 5, 17),
+        start=date(2025, 5, 17),
+    )
+    codes = [s.code for s in model("soybean-stages").stages()]  # type: ignore[attr-defined]
+    r1 = int(np.argmax(soybean.outputs["stage"] >= codes.index("R1")))
+    assert result.biofix == soybean.dates[r1]
+    assert result.biofix is not None and date(2025, 6, 25) < result.biofix < date(2025, 8, 1)
+
+
+def test_action_windows_become_dates():
+    result = runner.run("seedcorn-maggot", dates=DATES, daily=WEATHER, latitude=LATITUDE, start=date(2025, 1, 1))
+    periods = result.windows["Avoid planting during adult flight"]
+    assert len(periods) >= 2
+    first_start, first_end = periods[0]
+    assert date(2025, 4, 1) < first_start < first_end < date(2025, 7, 1)
+
+
+def test_outside_the_region_and_a_biofix_outside_the_series():
+    outside = runner.run("pecan-scab", dates=DATES, daily=WEATHER, latitude=LATITUDE, in_region=False)
+    assert outside.reason == "outside the model's region" and not outside.outputs
+    early = runner.run(
+        "late-blight-dsv", dates=DATES, daily=WEATHER, latitude=LATITUDE, start=FIRST, biofix=date(2024, 5, 1)
+    )
+    assert early.reason == "biofix not in the series"
+    winter = DATES[130:220]  # January 9 to April 8, 2025
+    late = runner.run(
+        "late-blight-dsv", dates=winter, daily={k: v[130:220] for k, v in WEATHER.items()}, latitude=LATITUDE
+    )
+    assert late.reason == "biofix after the series" and late.biofix == date(2025, 5, 15)
+
+
+def test_first_day_needed():
+    assert runner.first_day_needed(model("tar-spot"), date(2025, 7, 1)) == date(2025, 6, 1)  # 30 days back
+    assert runner.first_day_needed(model("late-blight-dsv"), date(2025, 7, 1)) == date(2025, 5, 15)
+    assert runner.first_day_needed(model("tar-spot"), date(2025, 7, 1), planting=date(2025, 5, 1)) == date(2025, 5, 1)
+
+
+def test_continuous_risk_becomes_levels():
+    m = model("seedcorn-maggot")
+    result = runner.run(m, dates=DATES, daily=WEATHER, latitude=LATITUDE, start=date(2025, 1, 1))
+    assert m.SPEC.risk is not None and m.SPEC.risk.thresholds
+    assert result.risk is not None and result.level is not None
+    expected = np.searchsorted(np.asarray(m.SPEC.risk.thresholds), result.risk, side="right")
+    np.testing.assert_array_equal(result.level, expected)
+    assert result.level.max() >= 2
