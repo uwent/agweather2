@@ -6,7 +6,7 @@ import pytest
 
 from agdata.grid import Window, service_window
 from agdata.sources import hrrr
-from agdata.sources.grib import RemoteGrib, decode, describe_message_head, parse_idx, place, scan_index
+from agdata.sources.grib import RemoteGrib, decode, describe_message_head, eccodes, parse_idx, place, scan_index
 from agdata.sources.rtma import RTMA
 from agdata.sources.urma import URMA
 
@@ -48,6 +48,23 @@ def test_decode_and_place_on_the_window():
     placed = place(field, window)
     np.testing.assert_allclose(placed[:10, :10], expected[30:40, 40:50], atol=0.01)
     assert np.isnan(placed[10:, :]).all() and np.isnan(placed[:, 10:]).all()
+
+
+def test_decode_turns_alternate_rows_back():
+    """NBM scans every other row east to west (scanning mode 80); decode returns every row west to east."""
+    original = (FIXTURES / "urma_tmp_small.grb2").read_bytes()
+    expected = decode(original).values
+    handle = eccodes.codes_new_from_message(original)
+    try:
+        missing = eccodes.codes_get_double(handle, "missingValue")
+        stored = np.where(np.isnan(expected), missing, expected)
+        stored[1::2] = stored[1::2, ::-1]
+        eccodes.codes_set_long(handle, "alternativeRowScanning", 1)
+        eccodes.codes_set_values(handle, stored.ravel())
+        message = eccodes.codes_get_message(handle)
+    finally:
+        eccodes.codes_release(handle)
+    np.testing.assert_allclose(decode(message).values, expected, atol=0.01, equal_nan=True)
 
 
 def test_urls_by_era():

@@ -141,12 +141,18 @@ def decode(message: bytes) -> Field:
         lambert = eccodes.codes_get_string(handle, "gridType") == "lambert"
         if not lambert or not eccodes.codes_get_long(handle, "jScansPositively"):
             raise ValueError("expected a Lambert grid scanning south to north")
+        if eccodes.codes_get_long(handle, "iScansNegatively"):
+            raise ValueError("expected rows scanning west to east")
         values = np.asarray(eccodes.codes_get_double_array(handle, "values"), dtype=np.float64)
         if eccodes.codes_get_long(handle, "bitmapPresent"):
             values[values == eccodes.codes_get_double(handle, "missingValue")] = np.nan
+        values = values.reshape(ny, nx)
+        if eccodes.codes_get_long(handle, "alternativeRowScanning"):
+            # NBM's scanning mode 80: every other row runs east to west, and eccodes returns them as stored
+            values[1::2] = values[1::2, ::-1].copy()
         return Field(
             key=(eccodes.codes_get_string(handle, "shortName"), ""),
-            values=values.reshape(ny, nx),
+            values=values,
             units=eccodes.codes_get_string(handle, "units"),
             first_lat=eccodes.codes_get_double(handle, "latitudeOfFirstGridPointInDegrees"),
             first_lon=eccodes.codes_get_double(handle, "longitudeOfFirstGridPointInDegrees"),
