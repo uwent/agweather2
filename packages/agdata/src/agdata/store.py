@@ -26,7 +26,7 @@ from agdata.grid import NDFD, Window
 Step = Literal["hour", "day"]
 
 # Source codes stored per step; 0 means nothing written yet
-SOURCES = {"urma": 1, "rtma": 2, "hrrr": 3, "nbm": 4, "openmeteo": 5, "derived": 6, "test": 99}
+SOURCES = {"urma": 1, "rtma": 2, "hrrr": 3, "nbm": 4, "openmeteo": 5, "derived": 6, "hrrr_forecast": 7, "test": 99}
 SOURCE_NAMES = {code: name for name, code in SOURCES.items()}
 
 # Chunks (time steps, y, x): hourly for point reads (a cell's month is one chunk), daily for map tiles.
