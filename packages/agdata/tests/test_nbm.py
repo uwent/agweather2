@@ -65,8 +65,8 @@ def test_fetch_step_converts_and_places(monkeypatch):
         def __init__(self, url, session=None):
             assert url == nbm.url(CYCLE, 24)
 
-        def fields_where(self, predicate):
-            return [(ref, field) for ref in refs if predicate(ref) and ref.key == ("TMP", "2 m above ground")]
+        def iter_fields_where(self, predicate):
+            return iter([(ref, field) for ref in refs if predicate(ref) and ref.key == ("TMP", "2 m above ground")])
 
     monkeypatch.setattr(nbm, "RemoteGrib", FakeGrib)
     window = Window(j0=910, j1=915, i0=1410, i1=1420)

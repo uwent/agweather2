@@ -137,3 +137,42 @@ def test_last_observed_hour(tmp_path):
         2025, 6, 5, 3, tzinfo=UTC
     )
     assert forecast.last_observed_hour(tmp_path, datetime(2025, 7, 1, tzinfo=UTC)) is None  # over two weeks back
+
+
+def test_building_in_strips_matches_the_whole_window(tmp_path, monkeypatch):
+    from agdata.sources import nbm
+
+    cycle = datetime(2025, 7, 10, 13, tzinfo=UTC)
+    archive(tmp_path, datetime(2025, 7, 1, tzinfo=UTC), cycle + 2 * HOUR)
+    truth = nbm_run(cycle)
+    rows = np.arange(WINDOW.shape[0])[:, None]
+
+    def step(cycle, lead, window, session):  # a long run's pattern of steps, a different value per row
+        n = lead - 1
+        values = {"precipitation": truth.values["precipitation"][n] + rows}
+        if lead <= 36 or (lead - 2) % 3 == 0:
+            values |= {name: truth.values[name][n] + rows for name in nbm.NAMES if name != "precipitation"}
+        return values
+
+    monkeypatch.setattr(forecast, "BAND_CELLS", 3)  # one row per strip
+    assert forecast.band_rows(WINDOW) == 1
+    built = forecast.build_run(tmp_path, WINDOW, cycle, step=step, workers=4, pressure_kpa=98.0)
+    assert not (built / "scratch.zarr").exists()
+    stored = {
+        name: GridStore.open(built, HOURLY, 2025, VARIABLES.values()).read_steps(name, 0, 8760)
+        for name in ("air_temperature", "et0", "shortwave_radiation")
+    }
+    sources = GridStore.open(built, HOURLY, 2025, VARIABLES.values()).sources("et0")
+
+    # The same run filled whole, in memory
+    whole = nbm.fetch_run(cycle, WINDOW, step=step, workers=4)
+    from agdata.grid import NDFD
+
+    lat, lon = NDFD.window_latlon(WINDOW)
+    other = forecast.write_run(tmp_path / "whole", WINDOW, nbm.to_hourly(whole, lat, lon, 98.0), pressure_kpa=98.0)
+    expected = GridStore.open(other, HOURLY, 2025, VARIABLES.values())
+    t = expected.index_of(cycle + 3 * HOUR)  # forecast hours (the first copy has no archive under it)
+    for name, values in stored.items():
+        np.testing.assert_array_equal(values[t:], expected.read_steps(name, t, 8760), err_msg=name)
+    assert sources[t:] == expected.sources("et0")[t:]
+    assert np.isfinite(stored["air_temperature"][t + 100]).all()

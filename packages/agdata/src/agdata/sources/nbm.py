@@ -16,6 +16,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import numpy as np
 import requests
@@ -42,6 +43,7 @@ FIELDS: dict[Key, tuple[str, str]] = {
     ("DSWRF", "surface"): ("shortwave_radiation", "W_m2"),
 }
 PRECIP: Key = ("APCP", "surface")
+NAMES = (*(name for name, _ in FIELDS.values()), "precipitation")  # what a run holds
 
 
 def url(cycle: datetime, lead: int) -> str:
@@ -89,7 +91,7 @@ def fetch_step(
     """
     grib = RemoteGrib(url(cycle, lead), session)
     values: dict[str, np.ndarray] = {}
-    for ref, found in grib.fields_where(lambda ref: wanted(ref, lead) is not None):
+    for ref, found in grib.iter_fields_where(lambda ref: wanted(ref, lead) is not None):
         name = wanted(ref, lead)
         if name is None or name in values:
             continue
@@ -104,7 +106,7 @@ class Run:
     has no value for that hour (a step between its output times, or a file that failed)."""
 
     cycle: datetime
-    values: dict[str, np.ndarray]  # (HORIZON_HOURS, y, x)
+    values: dict[str, Any]  # (HORIZON_HOURS, y, x): arrays, or the zarr arrays `fetch_run` wrote to
     failed: list[int] = field(default_factory=list)  # leads whose file couldn't be read
 
     @property
@@ -122,10 +124,17 @@ def fetch_run(
     workers: int = 8,
     session_factory: Callable[[], requests.Session] = requests.Session,
     attempts: int = 3,
+    out: dict[str, Any] | None = None,
 ) -> Run:
-    """Every forecast hour of a long run, read in parallel; a file that fails after retries is left NaN."""
-    names = [*(name for name, _ in FIELDS.values()), "precipitation"]
-    values = {name: np.full((HORIZON_HOURS, *window.shape), np.nan, dtype=np.float32) for name in names}
+    """Every forecast hour of a long run, read in parallel; a file that fails after retries is left NaN.
+
+    `out` takes the steps instead of arrays in memory: an array per name in NAMES, (HORIZON_HOURS, y, x), that
+    threads can write different steps of at once (a zarr array chunked by step does)."""
+    values: dict[str, Any] = (
+        out
+        if out is not None
+        else {name: np.full((HORIZON_HOURS, *window.shape), np.nan, dtype=np.float32) for name in NAMES}
+    )
     failed: list[int] = []
 
     def one(lead: int) -> None:

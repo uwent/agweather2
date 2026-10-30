@@ -122,10 +122,13 @@ def fetch_soil_forecast(
     window: Window,
     session_factory=requests.Session,
     workers: int = 8,
+    out: dict | None = None,
 ) -> dict[str, np.ndarray]:
     """Soil temperature at each valid time from one forecast run, (time, y, x) per catalog level; NaN where the
-    run doesn't reach (past FORECAST_HOURS, D41) or a file fails."""
-    out = {name: np.full((len(valid_times), *window.shape), np.nan, dtype=np.float32) for name in SOIL_LEVELS}
+    run doesn't reach (past FORECAST_HOURS, D41) or a file fails. `out` takes the steps instead (arrays per
+    level that threads can write different steps of at once)."""
+    if out is None:
+        out = {name: np.full((len(valid_times), *window.shape), np.nan, dtype=np.float32) for name in SOIL_LEVELS}
 
     def one(n: int) -> None:
         lead = round((valid_times[n] - run).total_seconds() / 3600)

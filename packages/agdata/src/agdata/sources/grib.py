@@ -8,7 +8,7 @@ does, by (name, level), e.g. ("TMP", "2 m above ground").
 
 import struct
 import warnings
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 
 import numpy as np
@@ -207,14 +207,16 @@ class RemoteGrib:
 
     def fields_where(self, predicate: Callable[[MessageRef], bool]) -> list[tuple[MessageRef, Field]]:
         """Downloads and decodes every message the predicate accepts, in file order."""
-        found = []
+        return list(self.iter_fields_where(predicate))
+
+    def iter_fields_where(self, predicate: Callable[[MessageRef], bool]) -> Iterator[tuple[MessageRef, Field]]:
+        """As `fields_where`, one message at a time, so a caller that crops each field holds one whole field."""
         for ref in self.index():
             if predicate(ref):
                 end = ref.offset + ref.length - 1 if ref.length else None
                 field = decode(self._read_range(ref.offset, end))
                 field.key = ref.key
-                found.append((ref, field))
-        return found
+                yield ref, field
 
     def _read_range(self, start: int, end: int | None) -> bytes:
         headers = {"Range": f"bytes={start}-{'' if end is None else end}"}
