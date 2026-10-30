@@ -10,24 +10,24 @@ requests go one at a time).
 """
 
 import argparse
-import json
-import time
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import numpy as np
-import requests
 
 from agdata.catalog import VARIABLES
+from agdata.clients.acis import Acis
+from agdata.clients.agweather_v1 import AgWeatherV1, Bounds
+from agdata.clients.openmeteo_daily import OpenMeteoDaily
 from agdata.daily import cell_timezones, open_or_create_daily
 from agdata.grid import NDFD, service_window
 from agdata.store import HOURLY, GridStore
 from agmodels.degree_days import degree_days_sine
 
-API = "https://agweather.cals.wisc.edu/api"
 CENTRAL = ZoneInfo("America/Chicago")
 CACHE = Path("tmp/legacy-cache")
+OLD_API = AgWeatherV1(cache_dir=CACHE)
 PAIRS = [(50, 86), (39.2, 86)]
 
 
@@ -57,8 +57,8 @@ def main():
         rain = point_means(hourly.read("precipitation", hours, window), labels, len(points))
         v2["tmin"][d], v2["tmax"][d], v2["tavg"][d] = temp.min(0), temp.max(0), temp.mean(0)
         v2["precip"][d] = rain.sum(0)
-        weather = legacy(f"weather/grid?date={day}", args.box, window)
-        precip = legacy(f"precips/grid?date={day}&units=mm", args.box, window)
+        weather = OLD_API.weather(day, bounds(window))
+        precip = OLD_API.precipitation_mm(day, bounds(window))
         for p, key in enumerate(points):
             w = weather.get(key)
             if w:
@@ -133,17 +133,9 @@ class HourlyStores:
         return self.loaded[name][[(t - self.start) // timedelta(hours=1) for t in hours]]
 
 
-def legacy(query: str, box: str, window) -> dict:
-    path = CACHE / (query.replace("/", "_").replace("?", "_").replace("&", "_").replace("=", "-") + ".json")
-    if not path.exists():
-        lat, lon = NDFD.window_latlon(window)
-        bounds = f"&lat_range={lat.min():.1f},{lat.max():.1f}&lng_range={lon.min():.1f},{lon.max():.1f}"
-        response = requests.get(f"{API}/{query}{bounds}", timeout=60)
-        response.raise_for_status()
-        CACHE.mkdir(parents=True, exist_ok=True)
-        path.write_text(response.text)
-        time.sleep(0.5)
-    return json.loads(path.read_text())["data"]
+def bounds(window) -> Bounds:
+    lat, lon = NDFD.window_latlon(window)
+    return (float(lat.min()), float(lat.max()), float(lon.min()), float(lon.max()))
 
 
 def stats(a: np.ndarray, b: np.ndarray) -> str:
@@ -225,29 +217,8 @@ def write_report(args, days, points, v2, old) -> str:
 
 def acis_daily_precip(window, first: date, last: date) -> list[dict]:
     """Daily precip (mm; trace = 0, missing = NaN) at every ACIS station in the window's box, cached."""
-    path = CACHE / f"acis_pcpn_{first}_{last}.json"
-    if not path.exists():
-        lat, lon = NDFD.window_latlon(window)
-        query = {
-            "bbox": f"{lon.min():.2f},{lat.min():.2f},{lon.max():.2f},{lat.max():.2f}",
-            "sdate": str(first),
-            "edate": str(last),
-            "elems": [{"name": "pcpn"}],
-            "meta": ["name", "ll", "sids"],
-        }
-        response = requests.post("https://data.rcc-acis.org/MultiStnData", json=query, timeout=120)
-        response.raise_for_status()
-        CACHE.mkdir(parents=True, exist_ok=True)
-        path.write_text(response.text)
-    stations = []
-    for row in json.loads(path.read_text())["data"]:
-        values = [v[0] if isinstance(v, list) else v for v in row["data"]]
-        mm = [
-            0.0 if v == "T" else np.nan if v in ("M", "S") or v.endswith(("A", "S")) else float(v.rstrip("ab")) * 25.4
-            for v in values
-        ]
-        stations.append({"name": row["meta"]["name"], "ll": row["meta"].get("ll"), "mm": np.array(mm)})
-    return stations
+    south, north, west, east = bounds(window)
+    return Acis(cache_dir=CACHE).precipitation_mm((west, south, east, north), first, last)
 
 
 def read_daily(data_dir: Path, name: str, days: list[date]) -> np.ndarray:
@@ -267,7 +238,7 @@ def read_daily(data_dir: Path, name: str, days: list[date]) -> np.ndarray:
 def station_report(data_dir: Path, window, days: list[date]) -> str:
     """Monthly precip at ACIS stations: v2 (the station's cell, its local days) and the old API (the 0.1° point)."""
     v2_days = read_daily(data_dir, "precipitation_sum", days)
-    old_days = [legacy(f"precips/grid?date={day}&units=mm", "", window) for day in days]
+    old_days = [OLD_API.precipitation_mm(day, bounds(window)) for day in days]
     rows = []
     for station in acis_daily_precip(window, days[0], days[-1]):
         if not station["ll"]:
@@ -324,34 +295,12 @@ WISP_POINTS = [
 def open_meteo_daily(lat: float, lon: float, first: date, last: date) -> dict:
     """Open-Meteo's historical-forecast daily ET0 (mm) and shortwave (MJ/m²) on Central days, cached a year at a
     time (a request for two years can time out)."""
+    client = OpenMeteoDaily(cache_dir=CACHE)
     daily: dict[str, list] = {}
     for year in range(first.year, last.year + 1):
         a, b = max(first, date(year, 1, 1)), min(last, date(year, 12, 31))
-        path = CACHE / f"openmeteo_{lat}_{lon}_{a}_{b}.json"
-        if not path.exists():
-            for attempt in range(3):
-                try:
-                    response = requests.get(
-                        "https://historical-forecast-api.open-meteo.com/v1/forecast",
-                        params={
-                            "latitude": lat,
-                            "longitude": lon,
-                            "start_date": str(a),
-                            "end_date": str(b),
-                            "daily": "et0_fao_evapotranspiration,shortwave_radiation_sum",
-                            "timezone": "America/Chicago",
-                        },
-                        timeout=120,
-                    )
-                    response.raise_for_status()
-                    break
-                except (requests.Timeout, requests.ConnectionError):
-                    if attempt == 2:
-                        raise
-                    time.sleep(10)
-            CACHE.mkdir(parents=True, exist_ok=True)
-            path.write_text(response.text)
-        for key, values in json.loads(path.read_text())["daily"].items():
+        block = client.daily([(lat, lon)], a, b, ["et0_fao_evapotranspiration", "shortwave_radiation_sum"])[0]
+        for key, values in block.items():
             daily.setdefault(key, []).extend(values)
     return daily
 
@@ -360,11 +309,13 @@ def point_report(data_dir: Path, window, days: list[date]) -> str:
     """Daily ET0 and shortwave at WISP 3's points: v2 against Open-Meteo and the old API (ET; SSEC insolation)."""
     v2_et0 = read_daily(data_dir, "et0_sum", days)
     v2_sw = read_daily(data_dir, "shortwave_radiation_sum", days)
-    old_et = [legacy(f"evapotranspirations/grid?date={day}&units=mm", "", window) for day in days]
-    old_sw = [legacy(f"insolations/grid?date={day}", "", window) for day in days]
+    old_et = [OLD_API.evapotranspiration_mm(day, bounds(window)) for day in days]
+    old_sw = [OLD_API.insolation_mj_m2(day, bounds(window)) for day in days]
     pairs: dict[str, tuple[list, list]] = {k: ([], []) for k in ("et0_om", "et0_old", "sw_om", "sw_old")}
     for _name, lat, lon in WISP_POINTS:
-        y, x = window.local(*NDFD.cell_of(lat, lon))
+        cell = NDFD.cell_of(lat, lon)
+        assert cell is not None
+        y, x = window.local(*cell)
         key = f"[{round(lat, 1):.1f}, {round(lon, 1):.1f}]"
         om = open_meteo_daily(lat, lon, days[0], days[-1])
         for n in range(len(days)):

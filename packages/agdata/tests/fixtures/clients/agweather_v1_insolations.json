@@ -1,0 +1,1 @@
+{"info": {"status": "OK", "date": "2025-07-01", "days_requested": 1, "lat_range": "42.2,47.6", "lng_range": "-93.1,-85.7", "grid_points": 4125, "units": "MJ/day/m^2", "min_value": 22.24, "max_value": 28.9, "compute_time": 0.14364787}, "data": {"[42.2, -93.1]": 28.17, "[42.2, -93.0]": 27.79, "[42.2, -92.9]": 28.15}}

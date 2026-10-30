@@ -8,27 +8,23 @@ API's insolation grids come from `compare_legacy.py`'s cache (tmp/legacy-cache).
 """
 
 import argparse
-import json
+import os
 import sys
-import time
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 import numpy as np
-import requests
 
 sys.path.insert(0, str(Path(__file__).parent))
-from compare_legacy import legacy, read_daily
+from compare_legacy import OLD_API, bounds, read_daily
 
+from agdata.clients.openmeteo_daily import OpenMeteoDaily
+from agdata.clients.wisconet import Wisconet
 from agdata.grid import NDFD, service_window
 
-API = "https://api.wisconet.wisc.edu/api/v1"
 CACHE = Path("tmp/wisconet")
 FIELD = "daily_solar_radiation_mj_tot"  # field id 157, MJ/m² over the station's local day
-FIELD_ID = 157
-CENTRAL = ZoneInfo("America/Chicago")
-PAUSE_S = 3.0  # between Wisconet requests
+OPEN_METEO_MODELS = ("ncep_nbm_conus", "ecmwf_ifs", "best_match")
 PLAUSIBLE_MJ = (0.0, 36.0)  # a day's total above 0 and under the clear-sky maximum in Wisconsin
 
 
@@ -44,12 +40,13 @@ def main():
     days = [first + timedelta(days=n) for n in range((last - first).days + 1)]
     window = service_window(args.box)
 
-    stations = [s for s in fetch_stations() if inside(s, window)]
+    wisconet = Wisconet(cache_dir=CACHE)
+    stations = [s for s in wisconet.stations() if inside(s, window)]
     print(f"{len(stations)} stations in the box; {len(days)} days", flush=True)
     observed = np.full((len(days), len(stations)), np.nan)
     for k, station in enumerate(stations):
         for year in range(first.year, last.year + 1):
-            for day, value in station_days(station["station_id"], year).items():
+            for day, value in wisconet.daily(station["station_id"], FIELD, year).items():
                 if first <= day <= last:
                     observed[(day - first).days, k] = value
     observed[(observed <= PLAUSIBLE_MJ[0]) | (observed > PLAUSIBLE_MJ[1])] = np.nan
@@ -63,57 +60,36 @@ def main():
         y, x = window.local(*cell)
         v2[:, k] = v2_grid[:, y, x]
     for n, day in enumerate(days):
-        grid = legacy(f"insolations/grid?date={day}", "", window)
+        grid = OLD_API.insolation_mj_m2(day, bounds(window))
         for k, station in enumerate(stations):
             value = grid.get(f"[{round(station['latitude'], 1):.1f}, {round(station['longitude'], 1):.1f}]")
             ssec[n, k] = np.nan if value is None else value
 
-    Path(args.out).write_text(report(args, days, stations, observed, v2, ssec))
+    open_meteo = open_meteo_days(stations, first, last, len(days))
+    Path(args.out).write_text(report(args, days, stations, observed, v2, ssec, open_meteo))
     print(f"wrote {args.out}")
 
 
-def fetch_stations() -> list[dict]:
-    path = CACHE / "stations.json"
-    if not path.exists():
-        response = requests.get(f"{API}/stations/", timeout=60)
-        response.raise_for_status()
-        CACHE.mkdir(parents=True, exist_ok=True)
-        path.write_text(response.text)
-    return json.loads(path.read_text())
+def open_meteo_days(stations: list[dict], first: date, last: date, n: int) -> dict[str, np.ndarray]:
+    """Open-Meteo's historical-forecast daily shortwave at each station (Central days), per model, a year a request.
+    WISP 3 takes its ET0 from Open-Meteo, NBM first then best_match (`../wisp3` PLAN.md)."""
+    client = OpenMeteoDaily(cache_dir=CACHE, api_key=os.environ.get("OPEN_METEO_API_KEY") or None)
+    locations = [(s["latitude"], s["longitude"]) for s in stations]
+    out = {}
+    for model in OPEN_METEO_MODELS:
+        values = np.full((n, len(stations)), np.nan)
+        for year in range(first.year, last.year + 1):
+            a, b = max(first, date(year, 1, 1)), min(last, date(year, 12, 31))
+            for k, block in enumerate(client.daily(locations, a, b, ["shortwave_radiation_sum"], model=model)):
+                series = [np.nan if v is None else v for v in block["shortwave_radiation_sum"]]
+                values[(a - first).days : (a - first).days + len(series), k] = series
+        out[model] = values
+    return out
 
 
 def inside(station: dict, window) -> bool:
     cell = NDFD.cell_of(station["latitude"], station["longitude"])
     return cell is not None and window.contains(*cell)
-
-
-def station_days(station_id: str, year: int) -> dict[date, float]:
-    """A station's daily totals for a year, by local date. Wisconet stamps a day's total at the local midnight that
-    closes it (06Z in CST, 05Z in CDT), so the day is the one before the stamp's local date."""
-    path = CACHE / f"{station_id}_{year}_{FIELD}.json"
-    if not path.exists():
-        start = datetime(year, 1, 1, tzinfo=CENTRAL) + timedelta(hours=1)
-        end = datetime(year + 1, 1, 1, tzinfo=CENTRAL) + timedelta(hours=1)
-        params = {"start_time": int(start.timestamp()), "end_time": int(end.timestamp()), "fields": FIELD}
-        for attempt in range(4):
-            response = requests.get(f"{API}/stations/{station_id}/measures", params=params, timeout=120)
-            if response.status_code == 429 or response.status_code >= 500:
-                time.sleep(30 * (attempt + 1))
-                continue
-            response.raise_for_status()
-            break
-        else:
-            raise RuntimeError(f"{station_id} {year}: HTTP {response.status_code}")
-        path.write_text(response.text)
-        time.sleep(PAUSE_S)
-        print(f"  fetched {station_id} {year}", flush=True)
-    out: dict[date, float] = {}
-    for row in json.loads(path.read_text()).get("data", []):
-        stamp = datetime.fromtimestamp(row["collection_time"], UTC).astimezone(CENTRAL)
-        for field_id, value in row["measures"]:
-            if field_id == FIELD_ID and value is not None:
-                out[(stamp - timedelta(hours=1)).date()] = float(value)
-    return out
 
 
 def stats(model: np.ndarray, observed: np.ndarray) -> tuple[int, float, float, float, float]:
@@ -135,7 +111,7 @@ def row(label: str, model: np.ndarray, observed: np.ndarray) -> str:
     return f"| {label} | {n} | {bias:+.2f} | {mae:.2f} | {ratio:.2f} | {r:.3f} |"
 
 
-def report(args, days, stations, observed, v2, ssec) -> str:
+def report(args, days, stations, observed, v2, ssec, open_meteo) -> str:
     lines = [
         "# Shortwave against Wisconet's pyranometers",
         "",
@@ -160,14 +136,22 @@ def report(args, days, stations, observed, v2, ssec) -> str:
         lines.append(f"| {shift:+d} | {stats(v2, shifted)[4]:.3f} |")
     head = ["| Source | days | bias | MAE | ratio | r |", "|---|---|---|---|---|---|"]
     lines += ["", "## Overall", "", *head, row("v2 (HRRR)", v2, observed), row("old API (SSEC)", ssec, observed)]
+    lines += [row(f"Open-Meteo {model}", values, observed) for model, values in open_meteo.items()]
+    lines += [
+        "",
+        "Open-Meteo is its historical-forecast API at each station's location (its own cell), on Central days. WISP 3 "
+        "takes ET0 from Open-Meteo, NBM first, then best_match.",
+    ]
 
     months = np.array([d.year * 100 + d.month for d in days])
     lines += [
         "",
         "## By month",
         "",
-        "| Month | days | v2 bias | v2 MAE | v2 ratio | SSEC bias | SSEC MAE | SSEC ratio |",
-        "|---|---|---|---|---|---|---|---|",
+        "| Month | days | v2 bias | v2 MAE | v2 ratio | SSEC bias | SSEC MAE | SSEC ratio | "
+        + " | ".join(f"{m} ratio" for m in open_meteo)
+        + " |",
+        "|---|---|---|---|---|---|---|---|" + "---|" * len(open_meteo),
     ]
     for month in sorted(set(months)):
         sel = months == month
@@ -175,7 +159,9 @@ def report(args, days, stations, observed, v2, ssec) -> str:
         _, bs, ms, rs, _ = stats(ssec[sel], observed[sel])
         lines.append(
             f"| {month // 100}-{month % 100:02d} | {n} | {b2:+.2f} | {m2:.2f} | {r2:.2f} | "
-            f"{bs:+.2f} | {ms:.2f} | {rs:.2f} |"
+            f"{bs:+.2f} | {ms:.2f} | {rs:.2f} | "
+            + " | ".join(f"{stats(values[sel], observed[sel])[3]:.2f}" for values in open_meteo.values())
+            + " |"
         )
 
     lines += [
