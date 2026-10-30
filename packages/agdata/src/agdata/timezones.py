@@ -26,6 +26,11 @@ def window_timezones(window: Window) -> tuple[list[str], np.ndarray]:
     return list(names), index
 
 
+def zone_at(latitude: float, longitude: float) -> str:
+    """A point's time zone, as `window_timezones` finds a cell's."""
+    return TimezoneFinder().timezone_at(lng=longitude, lat=latitude) or _fixed_zone(longitude)
+
+
 def day_bounds(day: date, zone: str) -> tuple[datetime, datetime]:
     """The UTC times of a local day's first and last hour ends: (local midnight + 1 h, next local midnight].
 

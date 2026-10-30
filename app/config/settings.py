@@ -32,6 +32,7 @@ APP_VERSION = os.environ.get("APP_VERSION", "dev")
 # The grid window the archive covers (PLAN.md D20): a preset name or south,west,north,east
 SERVICE_BOX = os.environ.get("SERVICE_BOX", "wisconsin")
 DATA_DIR = Path(os.environ.get("DATA_DIR", REPO_DIR / "data"))
+OPEN_METEO_API_KEY = os.environ.get("OPEN_METEO_API_KEY") or None  # the customer hosts; None: the free ones
 
 INSTALLED_APPS = [
     "django.contrib.admin",

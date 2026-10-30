@@ -10,6 +10,7 @@ The forecast is used only while its run is fresh (`MAX_RUN_AGE`); otherwise the 
 says why. Kinds are per point, as each cell's day follows its own time zone.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -143,18 +144,7 @@ def point_days(
     end = _midnight(last + timedelta(days=1)) + timedelta(hours=8)  # past the last day's end in any zone
     frame = point_hours(data_dir, j, i, start, end, list(VARIABLES), now=now, stores=stores)
     days = daily_at_point(start, frame.values, zone, first, last)
-    kinds: list[str | None] = []
-    for day in dates:
-        begin, close = day_bounds(day, zone)
-        hour_kinds = set(frame.kinds[(begin - start) // HOUR : (close - start) // HOUR + 1])
-        if hour_kinds == {OBSERVED}:
-            kinds.append(OBSERVED)
-        elif hour_kinds == {FORECAST}:
-            kinds.append(FORECAST)
-        elif OBSERVED in hour_kinds and FORECAST in hour_kinds:
-            kinds.append(PARTIAL)
-        else:
-            kinds.append(None)  # some hours neither: the forecast stops partway, or nothing is there
+    kinds = day_kinds(frame.times, frame.kinds, zone, dates)
     split = next((k for k, kind in enumerate(kinds) if kind != OBSERVED), n)
     out_totals: dict[str, np.ndarray] = {}
     for name in totals:
@@ -293,13 +283,45 @@ def model_at_point(
     crop_options: dict[str, str] | None = None,
     now: datetime | None = None,
 ) -> ModelRun:
-    """A model's three layers at a point in the box from `start` to `end`, through the forecast (D30): the days it
-    needs (`runner.first_day_needed`) read from the archive and the current run, the region checked against the
-    county grid, and for a stage-gated model the typical planting date (D34) unless one is given."""
-    m = find_model(model_id)
+    """A model's three layers at a point in the box from `start` to `end`, through the forecast (D30), from the
+    archive and the current run (`run_at_point` with `point_days`)."""
     cell = NDFD.cell_of(latitude, longitude)
     if cell is None:
         raise ValueError(f"({latitude}, {longitude}) is off the grid")
+
+    def read_days(first: date, last: date, names: list[str]) -> DailySeries:
+        return point_days(data_dir, *cell, first, last, names, now=now)
+
+    return run_at_point(
+        read_days,
+        latitude,
+        longitude,
+        model_id,
+        start,
+        end,
+        biofix=biofix,
+        planting=planting,
+        options=options,
+        crop_options=crop_options,
+    )
+
+
+def run_at_point(
+    read_days: Callable[[date, date, list[str]], DailySeries],
+    latitude: float,
+    longitude: float,
+    model_id: str,
+    start: date,
+    end: date,
+    biofix: date | None = None,
+    planting: date | None = None,
+    options: dict[str, str] | None = None,
+    crop_options: dict[str, str] | None = None,
+) -> ModelRun:
+    """A model at a point from any source of days (the archive and forecast, or Open-Meteo): the days it needs
+    (`runner.first_day_needed`), the region checked against the county grid, and for a stage-gated model the
+    typical planting date (D34) unless one is given."""
+    m = find_model(model_id)
     crops = runner.crop_models(m.SPEC)
     if planting is None and crops:
         typical = typical_planting(crops[0].removesuffix("-stages"), latitude, longitude)
@@ -309,7 +331,7 @@ def model_at_point(
     county = county_at(latitude, longitude)
     in_region = not m.SPEC.region or (county is not None and county.state in m.SPEC.region)
     first = runner.first_day_needed(m, start, biofix=biofix, planting=planting)
-    days = point_days(data_dir, *cell, first, end, runner.required_inputs(m), now=now)
+    days = read_days(first, end, runner.required_inputs(m))
     return runner.run(
         m,
         dates=days.dates,
@@ -323,3 +345,21 @@ def model_at_point(
         crop_options=crop_options,
         in_region=in_region,
     )
+
+
+def day_kinds(times: list[datetime], hour_kinds: list[str | None], zone: str, dates: list[date]) -> list[str | None]:
+    """Each local day's kind from its hours' (observed, partial, forecast; None when some hour has neither)."""
+    start = times[0]
+    kinds: list[str | None] = []
+    for day in dates:
+        begin, close = day_bounds(day, zone)
+        found = set(hour_kinds[max(0, (begin - start) // HOUR) : max(0, (close - start) // HOUR + 1)])
+        if found == {OBSERVED}:
+            kinds.append(OBSERVED)
+        elif found == {FORECAST}:
+            kinds.append(FORECAST)
+        elif found == {OBSERVED, FORECAST}:
+            kinds.append(PARTIAL)
+        else:
+            kinds.append(None)
+    return kinds
