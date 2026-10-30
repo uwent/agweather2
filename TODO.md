@@ -66,3 +66,11 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
   - Cabbage maggot: the Wisconsin source (Eckenrode and Chapman, modified average at 43 °F) or USPest's Oregon State model (sine at 39.7/86 °F)?
   - Black cutworm, cabbage looper, corn earworm: their biofixes stand for trap catches or first silk. Default dates with a user-set biofix (as now), or something else?
 - [ ] **UW Vegetable Entomology's seedcorn maggot page** still says to count from spring ground thaw at 39/86 °F, with VDIFN's 360 + 720n peaks. Update it to match seedcorn maggot 2.0 (average method, 39 °F with an 84 °F cap, from January 1) once the new model is reviewed.
+
+## Phase 4: Forecast and blending
+
+- [ ] **Start `bin/dev` and leave it running** (Phase 2 above): it now runs the forecast job too (`ingest_forecast` at :15 and :45), and the Phase 4 exit needs a week of it. `curl -s localhost:8000/up` shows both `ingest` and `forecast`.
+- [ ] **Decide** (details in PLAN.md Phase 4 D and E):
+  - Red crown rot's vegetative-period rain fills missing days with the mean of the others. Keep it, or leave the total missing when any day is?
+  - Open-Meteo's ECMWF IFS has a soil temperature forecast to 11 days, which D41 assumed didn't exist. Use it (also in the box past HRRR's 48 hours), or blank it outside the box to match?
+- [ ] **Agree the Phase 2 tolerances** proposed under PLAN.md Phase 2 H.
