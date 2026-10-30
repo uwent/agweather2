@@ -86,6 +86,29 @@ def test_red_crown_rot_matches_from_r1(crt, inputs):
     )
 
 
+def test_red_crown_rot_counts_missing_rain_as_none(inputs):
+    full = red_crown_rot.outputs(inputs, biofix_index=181)
+    assert np.all(full["precipitation_days_missing"][150:] == 0)
+
+    precip = inputs["precipitation_sum"].copy()
+    precip[[160, 170, 190]] = np.nan  # two days before R1, one after
+    out = red_crown_rot.outputs({**inputs, "precipitation_sum": precip}, biofix_index=181)
+    rain = inputs["precipitation_sum"]
+    np.testing.assert_allclose(out["precipitation_vegetative"][181], np.sum(rain[150:181]) - rain[160] - rain[170])
+    after = 181 + red_crown_rot.WINDOW
+    np.testing.assert_allclose(out["precipitation_reproductive"][after - 1 :], np.sum(rain[181:after]) - rain[190])
+    assert out["precipitation_days_missing"][175] == 2
+    assert out["precipitation_days_missing"][185] == 2
+    assert out["precipitation_days_missing"][-1] == 3
+    assert np.isnan(out["precipitation_days_missing"][149])
+
+
+def test_red_crown_rot_counts_the_window_before_the_series_as_missing(inputs):
+    out = red_crown_rot.outputs(inputs, biofix_index=10)
+    assert out["precipitation_days_missing"][0] == red_crown_rot.WINDOW - 10
+    np.testing.assert_allclose(out["precipitation_vegetative"][10], np.sum(inputs["precipitation_sum"][:10]))
+
+
 def test_probability_levels_match(crt):
     sweep = crt("risk_from_prob_sweep")
     np.testing.assert_array_equal(risk_level(sweep["probability"], 1, 20, 35), sweep["risk_1_20_35"])

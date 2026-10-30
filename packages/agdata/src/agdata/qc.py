@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from agdata.catalog import Variable
+from agmodels import gaps
 
 MAX_FILL_HOURS = 3
 
@@ -44,27 +45,9 @@ def remove_spikes(values: np.ndarray, threshold: float) -> tuple[np.ndarray, int
 
 
 def fill_short_gaps(values: np.ndarray, max_gap: int = MAX_FILL_HOURS) -> tuple[np.ndarray, np.ndarray]:
-    """Linearly interpolates interior runs of NaN up to `max_gap` steps long, along axis 0.
-
-    Gaps at the start or end of the block, or longer than `max_gap`, stay NaN. Returns the filled copy and a
-    mask of the filled values.
-    """
-    values = np.array(values, dtype=float)
-    n = values.shape[0]
-    valid = np.isfinite(values)
-    steps = np.arange(n).reshape(-1, *([1] * (values.ndim - 1)))
-    # Index of the last valid step at or before each step, and the first at or after it
-    prev_idx = np.maximum.accumulate(np.where(valid, steps, -1), axis=0)
-    next_idx = np.flip(np.minimum.accumulate(np.flip(np.where(valid, steps, n), axis=0), axis=0), axis=0)
-    gap = next_idx - prev_idx - 1
-    fill = ~valid & (prev_idx >= 0) & (next_idx < n) & (gap <= max_gap)
-    if not fill.any():
-        return values, fill
-    prev_val = np.take_along_axis(values, np.clip(prev_idx, 0, n - 1), axis=0)
-    next_val = np.take_along_axis(values, np.clip(next_idx, 0, n - 1), axis=0)
-    weight = (steps - prev_idx) / np.where(next_idx > prev_idx, next_idx - prev_idx, 1)
-    values[fill] = (prev_val + weight * (next_val - prev_val))[fill]
-    return values, fill
+    """Linearly interpolates interior runs of NaN up to `max_gap` steps long, along axis 0 (`agmodels.gaps`, which
+    the models' inputs share). Returns the filled copy and a mask of the filled values."""
+    return gaps.fill_short_gaps(values, max_gap)
 
 
 def run_qc(variable: Variable, values: np.ndarray) -> QcResult:

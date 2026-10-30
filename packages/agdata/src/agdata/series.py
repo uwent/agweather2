@@ -8,6 +8,9 @@ archive's through yesterday, the run's from today (they continue the archive's).
 
 The forecast is used only while its run is fresh (`MAX_RUN_AGE`); otherwise the series ends with the archive and
 says why. Kinds are per point, as each cell's day follows its own time zone.
+
+A point's forecast soil hours past HRRR's 48 can be filled from another source (`fill_soil`: the app passes
+Open-Meteo's ECMWF IFS through its cell cache, D44). Maps keep the gap rather than mixing sources.
 """
 
 from collections.abc import Callable
@@ -18,7 +21,7 @@ from pathlib import Path
 import numpy as np
 
 from agdata import forecast
-from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
+from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, GAP_FILL, VARIABLES
 from agdata.daily import cell_timezones
 from agdata.grid import NDFD, Window
 from agdata.places import county_at
@@ -33,6 +36,10 @@ from agmodels.runner import ModelRun
 HOUR = timedelta(hours=1)
 MAX_RUN_AGE = timedelta(hours=12)  # past this a run's forecast isn't used (D43; the job runs every 6 hours)
 OBSERVED, PARTIAL, FORECAST = "observed", "partial", "forecast"
+SOIL = ("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm")
+
+# Hours ending start..end (UTC, inclusive) of the given variables from another source, for a point's forecast soil
+FillSoil = Callable[[datetime, datetime, list[str]], dict[str, np.ndarray]]
 
 
 @dataclass(kw_only=True)
@@ -92,9 +99,10 @@ def point_hours(
     names,
     now: datetime | None = None,
     stores: "_Stores | None" = None,
+    fill_soil: FillSoil | None = None,
 ) -> HourlyFrame:
     """Hours ending start..end (inclusive, UTC) at a cell: the archive's through its last observed hour, then the
-    current run's."""
+    current run's, with forecast soil hours the run lacks from `fill_soil` (sourced `openmeteo`)."""
     run = current_forecast(data_dir, now)
     times = [start + k * HOUR for k in range((end - start) // HOUR + 1)]
     n = len(times)
@@ -112,6 +120,8 @@ def point_hours(
             fc_values, fc_sources = _point_steps(stores, run.path, HOURLY, name, j, i, times[cut], n - cut)
             values[name][cut:], sources[name][cut:] = fc_values, fc_sources
     beyond = run.last_hour if run.path is not None else observed_until
+    if fill_soil is not None and run.path is not None:
+        _fill_soil(fill_soil, times, values, sources, [n for n in names if n in SOIL], cut, run.last_hour)
     kinds: list[str | None] = [
         OBSERVED if k < cut else (FORECAST if beyond is not None and times[k] <= beyond else None) for k in range(n)
     ]
@@ -127,6 +137,7 @@ def point_days(
     names,
     totals=(),
     now: datetime | None = None,
+    fill_soil: FillSoil | None = None,
 ) -> DailySeries:
     """Local days first..last at a cell, from its stitched hours by the rollup's definitions (`agdata.point`): a
     day is observed if every hour is, partial with some of each, forecast with only forecast hours.
@@ -134,7 +145,7 @@ def point_days(
     A point's days come from its hours rather than the daily store, whose chunks are a day of a map: a season of
     them is ~300 chunk reads per variable (2.4 s for five), its hours ~11 (0.5 s for every variable, days included).
     Running totals (`totals`) are read from the cumulative stores: the archive's before the first day that isn't
-    observed, the run's from it."""
+    observed, the run's from it. `fill_soil` is used only when one of `names` is a soil variable."""
     run = current_forecast(data_dir, now)
     n = (last - first).days + 1
     dates = [first + timedelta(days=k) for k in range(n)]
@@ -142,7 +153,10 @@ def point_days(
     zone = cell_zone(data_dir, j, i, range(first.year, last.year + 1), stores)
     start = _midnight(first - timedelta(days=1))  # before the first day's 8 pm-day in any zone
     end = _midnight(last + timedelta(days=1)) + timedelta(hours=8)  # past the last day's end in any zone
-    frame = point_hours(data_dir, j, i, start, end, list(VARIABLES), now=now, stores=stores)
+    wants_soil = any("soil" in name for name in names)
+    frame = point_hours(
+        data_dir, j, i, start, end, list(VARIABLES), now=now, stores=stores, fill_soil=fill_soil if wants_soil else None
+    )
     days = daily_at_point(start, frame.values, zone, first, last)
     kinds = day_kinds(frame.times, frame.kinds, zone, dates)
     split = next((k for k, kind in enumerate(kinds) if kind != OBSERVED), n)
@@ -182,6 +196,28 @@ def cell_zone(data_dir: Path, j: int, i: int, years, stores: "_Stores | None" = 
     zones, index = cell_timezones(store)
     y, x = store.window.local(j, i)
     return zones[int(index[y, x])]
+
+
+def _fill_soil(fill_soil: FillSoil, times, values, sources, names: list[str], cut: int, last_hour) -> None:
+    """Fills the forecast's missing soil hours (after the observed `cut`, through the run's last hour) in place."""
+    n = len(times)
+    end = n if last_hour is None else next((k for k in range(n) if times[k] > last_hour), n)
+    gaps = {name: np.flatnonzero(np.isnan(values[name][cut:end])) + cut for name in names}
+    wanted = [name for name, k in gaps.items() if k.size]
+    if not wanted:
+        return
+    lo = min(int(gaps[name][0]) for name in wanted)
+    hi = max(int(gaps[name][-1]) for name in wanted)
+    filled = fill_soil(times[lo], times[hi], wanted)
+    for name in wanted:
+        other = filled.get(name)
+        if other is None:
+            continue
+        for k in gaps[name]:
+            value = other[k - lo]
+            if np.isfinite(value):
+                values[name][k] = value
+                sources[name][k] = "openmeteo"
 
 
 def _midnight(day: date) -> datetime:
@@ -282,15 +318,16 @@ def model_at_point(
     options: dict[str, str] | None = None,
     crop_options: dict[str, str] | None = None,
     now: datetime | None = None,
+    fill_soil: FillSoil | None = None,
 ) -> ModelRun:
     """A model's three layers at a point in the box from `start` to `end`, through the forecast (D30), from the
-    archive and the current run (`run_at_point` with `point_days`)."""
+    archive and the current run (`run_at_point` with `point_days`; soil past the run's from `fill_soil`, D44)."""
     cell = NDFD.cell_of(latitude, longitude)
     if cell is None:
         raise ValueError(f"({latitude}, {longitude}) is off the grid")
 
     def read_days(first: date, last: date, names: list[str]) -> DailySeries:
-        return point_days(data_dir, *cell, first, last, names, now=now)
+        return point_days(data_dir, *cell, first, last, names, now=now, fill_soil=fill_soil)
 
     return run_at_point(
         read_days,
@@ -344,6 +381,7 @@ def run_at_point(
         options=options,
         crop_options=crop_options,
         in_region=in_region,
+        gap_fill=GAP_FILL,
     )
 
 

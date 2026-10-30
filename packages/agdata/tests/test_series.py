@@ -47,6 +47,25 @@ def test_days_observed_partial_forecast(world):
     assert np.all(np.diff(dd[:13]) > 0) and dd[4] - dd[3] > dd[1] - dd[0]  # forecast days are warmer
 
 
+def test_forecast_soil_gaps_are_filled_from_another_source(world):
+    asked = []
+
+    def fill_soil(first_hour, last_hour, names):
+        asked.append((first_hour, last_hour, names))
+        n = (last_hour - first_hour) // HOUR + 1
+        return {name: np.full(n, 12.0) for name in names}
+
+    last = datetime(2025, 7, 21, 15, tzinfo=UTC)  # two hours past the run's last
+    names = ["air_temperature", "soil_temperature_10cm"]
+    frame = series.point_hours(world, *CELL, CYCLE, last, names, now=NOW, fill_soil=fill_soil)
+    assert asked == [(CYCLE + 3 * HOUR, last - 2 * HOUR, ["soil_temperature_10cm"])]
+    soil, sources = frame.values["soil_temperature_10cm"], frame.sources["soil_temperature_10cm"]
+    assert np.all(soil[3:-2] == 12.0) and set(sources[3:-2]) == {"openmeteo"}
+    assert np.isnan(soil[-2:]).all() and sources[-2:] == [None, None]
+    assert np.isnan(soil[:3]).all() and sources[:3] == [None] * 3  # observed gaps stay gaps
+    assert set(frame.sources["air_temperature"][3:-2]) == {"nbm"}
+
+
 def test_without_a_fresh_run_the_series_ends_with_the_archive(world):
     later = NOW + timedelta(hours=13)
     days = series.point_days(world, *CELL, date(2025, 7, 9), date(2025, 7, 12), ["air_temperature_max"], now=later)

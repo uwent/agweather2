@@ -6,6 +6,10 @@ ensemble weighs each by its R² (0.66, 0.16, 0.18). Until the 31 days from R1 ar
 temperature is used and precipitation is prorated to a full window, as the Crop Risk Tool does; after, the final
 values hold. The biofix is the R1 date.
 
+Precipitation is the sum of the known days, with days without data counted as no rain and reported in
+`precipitation_days_missing`. The Crop Risk Tool took the mean of the known days times 31, which fills missing days
+with an estimate (precipitation is never estimated here); without gaps the two agree.
+
 Ported from the Crop Risk Tool (`predict_red_crown_rot`, `build_red_crown_rot`) with parity tests.
 """
 
@@ -31,7 +35,7 @@ SPEC = ModelSpec(
     id="red-crown-rot",
     name="Red crown rot incidence",
     group="disease",
-    version="1.0",
+    version="1.1",
     status="beta",
     summary="Predicted share of soybean plants with red crown rot, from temperature and rain in the month either "
     "side of the beginning of flowering (R1).",
@@ -67,6 +71,12 @@ SPEC = ModelSpec(
         Quantity(name="temperature_mean_reproductive", label="Mean temperature from R1", unit="degC"),
         Quantity(name="precipitation_vegetative", label="Precipitation, 31 days before R1", unit="mm"),
         Quantity(name="precipitation_reproductive", label="Precipitation from R1 (prorated to 31 days)", unit="mm"),
+        Quantity(
+            name="precipitation_days_missing",
+            label="Days without precipitation data",
+            unit="day",
+            description="In the 31 days before R1 and the days from R1 so far, counted as no rain",
+        ),
     ),
     risk=Risk(
         levels=PROBABILITY_LEVELS,
@@ -109,7 +119,15 @@ SPEC = ModelSpec(
     lookback_days=WINDOW,
     biofix=Biofix(default="07-01", label="R1 (beginning flowering)"),
     biofix_stage=("soybean-stages", "R1"),  # the soybean model's R1 is the default when it has run
-    changelog=(Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    changelog=(
+        Change(version="1.0", date="2026-10-28", note="Ported from the Crop Risk Tool."),
+        Change(
+            version="1.1",
+            date="2026-10-30",
+            note="Precipitation sums the known days and counts missing days as no rain, reporting how many; the "
+            "tool's mean of the known days times 31 estimated them. Unchanged without gaps.",
+        ),
+    ),
 )
 
 
@@ -133,19 +151,37 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
     in_veg = (day >= veg_start) & (day < r1)
     in_rep = (day >= r1) & (day < r1 + WINDOW)
 
-    with np.errstate(invalid="ignore"):
-        veg_days = precip[veg_start:r1]
-        veg_total = np.nanmean(veg_days, axis=0) * WINDOW if veg_days.shape[0] else np.full(precip.shape[1:], np.nan)
-    veg_running = np.cumsum(np.where(in_veg, np.nan_to_num(precip), 0), axis=0)
+    known = np.nan_to_num(precip)  # missing days count as no rain, and are counted
+    # Days missing here, or filled with no rain by the runner (D45)
+    missing = ~np.isfinite(precip) | np.asarray(inputs.get("precipitation_sum_estimated", False), dtype=bool)
+    before_series = WINDOW - (r1 - veg_start)  # days of the window before the series starts are missing too
+
+    veg_total = known[veg_start:r1].sum(axis=0) if r1 > veg_start else np.full(precip.shape[1:], np.nan)
+    veg_running = np.cumsum(np.where(in_veg, known, 0), axis=0)
     precipitation_vegetative = np.where(day < veg_start, np.nan, np.where(in_veg, veg_running, veg_total))
 
     temperature_rep = _cumulative_mean(np.where(in_rep, temperature, np.nan))
-    precipitation_rep = _cumulative_mean(np.where(in_rep, precip, np.nan)) * WINDOW
+    rep_elapsed = np.cumsum(in_rep, axis=0)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        rep_running = np.cumsum(np.where(in_rep, known, 0), axis=0)
+        precipitation_rep = np.where(rep_elapsed > 0, rep_running / rep_elapsed * WINDOW, np.nan)
+
+    veg_missing = missing[veg_start:r1].sum(axis=0) + before_series
+    days_missing = np.where(
+        day < veg_start,
+        np.nan,
+        np.where(
+            in_veg,
+            np.cumsum(in_veg & missing, axis=0) + before_series,
+            veg_missing + np.cumsum(in_rep & missing, axis=0),
+        ),
+    )
     return {
         "incidence": incidence(temperature_rep, veg_total, precipitation_rep),
         "temperature_mean_reproductive": temperature_rep,
         "precipitation_vegetative": precipitation_vegetative,
         "precipitation_reproductive": precipitation_rep,
+        "precipitation_days_missing": days_missing,
     }
 
 

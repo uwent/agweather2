@@ -1,4 +1,4 @@
-{"version": "1.0", "rows": [
+{"version": "1.1", "rows": [
 {"inputs":{"temperature_reproductive":20.0,"precipitation_vegetative":25.0,"precipitation_reproductive":25.0},"outputs":{"incidence":0.243265173}},
 {"inputs":{"temperature_reproductive":20.0,"precipitation_vegetative":25.0,"precipitation_reproductive":100.0},"outputs":{"incidence":0.229674137}},
 {"inputs":{"temperature_reproductive":20.0,"precipitation_vegetative":25.0,"precipitation_reproductive":250.0},"outputs":{"incidence":0.197462767}},

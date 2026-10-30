@@ -5,6 +5,7 @@ import pytest
 
 from agmodels import runner
 from agmodels.crops import SUSCEPTIBLE
+from agmodels.gaps import GapFill
 from agmodels.registry import all_models, model
 
 FIRST = date(2024, 9, 1)
@@ -165,3 +166,25 @@ def test_continuous_risk_becomes_levels():
     expected = np.searchsorted(np.asarray(m.SPEC.risk.thresholds), result.risk, side="right")
     np.testing.assert_array_equal(result.level, expected)
     assert result.level.max() >= 2
+
+
+def test_gaps_in_the_inputs_are_estimated_and_reported():
+    from agmodels.models import red_crown_rot
+
+    daily = {name: values.copy() for name, values in WEATHER.items()}
+    r1 = date(2025, 7, 1)
+    k = DATES.index(r1)
+    daily["air_temperature_mean"][k + 3] = np.nan  # a day from R1
+    daily["precipitation_sum"][k - 10 : k - 8] = np.nan  # two days before it
+    methods: dict[str, GapFill] = {"air_temperature_mean": "interpolate", "precipitation_sum": "zero"}
+    result = runner.run(
+        "red-crown-rot", dates=DATES, daily=daily, latitude=LATITUDE, start=r1, biofix=r1, gap_fill=methods
+    )
+    assert np.isnan(result.inputs["air_temperature_mean"][3])  # the inputs layer keeps the gap
+    assert result.estimated["air_temperature_mean"].nonzero()[0].tolist() == [3]
+    assert "precipitation_sum" not in result.estimated  # its filled days are before the days shown
+    assert result.outputs["precipitation_days_missing"][0] == 2
+    assert np.isfinite(result.outputs["incidence"][: red_crown_rot.WINDOW]).all()
+
+    unfilled = runner.run("red-crown-rot", dates=DATES, daily=daily, latitude=LATITUDE, start=r1, biofix=r1)
+    assert unfilled.estimated == {} and unfilled.outputs["precipitation_days_missing"][0] == 2

@@ -15,6 +15,7 @@ import numpy as np
 
 from agdata.units import unit
 from agmodels import features
+from agmodels.gaps import GapFill
 
 DailyStat = Literal["min", "max", "mean", "sum"]
 
@@ -35,6 +36,7 @@ class Variable:
     derived: bool = False  # computed from other variables at ingest, not read from a source
     version: int = 1  # of the code that computes it; bump when its output changes so stores rebuild it (D29)
     fillable: bool = True  # short gaps may be interpolated in time (not for sums like precip, or directions)
+    gap_fill: GapFill | None = None  # daily: how a model's input estimates a missing day (D45, `agmodels.gaps`)
     spike_c: float | None = None  # QC: a value this far from both neighbors in time, the same way, is a spike
     notes: str = ""
     sources: dict[str, str] = field(default_factory=dict)  # source name → what it reads
@@ -258,6 +260,7 @@ def _daily_statistic(v: Variable, stat: DailyStat) -> DailyStatistic:
             valid_min=0,
             valid_max=high,
             derived=True,
+            gap_fill="zero" if v.name == "precipitation" else "interpolate",  # precip is never estimated
         )
         return DailyStatistic(variable=daily, hourly=v.name, stat=stat, factor=factor)
     long_name = f"{v.long_name}, daily {stat}"
@@ -270,6 +273,7 @@ def _daily_statistic(v: Variable, stat: DailyStat) -> DailyStatistic:
         valid_min=v.valid_min,
         valid_max=v.valid_max,
         derived=True,
+        gap_fill="interpolate",
     )
     return DailyStatistic(variable=daily, hourly=v.name, stat=stat)
 
@@ -288,6 +292,7 @@ DAILY_VARIABLES["et0_sum_estimate"] = Variable(
     valid_min=0,
     valid_max=20,
     derived=True,
+    gap_fill="interpolate",
 )
 
 
@@ -295,8 +300,15 @@ DAILY_VARIABLES["et0_sum_estimate"] = Variable(
 # and over the day from 8 pm (20:00 the evening before through 19:59), night hours (20:00-06:59), and the mean
 # temperature during humid hours. Features that look across days (hot past 5 days, dry) and moving averages are
 # computed on read. Bump a feature's version when `agmodels.features` changes what it computes (D29).
-_HOURS = {"unit": "hour", "scale": 1, "valid_min": 0, "valid_max": 25, "derived": True}
-_TEMPERATURE = {"unit": "degC", "scale": 0.1, "valid_min": -60, "valid_max": 60, "derived": True}
+_HOURS = {"unit": "hour", "scale": 1, "valid_min": 0, "valid_max": 25, "derived": True, "gap_fill": "interpolate"}
+_TEMPERATURE = {
+    "unit": "degC",
+    "scale": 0.1,
+    "valid_min": -60,
+    "valid_max": 60,
+    "derived": True,
+    "gap_fill": "interpolate",
+}
 DAILY_FEATURES: dict[str, Variable] = {
     v.name: v
     for v in [
@@ -341,6 +353,8 @@ DAILY_FEATURES: dict[str, Variable] = {
     ]
 }
 DAILY_VARIABLES.update(DAILY_FEATURES)
+# How each daily variable's missing days are estimated as a model's input (D45)
+GAP_FILL: dict[str, GapFill] = {name: v.gap_fill for name, v in DAILY_VARIABLES.items() if v.gap_fill is not None}
 
 
 # Running totals from local January 1 (D26, D27): any range is cum[end] - cum[start - 1]. Degree days are

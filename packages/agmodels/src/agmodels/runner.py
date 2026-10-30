@@ -6,6 +6,10 @@ the biofix (a date, the spec's default for the season, or a crop stage's predict
 risk, gates the risk by crop stage (D33), finds the action windows' dates (D36) and which days are in season, and
 returns it all with each day's kind (observed, partial, forecast) and the model's id and version.
 
+Missing days in the inputs are estimated first, by each variable's method (`gap_fill`, from the catalog: D45,
+`agmodels.gaps`). The model sees the filled values and, as `<input>_estimated`, which days were filled; the inputs
+layer returned keeps the raw values with their gaps, and `estimated` says which days were filled.
+
 No I/O and nothing from `agdata`: region masks need the county grid, so the caller says whether the point is in
 the model's region.
 """
@@ -18,6 +22,7 @@ from typing import cast
 import numpy as np
 
 from agmodels.crops import CropModel, disease_susceptibility, stage_days
+from agmodels.gaps import GapFill, fill_inputs
 from agmodels.phenology import PhenologyModel, window_periods
 from agmodels.registry import model as find_model
 from agmodels.spec import Model, ModelSpec
@@ -40,6 +45,7 @@ class ModelRun:
     susceptibility: np.ndarray | None = None  # D33: 0 not susceptible, 1 margin, 2 susceptible; None if not gated
     in_season: np.ndarray | None = None  # per day, from the spec's season; None if it has none
     windows: dict[str, list[tuple[date, date]]] = field(default_factory=dict)  # action windows' periods (D36)
+    estimated: dict[str, np.ndarray] = field(default_factory=dict)  # per input with any, the days filled (D45)
     biofix: date | None = None
     # Why there are no outputs: "outside the model's region", "biofix after the series" (not started yet), "biofix
     # not in the series" (the days given start after it: read from `first_day_needed`)
@@ -91,10 +97,12 @@ def run(
     options: Mapping[str, str] | None = None,
     crop_options: Mapping[str, str] | None = None,
     in_region: bool = True,
+    gap_fill: Mapping[str, GapFill] | None = None,
 ) -> ModelRun:
     """Runs a model over consecutive `dates` (with `daily[name]` for each, as `required_inputs` lists) and returns
     the days from `start` (default the first). `planting` is the crop's planting date, for stage gating and for a
-    biofix at a crop stage; without it, gated models aren't gated."""
+    biofix at a crop stage; without it, gated models aren't gated. `gap_fill` gives each input's estimate for
+    missing days (the catalog's `GAP_FILL`); inputs without one are passed as they are."""
     m = find_model(m) if isinstance(m, str) else m
     spec = m.SPEC
     dates = list(dates)
@@ -108,6 +116,8 @@ def run(
         result.reason = "outside the model's region"
         return result
 
+    raw = {name: np.asarray(values, dtype=float) for name, values in daily.items()}
+    daily, estimated = fill_inputs(raw, gap_fill or {})
     context = _context(dates, latitude)
     crop_stage = _crop_stage(spec, dates, daily, context, planting, crop_options or {})
     if biofix is None and spec.biofix_stage is not None and crop_stage is not None:
@@ -125,13 +135,15 @@ def run(
         return result
     result.biofix = biofix
 
-    inputs = {q.name: np.asarray(daily[q.name], dtype=float) for q in spec.inputs}
+    inputs = {q.name: daily[q.name] for q in spec.inputs}
+    inputs |= {f"{q.name}_estimated": estimated[q.name] for q in spec.inputs}
     inputs |= {name: context[name] for name in spec.context}
     opts = dict(options or {})
     outputs = m.outputs(inputs, biofix_index=biofix_index, **opts)
     risk = None if spec.risk is None else np.asarray(m.risk(outputs, biofix_index=biofix_index, **opts), dtype=float)
 
-    result.inputs = {q.name: inputs[q.name][shown:] for q in spec.inputs}
+    result.inputs = {q.name: raw[q.name][shown:] for q in spec.inputs}
+    result.estimated = {q.name: estimated[q.name][shown:] for q in spec.inputs if estimated[q.name][shown:].any()}
     result.outputs = {name: np.asarray(values, dtype=float)[shown:] for name, values in outputs.items()}
     if risk is not None and spec.risk is not None:
         result.risk = risk[shown:]

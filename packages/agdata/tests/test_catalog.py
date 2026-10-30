@@ -40,3 +40,10 @@ def test_a_variable_that_cant_hold_its_range_is_rejected():
         Variable(name="bad", long_name="Too narrow", unit="mm", scale=0.001, valid_min=0, valid_max=1000)
     with pytest.raises(ValueError):
         Variable(name="bad", long_name="Unknown unit", unit="furlongs", scale=1)
+
+
+def test_every_daily_variable_says_how_a_missing_day_is_estimated():
+    from agdata.catalog import DAILY_VARIABLES, GAP_FILL
+
+    assert set(GAP_FILL) == set(DAILY_VARIABLES)
+    assert GAP_FILL["precipitation_sum"] == "zero"  # never estimated (D45)
