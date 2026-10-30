@@ -189,7 +189,8 @@ def backtest_run(
     lat, lon = lat[y, x][None, :], lon[y, x][None, :]
     pressure = archive_pressure_kpa(data_dir, window, cycle.date())[y, x][None, :]
     pressure = np.where(np.isfinite(pressure), pressure, FALLBACK_PRESSURE_KPA)  # as the forecast job does
-    filled = nbm.to_hourly(nbm.Run(cycle=cycle, values={k: raw[k] for k in nbm.NAMES}), lat, lon, pressure)
+    run_values = {k: raw[k] for k in nbm.NAMES} | {"tmax_12h": raw["tmax_nbm"]}  # as the job fetches it (D39)
+    filled = nbm.to_hourly(nbm.Run(cycle=cycle, values=run_values), lat, lon, pressure)
     times = filled.valid_times
     values = derive(filled, lat, lon, pressure)
 

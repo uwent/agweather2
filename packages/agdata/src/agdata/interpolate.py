@@ -7,6 +7,8 @@ extremes); wind, gust and cloud are linear; direction goes through unit vectors;
 curve scaled by each solar day's clearness.
 """
 
+import warnings
+
 import numpy as np
 
 from agdata.gaps import clear_sky_shortwave_w_m2
@@ -116,3 +118,36 @@ def solar_day(hour_end, longitude_deg) -> np.ndarray:
     hours = (times.astype("int64") / 3600.0).reshape(-1, *extra)
     # An hour belongs to the day its middle falls in
     return np.floor((hours - 0.5 + np.asarray(longitude_deg) / 15) / 24).astype(int)
+
+
+WINDOW_HOURS = 12  # NBM's TMAX covers the 12 hours ending at its step
+
+
+def reach_window_max(values: np.ndarray, window_max: np.ndarray, hours: int = WINDOW_HOURS) -> np.ndarray:
+    """Hourly temperatures (time on axis 0) with each window's warm part raised or lowered so its max meets the
+    window max given at the window's last step (NaN elsewhere): a bump over the straight line between the
+    window's first and last hours, scaled by how far each hour stands above that line, so nothing moves at the
+    window's edges and the day keeps its shape. Windows without a target, or flat ones, are left as they are."""
+    out = np.array(values, dtype=float)
+    targets = np.asarray(window_max, dtype=float)
+    present = np.isfinite(targets).reshape(targets.shape[0], -1).any(axis=1)
+    for end in np.flatnonzero(present):
+        if end < hours - 1:
+            continue
+        window = slice(end - hours + 1, end + 1)
+        seg = out[window]
+        line = seg[0] + (seg[-1] - seg[0]) * (np.arange(hours) / (hours - 1)).reshape(-1, *([1] * (seg.ndim - 1)))
+        with np.errstate(invalid="ignore"), warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)  # all-NaN cells
+            rise = seg - line
+            warmest = np.nanmax(seg, axis=0)
+            delta = targets[end] - warmest
+            # Scaled to the warmest hour's own rise, so it moves by the whole difference and no hour passes it
+            at_warmest = np.take_along_axis(rise, np.nanargmax(np.nan_to_num(seg, nan=-np.inf), axis=0)[None], 0)[0]
+            reference = np.where(at_warmest > 0.3, at_warmest, np.nanmax(rise, axis=0))
+            shape = np.where(reference > 0.3, np.clip(rise / np.where(reference > 0.3, reference, 1), 0, 1), 0.0)
+            moved = seg + np.nan_to_num(shape) * np.nan_to_num(delta)
+            # Lowering: no moved hour stays above it (the window's ends don't move, even if they're above it)
+            moved = np.where((delta < 0) & (shape > 0), np.fmin(moved, targets[end]), moved)
+        out[window] = np.where(np.isfinite(delta), moved, seg)
+    return out

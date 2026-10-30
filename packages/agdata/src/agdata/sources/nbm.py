@@ -43,7 +43,10 @@ FIELDS: dict[Key, tuple[str, str]] = {
     ("DSWRF", "surface"): ("shortwave_radiation", "W_m2"),
 }
 PRECIP: Key = ("APCP", "surface")
+TMAX: Key = ("TMAX", "2 m above ground")  # the 12-hour max ending at a step (NDFD's daytime 12–00Z), K
 NAMES = (*(name for name, _ in FIELDS.values()), "precipitation")  # what a run holds
+EXTRAS = ("tmax_12h",)  # read for post-processing (D39), not stored: °C at the steps that end a window
+FETCHED = (*NAMES, *EXTRAS)
 
 
 def url(cycle: datetime, lead: int) -> str:
@@ -79,6 +82,8 @@ def wanted(ref: MessageRef, lead: int) -> str | None:
         return FIELDS[ref.key][0]
     if ref.key == PRECIP and ref.detail == f"{lead - 1}-{lead} hour acc fcst":
         return "precipitation"
+    if ref.key == TMAX and ref.detail == f"{lead - 12}-{lead} hour max fcst":
+        return "tmax_12h"
     return None
 
 
@@ -94,6 +99,9 @@ def fetch_step(
     for ref, found in grib.iter_fields_where(lambda ref: wanted(ref, lead) is not None):
         name = wanted(ref, lead)
         if name is None or name in values:
+            continue
+        if name == "tmax_12h":
+            values[name] = convert(place(found, window), "K", "degC")
             continue
         unit = "kg_m2" if name == "precipitation" else FIELDS[ref.key][1]
         values[name] = convert(place(found, window), unit, variable(name).unit)
@@ -133,7 +141,7 @@ def fetch_run(
     values: dict[str, Any] = (
         out
         if out is not None
-        else {name: np.full((HORIZON_HOURS, *window.shape), np.nan, dtype=np.float32) for name in NAMES}
+        else {name: np.full((HORIZON_HOURS, *window.shape), np.nan, dtype=np.float32) for name in FETCHED}
     )
     failed: list[int] = []
 
@@ -160,6 +168,7 @@ class HourlyRun:
     cycle: datetime
     values: dict[str, np.ndarray]  # (HORIZON_HOURS, y, x), stored units
     filled: dict[str, np.ndarray]  # (HORIZON_HOURS, y, x) bool
+    extras: dict[str, np.ndarray] = field(default_factory=dict)  # EXTRAS for post-processing, not stored
 
     @property
     def valid_times(self) -> list[datetime]:
@@ -187,4 +196,5 @@ def to_hourly(run: Run, latitude_deg: np.ndarray, longitude_deg: np.ndarray, pre
     filled["precipitation"] = np.zeros(out["precipitation"].shape, dtype=bool)
     with np.errstate(invalid="ignore"):
         out["dew_point"] = np.where(out["dew_point"] > out["air_temperature"], out["air_temperature"], out["dew_point"])
-    return HourlyRun(cycle=run.cycle, values=out, filled=filled)
+    extras = {name: np.asarray(v[name], dtype=float) for name in EXTRAS if name in v}
+    return HourlyRun(cycle=run.cycle, values=out, filled=filled, extras=extras)

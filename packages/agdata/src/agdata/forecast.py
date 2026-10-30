@@ -24,7 +24,7 @@ import numpy as np
 import requests
 import zarr
 
-from agdata import shortwave
+from agdata import interpolate, shortwave
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
 from agdata.cumulative import MAX_BRIDGE_DAYS, open_or_create_cumulative, running_totals
 from agdata.daily import rollup_days
@@ -131,15 +131,20 @@ def write_run(
 
 
 def adjust_hours(hourly: HourlyRun, latitude_deg, longitude_deg, pressure_kpa) -> HourlyRun:
-    """Post-processing of a run's filled hours, before RH and ET0 are derived from them: NBM's shortwave corrected
-    by lead and clearness (D48, `agdata.shortwave`). The forecast job and the backtest both call it, so the backtest
-    measures what's published."""
+    """Post-processing of a run's filled hours, before RH and ET0 are derived from them: each daytime window's
+    hours reshaped to reach NBM's 12-hour max (D39; the interpolated hours' max runs cool), dew point kept at or
+    below temperature, and NBM's shortwave corrected by lead and clearness (D48, `agdata.shortwave`). The forecast
+    job and the backtest both call it, so the backtest measures what's published."""
     times = np.array([t.replace(tzinfo=None) for t in hourly.valid_times], dtype="datetime64[s]")
     values = dict(hourly.values)
+    if "tmax_12h" in hourly.extras:
+        values["air_temperature"] = interpolate.reach_window_max(values["air_temperature"], hourly.extras["tmax_12h"])
+        with np.errstate(invalid="ignore"):
+            values["dew_point"] = np.fmin(values["dew_point"], values["air_temperature"])
     values["shortwave_radiation"] = shortwave.correct_nbm_w_m2(
         times, latitude_deg, longitude_deg, values["shortwave_radiation"], pressure_kpa, hourly.cycle
     )
-    return HourlyRun(cycle=hourly.cycle, values=values, filled=hourly.filled)
+    return HourlyRun(cycle=hourly.cycle, values=values, filled=hourly.filled, extras=hourly.extras)
 
 
 def band_rows(window: Window) -> int:
@@ -165,7 +170,7 @@ def build_run(
     path = _fresh_run_dir(data_dir, cycle)
     rows = band_rows(window)
     scratch = zarr.open_group(path / "scratch.zarr", mode="w")
-    names = [*nbm.NAMES, *(hrrr.SOIL_LEVELS if soil_run else ())]
+    names = [*nbm.FETCHED, *(hrrr.SOIL_LEVELS if soil_run else ())]
     raw = {
         name: scratch.create_array(
             name,
@@ -177,7 +182,7 @@ def build_run(
         for name in names
     }
     run = nbm.fetch_run(
-        cycle, window, step=step, workers=workers, session_factory=session_factory, out={n: raw[n] for n in nbm.NAMES}
+        cycle, window, step=step, workers=workers, session_factory=session_factory, out={n: raw[n] for n in nbm.FETCHED}
     )
     times = run.valid_times
     if soil_run is not None:
@@ -188,9 +193,9 @@ def build_run(
     for j in range(window.j0, window.j1, rows):
         band = Window(j0=j, j1=min(j + rows, window.j1), i0=window.i0, i1=window.i1)
         y = slice(j - window.j0, band.j1 - window.j0)
-        part = nbm.Run(cycle=cycle, values={n: np.asarray(raw[n][:, y]) for n in nbm.NAMES})
+        part = nbm.Run(cycle=cycle, values={n: np.asarray(raw[n][:, y]) for n in nbm.FETCHED})
         filled = adjust_hours(nbm.to_hourly(part, lat[y], lon[y], pressure[y]), lat[y], lon[y], pressure[y])
-        soil = {n: np.asarray(raw[n][:, y]) for n in names if n not in nbm.NAMES}
+        soil = {n: np.asarray(raw[n][:, y]) for n in names if n not in nbm.FETCHED}
         for name, steps in _write_hours(path, window, band, times, filled.values, soil, pressure[y]).items():
             present[name] = present[name] | steps if name in present else steps
     shutil.rmtree(path / "scratch.zarr")

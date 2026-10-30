@@ -210,3 +210,41 @@ def test_a_real_hrrr_soil_forecast():
     times = [run + timedelta(hours=h) for h in (1, 48, 49)]
     soil = hrrr.fetch_soil_forecast(run, times, window)
     assert np.isfinite(soil["soil_temperature_10cm"][:2]).all() and np.isnan(soil["soil_temperature_10cm"][2]).all()
+
+
+def test_tmax_messages_are_read_for_their_window():
+    from agdata.sources.grib import MessageRef
+
+    def ref(detail, extra=""):
+        return MessageRef(key=nbm.TMAX, detail=detail, extra=extra, offset=0, length=1)
+
+    assert nbm.wanted(ref("23-35 hour max fcst"), 35) == "tmax_12h"
+    assert nbm.wanted(ref("23-35 hour max fcst", "ens std dev"), 35) is None
+    assert nbm.wanted(ref("11-23 hour max fcst"), 35) is None
+
+
+def test_the_days_hours_reach_nbms_max_without_moving_the_windows_edges():
+    from agdata import interpolate
+
+    hours = np.arange(48, dtype=float)
+    temp = 15 + 8 * np.sin(2 * np.pi * (hours - 9) / 24)  # max 23 °C at 15h
+    targets = np.full(48, np.nan)
+    targets[23] = 25.0  # the window ending at index 23 (hours 12..23)
+    out = interpolate.reach_window_max(temp[:, None], targets[:, None])[:, 0]
+    assert out[12:24].max() == pytest.approx(25.0)
+    assert out[12] == temp[12] and out[23] == temp[23]  # its ends stay
+    np.testing.assert_array_equal(out[:12], temp[:12])
+    np.testing.assert_array_equal(out[24:], temp[24:])
+    assert np.argmax(out[12:24]) == np.argmax(temp[12:24])  # the day keeps its shape
+
+
+def test_a_cooler_max_lowers_the_warm_hours_only():
+    from agdata import interpolate
+
+    hours = np.arange(24, dtype=float)
+    temp = 15 + 8 * np.sin(2 * np.pi * (hours - 11) / 24)  # the window (12..23) starts and ends cool
+    targets = np.full(24, np.nan)
+    targets[23] = 20.0
+    out = interpolate.reach_window_max(temp[:, None], targets[:, None])[:, 0]
+    assert out[12:24].max() == pytest.approx(20.0)
+    assert out[12] == temp[12] and out[23] == temp[23]
