@@ -8,6 +8,11 @@ and tested on the next (`scripts/fit_shortwave_correction.py`, docs/validation-s
 The archive keeps HRRR's raw value (`shortwave_radiation_hrrr`) and derives `shortwave_radiation` from it, so a
 refit only bumps the version and re-derives (`correct_archive`). The table was fitted in Wisconsin; check it
 against other networks before trusting it elsewhere.
+
+NBM's forecast shortwave has its own tables (`correct_nbm_w_m2`), by lead day and the day's clearness, fitted on
+the 2025 backtest against the corrected archive (`scripts/backtest_forecast.py --fit-shortwave`). They're mostly
+calibration rather than bias: as skill falls with lead, a forecast very dark or very clear day is on average less
+so, and the tables move it toward what was observed (test runs' day-5 MAE 4.2 → 3.1 MJ/m²).
 """
 
 import json
@@ -24,8 +29,8 @@ from agdata.store import HOURLY, GridStore
 from agmodels.weather import et0_hourly_series
 
 TABLE_PATH = Path(__file__).parent / "data" / "shortwave_correction.json"
+NBM_TABLE_PATH = Path(__file__).parent / "data" / "nbm_shortwave_correction.json"
 RAW = "shortwave_radiation_hrrr"
-FALLBACK_PRESSURE_KPA = 97.0  # Rso barely depends on it; used where an hour has no pressure
 BLOCK_HOURS = 48  # ~200 MB of float64 per block over Wisconsin
 HOUR = timedelta(hours=1)
 
@@ -36,18 +41,46 @@ def _table() -> dict:
 
 TABLE = _table()
 VERSION: int = TABLE["version"]
+NBM_TABLE = json.loads(NBM_TABLE_PATH.read_text())
 
 
 def correct_w_m2(hour_end, latitude_deg, longitude_deg, raw_w_m2, pressure_kpa) -> np.ndarray:
     """HRRR hourly means (time on axis 0) scaled by the factor for each hour's clearness. Dark hours stay 0, and
     NaN stays NaN."""
     raw = np.asarray(raw_w_m2, dtype=float)
-    pressure = np.where(np.isfinite(pressure_kpa), pressure_kpa, FALLBACK_PRESSURE_KPA)
-    rso = clear_sky_shortwave_w_m2(hour_end, latitude_deg, longitude_deg, pressure)
+    rso = clear_sky_shortwave_w_m2(hour_end, latitude_deg, longitude_deg, pressure_kpa)
     with np.errstate(invalid="ignore", divide="ignore"):
         clearness = np.where(rso > 1, raw / np.where(rso > 1, rso, 1), 0.0)
     factor = np.interp(clearness, TABLE["clearness"], TABLE["factor"])
     return np.where(np.isfinite(raw), np.maximum(raw * factor, 0.0), np.nan)
+
+
+def lead_days(hour_end, longitude_deg, cycle: datetime) -> np.ndarray:
+    """Each hour's lead in days: the whole days from the cycle to its solar day's noon, rounded (the 13z run's
+    today is 0 and tomorrow 1; the 01z run's today is 1). Time on axis 0."""
+    times = np.asarray(hour_end, dtype="datetime64[s]")
+    extra = (1,) * np.ndim(longitude_deg)
+    hours = (times.astype("int64") / 3600.0).reshape(-1, *extra)
+    noon = (np.floor((hours - 0.5 + np.asarray(longitude_deg) / 15) / 24) + 0.5) * 24 - np.asarray(longitude_deg) / 15
+    return np.rint((noon - cycle.timestamp() / 3600.0) / 24).astype(int)
+
+
+def correct_nbm_w_m2(hour_end, latitude_deg, longitude_deg, hourly_w_m2, pressure_kpa, cycle: datetime) -> np.ndarray:
+    """A forecast's hourly shortwave (from NBM's DSWRF by solar day, `agdata.interpolate`) scaled by the factor for
+    its lead and its hour's clearness, which is its solar day's. Day 0 takes day 1's table; past the last, the
+    last's."""
+    sw = np.asarray(hourly_w_m2, dtype=float)
+    rso = clear_sky_shortwave_w_m2(hour_end, latitude_deg, longitude_deg, pressure_kpa)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        clearness = np.where(rso > 1, sw / np.where(rso > 1, rso, 1), 0.0)
+    lead = np.broadcast_to(lead_days(hour_end, longitude_deg, cycle), sw.shape)
+    factor = np.ones(sw.shape)
+    groups = NBM_TABLE["lead_days"]
+    for g, table in enumerate(NBM_TABLE["factor"]):
+        first, last = min(groups[g]), max(groups[g])
+        here = (lead >= (0 if g == 0 else first)) & (lead <= (10**6 if g == len(groups) - 1 else last))
+        factor = np.where(here, np.interp(clearness, NBM_TABLE["clearness"], table), factor)
+    return np.where(np.isfinite(sw), np.maximum(sw * factor, 0.0), np.nan)
 
 
 def correct_archive(data_dir: Path, window: Window, log=print) -> list[int]:

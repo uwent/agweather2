@@ -19,10 +19,13 @@ from agmodels.weather import (
 
 MAX_INPUT_GAP_HOURS = 6  # temperature, dew point, wind and pressure
 MAX_CLOUDINESS_GAP_HOURS = 30  # Rs/Rso, which is only measurable in daytime, so it spans a night and a day
+FALLBACK_PRESSURE_KPA = 97.0  # where a cell has no pressure: Rso changes ~2% per 100 kPa of difference
 
 
 def clear_sky_shortwave_w_m2(hour_end, latitude_deg, longitude_deg, pressure_kpa) -> np.ndarray:
-    """Rso as a mean flux over the hour ending at each time, W/m² (FAO-56 eq. 37), time on axis 0."""
+    """Rso as a mean flux over the hour ending at each time, W/m² (FAO-56 eq. 37), time on axis 0. A missing
+    pressure takes FALLBACK_PRESSURE_KPA (only the elevation term uses it), so Rso is never missing."""
+    pressure_kpa = np.where(np.isfinite(pressure_kpa), pressure_kpa, FALLBACK_PRESSURE_KPA)
     extra = (1,) * np.ndim(latitude_deg)
     times = np.asarray(hour_end, dtype="datetime64[s]").reshape(-1, *extra)
     ra = extraterrestrial_radiation_hourly(times, latitude_deg, longitude_deg)

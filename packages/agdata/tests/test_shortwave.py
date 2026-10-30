@@ -128,3 +128,31 @@ def test_a_stale_store_corrected_twice_keeps_the_first_raw(tmp_path):
     store = GridStore.open(tmp_path, HOURLY, 2025, VARIABLES.values())
     t = store.index_of(NOON)
     np.testing.assert_allclose(store.read_steps(shortwave.RAW, t, t + 1), 600.0)  # raw kept, not the corrected value
+
+
+def test_a_missing_pressure_doesnt_lose_the_sun():
+    lat, lon = NDFD.window_latlon(WINDOW)
+    times = np.array([NOON.replace(tzinfo=None)], dtype="datetime64[s]")
+    with_nan = clear_sky_shortwave_w_m2(times, lat, lon, np.full((1, *WINDOW.shape), np.nan))
+    typical = clear_sky_shortwave_w_m2(times, lat, lon, np.full((1, *WINDOW.shape), 97.0))
+    np.testing.assert_allclose(with_nan, typical)
+    assert np.all(typical > 500)
+
+
+def test_lead_days_count_to_each_solar_noon():
+    lon = np.array(-89.4)  # Madison: solar noon near 18Z
+    hours = np.array([f"2025-07-{d}T18:00" for d in (15, 16, 25)], dtype="datetime64[s]")
+    assert shortwave.lead_days(hours, lon, datetime(2025, 7, 15, 13, tzinfo=UTC)).ravel().tolist() == [0, 1, 10]
+    assert shortwave.lead_days(hours, lon, datetime(2025, 7, 15, 1, tzinfo=UTC)).ravel().tolist() == [1, 2, 11]
+
+
+def test_nbm_factors_follow_lead_and_clearness():
+    rso = _rso()
+    lat, lon = NDFD.window_latlon(WINDOW)
+    times = np.array([NOON.replace(tzinfo=None)], dtype="datetime64[s]")
+    table = shortwave.NBM_TABLE
+    for cycle, group in ((NOON - timedelta(hours=5), 0), (NOON - timedelta(days=8, hours=5), len(table["factor"]) - 1)):
+        raw = 0.75 * rso
+        out = shortwave.correct_nbm_w_m2(times, lat, lon, raw, np.full(raw.shape, 98.0), cycle)
+        expected = raw * np.interp(0.75, table["clearness"], table["factor"][group])
+        np.testing.assert_allclose(out, expected, rtol=1e-6)

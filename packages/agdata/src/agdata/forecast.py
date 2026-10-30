@@ -24,9 +24,11 @@ import numpy as np
 import requests
 import zarr
 
+from agdata import shortwave
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
 from agdata.cumulative import MAX_BRIDGE_DAYS, open_or_create_cumulative, running_totals
 from agdata.daily import rollup_days
+from agdata.gaps import FALLBACK_PRESSURE_KPA
 from agdata.grid import NDFD, Window
 from agdata.ingest import open_or_create_hourly
 from agdata.qc import check_range
@@ -121,9 +123,23 @@ def write_run(
     path = _fresh_run_dir(data_dir, hourly.cycle)
     times = hourly.valid_times
     pressure = _pressure(data_dir, window, times[0], pressure_kpa)
+    lat, lon = NDFD.window_latlon(window)
+    hourly = adjust_hours(hourly, lat, lon, pressure)
     present = _write_hours(path, window, window, times, dict(hourly.values), soil or {}, pressure)
     _finish(data_dir, path, window, hourly.cycle, times, present)
     return path
+
+
+def adjust_hours(hourly: HourlyRun, latitude_deg, longitude_deg, pressure_kpa) -> HourlyRun:
+    """Post-processing of a run's filled hours, before RH and ET0 are derived from them: NBM's shortwave corrected
+    by lead and clearness (D48, `agdata.shortwave`). The forecast job and the backtest both call it, so the backtest
+    measures what's published."""
+    times = np.array([t.replace(tzinfo=None) for t in hourly.valid_times], dtype="datetime64[s]")
+    values = dict(hourly.values)
+    values["shortwave_radiation"] = shortwave.correct_nbm_w_m2(
+        times, latitude_deg, longitude_deg, values["shortwave_radiation"], pressure_kpa, hourly.cycle
+    )
+    return HourlyRun(cycle=hourly.cycle, values=values, filled=hourly.filled)
 
 
 def band_rows(window: Window) -> int:
@@ -173,7 +189,7 @@ def build_run(
         band = Window(j0=j, j1=min(j + rows, window.j1), i0=window.i0, i1=window.i1)
         y = slice(j - window.j0, band.j1 - window.j0)
         part = nbm.Run(cycle=cycle, values={n: np.asarray(raw[n][:, y]) for n in nbm.NAMES})
-        filled = nbm.to_hourly(part, lat[y], lon[y], pressure[y])
+        filled = adjust_hours(nbm.to_hourly(part, lat[y], lon[y], pressure[y]), lat[y], lon[y], pressure[y])
         soil = {n: np.asarray(raw[n][:, y]) for n in names if n not in nbm.NAMES}
         for name, steps in _write_hours(path, window, band, times, filled.values, soil, pressure[y]).items():
             present[name] = present[name] | steps if name in present else steps
@@ -191,9 +207,12 @@ def _fresh_run_dir(data_dir: Path, cycle: datetime) -> Path:
 
 
 def _pressure(data_dir: Path, window: Window, first: datetime, pressure_kpa) -> np.ndarray:
+    """The run's surface pressure: given, or the archive's recent mean; where neither has one (a cell or a window
+    the archive doesn't reach back to), a typical value, so shortwave and ET0 aren't lost for want of it."""
     if pressure_kpa is None:
         pressure_kpa = archive_pressure_kpa(data_dir, window, first.date())
-    return np.broadcast_to(np.asarray(pressure_kpa, dtype=float), window.shape)
+    pressure = np.broadcast_to(np.asarray(pressure_kpa, dtype=float), window.shape)
+    return np.where(np.isfinite(pressure), pressure, FALLBACK_PRESSURE_KPA)
 
 
 def _write_hours(

@@ -14,11 +14,14 @@ the cache without fetching.
 """
 
 import argparse
+import itertools
+import json
 import sys
 import time
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
+from zoneinfo import ZoneInfo
 
 import numpy as np
 
@@ -26,10 +29,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 from compare_legacy import central_points
 
 from agdata.catalog import DAILY_VARIABLES, VARIABLES, variable
-from agdata.forecast import archive_pressure_kpa
+from agdata.forecast import adjust_hours, archive_pressure_kpa
+from agdata.gaps import FALLBACK_PRESSURE_KPA, clear_sky_shortwave_w_m2
 from agdata.grid import NDFD, Window, service_window
 from agdata.point import daily_at_point
 from agdata.qc import check_range
+from agdata.shortwave import NBM_TABLE_PATH
 from agdata.sources import nbm
 from agdata.sources.grib import MessageRef, RemoteGrib, place
 from agdata.store import DAILY, HOURLY, GridStore
@@ -39,6 +44,7 @@ from agmodels.weather import et0_hourly_series, relative_humidity_percent
 
 HOUR = timedelta(hours=1)
 ZONE = "America/Chicago"
+CENTRAL = ZoneInfo(ZONE)
 LEAD_DAYS = 10
 SEAM_HOURS = 6
 CACHE = Path("tmp/backtest")
@@ -68,6 +74,12 @@ def main():
     parser.add_argument("--data", default="data")
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--report", action="store_true", help="write the report from the cache, fetching nothing")
+    parser.add_argument(
+        "--fit-shortwave", action="store_true", help="fit NBM's shortwave correction from the cache (D48)"
+    )
+    parser.add_argument(
+        "--refresh-observed", action="store_true", help="reread the archive's side of cached runs (after a rebuild)"
+    )
     parser.add_argument("--out", default="docs/validation-forecast.md")
     args = parser.parse_args()
     first, last = date.fromisoformat(args.start), date.fromisoformat(args.end)
@@ -79,16 +91,27 @@ def main():
     window = service_window(args.box)
     CACHE.mkdir(parents=True, exist_ok=True)
 
-    if not args.report:
+    if args.fit_shortwave:
+        Path("docs/validation-forecast-shortwave.md").write_text(fit_shortwave(cycles))
+        print("wrote docs/validation-forecast-shortwave.md and the NBM table", flush=True)
+        return
+    if args.refresh_observed:
+        _, js, is_ = point_cells(data_dir, window)
+        for cycle in cycles:
+            if cache_path(cycle).exists():
+                refresh_observed(data_dir, window, cycle, js - window.j0, is_ - window.i0)
+        print(f"refreshed the archive's side of {sum(cache_path(c).exists() for c in cycles)} runs", flush=True)
+    elif not args.report:
         points, js, is_ = point_cells(data_dir, window)
+        np.savez(CACHE / "cells.npz", j=js, i=is_)
         print(f"{len(points)} points, {len(cycles)} cycles", flush=True)
         for cycle in cycles:
-            path = cache_path(cycle)
-            if path.exists():
+            if cache_path(cycle).exists() and hours_path(cycle).exists():
                 continue
             began = time.monotonic()
-            result = backtest_run(data_dir, window, cycle, js, is_, args.workers)
-            np.savez_compressed(path, **cast(dict[str, Any], result))  # pyright reads the names as savez's flags
+            result, hours = backtest_run(data_dir, window, cycle, js, is_, args.workers)
+            np.savez_compressed(cache_path(cycle), **cast(dict[str, Any], result))  # pyright reads the names as flags
+            np.savez_compressed(hours_path(cycle), **cast(dict[str, Any], hours))
             failed = len(result["failed_leads"])
             print(f"{cycle:%Y-%m-%d %HZ}: {time.monotonic() - began:.0f} s, {failed} failed leads", flush=True)
 
@@ -98,6 +121,24 @@ def main():
 
 def cache_path(cycle: datetime) -> Path:
     return CACHE / f"{cycle:%Y%m%d%H}.npz"
+
+
+def hours_path(cycle: datetime) -> Path:
+    """The run's filled hours at the cells (264 × cells per variable, float32) and NBM's raw TMAX/TMIN by lead,
+    for trying adjustments to the forecast without fetching it again."""
+    return CACHE / f"{cycle:%Y%m%d%H}_hours.npz"
+
+
+def refresh_observed(data_dir: Path, window: Window, cycle: datetime, y, x) -> None:
+    cached = dict(np.load(cache_path(cycle)))
+    day1 = (cycle + timedelta(days=1)).date()
+    observed = read_days(data_dir, window, [day1 + timedelta(days=k) for k in range(LEAD_DAYS)], y, x)
+    for name in COMPARED:
+        cached[f"obs_{name}"] = observed[name]
+    archive_hours = read_hours(data_dir, window, cycle + HOUR, SEAM_HOURS, y, x)
+    for name in ("air_temperature", "dew_point"):
+        cached[f"seam_obs_{name}"] = archive_hours[name]
+    np.savez_compressed(cache_path(cycle), **cast(dict[str, Any], cached))
 
 
 def point_cells(data_dir: Path, window: Window) -> tuple[list[str], np.ndarray, np.ndarray]:
@@ -113,8 +154,11 @@ def point_cells(data_dir: Path, window: Window) -> tuple[list[str], np.ndarray, 
     return points, js, is_
 
 
-def backtest_run(data_dir: Path, window: Window, cycle: datetime, js, is_, workers: int) -> dict[str, np.ndarray]:
-    """One run at the cells: its lead days and the archive's, NBM's TMAX/TMIN by day, and the seam hours."""
+def backtest_run(
+    data_dir: Path, window: Window, cycle: datetime, js, is_, workers: int
+) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+    """One run at the cells: its lead days and the archive's, NBM's TMAX/TMIN by day, and the seam hours; and its
+    filled hours (`hours_path`)."""
     n = len(js)
     y, x = js - window.j0, is_ - window.i0
     cells = Window(j0=0, j1=1, i0=0, i1=n)  # the run's arrays hold the cells as one row
@@ -144,34 +188,18 @@ def backtest_run(data_dir: Path, window: Window, cycle: datetime, js, is_, worke
     lat, lon = NDFD.window_latlon(window)
     lat, lon = lat[y, x][None, :], lon[y, x][None, :]
     pressure = archive_pressure_kpa(data_dir, window, cycle.date())[y, x][None, :]
-    hourly = nbm.to_hourly(nbm.Run(cycle=cycle, values={k: raw[k] for k in nbm.NAMES}), lat, lon, pressure)
-    times = hourly.valid_times
-    values = dict(hourly.values)
-    values["surface_pressure"] = np.broadcast_to(pressure, values["air_temperature"].shape)
-    values["relative_humidity"] = relative_humidity_percent(values["air_temperature"], values["dew_point"])
-    with np.errstate(invalid="ignore"):
-        values["et0"] = et0_hourly_series(
-            np.array([t.replace(tzinfo=None) for t in times], dtype="datetime64[s]"),
-            lat,
-            lon,
-            values["air_temperature"],
-            values["dew_point"],
-            values["wind_speed"],
-            values["surface_pressure"],
-            values["shortwave_radiation"],
-        )
-    values = {name: check_range(VARIABLES[name], series)[0] for name, series in values.items()}
+    pressure = np.where(np.isfinite(pressure), pressure, FALLBACK_PRESSURE_KPA)  # as the forecast job does
+    filled = nbm.to_hourly(nbm.Run(cycle=cycle, values={k: raw[k] for k in nbm.NAMES}), lat, lon, pressure)
+    times = filled.valid_times
+    values = derive(filled, lat, lon, pressure)
 
     day1 = (cycle + timedelta(days=1)).date()  # the 13z cycle is morning in Central time: day 0 is partial
     days = [day1 + timedelta(days=k) for k in range(LEAD_DAYS)]
     out: dict[str, np.ndarray] = {}
-    forecast = {name: np.full((LEAD_DAYS, n), np.nan) for name in COMPARED}
-    for p in range(n):
-        rolled = daily_at_point(
-            times[0], {name: series[:, 0, p] for name, series in values.items()}, ZONE, days[0], days[-1]
-        )
-        for name in COMPARED:
-            forecast[name][:, p] = rolled[name]
+    forecast = roll_up(times[0], values, days, COMPARED)
+    out["fc_raw_shortwave_radiation_sum"] = roll_up(
+        times[0], {"shortwave_radiation": filled.values["shortwave_radiation"]}, days, ("shortwave_radiation_sum",)
+    )["shortwave_radiation_sum"]
     observed = read_days(data_dir, window, days, y, x)
     for name in COMPARED:
         out[f"fc_{name}"], out[f"obs_{name}"] = forecast[name], observed[name]
@@ -191,7 +219,151 @@ def backtest_run(data_dir: Path, window: Window, cycle: datetime, js, is_, worke
         out[f"seam_fc_{name}"] = values[name][:SEAM_HOURS, 0]
         out[f"seam_obs_{name}"] = archive_hours[name]
     out["failed_leads"] = np.array(run.failed, dtype=int)
+    hours = {name: np.asarray(series[:, 0], dtype=np.float32) for name, series in filled.values.items()}
+    hours["surface_pressure"] = np.asarray(pressure[0], dtype=np.float32)
+    hours |= {f"raw_{name}": np.asarray(raw[name][:, 0], dtype=np.float32) for name in ("tmax_nbm", "tmin_nbm")}
     out["month"] = np.array(cycle.month)
+    return out, hours
+
+
+SHORTWAVE_GROUPS = [[1], [2, 3], [4, 5, 6], [7, 8, 9, 10]]  # lead days sharing a table
+SHORTWAVE_EDGES = np.linspace(0, 1.2, 13)  # the forecast day's clearness
+SHORTWAVE_MIN_DAYS = 2000  # cell-days a bin needs; thinner bins take their neighbours' factor
+
+
+def fit_shortwave(cycles: list[datetime]) -> str:
+    """NBM's shortwave correction by lead group and the forecast day's clearness: the archive's total over the raw
+    forecast's in each bin. Fitted on alternate runs and tested on the rest, then on every run for the table."""
+    cells = np.load(CACHE / "cells.npz")
+    window = service_window("wisconsin")
+    lat, lon = NDFD.window_latlon(window)
+    lat, lon = lat[cells["j"] - window.j0, cells["i"] - window.i0], lon[cells["j"] - window.j0, cells["i"] - window.i0]
+    runs = [c for c in cycles if cache_path(c).exists()]
+    raw, observed, clear = [], [], []
+    for cycle in runs:
+        cached = np.load(cache_path(cycle))
+        key = (
+            "fc_raw_shortwave_radiation_sum"
+            if "fc_raw_shortwave_radiation_sum" in cached
+            else "fc_shortwave_radiation_sum"
+        )
+        raw.append(cached[key])
+        observed.append(cached["obs_shortwave_radiation_sum"])
+        day1 = (cycle + timedelta(days=1)).date()
+        clear.append([clear_sky_day(day1 + timedelta(days=k), lat, lon) for k in range(LEAD_DAYS)])
+    fc, obs, rso = np.array(raw), np.array(observed), np.array(clear)
+    clearness = fc / rso
+    ok = np.isfinite(fc) & np.isfinite(obs)
+    middles = (SHORTWAVE_EDGES[:-1] + SHORTWAVE_EDGES[1:]) / 2
+
+    def tables(use: np.ndarray) -> list[np.ndarray]:
+        out = []
+        for group in SHORTWAVE_GROUPS:
+            leads = np.isin(np.arange(1, LEAD_DAYS + 1), group)[None, :, None]
+            factor = []
+            for lo, hi in itertools.pairwise(SHORTWAVE_EDGES):
+                m = use[:, None, None] & leads & ok & (clearness >= lo) & (clearness < hi)
+                factor.append(obs[m].sum() / fc[m].sum() if m.sum() >= SHORTWAVE_MIN_DAYS else np.nan)
+            factor = np.array(factor)
+            good = np.isfinite(factor)
+            out.append(np.interp(middles, middles[good], factor[good]))
+        return out
+
+    def apply(table: list[np.ndarray]) -> np.ndarray:
+        corrected = np.empty_like(fc)
+        for group, factor in zip(SHORTWAVE_GROUPS, table, strict=True):
+            for lead in group:
+                corrected[:, lead - 1] = fc[:, lead - 1] * np.interp(clearness[:, lead - 1], middles, factor)
+        return corrected
+
+    index = np.arange(len(runs))
+    fit, test = index % 2 == 0, index % 2 == 1
+    held_out = apply(tables(fit))
+    final = tables(np.ones(len(runs), dtype=bool))
+    NBM_TABLE_PATH.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "fitted": f"{datetime.now(UTC):%Y-%m-%d}",
+                "source": f"backtest of {len(runs)} 13z runs, {runs[0]:%Y-%m-%d} to {runs[-1]:%Y-%m-%d}, against the "
+                "corrected archive",
+                "clearness": middles.round(3).tolist(),
+                "lead_days": SHORTWAVE_GROUPS,
+                "factor": [[round(float(f), 4) for f in t] for t in final],
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    lines = [
+        "# NBM shortwave correction",
+        "",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/backtest_forecast.py --fit-shortwave` (D48). The raw "
+        f"forecast's daily shortwave (NBM's DSWRF by solar-day clearness) at {fc.shape[2]} cells in {len(runs)} runs, "
+        "against the archive (HRRR corrected against Wisconet). Factors by lead group and the forecast day's clearness "
+        "(its total over the FAO-56 clear-sky total); bins with fewer than "
+        f"{SHORTWAVE_MIN_DAYS} cell-days take their neighbours'. Most of it is calibration: as skill falls with lead, "
+        "a forecast very dark or very clear day turns out less so.",
+        "",
+        "| Lead days | " + " | ".join(f"{m:.2f}" for m in middles) + " |",
+        "|---|" + "---|" * len(middles),
+        *(
+            f"| {g[0]}–{g[-1]} | " + " | ".join(f"{f:.2f}" for f in t) + " |"
+            for g, t in zip(SHORTWAVE_GROUPS, final, strict=True)
+        ),
+        "",
+        "Fitted on alternate runs, tested on the others (bias / MAE, MJ/m² a day, by lead day):",
+        "",
+        "| | " + " | ".join(f"day {k + 1}" for k in range(LEAD_DAYS)) + " | ratio |",
+        "|---|" + "---|" * (LEAD_DAYS + 1),
+    ]
+    for label, values in (("raw", fc), ("corrected", held_out)):
+        cells_ = [errors(values[test, k], obs[test, k]) for k in range(LEAD_DAYS)]
+        m = ok[test]
+        ratio = values[test][m].sum() / obs[test][m].sum()
+        lines.append(f"| {label} | " + " | ".join(f"{b:+.2f} / {e:.2f}" for b, e in cells_) + f" | {ratio:.3f} |")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def clear_sky_day(day: date, lat, lon) -> np.ndarray:
+    """Each cell's FAO-56 clear-sky total (MJ/m²) over the Central-time day's hours ending 01:00–24:00."""
+    start = datetime(day.year, day.month, day.day, 1, tzinfo=CENTRAL).astimezone(UTC)
+    times = np.array([(start + k * HOUR).replace(tzinfo=None) for k in range(24)], dtype="datetime64[s]")
+    return (
+        clear_sky_shortwave_w_m2(times, lat, lon, np.full((24, *np.shape(lat)), FALLBACK_PRESSURE_KPA)).sum(0) * 0.0036
+    )
+
+
+def derive(filled: nbm.HourlyRun, lat, lon, pressure) -> dict[str, np.ndarray]:
+    """A run's filled hours as the forecast job publishes them: post-processed (`forecast.adjust_hours`), then
+    pressure, RH and ET0 derived and the range checks applied."""
+    hourly = adjust_hours(filled, lat, lon, pressure)
+    values = dict(hourly.values)
+    values["surface_pressure"] = np.broadcast_to(pressure, values["air_temperature"].shape)
+    values["relative_humidity"] = relative_humidity_percent(values["air_temperature"], values["dew_point"])
+    with np.errstate(invalid="ignore"):
+        values["et0"] = et0_hourly_series(
+            np.array([t.replace(tzinfo=None) for t in hourly.valid_times], dtype="datetime64[s]"),
+            lat,
+            lon,
+            values["air_temperature"],
+            values["dew_point"],
+            values["wind_speed"],
+            values["surface_pressure"],
+            values["shortwave_radiation"],
+        )
+    return {name: check_range(VARIABLES[name], series)[0] for name, series in values.items()}
+
+
+def roll_up(first_hour: datetime, values: dict[str, np.ndarray], days: list[date], names) -> dict[str, np.ndarray]:
+    """Each cell's local days (`daily_at_point`) from hours (time, 1, cells): name → (days, cells)."""
+    n = next(iter(values.values())).shape[-1]
+    out = {name: np.full((len(days), n), np.nan) for name in names}
+    for p in range(n):
+        rolled = daily_at_point(first_hour, {k: v[:, 0, p] for k, v in values.items()}, ZONE, days[0], days[-1])
+        for name in names:
+            out[name][:, p] = rolled[name]
     return out
 
 
