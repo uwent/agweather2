@@ -32,6 +32,7 @@ class MessageRef:
     offset: int
     length: int | None  # None: to the end of the file
     detail: str = ""  # the .idx's time field, e.g. "anl" or "15-30 min ave fcst" ("" when scanned)
+    extra: str = ""  # what follows it, e.g. NBM's "ens std dev" or "prob >0.254"; "" for a plain value
 
 
 @dataclass(kw_only=True)
@@ -72,18 +73,27 @@ SURFACES: dict[int, str] = {
 
 
 def parse_idx(text: str) -> list[MessageRef]:
-    """A wgrib2 inventory (`1:0:d=2025071518:TMP:2 m above ground:anl:`) → message refs."""
+    """A wgrib2 inventory (`1:0:d=2025071518:TMP:2 m above ground:anl:`) → message refs.
+
+    NBM's lines go on after the time field (`…:24 hour fcst:ens std dev`); that rest is kept as `extra`.
+    """
     rows = []
     for line in text.splitlines():
         parts = line.split(":")
         if len(parts) < 5:
             continue
-        rows.append((int(parts[1]), (parts[3], parts[4]), parts[5] if len(parts) > 5 else ""))
+        detail = parts[5] if len(parts) > 5 else ""
+        extra = ":".join(parts[6:]).strip(":")
+        rows.append((int(parts[1]), (parts[3], parts[4]), detail, extra))
     return [
         MessageRef(
-            key=key, offset=offset, length=(rows[n + 1][0] - offset) if n + 1 < len(rows) else None, detail=detail
+            key=key,
+            offset=offset,
+            length=(rows[n + 1][0] - offset) if n + 1 < len(rows) else None,
+            detail=detail,
+            extra=extra,
         )
-        for n, (offset, key, detail) in enumerate(rows)
+        for n, (offset, key, detail, extra) in enumerate(rows)
     ]
 
 

@@ -7,13 +7,15 @@ Checked 2026-10-27:
   which doesn't change daily sums). `wrfsfc`'s DSWRF is instantaneous only.
 - Soil temperature is in `wrfprs` (not `wrfsfc` or `wrfnat`), TSOIL at 0, 1, 4, 10, 30, 60, 100 cm; the analysis
   (f00) of run T gives the hour T. The potato model's 2 in and 4 in use the 4 and 10 cm levels, and 8 in is
-  interpolated between 10 and 30 cm.
+  interpolated between 10 and 30 cm. The 00, 06, 12 and 18z runs' wrfprs files reach f48 (others f18; checked
+  2026-10-29), which is the forecast's soil temperature (D41).
 HRRR's grid is a 3 km Lambert conformal grid in its own projection, so fields are interpolated (`agdata.regrid`),
 not offset.
 """
 
 import contextlib
 from collections.abc import Iterable
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 
 import numpy as np
@@ -37,6 +39,9 @@ HRRR_GRID = LambertGrid(
     first_lon=237.280472,
 )
 
+FORECAST_RUNS = (0, 6, 12, 18)  # UTC hours of the runs whose wrfprs files reach FORECAST_HOURS (others: f18)
+FORECAST_HOURS = 48
+
 SOIL_LEVELS = {
     "soil_temperature_4cm": "0.04-0.04 m below ground",
     "soil_temperature_10cm": "0.1-0.1 m below ground",
@@ -49,9 +54,9 @@ def subhourly_url(run: datetime) -> str:
     return f"{BUCKET}/hrrr.{t:%Y%m%d}/conus/hrrr.t{t:%H}z.wrfsubhf01.grib2"
 
 
-def pressure_url(run: datetime) -> str:
+def pressure_url(run: datetime, lead: int = 0) -> str:
     t = run.astimezone(UTC)
-    return f"{BUCKET}/hrrr.{t:%Y%m%d}/conus/hrrr.t{t:%H}z.wrfprsf00.grib2"
+    return f"{BUCKET}/hrrr.{t:%Y%m%d}/conus/hrrr.t{t:%H}z.wrfprsf{lead:02d}.grib2"
 
 
 def fetch_shortwave(hour_end: datetime, window: Window, session: requests.Session | None = None) -> np.ndarray:
@@ -70,10 +75,15 @@ def fetch_shortwave(hour_end: datetime, window: Window, session: requests.Sessio
 
 
 def fetch_soil_temperature(
-    hour: datetime, window: Window, session: requests.Session | None = None, names: Iterable[str] | None = None
+    hour: datetime,
+    window: Window,
+    session: requests.Session | None = None,
+    names: Iterable[str] | None = None,
+    lead: int = 0,
 ) -> dict[str, np.ndarray]:
-    """Soil temperature (°C) at the catalog's levels at `hour` (or only `names`), on the window."""
-    grib = RemoteGrib(pressure_url(hour), session)
+    """Soil temperature (°C) at the catalog's levels (or only `names`), on the window: the analysis at `hour`, or
+    with `lead`, run `hour`'s forecast valid `lead` hours later (FORECAST_RUNS reach FORECAST_HOURS)."""
+    grib = RemoteGrib(pressure_url(hour, lead), session)
     wanted = {("TSOIL", SOIL_LEVELS[name]): name for name in (SOIL_LEVELS if names is None else names)}
     fields = grib.fields(wanted)
     return {
@@ -93,3 +103,38 @@ def fetch_hour(hour_end: datetime, window: Window, session: requests.Session | N
     with contextlib.suppress(FileNotFoundError):
         values.update(fetch_soil_temperature(hour_end, window, session))
     return values
+
+
+def latest_forecast_run(before: datetime, session: requests.Session | None = None) -> datetime | None:
+    """The newest run at or before `before` (UTC) that reaches FORECAST_HOURS, by HEAD on its last file."""
+    session = session or requests.Session()
+    t = before.astimezone(UTC).replace(minute=0, second=0, microsecond=0)
+    for _ in range(25):
+        if t.hour in FORECAST_RUNS and RemoteGrib(pressure_url(t, FORECAST_HOURS), session).exists():
+            return t
+        t -= timedelta(hours=1)
+    return None
+
+
+def fetch_soil_forecast(
+    run: datetime,
+    valid_times: list[datetime],
+    window: Window,
+    session_factory=requests.Session,
+    workers: int = 8,
+) -> dict[str, np.ndarray]:
+    """Soil temperature at each valid time from one forecast run, (time, y, x) per catalog level; NaN where the
+    run doesn't reach (past FORECAST_HOURS, D41) or a file fails."""
+    out = {name: np.full((len(valid_times), *window.shape), np.nan, dtype=np.float32) for name in SOIL_LEVELS}
+
+    def one(n: int) -> None:
+        lead = round((valid_times[n] - run).total_seconds() / 3600)
+        if not 0 <= lead <= FORECAST_HOURS:
+            return
+        with contextlib.suppress(FileNotFoundError, requests.RequestException, ValueError):
+            for name, values in fetch_soil_temperature(run, window, session_factory(), lead=lead).items():
+                out[name][n] = values
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        list(pool.map(one, range(len(valid_times))))
+    return out
