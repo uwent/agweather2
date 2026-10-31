@@ -1,4 +1,5 @@
-"""Regridding fields from another grid (HRRR's 3 km Lambert) to a window of the NDFD grid.
+"""Regridding fields from another grid (HRRR's 3 km Lambert, ERA5-Land's 0.1° latitude/longitude) to a window of
+the NDFD grid.
 
 Bilinear interpolation at each NDFD cell center, with weights computed once per (source grid, window) and
 cached. A cell whose four source neighbors include a missing value, or that falls outside the source grid,
@@ -10,7 +11,9 @@ from functools import cache
 
 import numpy as np
 
-from agdata.grid import NDFD, LambertGrid, Window
+from agdata.grid import NDFD, LambertGrid, LatLonGrid, Window
+
+SourceGrid = LambertGrid | LatLonGrid
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -31,7 +34,7 @@ class BilinearWeights:
 
 
 @cache
-def bilinear_weights(source: LambertGrid, window: Window) -> BilinearWeights:
+def bilinear_weights(source: SourceGrid, window: Window) -> BilinearWeights:
     lat, lon = NDFD.window_latlon(window)
     fj, fi = source.fractional_index(lat, lon)
     inside = (fj >= 0) & (fi >= 0) & (fj <= source.ny - 1) & (fi <= source.nx - 1)
@@ -40,7 +43,7 @@ def bilinear_weights(source: LambertGrid, window: Window) -> BilinearWeights:
     return BilinearWeights(j0=j0, i0=i0, dj=fj - j0, di=fi - i0, inside=inside)
 
 
-def regrid(values: np.ndarray, source: LambertGrid, window: Window) -> np.ndarray:
+def regrid(values: np.ndarray, source: SourceGrid, window: Window) -> np.ndarray:
     if values.shape != (source.ny, source.nx):
         raise ValueError(f"expected a {source.name} field of {(source.ny, source.nx)}, got {values.shape}")
     return bilinear_weights(source, window).apply(values)

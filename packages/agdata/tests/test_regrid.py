@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from agdata.grid import NDFD, Window, service_window
+from agdata.grid import NDFD, LatLonGrid, Window, service_window
 from agdata.regrid import bilinear_weights, regrid
 from agdata.sources.hrrr import HRRR_GRID
 
@@ -33,3 +33,13 @@ def test_missing_neighbors_and_cells_outside_the_source_are_nan():
 def test_shape_is_checked():
     with pytest.raises(ValueError):
         regrid(np.ones((10, 10)), HRRR_GRID, Window(j0=0, j1=2, i0=0, i1=2))
+
+
+def test_a_latlon_field_linear_in_degrees_regrids_exactly():
+    source = LatLonGrid(name="0.1°", first_lat=41.0, first_lon=-93.5, step=0.1, ny=30, nx=40)
+    jj, ii = np.mgrid[0 : source.ny, 0 : source.nx]
+    lat_of, lon_of = source.first_lat + 0.1 * jj, source.first_lon + 0.1 * ii
+    window = Window(j0=850, j1=870, i0=1400, i1=1420)
+    out = regrid(3.0 * lat_of - 2.0 * lon_of, source, window)
+    lat, lon = NDFD.window_latlon(window)
+    np.testing.assert_allclose(out, 3.0 * lat - 2.0 * lon, atol=1e-9)

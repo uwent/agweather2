@@ -167,6 +167,23 @@ class LambertGrid:
         return (j, i)
 
 
+@dataclass(frozen=True, kw_only=True)
+class LatLonGrid:
+    """A regular latitude/longitude grid, located by its southwest cell's center (ERA5-Land's 0.1°). Rows run south
+    to north and columns west to east, as everywhere here; a source scanning north to south is flipped on reading."""
+
+    name: str
+    first_lat: float
+    first_lon: float  # -180-180
+    step: float  # degrees, the same in both directions
+    ny: int
+    nx: int
+
+    def fractional_index(self, lat, lon) -> tuple[np.ndarray, np.ndarray]:
+        lat, lon = np.asarray(lat, dtype=float), _lon180(np.asarray(lon, dtype=float))
+        return ((lat - self.first_lat) / self.step, (lon - self.first_lon) / self.step)
+
+
 def _lon180(lon):
     """Longitudes in GRIB are 0-360; pyproj and everything else here use -180-180."""
     return (np.asarray(lon) + 180) % 360 - 180

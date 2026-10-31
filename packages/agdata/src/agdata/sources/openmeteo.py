@@ -202,20 +202,28 @@ def _place(times: np.ndarray, series: np.ndarray, start: datetime, n: int) -> np
     return out
 
 
+def soil_at_depths(layers: dict[str, np.ndarray]) -> dict[str, tuple[np.ndarray, str]]:
+    """IFS's layer temperatures at the catalog's depths, each linear between the two layers' middles around it
+    (4 cm sits just below the top layer's middle), with the upper layer it came from."""
+    middles = np.array(list(SOIL_LAYERS.values()))
+    out: dict[str, tuple[np.ndarray, str]] = {}
+    for name, depth in SOIL_DEPTHS.items():
+        k = int(np.clip(np.searchsorted(middles, depth) - 1, 0, len(middles) - 2))
+        w = (depth - middles[k]) / (middles[k + 1] - middles[k])
+        upper, lower = list(SOIL_LAYERS)[k], list(SOIL_LAYERS)[k + 1]
+        out[name] = (np.asarray(layers[upper]) * (1 - w) + np.asarray(layers[lower]) * w, upper)
+    return out
+
+
 def _to_catalog(merged, chosen, start: datetime, cell: Cell, elevation) -> Hours:
     values: dict[str, np.ndarray] = {}
     sources: dict[str, str] = {}
     for variable, (name, factor) in VARIABLES.items():
         values[name] = merged[variable] * factor
         sources[name] = chosen.get(variable, "")
-    middles = np.array(list(SOIL_LAYERS.values()))
-    layers = np.stack([merged[v] for v in SOIL_LAYERS])
-    for name, depth in SOIL_DEPTHS.items():
-        # Between the two layers' middles around the depth (4 cm sits just below the top layer's middle)
-        k = int(np.clip(np.searchsorted(middles, depth) - 1, 0, len(middles) - 2))
-        w = (depth - middles[k]) / (middles[k + 1] - middles[k])
-        values[name] = layers[k] * (1 - w) + layers[k + 1] * w
-        sources[name] = chosen.get(list(SOIL_LAYERS)[k], "")
+    for name, (value, layer) in soil_at_depths(merged).items():
+        values[name] = value
+        sources[name] = chosen.get(layer, "")
     _derive(values, start, cell)
     sources["relative_humidity"] = sources["et0"] = "derived"
     return Hours(start=start, values=values, sources=sources, elevation_m=elevation)

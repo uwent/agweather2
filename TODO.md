@@ -72,5 +72,8 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 - [ ] **Start `bin/dev` and leave it running** (Phase 2 above): it now runs the forecast job too (`ingest_forecast` at :15 and :45), and the Phase 4 exit needs a week of it. `curl -s localhost:8000/up` shows both `ingest` and `forecast`.
 - [ ] **Decide** (details in PLAN.md Phase 4 D and E):
   - Red crown rot's vegetative-period rain fills missing days with the mean of the others. Keep it, or leave the total missing when any day is?
-  - Open-Meteo's ECMWF IFS has a soil temperature forecast to 11 days, which D41 assumed didn't exist. Use it (also in the box past HRRR's 48 hours), or blank it outside the box to match?
+  - ~~Open-Meteo's ECMWF IFS soil forecast~~ decided: D44, then D52 (IFS for the whole forecast).
 - [ ] **Agree the Phase 2 tolerances** proposed under PLAN.md Phase 2 H.
+- [x] Copernicus CDS key in `.env` as `COPERNICUS_API_KEY`, ERA5-Land licence accepted (2026-10-31). The server's `infra/.env` needs the same key before the ERA5-Land job runs there.
+- [x] Q22 decided: Open-Meteo's 9 km IFS, `omfiles` optional (D53).
+- [ ] Optional: tell your department (or WARF) that AgWeather v2 and WISP 3 are public under AGPL-3.0, since the Regents hold the copyright.

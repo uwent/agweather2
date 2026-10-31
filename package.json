@@ -1,6 +1,7 @@
 {
   "name": "agweather2",
   "private": true,
+  "license": "AGPL-3.0-or-later",
   "type": "module",
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",

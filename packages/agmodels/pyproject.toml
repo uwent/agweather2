@@ -3,6 +3,7 @@ name = "agmodels"
 version = "0.1.0"
 description = "Degree-day, disease and insect models: pure functions on hourly and daily weather"
 requires-python = ">=3.13,<3.14"
+license = "AGPL-3.0-or-later"
 dependencies = [
     "numpy",
     "pandas",
