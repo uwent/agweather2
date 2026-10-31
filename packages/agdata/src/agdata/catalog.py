@@ -198,8 +198,14 @@ VARIABLES: dict[str, Variable] = {
             valid_min=-40,
             valid_max=60,
             daily=("min", "max", "mean"),
-            notes="HRRR's land-surface model, regridded (D9); the potato model's 2 in depth",
-            sources={"hrrr": "TSOIL:0.04-0.04 m below ground"},
+            version=2,  # 2: ERA5-Land, not HRRR (D52)
+            notes="ERA5-Land's layers (0-7, 7-28, 28-100 cm) regridded and taken to the depth between their middles "
+            "(D52); IFS's on the newest days until ERA5-Land reaches them, and in the forecast; "
+            "the potato model's 2 in depth",
+            sources={
+                "era5land": "soil_temperature_level_1-3, at the depth (agdata.sources.era5land)",
+                "ifs": "IFS HRES layers, at the depth (agdata.sources.ifs): provisional days and the forecast",
+            },
         ),
         Variable(
             name="soil_temperature_10cm",
@@ -209,8 +215,14 @@ VARIABLES: dict[str, Variable] = {
             valid_min=-40,
             valid_max=60,
             daily=("min", "max", "mean"),
-            notes="HRRR's land-surface model, regridded (D9); the potato model's 4 in depth",
-            sources={"hrrr": "TSOIL:0.1-0.1 m below ground"},
+            version=2,  # 2: ERA5-Land, not HRRR (D52)
+            notes="ERA5-Land's layers (0-7, 7-28, 28-100 cm) regridded and taken to the depth between their middles "
+            "(D52); IFS's on the newest days until ERA5-Land reaches them, and in the forecast; "
+            "the potato model's 4 in depth",
+            sources={
+                "era5land": "soil_temperature_level_1-3, at the depth (agdata.sources.era5land)",
+                "ifs": "IFS HRES layers, at the depth (agdata.sources.ifs): provisional days and the forecast",
+            },
         ),
         Variable(
             name="soil_temperature_30cm",
@@ -220,8 +232,29 @@ VARIABLES: dict[str, Variable] = {
             valid_min=-40,
             valid_max=60,
             daily=("min", "max", "mean"),
-            notes="HRRR's land-surface model, regridded (D9); with 10 cm, the potato model's 8 in (interpolated)",
-            sources={"hrrr": "TSOIL:0.3-0.3 m below ground"},
+            version=2,  # 2: ERA5-Land, not HRRR (D52)
+            notes="ERA5-Land's layers (0-7, 7-28, 28-100 cm) regridded and taken to the depth between their middles "
+            "(D52); IFS's on the newest days until ERA5-Land reaches them, and in the forecast; with 10 cm, the "
+            "potato model's 8 in (interpolated)",
+            sources={
+                "era5land": "soil_temperature_level_1-3, at the depth (agdata.sources.era5land)",
+                "ifs": "IFS HRES layers, at the depth (agdata.sources.ifs): provisional days and the forecast",
+            },
+        ),
+        Variable(
+            name="snow_depth",
+            long_name="Snow depth",
+            unit="cm",
+            scale=0.1,
+            valid_min=0,
+            valid_max=1000,
+            daily=("max", "mean"),
+            notes="ERA5-Land's snow depth (of snow, not water), regridded (D52); IFS's on the newest days until "
+            "ERA5-Land reaches them, and in the forecast",
+            sources={
+                "era5land": "snow_depth (agdata.sources.era5land)",
+                "ifs": "snow_depth (agdata.sources.ifs): provisional days and the forecast",
+            },
         ),
         Variable(
             name="et0",

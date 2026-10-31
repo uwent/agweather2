@@ -18,6 +18,7 @@ x-app: &app
     ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost}
     SERVICE_BOX: ${SERVICE_BOX:-wisconsin}
     OPEN_METEO_API_KEY: ${OPEN_METEO_API_KEY:-}
+    COPERNICUS_API_KEY: ${COPERNICUS_API_KEY:-}
   volumes:
     - data:/data
 

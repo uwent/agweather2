@@ -2,7 +2,8 @@
 
 One call handles a block of consecutive hours in one year (a backfill does a month at a time; the hourly job a
 few hours). Each hour comes from URMA, or RTMA where URMA hasn't published it yet; precip from RTMA before URMA's
-hourly precip begins (D23); shortwave and soil temperature from HRRR. Hours are range-checked and packed to int16
+hourly precip begins (D23); shortwave from HRRR; soil temperature and snow depth from the ERA5-Land and IFS
+jobs (D52), not here. Hours are range-checked and packed to int16
 as they arrive, so a month of the window fits in memory; spikes are removed per variable over the whole block,
 then RH, the corrected shortwave (D48) and ET0 are derived. Gaps stay gaps (D25): estimates belong to the
 running totals. Every variable records each hour's source.
@@ -24,7 +25,7 @@ from agdata.catalog import FILL, VARIABLES, Variable
 from agdata.grid import NDFD, Window
 from agdata.qc import check_range, remove_spikes
 from agdata.shortwave import RAW, correct_w_m2
-from agdata.sources import hrrr
+from agdata.sources import era5land, hrrr
 from agdata.sources.rtma import RTMA
 from agdata.sources.urma import URMA
 from agdata.store import HOURLY, GridStore
@@ -38,6 +39,9 @@ HOUR = timedelta(hours=1)
 
 # Every variable of the hourly store, in catalog order
 HOURLY_VARIABLES: list[Variable] = list(VARIABLES.values())
+# Soil temperature and snow depth: written by the ERA5-Land and IFS jobs (D52), never by the hourly ingest
+SOIL = ("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm", "snow_depth")
+SEPARATE = SOIL
 
 
 @dataclass(kw_only=True)
@@ -140,7 +144,7 @@ def ingest_block(
     # Spikes, over the block, for measured variables
     decoded: dict[str, np.ndarray] = {}
     for variable in HOURLY_VARIABLES:
-        if variable.derived:
+        if variable.derived or variable.name in SEPARATE:
             continue
         values = variable.decode(packed[variable.name]).astype(np.float32)  # halves the block's memory
         if variable.spike_c is not None:
@@ -173,10 +177,49 @@ def ingest_block(
         sources[name] = ["derived" if np.isfinite(decoded[name][n]).any() else None for n in range(hours)]
 
     for variable in HOURLY_VARIABLES:
+        if variable.name in SEPARATE:
+            continue
         cleaned, _ = check_range(variable, decoded[variable.name])
         store.write(start, {variable.name: cleaned}, source=None)
         store.set_sources(variable.name, start, sources[variable.name])
     return report
+
+
+def write_soil(store: GridStore, hours: "era5land.Hours", source: str) -> int:
+    """Writes soil and snow hours (D52) that fall in the store's year, with `source`: `era5land` replaces anything,
+    `ifs` (provisional) anything but ERA5-Land's hours. The hours must be consecutive. Returns the hours written."""
+    inside = [n for n, t in enumerate(hours.times) if t.year == store.year]
+    if not inside:
+        return 0
+    first, last = inside[0], inside[-1] + 1
+    if any(hours.times[n + 1] - hours.times[n] != HOUR for n in range(first, last - 1)):
+        raise ValueError("soil hours must be consecutive")
+    start = hours.times[first]
+    t0 = store.index_of(start)
+    keep = np.zeros(last - first, dtype=bool)
+    if source != "era5land":
+        keep = np.array([s == "era5land" for s in store.sources(SOIL[0])[t0 : t0 + last - first]])
+    for name in SOIL:
+        cleaned, _ = check_range(store.variables[name], hours.values[name][first:last])
+        stored_sources = store.sources(name)[t0 : t0 + last - first]
+        if keep.any():
+            cleaned = np.where(keep[:, None, None], store.read_steps(name, t0, t0 + last - first), cleaned)
+        written = [
+            stored_sources[n] if keep[n] else (source if np.isfinite(cleaned[n]).any() else None)
+            for n in range(last - first)
+        ]
+        store.write(start, {name: cleaned}, source=None)
+        store.set_sources(name, start, written)
+    return int((~keep).sum())
+
+
+def era5land_through(store: GridStore) -> datetime | None:
+    """The last hour of the store's year that ERA5-Land has written, or None."""
+    sources = store.sources(SOIL[0])
+    for n in range(len(sources) - 1, -1, -1):
+        if sources[n] == "era5land":
+            return store.time_of(n)
+    return None
 
 
 def refetch_precipitation(
@@ -213,48 +256,6 @@ def refetch_precipitation(
     store.write(start, {"precipitation": values}, source=None)
     store.set_sources("precipitation", start, sources)
     return sum(1 for s in sources if s)
-
-
-def refetch_soil_temperature(
-    store: GridStore,
-    start: datetime,
-    hours: int,
-    names: tuple[str, ...],
-    workers: int = 8,
-    session_factory=requests.Session,
-) -> int:
-    """Fetches only the HRRR soil levels `names` for `hours` from `start` (a level added to the catalog after those
-    hours were ingested); hours HRRR doesn't have keep what they had. Returns the hours written. Each level is one
-    message of the analysis file (a few MB), fetched by byte range."""
-    t0 = store.index_of(start)
-    values = {name: store.read_steps(name, t0, t0 + hours) for name in names}
-    sources = {name: store.sources(name)[t0 : t0 + hours] for name in names}
-
-    def one(n: int) -> None:
-        session = _session(session_factory)
-        when = start + n * HOUR
-        for attempt in range(1, ATTEMPTS + 1):
-            try:
-                found = hrrr.fetch_soil_temperature(when, store.window, session, names)
-            except FileNotFoundError:
-                return
-            except Exception as error:  # transient network errors; the hour keeps what it had after the last
-                if attempt == ATTEMPTS:
-                    logger.warning("refetching soil temperature for %s failed %d times: %r", when, ATTEMPTS, error)
-                    return
-                time.sleep(RETRY_SECONDS * attempt)
-                continue
-            for name, field_values in found.items():
-                values[name][n] = check_range(store.variables[name], field_values)[0]
-                sources[name][n] = "hrrr"
-            return
-
-    with ThreadPoolExecutor(workers) as pool:
-        list(pool.map(one, range(hours)))
-    store.write(start, values, source=None)
-    for name in names:
-        store.set_sources(name, start, sources[name])
-    return sum(1 for s in sources[names[0]] if s)
 
 
 def stale_hours(
@@ -296,7 +297,7 @@ def hour_runs(hours: list[datetime]) -> list[tuple[datetime, int]]:
 
 def open_or_create_hourly(data_dir: Path, year: int, window: Window) -> GridStore:
     """A year's hourly store; a variable added to the catalog since it was made is added empty (fill it with a
-    refetch, as `refetch_soil_temperature` does for a new soil level)."""
+    refetch, as `refetch_precipitation` does)."""
     try:
         store = GridStore.open(data_dir, HOURLY, year, HOURLY_VARIABLES, add_missing=True)
     except FileNotFoundError:

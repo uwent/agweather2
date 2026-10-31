@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from agdata import forecast
 from agdata.grid import service_window
-from agdata.sources import hrrr, nbm
+from agdata.sources import ifs, nbm
 from ops.models import IngestRecord
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,6 @@ def refresh_forecast(
     box: str,
     now: datetime,
     find_cycle: Callable[[datetime], datetime | None] = nbm.latest_complete_cycle,
-    find_soil_run: Callable[[datetime], datetime | None] = hrrr.latest_forecast_run,
     build: Callable[..., Path] = forecast.build_run,
 ) -> IngestRecord | None:
     """Builds and publishes the newest complete long run unless it's already current; None when there's nothing
@@ -39,7 +38,8 @@ def refresh_forecast(
     window = service_window(box)
     started = timezone.now()
     try:
-        path = build(data_dir, window, cycle, soil_run=find_soil_run(cycle))
+        latest = ifs.latest_path(data_dir)
+        path = build(data_dir, window, cycle, soil=lambda times, w: ifs.latest_at(latest, times, w))
     except Exception as error:
         logger.exception("building the %s run failed", cycle)
         return IngestRecord.objects.create(

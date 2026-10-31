@@ -17,6 +17,10 @@ dependencies = [
     "zarr",
 ]
 
+[project.optional-dependencies]
+# Open-Meteo's IFS files (D52). omfiles is GPL-2.0-only, so it stays out of the core install (D53)
+ifs = ["omfiles>=1.2", "fsspec", "s3fs"]
+
 [build-system]
 requires = ["uv_build>=0.9,<0.14"]
 build-backend = "uv_build"

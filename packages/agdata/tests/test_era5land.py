@@ -30,7 +30,7 @@ def test_values_are_in_stored_units(hours):
     soil = hours.values["soil_temperature_10cm"]
     assert np.nanmin(soil) > -5 and np.nanmax(soil) < 10  # °C, not K: a December day under snow
     snow = hours.values["snow_depth"]
-    assert 0.05 < np.nanmax(snow) < 0.5  # metres of snow (a 10-20 cm cover that week)
+    assert 5 < np.nanmax(snow) < 50  # cm of snow (a 10-20 cm cover that week), not metres
 
 
 def test_open_water_is_missing_and_the_shore_is_land(hours):
@@ -78,3 +78,16 @@ def test_a_request_covers_whole_days_of_one_month():
         (date(2026, 1, 1), date(2026, 1, 31)),
         (date(2026, 2, 1), date(2026, 2, 2)),
     ]
+
+
+def test_snow_free_ground_reads_as_zero_not_missing():
+    # ERA5-Land's snow-free cells come as packing's tiny negatives (-7.3e-24 m in December 2025's fields), which
+    # QC's range (0-1000 cm) would drop: a snow-free day would read as missing
+    from agdata.catalog import variable
+    from agdata.qc import check_range
+
+    metres = np.array([-7.34536e-24, 0.0, 0.37, np.nan])
+    assert check_range(variable("snow_depth"), metres * 100)[1] == 1  # what happened before
+    cleaned, dropped = check_range(variable("snow_depth"), era5land.no_negative_snow(metres) * 100)
+    assert dropped == 0
+    np.testing.assert_array_equal(cleaned, [0.0, 0.0, 37.0, np.nan])

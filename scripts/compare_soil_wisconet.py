@@ -74,7 +74,7 @@ def main():
 
     # Each source at the potato model's depths, as the model reads it
     at_potato = {
-        "archive (HRRR)": potato_depths(archive),
+        "archive": potato_depths(archive),
         "IFS": potato_depths(ifs),
         "ERA5-Land": potato_depths(era5),
     }
@@ -190,8 +190,9 @@ def report(args, stations, station, at_potato, ifs_layers, snow, archive, local_
         "",
         f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_soil_wisconet.py`, {args.start} to {args.end}, "
         f"at {len(stations)} Wisconet stations (with a sensor at 5 cm: {have[5.0]}, 10: {have[10.0]}, 20: "
-        f"{have[20.0]}, 50: {have[50.0]}, 100: {have[100.0]}). The archive is HRRR's land-surface model at the "
-        "station's cell; IFS is Open-Meteo's `ecmwf_ifs` from its historical-forecast API (short leads) and ERA5-Land "
+        f"{have[20.0]}, 50: {have[50.0]}, 100: {have[100.0]}). The archive is v2's grid at the "
+        "station's cell (HRRR's soil before D52, ERA5-Land's after); IFS is Open-Meteo's `ecmwf_ifs` from its "
+        "historical-forecast API (short leads) and ERA5-Land "
         "from its archive API (`era5_land`), both at the station's location and taken to the depths the same way. "
         "Each depth the potato model reads (2, 4 and 8 in) is set against the station's "
         f"sensor at 5, 10 and 20 cm. Bias is the source minus the station, in °C; snow-covered hours are those "
@@ -221,7 +222,7 @@ def report(args, stations, station, at_potato, ifs_layers, snow, archive, local_
         "| Month | 2 in | 4 in | 8 in | archive − station, 4 in | IFS − station, 4 in |",
         "|---|---|---|---|---|---|",
     ]
-    hrrr, ifs = at_potato["archive (HRRR)"], at_potato["IFS"]
+    hrrr, ifs = at_potato["archive"], at_potato["IFS"]
     for m in range(1, 13):
         sel = (month == m)[None, :]
         if not sel.any():

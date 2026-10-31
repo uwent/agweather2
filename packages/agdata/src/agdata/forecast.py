@@ -7,7 +7,7 @@ so the archive's rollup runs on it unchanged:
     {data_dir}/forecast/current              a symlink to the run readers use, swapped when a new one is complete
 
 A run's hourly store is the stitched frame: the archive's hours up to its last observed hour (copied in with their
-sources, so a run's days can be rolled up whole), then the run's forecast hours (`nbm`, soil `hrrr_forecast`, RH and
+sources, so a run's days can be rolled up whole), then the run's forecast hours (`nbm`, soil and snow `ifs`, RH and
 ET0 `derived`). Its daily store holds those days, so today mixes observed and forecast hours. Its running totals
 continue the archive's: the archive's total on the day before the run's first day, plus the run's days. When the
 archive gains hours, `stitch` copies them over the forecast's and rolls the affected days again. A reader opens one
@@ -17,6 +17,7 @@ run and keeps it, so it never mixes two.
 import json
 import os
 import shutil
+from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -30,9 +31,9 @@ from agdata.cumulative import MAX_BRIDGE_DAYS, open_or_create_cumulative, runnin
 from agdata.daily import rollup_days
 from agdata.gaps import FALLBACK_PRESSURE_KPA
 from agdata.grid import NDFD, Window
-from agdata.ingest import open_or_create_hourly
+from agdata.ingest import SOIL, open_or_create_hourly
 from agdata.qc import check_range
-from agdata.sources import hrrr, nbm
+from agdata.sources import nbm
 from agdata.sources.nbm import HourlyRun
 from agdata.store import CUMULATIVE, DAILY, HOURLY, GridStore
 from agmodels.weather import et0_hourly_series, relative_humidity_percent
@@ -42,9 +43,10 @@ PRESSURE_DAYS = 30  # the archive's days whose mean surface pressure stands in f
 BAND_CELLS = 15_000  # cells per strip when building a run: ~1 GB at peak over 264 hours
 # Sources of a run's forecast hours, by variable; the rest are NBM's
 SOURCE_OF = {
-    "soil_temperature_4cm": "hrrr_forecast",
-    "soil_temperature_10cm": "hrrr_forecast",
-    "soil_temperature_30cm": "hrrr_forecast",
+    "soil_temperature_4cm": "ifs",
+    "soil_temperature_10cm": "ifs",
+    "soil_temperature_30cm": "ifs",
+    "snow_depth": "ifs",
     "surface_pressure": "derived",
     "relative_humidity": "derived",
     "et0": "derived",
@@ -183,12 +185,13 @@ def build_run(
     window: Window,
     cycle: datetime,
     step: nbm.Step = nbm.fetch_step,
-    soil_run: datetime | None = None,
+    soil: Callable[[list[datetime], Window], dict[str, np.ndarray]] | None = None,
     workers: int = 8,
     pressure_kpa: np.ndarray | float | None = None,
     session_factory=requests.Session,
 ) -> Path:
-    """Fetches a long NBM run (and, from `soil_run`, HRRR's soil forecast) into the run's directory, fills its
+    """Fetches a long NBM run into the run's directory (with `soil`'s soil and snow at its valid times: IFS's,
+    D52), fills its
     hours and derives the rest a strip of rows at a time, then stitches it to the archive and rolls up its days.
 
     The fetch writes each step straight to a scratch array chunked by step and strip, so threads never share a
@@ -196,7 +199,7 @@ def build_run(
     path = _fresh_run_dir(data_dir, cycle)
     rows = band_rows(window)
     scratch = zarr.open_group(path / "scratch.zarr", mode="w")
-    names = [*nbm.FETCHED, *(hrrr.SOIL_LEVELS if soil_run else ())]
+    names = [*nbm.FETCHED, *(SOIL if soil else ())]
     raw = {
         name: scratch.create_array(
             name,
@@ -211,8 +214,9 @@ def build_run(
         cycle, window, step=step, workers=workers, session_factory=session_factory, out={n: raw[n] for n in nbm.FETCHED}
     )
     times = run.valid_times
-    if soil_run is not None:
-        hrrr.fetch_soil_forecast(soil_run, times, window, session_factory=session_factory, workers=workers, out=raw)
+    if soil is not None:
+        for name, values in soil(times, window).items():
+            raw[name][:] = values
     pressure = _pressure(data_dir, window, times[0], pressure_kpa)
     lat, lon = NDFD.window_latlon(window)
     present: dict[str, np.ndarray] = {}
@@ -221,8 +225,8 @@ def build_run(
         y = slice(j - window.j0, band.j1 - window.j0)
         part = nbm.Run(cycle=cycle, values={n: np.asarray(raw[n][:, y]) for n in nbm.FETCHED})
         filled = adjust_hours(nbm.to_hourly(part, lat[y], lon[y], pressure[y]), lat[y], lon[y], pressure[y])
-        soil = {n: np.asarray(raw[n][:, y]) for n in names if n not in nbm.FETCHED}
-        for name, steps in _write_hours(path, window, band, times, filled.values, soil, pressure[y]).items():
+        strip_soil = {n: np.asarray(raw[n][:, y]) for n in names if n not in nbm.FETCHED}
+        for name, steps in _write_hours(path, window, band, times, filled.values, strip_soil, pressure[y]).items():
             present[name] = present[name] | steps if name in present else steps
     shutil.rmtree(path / "scratch.zarr")
     _finish(data_dir, path, window, cycle, times, present, failed=run.failed)

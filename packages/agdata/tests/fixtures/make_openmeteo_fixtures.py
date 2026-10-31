@@ -3,7 +3,8 @@
 uv run python packages/agdata/tests/fixtures/make_openmeteo_fixtures.py
 
 openmeteo_{endpoint}_{model}.json: three days of June 2025 (historical-forecast: NBM, best_match, ECMWF IFS soil)
-and two of June 2015 (the ERA5 archive) at the O1280 cell over Stillwater, OK, as `openmeteo.fetch` asks for them.
+and two of June 2015 (the archive: ERA5, and ERA5-Land's soil and snow) at the O1280 cell over Stillwater, OK, as
+`openmeteo.fetch` asks for them.
 """
 
 import json

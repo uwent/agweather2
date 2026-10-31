@@ -7,13 +7,17 @@ from agdata import ingest
 from agdata.grid import NDFD, Window
 from agdata.ingest import (
     HOURLY_VARIABLES,
+    SOIL,
     Hour,
     blocks,
+    era5land_through,
     hour_runs,
     ingest_block,
     open_or_create_hourly,
     stale_hours,
+    write_soil,
 )
+from agdata.sources import era5land
 from agmodels.weather import solar_elevation_deg
 
 WINDOW = Window(j0=900, j1=904, i0=1400, i1=1405)  # 4 x 5 cells near Madison
@@ -206,21 +210,41 @@ def test_a_store_from_before_a_new_soil_level_opens_with_it_empty(tmp_path):
     assert store.sources("soil_temperature_30cm")[t0] is None
 
 
-def test_refetching_a_soil_level_fills_only_it(tmp_path, monkeypatch):
-    from agdata.ingest import refetch_soil_temperature
+def soil_hours(start: datetime, count: int, soil_c: float = 1.5) -> era5land.Hours:
+    shape = (count, *WINDOW.shape)
+    values = {name: np.full(shape, soil_c) for name in SOIL}
+    values["snow_depth"] = np.full(shape, 12.0)
+    return era5land.Hours(times=[start + timedelta(hours=n) for n in range(count)], values=values)
 
+
+def test_the_hourly_ingest_leaves_soil_and_snow_to_their_jobs(tmp_path):
     store = open_or_create_hourly(tmp_path, 2025, WINDOW)
-    store.write(START, {"soil_temperature_10cm": np.full((3, *WINDOW.shape), 5.0)}, source="hrrr")
-
-    def fetch(when, window, session, names):
-        if when == START + timedelta(hours=2):
-            raise FileNotFoundError("not published")
-        assert names == ("soil_temperature_30cm",)
-        return {"soil_temperature_30cm": np.full(window.shape, 7.0 + (when - START) / timedelta(hours=1))}
-
-    monkeypatch.setattr(ingest.hrrr, "fetch_soil_temperature", fetch)
-    assert refetch_soil_temperature(store, START, 3, ("soil_temperature_30cm",), workers=2) == 2
+    write_soil(store, soil_hours(START, 24), "era5land")
+    ingest_block(store, START, 24, fetch=fake_fetch(), workers=4)  # its fetch still offers HRRR-like soil
     t0 = store.index_of(START)
-    np.testing.assert_allclose(store.read_point("soil_temperature_30cm", 900, 1400, t0, t0 + 3), [7.0, 8.0, np.nan])
-    np.testing.assert_allclose(store.read_point("soil_temperature_10cm", 900, 1400, t0, t0 + 3), 5.0)
-    assert store.sources("soil_temperature_30cm")[t0 : t0 + 3] == ["hrrr", "hrrr", None]
+    np.testing.assert_allclose(store.read_point("soil_temperature_10cm", 901, 1401, t0, t0 + 24), 1.5)
+    assert store.sources("snow_depth")[t0 : t0 + 24] == ["era5land"] * 24
+
+
+def test_ifs_fills_in_but_never_over_era5land(tmp_path):
+    store = open_or_create_hourly(tmp_path, 2025, WINDOW)
+    assert write_soil(store, soil_hours(START, 12), "era5land") == 12
+    assert era5land_through(store) == START + timedelta(hours=11)
+    assert write_soil(store, soil_hours(START, 24, soil_c=4.0), "ifs") == 12
+    t0 = store.index_of(START)
+    soil = store.read_point("soil_temperature_10cm", 901, 1401, t0, t0 + 24)
+    np.testing.assert_allclose(soil, [1.5] * 12 + [4.0] * 12)
+    sources = store.sources("soil_temperature_10cm")[t0 : t0 + 24]
+    assert sources == ["era5land"] * 12 + ["ifs"] * 12
+    # ERA5-Land arriving later replaces the provisional hours
+    write_soil(store, soil_hours(START + timedelta(hours=12), 12, soil_c=2.0), "era5land")
+    assert store.sources("snow_depth")[t0 : t0 + 24] == ["era5land"] * 24
+    assert era5land_through(store) == START + timedelta(hours=23)
+
+
+def test_soil_hours_outside_the_year_are_left_to_its_store(tmp_path):
+    store = open_or_create_hourly(tmp_path, 2025, WINDOW)
+    new_year = datetime(2026, 1, 1, tzinfo=UTC)
+    assert write_soil(store, soil_hours(new_year - timedelta(hours=2), 4), "era5land") == 2
+    assert era5land_through(store) == new_year - timedelta(hours=1)
+    assert era5land_through(open_or_create_hourly(tmp_path, 2026, WINDOW)) is None

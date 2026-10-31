@@ -129,3 +129,35 @@ def test_building_in_strips_matches_the_whole_window(tmp_path, fx, monkeypatch):
         np.testing.assert_array_equal(values[t:], expected.read_steps(name, t, 8760), err_msg=name)
     assert sources[t:] == expected.sources("et0")[t:]
     assert np.isfinite(stored["air_temperature"][t + 100]).all()
+
+
+def test_a_run_takes_its_soil_and_snow_from_ifs(tmp_path, fx):
+    from agdata.sources import nbm
+
+    cycle = datetime(2025, 7, 10, 13, tzinfo=UTC)
+    fx.archive(tmp_path, datetime(2025, 7, 1, tzinfo=UTC), cycle + 2 * HOUR)
+    truth = fx.nbm_run(cycle)
+
+    def step(cycle, lead, window, session):
+        return {name: truth.values[name][lead - 1] for name in nbm.NAMES}
+
+    asked = []
+
+    def soil(times, window):  # IFS's hours reach 100 hours past the cycle
+        asked.append(len(times))
+        reach = np.array([(t - cycle) / HOUR <= 100 for t in times])[:, None, None]
+        shape = (len(times), *window.shape)
+        return {
+            name: np.where(reach, np.full(shape, 12.0 if name == "snow_depth" else 3.0), np.nan)
+            for name in ("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm", "snow_depth")
+        }
+
+    built = forecast.build_run(tmp_path, WINDOW, cycle, step=step, workers=4, pressure_kpa=98.0, soil=soil)
+    assert asked == [nbm.HORIZON_HOURS]
+    store = GridStore.open(built, HOURLY, 2025, VARIABLES.values())
+    t = store.index_of(cycle + 3 * HOUR)  # the first forecast hour past the archive's
+    np.testing.assert_allclose(store.read_steps("soil_temperature_10cm", t, t + 1), 3.0)
+    np.testing.assert_allclose(store.read_steps("snow_depth", t, t + 1), 12.0)
+    assert store.sources("soil_temperature_10cm")[t] == "ifs" and store.sources("snow_depth")[t] == "ifs"
+    later = store.index_of(cycle + 101 * HOUR)
+    assert np.isnan(store.read_steps("soil_temperature_10cm", later, later + 1)).all()  # past IFS's reach: a gap

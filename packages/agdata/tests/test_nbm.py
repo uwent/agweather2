@@ -199,21 +199,6 @@ def test_a_real_long_run_over_wisconsin():
     assert list(nbm.fetch_step(cycle, 49, window)) == ["precipitation"]
 
 
-@pytest.mark.network
-@pytest.mark.enable_socket
-def test_a_real_hrrr_soil_forecast():
-    from agdata.sources import hrrr
-
-    cell = NDFD.cell_of(43.07, -89.40)
-    assert cell is not None
-    window = Window(j0=cell[0], j1=cell[0] + 2, i0=cell[1], i1=cell[1] + 2)
-    run = hrrr.latest_forecast_run(datetime.now(UTC))
-    assert run is not None
-    times = [run + timedelta(hours=h) for h in (1, 48, 49)]
-    soil = hrrr.fetch_soil_forecast(run, times, window)
-    assert np.isfinite(soil["soil_temperature_10cm"][:2]).all() and np.isnan(soil["soil_temperature_10cm"][2]).all()
-
-
 def test_tmax_messages_are_read_for_their_window():
     from agdata.sources.grib import MessageRef
 

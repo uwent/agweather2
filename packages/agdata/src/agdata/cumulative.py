@@ -144,7 +144,8 @@ class _DailyYear:
 
     def _open(self, year: int) -> GridStore | None:
         try:
-            return GridStore.open(self.data_dir, DAILY, year, DAILY_VARIABLES.values())
+            # A neighbour made before a variable joined the catalog gets it, empty, as the rollup does
+            return GridStore.open(self.data_dir, DAILY, year, DAILY_VARIABLES.values(), add_missing=True)
         except FileNotFoundError:
             return None
 

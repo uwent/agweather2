@@ -92,13 +92,15 @@ def test_models_merge_in_order_and_convert():
     assert (daytime_et0 > 0.1).all() and np.nansum(v["et0"][:24]) > 3  # a June day, mm
 
 
-def test_the_archive_asks_once_for_everything():
+def test_the_archive_takes_weather_from_era5_and_soil_and_snow_from_era5_land():
     cell = openmeteo.cell_for(36.12, -97.07)
     session = Recorded("archive")
     hours, _ = openmeteo.fetch("archive", cell, date(2015, 6, 1), date(2015, 6, 2), session=session)  # type: ignore[arg-type]
-    assert len(session.calls) == 1 and "models" not in session.calls[0][1]
+    assert [params.get("models") for _, params in session.calls] == [None, "era5_land"]
+    assert "soil_temperature_0_to_7cm" not in session.calls[0][1]["hourly"]
     assert hours.count == 48 and np.isfinite(hours.values["soil_temperature_30cm"]).all()
-    assert hours.sources["air_temperature"] == "era5"
+    assert (hours.values["snow_depth"] == 0).all()  # cm, Oklahoma in June
+    assert hours.sources["air_temperature"] == "era5" and hours.sources["soil_temperature_10cm"] == "era5_land"
 
 
 def test_corrections_keep_the_raw_values_and_say_what_they_did():

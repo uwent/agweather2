@@ -183,7 +183,7 @@ def read_land_mask(path: Path) -> LandMask:
 
 
 def read(path: Path, window: Window, land: LandMask) -> Hours:
-    """A downloaded file's hours on the window: the catalog's soil depths (°C) and `snow_depth` (m), each only
+    """A downloaded file's hours on the window: the catalog's soil depths (°C) and `snow_depth` (cm), each only
     from ERA5-Land's land cells."""
     fields: dict[datetime, dict[str, np.ndarray]] = defaultdict(dict)
     grid: LatLonGrid | None = None
@@ -217,7 +217,7 @@ def read(path: Path, window: Window, land: LandMask) -> Hours:
         layers = {LAYERS[name]: convert(on_window[name], "K", "degC") for name in LAYERS}
         for catalog_name, (value, _) in soil_at_depths(layers).items():
             out[catalog_name].append(value)
-        out["snow_depth"].append(on_window["sde"])
+        out["snow_depth"].append(no_negative_snow(on_window["sde"]) * 100)  # m → cm
     return Hours(times=times, values={name: np.stack(v) for name, v in out.items()})
 
 
@@ -284,3 +284,9 @@ def days_of(first: date, last: date) -> list[tuple[date, date]]:
         spans.append((day, min(month_end, last)))
         day = month_end + timedelta(days=1)
     return spans
+
+
+def no_negative_snow(metres: np.ndarray) -> np.ndarray:
+    """Snow depth with packing's tiny negatives (−1e-7 m and the like, on snow-free ground) set to 0, so QC's range
+    doesn't drop a whole snow-free day; NaN stays NaN."""
+    return np.where(metres < 0, 0.0, metres)

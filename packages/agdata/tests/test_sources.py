@@ -124,8 +124,7 @@ def test_rtma_precip_in_2016_and_a_missing_hour():
 @pytest.mark.network
 @pytest.mark.enable_socket
 @pytest.mark.parametrize("when", [datetime(2016, 7, 1, 19, tzinfo=UTC), datetime(2025, 7, 15, 19, tzinfo=UTC)])
-def test_hrrr_shortwave_and_soil_over_wisconsin(when):
+def test_hrrr_shortwave_over_wisconsin(when):
     values = hrrr.fetch_hour(when, service_window("wisconsin"))
     assert 600 < np.nanmean(values["shortwave_radiation"]) < 1100  # early afternoon CDT in July, W/m²
-    assert 15 < np.nanmean(values["soil_temperature_10cm"]) < 30
-    assert np.isfinite(values["soil_temperature_4cm"]).all()
+    assert set(values) == {"shortwave_radiation"}

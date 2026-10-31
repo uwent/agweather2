@@ -5,10 +5,10 @@ cells (~9 km), so every point in a cell shares one series and one cache entry. C
 97° W:
 - Endpoints by date: `forecast` reaches 7 days back and 16 ahead (D43 keeps 11); `historical-forecast` has
   best_match from 2022 and NBM from some point between mid-2024 and mid-2025 (it had June 2025, not June 2024);
-  `archive` (ERA5) the rest, soil included.
+  `archive` (ERA5) the rest; there soil and snow come from `era5_land` (D52).
 - Models (D40): `ncep_nbm_conus` first, `best_match` for what it lacks (pressure always; shortwave past ~2 days;
-  hours its run doesn't have), soil from `ecmwf_ifs` (the only one with soil over North America), whose layers are
-  0–7, 7–28 and 28–100 cm.
+  hours its run doesn't have), soil and snow depth from `ecmwf_ifs` (the only one with soil over North America),
+  whose layers are 0–7, 7–28 and 28–100 cm.
 - Values at T are the hour ending T, as ours: precip and shortwave are the preceding hour's sum and mean.
 Values are converted to the catalog's variables and units here; RH and ET0 are derived as the archive does them
 (from T and Td, and our FAO-56), so a point outside the box agrees with one inside on method. The cache keeps these
@@ -37,6 +37,7 @@ RECENT_DAYS = 7  # the forecast endpoint's days back
 FORECAST_DAYS = 12  # through the 11 days of D43, whole local days
 PRIMARY_MODELS = ("ncep_nbm_conus", "best_match")
 SOIL_MODEL = "ecmwf_ifs"
+ARCHIVE_SOIL_MODEL = "era5_land"  # the archive's soil source (D52)
 TIMEOUT = 60
 HOUR = timedelta(hours=1)
 
@@ -124,10 +125,11 @@ def fetch(
     start = datetime(first.year, first.month, first.day, tzinfo=UTC)  # the UTC day's hours end 00Z … 23Z
     n = ((last - first).days + 1) * 24
     days = (last - first).days + 1
+    soil = [*SOIL_LAYERS, "snow_depth"]
     requests_made: list[tuple[str | None, list[str]]] = (
-        [(None, [*names, *SOIL_LAYERS])]  # ERA5 has everything
+        [(None, names), (ARCHIVE_SOIL_MODEL, soil)]  # ERA5, then ERA5-Land's soil and snow (D52)
         if endpoint == "archive"
-        else [*((m, names) for m in PRIMARY_MODELS), (SOIL_MODEL, list(SOIL_LAYERS))]
+        else [*((m, names) for m in PRIMARY_MODELS), (SOIL_MODEL, soil)]
     )
     merged: dict[str, np.ndarray] = {}
     chosen: dict[str, str] = {}
@@ -224,6 +226,8 @@ def _to_catalog(merged, chosen, start: datetime, cell: Cell, elevation) -> Hours
     for name, (value, layer) in soil_at_depths(merged).items():
         values[name] = value
         sources[name] = chosen.get(layer, "")
+    values["snow_depth"] = merged["snow_depth"] * 100  # m → cm
+    sources["snow_depth"] = chosen.get("snow_depth", "")
     _derive(values, start, cell)
     sources["relative_humidity"] = sources["et0"] = "derived"
     return Hours(start=start, values=values, sources=sources, elevation_m=elevation)

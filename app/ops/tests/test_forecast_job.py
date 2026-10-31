@@ -17,8 +17,8 @@ def fake_build(failed=()):
     """Writes just a run's directory and run.json, as build_run would."""
     calls = []
 
-    def build(data_dir, window, cycle, soil_run=None):
-        calls.append((cycle, soil_run))
+    def build(data_dir, window, cycle, soil=None):
+        calls.append((cycle, soil is not None))
         path = forecast.run_path(data_dir, cycle)
         path.mkdir(parents=True)
         info = {
@@ -36,9 +36,7 @@ def fake_build(failed=()):
 
 
 def refresh(tmp_path, build, cycle=CYCLE):
-    return refresh_forecast(
-        tmp_path, BOX, NOW, find_cycle=lambda now: cycle, find_soil_run=lambda c: c - timedelta(hours=1), build=build
-    )
+    return refresh_forecast(tmp_path, BOX, NOW, find_cycle=lambda now: cycle, build=build)
 
 
 @pytest.mark.django_db
@@ -47,7 +45,7 @@ def test_a_new_run_is_built_published_and_recorded_once(tmp_path):
     record = refresh(tmp_path, build)
     assert record is not None and (record.kind, record.status) == ("forecast", "ok")
     assert record.first_hour == CYCLE + timedelta(hours=1) and record.hours == 264
-    assert build.calls == [(CYCLE, CYCLE - timedelta(hours=1))]  # with HRRR's run for the soil
+    assert build.calls == [(CYCLE, True)]  # with IFS's soil (D52)
     assert forecast.current_run(tmp_path) == forecast.run_path(tmp_path, CYCLE).resolve()
     assert refresh(tmp_path, build) is None  # already current
     assert len(build.calls) == 1 and IngestRecord.objects.count() == 1
