@@ -197,5 +197,7 @@ def test_a_store_from_before_new_features_opens_with_them_stale(tmp_path):
     assert store.stale == set(DAILY_FEATURES)
     store.mark_current(DAILY_FEATURES)
     assert GridStore.open(tmp_path, DAILY, 2025, DAILY_VARIABLES.values()).stale == set()
-    bumped = [replace(v, version=2) if v.name == "hours_rh_over_90" else v for v in DAILY_VARIABLES.values()]
+    bumped = [
+        replace(v, version=v.version + 1) if v.name == "hours_rh_over_90" else v for v in DAILY_VARIABLES.values()
+    ]
     assert GridStore.open(tmp_path, DAILY, 2025, bumped).stale == {"hours_rh_over_90"}

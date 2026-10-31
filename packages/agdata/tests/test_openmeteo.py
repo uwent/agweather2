@@ -99,3 +99,29 @@ def test_the_archive_asks_once_for_everything():
     assert len(session.calls) == 1 and "models" not in session.calls[0][1]
     assert hours.count == 48 and np.isfinite(hours.values["soil_temperature_30cm"]).all()
     assert hours.sources["air_temperature"] == "era5"
+
+
+def test_corrections_keep_the_raw_values_and_say_what_they_did():
+    from agdata import corrections
+
+    cell = openmeteo.cell_for(36.12, -97.07)
+    hours, _ = openmeteo.fetch("historical", cell, date(2025, 6, 1), date(2025, 6, 3), session=Recorded("historical"))  # type: ignore[arg-type]
+    fixed = openmeteo.correct(hours, cell, "historical")
+    assert fixed.corrections == (corrections.OPENMETEO_SHORTWAVE.label, corrections.OPENMETEO_RH.label)
+    np.testing.assert_array_equal(fixed.raw["shortwave_radiation"], hours.values["shortwave_radiation"])
+    np.testing.assert_array_equal(fixed.raw["dew_point"], hours.values["dew_point"])
+    np.testing.assert_array_equal(fixed.values["air_temperature"], hours.values["air_temperature"])  # kept
+    day = hours.values["shortwave_radiation"] > 100
+    assert (fixed.values["shortwave_radiation"][day] < hours.values["shortwave_radiation"][day]).mean() > 0.9
+    assert (fixed.values["dew_point"] <= fixed.values["air_temperature"]).all()
+    assert fixed.values["relative_humidity"].mean() > hours.values["relative_humidity"].mean()  # wetter, as fitted
+    assert fixed.values["et0"].sum() < hours.values["et0"].sum()  # less sun, more humid
+    # ERA5 (the archive endpoint) wasn't checked, so it isn't corrected
+    assert openmeteo.correct(hours, cell, "archive") is hours
+
+
+def test_the_corrections_table_is_current():
+    from agdata import corrections
+
+    path = Path(__file__).parents[3] / "docs" / "corrections.md"
+    assert path.read_text() == corrections.markdown(), "run: uv run python -m agdata.corrections > docs/corrections.md"

@@ -30,6 +30,7 @@ from agmodels.weather import et0_hourly_series
 
 TABLE_PATH = Path(__file__).parent / "data" / "shortwave_correction.json"
 NBM_TABLE_PATH = Path(__file__).parent / "data" / "nbm_shortwave_correction.json"
+OPENMETEO_TABLE_PATH = Path(__file__).parent / "data" / "openmeteo_shortwave_correction.json"
 RAW = "shortwave_radiation_hrrr"
 BLOCK_HOURS = 48  # ~200 MB of float64 per block over Wisconsin
 HOUR = timedelta(hours=1)
@@ -42,16 +43,18 @@ def _table() -> dict:
 TABLE = _table()
 VERSION: int = TABLE["version"]
 NBM_TABLE = json.loads(NBM_TABLE_PATH.read_text())
+OPENMETEO_TABLE = json.loads(OPENMETEO_TABLE_PATH.read_text())  # D51, for points (`sources.openmeteo.correct`)
 
 
-def correct_w_m2(hour_end, latitude_deg, longitude_deg, raw_w_m2, pressure_kpa) -> np.ndarray:
-    """HRRR hourly means (time on axis 0) scaled by the factor for each hour's clearness. Dark hours stay 0, and
-    NaN stays NaN."""
+def correct_w_m2(hour_end, latitude_deg, longitude_deg, raw_w_m2, pressure_kpa, table: dict | None = None):
+    """Hourly mean shortwave (time on axis 0) scaled by the factor for each hour's clearness: HRRR's by `TABLE`
+    (D48) unless another source's table is given. Dark hours stay 0, and NaN stays NaN."""
+    table = TABLE if table is None else table
     raw = np.asarray(raw_w_m2, dtype=float)
     rso = clear_sky_shortwave_w_m2(hour_end, latitude_deg, longitude_deg, pressure_kpa)
     with np.errstate(invalid="ignore", divide="ignore"):
         clearness = np.where(rso > 1, raw / np.where(rso > 1, rso, 1), 0.0)
-    factor = np.interp(clearness, TABLE["clearness"], TABLE["factor"])
+    factor = np.interp(clearness, table["clearness"], table["factor"])
     return np.where(np.isfinite(raw), np.maximum(raw * factor, 0.0), np.nan)
 
 

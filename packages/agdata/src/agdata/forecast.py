@@ -24,7 +24,7 @@ import numpy as np
 import requests
 import zarr
 
-from agdata import interpolate, shortwave
+from agdata import calibration, interpolate, shortwave
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
 from agdata.cumulative import MAX_BRIDGE_DAYS, open_or_create_cumulative, running_totals
 from agdata.daily import rollup_days
@@ -50,6 +50,7 @@ SOURCE_OF = {
     "et0": "derived",
 }
 STITCH_HOURS_BEFORE = 48  # archive hours copied before the first forecast hour: the run's first day and its 8 pm
+CALIBRATION = calibration.fitted()  # read when adjust_hours runs, so tests can swap it
 
 
 def forecast_dir(data_dir: Path) -> Path:
@@ -130,17 +131,42 @@ def write_run(
     return path
 
 
-def adjust_hours(hourly: HourlyRun, latitude_deg, longitude_deg, pressure_kpa) -> HourlyRun:
-    """Post-processing of a run's filled hours, before RH and ET0 are derived from them: each daytime window's
-    hours reshaped to reach NBM's 12-hour max (D39; the interpolated hours' max runs cool), dew point kept at or
-    below temperature, and NBM's shortwave corrected by lead and clearness (D48, `agdata.shortwave`). The forecast
-    job and the backtest both call it, so the backtest measures what's published."""
+def adjust_hours(
+    hourly: HourlyRun,
+    latitude_deg,
+    longitude_deg,
+    pressure_kpa,
+    adjustments: calibration.Adjustments | None = None,
+) -> HourlyRun:
+    """Post-processing of a run's filled hours, before RH and ET0 are derived from them (D39): each daytime
+    window's hours reshaped to reach NBM's 12-hour max less the season's offset, each night's coldest hours
+    lowered by the hours' warm bias at the min (the interpolated max runs cool and min warm), dew point kept at or
+    below temperature, RH mapped onto the archive's (D49), and NBM's shortwave corrected by lead and clearness
+    (D48, `agdata.shortwave`). The forecast job and the backtest both call it, so the backtest measures what's
+    published. `adjustments` are the fitted tables (`CALIBRATION`, `agdata.calibration`) unless given; the
+    backtest's fits leave steps out."""
+    adjust = CALIBRATION if adjustments is None else adjustments
     times = np.array([t.replace(tzinfo=None) for t in hourly.valid_times], dtype="datetime64[s]")
     values = dict(hourly.values)
     if "tmax_12h" in hourly.extras:
-        values["air_temperature"] = interpolate.reach_window_max(values["air_temperature"], hourly.extras["tmax_12h"])
-        with np.errstate(invalid="ignore"):
-            values["dew_point"] = np.fmin(values["dew_point"], values["air_temperature"])
+        targets = calibration.max_targets(hourly.valid_times, hourly.extras["tmax_12h"], adjust.max_offset)
+        values["air_temperature"] = interpolate.reach_window_max(values["air_temperature"], targets)
+    if adjust.night_min is not None:
+        targets = calibration.night_min_targets(
+            hourly.cycle, hourly.valid_times, values["air_temperature"], adjust.night_min
+        )
+        values["air_temperature"] = interpolate.reach_window_min(values["air_temperature"], targets)
+    with np.errstate(invalid="ignore"):
+        values["dew_point"] = np.fmin(values["dew_point"], values["air_temperature"])
+    if adjust.rh_map is not None:
+        values["dew_point"] = calibration.map_humidity(
+            hourly.cycle,
+            hourly.valid_times,
+            longitude_deg,
+            values["air_temperature"],
+            values["dew_point"],
+            adjust.rh_map,
+        )
     values["shortwave_radiation"] = shortwave.correct_nbm_w_m2(
         times, latitude_deg, longitude_deg, values["shortwave_radiation"], pressure_kpa, hourly.cycle
     )

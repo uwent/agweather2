@@ -8,6 +8,8 @@ Each has its own risk thresholds; the model's risk is the highest of the three.
 Ported from the Crop Risk Tool (`predict_soybean_cercospora`, `build_soybean_cercospora`) with parity tests.
 Open question (PLAN.md Phase 3 D): the tool passes wind in km/h (Open-Meteo's default) to the C. sigesbeckiae
 model; kept here until the unit of the fit is confirmed.
+
+Gridded RH ≥ 90% is counted at 88%, a station's 90% (D50, `features.STATION_RH_90_AS_GRIDDED`).
 """
 
 from collections.abc import Mapping

@@ -9,17 +9,15 @@ CRT_NAMES = {
     "hours_temperature_over_30c": "hours_temp_over_30",
     "hours_rh_under_70": "hours_rh_under_70",
     "hours_rh_over_80": "hours_rh_over_80",
-    "hours_rh_over_90": "hours_rh_over_90",
     "hours_rh_over_80_night": "hours_rh_over_80_night",
-    "hours_rh_over_90_night": "hours_rh_over_90_night",
     "temperature_mean_rh_over_80_from_8pm": "temperature_mean_rh_over_80",
-    "temperature_mean_rh_over_90_from_8pm": "temperature_mean_rh_over_90",
     "hot_past_5_days": "hot_past_5_days",
     "dry": "dry",
     "precipitation_sum": "precipitation_daily",
     "air_temperature_min": "temperature_min",
     "air_temperature_max": "temperature_max",
 }
+# Not compared: the tool's RH ≥ 90% counts, which v2 counts on gridded RH at 88% (D50; tested below)
 
 
 @pytest.fixture
@@ -37,6 +35,18 @@ def test_daily_features_match_the_crop_risk_tool(ours, crt, name):
     theirs = crt("daily_eau_claire_2025")
     assert [str(d) for d in days] == theirs["date"].tolist()
     np.testing.assert_allclose(daily[name], theirs[CRT_NAMES[name]], atol=1e-9, equal_nan=True)
+
+
+def test_rh_90_features_count_gridded_rh_at_88():
+    temperature = np.full((24,), 20.0)
+    rh = np.array([87.9, 88.0, 89.0, 90.0] * 6)
+    local = np.datetime64("2025-07-01T00", "h") + np.arange(24)
+    _, daily = f.daily_features(local, temperature, rh, np.zeros(24), midnight_ends_day=False)
+    assert daily["hours_rh_over_90"][0] == 18  # 88, 89 and 90 count; 87.9 doesn't
+    days = f.from_8pm_features(temperature, rh, np.ones(24, dtype=bool))
+    assert days["hours_rh_over_90_from_8pm"] == 18 and days["hours_rh_over_90_night"] == 18
+    hot = f.hours_humid_and_warm(np.full(24, 25.0), rh, 90, f.SCAB_C)
+    assert hot == 6  # pecan scab keeps the Mesonet's 90%
 
 
 def test_a_missing_hour_makes_counts_missing_but_not_other_days():

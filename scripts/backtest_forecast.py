@@ -6,11 +6,12 @@ rolls up lead days 1–10 (the complete local days after the cycle) with `daily_
 archive's daily store, and the first forecast hours with the archive's hours (the seam). NBM's own 12-hour TMAX
 and TMIN are kept beside the hours' extremes, to settle D39.
 
-Each run's values are cached in tmp/backtest/{cycle}.npz, so a restart resumes. `--report` writes the report from
-the cache without fetching.
+Each run's values are cached in tmp/backtest/{cycle}.npz, and its filled hours in {cycle}_hours.npz, so a restart
+resumes. `--report` writes the report from the cache without fetching; `--rescore` first replays the cached hours
+through the current post-processing (`derive`), for a change to it that needs no new fetch.
 
     uv run python scripts/backtest_forecast.py --start 2025-01-01 --end 2025-12-31
-    uv run python scripts/backtest_forecast.py --start 2025-01-01 --end 2025-12-31 --report
+    uv run python scripts/backtest_forecast.py --start 2025-01-01 --end 2025-12-31 --rescore
 """
 
 import argparse
@@ -28,6 +29,8 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from compare_legacy import central_points
 
+from agdata import calibration
+from agdata.calibration import Adjustments
 from agdata.catalog import DAILY_VARIABLES, VARIABLES, variable
 from agdata.forecast import adjust_hours, archive_pressure_kpa
 from agdata.gaps import FALLBACK_PRESSURE_KPA, clear_sky_shortwave_w_m2
@@ -78,6 +81,12 @@ def main():
         "--fit-shortwave", action="store_true", help="fit NBM's shortwave correction from the cache (D48)"
     )
     parser.add_argument(
+        "--fit-calibration", action="store_true", help="fit the forecast's calibration from the cached hours (D39, D49)"
+    )
+    parser.add_argument(
+        "--rescore", action="store_true", help="replay the cached hours through `derive`, then write the report"
+    )
+    parser.add_argument(
         "--refresh-observed", action="store_true", help="reread the archive's side of cached runs (after a rebuild)"
     )
     parser.add_argument("--out", default="docs/validation-forecast.md")
@@ -95,7 +104,18 @@ def main():
         Path("docs/validation-forecast-shortwave.md").write_text(fit_shortwave(cycles))
         print("wrote docs/validation-forecast-shortwave.md and the NBM table", flush=True)
         return
-    if args.refresh_observed:
+    if args.fit_calibration:
+        Path("docs/validation-forecast-calibration.md").write_text(fit_calibration(Path(args.data), cycles, window))
+        print("wrote docs/validation-forecast-calibration.md and the calibration tables", flush=True)
+        return
+    if args.rescore:
+        lat, lon = cell_latlon(window)
+        rescored = [c for c in cycles if cache_path(c).exists() and hours_path(c).exists()]
+        for cycle in rescored:
+            cached = dict(np.load(cache_path(cycle))) | replay(cycle, lat, lon)
+            np.savez_compressed(cache_path(cycle), **cast(dict[str, Any], cached))
+        print(f"replayed {len(rescored)} runs", flush=True)
+    elif args.refresh_observed:
         _, js, is_ = point_cells(data_dir, window)
         for cycle in cycles:
             if cache_path(cycle).exists():
@@ -127,6 +147,31 @@ def hours_path(cycle: datetime) -> Path:
     """The run's filled hours at the cells (264 × cells per variable, float32) and NBM's raw TMAX/TMIN by lead,
     for trying adjustments to the forecast without fetching it again."""
     return CACHE / f"{cycle:%Y%m%d%H}_hours.npz"
+
+
+def cached_run(cycle: datetime) -> tuple[nbm.HourlyRun, np.ndarray]:
+    """A run's filled hours from its cache (`hours_path`) as `nbm.to_hourly` returned them, with NBM's TMAX as the
+    job fetches it, and the cells' pressure (1, cells). Older caches also hold RH and ET0, which are dropped."""
+    h = np.load(hours_path(cycle))
+    values = {name: h[name][:, None].astype(float) for name in nbm.NAMES}
+    pressure = h["surface_pressure"]
+    pressure = (pressure[0] if pressure.ndim == 2 else pressure)[None].astype(float)  # older caches: per hour
+    pressure = np.where(np.isfinite(pressure), pressure, FALLBACK_PRESSURE_KPA)
+    run = nbm.HourlyRun(
+        cycle=cycle,
+        values=values,
+        filled={name: np.zeros(v.shape, dtype=bool) for name, v in values.items()},
+        extras={"tmax_12h": h["raw_tmax_nbm"][:, None].astype(float)},
+    )
+    return run, pressure
+
+
+def cell_latlon(window: Window) -> tuple[np.ndarray, np.ndarray]:
+    """The cached cells' latitude and longitude, (1, cells)."""
+    cells = np.load(CACHE / "cells.npz")
+    lat, lon = NDFD.window_latlon(window)
+    y, x = cells["j"] - window.j0, cells["i"] - window.i0
+    return lat[y, x][None, :], lon[y, x][None, :]
 
 
 def refresh_observed(data_dir: Path, window: Window, cycle: datetime, y, x) -> None:
@@ -336,10 +381,10 @@ def clear_sky_day(day: date, lat, lon) -> np.ndarray:
     )
 
 
-def derive(filled: nbm.HourlyRun, lat, lon, pressure) -> dict[str, np.ndarray]:
+def derive(filled: nbm.HourlyRun, lat, lon, pressure, adjustments: Adjustments | None = None) -> dict[str, np.ndarray]:
     """A run's filled hours as the forecast job publishes them: post-processed (`forecast.adjust_hours`), then
     pressure, RH and ET0 derived and the range checks applied."""
-    hourly = adjust_hours(filled, lat, lon, pressure)
+    hourly = adjust_hours(filled, lat, lon, pressure, adjustments)
     values = dict(hourly.values)
     values["surface_pressure"] = np.broadcast_to(pressure, values["air_temperature"].shape)
     values["relative_humidity"] = relative_humidity_percent(values["air_temperature"], values["dew_point"])
@@ -357,15 +402,195 @@ def derive(filled: nbm.HourlyRun, lat, lon, pressure) -> dict[str, np.ndarray]:
     return {name: check_range(VARIABLES[name], series)[0] for name, series in values.items()}
 
 
-def roll_up(first_hour: datetime, values: dict[str, np.ndarray], days: list[date], names) -> dict[str, np.ndarray]:
-    """Each cell's local days (`daily_at_point`) from hours (time, 1, cells): name → (days, cells)."""
-    n = next(iter(values.values())).shape[-1]
-    out = {name: np.full((len(days), n), np.nan) for name in names}
-    for p in range(n):
-        rolled = daily_at_point(first_hour, {k: v[:, 0, p] for k, v in values.items()}, ZONE, days[0], days[-1])
-        for name in names:
-            out[name][:, p] = rolled[name]
+def replay(cycle: datetime, lat, lon, adjustments: Adjustments | None = None) -> dict[str, np.ndarray]:
+    """A cached run's forecast days and seam hours (the `fc_` and `seam_fc_` values of its cache) from its cached
+    hours through `derive`."""
+    run, pressure = cached_run(cycle)
+    values = derive(run, lat, lon, pressure, adjustments)
+    day1 = (cycle + timedelta(days=1)).date()
+    days = [day1 + timedelta(days=k) for k in range(LEAD_DAYS)]
+    forecast = roll_up(run.valid_times[0], values, days, COMPARED)
+    out = {f"fc_{name}": forecast[name] for name in COMPARED}
+    for name in ("air_temperature", "dew_point"):
+        out[f"seam_fc_{name}"] = values[name][:SEAM_HOURS, 0]
     return out
+
+
+SCORED = (
+    "air_temperature_max",
+    "air_temperature_min",
+    "hours_rh_over_80",
+    "hours_rh_over_90",
+    "hours_rh_over_90_night",
+)
+SEASON_DAYS = [15, 105, 196, 288]  # mid-January, April, July and October: the tables' seasons, DJF … SON
+RH_LEAD_GROUP_ENDS = [72, 144]  # lead hours: 1–72, 73–144, 145 on
+RH_LEAD_HOURS = [36, 108, 204]  # their middles, between which the maps are blended
+RH_EVERY = 2  # every other cell for the RH fit (memory)
+RH_QUANTILES = np.linspace(0, 1, 201)
+
+
+def fit_calibration(data_dir: Path, cycles: list[datetime], window: Window) -> str:
+    """The forecast's calibration (`agdata.calibration`), fitted in order, each step on the forecast with the steps
+    before it applied: the max offset by season (lead days 1–3), the night min's warm bias by lead, then the RH
+    maps by season, lead group and solar hour. Each is checked by 2-fold cross-validation (fitted on alternate
+    runs, applied to the others) before it's fitted on every run for its table."""
+    lat, lon = cell_latlon(window)
+    runs = [c for c in cycles if cache_path(c).exists() and hours_path(c).exists()]
+    if any(c.hour != runs[0].hour for c in runs):
+        raise ValueError("fit runs of one cycle hour")
+    observed = [np.load(cache_path(c)) for c in runs]
+    obs = {name: np.array([o[f"obs_{name}"] for o in observed]) for name in SCORED}
+    fold = np.arange(len(runs)) % 2
+    day_season = np.array(  # each run's lead days' seasons
+        [[calibration.season_index(c + timedelta(days=k + 1)) for k in range(LEAD_DAYS)] for c in runs]
+    )
+
+    def forecast(adjust: list[Adjustments]) -> dict[str, np.ndarray]:
+        """Each run's forecast days through its own adjustments."""
+        out = [replay(c, lat, lon, a) for c, a in zip(runs, adjust, strict=True)]
+        return {name: np.array([o[f"fc_{name}"] for o in out]) for name in SCORED}
+
+    def by_fold(make) -> list[Adjustments]:
+        """Each run's adjustments from the tables fitted on the other fold."""
+        tables = [make(fold != f) for f in (0, 1)]
+        return [tables[f] for f in fold]
+
+    # 1. The max offset
+    base = forecast([Adjustments()] * len(runs))
+
+    def max_table(use: np.ndarray) -> dict:
+        error = (base["air_temperature_max"] - obs["air_temperature_max"])[use, :3]
+        season = day_season[use, :3]
+        offsets = [float(np.nanmean(error[season == s])) for s in range(4)]
+        return {"day_of_year": SEASON_DAYS, "offset_c": [round(o, 2) for o in offsets]}
+
+    steps = [("none", base)]
+    max_held = forecast(by_fold(lambda use: Adjustments(max_offset=max_table(use))))
+    steps.append(("+ max offset", max_held))
+    max_offset = max_table(np.ones(len(runs), dtype=bool))
+
+    # 2. The night min, with the max offset
+    with_max = forecast([Adjustments(max_offset=max_offset)] * len(runs))
+    first = runs[0]
+    lead_hours = [
+        (datetime(d.year, d.month, d.day, 12, tzinfo=UTC) - first) // HOUR
+        for d in ((first + timedelta(days=k + 1)).date() for k in range(LEAD_DAYS))
+    ]
+
+    def night_table(use: np.ndarray) -> dict:
+        error = (with_max["air_temperature_min"] - obs["air_temperature_min"])[use]
+        return {"lead_hours": lead_hours, "warm_bias_c": [round(float(b), 2) for b in np.nanmean(error, axis=(0, 2))]}
+
+    night_held = forecast(by_fold(lambda use: Adjustments(max_offset=max_offset, night_min=night_table(use))))
+    steps.append(("+ night min", night_held))
+    night_min = night_table(np.ones(len(runs), dtype=bool))
+
+    # 3. The RH maps, with both
+    cells = slice(None, None, RH_EVERY)
+    j, i = np.load(CACHE / "cells.npz")["j"] - window.j0, np.load(CACHE / "cells.npz")["i"] - window.i0
+    fc_rh, ob_rh = [], []
+    for cycle in runs:
+        run, pressure = cached_run(cycle)
+        values = derive(run, lat, lon, pressure, Adjustments(max_offset=max_offset, night_min=night_min))
+        fc_rh.append(values["relative_humidity"][:, 0, cells].astype(np.float32))
+        ob_rh.append(
+            read_hours(
+                data_dir, window, run.valid_times[0], nbm.HORIZON_HOURS, j[cells], i[cells], ("relative_humidity",)
+            )["relative_humidity"]
+        )
+    fc_rh, ob_rh = np.array(fc_rh), np.array(ob_rh)
+    group_table = {"lead_group_ends": RH_LEAD_GROUP_ENDS}
+    bins = np.empty(fc_rh.shape, dtype=np.int16)  # season × lead group × solar hour
+    for r, cycle in enumerate(runs):
+        for k in range(nbm.HORIZON_HOURS):
+            valid = cycle + (k + 1) * HOUR
+            s, g = calibration.season_index(valid), calibration.lead_index(cycle, valid, group_table)
+            hour = np.floor(calibration.solar_hour(valid, lon[0, cells])).astype(int) % 24
+            bins[r, k] = (s * len(RH_LEAD_HOURS) + g) * 24 + hour
+    grid = np.arange(101, dtype=float)
+
+    def rh_table(use: np.ndarray) -> dict:
+        b, f, o = bins[use].ravel(), fc_rh[use].ravel(), ob_rh[use].ravel()
+        ok = np.isfinite(f) & np.isfinite(o)
+        b, f, o = b[ok], f[ok], o[ok]
+        order = np.argsort(b, kind="stable")
+        b, f, o = b[order], f[order], o[order]
+        edges = np.searchsorted(b, np.arange(4 * len(RH_LEAD_HOURS) * 24 + 1))
+        maps = np.empty((4, len(RH_LEAD_HOURS), 24, len(grid)))
+        for n in range(4 * len(RH_LEAD_HOURS) * 24):
+            lo, hi = edges[n], edges[n + 1]
+            if hi - lo < 1000:
+                raise ValueError(f"RH bin {n} has {hi - lo} pairs")
+            qf, qo = np.quantile(f[lo:hi], RH_QUANTILES), np.quantile(o[lo:hi], RH_QUANTILES)
+            maps.reshape(-1, len(grid))[n] = np.interp(grid, qf, qo)
+        return {
+            "season_day_of_year": SEASON_DAYS,
+            "lead_group_ends": RH_LEAD_GROUP_ENDS,
+            "lead_hours": RH_LEAD_HOURS,
+            "rh_grid": grid.astype(int).tolist(),
+            "map": np.round(maps, 1).tolist(),
+        }
+
+    rh_held = forecast(
+        by_fold(lambda use: Adjustments(max_offset=max_offset, night_min=night_min, rh_map=rh_table(use)))
+    )
+    steps.append(("+ RH map", rh_held))
+    rh_map = rh_table(np.ones(len(runs), dtype=bool))
+
+    source = f"backtest of {len(runs)} {first:%H}z runs, {runs[0]:%Y-%m-%d} to {runs[-1]:%Y-%m-%d}, against the archive"
+    for path, table in (
+        (calibration.MAX_OFFSET_PATH, max_offset),
+        (calibration.NIGHT_MIN_PATH, night_min),
+        (calibration.RH_MAP_PATH, rh_map),
+    ):
+        head = {"version": 1, "fitted": f"{datetime.now(UTC):%Y-%m-%d}", "source": source}
+        indent = None if table is rh_map else 2  # the maps are 29,000 numbers
+        path.write_text(json.dumps(head | table, indent=indent) + "\n")
+
+    lines = [
+        "# NBM forecast calibration",
+        "",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/backtest_forecast.py --fit-calibration` (D39, D49), "
+        f"from the forecast's hours at {lat.shape[1]} cells in {len(runs)} runs against the archive, after the "
+        "max is reshaped to NBM's TMAX. In order, each on the forecast with the ones before it applied:",
+        "",
+        "1. **Max offset** by season: NBM's TMAX less the archive's daily max (the warmest top-of-hour value) on "
+        "lead days 1–3, applied at every lead (later leads' errors are mostly weather) and interpolated through "
+        "the year between mid-season days.",
+        "2. **Night min**: the hours' warm bias at each night's min by lead (interpolation between NBM's steps "
+        "rounds off the coldest hours), each night's coldest hours (00–12Z) lowered by it.",
+        "3. **RH maps**: quantile maps from the forecast's hourly RH to the archive's, by season, lead group "
+        f"(hours {', '.join(str(e) for e in RH_LEAD_GROUP_ENDS)} and on) and solar hour, on every {RH_EVERY}nd "
+        "cell; the dew point is recomputed with the temperature kept. NBM's blended humidity rarely saturates, so "
+        "the forecast counts too few humid hours (most in daytime rain and overcast).",
+        "",
+        "| Season | DJF | MAM | JJA | SON |",
+        "|---|---|---|---|---|",
+        "| max offset (°C) | " + " | ".join(f"{o:+.2f}" for o in max_offset["offset_c"]) + " |",
+        "",
+        "| Lead day | " + " | ".join(str(k + 1) for k in range(LEAD_DAYS)) + " |",
+        "|---|" + "---|" * LEAD_DAYS,
+        "| night warm bias (°C) | " + " | ".join(f"{b:.2f}" for b in night_min["warm_bias_c"]) + " |",
+        "",
+        "Held out (2-fold: each run with its step's table fitted on the other half; the steps before it use the "
+        "tables fitted on every run), bias / MAE by lead day (°C, hours a day):",
+        "",
+        "| | | " + " | ".join(f"day {k + 1}" for k in range(LEAD_DAYS)) + " |",
+        "|---|---|" + "---|" * LEAD_DAYS,
+    ]
+    for name in SCORED:
+        for label, values in steps:
+            row = [errors(values[name][:, k], obs[name][:, k]) for k in range(LEAD_DAYS)]
+            lines.append(f"| `{name}` | {label} | " + " | ".join(f"{b:+.2f} / {e:.2f}" for b, e in row) + " |")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def roll_up(first_hour: datetime, values: dict[str, np.ndarray], days: list[date], names) -> dict[str, np.ndarray]:
+    """Each cell's local days (`daily_at_point`, all at once) from hours (time, 1, cells): name → (days, cells)."""
+    rolled = daily_at_point(first_hour, {k: v[:, 0] for k, v in values.items()}, ZONE, days[0], days[-1])
+    return {name: rolled[name] for name in names}
 
 
 def wanted(ref: MessageRef, lead: int) -> str | None:
@@ -387,10 +612,25 @@ def read_days(data_dir: Path, window: Window, days: list[date], y, x) -> dict[st
     return out
 
 
-def read_hours(data_dir: Path, window: Window, first: datetime, n: int, y, x) -> dict[str, np.ndarray]:
-    store = GridStore.open(data_dir, HOURLY, first.year, [VARIABLES["air_temperature"], VARIABLES["dew_point"]])
-    t0 = store.index_of(first)
-    return {name: store.read_steps(name, t0, t0 + n, window)[:, y, x] for name in ("air_temperature", "dew_point")}
+def read_hours(
+    data_dir: Path, window: Window, first: datetime, n: int, y, x, names=("air_temperature", "dew_point")
+) -> dict[str, np.ndarray]:
+    """The archive's hours ending first … first + (n − 1) h at the cells, across years (NaN past the archive)."""
+    out = {name: np.full((n, len(y)), np.nan, dtype=np.float32) for name in names}
+    k = 0
+    while k < n:
+        t = first + k * HOUR
+        step = min(n - k, (datetime(t.year + 1, 1, 1, tzinfo=UTC) - t) // HOUR)
+        try:
+            store = GridStore.open(data_dir, HOURLY, t.year, [VARIABLES[name] for name in names])
+        except FileNotFoundError:
+            k += step
+            continue
+        t0 = store.index_of(t)
+        for name in names:
+            out[name][k : k + step] = store.read_steps(name, t0, t0 + step, window)[:, y, x]
+        k += step
+    return out
 
 
 # The report
@@ -400,7 +640,8 @@ def report(args, cycles: list[datetime]) -> str:
     runs = [dict(np.load(cache_path(c))) for c in cycles if cache_path(c).exists()]
     if not runs:
         return "# Forecast backtest\n\nNo runs cached yet.\n"
-    stack = {key: np.stack([r[key] for r in runs]) for key in runs[0] if key not in ("failed_leads", "month")}
+    shared = set.intersection(*(set(r) for r in runs)) - {"failed_leads", "month"}  # older caches hold fewer keys
+    stack = {key: np.stack([r[key] for r in runs]) for key in runs[0] if key in shared}
     months = np.array([int(r["month"]) for r in runs])
     n_points = stack["fc_air_temperature_min"].shape[2]
     failed = sum(len(r["failed_leads"]) for r in runs)

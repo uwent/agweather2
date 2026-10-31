@@ -12,6 +12,8 @@ differences: humid hours and their temperature both come from the day from 8 pm,
 counts the hours over the calendar day); and the table follows FAST where the tool's is off by one, its first step
 at 13–17 °C (from 8 h; FAST 7) and 18–20 °C (from 5 h; FAST 4) and its band edges (18, 21 and 26 °C in the band
 below).
+
+Gridded RH ≥ 90% is counted at 88%, a station's 90% (D50, `features.STATION_RH_90_AS_GRIDDED`).
 """
 
 from collections.abc import Mapping

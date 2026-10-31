@@ -19,7 +19,7 @@ import numpy as np
 from agdata.catalog import VARIABLES
 from agdata.clients.acis import Acis
 from agdata.clients.agweather_v1 import AgWeatherV1, Bounds
-from agdata.clients.openmeteo_daily import OpenMeteoDaily
+from agdata.clients.openmeteo_points import OpenMeteoPoints
 from agdata.daily import cell_timezones, open_or_create_daily
 from agdata.grid import NDFD, service_window
 from agdata.store import HOURLY, GridStore
@@ -295,7 +295,7 @@ WISP_POINTS = [
 def open_meteo_daily(lat: float, lon: float, first: date, last: date) -> dict:
     """Open-Meteo's historical-forecast daily ET0 (mm) and shortwave (MJ/m²) on Central days, cached a year at a
     time (a request for two years can time out)."""
-    client = OpenMeteoDaily(cache_dir=CACHE)
+    client = OpenMeteoPoints(cache_dir=CACHE)
     daily: dict[str, list] = {}
     for year in range(first.year, last.year + 1):
         a, b = max(first, date(year, 1, 1)), min(last, date(year, 12, 31))

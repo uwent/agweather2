@@ -18,7 +18,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from compare_legacy import OLD_API, bounds, read_daily
 
-from agdata.clients.openmeteo_daily import OpenMeteoDaily
+from agdata.clients.openmeteo_points import OpenMeteoPoints
 from agdata.clients.wisconet import Wisconet
 from agdata.grid import NDFD, service_window
 
@@ -73,7 +73,7 @@ def main():
 def open_meteo_days(stations: list[dict], first: date, last: date, n: int) -> dict[str, np.ndarray]:
     """Open-Meteo's historical-forecast daily shortwave at each station (Central days), per model, a year a request.
     WISP 3 takes its ET0 from Open-Meteo, NBM first then best_match (`../wisp3` PLAN.md)."""
-    client = OpenMeteoDaily(cache_dir=CACHE, api_key=os.environ.get("OPEN_METEO_API_KEY") or None)
+    client = OpenMeteoPoints(cache_dir=CACHE, api_key=os.environ.get("OPEN_METEO_API_KEY") or None)
     locations = [(s["latitude"], s["longitude"]) for s in stations]
     out = {}
     for model in OPEN_METEO_MODELS:

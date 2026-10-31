@@ -151,3 +151,9 @@ def reach_window_max(values: np.ndarray, window_max: np.ndarray, hours: int = WI
             moved = np.where((delta < 0) & (shape > 0), np.fmin(moved, targets[end]), moved)
         out[window] = np.where(np.isfinite(delta), moved, seg)
     return out
+
+
+def reach_window_min(values: np.ndarray, window_min: np.ndarray, hours: int = WINDOW_HOURS) -> np.ndarray:
+    """`reach_window_max` for a window's cold part: each window's coldest hours moved so its min meets the target
+    given at the window's last step, the window's edges left where they are."""
+    return -reach_window_max(-np.asarray(values, dtype=float), -np.asarray(window_min, dtype=float), hours)

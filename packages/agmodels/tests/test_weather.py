@@ -25,6 +25,36 @@ def test_relative_humidity_from_dew_point():
     np.testing.assert_allclose(w.relative_humidity_percent(np.array([20.0, np.nan]), 10), [52.5, np.nan], atol=0.1)
 
 
+def test_dew_point_from_rh_inverts_rh_from_dew_point():
+    t = np.array([-20.0, 0.0, 15.0, 32.0, np.nan])
+    td = np.array([-25.0, -3.0, 15.0, 10.0, 5.0])
+    rh = w.relative_humidity_percent(t, td)
+    np.testing.assert_allclose(w.dew_point_from_rh_c(t, rh), np.where(np.isnan(t), np.nan, td), atol=1e-9)
+    assert w.dew_point_from_rh_c(20, 120) == pytest.approx(20)  # capped at saturation
+
+
+@pytest.mark.parametrize("longitude", [-122.0, -89.4, -75.0, 0.0, 100.0])
+def test_a_days_hourly_ra_sums_to_its_daily_ra(longitude):
+    """FAO-56 eq. 21's daily Ra from the 24 hours of a solar day, wherever the day falls in UTC (the hour angle
+    must wrap: west of Greenwich a summer evening's solar time by UTC is below 0 h)."""
+    lat, day = 43.0, np.datetime64("2025-07-02")
+    noon_utc = np.timedelta64(round((12 - longitude / 15) * 3600), "s")
+    hours = day + noon_utc - np.timedelta64(12 * 3600, "s") + np.arange(1, 25) * np.timedelta64(3600, "s")
+    hourly = w.extraterrestrial_radiation_hourly(hours, lat, longitude).sum()
+    j = 183
+    dr, dec = 1 + 0.033 * np.cos(2 * np.pi * j / 365), 0.409 * np.sin(2 * np.pi * j / 365 - 1.39)
+    ws = np.arccos(-np.tan(np.radians(lat)) * np.tan(dec))
+    daily = (
+        24
+        * 60
+        / np.pi
+        * 0.082
+        * dr
+        * (ws * np.sin(np.radians(lat)) * np.sin(dec) + np.cos(np.radians(lat)) * np.cos(dec) * np.sin(ws))
+    )
+    assert hourly == pytest.approx(daily, rel=0.01)
+
+
 def test_extraterrestrial_radiation_matches_example_19():
     assert w.extraterrestrial_radiation_hourly(DAY_END, LAT, LON) == pytest.approx(3.543, abs=0.01)
     assert w.extraterrestrial_radiation_hourly(NIGHT_END, LAT, LON) == 0

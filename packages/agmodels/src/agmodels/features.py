@@ -46,6 +46,14 @@ def mean_where(values: np.ndarray, condition: np.ndarray) -> np.ndarray:
 # Pecan scab hours (Oklahoma Mesonet's Pecan Scab Advisor): RH at or above 90% and temperature at or above 70 °F
 SCAB_C = (70 - 32) / 1.8
 
+# The disease models' RH ≥ 90% comes from in-field stations (Wallin, TOMCAST, Windels, BOTCAST, Webster's fits).
+# Gridded RH reads a little low where it matters: against 80 Wisconet stations (2025–2026, May–September), the
+# archive's RH ≥ 88% counts as many hours as the stations' RH ≥ 90%, and as their leaf-wet hours (D50;
+# docs/validation-humidity.md). So the "RH ≥ 90%" features are counted at 88% on our hourly data, and keep their
+# names: they mean what a station would have counted at 90%. Pecan scab's threshold is the Oklahoma Mesonet's,
+# not checked against its stations, so it stays at 90%.
+STATION_RH_90_AS_GRIDDED = 88.0
+
 
 def hours_humid_and_warm(temperature_c, rh_percent, rh_from: float, temperature_from_c: float) -> np.ndarray:
     """Hours with RH at or above `rh_from` and temperature at or above `temperature_from_c` together."""
@@ -69,7 +77,7 @@ def calendar_features(
         "hours_temperature_over_30c": hours_at_or_above(temperature_c, 30),
         "hours_rh_under_70": hours_below(rh_percent, 70),
         "hours_rh_over_80": hours_at_or_above(rh_percent, 80),
-        "hours_rh_over_90": hours_at_or_above(rh_percent, 90),
+        "hours_rh_over_90": hours_at_or_above(rh_percent, STATION_RH_90_AS_GRIDDED),
         "hours_rh_over_90_temperature_over_70f": hours_humid_and_warm(temperature_c, rh_percent, 90, SCAB_C),
     }
 
@@ -104,11 +112,11 @@ def from_8pm_features(temperature_c: np.ndarray, rh_percent: np.ndarray, night: 
     rh = np.asarray(rh_percent, dtype=float)
     night = np.asarray(night, dtype=bool).reshape(-1, *([1] * (rh.ndim - 1)))
     out = {}
-    for threshold in (80, 90):
-        wet = np.where(np.isnan(rh), np.nan, rh >= threshold)
-        out[f"hours_rh_over_{threshold}_from_8pm"] = hours_at_or_above(rh, threshold)
+    for threshold, counted_at in ((80, 80.0), (90, STATION_RH_90_AS_GRIDDED)):
+        wet = np.where(np.isnan(rh), np.nan, rh >= counted_at)
+        out[f"hours_rh_over_{threshold}_from_8pm"] = hours_at_or_above(rh, counted_at)
         out[f"hours_rh_over_{threshold}_night"] = np.where(
-            np.isnan(rh).any(axis=0), np.nan, ((rh >= threshold) & night).sum(axis=0)
+            np.isnan(rh).any(axis=0), np.nan, ((rh >= counted_at) & night).sum(axis=0)
         )
         out[f"temperature_mean_rh_over_{threshold}_from_8pm"] = mean_where(temperature_c, wet)
     return out

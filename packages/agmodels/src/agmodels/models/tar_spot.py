@@ -5,6 +5,8 @@ mean night hours with RH ≥ 90%, averaged, then scaled down as the 21-day mean 
 Crop Risk Tool's attenuation). Corn is susceptible from V10 to R3.
 
 Ported from the Crop Risk Tool (`predict_tarspot`, `build_tar_spot`) with parity tests.
+
+Gridded RH ≥ 90% is counted at 88%, a station's 90% (D50, `features.STATION_RH_90_AS_GRIDDED`).
 """
 
 from collections.abc import Mapping

@@ -26,8 +26,10 @@ def daily_at_point(
     """Every daily variable for local days first..last (inclusive) at a point in `zone`.
 
     `hours` holds hourly catalog variables, each a series of hours ending at `first_hour`, `first_hour` + 1 h, …
-    in stored units. Hours outside a series, and variables not given, count as missing.
+    in stored units. Hours outside a series, and variables not given, count as missing. A series may carry more
+    axes after time (several points in the same zone); each day's values then have those axes too.
     """
+    rest = np.shape(next(iter(hours.values())))[1:] if hours else ()
     if first_hour.tzinfo is None or first_hour.minute or first_hour.second:
         raise ValueError("pass a timezone-aware first hour on the hour")
     days = [first + timedelta(days=n) for n in range((last - first).days + 1)]
@@ -36,7 +38,7 @@ def daily_at_point(
     def segment(name: str, begin: datetime, end: datetime) -> np.ndarray:
         """Hours ending begin..end (inclusive), NaN where the series doesn't reach."""
         n = (end - begin) // HOUR + 1
-        out = np.full(n, np.nan)
+        out = np.full((n, *rest), np.nan)
         values = hours.get(name)
         if values is None:
             return out
@@ -55,7 +57,7 @@ def daily_at_point(
             "rh": relative_humidity_percent(temperature, dew_point),
         }
 
-    out: dict[str, list[float]] = {}
+    out: dict[str, list[np.ndarray]] = {}
     for day in days:
         begin, end = day_bounds(day, zone)
         values: dict[str, np.ndarray] = {
@@ -73,5 +75,5 @@ def daily_at_point(
         local_hour = np.array([(begin + n * HOUR).astimezone(tz).hour for n in range(len(h["rh"]))])
         values |= features.from_8pm_features(h["temperature"], h["rh"], features.is_night(local_hour))
         for name, value in values.items():
-            out.setdefault(name, []).append(float(value))
+            out.setdefault(name, []).append(np.broadcast_to(np.asarray(value, dtype=float), rest))
     return {name: np.array(series) for name, series in out.items()}

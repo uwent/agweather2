@@ -145,7 +145,8 @@ def test_botcast_season(crt):
         (botcast, "dsi", "botcast_eau_claire_2025", "dsi"),
     ],
 )
-def test_pairing_changes_little_over_a_season(crt, module, name, theirs_file, column):
+def test_pairing_changes_little_over_a_season(crt, module, name, theirs_file, column, monkeypatch):
+    monkeypatch.setattr(f, "STATION_RH_90_AS_GRIDDED", 90.0)  # the tool's threshold, to isolate the pairing
     ours = module.outputs(our_inputs(crt))[name]
     theirs = crt(theirs_file)[column]
     season = slice(134, 273)  # May 15 to Sep 30

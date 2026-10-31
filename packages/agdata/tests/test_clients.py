@@ -12,7 +12,7 @@ import requests
 from agdata.clients.acis import Acis, precip_mm
 from agdata.clients.agweather_v1 import AgWeatherV1, point_key
 from agdata.clients.http import JsonClient
-from agdata.clients.openmeteo_daily import OpenMeteoDaily
+from agdata.clients.openmeteo_points import OpenMeteoPoints
 from agdata.clients.wisconet import Wisconet
 
 FIXTURES = Path(__file__).parent / "fixtures" / "clients"
@@ -98,7 +98,7 @@ def test_acis_precip_in_mm():
 def test_open_meteo_daily_batches_locations_and_unwraps_one():
     body = {"daily": {"time": ["2025-07-01"], "shortwave_radiation_sum": [25.0]}}
     session = Recorded({"/v1/forecast": [Response(200, [body] * 25), Response(200, body)]})
-    client = OpenMeteoDaily(session=session)  # type: ignore[arg-type]
+    client = OpenMeteoPoints(session=session)  # type: ignore[arg-type]
     days = client.daily(
         [(43.0 + k / 100, -89.0) for k in range(26)],
         date(2025, 7, 1),
@@ -109,6 +109,17 @@ def test_open_meteo_daily_batches_locations_and_unwraps_one():
     assert len(days) == 26 and days[-1]["shortwave_radiation_sum"] == [25.0]
     assert [c[2]["latitude"].count(",") + 1 for c in session.calls] == [25, 1]
     assert session.calls[0][2]["models"] == "ncep_nbm_conus"
+
+
+def test_open_meteo_hourly_asks_for_utc_unix_times_in_m_s():
+    body = {"hourly": {"time": [1751328000], "shortwave_radiation": [0.0]}}
+    session = Recorded({"/v1/forecast": [Response(200, body)]})
+    client = OpenMeteoPoints(session=session)  # type: ignore[arg-type]
+    hours = client.hourly([(43.0, -89.0)], date(2025, 7, 1), date(2025, 7, 1), ["shortwave_radiation"])
+    assert hours[0]["time"] == [1751328000]
+    params = session.calls[0][2]
+    assert (params["timezone"], params["timeformat"], params["wind_speed_unit"]) == ("GMT", "unixtime", "ms")
+    assert params["hourly"] == "shortwave_radiation"
 
 
 def test_retries_on_throttling_then_gives_up_on_client_errors(monkeypatch):

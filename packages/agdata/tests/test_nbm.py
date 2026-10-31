@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import requests
 
-from agdata import interpolate
+from agdata import calibration, interpolate
 from agdata.gaps import clear_sky_shortwave_w_m2
 from agdata.grid import NDFD, Window
 from agdata.sources import nbm
@@ -142,7 +142,9 @@ def test_shortwave_follows_each_days_clearness():
     for d in full_days:
         k = day == d
         np.testing.assert_allclose(out[k], (clearness * rso)[k], rtol=1e-9)
-    assert estimated[rso > 0].all()
+    assert estimated[
+        (rso > 0) & np.isin(day, full_days)
+    ].all()  # the first hours are the evening of a day without samples
     # A day without enough samples has no daylight values; its night is still 0
     samples[day == day[30]] = np.nan
     out, _ = interpolate.shortwave_hourly_w_m2(times, samples, lat, lon, 98.0)
@@ -248,3 +250,101 @@ def test_a_cooler_max_lowers_the_warm_hours_only():
     out = interpolate.reach_window_max(temp[:, None], targets[:, None])[:, 0]
     assert out[12:24].max() == pytest.approx(20.0)
     assert out[12] == temp[12] and out[23] == temp[23]
+
+
+def test_a_nights_coldest_hours_reach_a_lower_min():
+    hours = np.arange(24, dtype=float)
+    temp = 10 - 6 * np.cos(2 * np.pi * (hours - 6) / 24)  # min 4 °C at 6h, inside the window (0..11)
+    targets = np.full(24, np.nan)
+    targets[11] = temp[:12].min() - 1.5
+    out = interpolate.reach_window_min(temp[:, None], targets[:, None])[:, 0]
+    assert out[:12].min() == pytest.approx(targets[11])
+    assert out[0] == temp[0] and out[11] == temp[11]
+    assert np.argmin(out[:12]) == np.argmin(temp[:12])
+    np.testing.assert_array_equal(out[12:], temp[12:])
+
+
+def test_forecast_nights_are_lowered_by_the_bias_for_their_lead():
+    from agdata import forecast
+
+    cycle = datetime(2025, 7, 5, 13, tzinfo=UTC)
+    times = [cycle + (n + 1) * timedelta(hours=1) for n in range(nbm.HORIZON_HOURS)]
+    utc_hour = np.array([t.hour for t in times], dtype=float)
+    temp = (20 + 6 * np.sin(2 * np.pi * (utc_hour - 15) / 24))[:, None, None]  # coldest at 09Z
+    values = {"air_temperature": temp, "dew_point": temp - 0.2, "shortwave_radiation": np.zeros_like(temp)}
+    hourly = nbm.HourlyRun(cycle=cycle, values=values, filled={})
+    bias = {"lead_hours": [23, 47], "warm_bias_c": [0.5, 1.0]}
+    adjustments = calibration.Adjustments(night_min=bias)
+    out = forecast.adjust_hours(hourly, np.array([[43.0]]), np.array([[-89.4]]), 97.0, adjustments).values
+    t, td = out["air_temperature"][:, 0, 0], out["dew_point"][:, 0, 0]
+    night = lambda k: slice(k - 11, k + 1)  # noqa: E731
+    first, second, last = 22, 46, 238  # 12Z on Jul 6, 7 and 15 (23, 47 and 239 hours from the cycle)
+    assert t[night(first)].min() == pytest.approx(temp[night(first), 0, 0].min() - 0.5)
+    assert t[night(second)].min() == pytest.approx(temp[night(second), 0, 0].min() - 1.0)
+    assert t[night(last)].min() == pytest.approx(temp[night(last), 0, 0].min() - 1.0)  # held past the last lead
+    days = utc_hour > 12  # 13–23Z: the windows' insides are night only
+    np.testing.assert_array_equal(t[days], temp[days, 0, 0])
+    assert (td <= t).all()
+
+
+def test_the_max_target_is_lowered_by_the_seasons_offset():
+    table = {"day_of_year": [15, 105, 196, 288], "offset_c": [-0.4, 0.3, 0.6, 0.4]}
+    times = [
+        datetime(2025, 7, 15, 0, tzinfo=UTC),
+        datetime(2025, 1, 15, 0, tzinfo=UTC),
+        datetime(2025, 12, 31, tzinfo=UTC),
+    ]
+    targets = calibration.max_targets(times, np.array([[30.0], [0.0], [np.nan]]), table)
+    assert targets[0, 0] == pytest.approx(29.4)
+    assert targets[1, 0] == pytest.approx(0.4)
+    assert np.isnan(targets[2, 0])  # no TMAX at that hour
+    # Around the year's end: Dec 31 (day 365) lies between Oct 15 (288) and Jan 15 (15 + 365)
+    expected = 0.4 + (-0.4 - 0.4) * (365 - 288) / (380 - 288)
+    assert calibration.max_offset_c([datetime(2025, 12, 31, tzinfo=UTC)], table)[0] == pytest.approx(expected)
+
+
+def rh_table(maps):
+    return {
+        "season_day_of_year": [15, 105, 196, 288],
+        "lead_group_ends": [72, 144],
+        "lead_hours": [36, 108, 204],
+        "rh_grid": list(range(101)),
+        "map": maps.tolist(),
+    }
+
+
+def test_an_identity_rh_map_changes_nothing():
+    grid = np.arange(101, dtype=float)
+    table = rh_table(np.broadcast_to(grid, (4, 3, 24, 101)))
+    cycle = datetime(2025, 7, 5, 13, tzinfo=UTC)
+    times = [cycle + (n + 1) * timedelta(hours=1) for n in range(48)]
+    rh = np.linspace(20, 100, 48 * 6).reshape(48, 2, 3)
+    rh[3, 0, 0] = np.nan
+    out = calibration.map_rh(cycle, times, np.full((2, 3), -89.4), rh, table)
+    np.testing.assert_allclose(out, rh)  # NaN stays NaN
+
+
+def test_rh_maps_blend_across_solar_hours_seasons_and_leads():
+    grid = np.arange(101, dtype=float)
+    maps = np.empty((4, 3, 24, 101))
+    for s, g, h in itertools.product(range(4), range(3), range(24)):
+        maps[s, g, h] = np.minimum(grid + h + 10 * s + 100 * g, 1000)  # a different shift for each map
+    table = rh_table(maps)
+    cycle = datetime(2025, 7, 15, 0, tzinfo=UTC)  # day 196: summer's middle
+    # 36 h out (lead group 0's middle), on the meridian where the hour ending 12Z is solar noon's end
+    valid = cycle + timedelta(hours=36)
+    out = calibration.map_rh(cycle, [valid], np.array([0.0, -7.5]), np.array([[50.0, 50.0]]), table)[0]
+    summer = 20 + 10 * (197.5 - 196) / (288 - 196)  # Jul 16 12Z is day 197.5: a little of fall (s = 3)
+    # Longitude 0: solar hour 12, halfway between bins 11 and 12 (centred on 11.5 and 12.5); 7.5° W: 11.5, bin 11
+    assert out[0] == pytest.approx(50 + 11.5 + summer)
+    assert out[1] == pytest.approx(50 + 11.0 + summer)
+    # Halfway between lead 36 and 108 the two groups mix equally
+    valid = cycle + timedelta(hours=72)
+    out = calibration.map_rh(cycle, [valid], np.array([0.0]), np.array([[50.0]]), table)[0]
+    assert out[0] == pytest.approx(50 + 11.5 + 20 + 10 * (199 - 196) / (288 - 196) + 50)  # Jul 18 00Z
+    # On New Year's Eve, between mid-October (s = 3) and mid-January (s = 0), weighted by days
+    cycle = datetime(2025, 12, 30, 12, tzinfo=UTC)
+    valid = cycle + timedelta(hours=36)  # Jan 1 00Z: day 1, 78 days past mid-October of 92 to mid-January
+    out = calibration.map_rh(cycle, [valid], np.array([0.0]), np.array([[50.0]]), table)[0]
+    w_jan = (366 - 288) / (380 - 288)
+    assert out[0] == pytest.approx(50 + (23 + 0) / 2 + 30 * (1 - w_jan))  # 00Z is solar 0 at 0°: bins 23 and 0

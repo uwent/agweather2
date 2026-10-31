@@ -46,7 +46,7 @@ def model_at_point(
     if in_archive(latitude, longitude, first, end):
 
         def fill_soil(first_hour: datetime, last_hour: datetime, names: list[str]) -> dict[str, np.ndarray]:
-            values, _ = openmeteo.cell_hours(latitude, longitude, first_hour, last_hour, now)
+            values, _, _ = openmeteo.cell_hours(latitude, longitude, first_hour, last_hour, now)  # soil only
             return {name: values[name] for name in names if name in values}
 
         return series.model_at_point(

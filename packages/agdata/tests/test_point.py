@@ -96,6 +96,19 @@ def test_point_days_match_the_rollup(stores):
     assert np.isnan(may_31)  # 19 of 24 hours is too few (D25)
 
 
+def test_points_in_one_zone_roll_up_together(stores):
+    hourly, _ = stores
+    t0 = hourly.index_of(START)
+    block = {name: hourly.read_steps(name, t0, t0 + HOURS) for name in VARIABLES}
+    zone = next(zone for _, _, zone in cells())
+    together = daily_at_point(START, {name: values[:, 0, :] for name, values in block.items()}, zone, FIRST, LAST)
+    for x in range(WINDOW.shape[1]):
+        alone = daily_at_point(START, {name: values[:, 0, x] for name, values in block.items()}, zone, FIRST, LAST)
+        for name, values in alone.items():
+            assert together[name].shape == (len(values), WINDOW.shape[1])
+            np.testing.assert_allclose(together[name][:, x], values, rtol=1e-12, err_msg=name)  # nanmean's order
+
+
 def test_every_model_gives_a_cell_what_it_gives_its_series(stores):
     _, days = stores
     d0, d1 = days.index_of(FIRST), days.index_of(LAST) + 1

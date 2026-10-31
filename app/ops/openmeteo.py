@@ -38,16 +38,19 @@ def spans(first: date, last: date, today: date) -> list[tuple[str, date, date]]:
 
 def cell_hours(
     latitude: float, longitude: float, start: datetime, end: datetime, now: datetime, session=None
-) -> tuple[dict[str, np.ndarray], list[str | None]]:
-    """Each catalog variable's hours ending start..end (UTC, inclusive) at the point's O1280 cell, and each hour's
-    kind (observed up to `now`, forecast after, None past the forecast), filling the cache as needed."""
+) -> tuple[dict[str, np.ndarray], list[str | None], tuple[str, ...]]:
+    """Each catalog variable's hours ending start..end (UTC, inclusive) at the point's O1280 cell, each hour's kind
+    (observed up to `now`, forecast after, None past the forecast), and the corrections applied (D51; the cache
+    keeps Open-Meteo's values, corrected as they're read), filling the cache as needed."""
     cell = openmeteo.cell_for(latitude, longitude)
     session = session or requests.Session()
     n = (end - start) // HOUR + 1
     values: dict[str, np.ndarray] = {}
     reached = start - HOUR
+    applied: list[str] = []
     for endpoint, first, last in spans((start - HOUR).date(), end.date(), now.date()):
-        hours = _cached(cell, endpoint, first, last, now, session)
+        hours = openmeteo.correct(_cached(cell, endpoint, first, last, now, session), cell, endpoint)
+        applied += [c for c in hours.corrections if c not in applied]
         k0 = (hours.start - start) // HOUR
         for name, series in hours.values.items():
             target = values.setdefault(name, np.full(n, np.nan))
@@ -57,7 +60,7 @@ def cell_hours(
         reached = max(reached, hours.start + (hours.count - 1) * HOUR)
     times = [start + k * HOUR for k in range(n)]
     kinds = [None if t > reached else (OBSERVED if t <= now else FORECAST) for t in times]
-    return values, kinds
+    return values, kinds, tuple(applied)
 
 
 def point_days(
@@ -67,7 +70,7 @@ def point_days(
     zone = zone_at(latitude, longitude)
     start = datetime(first.year, first.month, first.day, tzinfo=UTC) - timedelta(days=1)
     end = datetime(last.year, last.month, last.day, tzinfo=UTC) + timedelta(days=1, hours=8)
-    values, kinds = cell_hours(latitude, longitude, start, end, now, session)
+    values, kinds, applied = cell_hours(latitude, longitude, start, end, now, session)
     days = daily_at_point(start, values, zone, first, last)
     dates = [first + timedelta(days=k) for k in range((last - first).days + 1)]
     times = [start + k * HOUR for k in range(len(kinds))]
@@ -79,6 +82,7 @@ def point_days(
         kinds=day_kinds(times, kinds, zone, dates),
         forecast=Forecast(path=None, reason="openmeteo"),
         zone=zone,
+        corrections=applied,
     )
 
 

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "fitted": "2026-10-31",
+  "source": "backtest of 73 13z runs, 2025-01-01 to 2025-12-27, against the archive",
+  "day_of_year": [
+    15,
+    105,
+    196,
+    288
+  ],
+  "offset_c": [
+    -0.41,
+    0.26,
+    0.6,
+    0.43
+  ]
+}

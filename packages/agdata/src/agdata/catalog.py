@@ -185,7 +185,7 @@ VARIABLES: dict[str, Variable] = {
             valid_max=1500,
             daily=("sum",),
             derived=True,
-            version=2,  # 1 + the correction table's version (`agdata.shortwave`; a test checks it)
+            version=3,  # 1 + the correction table's version (`agdata.shortwave`; a test checks it)
             notes="In the archive, HRRR corrected against ground pyranometers by each hour's clearness (D48); in a "
             "forecast run, NBM's. Daily sums in MJ/m² (W/m² x 0.0036)",
             sources={"hrrr": "shortwave_radiation_hrrr, corrected (agdata.shortwave)"},
@@ -313,6 +313,8 @@ DAILY_VARIABLES["et0_sum_estimate"] = Variable(
 # and over the day from 8 pm (20:00 the evening before through 19:59), night hours (20:00-06:59), and the mean
 # temperature during humid hours. Features that look across days (hot past 5 days, dry) and moving averages are
 # computed on read. Bump a feature's version when `agmodels.features` changes what it computes (D29).
+# Version 2 counts gridded RH at 88%, a station's 90% (D50, `agmodels.features.STATION_RH_90_AS_GRIDDED`)
+_RH90 = "{} with RH at or above 90% as a station counts it (gridded RH ≥ 88%)"
 _HOURS = {"unit": "hour", "scale": 1, "valid_min": 0, "valid_max": 25, "derived": True, "gap_fill": "interpolate"}
 _TEMPERATURE = {
     "unit": "degC",
@@ -329,19 +331,21 @@ DAILY_FEATURES: dict[str, Variable] = {
         Variable(name="hours_temperature_over_30c", long_name="Hours with temperature at or above 30 °C", **_HOURS),
         Variable(name="hours_rh_under_70", long_name="Hours with RH below 70%", **_HOURS),
         Variable(name="hours_rh_over_80", long_name="Hours with RH at or above 80%", **_HOURS),
-        Variable(name="hours_rh_over_90", long_name="Hours with RH at or above 90%", **_HOURS),
+        Variable(name="hours_rh_over_90", long_name=_RH90.format("Hours"), version=2, **_HOURS),
         Variable(
             name="hours_rh_over_90_temperature_over_70f",
             long_name="Hours with RH at or above 90% and at least 70 °F",
             **_HOURS,
         ),
         Variable(name="hours_rh_over_80_from_8pm", long_name="Hours with RH at or above 80%, day from 8 pm", **_HOURS),
-        Variable(name="hours_rh_over_90_from_8pm", long_name="Hours with RH at or above 90%, day from 8 pm", **_HOURS),
+        Variable(
+            name="hours_rh_over_90_from_8pm", long_name=_RH90.format("Hours") + ", day from 8 pm", version=2, **_HOURS
+        ),
         Variable(
             name="hours_rh_over_80_night", long_name="Night hours (8 pm to 7 am) with RH at or above 80%", **_HOURS
         ),
         Variable(
-            name="hours_rh_over_90_night", long_name="Night hours (8 pm to 7 am) with RH at or above 90%", **_HOURS
+            name="hours_rh_over_90_night", long_name=_RH90.format("Night hours (8 pm to 7 am)"), version=2, **_HOURS
         ),
         Variable(name="hours_soil_4cm_below_27f", long_name="Hours with soil at 4 cm below 27 °F", **_HOURS),
         Variable(name="hours_soil_10cm_below_27f", long_name="Hours with soil at 10 cm below 27 °F", **_HOURS),
@@ -360,7 +364,8 @@ DAILY_FEATURES: dict[str, Variable] = {
         ),
         Variable(
             name="temperature_mean_rh_over_90_from_8pm",
-            long_name="Mean temperature, RH ≥ 90%, day from 8 pm",
+            long_name="Mean temperature, RH ≥ 90% as a station counts it (gridded RH ≥ 88%), day from 8 pm",
+            version=2,
             **_TEMPERATURE,
         ),
     ]

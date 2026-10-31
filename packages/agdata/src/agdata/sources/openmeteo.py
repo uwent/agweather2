@@ -11,16 +11,20 @@ cells (~9 km), so every point in a cell shares one series and one cache entry. C
   0–7, 7–28 and 28–100 cm.
 - Values at T are the hour ending T, as ours: precip and shortwave are the preceding hour's sum and mean.
 Values are converted to the catalog's variables and units here; RH and ET0 are derived as the archive does them
-(from T and Td, and our FAO-56), so a point outside the box agrees with one inside on method.
+(from T and Td, and our FAO-56), so a point outside the box agrees with one inside on method. The cache keeps these
+values; `correct` applies D51's corrections as they're read (shortwave against Wisconet's pyranometers, RH onto the
+archive's), keeping the values before in `Hours.raw` (`agdata.corrections` lists them).
 """
 
+import json
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 
 import numpy as np
 import requests
 
+from agdata import calibration, corrections, shortwave
 from agmodels.weather import et0_hourly_series, relative_humidity_percent
 
 HOSTS = {
@@ -78,6 +82,8 @@ class Hours:
     values: dict[str, np.ndarray]
     sources: dict[str, str] = field(default_factory=dict)  # the model each variable mostly came from
     elevation_m: float | None = None
+    raw: dict[str, np.ndarray] = field(default_factory=dict)  # values before `correct`, by variable it changed
+    corrections: tuple[str, ...] = ()  # the corrections applied, as `agdata.corrections` labels them
 
     @property
     def count(self) -> int:
@@ -210,21 +216,69 @@ def _to_catalog(merged, chosen, start: datetime, cell: Cell, elevation) -> Hours
         w = (depth - middles[k]) / (middles[k + 1] - middles[k])
         values[name] = layers[k] * (1 - w) + layers[k + 1] * w
         sources[name] = chosen.get(list(SOIL_LAYERS)[k], "")
-    values["relative_humidity"] = relative_humidity_percent(values["air_temperature"], values["dew_point"])
-    times = np.array([(start + k * HOUR).replace(tzinfo=None) for k in range(len(values["air_temperature"]))])
-    with np.errstate(invalid="ignore"):
-        values["et0"] = et0_hourly_series(
-            times.astype("datetime64[s]"),
-            cell.latitude,
-            cell.longitude,
-            values["air_temperature"],
-            values["dew_point"],
-            values["wind_speed"],
-            values["surface_pressure"],
-            values["shortwave_radiation"],
-        )
+    _derive(values, start, cell)
     sources["relative_humidity"] = sources["et0"] = "derived"
     return Hours(start=start, values=values, sources=sources, elevation_m=elevation)
+
+
+def _derive(values: dict[str, np.ndarray], start: datetime, cell: Cell) -> None:
+    """RH from temperature and dew point, and our FAO-56 ET0, as the archive derives them (in place; a missing
+    input leaves them NaN)."""
+    n = len(values["air_temperature"])
+    get = lambda name: values.get(name, np.full(n, np.nan))  # noqa: E731
+    values["relative_humidity"] = relative_humidity_percent(get("air_temperature"), get("dew_point"))
+    with np.errstate(invalid="ignore"):
+        values["et0"] = et0_hourly_series(
+            _stamps(start, n),
+            cell.latitude,
+            cell.longitude,
+            get("air_temperature"),
+            get("dew_point"),
+            get("wind_speed"),
+            get("surface_pressure"),
+            get("shortwave_radiation"),
+        )
+
+
+def _stamps(start: datetime, n: int) -> np.ndarray:
+    return np.array([(start + k * HOUR).replace(tzinfo=None) for k in range(n)], dtype="datetime64[s]")
+
+
+CORRECTED_ENDPOINTS = ("historical", "forecast")  # the ones fitted (D51); ERA5's archive endpoint wasn't checked
+OPENMETEO_RH_MAP = json.loads(calibration.OPENMETEO_RH_MAP_PATH.read_text())
+
+
+def correct(hours: Hours, cell: Cell, endpoint: str) -> Hours:
+    """Open-Meteo's hours with D51's corrections (`agdata.corrections`): shortwave by the hour's clearness against
+    Wisconet's pyranometers, and RH mapped onto the archive's (the dew point recomputed, temperature kept), then RH
+    and ET0 derived again. The values before are kept in `raw`, and the corrections applied in `corrections`.
+    Hours from an endpoint not fitted come back as they are, and a correction whose inputs are missing is left
+    out."""
+    if endpoint not in CORRECTED_ENDPOINTS or not hours.count or "air_temperature" not in hours.values:
+        return hours
+    values = dict(hours.values)
+    raw: dict[str, np.ndarray] = {}
+    applied: list[str] = []
+    times = [hours.start + k * HOUR for k in range(hours.count)]
+    if "shortwave_radiation" in values:
+        raw["shortwave_radiation"] = values["shortwave_radiation"]
+        values["shortwave_radiation"] = shortwave.correct_w_m2(
+            _stamps(hours.start, hours.count),
+            cell.latitude,
+            cell.longitude,
+            raw["shortwave_radiation"],
+            values.get("surface_pressure", np.full(hours.count, np.nan)),  # Rso falls back to 97 kPa
+            shortwave.OPENMETEO_TABLE,
+        )
+        applied.append(corrections.OPENMETEO_SHORTWAVE.label)
+    if "dew_point" in values:
+        raw["dew_point"] = values["dew_point"]
+        values["dew_point"] = calibration.map_humidity(  # one lead group, so the "cycle" doesn't matter
+            hours.start, times, cell.longitude, values["air_temperature"], raw["dew_point"], OPENMETEO_RH_MAP
+        )
+        applied.append(corrections.OPENMETEO_RH.label)
+    _derive(values, hours.start, cell)
+    return replace(hours, values=values, raw=raw, corrections=tuple(applied))
 
 
 # The O1280 grid (ECMWF's octahedral reduced Gaussian grid, N = 1280)

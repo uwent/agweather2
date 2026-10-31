@@ -1,5 +1,7 @@
 # generated from the Pydantic and OpenAPI schemas (CI checks they are current)
 frontend/types/generated
+# generated from agdata.corrections (a test checks it is current)
+docs/corrections.md
 
 node_modules
 app/static
@@ -14,3 +16,6 @@ uv.lock
 packages/agmodels/tests/snapshots
 # recorded API responses, kept as recorded
 packages/*/tests/fixtures/**/*.json
+# fitted forecast calibration: one line of 29,000 numbers
+packages/agdata/src/agdata/data/nbm_rh_map.json
+packages/agdata/src/agdata/data/openmeteo_rh_map.json

@@ -8,6 +8,8 @@ Ported from the Crop Risk Tool (`calc_late_blight_dsv`, `risk_for_late_blight`),
 difference: the tool counts humid hours over the calendar day but averages their temperature over the day from
 8 pm; Wallin pairs the hours with their own temperature, so both come from the day from 8 pm here (an overnight
 wet period counts whole). A day without its inputs has no DSV rather than 0.
+
+Gridded RH ≥ 90% is counted at 88%, a station's 90% (D50, `features.STATION_RH_90_AS_GRIDDED`).
 """
 
 from collections.abc import Mapping

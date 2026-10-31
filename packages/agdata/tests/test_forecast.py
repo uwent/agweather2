@@ -3,7 +3,7 @@ from datetime import UTC, date, datetime, timedelta
 import numpy as np
 import pytest
 
-from agdata import forecast
+from agdata import calibration, forecast
 from agdata.catalog import VARIABLES
 from agdata.grid import Window
 from agdata.sources.nbm import HORIZON_HOURS
@@ -11,6 +11,12 @@ from agdata.store import CUMULATIVE, DAILY, HOURLY, GridStore
 
 WINDOW = Window(j0=900, j1=902, i0=1400, i1=1403)  # 2 x 3 cells near Madison
 HOUR = timedelta(hours=1)
+
+
+@pytest.fixture(autouse=True)
+def no_calibration(monkeypatch):
+    """These tests check the stitch and the stores; the calibration is tested in test_nbm."""
+    monkeypatch.setattr(forecast, "CALIBRATION", calibration.Adjustments())
 
 
 def test_a_run_continues_the_archive(tmp_path, fx):

@@ -25,7 +25,8 @@ def test_a_season_matches_the_crop_risk_tool_from_its_inputs(crt):
     np.testing.assert_array_equal(lb.risk(out), theirs["severity"])
 
 
-def test_pairing_hours_with_their_own_window_changes_few_days(crt):
+def test_pairing_hours_with_their_own_window_changes_few_days(crt, monkeypatch):
+    monkeypatch.setattr(f, "STATION_RH_90_AS_GRIDDED", 90.0)  # the tool's threshold, to isolate the pairing (D50)
     h = crt("hourly_eau_claire_2025")
     _, daily = f.daily_features(
         h["local_time"].astype("datetime64[h]"),

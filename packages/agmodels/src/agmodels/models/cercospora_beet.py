@@ -6,6 +6,8 @@ mean DIV.
 
 Ported from the Crop Risk Tool (`calc_cercospora_div`, `risk_for_cercospora`) with parity tests. Intended
 difference, as for late blight: humid hours and their temperature both come from the day from 8 pm.
+
+Gridded RH ≥ 90% is counted at 88%, a station's 90% (D50, `features.STATION_RH_90_AS_GRIDDED`).
 """
 
 from collections.abc import Mapping

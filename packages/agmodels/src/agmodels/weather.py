@@ -37,6 +37,14 @@ def relative_humidity_percent(temperature_c, dew_point_c):
     return np.clip(rh, 0, 100)
 
 
+def dew_point_from_rh_c(temperature_c, rh_percent):
+    """Dew point from temperature and RH, the inverse of `relative_humidity_percent` (RH below 0.1% is taken as
+    0.1%, RH above 100 as 100)."""
+    e = np.clip(np.asarray(rh_percent, dtype=float), 0.1, 100) / 100 * saturation_vapor_pressure_kpa(temperature_c)
+    g = np.log(e / 0.6108)
+    return 237.3 * g / (17.27 - g)
+
+
 def svp_slope_kpa_per_c(temperature_c):
     """Δ, the slope of the saturation vapor pressure curve, FAO-56 eq. 13."""
     t = np.asarray(temperature_c, dtype=float)
@@ -81,7 +89,8 @@ def _solar_terms(times, longitude_deg):
     seasonal_correction_h = 0.1645 * np.sin(2 * b) - 0.1255 * np.cos(b) - 0.025 * np.sin(b)  # eq. 32-33
     # UTC clock time plus the longitude's offset is local solar time (Lz = 0 in eq. 31, east positive)
     solar_time_h = _hours_utc(times) + np.asarray(longitude_deg, dtype=float) / 15 + seasonal_correction_h
-    hour_angle = np.pi / 12 * (solar_time_h - 12)
+    # From solar noon, wrapped to -12..12 h: west of Greenwich the evening's solar time is below 0 h by UTC
+    hour_angle = np.pi / 12 * (solar_time_h % 24 - 12)
     return declination, dr, hour_angle
 
 

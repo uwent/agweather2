@@ -20,7 +20,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata import forecast
+from agdata import corrections, forecast
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, GAP_FILL, VARIABLES
 from agdata.daily import cell_timezones
 from agdata.grid import NDFD, Window
@@ -88,6 +88,7 @@ class DailySeries:
     forecast: Forecast
     zone: str = ""
     totals: dict[str, np.ndarray] = field(default_factory=dict)  # running totals from January 1, if asked for
+    corrections: tuple[str, ...] = ()  # the source corrections its days went through (`agdata.corrections` labels)
 
 
 def point_hours(
@@ -169,7 +170,24 @@ def point_days(
                 series[split:] = _point_steps(stores, run.path, CUMULATIVE, name, j, i, dates[split], n - split)[0]
         out_totals[name] = series
     values = {name: days[name] for name in names}
-    return DailySeries(dates=dates, values=values, kinds=kinds, forecast=run, zone=zone, totals=out_totals)
+    return DailySeries(
+        dates=dates,
+        values=values,
+        kinds=kinds,
+        forecast=run,
+        zone=zone,
+        totals=out_totals,
+        corrections=in_box_corrections(kinds, run),
+    )
+
+
+def in_box_corrections(kinds: list[str | None], run: Forecast) -> tuple[str, ...]:
+    """The corrections behind a series in the box: HRRR's shortwave on observed days, the forecast's calibration
+    on forecast days (D48, D49)."""
+    applied = [corrections.HRRR_SHORTWAVE] if any(k in (OBSERVED, PARTIAL) for k in kinds) else []
+    if run.path is not None and any(k in (PARTIAL, FORECAST) for k in kinds):
+        applied += [corrections.NBM_SHORTWAVE, corrections.NBM_MAX, corrections.NBM_NIGHT_MIN, corrections.NBM_RH]
+    return tuple(c.label for c in applied)
 
 
 def grid_day(

@@ -9,6 +9,8 @@ Ported from the Crop Risk Tool (`botcast_dinov`, `botcast_dinfv`, `calc_botrytis
 with parity tests. Intended differences: humid hours and their temperature both come from the day from 8 pm (as
 for late blight), and a day whose deciding inputs are missing has no DSI (R's `case_when` treats a missing
 condition as false, so the tool can score such a day 1). Leaf wetness is taken as RH ≥ 90%.
+
+Gridded RH ≥ 90% is counted at 88%, a station's 90% (D50, `features.STATION_RH_90_AS_GRIDDED`).
 """
 
 from collections.abc import Mapping
