@@ -10,7 +10,8 @@ whole chunks of time at once (a month in a backfill) is far cheaper than hour by
 measures what hourly ingest costs (docs/pilot.md).
 """
 
-from collections.abc import Iterable
+import shutil
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -90,13 +91,21 @@ class GridStore:
         variables: Iterable[Variable],
         chunks: tuple[int, int, int] | None = None,
         pcodec_level: int = 8,
+        finish: Callable[[zarr.Group], None] | None = None,
     ) -> "GridStore":
+        """A new year's store with an empty array per variable. It's built beside its path and renamed into place
+        once whole (after `finish(group)`, for anything else it needs), so a crash never leaves a half-built store
+        where `open` would find it."""
         path = layout.path(data_dir, year)
         if path.exists():
             raise FileExistsError(f"{path} exists; open it, or delete it to rebuild")
+        variables = list(variables)
         n = steps_in_year(year, layout.step)
         chunk_shape = _clamp(chunks or DEFAULT_CHUNKS[layout.step], n, window)
-        group = zarr.open_group(path, mode="w")
+        building = path.with_name(path.name + ".part")
+        if building.exists():
+            shutil.rmtree(building)  # left by a create that crashed
+        group = zarr.open_group(building, mode="w")
         group.attrs.update(
             {
                 "grid": NDFD.name,
@@ -109,9 +118,13 @@ class GridStore:
         group.attrs["chunks"] = list(chunk_shape)
         group.attrs["pcodec_level"] = pcodec_level
         group.create_group("_meta")
-        store = cls(group, path)
+        store = cls(group, building)
         for v in variables:
             store._add_array(v, v.version)
+        if finish is not None:
+            finish(group)
+        building.rename(path)
+        store = cls(zarr.open_group(path, mode="r+"), path)
         store.variables = {v.name: v for v in variables}
         return store
 

@@ -46,6 +46,9 @@ class ModelRun:
     in_season: np.ndarray | None = None  # per day, from the spec's season; None if it has none
     windows: dict[str, list[tuple[date, date]]] = field(default_factory=dict)  # action windows' periods (D36)
     estimated: dict[str, np.ndarray] = field(default_factory=dict)  # per input with any, the days filled (D45)
+    # Per input with any, the days still missing after the fill (a gap longer than MAX_GAP_DAYS): a running total
+    # adds nothing for them, so a long outage would otherwise read as a quiet stretch
+    missing: dict[str, np.ndarray] = field(default_factory=dict)
     biofix: date | None = None
     # Why there are no outputs: "outside the model's region", "biofix after the series" (not started yet), "biofix
     # not in the series" (the days given start after it: read from `first_day_needed`)
@@ -144,6 +147,8 @@ def run(
 
     result.inputs = {q.name: raw[q.name][shown:] for q in spec.inputs}
     result.estimated = {q.name: estimated[q.name][shown:] for q in spec.inputs if estimated[q.name][shown:].any()}
+    gaps = {q.name: np.isnan(daily[q.name][shown:]) for q in spec.inputs}
+    result.missing = {name: gap for name, gap in gaps.items() if gap.any()}
     result.outputs = {name: np.asarray(values, dtype=float)[shown:] for name, values in outputs.items()}
     if risk is not None and spec.risk is not None:
         result.risk = risk[shown:]

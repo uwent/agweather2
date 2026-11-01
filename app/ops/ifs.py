@@ -25,6 +25,7 @@ from agdata import soil_seam
 from agdata.grid import service_window
 from agdata.ingest import SOIL, era5land_through, open_or_create_hourly, write_soil
 from agdata.sources import era5land, ifs
+from agdata.store import HOURLY
 from ops.era5land import land_mask, roll_up
 from ops.locks import write_lock
 
@@ -41,6 +42,8 @@ def seam_hour(data_dir: Path, box: str, now: datetime) -> datetime | None:
     window = service_window(box)
     floor = _floor(now)
     for year in (now.year, now.year - 1):
+        if not HOURLY.path(Path(data_dir), year).exists():
+            continue  # no store that year (don't create one just to look)
         through = era5land_through(open_or_create_hourly(data_dir, year, window))
         if through is not None:
             return through if through + HOUR >= floor else None

@@ -5,6 +5,8 @@ Wisconet's API is throttled, so each station-year is fetched once, slowly, and c
 API's insolation grids come from `compare_legacy.py`'s cache (tmp/legacy-cache).
 
     uv run python scripts/compare_pyranometers.py --start 2025-01-01 --end 2026-10-27
+
+`--quiet` prints only warnings, failures and the summary.
 """
 
 import argparse
@@ -21,6 +23,7 @@ from compare_legacy import OLD_API, bounds, read_daily
 from agdata.clients.openmeteo_points import OpenMeteoPoints
 from agdata.clients.wisconet import Wisconet
 from agdata.grid import NDFD, service_window
+from agdata.progress import Reporter
 
 CACHE = Path("tmp/wisconet")
 FIELD = "daily_solar_radiation_mj_tot"  # field id 157, MJ/m² over the station's local day
@@ -35,22 +38,39 @@ def main():
     parser.add_argument("--box", default="wisconsin")
     parser.add_argument("--data", default="data")
     parser.add_argument("--out", default="docs/validation-pyranometers.md")
+    parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
-    first, last = date.fromisoformat(args.start), date.fromisoformat(args.end)
+    report = Reporter(quiet=args.quiet)
+    try:
+        first, last = date.fromisoformat(args.start), date.fromisoformat(args.end)
+    except ValueError as error:
+        parser.error(f"--start and --end must be YYYY-MM-DD dates: {error}")
+    if first > last:
+        parser.error("--start must not be after --end")
     days = [first + timedelta(days=n) for n in range((last - first).days + 1)]
     window = service_window(args.box)
 
     wisconet = Wisconet(cache_dir=CACHE)
     stations = [s for s in wisconet.stations() if inside(s, window)]
-    print(f"{len(stations)} stations in the box; {len(days)} days", flush=True)
+    if not stations:
+        report.fail("stations", f"no Wisconet stations inside the {args.box} box")
+        sys.exit(1)
+    report.step(f"{len(stations)} stations in the box; {len(days)} days, {first} to {last}; writing {args.out}")
     observed = np.full((len(days), len(stations)), np.nan)
     for k, station in enumerate(stations):
         for year in range(first.year, last.year + 1):
-            for day, value in wisconet.daily(station["station_id"], FIELD, year).items():
+            try:
+                series = wisconet.daily(station["station_id"], FIELD, year)
+            except Exception as error:  # the station-year stays missing; a rerun retries it
+                report.fail(f"station {station['station_id']} {year}", error)
+                continue
+            for day, value in series.items():
                 if first <= day <= last:
                     observed[(day - first).days, k] = value
+        report.progress("stations", k + 1, len(stations))
     observed[(observed <= PLAUSIBLE_MJ[0]) | (observed > PLAUSIBLE_MJ[1])] = np.nan
 
+    report.step("reading v2's daily shortwave")
     v2_grid = read_daily(Path(args.data), "shortwave_radiation_sum", days)
     v2 = np.full_like(observed, np.nan)
     ssec = np.full_like(observed, np.nan)
@@ -60,26 +80,36 @@ def main():
         y, x = window.local(*cell)
         v2[:, k] = v2_grid[:, y, x]
     for n, day in enumerate(days):
-        grid = OLD_API.insolation_mj_m2(day, bounds(window))
+        report.progress("old API insolation", n + 1, len(days))
+        try:
+            grid = OLD_API.insolation_mj_m2(day, bounds(window))
+        except Exception as error:  # the SSEC side of this day stays missing
+            report.fail(f"old API {day}", error)
+            continue
         for k, station in enumerate(stations):
             value = grid.get(f"[{round(station['latitude'], 1):.1f}, {round(station['longitude'], 1):.1f}]")
             ssec[n, k] = np.nan if value is None else value
 
-    open_meteo = open_meteo_days(stations, first, last, len(days))
-    Path(args.out).write_text(report(args, days, stations, observed, v2, ssec, open_meteo))
-    print(f"wrote {args.out}")
+    open_meteo = open_meteo_days(stations, first, last, len(days), report)
+    report.step(f"writing {args.out} (overwriting)")
+    Path(args.out).write_text(build_report(args, days, stations, observed, v2, ssec, open_meteo))
+    report.step(f"wrote {args.out}")
+    if not report.finish(f"{len(stations)} stations, {len(days)} days"):
+        sys.exit(1)
 
 
-def open_meteo_days(stations: list[dict], first: date, last: date, n: int) -> dict[str, np.ndarray]:
+def open_meteo_days(stations: list[dict], first: date, last: date, n: int, report: Reporter) -> dict[str, np.ndarray]:
     """Open-Meteo's historical-forecast daily shortwave at each station (Central days), per model, a year a request.
     WISP 3 takes its ET0 from Open-Meteo, NBM first then best_match (`../wisp3` PLAN.md)."""
     client = OpenMeteoPoints(cache_dir=CACHE, api_key=os.environ.get("OPEN_METEO_API_KEY") or None)
     locations = [(s["latitude"], s["longitude"]) for s in stations]
     out = {}
-    for model in OPEN_METEO_MODELS:
+    for m, model in enumerate(OPEN_METEO_MODELS, 1):
+        report.progress("Open-Meteo models", m, len(OPEN_METEO_MODELS))
         values = np.full((n, len(stations)), np.nan)
         for year in range(first.year, last.year + 1):
             a, b = max(first, date(year, 1, 1)), min(last, date(year, 12, 31))
+            report.step(f"Open-Meteo {model} {year}: {len(locations)} locations")
             for k, block in enumerate(client.daily(locations, a, b, ["shortwave_radiation_sum"], model=model)):
                 series = [np.nan if v is None else v for v in block["shortwave_radiation_sum"]]
                 values[(a - first).days : (a - first).days + len(series), k] = series
@@ -111,7 +141,7 @@ def row(label: str, model: np.ndarray, observed: np.ndarray) -> str:
     return f"| {label} | {n} | {bias:+.2f} | {mae:.2f} | {ratio:.2f} | {r:.3f} |"
 
 
-def report(args, days, stations, observed, v2, ssec, open_meteo) -> str:
+def build_report(args, days, stations, observed, v2, ssec, open_meteo) -> str:
     lines = [
         "# Shortwave against Wisconet's pyranometers",
         "",

@@ -131,3 +131,10 @@ def test_series_over_a_grid_broadcasts_and_sums_to_a_sensible_day():
 def test_missing_inputs_give_missing_et0():
     out = w.et0_hourly_mm(np.nan, 1.0, 2.0, 0.5, 0.05, 98.0)
     assert np.isnan(out)
+
+
+def test_heavy_cloud_doesnt_turn_net_longwave_into_a_gain():
+    from agmodels.weather import RS_RSO_MIN, cloudiness_ratio
+
+    ratio = cloudiness_ratio(np.array([50.0]), np.array([800.0]), np.array([45.0]))
+    assert ratio[0] == RS_RSO_MIN and 1.35 * RS_RSO_MIN - 0.35 > 0  # ASCE-EWRI's 0.05 floor on the factor

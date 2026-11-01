@@ -12,6 +12,14 @@ from ops.locks import WriteLocked, write_lock
 
 logger = logging.getLogger(__name__)
 
+# The jobs whose work is a slow download (ERA5-Land's CDS queue, IFS's read) wait this long for the write lock to
+# write it, rather than throw it away; the hourly ingest and forecast skip a turn instead (the next run catches up).
+DOWNLOAD_LOCK_WAIT_S = 900
+
+
+def _waiting_lock():
+    return write_lock(settings.DATA_DIR, wait=DOWNLOAD_LOCK_WAIT_S)
+
 
 @app.periodic(cron="40 * * * *")  # after RTMA's hour is usually published
 @app.task(queue="ingest", queueing_lock="ingest_recent")
@@ -24,7 +32,7 @@ def ingest_recent(timestamp: int) -> None:
             if records:
                 restitch_current(settings.DATA_DIR, settings.SERVICE_BOX)
     except WriteLocked as error:
-        logger.info("ingest_recent skipped: %s", error)
+        logger.warning("ingest_recent skipped: %s", error)
 
 
 @app.periodic(cron="15,45 * * * *")  # cheap when nothing's new; picks up late and missed runs
@@ -35,7 +43,7 @@ def ingest_forecast(timestamp: int) -> None:
         with write_lock(settings.DATA_DIR):
             refresh_forecast(settings.DATA_DIR, settings.SERVICE_BOX, datetime.fromtimestamp(timestamp, UTC))
     except WriteLocked as error:
-        logger.info("ingest_forecast skipped: %s", error)
+        logger.warning("ingest_forecast skipped: %s", error)
 
 
 @app.periodic(cron="20 */6 * * *")  # ERA5-Land publishes once a day; a run with nothing new asks nothing
@@ -48,13 +56,17 @@ def ingest_era5land(timestamp: int) -> None:
         return
     try:
         spans = refresh_era5land(
-            settings.DATA_DIR, settings.SERVICE_BOX, datetime.fromtimestamp(timestamp, UTC), settings.COPERNICUS_API_KEY
+            settings.DATA_DIR,
+            settings.SERVICE_BOX,
+            datetime.fromtimestamp(timestamp, UTC),
+            settings.COPERNICUS_API_KEY,
+            lock=_waiting_lock,
         )
         if spans:
-            with write_lock(settings.DATA_DIR):
+            with _waiting_lock():
                 restitch_current(settings.DATA_DIR, settings.SERVICE_BOX)
     except WriteLocked as error:
-        logger.info("ingest_era5land skipped: %s", error)
+        logger.warning("ingest_era5land skipped: %s", error)
 
 
 @app.periodic(cron="50 * * * *")  # reads only Open-Meteo's metadata unless a new IFS run is out (every 6 hours)
@@ -64,9 +76,13 @@ def ingest_ifs(timestamp: int) -> None:
     next forecast build); then restitches the published forecast."""
     try:
         if refresh_ifs(
-            settings.DATA_DIR, settings.SERVICE_BOX, datetime.fromtimestamp(timestamp, UTC), settings.COPERNICUS_API_KEY
+            settings.DATA_DIR,
+            settings.SERVICE_BOX,
+            datetime.fromtimestamp(timestamp, UTC),
+            settings.COPERNICUS_API_KEY,
+            lock=_waiting_lock,
         ):
-            with write_lock(settings.DATA_DIR):
+            with _waiting_lock():
                 restitch_current(settings.DATA_DIR, settings.SERVICE_BOX)
     except WriteLocked as error:
-        logger.info("ingest_ifs skipped: %s", error)
+        logger.warning("ingest_ifs skipped: %s", error)

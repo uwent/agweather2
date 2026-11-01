@@ -6,6 +6,7 @@ Zones that share a UTC offset on a day are rolled up together, so a day costs on
 """
 
 from datetime import UTC, date, datetime, timedelta
+from functools import cache
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -17,7 +18,7 @@ from agdata.grid import NDFD, Window
 def window_timezones(window: Window) -> tuple[list[str], np.ndarray]:
     """The zone names in a window and each cell's index into them, (y, x) uint8."""
     lat, lon = NDFD.window_latlon(window)
-    finder = TimezoneFinder()
+    finder = _finder()
     names: dict[str, int] = {}
     index = np.zeros(window.shape, dtype=np.uint8)
     for (y, x), la, lo in zip(np.ndindex(window.shape), lat.ravel(), lon.ravel(), strict=True):
@@ -26,9 +27,14 @@ def window_timezones(window: Window) -> tuple[list[str], np.ndarray]:
     return list(names), index
 
 
+@cache
+def _finder() -> TimezoneFinder:
+    return TimezoneFinder()  # loads its polygons once, not on every point request
+
+
 def zone_at(latitude: float, longitude: float) -> str:
     """A point's time zone, as `window_timezones` finds a cell's."""
-    return TimezoneFinder().timezone_at(lng=longitude, lat=latitude) or _fixed_zone(longitude)
+    return _finder().timezone_at(lng=longitude, lat=latitude) or _fixed_zone(longitude)
 
 
 def day_bounds(day: date, zone: str) -> tuple[datetime, datetime]:

@@ -17,6 +17,9 @@ Station data come from tmp/wisconet/ (fetched by tmp/wisconet/fetch_humidity.py,
 `scripts/fit_shortwave_correction.py`); Open-Meteo's from the historical-forecast API, cached in tmp/openmeteo/.
 
     uv run python scripts/compare_openmeteo_wisconet.py --start 2025-01-01 --end 2026-10-27 --fit
+
+`--quiet` prints only warnings, failures and the summary. `--fit` names the two files it overwrites before it writes
+them, and doesn't write them if a failure was reported.
 """
 
 import argparse
@@ -39,6 +42,7 @@ from agdata.clients.openmeteo_points import OpenMeteoPoints
 from agdata.clients.wisconet import CENTRAL, Wisconet
 from agdata.gaps import clear_sky_shortwave_w_m2
 from agdata.grid import NDFD, service_window
+from agdata.progress import Reporter
 from agdata.store import HOURLY, GridStore
 from agmodels.weather import et0_hourly_series, relative_humidity_percent
 
@@ -79,22 +83,41 @@ def main():
     parser.add_argument("--data", default="data")
     parser.add_argument("--out", default="docs/validation-openmeteo.md")
     parser.add_argument("--fit", action="store_true", help="write the corrections' tables to agdata/data")
+    parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
-    first, last = date.fromisoformat(args.start), date.fromisoformat(args.end)
+    report = Reporter(quiet=args.quiet)
+    try:
+        first, last = date.fromisoformat(args.start), date.fromisoformat(args.end)
+    except ValueError as error:
+        parser.error(f"--start and --end must be YYYY-MM-DD dates: {error}")
+    if first > last:
+        parser.error("--start must not be after --end")
+    if not first.year <= args.fit_year <= last.year:
+        parser.error(f"--fit-year {args.fit_year} is outside --start to --end")
     window = service_window(args.box)
     wisconet = Wisconet(cache_dir=WISCONET)
     stations = [s for s in wisconet.stations() if (c := cell(s)) is not None and window.contains(*c)]
+    if not stations:
+        report.fail("stations", f"no Wisconet stations inside the {args.box} box")
+        sys.exit(1)
     start = datetime(first.year, first.month, first.day, tzinfo=UTC)
     n = ((last - first).days + 1) * 24
+    report.step(
+        f"Open-Meteo against Wisconet, {first} to {last}: {len(stations)} stations, {n} hours, models "
+        f"{', '.join(MODELS)}; writing {args.out}" + (" and the fitted correction tables" if args.fit else "")
+    )
     times = [start + (k + 1) * HOUR for k in range(n)]  # hours ending 01Z on the first day …
 
-    station = station_hours(wisconet, stations, start, n)
-    om = {model: openmeteo_hours(stations, first, last, model, start, n) for model in MODELS}
+    report.step("reading the stations' cached measurements")
+    station = station_hours(wisconet, stations, start, n, report)
+    om = {model: openmeteo_hours(stations, first, last, model, start, n, report) for model in MODELS}
     om["merged"] = {
         name: np.where(np.isfinite(om[MODELS[0]][name]), om[MODELS[0]][name], om[MODELS[1]][name])
         for name in om[MODELS[0]]
     }
-    archive = archive_hours(Path(args.data), stations, start, n)
+    report.step("reading the archive at the stations' cells")
+    archive = archive_hours(Path(args.data), stations, start, n, report)
+    report.step("fitting and checking the corrections")
 
     lat = np.array([s["latitude"] for s in stations])[:, None]
     lon = np.array([s["longitude"] for s in stations])[:, None]
@@ -137,12 +160,16 @@ def main():
     local_day = np.array([(t - HOUR).astimezone(CENTRAL).date().toordinal() for t in times])
     month = np.array([(t - HOUR).astimezone(CENTRAL).month for t in times])
     days = sorted(set(local_day))
-    old_et = old_api_et(stations, [date.fromordinal(d) for d in days])
+    report.step(f"the old API's ET for {len(days)} days")
+    old_et = old_api_et(stations, [date.fromordinal(d) for d in days], report)
+    report.step(f"writing {args.out} (overwriting)")
     Path(args.out).write_text(
-        report(args, stations, station, om, archive, old_et, local_day, month, days, years, (middles, factor))
+        build_report(args, stations, station, om, archive, old_et, local_day, month, days, years, (middles, factor))
     )
-    print(f"wrote {args.out}")
-    if args.fit:  # every year's hours, now the held-out check is written
+    report.step(f"wrote {args.out}")
+    if args.fit and report.failures:
+        report.warn("not overwriting the correction tables because of the failures above")
+    elif args.fit:  # every year's hours, now the held-out check is written
         every = np.ones(len(times), dtype=bool)
         middles, factor = fit_clearness(m["sw"], station["sw"], clear, every)
         years_fitted = "–".join(str(y) for y in sorted(set(years.tolist())))
@@ -157,33 +184,51 @@ def main():
             "source": f"{source}, against the archive's RH at their cells",
             **fit_rh_map(m["rh_derived"], archive["rh"], times, lon[:, 0], every),
         }
+        report.step(
+            f"overwriting {shortwave.OPENMETEO_TABLE_PATH} and {calibration.OPENMETEO_RH_MAP_PATH} "
+            f"(fitted on {years_fitted})"
+        )
         shortwave.OPENMETEO_TABLE_PATH.write_text(json.dumps(sw_table, indent=2) + "\n")
         calibration.OPENMETEO_RH_MAP_PATH.write_text(json.dumps(rh_table) + "\n")
-        print(f"wrote {shortwave.OPENMETEO_TABLE_PATH} and {calibration.OPENMETEO_RH_MAP_PATH}")
+        report.step(f"wrote {shortwave.OPENMETEO_TABLE_PATH} and {calibration.OPENMETEO_RH_MAP_PATH}")
+    if not report.finish(f"{len(stations)} stations, {n} hours, {len(days)} days"):
+        sys.exit(1)
 
 
 def cell(s: dict) -> tuple[int, int] | None:
     return NDFD.cell_of(s["latitude"], s["longitude"])
 
 
-def station_hours(wisconet: Wisconet, stations, start: datetime, n: int) -> dict[str, np.ndarray]:
+def station_hours(wisconet: Wisconet, stations, start: datetime, n: int, report: Reporter) -> dict[str, np.ndarray]:
     """Each station's hourly measurements on the hours ending start + 1 h …, in °C, %, W/m², m/s and kPa."""
     names = {v for fields in STATION_FILES.values() for v in fields.values()}
     out = {name: np.full((len(stations), n), np.nan) for name in names}
     ids = {name: wisconet.field_id(name) for fields in STATION_FILES.values() for name in fields}
+    missing = 0
     for k, s in enumerate(stations):
-        for year, (suffix, fields) in itertools.product((start.year, start.year + 1), STATION_FILES.items()):
+        report.progress("stations", k + 1, len(stations))
+        for year, (suffix, fields) in itertools.product(
+            range(start.year, (start + (n - 1) * HOUR).year + 1), STATION_FILES.items()
+        ):
             path = WISCONET / f"{s['station_id']}_{year}_{suffix}.json"
             if not path.exists():
+                missing += 1
                 continue
             by_id = {ids[name]: ours for name, ours in fields.items()}
-            for row in json.loads(path.read_text()).get("data", []):
+            try:
+                rows = json.loads(path.read_text()).get("data", [])
+            except (OSError, ValueError) as error:
+                report.fail(str(path), error)
+                continue
+            for row in rows:
                 t = int((row["collection_time"] - start.timestamp()) // 3600) - 1
                 if not 0 <= t < n:
                     continue
                 for fid, value in row["measures"]:
                     if value is not None and fid in by_id:
                         out[by_id[fid]][k, t] = value
+    if missing:
+        report.warn(f"{missing} station-year cache files not found in {WISCONET} (those hours stay missing)")
     out["t"] = (out["t"] - 32) / 1.8
     out["td"] = (out["td"] - 32) / 1.8
     out["wind"] = out["wind"] * 0.44704
@@ -196,7 +241,9 @@ def station_hours(wisconet: Wisconet, stations, start: datetime, n: int) -> dict
     return out
 
 
-def openmeteo_hours(stations, first: date, last: date, model: str, start: datetime, n: int) -> dict[str, np.ndarray]:
+def openmeteo_hours(
+    stations, first: date, last: date, model: str, start: datetime, n: int, report: Reporter
+) -> dict[str, np.ndarray]:
     """Open-Meteo's hours at the stations, a year per request, in °C, %, W/m², m/s, kPa and mm."""
     key = os.environ.get("OPEN_METEO_API_KEY") or dotenv("OPEN_METEO_API_KEY")
     client = OpenMeteoPoints(cache_dir=CACHE, api_key=key)
@@ -206,6 +253,7 @@ def openmeteo_hours(stations, first: date, last: date, model: str, start: dateti
     out = {name: np.full((len(stations), n), np.nan) for name in ours.values()}
     for year in range(first.year, last.year + 1):
         lo, hi = max(first, date(year, 1, 1)), min(last, date(year, 12, 31))
+        report.step(f"Open-Meteo {model} {year}: {len(locations)} locations, {lo} to {hi}")
         for k, block in enumerate(client.hourly(locations, lo, hi, OM_VARIABLES, model=model)):
             index = (np.asarray(block["time"], dtype=np.int64) - int(start.timestamp())) // 3600 - 1
             ok = (index >= 0) & (index < n)
@@ -227,13 +275,14 @@ def dotenv(name: str) -> str | None:
     return None
 
 
-def archive_hours(data_dir: Path, stations, start: datetime, n: int) -> dict[str, np.ndarray]:
+def archive_hours(data_dir: Path, stations, start: datetime, n: int, report: Reporter) -> dict[str, np.ndarray]:
     names = {"relative_humidity": "rh", "air_temperature": "t", "shortwave_radiation": "sw", "et0": "et0"}
     out = {ours: np.full((len(stations), n), np.nan) for ours in names.values()}
     k = 0
     while k < n:
         t = start + (k + 1) * HOUR
         step = min(n - k, (datetime(t.year + 1, 1, 1, tzinfo=UTC) - t) // HOUR)
+        report.step(f"archive {t.year}: {step} hours at {len(stations)} cells")
         store = GridStore.open(data_dir, HOURLY, t.year, [VARIABLES[name] for name in names])
         t0 = store.index_of(t)
         for s_index, s in enumerate(stations):
@@ -287,18 +336,25 @@ def fit_rh_map(model_rh, target_rh, times, longitude, use) -> dict:
     }
 
 
-def old_api_et(stations, days: list[date]) -> np.ndarray:
+def old_api_et(stations, days: list[date], report: Reporter) -> np.ndarray:
     """The old API's daily ET (mm) at each station's 0.1° point, from compare_legacy's cache."""
     out = np.full((len(stations), len(days)), np.nan)
     keys = [point_key(s["latitude"], s["longitude"]) for s in stations]
+    unavailable = 0
     for k, day in enumerate(days):
+        report.progress("old API ET", k + 1, len(days))
         try:
             grid = OLD_API.evapotranspiration_mm(day)
-        except Exception:  # not cached and not reachable: leave the day out
+        except Exception as error:  # not cached and not reachable: leave the day out
+            unavailable += 1
+            if unavailable == 1:
+                report.warn(f"old API ET unavailable for {day}: {error!r} (further days counted below)")
             continue
         for s, key in enumerate(keys):
             value = grid.get(key)
             out[s, k] = np.nan if value is None else value
+    if unavailable:
+        report.warn(f"old API ET unavailable for {unavailable} of {len(days)} days (left out of the old-API row)")
     return out
 
 
@@ -315,7 +371,7 @@ def daily(hourly: np.ndarray, local_day: np.ndarray, days: list[int]) -> np.ndar
     return out
 
 
-def report(args, stations, station, om, archive, old_et, local_day, month, days, years, table) -> str:
+def build_report(args, stations, station, om, archive, old_et, local_day, month, days, years, table) -> str:
     sources = {"NBM": om[MODELS[0]], "best_match": om[MODELS[1]], "merged": om["merged"], "archive (v2)": archive}
     day_month = np.array([date.fromordinal(d).month for d in days])
     day_year = np.array([date.fromordinal(d).year for d in days])

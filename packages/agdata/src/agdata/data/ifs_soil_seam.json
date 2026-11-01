@@ -1,7 +1,7 @@
 {
  "version": 1,
  "fitted": "2026-11-01",
- "source": "The archive (ERA5-Land) minus Open-Meteo's ecmwf_ifs at 80 Wisconet stations' cells, 2025-01-01 to 2026-10-27",
+ "source": "The archive (ERA5-Land) minus Open-Meteo's ecmwf_ifs at 79 Wisconet stations' cells, 2025-01-01 to 2026-10-27",
  "lead_hours": [
   0,
   6,

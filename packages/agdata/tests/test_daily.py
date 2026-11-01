@@ -87,6 +87,16 @@ def test_incomplete_days_are_missing(tmp_path):
     np.testing.assert_allclose(read(tmp_path, "precipitation_sum", date(2025, 7, 2)), 24)
 
 
+def test_a_day_without_values_isnt_marked_rolled_up(tmp_path):
+    start = datetime(2025, 7, 1, 6, tzinfo=UTC)
+    hourly_store(tmp_path, 2025, start, 30, temperature=20.0)  # July 1 and 6 hours of July 2
+    rollup_days(tmp_path, WINDOW, date(2025, 7, 1), date(2025, 7, 3))
+    store = open_or_create_daily(tmp_path, 2025, WINDOW)
+    t = store.index_of(date(2025, 7, 1))
+    assert store.sources("air_temperature_min")[t : t + 3] == ["derived", None, None]
+    assert store.sources("precipitation_sum")[t : t + 3] == ["derived", None, None]
+
+
 def test_local_new_years_eve_reads_the_next_years_hours(tmp_path):
     hourly_store(tmp_path, 2025, datetime(2025, 12, 31, tzinfo=UTC), 24)
     rollup_days(tmp_path, WINDOW, date(2025, 12, 31), date(2025, 12, 31))

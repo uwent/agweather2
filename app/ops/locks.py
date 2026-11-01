@@ -3,7 +3,7 @@
 import fcntl
 import os
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import IO
@@ -12,7 +12,9 @@ from django.core.management.base import CommandError
 
 
 class WriteLocked(CommandError):
-    pass
+    def __init__(self, message: str, holder: str = "?"):
+        super().__init__(message)
+        self.holder = holder
 
 
 def hold_write_lock(data_dir: Path) -> IO[str]:
@@ -25,7 +27,7 @@ def hold_write_lock(data_dir: Path) -> IO[str]:
         handle.seek(0)
         holder = handle.read().strip() or "?"
         handle.close()
-        raise WriteLocked(f"another backfill, rollup or ingest is writing to {data_dir} (pid {holder})") from None
+        raise WriteLocked(f"another job or command is writing to {data_dir} (pid {holder})", holder=holder) from None
     handle.truncate(0)
     handle.write(str(os.getpid()))
     handle.flush()
@@ -33,18 +35,25 @@ def hold_write_lock(data_dir: Path) -> IO[str]:
 
 
 @contextmanager
-def write_lock(data_dir: Path, wait: float = 0, poll: float = 5) -> Iterator[None]:
+def write_lock(
+    data_dir: Path, wait: float = 0, poll: float = 5, on_wait: Callable[[str], None] | None = None
+) -> Iterator[None]:
     """The write lock for a block of code, for long-lived processes like the job worker. With `wait`, tries again
     every `poll` seconds for up to `wait` seconds before raising WriteLocked (a backfill that has just downloaded
-    a month waits out the hourly ingest rather than losing it)."""
+    a month waits out the hourly ingest rather than losing it); `on_wait(holder pid)` is called when the wait starts
+    and about every minute after, so a command can say why it's quiet."""
     deadline = time.monotonic() + wait
+    said = -float("inf")
     while True:
         try:
             handle = hold_write_lock(data_dir)
             break
-        except WriteLocked:
+        except WriteLocked as error:
             if time.monotonic() >= deadline:
                 raise
+            if on_wait is not None and time.monotonic() - said >= 60:
+                on_wait(error.holder)
+                said = time.monotonic()
             time.sleep(poll)
     try:
         yield

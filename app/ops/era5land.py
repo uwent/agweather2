@@ -42,7 +42,9 @@ def land_mask(data_dir: Path, window: Window, key: str, retrieve: RetrieveMask =
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         mask = era5land.read_land_mask(retrieve(Path(tmp) / "land_sea_mask.grib", key)).crop(window)
-    mask.save(path)
+    partial = path.with_name(path.stem + ".part.npz")  # np.savez adds .npz to a name without it
+    mask.save(partial)
+    partial.replace(path)  # atomic: the job and a command may both be here, and a crash leaves no half file
     return mask
 
 

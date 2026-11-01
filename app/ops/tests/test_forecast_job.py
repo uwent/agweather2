@@ -65,6 +65,19 @@ def test_failed_leads_make_a_partial_run_and_a_failed_build_is_recorded(tmp_path
     assert forecast.current_run(tmp_path) == forecast.run_path(tmp_path, CYCLE).resolve()  # the last good run stays
 
 
+@pytest.mark.django_db
+def test_a_failed_cycle_isnt_rebuilt_for_a_while_unless_asked(tmp_path):
+    def broken(*args, **kwargs):
+        raise RuntimeError("bucket unreachable")
+
+    failed = refresh(tmp_path, broken)
+    assert failed is not None and failed.status == "failed"
+    build = fake_build()
+    assert refresh(tmp_path, build) is None and build.calls == []  # the job waits
+    retried = refresh_forecast(tmp_path, BOX, NOW, find_cycle=lambda now: CYCLE, build=build, retry_failed=True)
+    assert retried is not None and retried.status == "ok"  # the command doesn't
+
+
 def test_forecast_health(tmp_path):
     assert forecast_health(tmp_path, NOW) == ({"state": "not started"}, [])
     forecast.publish(tmp_path, fake_build()(tmp_path, None, CYCLE))

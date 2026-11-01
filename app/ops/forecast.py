@@ -17,6 +17,7 @@ from ops.models import IngestRecord
 logger = logging.getLogger(__name__)
 
 MAX_RUN_AGE_HOURS = 9  # a long run every 6 hours, published ~65 minutes after its cycle
+RETRY_FAILED_AFTER = timedelta(hours=2)  # a cycle whose build failed isn't tried again (a full download) sooner
 
 
 def refresh_forecast(
@@ -25,15 +26,27 @@ def refresh_forecast(
     now: datetime,
     find_cycle: Callable[[datetime], datetime | None] = nbm.latest_complete_cycle,
     build: Callable[..., Path] = forecast.build_run,
+    retry_failed: bool = False,
 ) -> IngestRecord | None:
     """Builds and publishes the newest complete long run unless it's already current; None when there's nothing
-    new. The caller holds the write lock."""
+    new, or when that cycle's build failed less than RETRY_FAILED_AFTER ago (unless `retry_failed`: the command).
+    The caller holds the write lock."""
     cycle = find_cycle(now)
     if cycle is None:
         logger.warning("no complete NBM run found before %s", now)
         return None
     current = forecast.current_run(data_dir)
     if current is not None and forecast.run_info(current)["cycle"] == cycle.isoformat():
+        return None
+    first_hour = cycle + timedelta(hours=1)
+    recently_failed = IngestRecord.objects.filter(
+        kind=IngestRecord.Kind.FORECAST,
+        status=IngestRecord.Status.FAILED,
+        first_hour=first_hour,
+        finished_at__gte=timezone.now() - RETRY_FAILED_AFTER,
+    ).exists()
+    if recently_failed and not retry_failed:
+        logger.warning("the %s run failed to build less than %s ago; not retrying yet", cycle, RETRY_FAILED_AFTER)
         return None
     window = service_window(box)
     started = timezone.now()
@@ -46,7 +59,7 @@ def refresh_forecast(
             kind=IngestRecord.Kind.FORECAST,
             status=IngestRecord.Status.FAILED,
             box=box,
-            first_hour=cycle + timedelta(hours=1),
+            first_hour=first_hour,
             hours=nbm.HORIZON_HOURS,
             started_at=started,
             finished_at=timezone.now(),

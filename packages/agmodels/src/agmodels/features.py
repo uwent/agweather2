@@ -148,7 +148,9 @@ def daily_features(
     soil_10cm_c: np.ndarray | None = None,
     soil_30cm_c: np.ndarray | None = None,
 ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
-    """A point's hourly series (local datetime64 instants, consecutive) → (dates, features per date).
+    """A point's hourly series (local datetime64 instants, consecutive, whole days) → (dates, features per date).
+    A partial first or last day counts only the hours it's given (the grid's rollup reads every day's full window,
+    so its partial days are missing instead).
 
     v2's calendar day is the hours ending 01:00–24:00 (`midnight_ends_day`), as in the stores: the reading at
     midnight closes the day, and an hour's precip, stamped at its end, falls in the day it fell. The Crop Risk

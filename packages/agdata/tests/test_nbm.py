@@ -75,23 +75,26 @@ def test_fetch_step_converts_and_places(monkeypatch):
     np.testing.assert_allclose(values["air_temperature"], field.values[10:15, 10:20] - 273.15, atol=0.01)
 
 
-def test_fetch_run_fills_the_hours_it_gets():
+def test_fetch_run_fills_the_hours_it_gets(monkeypatch):
+    monkeypatch.setattr(nbm, "RETRY_SECONDS", 0)
     window = Window(j0=900, j1=902, i0=1400, i1=1403)
 
     def step(cycle, lead, window, session):
         if lead == 7:
             raise requests.ConnectionError("down")
+        if lead == 8:
+            raise KeyError("a malformed file fails its lead, not the run")
         values = {"precipitation": np.full(window.shape, 0.5)}
         if lead <= 36 or lead % 3 == 2:
             values["air_temperature"] = np.full(window.shape, float(lead))
         return values
 
     run = nbm.fetch_run(CYCLE, window, step=step, workers=4)
-    assert run.failed == [7]
+    assert run.failed == [7, 8]
     assert run.valid_times[0] == CYCLE + timedelta(hours=1) and len(run.valid_times) == 264
     t = run.values["air_temperature"][:, 0, 0]
     assert t[0] == 1 and np.isnan(t[6]) and t[49] == 50 and np.isnan(t[50])
-    assert np.isnan(run.values["precipitation"][6]).all() and run.values["precipitation"][7, 0, 0] == 0.5
+    assert np.isnan(run.values["precipitation"][6]).all() and run.values["precipitation"][8, 0, 0] == 0.5
 
 
 def test_pchip_keeps_the_steps_and_never_overshoots():

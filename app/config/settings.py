@@ -15,6 +15,9 @@ REPO_DIR = APP_DIR.parent
 load_dotenv(REPO_DIR / ".env")
 
 ENV = os.environ.get("DJANGO_ENV") or ("test" if "pytest" in sys.modules else "development")
+if ENV not in ("development", "test", "production"):
+    # A typo here would turn DEBUG off but skip every production check below
+    raise RuntimeError(f"DJANGO_ENV must be development, test or production, not {ENV!r}")
 DEBUG = ENV == "development"
 TESTING = ENV == "test"
 # uvicorn doesn't serve static files: Django does in development and tests (bin/e2e), Caddy in production
@@ -24,7 +27,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY") or ("dev-only-insecure-key" if ENV != 
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY must be set in production")
 
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
 
 # The deployed commit, shown by /up and the API status
 APP_VERSION = os.environ.get("APP_VERSION", "dev")
@@ -83,6 +86,8 @@ TEMPLATES = [
     },
 ]
 
+if ENV == "production" and not os.environ.get("DATABASE_URL"):
+    raise RuntimeError("DATABASE_URL must be set in production")
 DATABASES = {
     "default": dj_database_url.parse(
         os.environ.get("DATABASE_URL", "postgres://postgres:password@localhost:5432/agweather2_development"),
@@ -147,6 +152,7 @@ if DEBUG:
     SECURE_CSP["connect-src"].append(f"ws://localhost:{VITE_DEV_SERVER_PORT}")
 
 if ENV == "production":
+    # Caddy terminates TLS and redirects HTTP to HTTPS (infra/), so there's no SECURE_SSL_REDIRECT here
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True

@@ -25,6 +25,7 @@ import numpy as np
 from agdata.catalog import VARIABLES
 from agdata.gaps import clear_sky_shortwave_w_m2
 from agdata.grid import NDFD, Window
+from agdata.qc import check_range
 from agdata.store import HOURLY, GridStore
 from agmodels.weather import et0_hourly_series
 
@@ -48,7 +49,9 @@ OPENMETEO_TABLE = json.loads(OPENMETEO_TABLE_PATH.read_text())  # D51, for point
 
 def correct_w_m2(hour_end, latitude_deg, longitude_deg, raw_w_m2, pressure_kpa, table: dict | None = None):
     """Hourly mean shortwave (time on axis 0) scaled by the factor for each hour's clearness: HRRR's by `TABLE`
-    (D48) unless another source's table is given. Dark hours stay 0, and NaN stays NaN."""
+    (D48) unless another source's table is given. NaN stays NaN and the result is never negative. An hour with
+    FAO-56's clear-sky Rso at or under 1 W/m² (the sun at or below the horizon) takes the darkest bin's factor, so a
+    dark hour's 0 stays 0 and a twilight hour's few W/m² are scaled by it."""
     table = TABLE if table is None else table
     raw = np.asarray(raw_w_m2, dtype=float)
     rso = clear_sky_shortwave_w_m2(hour_end, latitude_deg, longitude_deg, pressure_kpa)
@@ -88,14 +91,14 @@ def correct_nbm_w_m2(hour_end, latitude_deg, longitude_deg, hourly_w_m2, pressur
 
 def correct_archive(data_dir: Path, window: Window, log=print) -> list[int]:
     """Moves stored raw HRRR into `shortwave_radiation_hrrr` where a store predates it, then re-derives the
-    corrected shortwave and ET0 from it wherever the store's shortwave is from another version. Returns the years
+    corrected shortwave and ET0 from it wherever the store's shortwave or ET0 is from another version. Returns the years
     changed (their days and running totals need rolling up again). Safe to rerun: the raw copy happens only while
     the store's shortwave is still the uncorrected version 1, and the rest derives from raw."""
     changed = []
     for path in sorted((data_dir / HOURLY.kind).glob("*.zarr")):
         year = int(path.stem)
         store = GridStore.open(data_dir, HOURLY, year, VARIABLES.values(), add_missing=True)
-        if "shortwave_radiation" not in store.stale:
+        if not {"shortwave_radiation", "et0"} & store.stale:
             continue
         stored: Any = store._array("shortwave_radiation").attrs.get("version", 1)
         stored_version = int(stored)
@@ -106,7 +109,7 @@ def correct_archive(data_dir: Path, window: Window, log=print) -> list[int]:
             _copy_raw(store, first, steps)
         log(f"hourly/{year}: correcting shortwave and re-deriving ET0 (correction version {VERSION})")
         _derive(store, window, first, steps)
-        store.mark_current(["shortwave_radiation"])
+        store.mark_current(["shortwave_radiation", "et0"])
         changed.append(year)
     return changed
 
@@ -149,6 +152,9 @@ def _derive(store: GridStore, window: Window, first: datetime, steps: int) -> No
                 shortwave,
             )
         start = first + t0 * HOUR
+        # As at ingest: a corrected value outside the catalog's range (a scaled spike) is dropped, not stored
+        shortwave, _ = check_range(VARIABLES["shortwave_radiation"], shortwave)
+        et0, _ = check_range(VARIABLES["et0"], et0)
         store.write(start, {"shortwave_radiation": shortwave, "et0": et0}, source=None)
         store.set_sources("shortwave_radiation", start, raw_sources[t0:t1])
         store.set_sources("et0", start, ["derived" if np.isfinite(et0[k]).any() else None for k in range(t1 - t0)])

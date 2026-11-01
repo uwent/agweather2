@@ -12,19 +12,25 @@ Two static sources, downloaded once into `tmp/planting-dates/` (no ongoing data 
   Typical is the middle of the most active range, early and late its ends.
 
 Dates are written as MM-DD in a non-leap year; a row's level (county or state) says which source it's from
-(`agdata.planting.SOURCES`). Run: `uv run --with pyshp python scripts/build_planting_dates.py`.
+(`agdata.planting.SOURCES`). Run: `uv run --with pyshp python scripts/build_planting_dates.py [--quiet]`
+(`--quiet` prints only warnings, failures and the summary).
 """
 
+import argparse
 import csv
 import datetime as dt
 import io
+import os
 import re
 import statistics
+import sys
 import zipfile
 from pathlib import Path
 
 import requests
 import shapefile  # pyshp
+
+from agdata.progress import Reporter
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / "tmp" / "planting-dates"
@@ -46,13 +52,18 @@ YEAR = 2025  # a non-leap year to write dates in
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 
-def cached(name: str, url: str) -> Path:
+def cached(name: str, url: str, report: Reporter) -> Path:
     path = CACHE / name
     if not path.exists():
         CACHE.mkdir(parents=True, exist_ok=True)
+        report.step(f"downloading {url}")
         response = requests.get(url, timeout=300, headers={"User-Agent": "Mozilla/5.0"})
-        response.raise_for_status()
-        path.write_bytes(response.content)
+        response.raise_for_status()  # never cache an error page as data
+        part = path.with_name(path.name + ".part")
+        part.write_bytes(response.content)
+        os.replace(part, path)
+    else:
+        report.step(f"using the cached {path}")
     return path
 
 
@@ -60,17 +71,20 @@ def month_day(doy: float) -> str:
     return (dt.date(YEAR, 1, 1) + dt.timedelta(days=round(doy) - 1)).strftime("%m-%d")
 
 
-def deines_rows() -> list[list[str]]:
+def deines_rows(report: Reporter) -> list[list[str]]:
     rows = []
     for crop, name in DEINES.items():
-        path = cached(f"{name}_county.csv", ZENODO.format(crop=name) + "?download=1")
+        report.step(f"Deines et al. county table for {crop}")
+        path = cached(f"{name}_county.csv", ZENODO.format(crop=name) + "?download=1", report)
         by_county: dict[tuple[str, str], list[dict]] = {}
         with path.open() as f:
             for r in csv.DictReader(f):
                 if r["doy_50"] not in ("", "NA"):
                     by_county.setdefault((f"{int(r['GEOID']):05d}", r["state"]), []).append(r)
+        short = 0
         for (geoid, _), years in sorted(by_county.items()):
             if len(years) < MIN_YEARS:
+                short += 1
                 continue
             early, typical, late = (
                 statistics.median(float(y[k]) for y in years) for k in ("doy_10", "doy_50", "doy_90")
@@ -86,6 +100,7 @@ def deines_rows() -> list[list[str]]:
                     str(len(years)),
                 ]
             )
+        report.step(f"{crop}: {len(by_county) - short} counties kept, {short} with under {MIN_YEARS} years left out")
     return rows
 
 
@@ -95,8 +110,9 @@ def state_abbreviations() -> dict[str, str]:
         return {r["STATE_NAME"]: r["STUSPS"] for r in reader.iterRecords()}
 
 
-def nass_rows() -> list[list[str]]:
-    text = cached("nass-usual-2010.txt", NASS_URL).read_text().replace("\r", "")
+def nass_rows(report: Reporter) -> list[list[str]]:
+    report.step("NASS usual planting dates by state")
+    text = cached("nass-usual-2010.txt", NASS_URL, report).read_text().replace("\r", "")
     abbreviations = state_abbreviations()
     date = r"([A-Z][a-z]{2,3})\s+(\d{1,2})"
     row = re.compile(rf"^([A-Z][A-Za-z .]+?)\s*\.*\s*:\s*\S+\s+{date}\s+{date}\s*-\s*{date}\s+{date}")
@@ -108,7 +124,10 @@ def nass_rows() -> list[list[str]]:
             m = row.match(line)
             if not m:
                 continue
-            state = abbreviations[m[1].strip(" .")]
+            state = abbreviations.get(m[1].strip(" ."))
+            if state is None:
+                report.warn(f"{crop}: unknown state {m[1].strip(' .')!r} in the NASS table, row skipped")
+                continue
             days = [_day(m[k], m[k + 1], season_start) for k in (2, 4, 6, 8)]  # begin, active from, to, end
             early, late = days[1], days[2]
             rows.append(
@@ -133,8 +152,15 @@ def _day(month: str, day: str, season_start: int) -> float:
 
 
 def main() -> None:
-    rows = deines_rows() + nass_rows()
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
+    args = parser.parse_args()
+    report = Reporter(quiet=args.quiet)
+
+    report.step(f"building planting dates for {', '.join(DEINES)} (counties) and {', '.join(NASS)} (states)")
+    rows = deines_rows(report) + nass_rows(report)
     OUT.parent.mkdir(parents=True, exist_ok=True)
+    report.step(f"writing {OUT} (overwriting)")
     with OUT.open("w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["crop", "level", "area", "early", "typical", "late", "years"])  # level says the source
@@ -142,7 +168,10 @@ def main() -> None:
     counts = {}
     for r in rows:
         counts[(r[0], r[1])] = counts.get((r[0], r[1]), 0) + 1
-    print(counts)
+    if not report.finish(
+        f"{len(rows)} rows: " + ", ".join(f"{crop} {level} {n}" for (crop, level), n in counts.items())
+    ):
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -47,10 +47,15 @@ class Acis(JsonClient):
 
 
 def precip_mm(value: str) -> float:
-    """An ACIS precip value in mm: "T" (trace) is 0; "M" (missing), "S" and "A" (part of an accumulation) are NaN;
-    flags "a"/"b" are dropped."""
-    if value == "T":
+    """An ACIS precip value in mm: "T" (trace) is 0; "M" (missing) is NaN; "S" (a day whose rain is in a later
+    accumulated total) and "…A" (that multi-day total) are NaN too, as precip is never spread over days (D45);
+    flags "a"/"b" are dropped first, so "Ta" is a trace. Anything else unreadable is NaN."""
+    text = str(value).strip().rstrip("ab")
+    if text == "T":
         return 0.0
-    if value in ("M", "S") or value.endswith(("A", "S")):
+    if not text or text == "M" or text.endswith(("A", "S")):
         return np.nan
-    return float(value.rstrip("ab")) * INCH_MM
+    try:
+        return float(text) * INCH_MM
+    except ValueError:
+        return np.nan

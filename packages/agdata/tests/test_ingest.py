@@ -126,6 +126,30 @@ def test_a_failing_hour_is_retried_then_left_missing(tmp_path):
     assert report.failed == [START + timedelta(hours=4)]
 
 
+def test_a_refetch_that_fails_keeps_what_the_store_had(tmp_path):
+    store = open_or_create_hourly(tmp_path, 2025, WINDOW)
+    ingest_block(store, START, 6, fetch=fake_fetch(), workers=1)
+    good = fake_fetch()
+
+    def partial(when, window, session):
+        if when == START + timedelta(hours=1):
+            raise ConnectionError("down")  # the whole hour fails
+        hour = good(when, window, session)
+        hour.sources.pop("precipitation")  # and precip isn't out for any hour
+        hour.values.pop("precipitation")
+        return hour
+
+    t0 = store.index_of(START)
+    kept = store.read_steps("air_temperature", t0, t0 + 6)
+    rain = store.read_steps("precipitation", t0, t0 + 6)
+    report = ingest_block(store, START, 6, fetch=partial, workers=1)
+    assert report.failed == [START + timedelta(hours=1)]
+    np.testing.assert_allclose(store.read_steps("air_temperature", t0, t0 + 6), kept)
+    np.testing.assert_allclose(store.read_steps("precipitation", t0, t0 + 6), rain)
+    assert store.sources("air_temperature")[t0 + 1] == "urma"
+    assert np.isfinite(store.read_steps("et0", t0 + 1, t0 + 2)).all()  # derived from the kept hour
+
+
 def test_progress_counts_every_hour_including_failed_ones(tmp_path):
     def fetch(when, window, session):
         if when == START + timedelta(hours=1):
@@ -194,7 +218,7 @@ def test_refetching_precip_keeps_hours_neither_source_has(tmp_path, monkeypatch)
     rtma = SimpleNamespace(name="rtma", fetch_precip=lambda when, window, s: None)
     monkeypatch.setattr(ingest, "URMA", urma)
     monkeypatch.setattr(ingest, "RTMA", rtma)
-    assert refetch_precipitation(store, START, 3, workers=2) == 3
+    assert refetch_precipitation(store, START, 3, workers=2) == 2  # the third hour kept what it had
     t0 = store.index_of(START)
     np.testing.assert_allclose(store.read_point("precipitation", 900, 1400, t0, t0 + 3), [0.03, 0.12, 0.1])
 

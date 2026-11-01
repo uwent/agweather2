@@ -93,6 +93,7 @@ def test_acis_precip_in_mm():
     assert session.calls[0][2]["elems"] == [{"name": "pcpn"}]
     assert precip_mm("0.50") == pytest.approx(12.7) and precip_mm("1.00a") == pytest.approx(25.4)
     assert np.isnan(precip_mm("M")) and np.isnan(precip_mm("0.40A")) and np.isnan(precip_mm("S"))
+    assert precip_mm("Ta") == 0 and np.isnan(precip_mm("")) and np.isnan(precip_mm("??"))
 
 
 def test_open_meteo_daily_batches_locations_and_unwraps_one():

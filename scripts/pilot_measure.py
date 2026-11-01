@@ -2,11 +2,14 @@
 
 uv run python scripts/pilot_measure.py --raw data/pilot/raw --out data/pilot/stores
 Prints a table and writes <out>/results.json. Each layout is a chunk shape plus a codec; sizes are on disk.
+Add --quiet to print only warnings, failures and the summary.
 """
 
 import argparse
 import json
+import os
 import shutil
+import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -18,6 +21,7 @@ from zarr.codecs.numcodecs import Delta, PCodec
 
 from agdata.catalog import FILL
 from agdata.grid import service_window
+from agdata.progress import Reporter
 from agdata.store import steps_in_year
 from pilot_encoding import pilot_variable
 
@@ -85,10 +89,21 @@ def main():
     parser.add_argument("--box", default="wisconsin")
     parser.add_argument("--layouts", nargs="*", default=list(LAYOUTS))
     parser.add_argument("--coarse", action="store_true", help="quantize to the COARSE precision first")
+    parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
+    report = Reporter(quiet=args.quiet)
+    unknown = [layout for layout in args.layouts if layout not in LAYOUTS]
+    if unknown:
+        parser.error(f"unknown layouts {unknown}; choose from {list(LAYOUTS)}")
+    if not args.layouts:
+        parser.error("--layouts needs at least one layout")
 
     raw, out = Path(args.raw), Path(args.out)
-    files = sorted(raw.glob("*.npz"))
+    if not raw.is_dir():
+        parser.error(f"--raw {raw} is not a directory")
+    out.mkdir(parents=True, exist_ok=True)
+    files = sorted(f for f in raw.glob("*.npz") if ".part" not in f.name)  # skip a download cut short
+    report.step(f"measuring {len(args.layouts)} layouts on {len(files)} downloaded hours from {raw}; writing to {out}")
     hours = [datetime.strptime(f.stem, "%Y%m%d%H").replace(tzinfo=UTC) for f in files]
     if not hours:
         raise SystemExit(f"no hours in {raw}")
@@ -100,11 +115,12 @@ def main():
 
     # Every variable as one (hours, y, x) int16 block
     names = sorted({name for f in files[:1] for name in np.load(f).files})
+    report.step("loading every hour into memory")
     blocks = {name: np.stack([np.load(f)[name] for f in files]) for name in names}
     if args.coarse:
         blocks = {name: coarsen(name, block) for name, block in blocks.items()}
     n_hours = len(hours)
-    print(f"{n_hours} hours from {hours[0]:%Y-%m-%d %H}Z, window {window.shape}, variables {', '.join(names)}")
+    report.step(f"{n_hours} hours from {hours[0]:%Y-%m-%d %H}Z, window {window.shape}, variables {', '.join(names)}")
 
     rng = np.random.default_rng(0)
     cells = [
@@ -113,7 +129,8 @@ def main():
     ]
 
     results = []
-    for layout in args.layouts:
+    for k, layout in enumerate(args.layouts, 1):
+        report.step(f"layout {k} of {len(args.layouts)}: {layout}")
         chunks, compressors, dtype, *rest = LAYOUTS[layout]
         filters = rest[0] if rest and rest[0] else None
         serializer = rest[1] if len(rest) > 1 else BytesCodec()
@@ -181,7 +198,7 @@ def main():
             }
         )
         r = results[-1]
-        print(
+        report.step(
             f"{layout:40} {total / 1e6:8.1f} MB  x{r['ratio_vs_int16']:4.1f}  write month {write_month:5.1f}s"
             f"  write 1 h {write_hour:5.2f}s  point {r['read_point_month_ms']:6.1f} ms"
             f"  hour {r['read_hour_window_ms']:6.1f} ms"
@@ -194,9 +211,13 @@ def main():
         "window": list(window.shape),
         "variables": names,
     }
-    (out / f"results{'-coarse' if args.coarse else ''}.json").write_text(
-        json.dumps({"meta": meta, "results": results}, indent=2)
-    )
+    target = out / f"results{'-coarse' if args.coarse else ''}.json"
+    report.step(f"writing {target}")
+    part = target.with_name(target.name + ".part")
+    part.write_text(json.dumps({"meta": meta, "results": results}, indent=2))
+    os.replace(part, target)
+    if not report.finish(f"{len(results)} layouts measured over {n_hours} hours"):
+        sys.exit(1)
 
 
 if __name__ == "__main__":

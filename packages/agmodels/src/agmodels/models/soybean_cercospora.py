@@ -181,6 +181,8 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
+    """The highest of the three species' levels. A species whose inputs are missing for a whole window is left out
+    (`fmax`), so the level is at least what the others say rather than unknown; it's NaN only if all three are."""
     return np.fmax.reduce([risk_level(outputs[name], *thresholds) for name, (_, thresholds) in SPECIES.items()])
 
 

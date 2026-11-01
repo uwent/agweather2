@@ -1,6 +1,6 @@
 """Seed draft topic pages in `content/` and model pages beside their modules (PLAN.md Phase 3 E, D35) from the
 Crop Risk Tool's docs and VDIFN's seed texts, and copy their images. Pages that exist are left alone (rewrites
-happen in place in Phase 6); pass --force to rebuild them all.
+happen in place in Phase 6); pass --force to rebuild them all. `--quiet` prints only warnings, failures and the summary.
 
 Sources: `tmp/shiny/crop-risk-tool/docs/` (Markdown: the text before "Model details" seeds the topic, the model
 sections the model page, "References"/"More information" go to the topic) and VDIFN's `db/seeds.rb`, dumped to JSON
@@ -10,6 +10,7 @@ Run: `ruby scripts/dump_vdifn_seeds.rb ../ag-vdifn/db/seeds.rb > tmp/content-imp
 then `uv run python scripts/import_content.py` and `pnpm format` (CI checks the pages with Prettier).
 """
 
+import argparse
 import html
 import json
 import re
@@ -19,6 +20,7 @@ from pathlib import Path
 
 import yaml
 
+from agdata.progress import Reporter
 from agmodels.registry import all_models, page_path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -64,12 +66,29 @@ KIND = {"disease": "disease", "insect": "insect", "crop": "crop", "agronomic": "
 CREDITS = {"pecan-scab.jpg": "APS / Hoefnagels and Mason"}  # the only image credit the sources give
 
 
-def main(force: bool) -> None:
+def main(force: bool, report: Reporter) -> str:
+    """Seeds the pages; returns the summary of what was written."""
+    if not VDIFN_SEEDS.exists():
+        report.fail(
+            str(VDIFN_SEEDS), "not found; dump it first: ruby scripts/dump_vdifn_seeds.rb ... (see the docstring)"
+        )
+        return "nothing seeded"
     vdifn = {r["local_name"]: r for r in json.loads(VDIFN_SEEDS.read_text())}
     topics: dict[str, dict] = {}
-    for model_id, model in sorted(all_models().items()):
+    models = sorted(all_models().items())
+    report.step(
+        f"seeding pages in {CONTENT} for {len(models)} models ({'rebuilding all' if force else 'keeping existing'})"
+    )
+    written = kept = 0
+    for n, (model_id, model) in enumerate(models, 1):
+        report.progress("models", n, len(models))
         spec = model.SPEC
-        doc = _crt_sections(CRT_DOCS / CRT_DOC[model_id]) if model_id in CRT_DOC else None
+        doc = None
+        if model_id in CRT_DOC:
+            try:
+                doc = _crt_sections(CRT_DOCS / CRT_DOC[model_id])
+            except (OSError, UnicodeDecodeError) as error:  # the page is seeded without the doc
+                report.fail(f"{model_id}: Crop Risk Tool doc", error)
         seed = vdifn.get(VDIFN_NAME.get(model_id, model_id))
         for topic_id in spec.topics:
             t = topics.setdefault(
@@ -94,15 +113,24 @@ def main(force: bool) -> None:
         sources = ([f"Crop Risk Tool docs/{CRT_DOC[model_id]}"] if doc else []) + (
             [f"VDIFN db/seeds.rb ({seed['local_name']})"] if seed else []
         )
-        _write(
+        if _write(
             page_path(model_id),
             {"id": model_id, "status": "draft", "sources": sources},
             model_body or "To write: how the model works, how to read it, its validation and caveats.",
             force,
-        )
+        ):
+            written += 1
+        else:
+            kept += 1
 
-    for topic_id, t in sorted(topics.items()):
-        image = _copy_image(t["image"], topic_id) if t["image"] else None
+    for n, (topic_id, t) in enumerate(sorted(topics.items()), 1):
+        report.progress("topics", n, len(topics))
+        image = None
+        if t["image"]:
+            try:
+                image = _copy_image(t["image"], topic_id)
+            except OSError as error:  # the topic is written without its image
+                report.fail(f"{topic_id}: image {t['image']}", error)
         front = {
             "id": topic_id,
             "title": t["title"] or topic_id.replace("-", " ").capitalize(),
@@ -116,7 +144,11 @@ def main(force: bool) -> None:
             "sources": sorted(t["sources"]),
         }
         body = "\n\n".join(_dedupe(b for b in t["body"] if b.strip())) or "To write: the subject, and how to manage it."
-        _write(CONTENT / "topics" / f"{topic_id}.md", front, body, force)
+        if _write(CONTENT / "topics" / f"{topic_id}.md", front, body, force):
+            written += 1
+        else:
+            kept += 1
+    return f"{written} pages written, {kept} existing left alone"
 
 
 def _crt_sections(path: Path) -> dict:
@@ -177,13 +209,22 @@ def _dedupe(parts) -> list[str]:
     return out
 
 
-def _write(path: Path, front: dict, body: str, force: bool) -> None:
+def _write(path: Path, front: dict, body: str, force: bool) -> bool:
+    """Writes the page unless it exists (and not `force`); returns whether it wrote."""
     if path.exists() and not force:
-        return
+        return False
     path.parent.mkdir(parents=True, exist_ok=True)
     front_matter = yaml.safe_dump(front, sort_keys=False, allow_unicode=True, width=1000)
     path.write_text(f"---\n{front_matter}---\n\n{body.strip()}\n")
+    return True
 
 
 if __name__ == "__main__":
-    main(force="--force" in sys.argv)
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("--force", action="store_true", help="rebuild pages that already exist")
+    parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
+    args = parser.parse_args()
+    reporter = Reporter(quiet=args.quiet)
+    summary = main(force=args.force, report=reporter)
+    if not reporter.finish(summary):
+        sys.exit(1)

@@ -29,8 +29,11 @@ class JsonClient:
         self.backoff_s = backoff_s
         self.session = session or requests.Session()
 
-    def get(self, path: str, params: dict | None = None, cache_key: str | None = None) -> Any:
-        return self._cached(cache_key, lambda: self.session.get(self._url(path), params=params, timeout=self.timeout_s))
+    def get(self, path: str, params: dict | None = None, cache_key: str | None = None, refresh: bool = False) -> Any:
+        """The JSON response, from the cache if it has `cache_key` (unless `refresh`)."""
+        return self._cached(
+            cache_key, lambda: self.session.get(self._url(path), params=params, timeout=self.timeout_s), refresh
+        )
 
     def post(self, path: str, body: Any, cache_key: str | None = None) -> Any:
         return self._cached(cache_key, lambda: self.session.post(self._url(path), json=body, timeout=self.timeout_s))
@@ -38,15 +41,20 @@ class JsonClient:
     def _url(self, path: str) -> str:
         return f"{self.base_url}/{path.lstrip('/')}"
 
-    def _cached(self, cache_key: str | None, send) -> Any:
+    def _cached(self, cache_key: str | None, send, refresh: bool = False) -> Any:
         path = self.cache_dir / cache_key if self.cache_dir is not None and cache_key else None
-        if path is not None and path.exists():
-            return json.loads(path.read_text())
+        if path is not None and path.exists() and not refresh:
+            try:
+                return json.loads(path.read_text())
+            except json.JSONDecodeError:
+                path.unlink()  # a truncated or foreign file: fetch it again
         text = self._send(send)
         data = json.loads(text)  # parsed before it's cached, so a body that isn't JSON is never kept
         if path is not None:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(text)
+            partial = path.with_name(path.name + ".part")
+            partial.write_text(text)
+            partial.replace(path)  # atomic: a crash mid-write leaves no truncated entry
         return data
 
     def _send(self, send) -> str:
@@ -60,7 +68,13 @@ class JsonClient:
                     time.sleep(self.pause_s)
                 json.loads(response.text)  # Open-Meteo can answer 200 with a plain-text error mid-stream
                 return response.text
-            except (requests.ConnectionError, requests.Timeout, requests.HTTPError, json.JSONDecodeError) as error:
+            except (
+                requests.ConnectionError,
+                requests.Timeout,
+                requests.HTTPError,
+                requests.exceptions.ChunkedEncodingError,
+                json.JSONDecodeError,
+            ) as error:
                 retryable = not isinstance(error, requests.HTTPError) or (
                     error.response is not None
                     and (error.response.status_code == 429 or error.response.status_code >= 500)

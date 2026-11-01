@@ -7,9 +7,12 @@ makes a day from the Central-time hours at 00:00 … 23:00 (for precip, the hour
 hourly store the same way, over points whose cells are all in Central time, so what remains is the source (URMA
 in v2, RTMA in the old API) and QC. Old API responses are cached in tmp/legacy-cache (it's a production server:
 requests go one at a time).
+
+`--quiet` prints only warnings, failures and the summary.
 """
 
 import argparse
+import sys
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -22,6 +25,7 @@ from agdata.clients.agweather_v1 import AgWeatherV1, Bounds
 from agdata.clients.openmeteo_points import OpenMeteoPoints
 from agdata.daily import cell_timezones, open_or_create_daily
 from agdata.grid import NDFD, service_window
+from agdata.progress import Reporter
 from agdata.store import HOURLY, GridStore
 from agmodels.degree_days import degree_days_sine
 
@@ -38,14 +42,27 @@ def main():
     parser.add_argument("--box", default="wisconsin")
     parser.add_argument("--data", default="data")
     parser.add_argument("--out", default="docs/validation-archive.md")
+    parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
-    first, last = date.fromisoformat(args.start), date.fromisoformat(args.end)
+    report = Reporter(quiet=args.quiet)
+    try:
+        first, last = date.fromisoformat(args.start), date.fromisoformat(args.end)
+    except ValueError as error:
+        parser.error(f"--start and --end must be YYYY-MM-DD dates: {error}")
+    if first > last:
+        parser.error("--start must not be after --end")
     days = [first + timedelta(days=n) for n in range((last - first).days + 1)]
     data_dir = Path(args.data)
     window = service_window(args.box)
 
     points, labels = central_points(data_dir, window)
-    print(f"{len(points)} old-API points with all their cells in Central time; {len(days)} days")
+    report.step(
+        f"{len(points)} old-API points with all their cells in Central time; {len(days)} days, {first} to {last}; "
+        f"writing {args.out}"
+    )
+    if not points:
+        report.fail("points", f"no old-API points in the {args.box} box have all their cells in Central time")
+        sys.exit(1)
     period_start = datetime(first.year, first.month, first.day, tzinfo=CENTRAL).astimezone(UTC)
     period_stop = datetime(last.year, last.month, last.day, 23, tzinfo=CENTRAL).astimezone(UTC) + timedelta(hours=1)
     hourly = HourlyStores(data_dir, window, period_start, period_stop)
@@ -57,22 +74,30 @@ def main():
         rain = point_means(hourly.read("precipitation", hours, window), labels, len(points))
         v2["tmin"][d], v2["tmax"][d], v2["tavg"][d] = temp.min(0), temp.max(0), temp.mean(0)
         v2["precip"][d] = rain.sum(0)
-        weather = OLD_API.weather(day, bounds(window))
-        precip = OLD_API.precipitation_mm(day, bounds(window))
+        try:
+            weather = OLD_API.weather(day, bounds(window))
+            precip = OLD_API.precipitation_mm(day, bounds(window))
+        except Exception as error:  # the old side of this day stays missing
+            report.fail(f"old API {day}", error)
+            weather, precip = {}, {}
         for p, key in enumerate(points):
             w = weather.get(key)
             if w:
                 old["tmin"][d, p], old["tmax"][d, p], old["tavg"][d, p] = w["min_temp"], w["max_temp"], w["avg_temp"]
             if key in precip:
                 old["precip"][d, p] = precip[key]
-        if day.day == 1 or day == last:
-            print(f"{day}: done", flush=True)
+        report.progress("days", d + 1, len(days))
 
-    report = write_report(args, days, points, v2, old)
-    report += station_report(data_dir, window, days)
-    report += point_report(data_dir, window, days)
-    Path(args.out).write_text(report)
-    print(f"wrote {args.out}")
+    text = write_report(args, days, points, v2, old)
+    report.step("monthly precipitation at ACIS stations")
+    text += station_report(data_dir, window, days, report)
+    report.step("ET0 and shortwave at WISP 3's points")
+    text += point_report(data_dir, window, days, report)
+    report.step(f"writing {args.out} (overwriting)")
+    Path(args.out).write_text(text)
+    report.step(f"wrote {args.out}")
+    if not report.finish(f"{len(days)} days, {len(points)} points"):
+        sys.exit(1)
 
 
 def central_points(data_dir: Path, window) -> tuple[list[str], np.ndarray]:
@@ -235,10 +260,23 @@ def read_daily(data_dir: Path, name: str, days: list[date]) -> np.ndarray:
     return np.concatenate(parts)
 
 
-def station_report(data_dir: Path, window, days: list[date]) -> str:
+def old_api_days(fetch, days: list[date], report: Reporter, label: str) -> list[dict]:
+    """`fetch(day)` for each day; a day that fails is reported and left empty."""
+    out = []
+    for n, day in enumerate(days, 1):
+        try:
+            out.append(fetch(day))
+        except Exception as error:
+            report.fail(f"{label} {day}", error)
+            out.append({})
+        report.progress(label, n, len(days))
+    return out
+
+
+def station_report(data_dir: Path, window, days: list[date], report: Reporter) -> str:
     """Monthly precip at ACIS stations: v2 (the station's cell, its local days) and the old API (the 0.1° point)."""
     v2_days = read_daily(data_dir, "precipitation_sum", days)
-    old_days = [OLD_API.precipitation_mm(day, bounds(window)) for day in days]
+    old_days = old_api_days(lambda day: OLD_API.precipitation_mm(day, bounds(window)), days, report, "old API precip")
     rows = []
     for station in acis_daily_precip(window, days[0], days[-1]):
         if not station["ll"]:
@@ -305,14 +343,15 @@ def open_meteo_daily(lat: float, lon: float, first: date, last: date) -> dict:
     return daily
 
 
-def point_report(data_dir: Path, window, days: list[date]) -> str:
+def point_report(data_dir: Path, window, days: list[date], report: Reporter) -> str:
     """Daily ET0 and shortwave at WISP 3's points: v2 against Open-Meteo and the old API (ET; SSEC insolation)."""
     v2_et0 = read_daily(data_dir, "et0_sum", days)
     v2_sw = read_daily(data_dir, "shortwave_radiation_sum", days)
-    old_et = [OLD_API.evapotranspiration_mm(day, bounds(window)) for day in days]
-    old_sw = [OLD_API.insolation_mj_m2(day, bounds(window)) for day in days]
+    old_et = old_api_days(lambda day: OLD_API.evapotranspiration_mm(day, bounds(window)), days, report, "old API ET")
+    old_sw = old_api_days(lambda day: OLD_API.insolation_mj_m2(day, bounds(window)), days, report, "old API insolation")
     pairs: dict[str, tuple[list, list]] = {k: ([], []) for k in ("et0_om", "et0_old", "sw_om", "sw_old")}
-    for _name, lat, lon in WISP_POINTS:
+    for k, (_name, lat, lon) in enumerate(WISP_POINTS, 1):
+        report.progress("WISP points", k, len(WISP_POINTS))
         cell = NDFD.cell_of(lat, lon)
         assert cell is not None
         y, x = window.local(*cell)

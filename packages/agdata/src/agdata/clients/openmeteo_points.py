@@ -42,6 +42,9 @@ class OpenMeteoPoints(JsonClient):
         return self._blocks("hourly", locations, first, last, variables, model, "GMT")
 
     def _blocks(self, kind, locations, first, last, variables, model, timezone) -> list[dict[str, list]]:
+        """The cache key names the batch's first location and its size (and the timezone if it isn't the default),
+        not every location: each cached body is checked against the batch (one block per location, each near its
+        point) and fetched again if it doesn't match."""
         out: list[dict[str, list]] = []
         for k in range(0, len(locations), BATCH):
             batch = locations[k : k + BATCH]
@@ -69,10 +72,31 @@ class OpenMeteoPoints(JsonClient):
                 ]
                 + [f"{lat:.4f},{lon:.4f}" for lat, lon in batch[:1]]
                 + [f"n{len(batch)}"]
+                + ([] if timezone == DEFAULT_TIMEZONE[kind] else [timezone.replace("/", "-")])
             )
-            body = self.get(
-                self.path, params=params | ({"apikey": self.api_key} if self.api_key else {}), cache_key=key + ".json"
-            )
+            send = params | ({"apikey": self.api_key} if self.api_key else {})
+            body = self.get(self.path, params=send, cache_key=key + ".json")
+            if not _matches(body, batch):
+                body = self.get(self.path, params=send, cache_key=key + ".json", refresh=True)
+                if not _matches(body, batch):
+                    raise ValueError(f"Open-Meteo's answer doesn't match the {len(batch)} locations asked for")
             bodies = body if isinstance(body, list) else [body]  # one location comes back as an object
             out += [b[kind] for b in bodies]
         return out
+
+
+DEFAULT_TIMEZONE = {"daily": "America/Chicago", "hourly": "GMT"}  # the keys cached before the timezone was in them
+SNAP_DEG = 0.3  # Open-Meteo answers for its own cell's centre, a coastal point for a land cell (CLAUDE.md)
+
+
+def _matches(body, batch: list[tuple[float, float]]) -> bool:
+    """Whether a response holds one block per location of the batch, in order, each near its point."""
+    bodies = body if isinstance(body, list) else [body]
+    if len(bodies) != len(batch):
+        return False
+    for b, (lat, lon) in zip(bodies, batch, strict=True):
+        if "latitude" not in b:
+            continue  # older recorded fixtures carry no coordinates
+        if abs(b["latitude"] - lat) > SNAP_DEG or abs(b["longitude"] - lon) > SNAP_DEG:
+            return False
+    return True

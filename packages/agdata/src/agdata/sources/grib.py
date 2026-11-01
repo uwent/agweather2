@@ -188,12 +188,17 @@ class RemoteGrib:
         return self.session.head(self.url, timeout=self.timeout).status_code == 200
 
     def index(self) -> list[MessageRef]:
+        """The file's messages, from its `.idx` or, without one, by scanning the GRIB2 section headers. Raises
+        FileNotFoundError only when the file isn't there (404, or S3's 403 for a missing key); throttling and server
+        errors raise requests.HTTPError, so the caller retries rather than taking the hour as unpublished."""
         if self._index is None:
             response = self.session.get(self.url + ".idx", timeout=self.timeout)
             if response.status_code == 200:
                 self._index = parse_idx(response.text)
             else:
+                _raise_if_transient(response)
                 head = self.session.head(self.url, timeout=self.timeout)
+                _raise_if_transient(head)
                 if head.status_code != 200:
                     raise FileNotFoundError(f"{self.url}: HTTP {head.status_code}")
                 self._index = scan_index(self._read_range, int(head.headers["Content-Length"]))
@@ -228,4 +233,13 @@ class RemoteGrib:
         headers = {"Range": f"bytes={start}-{'' if end is None else end}"}
         response = self.session.get(self.url, headers=headers, timeout=self.timeout)
         response.raise_for_status()
+        if response.status_code != 206:  # a server that ignored the range sent the whole file: the wrong message
+            raise OSError(f"{self.url}: asked for bytes {start}-{end}, got HTTP {response.status_code}")
+        if end is not None and len(response.content) != end - start + 1:
+            raise OSError(f"{self.url}: bytes {start}-{end} came back {len(response.content)} long")
         return response.content
+
+
+def _raise_if_transient(response: requests.Response) -> None:
+    if response.status_code == 429 or response.status_code >= 500:
+        raise requests.HTTPError(f"{response.url}: HTTP {response.status_code}", response=response)

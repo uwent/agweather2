@@ -35,11 +35,13 @@ def open_or_create_daily(data_dir: Path, year: int, window: Window) -> GridStore
     try:
         store = GridStore.open(data_dir, DAILY, year, DAILY_VARIABLES.values(), add_missing=True)
     except FileNotFoundError:
-        store = GridStore.create(data_dir, DAILY, year, window, DAILY_VARIABLES.values())
         zones, index = window_timezones(window)
-        store.group.attrs["timezones"] = zones
-        array = store.group.create_array("_meta/timezone", shape=index.shape, dtype="uint8", fill_value=0)
-        array[:] = index
+
+        def with_zones(group) -> None:
+            group.attrs["timezones"] = zones
+            group.create_array("_meta/timezone", shape=index.shape, dtype="uint8", fill_value=0)[:] = index
+
+        store = GridStore.create(data_dir, DAILY, year, window, DAILY_VARIABLES.values(), finish=with_zones)
     if store.window != window:
         raise ValueError(f"{store.path} covers {store.window}, not {window}; widening the box needs a rebuild")
     return store
@@ -53,7 +55,9 @@ def cell_timezones(store: GridStore) -> tuple[list[str], np.ndarray]:
 
 def rollup_days(data_dir: Path, window: Window, first: date, last: date) -> int:
     """Rolls up local days first..last (inclusive) from the hourly store into the daily store; returns the
-    number of days written. Hours not in the hourly store count as missing."""
+    number of days written. Hours not in the hourly store count as missing. A day's variable is marked `derived`
+    only if some cell has a value (so a day not yet observed, such as today with too few hours, reads as not
+    rolled up, and the running totals stop before it)."""
     hourly = _HourlyReader(data_dir)
     written = 0
     for days in _passes(first, last):
@@ -66,6 +70,7 @@ def rollup_days(data_dir: Path, window: Window, first: date, last: date) -> int:
         span_stop = max(b[1] for g in groups for b in g) + HOUR
         feature_start = min(span_start, *(b[0] for g in evenings for b in g))
 
+        has_value: dict[str, np.ndarray] = {}
         for band in _bands(window):
             y0, _ = window.local(band.j0, band.i0)
             band_zones = zone_index[y0 : y0 + band.shape[0]]
@@ -113,7 +118,12 @@ def rollup_days(data_dir: Path, window: Window, first: date, last: date) -> int:
                     h["temperature"], h["rh"], features.is_night(local_hour)
                 ),
             )
-            store.write(days[0], out, source="derived", window=band)
+            store.write(days[0], out, source=None, window=band)
+            for name, values in out.items():
+                some = np.isfinite(values).any(axis=(1, 2))
+                has_value[name] = some | has_value.get(name, np.zeros(len(days), dtype=bool))
+        for name, some in has_value.items():
+            store.set_sources(name, days[0], ["derived" if x else None for x in some])
         written += len(days)
     return written
 

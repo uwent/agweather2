@@ -102,6 +102,8 @@ def ingest_block(
 ) -> BlockReport:
     """Fetches, QCs, derives and writes `hours` consecutive hours from `start` (all within the store's year).
     `progress` is called with the number of hours fetched so far as each one finishes."""
+    if start.utcoffset() != timedelta(0):
+        raise ValueError(f"ingest_block takes UTC times, not {start}")  # the solar geometry reads them as UTC
     times = [start + timedelta(hours=n) for n in range(hours)]
     store.index_of(times[-1])  # the block must fit in the store's year
     window = store.window
@@ -134,12 +136,14 @@ def ingest_block(
         for name, values in hour.values.items():
             variable = store.variables[name]
             cleaned, bad = check_range(variable, values)
-            report.out_of_range[name] = report.out_of_range.get(name, 0) + bad
+            with done_lock:  # threads add to the same counts
+                report.out_of_range[name] = report.out_of_range.get(name, 0) + bad
             packed[name][n] = variable.encode(cleaned)
             sources[name][n] = hour.sources[name]
 
     with ThreadPoolExecutor(workers) as pool:
         list(pool.map(one, range(hours)))
+    _keep_stored(store, start, packed, sources)
 
     # Spikes, over the block, for measured variables
     decoded: dict[str, np.ndarray] = {}
@@ -185,6 +189,30 @@ def ingest_block(
     return report
 
 
+def _keep_stored(
+    store: GridStore, start: datetime, packed: dict[str, np.ndarray], sources: dict[str, list[str | None]]
+) -> None:
+    """Where this fetch got nothing for an hour's measured variable (the hour failed, or a source wasn't out), keeps
+    what the store already holds rather than writing it over as missing: a refetch of an RTMA hour waiting for URMA
+    mustn't lose the RTMA hour if the refetch fails."""
+    t0 = store.index_of(start)
+    hours = len(next(iter(sources.values())))
+    for variable in HOURLY_VARIABLES:
+        if variable.derived or variable.name in SEPARATE:
+            continue
+        gaps = [n for n, s in enumerate(sources[variable.name]) if s is None]
+        if not gaps:
+            continue
+        stored_sources = store.sources(variable.name)[t0 : t0 + hours]
+        keep = [n for n in gaps if stored_sources[n] is not None]
+        if not keep:
+            continue
+        stored = store.read_steps(variable.name, t0, t0 + hours)
+        for n in keep:
+            packed[variable.name][n] = variable.encode(stored[n])
+            sources[variable.name][n] = stored_sources[n]
+
+
 def write_soil(store: GridStore, hours: "era5land.Hours", source: str) -> int:
     """Writes soil and snow hours (D52) that fall in the store's year, with `source`: `era5land` replaces anything,
     `ifs` (provisional) anything but ERA5-Land's hours. The hours must be consecutive. Returns the hours written."""
@@ -226,12 +254,13 @@ def refetch_precipitation(
     store: GridStore, start: datetime, hours: int, workers: int = 8, session_factory=requests.Session
 ) -> int:
     """Fetches only hourly precip again (URMA, else RTMA) for `hours` from `start` and writes it at the catalog's
-    precision; hours neither has keep what they had. Returns the hours written. Precip files are small (about
+    precision; hours neither has keep what they had. Returns the hours replaced. Precip files are small (about
     250 KB an hour), so this is cheap next to a full ingest."""
     variable = store.variables["precipitation"]
     t0 = store.index_of(start)
     values = store.read_steps("precipitation", t0, t0 + hours)
     sources = store.sources("precipitation")[t0 : t0 + hours]
+    replaced: set[int] = set()
 
     def one(n: int) -> None:
         session = _session(session_factory)
@@ -243,6 +272,7 @@ def refetch_precipitation(
                     if found is not None:
                         values[n] = check_range(variable, found)[0]
                         sources[n] = source.name
+                        replaced.add(n)
                         return
                 return
             except Exception as error:  # transient network errors; the hour keeps what it had after the last
@@ -255,7 +285,7 @@ def refetch_precipitation(
         list(pool.map(one, range(hours)))
     store.write(start, {"precipitation": values}, source=None)
     store.set_sources("precipitation", start, sources)
-    return sum(1 for s in sources if s)
+    return len(replaced)
 
 
 def stale_hours(

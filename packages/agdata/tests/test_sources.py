@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import requests
 
 from agdata.grid import Window, service_window
 from agdata.sources import hrrr
@@ -128,3 +129,41 @@ def test_hrrr_shortwave_over_wisconsin(when):
     values = hrrr.fetch_hour(when, service_window("wisconsin"))
     assert 600 < np.nanmean(values["shortwave_radiation"]) < 1100  # early afternoon CDT in July, W/m²
     assert set(values) == {"shortwave_radiation"}
+
+
+class FakeResponse:
+    def __init__(self, status_code, content=b"", headers=None, url="https://bucket/file.grib2"):
+        self.status_code, self.content, self.headers, self.url = status_code, content, headers or {}, url
+        self.text = content.decode(errors="replace")
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.HTTPError(f"HTTP {self.status_code}", response=self)  # type: ignore[arg-type]
+
+
+class FakeSession:
+    def __init__(self, idx_status=404, head_status=200, range_status=206, body=b"0123456789"):
+        self.idx_status, self.head_status, self.range_status, self.body = idx_status, head_status, range_status, body
+
+    def get(self, url, headers=None, timeout=None):
+        if url.endswith(".idx"):
+            return FakeResponse(self.idx_status)
+        start, end = (int(x) for x in (headers or {})["Range"].removeprefix("bytes=").split("-"))
+        return FakeResponse(self.range_status, self.body[start : end + 1] if self.range_status == 206 else self.body)
+
+    def head(self, url, timeout=None):
+        return FakeResponse(self.head_status, headers={"Content-Length": str(len(self.body))})
+
+
+def test_remote_grib_tells_a_missing_file_from_a_server_error():
+    with pytest.raises(FileNotFoundError):
+        RemoteGrib("https://bucket/file.grib2", session=FakeSession(head_status=404)).index()  # type: ignore[arg-type]
+    for session in (FakeSession(idx_status=503), FakeSession(head_status=503), FakeSession(head_status=429)):
+        with pytest.raises(requests.HTTPError):
+            RemoteGrib("https://bucket/file.grib2", session=session).index()  # type: ignore[arg-type]
+
+
+def test_remote_grib_refuses_a_response_that_ignored_the_range():
+    assert RemoteGrib("u", session=FakeSession())._read_range(2, 4) == b"234"  # type: ignore[arg-type]
+    with pytest.raises(OSError, match="HTTP 200"):
+        RemoteGrib("u", session=FakeSession(range_status=200))._read_range(2, 4)  # type: ignore[arg-type]

@@ -44,10 +44,13 @@ class Wisconet(JsonClient):
         return self.get(f"stations/{station_id}/measures", params=params, cache_key=cache_key).get("data", [])
 
     def daily(self, station_id: str, field: str, year: int) -> dict[date, float]:
-        """A daily field's values for a year at a station, by the local day each closes (cached per station-year)."""
+        """A daily field's values for a year at a station, by the local day each closes (cached per station-year; the
+        current year's cache is per day fetched, so it doesn't stop at the first day it was asked for)."""
         start = datetime(year, 1, 1, tzinfo=CENTRAL) + timedelta(hours=1)
         end = datetime(year + 1, 1, 1, tzinfo=CENTRAL) + timedelta(hours=1)
-        rows = self.measures(station_id, start, end, [field], cache_key=f"{station_id}_{year}_{field}.json")
+        today = datetime.now(CENTRAL).date()
+        through = f"_{today}" if year >= today.year else ""
+        rows = self.measures(station_id, start, end, [field], cache_key=f"{station_id}_{year}_{field}{through}.json")
         wanted = self.field_id(field)
         out: dict[date, float] = {}
         for row in rows:

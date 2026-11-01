@@ -14,6 +14,9 @@ STEFAN_BOLTZMANN_HOURLY = 2.043e-10  # MJ K-4 m-2 h-1 (FAO-56 eq. 39 for hourly 
 ALBEDO_GRASS = 0.23
 # ASCE-EWRI (2005): below this sun elevation Rs/Rso is unreliable, so the last value above it carries on
 CLOUDINESS_MIN_ELEVATION_DEG = 17.2
+# ASCE-EWRI (2005) eq. 45 limits the cloudiness factor 1.35 Rs/Rso − 0.35 to 0.05–1, i.e. Rs/Rso to 0.3–1: below 0.3
+# the factor (and the net longwave) would turn negative under heavy cloud. FAO-56 eq. 39 bounds it only above.
+RS_RSO_MIN = 0.3
 DEFAULT_RS_RSO = 0.8  # before any daytime value to carry (FAO-56 Example 19's night assumption)
 
 
@@ -142,13 +145,14 @@ def extraterrestrial_radiation_hourly(hour_end, latitude_deg, longitude_deg):
 
 
 def cloudiness_ratio(rs, rso, sun_elevation_deg, axis: int = 0):
-    """Rs/Rso for net longwave (0.25–1), carried forward along the time axis while the sun is too low to measure it.
+    """Rs/Rso for net longwave (RS_RSO_MIN–1), carried forward along the time axis while the sun is too low to
+    measure it.
 
     Hours before the first usable daytime value take DEFAULT_RS_RSO.
     """
     rs, rso = np.asarray(rs, dtype=float), np.asarray(rso, dtype=float)
     usable = (np.asarray(sun_elevation_deg) > CLOUDINESS_MIN_ELEVATION_DEG) & (rso > 0) & np.isfinite(rs)
-    ratio = np.where(usable, np.clip(rs / np.where(rso > 0, rso, 1), 0.25, 1.0), np.nan)
+    ratio = np.where(usable, np.clip(rs / np.where(rso > 0, rso, 1), RS_RSO_MIN, 1.0), np.nan)
     ratio = np.moveaxis(np.broadcast_to(ratio, np.broadcast_shapes(ratio.shape, usable.shape)).copy(), axis, 0)
     last = np.full(ratio.shape[1:], DEFAULT_RS_RSO)
     for k in range(ratio.shape[0]):

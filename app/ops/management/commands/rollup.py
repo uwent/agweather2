@@ -1,16 +1,14 @@
-import time
-from datetime import date
-
 from django.conf import settings
-from django.core.management.base import BaseCommand, CommandError
 
 from agdata.cumulative import update_days
-from agdata.grid import service_window
-from ops.locks import hold_write_lock
+from ops.management.base import ReportingCommand, check_range, parse_day
 
 
-class Command(BaseCommand):
-    help = "Roll up local days from the hourly archive and rebuild the running totals of the years they touch"
+class Command(ReportingCommand):
+    help = (
+        "Roll up local days from the hourly archive and rebuild the running totals of the years they touch. Note "
+        "--end is the last local day (inclusive), unlike backfill's."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument("--start", required=True, help="first local day, YYYY-MM-DD")
@@ -18,15 +16,10 @@ class Command(BaseCommand):
         parser.add_argument("--box", default=None, help="service box (default: SERVICE_BOX)")
 
     def handle(self, *args, **options):
-        try:
-            first, last = date.fromisoformat(options["start"]), date.fromisoformat(options["end"])
-        except ValueError as error:
-            raise CommandError(error) from error
-        window = service_window(options["box"] or settings.SERVICE_BOX)
-        self.lock = hold_write_lock(settings.DATA_DIR)
-        began = time.time()
-        years = update_days(settings.DATA_DIR, window, first, last)
-        self.stdout.write(
-            f"Rolled up {first} to {last} and rebuilt the running totals of {years or 'no years'} "
-            f"in {time.time() - began:.0f}s"
-        )
+        first, last = parse_day(options["start"], "--start"), parse_day(options["end"], "--end")
+        check_range(first, last, exclusive=False)
+        window = self.window(options["box"])
+        self.report.step(f"Rolling up {first} to {last} ({(last - first).days + 1} days)")
+        with self.lock():
+            years = update_days(settings.DATA_DIR, window, first, last)
+        self.finish(f"rolled up {first} to {last} and rebuilt the running totals of {years or 'no years'}")

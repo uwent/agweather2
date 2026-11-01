@@ -74,6 +74,14 @@ def run_info(path: Path) -> dict:
     return json.loads((path / "run.json").read_text())
 
 
+def _write_info(path: Path, info: dict) -> None:
+    """Writes run.json atomically: a request reading the published run while it's restitched sees the old file
+    or the new one, never half of one."""
+    partial = path / "run.json.part"
+    partial.write_text(json.dumps(info, indent=2))
+    partial.replace(path / "run.json")
+
+
 def last_observed_hour(data_dir: Path, before: datetime, lookback: timedelta = timedelta(days=14)) -> datetime | None:
     """The archive's last hour with temperature at or before `before`, looking back up to `lookback`."""
     t = before.astimezone(UTC).replace(minute=0, second=0, microsecond=0)
@@ -316,7 +324,7 @@ def _finish(
         "last_hour": times[-1].isoformat(),
         "failed_leads": failed or [],
     }
-    (path / "run.json").write_text(json.dumps(info, indent=2))
+    _write_info(path, info)
     stitch(data_dir, path, window)
 
 
@@ -338,7 +346,7 @@ def stitch(data_dir: Path, path: Path, window: Window) -> datetime | None:
     rollup_days(path, window, first_day, last_day)
     _continue_totals(data_dir, path, window, first_day, last_day)
     info |= {"last_observed": observed.isoformat() if observed else None, "first_day": first_day.isoformat()}
-    (path / "run.json").write_text(json.dumps(info, indent=2))
+    _write_info(path, info)
     return observed
 
 

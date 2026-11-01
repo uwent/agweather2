@@ -186,5 +186,14 @@ def test_gaps_in_the_inputs_are_estimated_and_reported():
     assert result.outputs["precipitation_days_missing"][0] == 2
     assert np.isfinite(result.outputs["incidence"][: red_crown_rot.WINDOW]).all()
 
+    assert result.missing == {}  # every gap was filled
+
     unfilled = runner.run("red-crown-rot", dates=DATES, daily=daily, latitude=LATITUDE, start=r1, biofix=r1)
     assert unfilled.estimated == {} and unfilled.outputs["precipitation_days_missing"][0] == 2
+    assert unfilled.missing["air_temperature_mean"].nonzero()[0].tolist() == [3]
+
+    daily["air_temperature_mean"][k + 5 : k + 15] = np.nan  # ten days: too long to bridge
+    long = runner.run(
+        "red-crown-rot", dates=DATES, daily=daily, latitude=LATITUDE, start=r1, biofix=r1, gap_fill=methods
+    )
+    assert long.missing["air_temperature_mean"].nonzero()[0].tolist() == list(range(5, 15))

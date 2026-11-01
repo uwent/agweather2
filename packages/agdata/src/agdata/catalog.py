@@ -266,6 +266,7 @@ VARIABLES: dict[str, Variable] = {
             valid_max=3,
             daily=("sum",),
             derived=True,
+            version=2,  # 2: Rs/Rso held to 0.3–1 (ASCE-EWRI), so heavy cloud can't make net longwave a gain
             notes="Hourly FAO-56 Penman-Monteith (PLAN.md D8)",
         ),
     ]
@@ -293,6 +294,8 @@ class DailyStatistic:
 
 
 def _daily_statistic(v: Variable, stat: DailyStat) -> DailyStatistic:
+    """A daily statistic of an hourly variable, with the hourly variable's version: when what's stored hourly
+    changes (a new source or correction), the days computed from it are stale too and roll up again (D29)."""
     name = f"{v.name}_{stat}"
     if stat == "sum":
         unit_, factor, scale, offset, high = _SUMS[v.name]
@@ -307,6 +310,7 @@ def _daily_statistic(v: Variable, stat: DailyStat) -> DailyStatistic:
             valid_max=high,
             derived=True,
             gap_fill="zero" if v.name == "precipitation" else "interpolate",  # precip is never estimated
+            version=v.version,
         )
         return DailyStatistic(variable=daily, hourly=v.name, stat=stat, factor=factor)
     long_name = f"{v.long_name}, daily {stat}"
@@ -320,6 +324,7 @@ def _daily_statistic(v: Variable, stat: DailyStat) -> DailyStatistic:
         valid_max=v.valid_max,
         derived=True,
         gap_fill="interpolate",
+        version=v.version,
     )
     return DailyStatistic(variable=daily, hourly=v.name, stat=stat)
 
@@ -380,11 +385,22 @@ DAILY_FEATURES: dict[str, Variable] = {
         Variable(
             name="hours_rh_over_90_night", long_name=_RH90.format("Night hours (8 pm to 7 am)"), version=2, **_HOURS
         ),
-        Variable(name="hours_soil_4cm_below_27f", long_name="Hours with soil at 4 cm below 27 °F", **_HOURS),
-        Variable(name="hours_soil_10cm_below_27f", long_name="Hours with soil at 10 cm below 27 °F", **_HOURS),
+        Variable(
+            name="hours_soil_4cm_below_27f",
+            long_name="Hours with soil at 4 cm below 27 °F",
+            version=2,  # 2: from ERA5-Land's soil (D52)
+            **_HOURS,
+        ),
+        Variable(
+            name="hours_soil_10cm_below_27f",
+            long_name="Hours with soil at 10 cm below 27 °F",
+            version=2,  # 2: from ERA5-Land's soil (D52)
+            **_HOURS,
+        ),
         Variable(
             name="hours_soil_8in_below_27f",
             long_name="Hours with soil at 8 in (10–30 cm interpolated) below 27 °F",
+            version=2,  # 2: from ERA5-Land's soil (D52)
             **_HOURS,
         ),
         Variable(name="dew_point_depression_min", long_name="Dew point depression, daily min", **_TEMPERATURE),

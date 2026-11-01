@@ -18,6 +18,7 @@ archive's), keeping the values before in `Hours.raw` (`agdata.corrections` lists
 
 import json
 import math
+import time
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 
@@ -179,28 +180,39 @@ def cell_for(latitude: float, longitude: float) -> Cell:
     return Cell(latitude=_ring_latitude(j), longitude=centre, ring=j, index=i)
 
 
+RETRY_SECONDS = 5  # times the attempt number, between tries (a 429 retried at once only makes it worse)
+
+
 def _get(session: requests.Session, address: str, params: dict) -> dict:
-    for attempt in range(3):
+    """The JSON body, retrying throttling (429), server errors, dropped connections and a 200 whose body isn't JSON
+    (Open-Meteo's "timeoutReached"); any other status raises with Open-Meteo's reason."""
+    for attempt in range(1, 4):
         try:
             response = session.get(address, params=params, timeout=TIMEOUT)
             if response.status_code == 429 or response.status_code >= 500:
                 raise requests.HTTPError(f"Open-Meteo {response.status_code}", response=response)
             if response.status_code != 200:
-                reason = response.json().get("reason", "") if response.content else ""
+                try:
+                    reason = response.json().get("reason", "")
+                except ValueError:
+                    reason = response.text[:200]
                 raise ValueError(f"Open-Meteo {response.status_code}: {reason}")
             return response.json()
-        except (requests.ConnectionError, requests.Timeout, requests.HTTPError):
-            if attempt == 2:
+        except (requests.ConnectionError, requests.Timeout, requests.HTTPError, requests.JSONDecodeError):
+            if attempt == 3:
                 raise
+            time.sleep(RETRY_SECONDS * attempt)
     raise AssertionError("unreachable")
 
 
 def _place(times: np.ndarray, series: np.ndarray, start: datetime, n: int) -> np.ndarray:
     """A response's series onto the hours from `start` (unix times are the hour's end)."""
     out = np.full(n, np.nan)
+    if len(series) != len(times):  # a variable the model didn't return (or a short one): missing, not a crash
+        return out
     k = (times - int(start.timestamp())) // 3600
     inside = (k >= 0) & (k < n)
-    out[k[inside]] = series[: len(k)][inside]
+    out[k[inside]] = series[inside]
     return out
 
 

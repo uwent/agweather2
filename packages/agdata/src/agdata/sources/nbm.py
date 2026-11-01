@@ -12,6 +12,8 @@ Checked 2026-10-29 on the runs of 2026-10-28:
 Each message is a whole CONUS field (0.8-1.9 MB), cropped to the window after decoding.
 """
 
+import logging
+import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -25,6 +27,9 @@ from agdata.catalog import variable
 from agdata.grid import Window
 from agdata.sources.grib import Key, MessageRef, RemoteGrib, place
 from agdata.units import convert
+
+logger = logging.getLogger(__name__)
+RETRY_SECONDS = 5  # times the attempt number, between tries of a lead
 
 BUCKET = "https://noaa-nbm-grib2-pds.s3.amazonaws.com"
 LONG_CYCLES = (1, 7, 13, 19)  # UTC hours of the runs with hourly precip to the end (D38)
@@ -136,8 +141,11 @@ def fetch_run(
 ) -> Run:
     """Every forecast hour of a long run, read in parallel; a file that fails after retries is left NaN.
 
-    `out` takes the steps instead of arrays in memory: an array per name in NAMES, (HORIZON_HOURS, y, x), that
-    threads can write different steps of at once (a zarr array chunked by step does)."""
+    `out` takes the steps instead of arrays in memory: an array per name in FETCHED, (HORIZON_HOURS, y, x), that
+    threads can write different steps of at once (a zarr array chunked by step does).
+
+    A missing file (not published, or not in this run) fails its lead at once; a network error is retried with a
+    pause; anything else (a malformed file) fails the lead too, logged, rather than the whole run."""
     values: dict[str, Any] = (
         out
         if out is not None
@@ -152,9 +160,19 @@ def fetch_run(
                 for name, field_values in step(cycle, lead, window, session).items():
                     values[name][lead - 1] = field_values
                 return
-            except (requests.RequestException, ValueError, FileNotFoundError):
+            except FileNotFoundError:
+                failed.append(lead)
+                return
+            except requests.RequestException as error:
                 if attempt == attempts:
+                    logger.warning("NBM %s f%03d failed %d times: %r", cycle, lead, attempts, error)
                     failed.append(lead)
+                    return
+                time.sleep(RETRY_SECONDS * attempt)
+            except Exception as error:  # a malformed file: this lead fails, not the run
+                logger.warning("NBM %s f%03d unreadable: %r", cycle, lead, error)
+                failed.append(lead)
+                return
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         list(pool.map(one, range(1, HORIZON_HOURS + 1)))

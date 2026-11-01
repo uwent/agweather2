@@ -17,6 +17,9 @@ rather than IFS's forecast skill.
 
     uv run python tmp/wisconet/fetch_soil.py   # the stations' hours, cached in tmp/wisconet
     uv run python scripts/compare_soil_wisconet.py --start 2025-01-01 --end 2026-10-29
+
+`--quiet` prints only warnings, failures and the summary. `--fit-seam` names the table it overwrites before it writes
+it, and doesn't write it if a failure was reported.
 """
 
 import argparse
@@ -36,6 +39,7 @@ from agdata.catalog import VARIABLES
 from agdata.clients.openmeteo_points import OpenMeteoPoints
 from agdata.clients.wisconet import CENTRAL, Wisconet
 from agdata.grid import service_window
+from agdata.progress import Reporter
 from agdata.sources.openmeteo import SOIL_LAYERS, soil_at_depths
 from agdata.store import HOURLY, GridStore
 from agmodels.features import EIGHT_INCHES_CM, KILLING_SOIL_C, soil_between
@@ -63,21 +67,37 @@ def main():
         help=f"fit IFS's seam weights (Q23) on the first year, test on the rest, write {soil_seam.TABLE_PATH.name} "
         "fitted on every year, and add the test to the report",
     )
+    parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
-    first, last = date.fromisoformat(args.start), date.fromisoformat(args.end)
+    report = Reporter(quiet=args.quiet)
+    try:
+        first, last = date.fromisoformat(args.start), date.fromisoformat(args.end)
+    except ValueError as error:
+        parser.error(f"--start and --end must be YYYY-MM-DD dates: {error}")
+    if first > last:
+        parser.error("--start must not be after --end")
     window = service_window(args.box)
     wisconet = Wisconet(cache_dir=WISCONET)
     stations = [s for s in wisconet.stations() if (c := cell(s)) is not None and window.contains(*c)]
+    if not stations:
+        report.fail("stations", f"no Wisconet stations inside the {args.box} box")
+        sys.exit(1)
     start = datetime(first.year, first.month, first.day, tzinfo=UTC)
     n = ((last - first).days + 1) * 24
+    report.step(
+        f"soil against Wisconet, {first} to {last}: {len(stations)} stations, {n} hours; writing {args.out}"
+        + (f" and the seam table {soil_seam.TABLE_PATH}" if args.fit_seam else "")
+    )
     times = [start + (k + 1) * HOUR for k in range(n)]
 
-    station = station_soil(wisconet, stations, start, n)
-    ifs_layers, snow = openmeteo_soil(stations, first, last, start, n, "historical", "ecmwf_ifs")
+    report.step("reading the stations' cached soil hours")
+    station = station_soil(wisconet, stations, start, n, report)
+    ifs_layers, snow = openmeteo_soil(stations, first, last, start, n, "historical", "ecmwf_ifs", report)
     ifs = {name: value for name, (value, _) in soil_at_depths(ifs_layers).items()}
-    era5_layers, _ = openmeteo_soil(stations, first, last, start, n, "archive", "era5_land")
+    era5_layers, _ = openmeteo_soil(stations, first, last, start, n, "archive", "era5_land", report)
     era5 = {name: value for name, (value, _) in soil_at_depths(era5_layers).items()}
-    archive = archive_soil(Path(args.data), stations, start, n)
+    report.step("reading the archive at the stations' cells")
+    archive = archive_soil(Path(args.data), stations, start, n, report)
 
     # Each source at the potato model's depths, as the model reads it
     at_potato = {
@@ -88,29 +108,43 @@ def main():
     local = [(t - HOUR).astimezone(CENTRAL) for t in times]
     local_day = np.array([t.date().toordinal() for t in local])
     month = np.array([t.month for t in local])
-    text = report(args, stations, station, at_potato, ifs_layers, snow, archive, local_day, month)
+    report.step("building the report")
+    text = build_report(args, stations, station, at_potato, ifs_layers, snow, archive, local_day, month)
     if args.fit_seam:
-        text += fit_seam(archive, ifs, times)
+        text += fit_seam(archive, ifs, times, report)
+    report.step(f"writing {args.out} (overwriting)")
     Path(args.out).write_text(text)
-    print(f"wrote {args.out}")
+    report.step(f"wrote {args.out}")
+    if not report.finish(f"{len(stations)} stations, {n} hours"):
+        sys.exit(1)
 
 
-def station_soil(wisconet: Wisconet, stations, start: datetime, n: int) -> dict[float, np.ndarray]:
+def station_soil(wisconet: Wisconet, stations, start: datetime, n: int, report: Reporter) -> dict[float, np.ndarray]:
     """Each station's hourly soil temperature (°C) by sensor depth (cm), on the hours ending start + 1 h, …"""
     ids = {wisconet.field_id(f"60min_soil_temp_f_avg@{name}in"): depth for name, depth in STATION_DEPTHS.items()}
     out = {depth: np.full((len(stations), n), np.nan) for depth in STATION_DEPTHS.values()}
+    missing = 0
     for k, s in enumerate(stations):
-        for year in (start.year, start.year + 1):
+        report.progress("stations", k + 1, len(stations))
+        for year in range(start.year, (start + (n - 1) * HOUR).year + 1):
             path = WISCONET / f"{s['station_id']}_{year}_60min_soil.json"
             if not path.exists():
+                missing += 1
                 continue
-            for row in json.loads(path.read_text()).get("data", []):
+            try:
+                rows = json.loads(path.read_text()).get("data", [])
+            except (OSError, ValueError) as error:
+                report.fail(str(path), error)
+                continue
+            for row in rows:
                 t = int((row["collection_time"] - start.timestamp()) // 3600) - 1
                 if not 0 <= t < n:
                     continue
                 for fid, value in row["measures"]:
                     if value is not None and fid in ids:
                         out[ids[fid]][k, t] = (value - 32) / 1.8
+    if missing:
+        report.warn(f"{missing} station-year cache files not found in {WISCONET} (those hours stay missing)")
     for depth, values in out.items():
         out[depth] = qc(values)
     return out
@@ -125,7 +159,9 @@ def qc(values: np.ndarray) -> np.ndarray:
     return np.where((before > 6) & (after > 6), np.nan, v)
 
 
-def openmeteo_soil(stations, first: date, last: date, start: datetime, n: int, endpoint: str, model: str):
+def openmeteo_soil(
+    stations, first: date, last: date, start: datetime, n: int, endpoint: str, model: str, report: Reporter
+):
     """A model's soil layers (°C) and snow depth (m) at the stations from an Open-Meteo endpoint, a year per
     request."""
     key = os.environ.get("OPEN_METEO_API_KEY") or dotenv("OPEN_METEO_API_KEY")
@@ -135,6 +171,7 @@ def openmeteo_soil(stations, first: date, last: date, start: datetime, n: int, e
     locations = [(s["latitude"], s["longitude"]) for s in stations]
     for year in range(first.year, last.year + 1):
         lo, hi = max(first, date(year, 1, 1)), min(last, date(year, 12, 31))
+        report.step(f"Open-Meteo {model} ({endpoint}) {year}: {len(locations)} locations, {lo} to {hi}")
         for k, block in enumerate(client.hourly(locations, lo, hi, variables, model=model)):
             index = (np.asarray(block["time"], dtype=np.int64) - int(start.timestamp())) // 3600 - 1
             ok = (index >= 0) & (index < n)
@@ -146,12 +183,13 @@ def openmeteo_soil(stations, first: date, last: date, start: datetime, n: int, e
     return out, snow
 
 
-def archive_soil(data_dir: Path, stations, start: datetime, n: int) -> dict[str, np.ndarray]:
+def archive_soil(data_dir: Path, stations, start: datetime, n: int, report: Reporter) -> dict[str, np.ndarray]:
     out = {name: np.full((len(stations), n), np.nan) for name in ARCHIVE}
     k = 0
     while k < n:
         t = start + (k + 1) * HOUR
         step = min(n - k, (datetime(t.year + 1, 1, 1, tzinfo=UTC) - t) // HOUR)
+        report.step(f"archive {t.year}: {step} hours at {len(stations)} cells")
         store = GridStore.open(data_dir, HOURLY, t.year, [VARIABLES[name] for name in ARCHIVE])
         t0 = store.index_of(t)
         for s_index, s in enumerate(stations):
@@ -190,7 +228,7 @@ def stats(model: np.ndarray, observed: np.ndarray, sel: np.ndarray) -> str:
     return f"{d.mean():+.2f} / {np.abs(d).mean():.2f}"
 
 
-def report(args, stations, station, at_potato, ifs_layers, snow, archive, local_day, month) -> str:
+def build_report(args, stations, station, at_potato, ifs_layers, snow, archive, local_day, month) -> str:
     days = sorted(set(local_day.tolist()))
     winter = np.isin(month, (11, 12, 1, 2, 3))[None, :]
     snowy = snow >= SNOW_M
@@ -348,7 +386,9 @@ def report(args, stations, station, at_potato, ifs_layers, snow, archive, local_
 SEAM_LEADS = np.arange(0, 25 * 24 + 1, 6)  # the provisional hours (up to 14 days) and the forecast (10), 6-hourly
 
 
-def fit_seam(archive: dict[str, np.ndarray], ifs: dict[str, np.ndarray], times: list[datetime]) -> str:
+def fit_seam(
+    archive: dict[str, np.ndarray], ifs: dict[str, np.ndarray], times: list[datetime], report: Reporter
+) -> str:
     """Fits the seam weights on the first year's start hours and tests them on the later years', writes the table
     fitted on every year, and returns the report's section."""
     first_year = np.array([t.year == times[0].year for t in times])
@@ -363,9 +403,11 @@ def fit_seam(archive: dict[str, np.ndarray], ifs: dict[str, np.ndarray], times: 
         "| Depth | lead (d) | weight | none | whole | weighted |",
         "|---|---|---|---|---|---|",
     ]
+    first = soil_seam.VARIABLES[0]
+    stations = int(np.isfinite(archive[first] - ifs[first]).any(axis=1).sum())
     fitted = {}
-    for name in soil_seam.VARIABLES:
-        print(f"fitting the seam weights for {name}", flush=True)
+    for k_name, name in enumerate(soil_seam.VARIABLES, 1):
+        report.step(f"fitting the seam weights for {name} ({k_name} of {len(soil_seam.VARIABLES)})")
         d = archive[name] - ifs[name]
         w = soil_seam.fit(d, SEAM_LEADS, starts=first_year)
         fitted[name] = soil_seam.fit(d, SEAM_LEADS)
@@ -382,13 +424,17 @@ def fit_seam(archive: dict[str, np.ndarray], ifs: dict[str, np.ndarray], times: 
     table = {
         "version": 1,
         "fitted": f"{datetime.now(UTC):%Y-%m-%d}",
-        "source": f"The archive (ERA5-Land) minus Open-Meteo's ecmwf_ifs at 80 Wisconet stations' cells, "
+        "source": f"The archive (ERA5-Land) minus Open-Meteo's ecmwf_ifs at {stations} Wisconet stations' cells, "
         f"{times[0]:%Y-%m-%d} to {times[-1]:%Y-%m-%d}",
         "lead_hours": [int(h) for h in SEAM_LEADS],
         "weight": {name: [round(float(x), 4) for x in w] for name, w in fitted.items()},
     }
-    soil_seam.TABLE_PATH.write_text(json.dumps(table, indent=1) + "\n")
-    print(f"wrote {soil_seam.TABLE_PATH}")
+    if report.failures:
+        report.warn(f"not overwriting {soil_seam.TABLE_PATH} because of the failures above")
+    else:
+        report.step(f"overwriting the seam table {soil_seam.TABLE_PATH}")
+        soil_seam.TABLE_PATH.write_text(json.dumps(table, indent=1) + "\n")
+        report.step(f"wrote {soil_seam.TABLE_PATH}")
     return "\n".join(lines) + "\n"
 
 

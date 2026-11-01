@@ -12,11 +12,15 @@ through the current post-processing (`derive`), for a change to it that needs no
 
     uv run python scripts/backtest_forecast.py --start 2025-01-01 --end 2025-12-31
     uv run python scripts/backtest_forecast.py --start 2025-01-01 --end 2025-12-31 --rescore
+
+Cache files are written to a temporary name and renamed into place, so an interrupted run never leaves a half-written
+one for the next run to treat as done. `--quiet` prints only warnings, failures and the summary.
 """
 
 import argparse
 import itertools
 import json
+import os
 import sys
 import time
 from datetime import UTC, date, datetime, timedelta
@@ -36,6 +40,7 @@ from agdata.forecast import adjust_hours, archive_pressure_kpa
 from agdata.gaps import FALLBACK_PRESSURE_KPA, clear_sky_shortwave_w_m2
 from agdata.grid import NDFD, Window, service_window
 from agdata.point import daily_at_point
+from agdata.progress import Reporter
 from agdata.qc import check_range
 from agdata.shortwave import NBM_TABLE_PATH
 from agdata.sources import nbm
@@ -90,8 +95,24 @@ def main():
         "--refresh-observed", action="store_true", help="reread the archive's side of cached runs (after a rebuild)"
     )
     parser.add_argument("--out", default="docs/validation-forecast.md")
+    parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
-    first, last = date.fromisoformat(args.start), date.fromisoformat(args.end)
+    report = Reporter(quiet=args.quiet)
+    try:
+        first, last = date.fromisoformat(args.start), date.fromisoformat(args.end)
+    except ValueError as error:
+        parser.error(f"--start and --end must be YYYY-MM-DD dates: {error}")
+    if first > last:
+        parser.error("--start must not be after --end")
+    if args.every < 1:
+        parser.error("--every must be at least 1")
+    if args.workers < 1:
+        parser.error("--workers must be at least 1")
+    if not 0 <= args.hour <= 23:
+        parser.error("--hour must be 0 to 23")
+    modes = [
+        m for m in ("fit_shortwave", "fit_calibration", "rescore", "refresh_observed", "report") if getattr(args, m)
+    ]
     cycles = [
         datetime(d.year, d.month, d.day, args.hour, tzinfo=UTC)
         for d in (first + timedelta(days=n) for n in range(0, (last - first).days + 1, args.every))
@@ -99,44 +120,93 @@ def main():
     data_dir = Path(args.data)
     window = service_window(args.box)
     CACHE.mkdir(parents=True, exist_ok=True)
+    mode = modes[0].replace("_", "-") if modes else "fetch"
+    cached_cycles = [c for c in cycles if cache_path(c).exists() and hours_path(c).exists()]
+    report.step(
+        f"backtest ({mode}): {len(cycles)} cycles at {args.hour:02d}Z every {args.every} days, {first} to {last}; "
+        f"{len(cached_cycles)} already cached in {CACHE}; box {args.box}"
+    )
 
-    if args.fit_shortwave:
-        Path("docs/validation-forecast-shortwave.md").write_text(fit_shortwave(cycles))
-        print("wrote docs/validation-forecast-shortwave.md and the NBM table", flush=True)
+    if args.fit_shortwave or args.fit_calibration:
+        usable = [c for c in cycles if cache_path(c).exists() and (args.fit_shortwave or hours_path(c).exists())]
+        if not usable:
+            report.fail("cache", f"no cached runs between {first} and {last} (run the backtest without --fit first)")
+            sys.exit(1)
+        if args.fit_shortwave:
+            doc = Path("docs/validation-forecast-shortwave.md")
+            doc.write_text(fit_shortwave(cycles, report))
+            report.step(f"wrote {doc} and the NBM table {NBM_TABLE_PATH}")
+        else:
+            doc = Path("docs/validation-forecast-calibration.md")
+            doc.write_text(fit_calibration(Path(args.data), cycles, window, report))
+            report.step(f"wrote {doc} and the calibration tables")
+        if not report.finish(f"fitted from {len(usable)} cached runs"):
+            sys.exit(1)
         return
-    if args.fit_calibration:
-        Path("docs/validation-forecast-calibration.md").write_text(fit_calibration(Path(args.data), cycles, window))
-        print("wrote docs/validation-forecast-calibration.md and the calibration tables", flush=True)
-        return
+    done = 0
     if args.rescore:
         lat, lon = cell_latlon(window)
         rescored = [c for c in cycles if cache_path(c).exists() and hours_path(c).exists()]
-        for cycle in rescored:
+        report.step(f"replaying {len(rescored)} cached runs through the current post-processing")
+        for k, cycle in enumerate(rescored, 1):
             cached = dict(np.load(cache_path(cycle))) | replay(cycle, lat, lon)
-            np.savez_compressed(cache_path(cycle), **cast(dict[str, Any], cached))
-        print(f"replayed {len(rescored)} runs", flush=True)
+            save_npz(cache_path(cycle), cached)
+            report.progress("rescore", k, len(rescored))
+        done = len(rescored)
+        summary = f"replayed {done} runs"
     elif args.refresh_observed:
         _, js, is_ = point_cells(data_dir, window)
-        for cycle in cycles:
-            if cache_path(cycle).exists():
+        todo = [c for c in cycles if cache_path(c).exists()]
+        report.step(f"rereading the archive's side of {len(todo)} cached runs")
+        for k, cycle in enumerate(todo, 1):
+            try:
                 refresh_observed(data_dir, window, cycle, js - window.j0, is_ - window.i0)
-        print(f"refreshed the archive's side of {sum(cache_path(c).exists() for c in cycles)} runs", flush=True)
+                done += 1
+            except Exception as error:  # the run keeps its old values; a rerun retries it
+                report.fail(f"{cycle:%Y-%m-%d %HZ}", error)
+            report.progress("refresh", k, len(todo))
+        summary = f"refreshed the archive's side of {done} runs"
     elif not args.report:
         points, js, is_ = point_cells(data_dir, window)
-        np.savez(CACHE / "cells.npz", j=js, i=is_)
-        print(f"{len(points)} points, {len(cycles)} cycles", flush=True)
-        for cycle in cycles:
-            if cache_path(cycle).exists() and hours_path(cycle).exists():
-                continue
+        save_npz(CACHE / "cells.npz", {"j": js, "i": is_}, compressed=False)
+        todo = [c for c in cycles if c not in cached_cycles]
+        report.step(f"{len(points)} points; fetching {len(todo)} cycles ({args.workers} workers each)")
+        for k, cycle in enumerate(todo, 1):
             began = time.monotonic()
-            result, hours = backtest_run(data_dir, window, cycle, js, is_, args.workers)
-            np.savez_compressed(cache_path(cycle), **cast(dict[str, Any], result))  # pyright reads the names as flags
-            np.savez_compressed(hours_path(cycle), **cast(dict[str, Any], hours))
+            try:
+                result, hours = backtest_run(data_dir, window, cycle, js, is_, args.workers)
+                save_npz(cache_path(cycle), result)
+                save_npz(hours_path(cycle), hours)
+            except Exception as error:  # a rerun resumes at this cycle
+                report.fail(f"{cycle:%Y-%m-%d %HZ}", error)
+                report.progress("cycles", k, len(todo))
+                continue
+            done += 1
             failed = len(result["failed_leads"])
-            print(f"{cycle:%Y-%m-%d %HZ}: {time.monotonic() - began:.0f} s, {failed} failed leads", flush=True)
+            line = f"{cycle:%Y-%m-%d %HZ}: {time.monotonic() - began:.0f} s, {failed} failed leads"
+            if failed:
+                report.warn(line)
+            else:
+                report.step(line)
+            report.progress("cycles", k, len(todo))
+        summary = f"fetched {done} of {len(todo)} cycles"
+    else:
+        summary = "report from the cache"
 
-    Path(args.out).write_text(report(args, cycles))
-    print(f"wrote {args.out}")
+    if not any(cache_path(c).exists() for c in cycles):
+        report.warn(f"no cached runs between {first} and {last}; the report will say so")
+    report.step(f"writing {args.out} (overwriting)")
+    Path(args.out).write_text(build_report(args, cycles))
+    report.step(f"wrote {args.out}")
+    if not report.finish(summary):
+        sys.exit(1)
+
+
+def save_npz(path: Path, arrays: dict[str, Any], compressed: bool = True) -> None:
+    """Writes to `<stem>.part.npz` and renames, so a cache file that exists is whole (a later run skips it)."""
+    part = path.with_name(f"{path.stem}.part.npz")  # np.savez adds .npz to a name without it
+    (np.savez_compressed if compressed else np.savez)(part, **cast(dict[str, Any], arrays))
+    os.replace(part, path)
 
 
 def cache_path(cycle: datetime) -> Path:
@@ -183,7 +253,7 @@ def refresh_observed(data_dir: Path, window: Window, cycle: datetime, y, x) -> N
     archive_hours = read_hours(data_dir, window, cycle + HOUR, SEAM_HOURS, y, x)
     for name in ("air_temperature", "dew_point"):
         cached[f"seam_obs_{name}"] = archive_hours[name]
-    np.savez_compressed(cache_path(cycle), **cast(dict[str, Any], cached))
+    save_npz(cache_path(cycle), cached)
 
 
 def point_cells(data_dir: Path, window: Window) -> tuple[list[str], np.ndarray, np.ndarray]:
@@ -277,7 +347,7 @@ SHORTWAVE_EDGES = np.linspace(0, 1.2, 13)  # the forecast day's clearness
 SHORTWAVE_MIN_DAYS = 2000  # cell-days a bin needs; thinner bins take their neighbours' factor
 
 
-def fit_shortwave(cycles: list[datetime]) -> str:
+def fit_shortwave(cycles: list[datetime], report: Reporter) -> str:
     """NBM's shortwave correction by lead group and the forecast day's clearness: the archive's total over the raw
     forecast's in each bin. Fitted on alternate runs and tested on the rest, then on every run for the table."""
     cells = np.load(CACHE / "cells.npz")
@@ -326,6 +396,7 @@ def fit_shortwave(cycles: list[datetime]) -> str:
     fit, test = index % 2 == 0, index % 2 == 1
     held_out = apply(tables(fit))
     final = tables(np.ones(len(runs), dtype=bool))
+    report.step(f"overwriting the NBM shortwave table {NBM_TABLE_PATH} (fitted on {len(runs)} runs)")
     NBM_TABLE_PATH.write_text(
         json.dumps(
             {
@@ -430,7 +501,7 @@ RH_EVERY = 2  # every other cell for the RH fit (memory)
 RH_QUANTILES = np.linspace(0, 1, 201)
 
 
-def fit_calibration(data_dir: Path, cycles: list[datetime], window: Window) -> str:
+def fit_calibration(data_dir: Path, cycles: list[datetime], window: Window, report: Reporter) -> str:
     """The forecast's calibration (`agdata.calibration`), fitted in order, each step on the forecast with the steps
     before it applied: the max offset by season (lead days 1–3), the night min's warm bias by lead, then the RH
     maps by season, lead group and solar hour. Each is checked by 2-fold cross-validation (fitted on alternate
@@ -544,6 +615,7 @@ def fit_calibration(data_dir: Path, cycles: list[datetime], window: Window) -> s
         (calibration.NIGHT_MIN_PATH, night_min),
         (calibration.RH_MAP_PATH, rh_map),
     ):
+        report.step(f"overwriting the calibration table {path}")
         head = {"version": 1, "fitted": f"{datetime.now(UTC):%Y-%m-%d}", "source": source}
         indent = None if table is rh_map else 2  # the maps are 29,000 numbers
         path.write_text(json.dumps(head | table, indent=indent) + "\n")
@@ -636,7 +708,7 @@ def read_hours(
 # The report
 
 
-def report(args, cycles: list[datetime]) -> str:
+def build_report(args, cycles: list[datetime]) -> str:
     runs = [dict(np.load(cache_path(c))) for c in cycles if cache_path(c).exists()]
     if not runs:
         return "# Forecast backtest\n\nNo runs cached yet.\n"

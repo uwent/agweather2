@@ -11,9 +11,12 @@ Wisconet is throttled: each station-year is one request, cached in tmp/wisconet/
 tmp/wisconet/fetch_humidity.py's fields and cache names).
 
     uv run python scripts/compare_humidity.py --start 2025-01-01 --end 2026-10-27
+
+`--quiet` prints only warnings, failures and the summary.
 """
 
 import argparse
+import sys
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -22,6 +25,7 @@ import numpy as np
 from agdata.catalog import VARIABLES
 from agdata.clients.wisconet import CENTRAL, Wisconet
 from agdata.grid import NDFD, service_window
+from agdata.progress import Reporter
 from agdata.store import HOURLY, GridStore
 
 CACHE = Path("tmp/wisconet")
@@ -46,19 +50,35 @@ def main():
     parser.add_argument("--box", default="wisconsin")
     parser.add_argument("--data", default="data")
     parser.add_argument("--out", default="docs/validation-humidity.md")
+    parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
-    first, last = date.fromisoformat(args.start), date.fromisoformat(args.end)
+    report = Reporter(quiet=args.quiet)
+    try:
+        first, last = date.fromisoformat(args.start), date.fromisoformat(args.end)
+    except ValueError as error:
+        parser.error(f"--start and --end must be YYYY-MM-DD dates: {error}")
+    if first > last:
+        parser.error("--start must not be after --end")
     window = service_window(args.box)
     wisconet = Wisconet(cache_dir=CACHE)
     stations = [s for s in wisconet.stations() if (c := cell(s)) is not None and window.contains(*c)]
     ids = {name: wisconet.field_id(name) for name in FIELDS[:4]}
+    if not stations:
+        report.fail("stations", f"no Wisconet stations inside the {args.box} box")
+        sys.exit(1)
+    report.step(
+        f"humidity {first} to {last}: {len(stations)} Wisconet stations in the {args.box} box, "
+        f"{last.year - first.year + 1} year(s); writing {args.out}"
+    )
 
     start = datetime(first.year, first.month, first.day, tzinfo=UTC)
     n = int((datetime(last.year, last.month, last.day, tzinfo=UTC) + timedelta(days=1) - start) / HOUR)
     times = [start + k * HOUR for k in range(n)]
     archive_rh, archive_t = np.full((len(stations), n), np.nan), np.full((len(stations), n), np.nan)
     station = {name: np.full((len(stations), n), np.nan) for name in ("rh", "t", "wet")}
+    requests_done, requests_total = 0, len(stations) * (last.year - first.year + 1)
     for year in range(first.year, last.year + 1):
+        report.step(f"{year}: reading the archive's hours at {len(stations)} cells")
         store = GridStore.open(
             Path(args.data), HOURLY, year, [VARIABLES["relative_humidity"], VARIABLES["air_temperature"]]
         )
@@ -72,9 +92,16 @@ def main():
             archive_t[k, k0 : k0 + count] = store.read_point("air_temperature", j, i, t0, t0 + count)
         for k, s in enumerate(stations):
             begin = datetime(year, 1, 1, tzinfo=CENTRAL)
-            end = min(datetime(year + 1, 1, 1, tzinfo=CENTRAL), datetime(2026, 10, 31, tzinfo=CENTRAL)) + HOUR
+            end = min(datetime(year + 1, 1, 1, tzinfo=CENTRAL), start + n * HOUR) + HOUR  # to the range's end
             key = f"{s['station_id']}_{year}_60min_humidity.json"
-            for row in wisconet.measures(s["station_id"], begin, end, FIELDS, cache_key=key):
+            try:
+                rows = list(wisconet.measures(s["station_id"], begin, end, FIELDS, cache_key=key))
+            except Exception as error:  # the station stays missing for the year; a rerun retries it
+                report.fail(f"station {s['station_id']} {year}", error)
+                rows = []
+            requests_done += 1
+            report.progress("station-years", requests_done, requests_total)
+            for row in rows:
                 t = int((row["collection_time"] - start.timestamp()) // 3600)
                 if not 0 <= t < n:
                     continue
@@ -91,15 +118,18 @@ def main():
     rh[(rh < 1) | (rh > 103)] = np.nan  # sensor faults; RH sensors read a little over 100 when saturated
     rh[:] = np.minimum(rh, 100)
     station["wet"][(station["wet"] < 0) | (station["wet"] > 1)] = np.nan
-    Path(args.out).write_text(report(args, stations, times, archive_rh, archive_t, station))
-    print(f"wrote {args.out}")
+    report.step(f"writing {args.out} (overwriting)")
+    Path(args.out).write_text(build_report(args, stations, times, archive_rh, archive_t, station))
+    report.step(f"wrote {args.out}")
+    if not report.finish(f"{len(stations)} stations, {n} hours, {requests_total} station-years"):
+        sys.exit(1)
 
 
 def cell(s: dict) -> tuple[int, int] | None:
     return NDFD.cell_of(s["latitude"], s["longitude"])
 
 
-def report(args, stations, times, archive_rh, archive_t, station) -> str:
+def build_report(args, stations, times, archive_rh, archive_t, station) -> str:
     rh, t, wet = station["rh"], station["t"], station["wet"]
     paired = np.isfinite(rh) & np.isfinite(archive_rh)
     local = [x.astimezone(CENTRAL) for x in times]

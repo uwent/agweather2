@@ -3,13 +3,17 @@
 uv run python scripts/pilot_report.py --stores data/pilot/stores [--catalog-variables 12]
 Extrapolates the measured hours to a year and to each service-box preset by cell count; the archive will hold
 more variables than the pilot measured, so sizes are also scaled to --catalog-variables.
+The tables go to stdout; progress, warnings and the summary go to stderr (--quiet keeps only warnings, failures and
+the summary).
 """
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from agdata.grid import service_window
+from agdata.progress import Reporter
 
 PRESETS = ["wisconsin", "upper_midwest", "conus"]
 YEARS = 11
@@ -19,14 +23,29 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--stores", default="data/pilot/stores")
     parser.add_argument("--catalog-variables", type=int, default=12)
+    parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
+    if args.catalog_variables < 1:
+        parser.error("--catalog-variables must be at least 1")
     stores = Path(args.stores)
+    report = Reporter(out=sys.stderr, quiet=args.quiet)  # stdout is the Markdown report
+    if not stores.is_dir():
+        parser.error(f"--stores {stores} is not a directory")
 
+    report.step(f"reading results from {stores}; tables go to stdout")
+    made = 0
     for name in ["results.json", "results-coarse.json"]:
         path = stores / name
         if not path.exists():
+            report.warn(f"{path} not found, skipped")
             continue
-        data = json.loads(path.read_text())
+        report.step(f"reading {path}")
+        try:
+            data = json.loads(path.read_text())
+        except (OSError, ValueError) as error:
+            report.fail(str(path), error)
+            continue
+        made += 1
         meta, results = data["meta"], data["results"]
         hours, n_vars = meta["hours"], len(meta["variables"])
         cells = meta["window"][0] * meta["window"][1]
@@ -52,6 +71,10 @@ def main():
         print(f"\nPer variable ({best['layout']}), MB measured:")
         for var, size in sorted(best["bytes_per_variable"].items(), key=lambda kv: -kv[1]):
             print(f"- {var}: {size / 1e6:.1f}")
+    if made == 0:
+        report.fail(str(stores), "no results files could be read")
+    if not report.finish(f"{made} result file(s) tabulated"):
+        sys.exit(1)
 
 
 if __name__ == "__main__":

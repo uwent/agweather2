@@ -18,6 +18,7 @@ land mask, `era5land.LandMask`) get no weight, as IFS's lake points carry the la
 """
 
 import json
+import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -204,7 +205,10 @@ def save_latest(
 ) -> None:
     """Keeps a read's hours (from the first provisional hour to the run's end) for the forecast builds, with the
     seam they were shifted to meet and each cell's offset there (`agdata.soil_seam`; raw = value − offset × weight)."""
-    group = zarr.open_group(path, mode="w")
+    if not hours.times:
+        raise ValueError("an IFS read with no hours")
+    building = path.with_name(path.name + ".part")
+    group = zarr.open_group(building, mode="w")
     for name, values in hours.values.items():
         group.create_array(name, data=np.asarray(values, dtype=np.float32), chunks=(24, *values.shape[1:]))
     for name, offset in (offsets or {}).items():
@@ -218,6 +222,15 @@ def save_latest(
             "seam_correction": f"ifs-soil-seam v{soil_seam.table().version}" if offsets else None,
         }
     )
+    # Swapped in whole, so a forecast build reading it (`latest_at`) never sees a half-written one
+    old = path.with_name(path.name + ".old")
+    if old.exists():
+        shutil.rmtree(old)  # left by a swap that crashed
+    if path.exists():
+        path.rename(old)
+    building.rename(path)
+    if old.exists():
+        shutil.rmtree(old)
 
 
 def latest_at(path: Path, times: list[datetime], window: Window) -> dict[str, np.ndarray]:
