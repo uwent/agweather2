@@ -16,13 +16,13 @@ from agmodels.spec import SEVERITY_LEVELS, Biofix, Change, Citation, ExplorerInp
 
 # Degree-day bounds of each flight level (C. truncatus, C. sayi)
 FLIGHT = ((180, 0), (231, 1), (283, 2), (388, 3), (913, 4), (1792, 3), (2172, 2), (np.inf, 1))
-JULY_15, JULY_22 = 196, 203  # day of year
+JULY_15, JULY_22 = 196, 203  # day of year in a common year (a leap year's are one later)
 
 SPEC = ModelSpec(
     id="oak-wilt-vectors",
     name="Oak wilt vector flight",
     group="insect",
-    version="0.1",
+    version="0.2",
     status="stable",
     summary="The risk of oak wilt spreading by its beetle vectors, from their flight timed by degree days (base "
     "41 °F) and the season (wounding before mid-July).",
@@ -67,9 +67,18 @@ SPEC = ModelSpec(
         ),
     ),
     sweep={"dd_total": tuple(float(d) for d in range(0, 3001, 100)), "day_of_year": (120.0, 196.0, 203.0)},
+    context=("day_of_year", "year"),
     season=("03-01", "07-31"),
     biofix=Biofix(default="01-01", label="January 1"),
-    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from VDIFN."),),
+    changelog=(
+        Change(version="0.1", date="2026-10-28", note="Ported from VDIFN."),
+        Change(
+            version="0.2",
+            date="2026-11-01",
+            note="The July 15 and July 22 reductions apply to runs, not only the explorer (the spec didn't ask the "
+            "runner for the day of the year), and fall on those dates in leap years too.",
+        ),
+    ),
 )
 
 
@@ -79,11 +88,19 @@ def flight_level(dd_total) -> np.ndarray:
     return np.where(np.isnan(total), np.nan, level)
 
 
-def seasonal(level, day_of_year) -> np.ndarray:
+def seasonal(level, day_of_year, year=None) -> np.ndarray:
+    """The flight level lowered for the season: at most Low from July 15 (two levels down), one more from July 22
+    (wounds made after mid-July rarely lead to infection). `year` (optional) puts the dates right in leap years."""
     level = np.asarray(level, dtype=float)
-    doy = np.asarray(day_of_year).reshape(-1, *([1] * (level.ndim - 1))) if level.ndim else np.asarray(day_of_year)
-    after = np.where(doy >= JULY_15, np.minimum(level - 2, 1), level)
-    after = np.where(doy >= JULY_22, after - 1, after)
+    shape = (-1, *([1] * (level.ndim - 1))) if level.ndim else ()
+    doy = np.asarray(day_of_year, dtype=float).reshape(shape) if level.ndim else np.asarray(day_of_year, dtype=float)
+    leap = 0.0
+    if year is not None:
+        y = np.asarray(year, dtype=float)
+        y = y.reshape(shape) if level.ndim else y
+        leap = ((y % 4 == 0) & ((y % 100 != 0) | (y % 400 == 0))).astype(float)
+    after = np.where(doy >= JULY_15 + leap, np.minimum(level - 2, 1), level)
+    after = np.where(doy >= JULY_22 + leap, after - 1, after)
     return np.where(np.isnan(level), np.nan, np.maximum(after, 0))
 
 
@@ -94,7 +111,7 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
     flight = flight_level(total)
     out = {"dd_total": total, "dd": dd, "flight": flight}
     if "day_of_year" in inputs:
-        out["seasonal"] = seasonal(flight, inputs["day_of_year"])
+        out["seasonal"] = seasonal(flight, inputs["day_of_year"], inputs.get("year"))
     return out
 
 

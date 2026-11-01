@@ -138,3 +138,37 @@ def test_heavy_cloud_doesnt_turn_net_longwave_into_a_gain():
 
     ratio = cloudiness_ratio(np.array([50.0]), np.array([800.0]), np.array([45.0]))
     assert ratio[0] == RS_RSO_MIN and 1.35 * RS_RSO_MIN - 0.35 > 0  # ASCE-EWRI's 0.05 floor on the factor
+
+
+def test_humidity_terms_match_fao56_examples_2_to_5():
+    # Example 3: Tmax 24.5 and Tmin 15 °C give e°(Tmax) = 3.075 and e°(Tmin) = 1.705, so es = 2.39 kPa
+    assert w.saturation_vapor_pressure_kpa(24.5) == pytest.approx(3.075, abs=0.001)
+    assert w.saturation_vapor_pressure_kpa(15) == pytest.approx(1.705, abs=0.001)
+    es = (w.saturation_vapor_pressure_kpa(24.5) + w.saturation_vapor_pressure_kpa(15)) / 2
+    assert es == pytest.approx(2.39, abs=0.001)
+    # Example 4: the slope at 16.9 °C is 0.122 kPa/°C
+    assert w.svp_slope_kpa_per_c(16.9) == pytest.approx(0.122, abs=0.001)
+    # Example 2: at 1800 m the pressure is 81.8 kPa and the psychrometric constant 0.054 kPa/°C (eqs. 7 and 8)
+    pressure = 101.3 * ((293 - 0.0065 * 1800) / 293) ** 5.26
+    assert pressure == pytest.approx(81.8, abs=0.05)
+    assert w.psychrometric_constant_kpa_per_c(pressure) == pytest.approx(0.054, abs=0.0005)
+    # Example 5: the actual vapour pressure of a 15 °C dew point is e°(15) = 1.705 kPa
+    assert w.vapor_pressure_kpa(15) == pytest.approx(1.705, abs=0.001)
+
+
+def test_wind_at_10_m_to_2_m_matches_fao56_example_14():
+    assert w.wind_speed_2m(3.2) == pytest.approx(2.4, abs=0.01)  # eq. 47: 3.2 m/s at 10 m is 2.4 m/s at 2 m
+
+
+def test_a_days_extraterrestrial_radiation_and_length_match_fao56_examples_8_and_9():
+    # 20 °S on 3 September (day 246): Ra = 32.2 MJ m-2 day-1 (Example 8) and daylight N = 11.7 h (Example 9, the sun's
+    # centre on the horizon: elevation 0)
+    hours = np.datetime64("2026-09-03") + np.arange(1, 25) * np.timedelta64(1, "h")  # a solar day at 0° longitude
+    assert w.extraterrestrial_radiation_hourly(hours, -20.0, 0.0).sum() == pytest.approx(32.2, abs=0.15)
+    assert w.day_length_hours(246, -20.0, 0.0) == pytest.approx(11.7, abs=0.05)
+
+
+def test_day_length_at_the_equinox_and_in_polar_summer_and_winter():
+    assert w.day_length_hours(80, 0.0, 0.0) == pytest.approx(12.0, abs=0.15)
+    assert w.day_length_hours(172, 70.0) == 24  # midnight sun
+    assert w.day_length_hours(355, 70.0) == 0  # polar night

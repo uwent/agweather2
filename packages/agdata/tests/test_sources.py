@@ -87,7 +87,7 @@ def test_urls_by_era():
 
 
 def test_fetch_hour_needs_an_aware_time_on_the_hour():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="timezone-aware time on the hour"):
         URMA.fetch_hour(datetime(2025, 7, 15, 18), service_window("wisconsin"))  # noqa: DTZ001
 
 
@@ -167,3 +167,79 @@ def test_remote_grib_refuses_a_response_that_ignored_the_range():
     assert RemoteGrib("u", session=FakeSession())._read_range(2, 4) == b"234"  # type: ignore[arg-type]
     with pytest.raises(OSError, match="HTTP 200"):
         RemoteGrib("u", session=FakeSession(range_status=200))._read_range(2, 4)  # type: ignore[arg-type]
+
+
+def test_parse_idx_skips_lines_that_are_not_inventory_rows():
+    refs = parse_idx(
+        "\n1:0:d=2025071518:TMP:2 m above ground:anl:\nnot an inventory line\n2:100:d=2025071518:PRES:surface:anl:\n"
+    )
+    assert [(ref.key[0], ref.offset, ref.length) for ref in refs] == [("TMP", 0, 100), ("PRES", 100, None)]
+
+
+def test_a_message_head_that_is_not_grib2_or_is_cut_short_is_refused():
+    head = (FIXTURES / "urma_2016_tmp_head.bin").read_bytes()
+    with pytest.raises(ValueError, match="not a GRIB2 message"):
+        describe_message_head(b"GRIB" + bytes(3) + bytes([1]) + bytes(20))  # edition 1
+    with pytest.raises(ValueError, match="section 4 not found"):
+        describe_message_head(head[:60])  # stops before section 4 is complete
+
+
+def test_decode_refuses_a_grid_that_scans_the_wrong_way():
+    original = (FIXTURES / "urma_tmp_small.grb2").read_bytes()
+    for key, message in (("iScansNegatively", "west to east"), ("jScansPositively", "south to north")):
+        handle = eccodes.codes_new_from_message(original)
+        try:
+            eccodes.codes_set_long(handle, key, 1 if key == "iScansNegatively" else 0)
+            changed = eccodes.codes_get_message(handle)
+        finally:
+            eccodes.codes_release(handle)
+        with pytest.raises(ValueError, match=message):
+            decode(changed)
+
+
+GRIB_URL = "https://bucket/file.grib2"
+TMP, PRES = ("TMP", "2 m above ground"), ("PRES", "surface")
+
+
+def test_remote_grib_downloads_only_the_wanted_messages_first_of_each_key(bucket):
+    bucket.add(
+        GRIB_URL, [(TMP, "anl", 280.0), (PRES, "anl", 99000.0), (TMP, "6 hour fcst", 290.0), (("WIND", "x"), "", 1.0)]
+    )
+    grib = RemoteGrib(GRIB_URL, bucket)  # type: ignore[arg-type]
+    assert grib.exists()
+    found = grib.fields([TMP, ("DPT", "2 m above ground")])  # DPT isn't in the file
+    assert list(found) == [TMP]
+    np.testing.assert_allclose(found[TMP].values, 280.0, atol=0.01)  # the first TMP, not the forecast one
+    assert found[TMP].key == TMP
+
+
+def test_remote_grib_reads_the_last_message_to_the_end_of_the_file(bucket):
+    bucket.add(GRIB_URL, [(TMP, "anl", 280.0), (PRES, "anl", 99000.0)])  # PRES has no length in the .idx
+    [(ref, field)] = RemoteGrib(GRIB_URL, bucket).fields_where(lambda ref: ref.key == PRES)  # type: ignore[arg-type]
+    assert ref.length is None and ref.detail == "anl"
+    np.testing.assert_allclose(field.values, 99000.0, atol=1)
+
+
+def test_remote_grib_iterates_in_file_order_and_decodes_lazily(bucket):
+    bucket.add(GRIB_URL, [(TMP, "0 hour fcst", 1.0), (PRES, "anl", 2.0), (TMP, "1 hour fcst", 3.0)])
+    grib = RemoteGrib(GRIB_URL, bucket)  # type: ignore[arg-type]
+    seen = grib.iter_fields_where(lambda ref: ref.key == TMP)
+    ref, field = next(seen)
+    assert ref.detail == "0 hour fcst" and field.key == TMP
+    assert [r.detail for r, _ in seen] == ["1 hour fcst"]
+
+
+def test_a_403_for_a_missing_key_is_a_missing_file(bucket):
+    bucket.fail[GRIB_URL] = 403  # S3 answers 403, not 404, for a key that isn't there
+    with pytest.raises(FileNotFoundError):
+        RemoteGrib(GRIB_URL, bucket).index()  # type: ignore[arg-type]
+
+
+def test_remote_grib_refuses_a_range_that_came_back_short(bucket):
+    bucket.add(GRIB_URL, [(TMP, "anl", 280.0), (PRES, "anl", 99000.0)])
+    grib = RemoteGrib(GRIB_URL, bucket)  # type: ignore[arg-type]
+    first_length = grib.index()[0].length
+    assert first_length is not None
+    bucket.files[GRIB_URL] = bucket.files[GRIB_URL][: first_length - 5]  # the file was cut inside its first message
+    with pytest.raises(OSError, match="came back"):
+        grib.fields([TMP])

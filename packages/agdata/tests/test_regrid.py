@@ -31,7 +31,7 @@ def test_missing_neighbors_and_cells_outside_the_source_are_nan():
 
 
 def test_shape_is_checked():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"expected a HRRR CONUS 3 km field of \(1059, 1799\), got \(10, 10\)"):
         regrid(np.ones((10, 10)), HRRR_GRID, Window(j0=0, j1=2, i0=0, i1=2))
 
 

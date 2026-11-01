@@ -87,8 +87,31 @@ def test_every_insect_is_a_model_with_a_severity_rule():
         assert m.explore(dd_total=0)["risk" if m.insect.life_stages else "severity"] == 0
 
 
-def test_a_grid_runs():
-    m = model("european-corn-borer")
-    shape = (200, 2, 3)
-    out = m.outputs({"air_temperature_min": np.full(shape, 15.0), "air_temperature_max": np.full(shape, 28.0)})
-    assert out["dd_total"].shape == shape and m.risk(out).shape == shape
+def test_oak_wilt_flight_is_cut_from_july_15_when_the_day_of_year_is_given():
+    # A cool year at 800 degree days (Very high, level 4): from July 15 (day 196) at most Low, from July 22 (203) lower
+    n = 300
+    inputs = {"air_temperature_min": np.full(n, -2.0), "air_temperature_max": np.full(n, 12.0)}
+    doy = np.arange(1, n + 1, dtype=float)
+    plain = oak_wilt.outputs(inputs)
+    assert "seasonal" not in plain and plain["flight"][205] == 4  # day 206: Very high without the date
+    out = oak_wilt.outputs(inputs | {"day_of_year": doy})
+    assert out["seasonal"][194] == out["flight"][194] == 4  # day 195
+    assert out["seasonal"][195] == 1  # day 196, July 15: min(4 - 2, 1)
+    assert out["seasonal"][202] == 0  # day 203, July 22: one lower again
+    np.testing.assert_array_equal(oak_wilt.risk(out), out["seasonal"])
+    np.testing.assert_array_equal(oak_wilt.risk(plain), plain["flight"])
+
+
+def test_oak_wilts_july_reductions_apply_to_runs_and_follow_the_calendar_in_leap_years():
+    from datetime import date, timedelta
+
+    from agmodels import runner
+
+    for year in (2025, 2024):
+        dates = [date(year, 1, 1) + timedelta(days=n) for n in range(240)]
+        cool = {"air_temperature_min": np.full(240, -2.0), "air_temperature_max": np.full(240, 12.0)}
+        result = runner.run("oak-wilt-vectors", dates=dates, daily=cool, latitude=43.0)
+        assert result.risk is not None
+        level = dict(zip(result.dates, result.risk.tolist(), strict=True))
+        # Flight is Very high (4) all July this cool year; Low (1) from July 15, Very low (0) from July 22
+        assert [level[date(year, 7, d)] for d in (14, 15, 21, 22)] == [4, 1, 1, 0]

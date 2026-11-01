@@ -10,7 +10,7 @@ from agmodels.registry import all_models
 def test_spec_units_are_known(model_id):
     spec = all_models()[model_id].SPEC
     for quantity in (*spec.inputs, *spec.outputs, *spec.explorer):
-        unit(quantity.unit)
+        assert unit(quantity.unit).symbol == quantity.unit  # raises for a unit the units module doesn't know
 
 
 @pytest.mark.parametrize("model_id", list(all_models()))

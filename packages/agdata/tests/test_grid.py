@@ -68,3 +68,15 @@ def test_window_local_indices():
     assert window.local(10, 39) == (0, 9)
     with pytest.raises(IndexError):
         window.local(20, 30)
+
+
+def test_window_slices_and_size():
+    window = Window(j0=10, j1=20, i0=30, i1=45)
+    assert window.size == 150
+    data = np.arange(60 * 60).reshape(60, 60)
+    assert data[window.slices].shape == window.shape == (10, 15)
+
+
+def test_a_box_outside_the_grid_has_no_window():
+    with pytest.raises(ValueError, match="is outside the"):
+        NDFD.window_for(Box(south=-60.0, west=100.0, north=-50.0, east=110.0))

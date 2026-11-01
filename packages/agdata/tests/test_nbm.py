@@ -336,3 +336,75 @@ def test_rh_maps_blend_across_solar_hours_seasons_and_leads():
     out = calibration.map_rh(cycle, [valid], np.array([0.0]), np.array([[50.0]]), table)[0]
     w_jan = (366 - 288) / (380 - 288)
     assert out[0] == pytest.approx(50 + (23 + 0) / 2 + 30 * (1 - w_jan))  # 00Z is solar 0 at 0°: bins 23 and 0
+
+
+def test_the_latest_complete_cycle_is_the_newest_whose_last_file_is_out(bucket):
+    now = datetime(2026, 10, 28, 14, 10, tzinfo=UTC)  # the 13z run is the newest candidate
+    assert nbm.latest_complete_cycle(now, bucket) is None  # type: ignore[arg-type]
+    older = datetime(2026, 10, 28, 7, tzinfo=UTC)
+    bucket.add(nbm.url(older, nbm.HORIZON_HOURS), [(("TMP", "2 m above ground"), "264 hour fcst", 280.0)])
+    assert nbm.latest_complete_cycle(now, bucket) == older  # type: ignore[arg-type]
+    bucket.add(nbm.url(CYCLE, 24), [(("TMP", "2 m above ground"), "24 hour fcst", 280.0)])  # 13z has only an early file
+    assert nbm.latest_complete_cycle(now, bucket) == older  # type: ignore[arg-type]
+    bucket.add(nbm.url(CYCLE, nbm.HORIZON_HOURS), [(("TMP", "2 m above ground"), "264 hour fcst", 280.0)])
+    assert nbm.latest_complete_cycle(now, bucket) == CYCLE  # type: ignore[arg-type]
+
+
+def test_a_forecast_file_gives_the_first_of_each_value_and_the_12_hour_max_in_celsius(bucket):
+    window = Window(j0=900, j1=902, i0=1400, i1=1403)
+    bucket.add(
+        nbm.url(CYCLE, 24),
+        [
+            (("TMP", "2 m above ground"), "24 hour fcst", 283.15),
+            (("TMP", "2 m above ground"), "24 hour fcst", 300.0),  # a repeat of the same message: the first stands
+            (("TMAX", "2 m above ground"), "12-24 hour max fcst", 293.15),
+            (("TMAX", "2 m above ground"), "0-12 hour max fcst", 310.0),  # another window's max
+            (("APCP", "surface"), "23-24 hour acc fcst", 2.0),
+            (("APCP", "surface"), "18-24 hour acc fcst", 9.0),  # a 6-hour total
+        ],
+    )
+    values = nbm.fetch_step(CYCLE, 24, window, bucket)  # type: ignore[arg-type]
+    assert sorted(values) == ["air_temperature", "precipitation", "tmax_12h"]
+    np.testing.assert_allclose(values["air_temperature"], 10.0, atol=0.01)
+    np.testing.assert_allclose(values["tmax_12h"], 20.0, atol=0.01)
+    np.testing.assert_allclose(values["precipitation"], 2.0, atol=0.01)
+
+
+def test_a_file_that_is_not_published_fails_its_hour_without_retries(monkeypatch):
+    monkeypatch.setattr(nbm, "RETRY_SECONDS", 0)
+    calls = []
+
+    def step(cycle, lead, window, session):
+        calls.append(lead)
+        if lead == 5:
+            raise FileNotFoundError("not out yet")
+        return {"precipitation": np.zeros(window.shape)}
+
+    run = nbm.fetch_run(CYCLE, Window(j0=900, j1=902, i0=1400, i1=1403), step=step, workers=1)
+    assert run.failed == [5] and calls.count(5) == 1
+
+
+def test_a_single_known_step_is_left_alone_by_pchip():
+    values = np.full((6, 2), np.nan)
+    values[3] = [5.0, 6.0]
+    filled, mask = interpolate.pchip(values)
+    np.testing.assert_array_equal(filled, values)
+    assert not mask.any()
+
+
+def test_a_window_target_before_a_full_window_exists_moves_nothing():
+    temp = np.linspace(10, 20, 24)
+    targets = np.full(24, np.nan)
+    targets[5] = 30.0  # the window ending at step 5 would start before the series
+    np.testing.assert_array_equal(interpolate.reach_window_max(temp[:, None], targets[:, None])[:, 0], temp)
+
+
+@pytest.mark.parametrize("month, season", [(12, 0), (1, 0), (2, 0), (3, 1), (5, 1), (6, 2), (8, 2), (9, 3), (11, 3)])
+def test_months_fall_in_their_meteorological_season(month, season):
+    assert calibration.season_index(datetime(2026, month, 15, tzinfo=UTC)) == season
+
+
+def test_a_valid_time_falls_in_the_lead_group_that_ends_at_or_after_its_lead():
+    table = {"lead_group_ends": [24, 72, 264]}
+    lead = lambda hours: calibration.lead_index(CYCLE, CYCLE + timedelta(hours=hours), table)  # noqa: E731
+    assert [lead(1), lead(24), lead(25), lead(72), lead(73), lead(264)] == [0, 0, 1, 1, 2, 2]

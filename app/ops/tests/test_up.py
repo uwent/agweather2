@@ -77,3 +77,62 @@ def test_stale_derived_data_makes_it_degraded(client, settings, tmp_path):
     body = client.get("/up").json()
     assert body["status"] == "degraded"
     assert body["ingest"]["stale"] == {f"daily/{newest.year}": ["hours_rh_over_90"]}
+
+
+@pytest.fixture
+def counted_checks(monkeypatch, settings, tmp_path):
+    """/up with the two health checks replaced by counters (and the cache emptied around the test)."""
+    from django.core.cache import cache
+
+    from ops import views
+
+    settings.DATA_DIR = tmp_path
+    cache.clear()
+    calls = []
+    monkeypatch.setattr(views, "ingest_health", lambda data_dir, now: calls.append("ingest") or ({"state": "x"}, ["a"]))
+    monkeypatch.setattr(views, "forecast_health", lambda data_dir, now: calls.append("forecast") or ({"y": 1}, ["b"]))
+    yield calls
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_up_reuses_the_checks_for_30_seconds(client, counted_checks):
+    first = client.get("/up").json()
+    second = client.get("/up").json()
+    assert counted_checks == ["ingest", "forecast"]  # the second call recomputed nothing
+    assert first == second
+    assert first["status"] == "degraded" and first["problems"] == ["a", "b"]  # both checks' problems, in order
+    assert (first["ingest"], first["forecast"]) == ({"state": "x"}, {"y": 1})
+
+
+@pytest.mark.django_db
+def test_up_checks_again_once_the_cache_has_expired(client, counted_checks):
+    from django.core.cache import cache
+
+    client.get("/up")
+    cache.clear()  # what the 30 s timeout does
+    client.get("/up")
+    assert counted_checks == ["ingest", "forecast"] * 2
+
+
+@pytest.mark.django_db
+def test_the_cache_is_per_data_directory(client, counted_checks, settings, tmp_path):
+    client.get("/up")
+    settings.DATA_DIR = tmp_path / "other"
+    client.get("/up")
+    assert counted_checks == ["ingest", "forecast"] * 2
+
+
+@pytest.mark.django_db
+def test_up_is_503_when_the_database_does_not_answer(client, counted_checks, monkeypatch, caplog):
+    from django.db import connection
+
+    def broken(*args, **kwargs):
+        raise RuntimeError("connection refused")
+
+    monkeypatch.setattr(connection, "cursor", broken)
+    response = client.get("/up")
+    assert response.status_code == 503
+    assert response.json() == {"status": "down", "version": "dev", "database": "down"}
+    assert counted_checks == []  # no point opening stores when the database is down
+    assert "the database didn't answer" in caplog.text

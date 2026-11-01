@@ -38,7 +38,7 @@ def test_the_factor_follows_the_hours_clearness():
 def test_dark_and_missing_hours_stay_as_they_are():
     raw = np.array([[[0.0, np.nan, 0.0], [0.0, 0.0, 0.0]]])
     out = _correct(raw)
-    assert out[0, 0, 0] == 0 and np.isnan(out[0, 0, 1])
+    np.testing.assert_array_equal(out, raw)  # zeros stay zero (not scaled up from nothing), the gap stays a gap
 
 
 def test_the_catalog_version_follows_the_table():

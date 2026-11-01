@@ -112,3 +112,25 @@ def test_the_hourly_job_restitches_the_forecast_after_new_hours(tmp_path, settin
     monkeypatch.setattr(tasks, "refresh_recent", lambda *args: ["a record"])
     tasks.ingest_recent(int(NOW.timestamp()))
     assert stitched == [settings.SERVICE_BOX]
+
+
+def test_restitch_current_does_nothing_without_a_published_run(tmp_path, monkeypatch):
+    from ops import forecast as ops_forecast
+
+    monkeypatch.setattr(ops_forecast.forecast, "current_run", lambda data_dir: None)
+    monkeypatch.setattr(ops_forecast.forecast, "stitch", lambda *args: pytest.fail("stitched nothing"))
+    assert ops_forecast.restitch_current(tmp_path, "wisconsin") is None
+
+
+def test_restitch_current_stitches_the_published_run_over_the_service_window(tmp_path, monkeypatch):
+    from agdata.grid import service_window
+    from ops import forecast as ops_forecast
+
+    run_dir = tmp_path / "run"
+    seen = []
+    monkeypatch.setattr(ops_forecast.forecast, "current_run", lambda data_dir: run_dir)
+    monkeypatch.setattr(
+        ops_forecast.forecast, "stitch", lambda data_dir, current, window: seen.append((current, window)) or CYCLE
+    )
+    assert ops_forecast.restitch_current(tmp_path, "wisconsin") == CYCLE
+    assert seen == [(run_dir, service_window("wisconsin"))]

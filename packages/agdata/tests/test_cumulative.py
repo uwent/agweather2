@@ -149,3 +149,44 @@ def test_a_partial_rebuild_writes_the_same_totals_from_the_changed_day(tmp_path)
     partial = store.read_point("dd_sine_45", 900, 1400, 0, DAYS)
     np.testing.assert_array_equal(partial[:29], full[:29])
     assert store.read_point("temperature_estimated_days", 900, 1400, DAYS - 1, DAYS)[0] == 1  # Jan 30 bridged
+
+
+def write_days(tmp_path, year, first_day, tmin, tmax):
+    daily = open_or_create_daily(tmp_path, year, WINDOW)
+    shape = (len(tmin), *WINDOW.shape)
+    daily.write(
+        first_day,
+        {
+            "air_temperature_min": np.broadcast_to(np.asarray(tmin, dtype=float)[:, None, None], shape),
+            "air_temperature_max": np.broadcast_to(np.asarray(tmax, dtype=float)[:, None, None], shape),
+            "et0_sum": np.full(shape, 3.0),
+            "precipitation_sum": np.full(shape, 1.0),
+        },
+        source="derived",
+    )
+
+
+def test_the_last_day_of_a_year_is_bridged_once_the_next_year_has_the_day_after(tmp_path, fx):
+    # December 2024 warms 1 °C a day; December 31's min is missing
+    tmin = [float(d) for d in range(31)]
+    tmin[30] = np.nan
+    write_days(tmp_path, 2024, date(2024, 12, 1), tmin, [t + 10 for t in range(31)])
+    assert rebuild_year(tmp_path, WINDOW, 2024) == date(2024, 12, 31)
+    store = GridStore.open(tmp_path, CUMULATIVE, 2024, CUMULATIVE_VARIABLES.values())
+    n = store.length
+
+    def added_on_december_31(name):  # January to November have no data and count as missing, so look at the step
+        return np.diff(store.read_point(name, 900, 1400, n - 2, n))[0]
+
+    # Nothing after the year's end yet: the gap is open-ended and can't be bridged
+    assert (added_on_december_31("temperature_estimated_days"), added_on_december_31("temperature_missing_days")) == (
+        0,
+        1,
+    )
+
+    write_days(tmp_path, 2025, date(2025, 1, 1), [31.0, 32.0, 33.0], [41.0, 42.0, 43.0])
+    rebuild_year(tmp_path, WINDOW, 2024, changed_from=date(2024, 12, 31))  # as update_days would
+    assert (added_on_december_31("temperature_estimated_days"), added_on_december_31("temperature_missing_days")) == (
+        1,
+        0,
+    )

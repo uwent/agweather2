@@ -22,14 +22,6 @@ FIRST, LAST = date(2025, 5, 2), date(2025, 6, 30)
 GAP = slice(30 * 24 + 7, 30 * 24 + 12)  # five hours missing on May 31
 
 
-@pytest.fixture(autouse=True)
-def two_zones(monkeypatch):
-    """Column 0 is Eastern time, the rest Central."""
-    index = np.ones(WINDOW.shape, dtype=np.uint8)
-    index[:, 0] = 0
-    monkeypatch.setattr(daily, "window_timezones", lambda window: (ZONES, index))
-
-
 def weather(rng: np.random.Generator) -> dict[str, np.ndarray]:
     """Two months of plausible hours over the window: daily cycles, a humid spell, rain, cold soil."""
     shape = (HOURS, *WINDOW.shape)
@@ -63,12 +55,19 @@ def weather(rng: np.random.Generator) -> dict[str, np.ndarray]:
     return out
 
 
-@pytest.fixture
-def stores(tmp_path):
-    hourly = GridStore.create(tmp_path, HOURLY, 2025, WINDOW, VARIABLES.values())
-    hourly.write(START, weather(np.random.default_rng(1)), source="test")
-    rollup_days(tmp_path, WINDOW, FIRST, LAST)
-    return hourly, open_or_create_daily(tmp_path, 2025, WINDOW)
+@pytest.fixture(scope="module")
+def stores(tmp_path_factory):
+    """Two months of hours and their rollup, built once for the module (the tests only read); column 0 is Eastern
+    time, the rest Central."""
+    index = np.ones(WINDOW.shape, dtype=np.uint8)
+    index[:, 0] = 0
+    path = tmp_path_factory.mktemp("point")
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(daily, "window_timezones", lambda window: (ZONES, index))
+        hourly = GridStore.create(path, HOURLY, 2025, WINDOW, VARIABLES.values())
+        hourly.write(START, weather(np.random.default_rng(1)), source="test")
+        rollup_days(path, WINDOW, FIRST, LAST)
+    return hourly, open_or_create_daily(path, 2025, WINDOW)
 
 
 def cells():
@@ -145,5 +144,5 @@ def test_hours_outside_the_series_are_missing():
 
 
 def test_hours_start_on_the_hour():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="on the hour"):
         daily_at_point(START + timedelta(minutes=30), {}, "America/Chicago", FIRST, FIRST)

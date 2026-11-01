@@ -96,7 +96,8 @@ class Reporter:
             logger.error(line)
             self._write(self.err, line)
         else:
-            self.step(line)
+            logger.info(line)
+            self._write(self.out, line)  # the summary shows even when quiet
         return not self.failures
 
     def _write(self, stream: TextIO, line: str) -> None:

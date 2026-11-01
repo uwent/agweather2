@@ -1,5 +1,7 @@
 import io
 
+import pytest
+
 from agdata.progress import Reporter
 
 
@@ -48,7 +50,22 @@ def test_quiet_keeps_steps_off_the_terminal_but_not_failures():
     ]
 
 
-def test_a_clean_run_finishes_on_stdout():
-    report, out, err, _ = reporter()
-    assert report.finish() is True
-    assert lines(out) == ["Done in 0 s"] and err.getvalue() == ""
+def test_a_clean_run_finishes_on_stdout_even_when_quiet():
+    for quiet in (False, True):
+        report, out, err, _ = reporter(quiet=quiet)
+        report.step("working")
+        assert report.finish() is True
+        assert lines(out) == (["Done in 0 s"] if quiet else ["working", "Done in 0 s"]) and err.getvalue() == ""
+
+
+def test_waiting_for_the_write_lock_names_its_holder():
+    report, out, _, _ = reporter()
+    report.waiting_for_lock("4242")
+    assert lines(out) == ["waiting for the write lock (held by pid 4242)"]
+
+
+@pytest.mark.parametrize("seconds, said", [(45, "45 s"), (120, "2 min"), (89 * 60, "89 min"), (3 * 3600, "3.0 h")])
+def test_durations_read_in_seconds_minutes_or_hours(seconds, said):
+    report, _, _, clock = reporter()
+    clock.now = seconds
+    assert report.summary() == f"Done in {said}"

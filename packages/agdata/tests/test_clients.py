@@ -145,3 +145,62 @@ def test_a_body_that_isnt_json_is_retried_and_never_cached(monkeypatch, tmp_path
     with pytest.raises(json.JSONDecodeError):
         client.get("/b", cache_key="b.json")
     assert not (tmp_path / "b.json").exists()
+
+
+def test_a_truncated_cache_file_is_fetched_again_and_replaced(tmp_path):
+    (tmp_path / "a.json").write_text('{"ok": tr')  # a crash mid-write by an older version
+    session = Recorded({"/a": [Response(200, {"ok": True})]})
+    client = JsonClient("https://example.test", cache_dir=tmp_path, session=session)  # type: ignore[arg-type]
+    assert client.get("/a", cache_key="a.json") == {"ok": True} and len(session.calls) == 1
+    assert json.loads((tmp_path / "a.json").read_text()) == {"ok": True}
+    assert client.get("/a", cache_key="a.json") == {"ok": True} and len(session.calls) == 1  # now served from the file
+
+
+def test_a_polite_client_pauses_after_each_answer(monkeypatch):
+    pauses = []
+    monkeypatch.setattr("time.sleep", pauses.append)
+    session = Recorded({"/a": [Response(200, {"ok": True})]})
+    JsonClient("https://example.test", pause_s=0.5, session=session).get("/a")  # type: ignore[arg-type]
+    assert pauses == [0.5]
+
+
+def test_agweather_v1_asks_for_millimetres_and_leaves_the_bounds_out_when_none_are_given(tmp_path):
+    session = Recorded(
+        {"precips/grid": "agweather_v1_insolations.json", "evapotranspirations/grid": "agweather_v1_insolations.json"}
+    )
+    client = AgWeatherV1(cache_dir=tmp_path, pause_s=0, session=session)  # type: ignore[arg-type]
+    client.precipitation_mm(date(2025, 7, 1))
+    client.evapotranspiration_mm(date(2025, 7, 1))
+    assert [c[2] for c in session.calls] == [{"date": "2025-07-01", "units": "mm"}] * 2
+    assert (tmp_path / "precips_grid_date-2025-07-01_units-mm.json").exists()
+
+
+def test_a_wisconet_field_that_does_not_exist_is_an_error(tmp_path):
+    client = Wisconet(cache_dir=tmp_path, pause_s=0, session=Recorded({"/fields/": "wisconet_fields.json"}))  # type: ignore[arg-type]
+    with pytest.raises(KeyError, match="no_such_field"):
+        client.field_id("no_such_field")
+
+
+def hourly_blocks(*latitudes: float) -> list[dict]:
+    """One block per latitude, its first time telling which latitude it was made for."""
+    return [{"latitude": lat, "longitude": -89.0, "hourly": {"time": [int(lat * 100)]}} for lat in latitudes]
+
+
+def test_open_meteo_points_ask_again_when_a_cached_answer_belongs_to_other_locations(tmp_path):
+    session = Recorded(
+        {"/v1/forecast": [Response(200, hourly_blocks(44.0, 44.5)), Response(200, hourly_blocks(43.0, 43.5))]}
+    )
+    client = OpenMeteoPoints(cache_dir=tmp_path, pause_s=0, session=session)  # type: ignore[arg-type]
+    out = client.hourly([(43.0, -89.0), (43.5, -89.0)], date(2025, 7, 1), date(2025, 7, 1), ["temperature_2m"])
+    assert [b["time"] for b in out] == [[4300], [4350]] and len(session.calls) == 2  # the first body was too far north
+
+
+def test_open_meteo_points_accept_a_coastal_point_snapped_to_its_land_cell_but_not_the_wrong_count(tmp_path):
+    close = Recorded({"/v1/forecast": [Response(200, hourly_blocks(43.25))]})
+    client = OpenMeteoPoints(pause_s=0, session=close)  # type: ignore[arg-type]
+    assert len(client.hourly([(43.0, -89.0)], date(2025, 7, 1), date(2025, 7, 1), ["temperature_2m"])) == 1
+    assert len(close.calls) == 1  # 0.25° off: a snap, not a mix-up
+    short = Recorded({"/v1/forecast": [Response(200, hourly_blocks(43.0)), Response(200, hourly_blocks(43.0))]})
+    client = OpenMeteoPoints(cache_dir=tmp_path, pause_s=0, session=short)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="doesn't match the 2 locations"):
+        client.hourly([(43.0, -89.0), (43.5, -89.0)], date(2025, 7, 1), date(2025, 7, 1), ["temperature_2m"])

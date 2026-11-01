@@ -33,7 +33,8 @@ def test_no_county_offshore_or_outside_the_lower_48():
 
 def test_county_ids_take_arrays():
     ids = county_ids(np.array([43.07, 40.83, 61.2]), np.array([-89.40, -96.67, -149.9]))
-    assert ids.shape == (3,) and ids[2] == 0 and all(counties()[k] for k in ids[:2])
+    assert ids.shape == (3,) and ids[2] == 0  # Anchorage is in no county
+    assert [counties()[k].geoid for k in ids[:2]] == ["55025", "31109"]  # Dane, Lancaster
 
 
 def test_dane_county_from_deines_and_alabama_from_nass():

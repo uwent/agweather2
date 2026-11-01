@@ -39,9 +39,9 @@ def test_round_trips_every_unit():
 
 
 def test_mismatched_dimensions():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"can't convert .* to "):
         convert(1, "mm", "degC")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="unknown unit 'furlong'"):
         convert(1, "furlong", "mm")
 
 

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import requests
 
 from agdata.sources import openmeteo
 
@@ -127,3 +128,80 @@ def test_the_corrections_table_is_current():
 
     path = Path(__file__).parents[3] / "docs" / "corrections.md"
     assert path.read_text() == corrections.markdown(), "run: uv run python -m agdata.corrections > docs/corrections.md"
+
+
+class Reply:
+    def __init__(self, status_code, body):
+        self.status_code, self.body = status_code, body
+        self.text = body if isinstance(body, str) else json.dumps(body)
+
+    def json(self):
+        if isinstance(self.body, str):
+            raise requests.JSONDecodeError("not JSON", self.body, 0)
+        return self.body
+
+
+class Replies:
+    """Answers each request with the next reply; keeps what was asked."""
+
+    def __init__(self, *replies):
+        self.replies, self.calls = list(replies), []
+
+    def get(self, address, params=None, timeout=None):
+        self.calls.append((address, params))
+        return self.replies.pop(0)
+
+
+@pytest.fixture
+def no_wait(monkeypatch):
+    monkeypatch.setattr(openmeteo, "RETRY_SECONDS", 0)
+
+
+def test_throttling_server_errors_and_text_bodies_are_retried_until_the_answer_comes(no_wait):
+    session = Replies(Reply(429, {}), Reply(503, {}), Reply(200, {"ok": True}))
+    assert openmeteo._get(session, "https://x", {}) == {"ok": True}  # type: ignore[arg-type]
+    assert len(session.calls) == 3
+    session = Replies(Reply(200, "Unexpected error while streaming data: timeoutReached"), Reply(200, {"ok": 1}))
+    assert openmeteo._get(session, "https://x", {}) == {"ok": 1}  # type: ignore[arg-type]
+
+
+def test_three_server_errors_in_a_row_give_up(no_wait):
+    session = Replies(Reply(500, {}), Reply(502, {}), Reply(503, {}))
+    with pytest.raises(requests.HTTPError, match="503"):
+        openmeteo._get(session, "https://x", {})  # type: ignore[arg-type]
+    assert len(session.calls) == 3
+
+
+def test_a_rejected_request_raises_with_open_meteos_reason_and_is_not_retried(no_wait):
+    session = Replies(Reply(400, {"error": True, "reason": "Latitude must be in range of -90 to 90"}))
+    with pytest.raises(ValueError, match="400: Latitude must be in range"):
+        openmeteo._get(session, "https://x", {})  # type: ignore[arg-type]
+    assert len(session.calls) == 1
+    with pytest.raises(ValueError, match="404: Not Found page"):
+        openmeteo._get(Replies(Reply(404, "Not Found page")), "https://x", {})  # type: ignore[arg-type]
+
+
+def test_the_customer_host_and_key_are_used_when_there_is_a_key():
+    cell = openmeteo.cell_for(36.12, -97.07)
+    hourly = {"time": [1748736000 + 3600 * k for k in range(24)]}  # no variables at all
+    session = Replies(*[Reply(200, {"hourly": hourly, "elevation": 300.0}) for _ in range(4)])
+    hours, _ = openmeteo.fetch("historical", cell, date(2025, 6, 1), date(2025, 6, 1), session=session, api_key="k")  # type: ignore[arg-type]
+    assert all(address.startswith("https://customer-") and params["apikey"] == "k" for address, params in session.calls)
+    assert hours.elevation_m == 300.0
+
+
+def test_variables_a_model_does_not_return_are_missing_not_zero_and_not_a_crash():
+    cell = openmeteo.cell_for(36.12, -97.07)
+    hourly = {"time": [1748736000 + 3600 * k for k in range(24)], "temperature_2m": [20.0] * 5}  # a short series
+    session = Replies(*[Reply(200, {"hourly": hourly}) for _ in range(4)])
+    hours, _ = openmeteo.fetch("historical", cell, date(2025, 6, 1), date(2025, 6, 1), session=session)  # type: ignore[arg-type]
+    assert np.isnan(hours.values["air_temperature"]).all() and np.isnan(hours.values["precipitation"]).all()
+    assert hours.sources["air_temperature"] == "" and hours.elevation_m is None
+
+
+@pytest.mark.parametrize("latitude", [89.99, 0.0, -45.0, -89.99, 30.0])
+def test_a_cells_ring_is_the_one_whose_edges_enclose_its_latitude(latitude):
+    ring = openmeteo._ring_for(latitude)
+    assert 1 <= ring <= openmeteo.RINGS
+    assert openmeteo._edge(ring, ring + 1) < latitude <= openmeteo._edge(ring - 1, ring)
+    assert openmeteo._edge(0, 1) == 90.0 and openmeteo._edge(openmeteo.RINGS, openmeteo.RINGS + 1) == -90.0

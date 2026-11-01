@@ -24,7 +24,7 @@ def test_zero_is_not_missing():
 
 
 def test_encoding_refuses_values_it_cant_hold():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="air_temperature: values outside what int16 can hold"):
         variable("air_temperature").encode(np.array([4000.0]))
 
 
@@ -36,9 +36,9 @@ def test_every_variable_can_hold_its_qc_range():
 
 
 def test_a_variable_that_cant_hold_its_range_is_rejected():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"bad: int16 .* can't hold 0\.\.1000"):
         Variable(name="bad", long_name="Too narrow", unit="mm", scale=0.001, valid_min=0, valid_max=1000)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="unknown unit 'furlongs'"):
         Variable(name="bad", long_name="Unknown unit", unit="furlongs", scale=1)
 
 

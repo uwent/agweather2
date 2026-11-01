@@ -80,3 +80,60 @@ def test_chunk_spans():
     first = datetime(2026, 11, 11, 23, tzinfo=UTC)
     spans = ifs.chunk_span(first, first + timedelta(hours=2))
     assert spans == [(988, 503, 504, 0), (989, 0, 2, 1)]
+
+
+def kept_hours(count: int, value: float = 2.0) -> era5land.Hours:
+    values = {name: np.full((count, *WINDOW.shape), value + k) for k, name in enumerate(ifs.SOIL)}
+    return era5land.Hours(times=[START + k * ifs.HOUR for k in range(count)], values=values)
+
+
+def test_a_kept_read_comes_back_for_the_hours_it_holds_and_nan_for_the_rest(tmp_path):
+    path = ifs.latest_path(tmp_path)
+    assert path == tmp_path / "ifs" / "latest.zarr"
+    ifs.save_latest(path, kept_hours(5), run=START)
+    times = [START + k * ifs.HOUR for k in (-2, 0, 3, 4, 5, 9)]  # two before the read, four in it, two after
+    kept = ifs.latest_at(path, times, WINDOW)
+    for k, name in enumerate(ifs.SOIL):
+        column = kept[name][:, 0, 0]
+        np.testing.assert_allclose(column[[1, 2, 3]], [2.0 + k] * 3)
+        assert np.isnan(column[[0, 4, 5]]).all()
+        assert kept[name].shape == (6, *WINDOW.shape)
+    assert np.isnan(ifs.latest_at(path, [START + 10 * ifs.HOUR], WINDOW)[ifs.SOIL[0]]).all()  # wholly outside
+
+
+def test_no_kept_read_means_no_hours(tmp_path):
+    kept = ifs.latest_at(ifs.latest_path(tmp_path), [START], WINDOW)
+    assert set(kept) == set(ifs.SOIL) and all(np.isnan(v).all() for v in kept.values())
+
+
+def test_a_kept_read_is_replaced_whole_and_leaves_nothing_behind(tmp_path):
+    path = ifs.latest_path(tmp_path)
+    path.parent.mkdir(parents=True)
+    path.with_name("latest.zarr.old").mkdir()  # left by a swap that crashed
+    ifs.save_latest(path, kept_hours(3, value=1.0), run=START)
+    ifs.save_latest(path, kept_hours(3, value=7.0), run=START + 6 * ifs.HOUR, seam=START + ifs.HOUR)
+    assert sorted(p.name for p in path.parent.iterdir()) == ["latest.zarr"]
+    assert ifs.latest_at(path, [START], WINDOW)[ifs.SOIL[0]][0, 0, 0] == 7.0  # the newer read
+    with pytest.raises(ValueError, match="with no hours"):
+        ifs.save_latest(path, era5land.Hours(times=[], values={}), run=START)
+
+
+def test_a_kept_read_remembers_its_seam_and_each_cells_offset(tmp_path):
+    import zarr
+
+    path = ifs.latest_path(tmp_path)
+    offsets = {name: np.full(WINDOW.shape, 0.5) for name in ifs.SOIL}
+    ifs.save_latest(path, kept_hours(2), run=START, seam=START, offsets=offsets)
+    attrs = dict(zarr.open_group(path, mode="r").attrs)
+    assert attrs["seam"] == START.isoformat() and attrs["hours"] == 2 and attrs["first"] == START.isoformat()
+    assert str(attrs["seam_correction"]).startswith("ifs-soil-seam v")
+    assert f"{ifs.SOIL[0]}_seam_offset" in zarr.open_group(path, mode="r")
+    ifs.save_latest(path, kept_hours(2), run=START)
+    assert dict(zarr.open_group(path, mode="r").attrs)["seam_correction"] is None
+
+
+def test_a_kept_read_for_another_window_is_refused(tmp_path):
+    path = ifs.latest_path(tmp_path)
+    ifs.save_latest(path, kept_hours(2), run=START)
+    with pytest.raises(ValueError, match="another window"):
+        ifs.latest_at(path, [START], Window(j0=900, j1=903, i0=1400, i1=1405))

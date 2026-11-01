@@ -1,4 +1,4 @@
-{"version": "0.1", "rows": [
+{"version": "0.2", "rows": [
 {"inputs":{"dd_total":0.0,"day_of_year":120.0},"outputs":{"risk":0.0}},
 {"inputs":{"dd_total":0.0,"day_of_year":196.0},"outputs":{"risk":0.0}},
 {"inputs":{"dd_total":0.0,"day_of_year":203.0},"outputs":{"risk":0.0}},

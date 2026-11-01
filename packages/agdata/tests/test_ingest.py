@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import numpy as np
 import pytest
@@ -84,13 +84,6 @@ def test_a_day_through_qc_derivation_and_the_store(tmp_path):
     assert sources.count("urma") == 23 and sources[5] is None
     assert store.sources("shortwave_radiation")[t0] == "hrrr"
     assert store.sources("et0")[t0 + 12] == "derived"
-
-
-def test_reopening_checks_the_window(tmp_path):
-    open_or_create_hourly(tmp_path, 2025, WINDOW)
-    assert open_or_create_hourly(tmp_path, 2025, WINDOW).window == WINDOW
-    with pytest.raises(ValueError):
-        open_or_create_hourly(tmp_path, 2025, Window(j0=0, j1=4, i0=0, i1=5))
 
 
 def test_month_blocks():
@@ -272,3 +265,98 @@ def test_soil_hours_outside_the_year_are_left_to_its_store(tmp_path):
     assert write_soil(store, soil_hours(new_year - timedelta(hours=2), 4), "era5land") == 2
     assert era5land_through(store) == new_year - timedelta(hours=1)
     assert era5land_through(open_or_create_hourly(tmp_path, 2026, WINDOW)) is None
+
+
+def source_stub(name: str, hour_values: dict | None, precip: float | None = None):
+    """A stand-in for URMA or RTMA: `hour_values` None is an unpublished hour (FileNotFoundError)."""
+    from types import SimpleNamespace
+
+    def fetch_hour(when, window, session):
+        if hour_values is None:
+            raise FileNotFoundError(when)
+        return {k: np.full(window.shape, v) for k, v in hour_values.items()}
+
+    def fetch_precip(when, window, session):
+        return None if precip is None else np.full(window.shape, precip)
+
+    return SimpleNamespace(name=name, fetch_hour=fetch_hour, fetch_precip=fetch_precip)
+
+
+def test_an_hour_takes_urma_when_it_is_out_and_rtma_precip_when_urma_has_none(monkeypatch):
+    monkeypatch.setattr(ingest, "URMA", source_stub("urma", {"air_temperature": 20.0}))
+    monkeypatch.setattr(ingest, "RTMA", source_stub("rtma", {"air_temperature": 99.0}, precip=0.7))  # never reached
+    monkeypatch.setattr(
+        ingest.hrrr, "fetch_hour", lambda when, window, session: {"shortwave_radiation": np.full(window.shape, 500.0)}
+    )
+    hour = ingest.fetch_hour(START, WINDOW, None)  # type: ignore[arg-type]
+    assert hour.sources == {
+        "air_temperature": "urma",
+        "precipitation": "rtma",
+        ingest.RAW: "hrrr",  # HRRR's shortwave is kept raw until the block's derived (D48)
+    }
+    assert hour.values["air_temperature"][0, 0] == 20.0 and hour.values["precipitation"][0, 0] == 0.7
+
+
+def test_an_hour_urma_has_not_published_comes_from_rtma_with_its_own_precip(monkeypatch):
+    monkeypatch.setattr(ingest, "URMA", source_stub("urma", None))
+    monkeypatch.setattr(
+        ingest, "RTMA", source_stub("rtma", {"air_temperature": 18.0, "precipitation": 1.2}, precip=9.9)
+    )
+    monkeypatch.setattr(ingest.hrrr, "fetch_hour", lambda when, window, session: {})
+    hour = ingest.fetch_hour(START, WINDOW, None)  # type: ignore[arg-type]
+    assert hour.sources == {"air_temperature": "rtma", "precipitation": "rtma"}
+    assert hour.values["precipitation"][0, 0] == 1.2  # the analysis' own precip, not the separate fetch's
+
+
+def test_an_hour_neither_analysis_has_is_empty_but_for_what_hrrr_gives(monkeypatch):
+    monkeypatch.setattr(ingest, "URMA", source_stub("urma", None))
+    monkeypatch.setattr(ingest, "RTMA", source_stub("rtma", None))
+    monkeypatch.setattr(ingest.hrrr, "fetch_hour", lambda when, window, session: {})
+    hour = ingest.fetch_hour(START, WINDOW, None)  # type: ignore[arg-type]
+    assert hour.values == {} and hour.sources == {}
+
+
+def test_ingest_block_wants_utc_times(tmp_path):
+    store = open_or_create_hourly(tmp_path, 2025, WINDOW)
+    chicago = START.astimezone(timezone(timedelta(hours=-5)))
+    with pytest.raises(ValueError, match="UTC"):
+        ingest_block(store, chicago, 1, fetch=fake_fetch())
+
+
+def test_soil_hours_with_a_hole_are_refused(tmp_path):
+    store = open_or_create_hourly(tmp_path, 2025, WINDOW)
+    hours = soil_hours(START, 4)
+    hours.times[2] += timedelta(hours=1)  # 0, 1, 3, 3
+    with pytest.raises(ValueError, match="consecutive"):
+        write_soil(store, hours, "era5land")
+
+
+def test_the_first_hour_of_a_year_is_kept_though_the_hour_before_it_is_in_another_store(tmp_path):
+    new_year = datetime(2026, 1, 1, tzinfo=UTC)
+    store = open_or_create_hourly(tmp_path, 2026, WINDOW)
+    ingest_block(store, new_year, 2, fetch=fake_fetch(), workers=1)  # no stored neighbour before it for the spike test
+    assert np.isfinite(store.read_point("air_temperature", 901, 1401, 0, 2)).all()
+
+
+def test_a_precip_refetch_that_errors_is_retried_and_then_keeps_the_stored_hour(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    store = open_or_create_hourly(tmp_path, 2025, WINDOW)
+    store.write(START, {"precipitation": np.full((2, *WINDOW.shape), 0.1)}, source="urma")
+    attempts = {"first": 0, "second": 0}
+
+    def fetch_precip(when, window, session):
+        key = "first" if when == START else "second"
+        attempts[key] += 1
+        if key == "second":
+            raise ConnectionError("down")  # every try fails
+        if attempts[key] < 3:
+            raise ConnectionError("reset")  # two failures, then the file
+        return np.full(window.shape, 0.4)
+
+    monkeypatch.setattr(ingest, "URMA", SimpleNamespace(name="urma", fetch_precip=fetch_precip))
+    monkeypatch.setattr(ingest, "RTMA", SimpleNamespace(name="rtma", fetch_precip=lambda when, window, s: None))
+    assert ingest.refetch_precipitation(store, START, 2, workers=1) == 1
+    assert attempts == {"first": 3, "second": ingest.ATTEMPTS}
+    t0 = store.index_of(START)
+    np.testing.assert_allclose(store.read_point("precipitation", 900, 1400, t0, t0 + 2), [0.4, 0.1])

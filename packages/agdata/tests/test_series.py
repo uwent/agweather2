@@ -88,7 +88,17 @@ def test_map_days_by_kind(world, fx_module):
     assert kind == "forecast" and np.isfinite(total).all()
 
 
-def test_every_model_runs_at_a_point_through_the_forecast(world):
+def test_every_model_runs_at_a_point_through_the_forecast(world, monkeypatch):
+    # Models share most of their inputs: read each distinct request from the stores once
+    real, answers = series.point_days, {}
+
+    def point_days_once(data_dir, j, i, first, last, names, totals=(), **kwargs):
+        key = (first, last, tuple(names), tuple(totals), tuple(kwargs))
+        if key not in answers:
+            answers[key] = real(data_dir, j, i, first, last, names, totals=totals, **kwargs)
+        return answers[key]
+
+    monkeypatch.setattr(series, "point_days", point_days_once)
     from agdata.grid import NDFD
     from agmodels.registry import all_models
 
@@ -111,3 +121,25 @@ def test_every_model_runs_at_a_point_through_the_forecast(world):
     )
     daily = dd.outputs["dd"]
     assert np.isfinite(daily).all() and daily[8] > daily[0] + 10
+
+
+def test_no_published_run_means_no_forecast(tmp_path):
+    found = series.current_forecast(tmp_path, NOW)
+    assert (found.path, found.reason) == (None, "none")
+
+
+def test_a_point_off_the_grid_is_refused(world):
+    with pytest.raises(ValueError, match="off the grid"):
+        series.model_at_point(world, 10.0, -88.0, "degree-days", date(2025, 7, 5), date(2025, 7, 20), now=NOW)
+
+
+def test_a_cell_in_a_year_without_stores_is_an_error_not_an_empty_series(world, tmp_path):
+    with pytest.raises(FileNotFoundError, match="no daily store"):
+        series.point_days(world, *CELL, date(2024, 7, 9), date(2024, 7, 10), ["air_temperature_max"], now=NOW)
+    with pytest.raises(FileNotFoundError, match="no daily store"):
+        series.cell_zone(tmp_path, *CELL, years=[2024])
+
+
+def test_a_day_on_the_map_in_a_year_without_stores_is_missing_not_zero(world, fx_module):
+    values, _ = series.grid_day(world, "air_temperature_max", date(2024, 7, 9), fx_module.window, now=NOW)
+    assert values.shape == fx_module.window.shape and np.isnan(values).all()

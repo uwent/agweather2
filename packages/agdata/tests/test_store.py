@@ -101,3 +101,62 @@ def test_a_store_at_another_scale_must_be_rescaled_before_it_opens(tmp_path):
     t0 = reopened.index_of(start)
     np.testing.assert_allclose(reopened.read_point("precipitation", 900, 1400, t0, t0 + 2), [0.3, np.nan])
     assert reopened.sources("precipitation")[t0] == "urma"
+
+
+def test_has_data_marks_the_steps_a_source_wrote(hourly):
+    hourly.write(datetime(2025, 1, 1, 2, tzinfo=UTC), {"air_temperature": np.zeros((2, *WINDOW.shape))}, source="urma")
+    assert hourly.has_data("air_temperature", 0, 5).tolist() == [False, False, True, True, False]
+
+
+def test_a_write_past_the_end_of_the_year_is_refused_and_leaves_the_year_alone(hourly):
+    last = datetime(2025, 12, 31, 22, tzinfo=UTC)
+    with pytest.raises(IndexError, match="past the end of 2025"):
+        hourly.write(last, {"air_temperature": np.full((3, *WINDOW.shape), 5.0)}, source="urma")
+    assert np.isnan(hourly.read_point("air_temperature", 900, 1400, hourly.length - 2, hourly.length)).all()
+
+
+def test_a_window_outside_the_store_is_refused(hourly):
+    with pytest.raises(IndexError, match="reaches outside"):
+        hourly.read_block("air_temperature", 0, Window(j0=930, j1=945, i0=1400, i1=1410))
+
+
+def test_a_variable_the_store_was_not_opened_with_is_refused(tmp_path, hourly):
+    reopened = GridStore.open(tmp_path, HOURLY, 2025, [TEMP])
+    with pytest.raises(KeyError, match="isn't open in this store"):
+        reopened.read_point("precipitation", 900, 1400, 0, 1)
+    with pytest.raises(KeyError, match="isn't an array"):
+        reopened._array("_meta")
+
+
+def test_a_variable_a_store_lacks_is_an_error_unless_added_empty_and_stale(tmp_path, hourly):
+    derived = variable("relative_humidity")
+    assert derived.derived
+    with pytest.raises(KeyError, match="relative_humidity"):
+        GridStore.open(tmp_path, HOURLY, 2025, [TEMP, derived])
+    assert GridStore.stale_variables(tmp_path, HOURLY, 2025, [TEMP, derived]) == {"relative_humidity"}  # read-only
+    added = GridStore.open(tmp_path, HOURLY, 2025, [TEMP, derived], add_missing=True)
+    assert added.stale == {"relative_humidity"}
+    assert np.isnan(added.read_point("relative_humidity", 900, 1400, 0, 3)).all()
+
+
+def test_a_create_that_crashed_halfway_does_not_block_the_next(tmp_path):
+    leftover = tmp_path / "hourly" / "2025.zarr.part"
+    leftover.mkdir(parents=True)
+    (leftover / "junk").write_text("half-written")
+    store = GridStore.create(tmp_path, HOURLY, 2025, WINDOW, [TEMP])
+    assert store.path.exists() and not leftover.exists()
+
+
+@pytest.mark.parametrize("layout", ["hourly", "daily", "cumulative"])
+def test_reopening_a_stores_year_checks_the_window(tmp_path, fx, layout):
+    from agdata.cumulative import open_or_create_cumulative
+    from agdata.daily import open_or_create_daily
+    from agdata.ingest import open_or_create_hourly
+
+    opener = {"hourly": open_or_create_hourly, "daily": open_or_create_daily, "cumulative": open_or_create_cumulative}[
+        layout
+    ]
+    opener(tmp_path, 2025, fx.window)
+    assert opener(tmp_path, 2025, fx.window).window == fx.window
+    with pytest.raises(ValueError, match="widening the box needs a rebuild"):
+        opener(tmp_path, 2025, Window(j0=fx.window.j0, j1=fx.window.j1 + 1, i0=fx.window.i0, i1=fx.window.i1))

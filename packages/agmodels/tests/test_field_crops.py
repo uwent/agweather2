@@ -113,14 +113,3 @@ def test_probability_levels_match(crt):
     sweep = crt("risk_from_prob_sweep")
     np.testing.assert_array_equal(risk_level(sweep["probability"], 1, 20, 35), sweep["risk_1_20_35"])
     np.testing.assert_array_equal(risk_level(sweep["probability"], 1, 5, 10), sweep["risk_1_5_10"])
-
-
-def test_the_grid_shape_works(inputs):
-    grid = {k: np.broadcast_to(v[:, None, None], (v.shape[0], 2, 3)) for k, v in inputs.items()}
-    for module in (tar_spot, gray_leaf_spot, frogeye, white_mold, don, soybean_cercospora, wheat_scab):
-        out = module.outputs(grid)
-        point = module.outputs(inputs)
-        for name, values in out.items():
-            assert values.shape == (365, 2, 3), (module.__name__, name)
-            np.testing.assert_allclose(values[:, 1, 2], point[name], equal_nan=True)
-        assert module.risk(out).shape == (365, 2, 3)

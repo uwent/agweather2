@@ -47,3 +47,9 @@ def test_run_qc_counts():
     assert result.spikes == 1  # 45 between 22 and 23
     np.testing.assert_allclose(result.values, [20, 21, 21.5, 22, 22.5, 23])  # both refilled from neighbors
     assert result.filled.sum() == 2
+
+
+def test_a_series_too_short_to_have_a_middle_has_no_spikes():
+    values, count = remove_spikes(np.array([1.0, 50.0]), threshold=10)
+    np.testing.assert_array_equal(values, [1.0, 50.0])
+    assert count == 0

@@ -34,8 +34,9 @@ class ReportingCommand(BaseCommand):
     def report(self) -> Reporter:
         return Reporter(out=self.stdout, err=self.stderr, quiet=getattr(self, "quiet", False))  # type: ignore[arg-type]
 
-    def lock(self, wait: float = LOCK_WAIT_S) -> AbstractContextManager[None]:
-        """The archive's write lock, waiting up to `wait` seconds for it and saying so."""
+    def lock(self, wait: float | None = None) -> AbstractContextManager[None]:
+        """The archive's write lock, waiting up to `wait` seconds (default LOCK_WAIT_S) for it and saying so."""
+        wait = LOCK_WAIT_S if wait is None else wait
         return write_lock(settings.DATA_DIR, wait=wait, on_wait=self.report.waiting_for_lock)
 
     def window(self, box: str | None):

@@ -33,3 +33,16 @@ def test_methods_options_and_biofix():
         cdd.outputs(INPUTS, method="average", upper="86")
     with pytest.raises(ValueError, match="base"):
         cdd.outputs(INPUTS, base="warm")
+
+
+def test_the_simple_average_without_an_upper_matches_its_function():
+    from agmodels.degree_days import degree_days_average
+
+    out = cdd.outputs(INPUTS, method="average", base="50", upper="none", unit="F")["dd"]
+    np.testing.assert_allclose(out[:3], degree_days_average(LO[:3] * 1.8 + 32, HI[:3] * 1.8 + 32, 50))
+    assert np.isnan(out[3])
+
+
+def test_an_unknown_method_is_refused():
+    with pytest.raises(ValueError, match="unknown method 'triangle'"):
+        cdd.daily(np.array([50.0]), np.array([70.0]), "triangle", 50.0, None)

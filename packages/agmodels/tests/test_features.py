@@ -93,3 +93,34 @@ def test_dew_point_depression_matches_the_crop_risk_tool(crt):
     more = crt("daily_more_eau_claire_2025")
     np.testing.assert_allclose(daily["dew_point_depression_mean"], more["dew_point_depression_mean"], atol=1e-9)
     np.testing.assert_allclose(daily["dew_point_depression_max"], more["dew_point_depression_max"], atol=1e-9)
+
+
+def test_soil_hours_below_27f_count_each_depth_and_interpolate_8_inches():
+    local = np.datetime64("2025-01-10T01", "h") + np.arange(24)
+    kill = (27 - 32) / 1.8  # −2.78 °C
+    first = np.arange(24)
+    soil_4cm = np.where(first < 5, kill - 0.5, kill + 0.5)  # 5 h below
+    soil_10cm = np.where(first < 6, kill - 0.5, kill + 0.5)  # 6 h below
+    soil_30cm = np.full(24, kill + 0.6)  # never
+    _, daily = f.daily_features(
+        local,
+        np.full(24, -5.0),
+        np.full(24, 80.0),
+        np.zeros(24),
+        soil_4cm_c=soil_4cm,
+        soil_10cm_c=soil_10cm,
+        soil_30cm_c=soil_30cm,
+    )
+    assert daily["hours_soil_4cm_below_27f"].tolist() == [5]
+    assert daily["hours_soil_10cm_below_27f"].tolist() == [6]
+    # 8 in (20.32 cm) is 51.6% of the way from 10 to 30 cm: 0.484 (kill − 0.5) + 0.516 (kill + 0.6) is above the line,
+    # so the 6 hours under it at 10 cm aren't under it at 8 in
+    assert daily["hours_soil_8in_below_27f"].tolist() == [0]
+    colder = f.soil_between(f.EIGHT_INCHES_CM, 10, -4.0, 30, -2.0)
+    assert colder == pytest.approx(-4.0 + 0.516 * 2.0, abs=1e-3)
+
+
+def test_the_soil_features_need_all_three_levels():
+    local = np.datetime64("2025-01-10T01", "h") + np.arange(24)
+    _, daily = f.daily_features(local, np.full(24, -5.0), np.full(24, 80.0), np.zeros(24), soil_4cm_c=np.full(24, -5.0))
+    assert "hours_soil_4cm_below_27f" not in daily
