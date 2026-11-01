@@ -183,10 +183,12 @@ def point_days(
 
 def in_box_corrections(kinds: list[str | None], run: Forecast) -> tuple[str, ...]:
     """The corrections behind a series in the box: HRRR's shortwave on observed days, the forecast's calibration
-    on forecast days (D48, D49)."""
+    on forecast days (D48, D49), and IFS's soil shifted at the ERA5-Land seam, which the forecast's soil and the last
+    observed days' (before ERA5-Land reaches them) went through (Q23)."""
     applied = [corrections.HRRR_SHORTWAVE] if any(k in (OBSERVED, PARTIAL) for k in kinds) else []
     if run.path is not None and any(k in (PARTIAL, FORECAST) for k in kinds):
         applied += [corrections.NBM_SHORTWAVE, corrections.NBM_MAX, corrections.NBM_NIGHT_MIN, corrections.NBM_RH]
+        applied += [corrections.IFS_SOIL_SEAM]
     return tuple(c.label for c in applied)
 
 

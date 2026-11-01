@@ -1,3 +1,4 @@
+import threading
 from datetime import UTC, date, datetime, timedelta
 
 import numpy as np
@@ -103,6 +104,15 @@ def test_one_writer_at_a_time(tmp_path):
     with write_lock(tmp_path), pytest.raises(WriteLocked, match="pid"):
         hold_write_lock(tmp_path)
     hold_write_lock(tmp_path).close()  # released
+
+
+def test_a_waiting_writer_gets_the_lock_once_it_is_released(tmp_path):
+    holder = hold_write_lock(tmp_path)
+    threading.Timer(0.2, holder.close).start()
+    with write_lock(tmp_path, wait=5, poll=0.05):
+        pass
+    with write_lock(tmp_path), pytest.raises(WriteLocked), write_lock(tmp_path, wait=0.1, poll=0.05):
+        pass
 
 
 def test_the_ingest_job_is_periodic_at_40_past():

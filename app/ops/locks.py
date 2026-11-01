@@ -2,6 +2,7 @@
 
 import fcntl
 import os
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -32,9 +33,19 @@ def hold_write_lock(data_dir: Path) -> IO[str]:
 
 
 @contextmanager
-def write_lock(data_dir: Path) -> Iterator[None]:
-    """The write lock for a block of code, for long-lived processes like the job worker."""
-    handle = hold_write_lock(data_dir)
+def write_lock(data_dir: Path, wait: float = 0, poll: float = 5) -> Iterator[None]:
+    """The write lock for a block of code, for long-lived processes like the job worker. With `wait`, tries again
+    every `poll` seconds for up to `wait` seconds before raising WriteLocked (a backfill that has just downloaded
+    a month waits out the hourly ingest rather than losing it)."""
+    deadline = time.monotonic() + wait
+    while True:
+        try:
+            handle = hold_write_lock(data_dir)
+            break
+        except WriteLocked:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(poll)
     try:
         yield
     finally:

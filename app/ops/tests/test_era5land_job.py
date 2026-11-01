@@ -5,10 +5,12 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import zarr
 
+from agdata import soil_seam
 from agdata.grid import service_window
 from agdata.ingest import open_or_create_hourly
-from ops.era5land import refresh_era5land, spans
+from ops.era5land import missing_days, refresh_era5land, spans
 
 FIXTURES = Path(__file__).parents[3] / "packages" / "agdata" / "tests" / "fixtures"
 BOX = "43.0,-88.1,43.05,-88.05"  # inland Milwaukee, inside the fixture's area
@@ -62,6 +64,16 @@ def test_the_job_writes_the_days_without_era5land_and_skips_them_next_time(data_
     assert all(last < date(2025, 12, 16) for _, last in calls)  # Dec 16 isn't asked for again
 
 
+def test_a_day_is_missing_until_every_variable_is_era5lands(data_dir):
+    refresh_era5land(data_dir, BOX, NOW, "key", retrieve=fixture_retrieve([]), lock=nullcontext)
+    window = service_window(BOX)
+    day = date(2025, 12, 16)
+    assert missing_days(data_dir, window, day, day) == []
+    store = open_or_create_hourly(data_dir, 2025, window)
+    store.set_sources("snow_depth", datetime(2025, 12, 16, tzinfo=UTC), [None] * 24)  # soil written, snow not
+    assert missing_days(data_dir, window, day, day) == [day]
+
+
 def test_spans_split_at_gaps_and_months():
     days = [date(2025, 1, 30), date(2025, 1, 31), date(2025, 2, 1), date(2025, 2, 3)]
     assert spans(days) == [
@@ -108,7 +120,44 @@ def test_ifs_fills_the_hours_after_era5land_and_keeps_the_forecast_hours(data_di
     assert sources[store.index_of(NOW) + 1] is None  # nothing past now in the archive
     np.testing.assert_allclose(store.read_steps("snow_depth", t, t + 1), 4.0)  # cm
 
+    # IFS's soil meets ERA5-Land's at the seam and fades towards its own (Q23); snow isn't shifted
+    seam = datetime(2025, 12, 16, 23, tzinfo=UTC)
+    era5 = store.read_steps("soil_temperature_10cm", t - 1, t)[0]
+    first = store.read_steps("soil_temperature_10cm", t, t + 1)[0]
+    w1 = soil_seam.weights("soil_temperature_10cm", np.array([1.0]))[0]
+    np.testing.assert_allclose(first, 3.0 + (era5 - 3.0) * w1, atol=0.06)  # stored at 0.1 °C
+    assert np.abs(first - era5).max() < 0.5  # no step at the seam
+
     later = [NOW + timedelta(hours=h) for h in (1, 100, 300)]
     kept = ifs.latest_at(ifs.latest_path(data_dir), later, service_window(BOX))
-    np.testing.assert_allclose(kept["soil_temperature_10cm"][:2], 3.0)
+    lead = np.array([(t - seam) / timedelta(hours=1) for t in later[:2]])
+    w = soil_seam.weights("soil_temperature_10cm", lead)
+    np.testing.assert_allclose(
+        kept["soil_temperature_10cm"][:2], 3.0 + (era5 - 3.0)[None] * w[:, None, None], atol=1e-4
+    )
     assert np.isnan(kept["soil_temperature_10cm"][2]).all()  # past the run's end (234 h after a 06Z run)
+    group = zarr.open_group(ifs.latest_path(data_dir), mode="r")
+    assert group.attrs["seam"] == seam.isoformat() and str(group.attrs["seam_correction"]).startswith("ifs-soil-seam v")
+    np.testing.assert_allclose(np.asarray(group["soil_temperature_10cm_seam_offset"]), era5 - 3.0, atol=1e-4)
+
+
+def test_ifs_reads_the_same_run_again_when_era5land_moves_the_seam(data_dir, monkeypatch):
+    from ops import ifs as ops_ifs
+
+    seams = iter([datetime(2025, 12, 15, 23, tzinfo=UTC), datetime(2025, 12, 16, 23, tzinfo=UTC)])
+    current = {"seam": next(seams)}
+    monkeypatch.setattr(ops_ifs, "seam_hour", lambda *a: current["seam"])
+    refresh_era5land(data_dir, BOX, NOW, "key", retrieve=fixture_retrieve([]), lock=nullcontext)
+    run = datetime(2025, 12, 21, 6, tzinfo=UTC)
+    read = lambda: ops_ifs.refresh_ifs(  # noqa: E731
+        data_dir,
+        BOX,
+        NOW,
+        None,
+        opener=lambda v, c: Constant(3.0),
+        meta=lambda: {"last_run_initialisation_time": run.timestamp()},
+        lock=nullcontext,
+    )
+    assert read() is True and read() is False
+    current["seam"] = next(seams)
+    assert read() is True and read() is False

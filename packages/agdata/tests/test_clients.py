@@ -132,3 +132,15 @@ def test_retries_on_throttling_then_gives_up_on_client_errors(monkeypatch):
     with pytest.raises(requests.HTTPError):
         client.get("/b")
     assert len(session.calls) == 4  # a 404 isn't retried
+
+
+def test_a_body_that_isnt_json_is_retried_and_never_cached(monkeypatch, tmp_path):
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    error = "Unexpected error while streaming data: timeoutReached"  # Open-Meteo, with HTTP 200
+    session = Recorded({"/a": [Response(200, error), Response(200, {"ok": True})], "/b": [Response(200, error)] * 4})
+    client = JsonClient("https://example.test", cache_dir=tmp_path, session=session)  # type: ignore[arg-type]
+    assert client.get("/a", cache_key="a.json") == {"ok": True} and len(session.calls) == 2
+    assert json.loads((tmp_path / "a.json").read_text()) == {"ok": True}
+    with pytest.raises(json.JSONDecodeError):
+        client.get("/b", cache_key="b.json")
+    assert not (tmp_path / "b.json").exists()

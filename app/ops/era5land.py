@@ -47,14 +47,16 @@ def land_mask(data_dir: Path, window: Window, key: str, retrieve: RetrieveMask =
 
 
 def missing_days(data_dir: Path, window: Window, first: date, last: date) -> list[date]:
-    """UTC days first..last whose 24 hours aren't all ERA5-Land's yet."""
+    """UTC days first..last whose 24 hours aren't all ERA5-Land's yet, in every variable it fills (a day written
+    before snow depth was added has ERA5-Land's soil but not its snow)."""
     out = []
-    stores = {}
+    stores: dict[int, list[list[str | None]]] = {}
     for day in _days(first, last):
         if day.year not in stores:
-            stores[day.year] = open_or_create_hourly(data_dir, day.year, window).sources(SOIL[0])
+            store = open_or_create_hourly(data_dir, day.year, window)
+            stores[day.year] = [store.sources(name) for name in SOIL]
         n = (day - date(day.year, 1, 1)).days * 24
-        if any(s != "era5land" for s in stores[day.year][n : n + 24]):
+        if any(s != "era5land" for sources in stores[day.year] for s in sources[n : n + 24]):
             out.append(day)
     return out
 

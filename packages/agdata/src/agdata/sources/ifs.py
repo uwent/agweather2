@@ -28,6 +28,7 @@ from typing import Any
 import numpy as np
 import zarr
 
+from agdata import soil_seam
 from agdata.grid import NDFD, Window
 from agdata.ingest import SOIL
 from agdata.sources import era5land
@@ -194,12 +195,29 @@ def latest_path(data_dir: Path) -> Path:
     return Path(data_dir) / "ifs" / "latest.zarr"
 
 
-def save_latest(path: Path, hours: era5land.Hours, run: datetime) -> None:
-    """Keeps a read's hours (from the first provisional hour to the run's end) for the forecast builds."""
+def save_latest(
+    path: Path,
+    hours: era5land.Hours,
+    run: datetime,
+    seam: datetime | None = None,
+    offsets: dict[str, np.ndarray] | None = None,
+) -> None:
+    """Keeps a read's hours (from the first provisional hour to the run's end) for the forecast builds, with the
+    seam they were shifted to meet and each cell's offset there (`agdata.soil_seam`; raw = value − offset × weight)."""
     group = zarr.open_group(path, mode="w")
     for name, values in hours.values.items():
         group.create_array(name, data=np.asarray(values, dtype=np.float32), chunks=(24, *values.shape[1:]))
-    group.attrs.update({"first": hours.times[0].isoformat(), "hours": len(hours.times), "run": run.isoformat()})
+    for name, offset in (offsets or {}).items():
+        group.create_array(f"{name}_seam_offset", data=np.asarray(offset, dtype=np.float32))
+    group.attrs.update(
+        {
+            "first": hours.times[0].isoformat(),
+            "hours": len(hours.times),
+            "run": run.isoformat(),
+            "seam": seam.isoformat() if seam is not None else None,
+            "seam_correction": f"ifs-soil-seam v{soil_seam.table().version}" if offsets else None,
+        }
+    )
 
 
 def latest_at(path: Path, times: list[datetime], window: Window) -> dict[str, np.ndarray]:

@@ -10,7 +10,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from agdata import calibration, shortwave
+from agdata import calibration, shortwave, soil_seam
 
 DOCS = "docs"
 
@@ -146,12 +146,28 @@ GRIDDED_RH_90 = Correction(
     version="2",
     fitted="2026-10-31",
 )
+IFS_SOIL_SEAM = Correction(
+    id="ifs-soil-seam",
+    source="ECMWF IFS (the archive's provisional hours and the forecast, in the box)",
+    variable="soil_temperature_4cm, soil_temperature_10cm, soil_temperature_30cm",
+    method="Each cell shifted by ERA5-Land − IFS in ERA5-Land's last hour, times a weight by lead (1 at the seam, "
+    "fading to a lasting share)",
+    fitted_against="The archive (ERA5-Land) minus Open-Meteo's IFS at 80 Wisconet stations' cells (2025; tested on "
+    "2026)",
+    applies_to="IFS's hours after ERA5-Land's last (`ops.ifs`); replaced by ERA5-Land's as it arrives. Not points "
+    "outside the box, whose recent days and forecast are all IFS",
+    raw_kept="Each cell's offset in `ifs/latest.zarr` (raw = value − offset × weight)",
+    decision="Q23",
+    evidence="docs/validation-soil.md",
+    table=soil_seam.TABLE_PATH,
+)
 CORRECTIONS: tuple[Correction, ...] = (
     HRRR_SHORTWAVE,
     NBM_SHORTWAVE,
     NBM_MAX,
     NBM_NIGHT_MIN,
     NBM_RH,
+    IFS_SOIL_SEAM,
     OPENMETEO_SHORTWAVE,
     OPENMETEO_RH,
     GRIDDED_RH_90,

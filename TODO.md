@@ -36,7 +36,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
   setsid nohup uv run app/manage.py refetch_soil --start 2025-01-01 --end 2026-10-29 > tmp/refetch_soil.log 2>&1 < /dev/null &
   ```
 - [x] **Then:** `uv run app/manage.py rebuild --stale` (about an hour for 2025–2026: rolls the days up again for the model features and the 48.2 °F DD cube added 2026-10-28); `uv run app/manage.py rebuild --check` should then print nothing. Claude can run it.
-- [ ] **Phase 2 exit review:** once Claude has rerun `docs/validation-archive.md` over the whole backfill, read it and agree the tolerances (PLAN.md Phase 2 H). Leave `bin/dev` running for a week afterwards so the hourly job and `/up` can be checked. Not running as of 2026-10-29 (nothing on :8000). It needs to outlive Claude's sessions, so start it from your own terminal:
+- [ ] **Phase 2 exit review:** once Claude has rerun `docs/validation-archive.md` over the whole backfill, read it (tolerances agreed 2026-10-31, D54). Leave `bin/dev` running for a week afterwards so the hourly job and `/up` can be checked. Not running as of 2026-10-29 (nothing on :8000). It needs to outlive Claude's sessions, so start it from your own terminal:
   ```bash
   bin/dev                             # Django, Vite and the Procrastinate worker; the hourly ingest runs at :40
   curl -s localhost:8000/up           # should say ok; Claude can check it and the ingest records from here
@@ -73,7 +73,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 - [ ] **Decide** (details in PLAN.md Phase 4 D and E):
   - Red crown rot's vegetative-period rain fills missing days with the mean of the others. Keep it, or leave the total missing when any day is?
   - ~~Open-Meteo's ECMWF IFS soil forecast~~ decided: D44, then D52 (IFS for the whole forecast).
-- [ ] **Agree the Phase 2 tolerances** proposed under PLAN.md Phase 2 H.
+- [x] **Agree the Phase 2 tolerances** proposed under PLAN.md Phase 2 H (2026-10-31, D54).
 - [ ] **Restart `bin/dev`** once the ERA5-Land backfill has finished (`tail tmp/era5land/backfill.log` ends in "Done"), so the worker picks up D52: the hourly ingest stops writing soil, and the new `ingest_era5land` (every 6 h) and `ingest_ifs` (hourly; reads only when a new IFS run is out) tasks start. Then `uv run app/manage.py rebuild --check` (soil's daily variables are version 2 and `snow_depth` is new, so expect them stale), and `uv run app/manage.py rebuild --stale`.
 - [ ] Optional, dev only: clear the Open-Meteo archive-endpoint cache so old entries' ERA5 soil gives way to ERA5-Land's: `uv run app/manage.py shell -c "from ops.models import WeatherCellCache; WeatherCellCache.objects.filter(endpoint='archive').delete()"`.
 - [x] Copernicus CDS key in `.env` as `COPERNICUS_API_KEY`, ERA5-Land licence accepted (2026-10-31). The server's `infra/.env` needs the same key before the ERA5-Land job runs there.

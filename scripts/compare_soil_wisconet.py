@@ -1,6 +1,6 @@
-"""Soil temperature against Wisconet's stations (PLAN.md Phase 4 handoff): the archive's HRRR soil, Open-Meteo's
-IFS (what points take past HRRR's f48, D44) and ERA5-Land (Open-Meteo's archive endpoint, ~5 days behind) at each
-station, by depth, season and snow cover. A comparison, not a
+"""Soil temperature against Wisconet's stations (PLAN.md Phase 4 handoff): the archive's soil (ERA5-Land since
+D52; HRRR's before), Open-Meteo's IFS (what fills the archive's last days and the forecast) and ERA5-Land (Open-Meteo's
+archive endpoint, ~5 days behind) at each station, by depth, season and snow cover. A comparison, not a
 basis for correction factors (Ben): a station's soil under snow is insulated, which is real but doesn't stand for
 fields the wind has scoured.
 
@@ -31,6 +31,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from compare_openmeteo_wisconet import CACHE, WISCONET, cell, daily, dotenv
 
+from agdata import soil_seam
 from agdata.catalog import VARIABLES
 from agdata.clients.openmeteo_points import OpenMeteoPoints
 from agdata.clients.wisconet import CENTRAL, Wisconet
@@ -56,6 +57,12 @@ def main():
     parser.add_argument("--box", default="wisconsin")
     parser.add_argument("--data", default="data")
     parser.add_argument("--out", default="docs/validation-soil.md")
+    parser.add_argument(
+        "--fit-seam",
+        action="store_true",
+        help=f"fit IFS's seam weights (Q23) on the first year, test on the rest, write {soil_seam.TABLE_PATH.name} "
+        "fitted on every year, and add the test to the report",
+    )
     args = parser.parse_args()
     first, last = date.fromisoformat(args.start), date.fromisoformat(args.end)
     window = service_window(args.box)
@@ -81,7 +88,10 @@ def main():
     local = [(t - HOUR).astimezone(CENTRAL) for t in times]
     local_day = np.array([t.date().toordinal() for t in local])
     month = np.array([t.month for t in local])
-    Path(args.out).write_text(report(args, stations, station, at_potato, ifs_layers, snow, archive, local_day, month))
+    text = report(args, stations, station, at_potato, ifs_layers, snow, archive, local_day, month)
+    if args.fit_seam:
+        text += fit_seam(archive, ifs, times)
+    Path(args.out).write_text(text)
     print(f"wrote {args.out}")
 
 
@@ -191,7 +201,7 @@ def report(args, stations, station, at_potato, ifs_layers, snow, archive, local_
         f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_soil_wisconet.py`, {args.start} to {args.end}, "
         f"at {len(stations)} Wisconet stations (with a sensor at 5 cm: {have[5.0]}, 10: {have[10.0]}, 20: "
         f"{have[20.0]}, 50: {have[50.0]}, 100: {have[100.0]}). The archive is v2's grid at the "
-        "station's cell (HRRR's soil before D52, ERA5-Land's after); IFS is Open-Meteo's `ecmwf_ifs` from its "
+        "station's cell (ERA5-Land's soil, D52, where the archive has it); IFS is Open-Meteo's `ecmwf_ifs` from its "
         "historical-forecast API (short leads) and ERA5-Land "
         "from its archive API (`era5_land`), both at the station's location and taken to the depths the same way. "
         "Each depth the potato model reads (2, 4 and 8 in) is set against the station's "
@@ -211,10 +221,10 @@ def report(args, stations, station, at_potato, ifs_layers, snow, archive, local_
             cells += [stats(source[depth], observed, winter & snowy), stats(source[depth], observed, winter & ~snowy)]
             lines.append(f"| {depth} ({sensor:.0f} cm) | {name} | " + " | ".join(cells) + " |")
 
-    # The handover's step: HRRR minus IFS where both have the hour, by month
+    # The handover's step: the archive minus IFS where both have the hour, by month
     lines += [
         "",
-        "## HRRR minus IFS, by month (°C, mean over the hours both have)",
+        "## Archive minus IFS, by month (°C, mean over the hours both have)",
         "",
         "What a forecast steps by at the handover, on average, if neither drifts with lead. Beside it, each "
         "source's bias against the stations at 4 in.",
@@ -248,10 +258,10 @@ def report(args, stations, station, at_potato, ifs_layers, snow, archive, local_
         "",
         "## Shifting IFS by the difference at the seam",
         "",
-        "If HRRR hands over to IFS at hour t, how far is IFS from HRRR d days later: unshifted, shifted by the "
-        "difference in hour t, or by the mean difference over the 24 hours to t? RMSE (°C) of HRRR − IFS d days on, "
-        "over every station-hour of the period (HRRR's archive and IFS's short leads stand in for HRRR's f48 and "
-        "IFS's longer leads). r is the correlation of the difference with itself d days later (each station's mean "
+        "If the archive hands over to IFS at hour t (ERA5-Land's last hour), how far is IFS from the archive d days "
+        "later: unshifted, shifted by the difference in hour t, or by the mean difference over the 24 hours to t? "
+        "RMSE (°C) of archive − IFS d days on, over every station-hour of the period (IFS's short leads stand in for "
+        "its longer ones). r is the correlation of the difference with itself d days later (each station's mean "
         "removed).",
         "",
         "| Depth | shift | " + " | ".join(f"{d} d" for d in LAGS_DAYS) + " |",
@@ -293,7 +303,7 @@ def report(args, stations, station, at_potato, ifs_layers, snow, archive, local_
     observed = at_depth(station, 30.0)
     cells = [stats(archive["soil_temperature_30cm"], observed, np.ones_like(observed, dtype=bool))]
     cells += [stats(archive["soil_temperature_30cm"], observed, np.isin(month, m)[None, :]) for m in SEASONS.values()]
-    lines.append("| HRRR's 30 cm, for comparison | 30 | " + " | ".join(cells) + " |")
+    lines.append("| The archive's 30 cm, for comparison | 30 | " + " | ".join(cells) + " |")
 
     # What the potato model counts: hours below 27 °F, and the daily range at 2 in
     lines += [
@@ -333,6 +343,53 @@ def report(args, stations, station, at_potato, ifs_layers, snow, archive, local_
         lines.append(f"| {name} | " + " | ".join(cells) + " |")
     lines.append("")
     return "\n".join(lines)
+
+
+SEAM_LEADS = np.arange(0, 25 * 24 + 1, 6)  # the provisional hours (up to 14 days) and the forecast (10), 6-hourly
+
+
+def fit_seam(archive: dict[str, np.ndarray], ifs: dict[str, np.ndarray], times: list[datetime]) -> str:
+    """Fits the seam weights on the first year's start hours and tests them on the later years', writes the table
+    fitted on every year, and returns the report's section."""
+    first_year = np.array([t.year == times[0].year for t in times])
+    lines = [
+        "",
+        "## IFS shifted at the seam (Q23)",
+        "",
+        f"The weight on the difference in ERA5-Land's last hour, fitted on {times[0].year}'s hours and tested on the "
+        "later ones: RMSE (°C) of the archive − IFS at each lead, unshifted, shifted by the whole difference, and by "
+        f"the fitted weight. The table written (`{soil_seam.TABLE_PATH.name}`) is fitted on every year.",
+        "",
+        "| Depth | lead (d) | weight | none | whole | weighted |",
+        "|---|---|---|---|---|---|",
+    ]
+    fitted = {}
+    for name in soil_seam.VARIABLES:
+        print(f"fitting the seam weights for {name}", flush=True)
+        d = archive[name] - ifs[name]
+        w = soil_seam.fit(d, SEAM_LEADS, starts=first_year)
+        fitted[name] = soil_seam.fit(d, SEAM_LEADS)
+        n = d.shape[1]
+        for k, h in enumerate(SEAM_LEADS):
+            if h % 72 or h == 0:
+                continue
+            now, then = d[:, : n - h], d[:, h:]
+            ok = np.isfinite(now) & np.isfinite(then) & ~first_year[None, : n - h]
+            lines.append(
+                f"| {name.removeprefix('soil_temperature_')} | {h // 24} | {w[k]:.2f} | {rmse(then[ok]):.2f} "
+                f"| {rmse(then[ok] - now[ok]):.2f} | {rmse(then[ok] - w[k] * now[ok]):.2f} |"
+            )
+    table = {
+        "version": 1,
+        "fitted": f"{datetime.now(UTC):%Y-%m-%d}",
+        "source": f"The archive (ERA5-Land) minus Open-Meteo's ecmwf_ifs at 80 Wisconet stations' cells, "
+        f"{times[0]:%Y-%m-%d} to {times[-1]:%Y-%m-%d}",
+        "lead_hours": [int(h) for h in SEAM_LEADS],
+        "weight": {name: [round(float(x), 4) for x in w] for name, w in fitted.items()},
+    }
+    soil_seam.TABLE_PATH.write_text(json.dumps(table, indent=1) + "\n")
+    print(f"wrote {soil_seam.TABLE_PATH}")
+    return "\n".join(lines) + "\n"
 
 
 def trailing_mean(values: np.ndarray, hours: int) -> np.ndarray:

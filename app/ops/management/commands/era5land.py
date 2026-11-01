@@ -12,6 +12,8 @@ from agdata.sources import era5land
 from ops.era5land import land_mask, missing_days, roll_up, spans, write_file
 from ops.locks import write_lock
 
+LOCK_WAIT_S = 3600  # the hourly ingest or a rollup may hold the lock; a downloaded month waits for it
+
 
 class Command(BaseCommand):
     help = (
@@ -42,7 +44,7 @@ class Command(BaseCommand):
         window = service_window(box)
         data_dir = settings.DATA_DIR
         last = end - timedelta(days=1)
-        with write_lock(data_dir):
+        with write_lock(data_dir, wait=LOCK_WAIT_S):
             days = (
                 [first + timedelta(days=n) for n in range((end - first).days)]
                 if options["redo"]
@@ -78,7 +80,7 @@ class Command(BaseCommand):
                     self.say(f"{span[0]}..{span[1]}: failed: {error!r}")
                     continue
                 began = time.time()
-                with write_lock(data_dir):
+                with write_lock(data_dir, wait=LOCK_WAIT_S):
                     covered = write_file(data_dir, window, path, land)
                     if covered is not None:
                         roll_up(data_dir, window, *covered)

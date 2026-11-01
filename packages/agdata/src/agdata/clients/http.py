@@ -1,5 +1,6 @@
 """A JSON client for outside services: optional response caching by key, a pause after each live request (some
-services are throttled or are production servers), and retries with backoff on throttling and server errors."""
+services are throttled or are production servers), and retries with backoff on throttling, server errors and
+bodies that aren't JSON."""
 
 import json
 import time
@@ -42,10 +43,11 @@ class JsonClient:
         if path is not None and path.exists():
             return json.loads(path.read_text())
         text = self._send(send)
+        data = json.loads(text)  # parsed before it's cached, so a body that isn't JSON is never kept
         if path is not None:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(text)
-        return json.loads(text)
+        return data
 
     def _send(self, send) -> str:
         for attempt in range(1, self.attempts + 1):
@@ -56,8 +58,9 @@ class JsonClient:
                 response.raise_for_status()
                 if self.pause_s:
                     time.sleep(self.pause_s)
+                json.loads(response.text)  # Open-Meteo can answer 200 with a plain-text error mid-stream
                 return response.text
-            except (requests.ConnectionError, requests.Timeout, requests.HTTPError) as error:
+            except (requests.ConnectionError, requests.Timeout, requests.HTTPError, json.JSONDecodeError) as error:
                 retryable = not isinstance(error, requests.HTTPError) or (
                     error.response is not None
                     and (error.response.status_code == 429 or error.response.status_code >= 500)
