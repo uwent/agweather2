@@ -12,11 +12,11 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
   - [x] The socket still says "permission denied": open a new WSL terminal (or `newgrp docker`) so the `docker` group applies, then check with `docker run --rm hello-world`.
 - [x] **Create the GitHub repo** (`uwent/agweather2`, public; PLAN.md Q3), then add it as `origin`.
 - [x] Answer PLAN.md Q1–Q3 (now D17–D19).
-- [ ] **Server request to IT** (Phase 1 gate; IT is setting up infrastructure as of 2026-10-27): the Server requirements section of `docs/project-plan.md`, with EC2, the EBS data volume and RDS in the same region and AZ. The pilot (`docs/pilot.md`) confirms the sizes:
+- [x] ~~**Server request to IT**~~ superseded by Phase 5's `docs/server-sizing.md` item below (2026-11-02). (Phase 1 gate; IT is setting up infrastructure as of 2026-10-27): the Server requirements section of `docs/project-plan.md`, with EC2, the EBS data volume and RDS in the same region and AZ. The pilot (`docs/pilot.md`) confirms the sizes:
   - Data volume: **1 TB gp3** holds the Upper Midwest's 11 years (about 510 GB: 342 GB hourly, the rest daily, cumulative and climatology). CONUS later needs 2–3 TB, or older years in S3.
   - The 11-year backfill downloads about 4 TB from NOAA's bucket; from inside AWS that takes hours, not the ~5 days it would take from campus or home. A temporary scale-up for it (16–32 vCPU for a day or two) still stands.
   - Hourly ingest is light: about 40 MB downloaded and under a minute of work per hour for the Upper Midwest.
-- [ ] Optional: put the Open-Meteo API key in `.env` as `OPEN_METEO_API_KEY` (needed from Phase 4).
+- [x] Optional: put the Open-Meteo API key in `.env` as `OPEN_METEO_API_KEY` (needed from Phase 4).
 
 ## Phase 2: Hourly archive
 
@@ -36,7 +36,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
   setsid nohup uv run app/manage.py refetch_soil --start 2025-01-01 --end 2026-10-29 > tmp/refetch_soil.log 2>&1 < /dev/null &
   ```
 - [x] **Then:** `uv run app/manage.py rebuild --stale` (about an hour for 2025–2026: rolls the days up again for the model features and the 48.2 °F DD cube added 2026-10-28); `uv run app/manage.py rebuild --check` should then print nothing. Claude can run it.
-- [ ] **Phase 2 exit review:** once Claude has rerun `docs/validation-archive.md` over the whole backfill, read it (tolerances agreed 2026-10-31, D54). Leave `bin/dev` running for a week afterwards so the hourly job and `/up` can be checked. Not running as of 2026-10-29 (nothing on :8000). It needs to outlive Claude's sessions, so start it from your own terminal:
+- [ ] **Phase 2 exit review:** `docs/validation-archive.md` covers the whole backfill (2026-10-29) but predates the shortwave correction (D48), ERA5-Land soil (D52) and ET0 v2: ask Claude to rerun it, then read it (tolerances agreed 2026-10-31, D54). Leave `bin/dev` running for a week afterwards so the hourly job and `/up` can be checked. Not running as of 2026-10-29 (nothing on :8000). It needs to outlive Claude's sessions, so start it from your own terminal:
   ```bash
   bin/dev                             # Django, Vite and the Procrastinate worker; the hourly ingest runs at :40
   curl -s localhost:8000/up           # should say ok; Claude can check it and the ingest records from here
@@ -69,13 +69,13 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 
 ## Phase 4: Forecast and blending
 
-- [ ] **Start `bin/dev` and leave it running** (Phase 2 above): it now runs the forecast job too (`ingest_forecast` at :15 and :45), and the Phase 4 exit needs a week of it. `curl -s localhost:8000/up` shows both `ingest` and `forecast`.
-- [ ] **Decide** (details in PLAN.md Phase 4 D and E):
-  - Red crown rot's vegetative-period rain fills missing days with the mean of the others. Keep it, or leave the total missing when any day is?
+- [ ] **Start `bin/dev` and leave it running** (Phase 2 above; restarted 2026-11-02, so the week runs to 2026-11-09 if it stays up; `uv run app/manage.py jobs` shows how it's doing): it now runs the forecast job too (`ingest_forecast` at :15 and :45), and the Phase 4 exit needs a week of it. `curl -s localhost:8000/up` shows both `ingest` and `forecast`.
+- [x] **Decide** (details in PLAN.md Phase 4 D and E):
+  - ~~Red crown rot's vegetative-period rain fills missing days with the mean of the others~~ decided: missing days count as no rain, and their number is reported (D45; built as `red-crown-rot` 0.2 on 2026-10-30, confirmed by Ben 2026-11-02).
   - ~~Open-Meteo's ECMWF IFS soil forecast~~ decided: D44, then D52 (IFS for the whole forecast).
 - [x] **Agree the Phase 2 tolerances** proposed under PLAN.md Phase 2 H (2026-10-31, D54).
-- [ ] **Restart `bin/dev`** once the ERA5-Land backfill has finished (`tail tmp/era5land/backfill.log` ends in "Done"), so the worker picks up D52: the hourly ingest stops writing soil, and the new `ingest_era5land` (every 6 h) and `ingest_ifs` (hourly; reads only when a new IFS run is out) tasks start. Then `uv run app/manage.py rebuild --check` (soil's daily variables are version 2 and `snow_depth` is new, so expect them stale), and `uv run app/manage.py rebuild --stale`.
-- [ ] Optional, dev only: clear the Open-Meteo archive-endpoint cache so old entries' ERA5 soil gives way to ERA5-Land's: `uv run app/manage.py shell -c "from ops.models import WeatherCellCache; WeatherCellCache.objects.filter(endpoint='archive').delete()"`.
+- [x] **Restart `bin/dev`** once the ERA5-Land backfill has finished (`tail tmp/era5land/backfill.log` ends in "Done"), so the worker picks up D52: the hourly ingest stops writing soil, and the new `ingest_era5land` (every 6 h) and `ingest_ifs` (hourly; reads only when a new IFS run is out) tasks start. Then `uv run app/manage.py rebuild --check` (soil's daily variables are version 2 and `snow_depth` is new, so expect them stale), and `uv run app/manage.py rebuild --stale`.
+- [x] (Nothing to clear: no archive-endpoint entries were cached, checked 2026-11-02.) Optional, dev only: clear the Open-Meteo archive-endpoint cache so old entries' ERA5 soil gives way to ERA5-Land's: `uv run app/manage.py shell -c "from ops.models import WeatherCellCache; WeatherCellCache.objects.filter(endpoint='archive').delete()"`.
 - [x] Copernicus CDS key in `.env` as `COPERNICUS_API_KEY`, ERA5-Land licence accepted (2026-10-31). The server's `infra/.env` needs the same key before the ERA5-Land job runs there.
 - [x] Q22 decided: Open-Meteo's 9 km IFS, `omfiles` optional (D53).
 - [ ] Optional, in the Crop Risk Tool (`tmp/shiny/`'s source repo): don't show model outputs until the on-demand weather has loaded; today they flash on incomplete data first (Ben, 2026-11-01). v2 doesn't need this: jobs fetch weather before a page asks.
@@ -90,7 +90,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 - [x] DATCP's v1 query: confirmed by DATCP (2026-11-02) and in the logs (8 settings × 23 points daily).
 - [x] DATCP's normals spreadsheet (2026-11-02): mean cumulative modified 50/86 GDD at their 23 points, from the State Climatology Office. Drop a copy in `tmp/` if Phase 6 should compare our gridded normals with it.
 - [x] Who else calls v1: the nginx access logs for 2026-10-19 to 11-02 (`tmp/v1-logs/access.log`, 21,760 API requests in 15 days) summarized 2026-11-02; December 2024's Rails log (`tmp/agwx-production.log`) agrees. The Rails log has been empty since the Rails 8 upgrade (December 2024) sent it to STDOUT, which Passenger writes to nginx's error log; left as is, since v1 is being retired.
-- [ ] Name the callers still unknown (the two .NET clients), and send each caller the new URLs once Phase 5 C is done: and send each the new URLs once Phase 5 C is done:
+- [ ] Name the callers still unknown (the two .NET clients), and send each caller the new URLs once Phase 5 C is done:
   - `165.189.65.24` (State of Wisconsin; was `165.189.255.59` in 2024): DATCP. Unchanged: 8 degree-day settings × 23 points, 184 requests every morning at 08:00–09:00, January 1 to yesterday.
   - `52.36.85.186` (AWS, "Ruby"): the current AgWeather website (12,868). v2 replaces it.
   - `216.105.223.230` ("RestSharp", .NET): ET at one point (44.1188, −89.5333), last 30 days, both classic and `method=adjusted` (Desai & Talib's emissivity), ~93 a day around the clock (1,392). Polls far more than daily data needs.
@@ -102,5 +102,4 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
   - UW Insect Diagnostic Lab (https://insectlab.russell.wisc.edu/): links "Today's Growing Degree Day Map" to v1's `/api/degree_days/map.png`. Ask them to switch to v2's `/maps/…png` (D60) once it exists.
   - `146.151.193.173` ("python-requests", 2026-10-28 and 29): our own Phase 2 comparisons of v2 against the old API.
   - The rest is scanners (`/api/.env`, `/api/mcp`) and a few one-off browsers.
-- [ ] Tell DATCP and anyone else found the new URLs once Phase 5 C is done.
 - [ ] Optional, to see v1's use until the switch: keep more nginx history on the old server. `/etc/logrotate.d/nginx` rotates daily and keeps 14 (Ubuntu's default); `sudo sed -i 's/rotate 14/rotate 400/' /etc/logrotate.d/nginx` keeps about 13 months (~2 MB a day before compression, ~120 KB after).

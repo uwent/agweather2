@@ -1,6 +1,6 @@
 # NBM forecast calibration
 
-Generated 2026-10-31 by `scripts/backtest_forecast.py --fit-calibration` (D39, D49), from the forecast's hours at 2695 cells in 73 runs against the archive, after the max is reshaped to NBM's TMAX. In order, each on the forecast with the ones before it applied:
+Generated 2026-11-02 by `scripts/backtest_forecast.py --fit-calibration` (D39, D49), from the forecast's hours at 2695 cells in 73 runs against the archive, after the max is reshaped to NBM's TMAX. In order, each on the forecast with the ones before it applied:
 
 1. **Max offset** by season: NBM's TMAX less the archive's daily max (the warmest top-of-hour value) on lead days 1–3, applied at every lead (later leads' errors are mostly weather) and interpolated through the year between mid-season days.
 2. **Night min**: the hours' warm bias at each night's min by lead (interpolation between NBM's steps rounds off the coldest hours), each night's coldest hours (00–12Z) lowered by it.
@@ -30,11 +30,11 @@ Held out (2-fold: each run with its step's table fitted on the other half; the s
 | `hours_rh_over_80`       | + max offset | -1.19 / 3.22 | -1.50 / 3.79 | -1.32 / 4.37 | -1.27 / 4.09 | -1.15 / 4.30 | -1.78 / 5.05 | -1.84 / 5.62 | -3.13 / 6.15 | -2.85 / 5.56 | -2.85 / 5.45 |
 | `hours_rh_over_80`       | + night min  | -0.67 / 3.17 | -0.79 / 3.72 | -0.49 / 4.29 | -0.25 / 4.02 | -0.20 / 4.24 | -0.78 / 4.98 | -0.38 / 5.52 | -1.39 / 5.73 | -0.80 / 5.24 | -0.74 / 5.11 |
 | `hours_rh_over_80`       | + RH map     | -0.24 / 3.11 | -0.24 / 3.76 | +0.13 / 4.31 | +0.09 / 4.22 | +0.24 / 4.46 | -0.24 / 4.98 | +0.35 / 5.66 | -0.52 / 6.26 | -0.04 / 5.67 | -0.17 / 5.49 |
-| `hours_rh_over_90`       | none         | -1.56 / 2.60 | -1.84 / 2.86 | -1.84 / 3.52 | -1.80 / 3.21 | -1.89 / 3.35 | -2.65 / 3.86 | -2.79 / 3.81 | -3.38 / 4.29 | -3.44 / 4.17 | -3.51 / 4.28 |
-| `hours_rh_over_90`       | + max offset | -1.56 / 2.62 | -1.82 / 2.86 | -1.81 / 3.52 | -1.77 / 3.20 | -1.87 / 3.34 | -2.64 / 3.85 | -2.78 / 3.81 | -3.38 / 4.29 | -3.44 / 4.17 | -3.51 / 4.28 |
-| `hours_rh_over_90`       | + night min  | -0.96 / 2.55 | -1.05 / 2.73 | -0.75 / 3.42 | -0.56 / 3.08 | -0.73 / 3.25 | -1.55 / 3.74 | -1.20 / 3.77 | -1.18 / 4.28 | -0.87 / 4.09 | -1.00 / 4.08 |
-| `hours_rh_over_90`       | + RH map     | -0.22 / 2.41 | -0.27 / 2.74 | +0.18 / 3.52 | +0.23 / 3.26 | -0.01 / 3.34 | -0.77 / 3.81 | -0.07 / 4.13 | -0.24 / 4.74 | -0.02 / 4.50 | -0.48 / 4.39 |
-| `hours_rh_over_90_night` | none         | -0.50 / 1.62 | -0.81 / 1.64 | -0.86 / 2.14 | -0.96 / 2.38 | -0.86 / 2.06 | -1.08 / 2.46 | -1.31 / 2.32 | -1.67 / 2.70 | -2.04 / 2.87 | -1.99 / 2.78 |
-| `hours_rh_over_90_night` | + max offset | -0.50 / 1.62 | -0.81 / 1.64 | -0.86 / 2.14 | -0.96 / 2.38 | -0.86 / 2.06 | -1.08 / 2.46 | -1.31 / 2.32 | -1.67 / 2.70 | -2.04 / 2.87 | -1.99 / 2.78 |
-| `hours_rh_over_90_night` | + night min  | +0.01 / 1.64 | -0.10 / 1.69 | +0.00 / 2.08 | +0.37 / 2.47 | +0.30 / 2.14 | -0.05 / 2.61 | -0.16 / 2.38 | +0.59 / 3.04 | +0.62 / 3.26 | +0.46 / 3.04 |
-| `hours_rh_over_90_night` | + RH map     | +0.07 / 1.53 | -0.02 / 1.62 | +0.07 / 2.09 | +0.30 / 2.42 | +0.12 / 2.05 | -0.37 / 2.46 | -0.40 / 2.27 | +0.43 / 3.05 | +0.25 / 3.15 | -0.09 / 2.89 |
+| `hours_rh_over_90`       | none         | -1.59 / 2.80 | -1.94 / 3.12 | -1.89 / 3.83 | -1.81 / 3.55 | -1.91 / 3.71 | -2.65 / 4.23 | -2.89 / 4.30 | -3.64 / 4.85 | -3.64 / 4.71 | -3.68 / 4.80 |
+| `hours_rh_over_90`       | + max offset | -1.58 / 2.82 | -1.92 / 3.12 | -1.86 / 3.82 | -1.78 / 3.53 | -1.89 / 3.70 | -2.64 / 4.21 | -2.88 / 4.29 | -3.63 / 4.85 | -3.64 / 4.70 | -3.67 / 4.80 |
+| `hours_rh_over_90`       | + night min  | -1.01 / 2.76 | -1.10 / 2.97 | -0.82 / 3.70 | -0.58 / 3.40 | -0.71 / 3.56 | -1.52 / 4.13 | -1.21 / 4.25 | -1.36 / 4.75 | -1.05 / 4.50 | -1.14 / 4.47 |
+| `hours_rh_over_90`       | + RH map     | -0.16 / 2.63 | -0.25 / 2.97 | +0.23 / 3.80 | +0.21 / 3.56 | +0.06 / 3.66 | -0.65 / 4.12 | +0.01 / 4.58 | -0.31 / 5.22 | -0.04 / 4.90 | -0.42 / 4.79 |
+| `hours_rh_over_90_night` | none         | -0.45 / 1.73 | -0.77 / 1.72 | -0.84 / 2.22 | -0.85 / 2.53 | -0.83 / 2.26 | -0.93 / 2.67 | -1.18 / 2.53 | -1.62 / 2.93 | -2.01 / 3.16 | -1.98 / 3.14 |
+| `hours_rh_over_90_night` | + max offset | -0.45 / 1.73 | -0.77 / 1.72 | -0.84 / 2.22 | -0.85 / 2.53 | -0.83 / 2.26 | -0.93 / 2.67 | -1.18 / 2.53 | -1.62 / 2.93 | -2.01 / 3.16 | -1.98 / 3.14 |
+| `hours_rh_over_90_night` | + night min  | +0.05 / 1.75 | -0.05 / 1.77 | +0.01 / 2.14 | +0.44 / 2.62 | +0.37 / 2.30 | +0.12 / 2.82 | +0.04 / 2.65 | +0.69 / 3.22 | +0.64 / 3.47 | +0.50 / 3.26 |
+| `hours_rh_over_90_night` | + RH map     | +0.08 / 1.64 | -0.02 / 1.70 | +0.05 / 2.15 | +0.33 / 2.55 | +0.09 / 2.20 | -0.30 / 2.67 | -0.33 / 2.47 | +0.42 / 3.22 | +0.25 / 3.35 | -0.05 / 3.11 |

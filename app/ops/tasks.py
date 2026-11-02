@@ -86,3 +86,8 @@ def ingest_ifs(timestamp: int) -> None:
                 restitch_current(settings.DATA_DIR, settings.SERVICE_BOX)
     except WriteLocked as error:
         logger.warning("ingest_ifs skipped: %s", error)
+
+
+# The order `manage.py jobs run all` and `jobs start` use: the archive first, then soil (IFS's provisional hours, then
+# ERA5-Land's over them), then the forecast, which stitches to all of it.
+CATCH_UP = (ingest_recent, ingest_ifs, ingest_era5land, ingest_forecast)

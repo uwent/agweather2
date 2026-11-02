@@ -38,7 +38,7 @@ services:
 
   worker:
     <<: *app
-    command: python app/manage.py procrastinate worker
+    command: python app/manage.py jobs start  # status, a catch-up run of every job, then the worker
     depends_on:
       web:
         condition: service_healthy

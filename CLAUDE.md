@@ -39,7 +39,7 @@ Setup and the rest are in `DEVELOPMENT.md`.
 - Shared props (`web.middleware.SharedPropsMiddleware`): `app` (`SharedProps`) and `errors`. Flash is Django's messages framework, which inertia-django sends as `page.flash.messages` (`{level, message}`).
 - Forms: on a validation failure, `redirect_with_errors(request, path, {"input.name": ["message"]})`; the next page gets them as `errors` once. inertia-django has no errors handling of its own.
 - Public API: Django Ninja under `/api/v2` (`api/api.py`), docs at `/api/v2/docs`.
-- Jobs: Procrastinate (`procrastinate.contrib.django`); tasks in each app's `tasks.py`, run by `manage.py procrastinate worker` (started by `bin/dev`).
+- Jobs: Procrastinate (`procrastinate.contrib.django`); tasks in each app's `tasks.py`, run by the worker that `manage.py jobs start` becomes after printing the status and queueing a catch-up run of every periodic job (`bin/dev`, the worker container). `manage.py jobs` shows the archive, forecast, lock and queue; `jobs run NAME|all [--defer]` runs jobs; `jobs days` lists each day's hours.
 - Vite: root `frontend/`, served under `/static/vite/`. django-vite loads `entrypoints/inertia.ts` from the dev server in development and unit tests (`VITE_DEV_MODE`), and from the build's manifest in `app/static/vite` otherwise.
 - Gridded weather lives in Zarr (one store per year), never in Postgres rows. Postgres holds app data: users, sites, alert rules, job queue, ingest status.
 
