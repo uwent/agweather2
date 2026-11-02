@@ -70,6 +70,30 @@ def test_water_neighbours_get_no_weight():
     assert np.isnan(soil[lon > east + 0.15]).all()  # well out: no land neighbour
 
 
+class Replaced(LinearField):
+    """A chunk whose file was replaced after it was opened: every read fails, as omfiles reports it."""
+
+    def __getitem__(self, key):
+        raise RuntimeError("Decoder error: Python I/O error FileExpired")
+
+
+def test_a_chunk_replaced_mid_read_is_opened_again_and_reread():
+    opened = []
+
+    def open_chunk(variable, chunk):
+        opened.append(variable)
+        return Replaced(chunk) if opened.count(variable) == 1 else LinearField(chunk)
+
+    hours = ifs.read(START, START, WINDOW, all_land(), open_chunk, retry_wait=0)
+    assert opened == [v for v in ifs.VARIABLES for _ in range(2)]
+    assert np.isfinite(hours.values["soil_temperature_10cm"]).all()
+
+
+def test_a_chunk_that_stays_unreadable_fails_the_read():
+    with pytest.raises(RuntimeError, match="FileExpired"):
+        ifs.read(START, START, WINDOW, all_land(), lambda v, c: Replaced(c), retry_wait=0)
+
+
 def test_the_run_end_follows_the_newest_long_run():
     at = lambda h: {"last_run_initialisation_time": datetime(2026, 10, 31, h, tzinfo=UTC).timestamp()}  # noqa: E731
     assert ifs.run_end(at(12)) == datetime(2026, 11, 10, 12, tzinfo=UTC)

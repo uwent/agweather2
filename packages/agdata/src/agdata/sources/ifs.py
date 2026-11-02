@@ -18,7 +18,9 @@ land mask, `era5land.LandMask`) get no weight, as IFS's lake points carry the la
 """
 
 import json
+import logging
 import shutil
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -35,6 +37,8 @@ from agdata.ingest import SOIL
 from agdata.sources import era5land
 from agdata.sources.openmeteo import RINGS, SOIL_LAYERS, _ring_latitude, soil_at_depths
 
+logger = logging.getLogger(__name__)
+
 BUCKET = "openmeteo/data/ecmwf_ifs"
 CHUNK_HOURS = 504
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
@@ -42,6 +46,7 @@ HOUR = timedelta(hours=1)
 VARIABLES = (*SOIL_LAYERS, "snow_depth")
 LONG_RUN_HOURS = 240  # 00Z and 12Z
 SHORT_RUN_HOURS = 144  # 06Z and 18Z
+READ_ATTEMPTS = 4  # a chunk's file being replaced mid-read is retried this many times in all
 
 Opener = Callable[[str, int], Any]  # (variable, chunk) → something sliced [0, cells, hours]
 
@@ -148,10 +153,29 @@ def run_end(meta: dict) -> datetime:
     return max(newest + SHORT_RUN_HOURS * HOUR, newest - 6 * HOUR + LONG_RUN_HOURS * HOUR)
 
 
+def _read_cells(reader, needed: np.ndarray, rings: np.ndarray, t0: int, t1: int) -> np.ndarray:
+    """The `needed` flat cells' steps t0..t1 from one file, ring by ring (each ring's cells are contiguous)."""
+    out = np.empty((len(needed), t1 - t0), dtype=np.float32)
+    for ring in np.unique(rings):
+        rows = np.flatnonzero(rings == ring)
+        lo, hi = int(needed[rows[0]]), int(needed[rows[-1]])
+        block = np.asarray(reader[0, lo : hi + 1, t0:t1], dtype=np.float32)
+        out[rows] = block[needed[rows] - lo]
+    return out
+
+
 def read(
-    first: datetime, last: datetime, window: Window, land: era5land.LandMask, open_chunk: Opener
+    first: datetime,
+    last: datetime,
+    window: Window,
+    land: era5land.LandMask,
+    open_chunk: Opener,
+    retry_wait: float = 60,
 ) -> era5land.Hours:
-    """IFS's hours first..last on the window: the catalog's soil depths (°C) and `snow_depth` (cm)."""
+    """IFS's hours first..last on the window: the catalog's soil depths (°C) and `snow_depth` (cm).
+
+    Open-Meteo rewrites a chunk's file in place as runs come in, so a read that finds its file replaced (or can't
+    decode it) opens the chunk again and rereads it, `retry_wait` seconds later, up to READ_ATTEMPTS times."""
     weights = land_weights(weights_for(window), land)
     needed = np.unique(weights.cells)
     offsets = ring_offsets()
@@ -161,17 +185,45 @@ def read(
     for variable in VARIABLES:
         values = np.full((len(needed), n), np.nan, dtype=np.float32)
         for chunk, t0, t1, at in chunk_span(first, last):
-            reader = open_chunk(variable, chunk)
-            for ring in np.unique(rings):
-                rows = np.flatnonzero(rings == ring)
-                lo, hi = int(needed[rows[0]]), int(needed[rows[-1]])
-                block = np.asarray(reader[0, lo : hi + 1, t0:t1], dtype=np.float32)
-                values[rows, at : at + (t1 - t0)] = block[needed[rows] - lo]
+            for attempt in range(1, READ_ATTEMPTS + 1):
+                try:
+                    values[:, at : at + (t1 - t0)] = _read_cells(open_chunk(variable, chunk), needed, rings, t0, t1)
+                    break
+                except RuntimeError as error:  # omfiles wraps I/O errors, `FileExpired` among them, in its own
+                    if attempt == READ_ATTEMPTS:
+                        raise
+                    logger.warning(
+                        "IFS %s chunk %d unreadable (attempt %d of %d), retrying in %gs: %s",
+                        variable,
+                        chunk,
+                        attempt,
+                        READ_ATTEMPTS,
+                        retry_wait,
+                        error,
+                    )
+                    time.sleep(retry_wait)
         raw[variable] = weights.apply(values, needed)
     layers = {name: raw[name] for name in SOIL_LAYERS}
     out = {name: value for name, (value, _) in soil_at_depths(layers).items()}
     out["snow_depth"] = era5land.no_negative_snow(raw["snow_depth"]) * 100  # m → cm
     return era5land.Hours(times=[first + k * HOUR for k in range(n)], values=out)
+
+
+class _Pinned:
+    """What `OmFileReader.from_fsspec` reads through (`size`, `cat_file`), held to the version of the file it opened.
+
+    The filesystem's own `cat_file` reads whatever is there now, so a file replaced partway through a read mixes the
+    old file's index with the new one's bytes ("Decoder error: Corrupted data", 2026-11-02). An opened s3fs file
+    sends its ETag with every range (`IfMatch`) and raises `FileExpired` once the file has changed."""
+
+    def __init__(self, file):
+        self.file = file
+
+    def size(self, path: str) -> int:
+        return self.file.size
+
+    def cat_file(self, path: str, start: int, end: int) -> bytes:
+        return self.file._fetch_range(start, end)  # stateless, unlike seek and read
 
 
 def s3_opener() -> tuple[Opener, Callable[[], dict]]:
@@ -181,9 +233,9 @@ def s3_opener() -> tuple[Opener, Callable[[], dict]]:
 
     fs = fsspec.filesystem("s3", anon=True)
 
-    @cache
     def open_chunk(variable: str, chunk: int):
-        return omfiles.OmFileReader.from_fsspec(fs, f"{BUCKET}/{variable}/chunk_{chunk}.om")
+        path = f"{BUCKET}/{variable}/chunk_{chunk}.om"
+        return omfiles.OmFileReader.from_fsspec(_Pinned(fs.open(path, "rb", cache_type="none")), path)
 
     def meta() -> dict:
         return json.loads(fs.cat(f"{BUCKET}/static/meta.json"))
