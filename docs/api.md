@@ -300,19 +300,26 @@ Yearly NetCDF per variable for bulk users, as static files beside the API (Phase
 
 ```r
 library(jsonlite)
-r <- fromJSON("https://…/api/v2/degree-days?lat=43.07&lng=-89.40&base=50&upper=86&start=2026-03-01")
+r <- fromJSON("https://agweather.cals.wisc.edu/api/v2/degree-days?lat=43.07&lng=-89.40&base=50&upper=86&start=2026-03-01")
 dd <- as.data.frame(r$data)
 r$meta$summary
 
-wx <- read.csv("https://…/api/v2/weather/daily?lat=43.07&lng=-89.40&format=csv", comment.char = "#")
+wx <- read.csv("https://agweather.cals.wisc.edu/api/v2/weather/daily?lat=43.07&lng=-89.40&format=csv", comment.char = "#")
 ```
 
 ```python
 import io
-import pandas as pd, requests, xarray as xr
+
+import pandas as pd
+import requests
+import xarray as xr
+
+base = "https://agweather.cals.wisc.edu/api/v2"
 r = requests.get(f"{base}/models/tar-spot/run", params={"lat": 43.07, "lng": -89.40}).json()
 df = pd.DataFrame(r["data"])
-ds = xr.open_dataset(io.BytesIO(requests.get(f"{base}/grids/dd_modified_50_86?date=2026-07-01&format=netcdf").content))
+
+grid = requests.get(f"{base}/grids/dd_modified_50_86", params={"date": "2026-07-01", "format": "netcdf"})
+ds = xr.open_dataset(io.BytesIO(grid.content))
 ```
 
 ## Migrating from v1

@@ -237,9 +237,9 @@ Docker Compose on the dedicated server: `web` (uvicorn), `worker`, `caddy`; Post
 
 ## 14. Phases
 
-Each phase ends with an exit gate. Dates are estimates for Ben and Claude; the old stack runs in parallel throughout.
+Each phase ends with an exit gate. Phases are sized in working days (Ben with Claude), not dates: S about a day, M 2–3, L 4–6, XL one to two weeks. Phases 1–4 took seven working days (2026-10-27 to 11-02), so the sizes come from that pace. What sets the calendar is mostly outside the build: Ben's answers, papers, IT and the server, and data access. The one fixed date is launch, before April 1, 2027. The old stack runs in parallel throughout.
 
-### Phase 1: Foundations (November 2026) — current
+### Phase 1: Foundations — done 2026-10-27 (S)
 
 **A. Repo and tooling**
 
@@ -280,7 +280,7 @@ Each phase ends with an exit gate. Dates are estimates for Ben and Claude; the o
 
 - **Exit:** `bin/ci` passes locally and on GitHub Actions; the home page renders through Inertia; the pilot report is written; server requirements confirmed with IT.
 
-### Phase 2: Hourly archive (November–December) — approved 2026-10-27; backfill and validation remaining
+### Phase 2: Hourly archive — built 2026-10-28 (M); the server's backfill, climatology (Phase 6, D22) and some validation remain
 
 > **Status (2026-10-29):** A–F done; G moved to Phase 6. The local backfill (2025-01 to 2026-10) is done and validated against the old API, ACIS and Open-Meteo (H). Left: Ben agrees the proposed tolerances (H), the week of unattended hourly ingest (`bin/dev`), the station and pyranometer checks still open under H, and 2016–2024 on the server. The current handoff is at the top of Phase 3.
 
@@ -365,7 +365,7 @@ Builds the archive the rest of v2 reads: URMA (and RTMA for the newest hours) pl
 - Later (server backfill, Phase 9's CONUS): the same comparisons over the whole configured box, with stations (ACIS) and Open-Meteo as the references outside Wisconsin, where the old API doesn't reach.
 - **Exit:** v2 daily min/max/DD/precip agree with the old API within stated tolerances, 2016–present (Wisconsin first; the full box after the server backfill); ET0 checked against Open-Meteo and SSEC; hourly ingest has run unattended for a week with the health check green.
 
-### Phase 3: Model library (December–January) — approved 2026-10-28; insects and wheat wait for papers
+### Phase 3: Model library — built 2026-10-29 (M); wheat waits for papers, the explorer for Phase 5, projection for Phase 6
 
 > **Status (2026-10-29; the current handoff is at the top of Phase 4).**
 >
@@ -473,7 +473,7 @@ Every model from the old API, VDIFN and the three R apps as one readable Python 
 - **Exit:** every model in D has a spec with its three layers and an explorer declaration, passes parity (or has its differences recorded), and has a sweep snapshot; features and indices are in the daily and cumulative stores for the backfilled range with versions; a point and the grid give the same answer; every model has a topic.
   - Exit check (2026-10-29): a point and the grid give the same answer, tested end to end in `agdata/tests/test_point.py`. Two months of synthetic hours (two time zones, a humid week, rain, a 5-hour gap) go through the rollup. The new point path (`agdata.point.daily_at_point`, which Phase 4's Open-Meteo points will use) gives every daily variable within the store's rounding, with the same missing days. Every one of the 49 models gives each cell the same outputs and risk from the grid as from that cell's series alone. Still open: the explorer's evaluation (Phase 5) and the stores' features over the backfilled range (`rebuild --stale`, run 2026-10-29).
 
-### Phase 4: Forecast and blending (January) — current, approved 2026-10-29
+### Phase 4: Forecast and blending — built 2026-10-31 (L); leftovers (S) and a week of unattended jobs remain
 
 > **Handoff (afternoon of 2026-10-31; the session log is `tmp/session-log.md`, newest entry first).**
 >
@@ -677,9 +677,9 @@ Ben asked for a review once Phase 4 was done: four Sonnet reviewers (agdata's so
 - [ ] Six journal citations have no DOI (Krause et al. 1975, Pitblado 1992, Neild and Newman 1987, Abendroth et al. 2011, Fehr and Caviness 1977, Bauer et al. 1984): check Crossref; some may have none. 30 models have no season (the insects, degree days, red crown rot, soybean Cercospora, wheat scab).
 - [ ] Phase 5 (point latency): `GridStore.sources()` decodes the whole year's sources on every call (1,616 calls, ~10 s, in the all-models point test); cache them per store open. `series.grid_day` calls a day "observed" in a year with no stores (its values are NaN); `series.point_days` raises FileNotFoundError for a year without a daily store (points before the archive go to Open-Meteo first, so it isn't reached today).
 
-### Phase 5: API v2 (January–February) — planned 2026-11-02
+### Phase 5: API v2 — next, planned 2026-11-02 (L, about 4–6 working days)
 
-> **Handoff (2026-11-02).** Planned from the design in `docs/api.md` (D57, D58). Nothing is built yet beyond `/status`. Phase 4's leftovers (verification archive, region masks, Open-Meteo fallback when NBM is stale, Open-Meteo usage on the admin page, H seasonal products, the week of unattended jobs) can run alongside: only `region=` on grids needs the masks, and the layer catalog lists seasonal products once they exist. Start with A.
+> **Handoff (2026-11-02).** Planned from the design in `docs/api.md` (D57, D58). Nothing is built yet beyond `/status`. First, a small Phase 4 step that seems not to have run: its handoff's item 2 (the backtest refits, `--fit-shortwave`, `--fit-calibration`, `--rescore`, on the refetched runs; check `git log` and the tables' fitted dates before rerunning). Phase 4's other leftovers (verification archive, region masks, Open-Meteo fallback when NBM is stale, Open-Meteo usage on the admin page, H seasonal products, the week of unattended jobs) can run alongside: only `region=` on grids needs the masks, and the layer catalog lists seasonal products once they exist. Start with A.
 
 Every endpoint in `docs/api.md`, built in the order below, so that each step serves something real as soon as it lands. The DATCP and Veg Path switchover comes early (C) because it has an outside deadline, the 2027 season. Model maps and tiles come late (F, G) because they're the largest pieces and only the Phase 6 map needs them. `docs/api.md` is the contract: refine it as endpoints are built, and record any change to it in its D# row.
 
@@ -758,7 +758,7 @@ Every endpoint in `docs/api.md`, built in the order below, so that each step ser
 
 - **Exit:** v2 GDD matches the old API for DATCP's query (or its differences are explained, D54), and DATCP and Veg Path use the new endpoints; every endpoint in `docs/api.md` is built or moved to a later phase in writing; the latency targets are met on the real archive.
 
-### Phase 6: Web app (February–March) — sketch
+### Phase 6: Web app — sketch (XL; WISP 3's frontend is the source to port)
 
 **Methods derived from the code** (Ben, 2026-10-31; to pursue): how the data is made shouldn't be written out by hand on model pages, where it drifts from the code. Instead:
 
@@ -774,17 +774,17 @@ Map explorer with the WebGL data-tile layer, sites dashboard and both feeds, cha
 
 - **Exit:** beta users on the new site.
 
-### Phase 7: Accounts and email (March) — sketch
+### Phase 7: Accounts and email — sketch (M)
 
 allauth sign-in by link or code, synced sites, settings (units, beta models, alerts, service updates), daily digest and event alerts, email layout ported from WISP 3, BCC announcement to current subscribers.
 
 - **Exit:** digests and alerts verified on staging for test sites.
 
-### Phase 8: Launch (by April 1, 2027) — sketch
+### Phase 8: Launch, before April 1, 2027 — sketch (M of work; IT, DNS and the server set the date)
 
 Every model's version to 1.0 (D46). Production deploy (`docs/deployment.md`), VDIFN and soils-ag-wx redirect to v2, soils-ag-wx emails stop, v1 moves to `legacy.agweather.cals.wisc.edu` and v1 API URLs redirect there (D62). Ops: a morning email report to admins (`/up`'s ingest health and problems, the night's ingest records, failed jobs; decided 2026-10-28); the yearly roll each January (drop the oldest year's directories, rebuild the internal climatology).
 
-### Phase 9: Refinement and CONUS (2027 season onward) — sketch
+### Phase 9: Refinement and CONUS — sketch (ongoing, from the 2027 season)
 
 P1 (alfalfa, potato volunteer, climate comparisons, downloads, about-page sweeps) and P2 (frost/freeze probabilities, API keys if needed) features, new models and versions; then widen the box, backfill, resize the server, tighten region masks.
 
@@ -794,11 +794,11 @@ Potential enhancement: the model review (below).
 
 Potential enhancement: a synthetic soil temperature forecast for the grid past HRRR's 48 hours (D41; points have Open-Meteo's IFS soil forecast since D44). Extend the last observed soil temperature by a scaled and lagged air temperature, fitted per depth on the archive (Ben, 2026-10-29), and flag it as estimated.
 
-### Enhancement: station networks — sketch
+### Enhancement: station networks — sketch (M per network)
 
 After launch (D59; Ben, 2026-11-02). A station layer on the map and in charts: Wisconet first, then other mesonets with public APIs and open airport stations (ASOS/AWOS, e.g. through IEM or ACIS). Each network is a source adapter with its own `kind`, so a chart can put a station's observations beside its cell's grid values, and its hours can feed D58's runner. Wisconet waits for its v2 API to settle. In production it whitelists our IP, so its throttle doesn't apply; in development, request slowly and cache. Whether station hours are cached in Postgres (one row per station-hour) or fetched on demand depends on how much they're used. This is also where the validation comparisons against stations (Phase 2 H, Phase 4 I) could become continuous checks.
 
-### Enhancement: model review — sketch
+### Enhancement: model review — sketch (L, ongoing)
 
 A sweep across every model, one at a time, after launch or between phases (Ben, 2026-10-29):
 
