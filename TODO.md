@@ -83,6 +83,8 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 
 ## Phase 5: API v2
 
+- [ ] Send `docs/server-sizing.md` to IT (Q4): r7i.2xlarge, 1.5 TB gp3 data volume (500 MB/s), 200 GB scratch, RDS PostgreSQL db.t4g.medium, us-east-1, and a temporary resize for the backfill.
+
 - [ ] Before launch (Phase 8), with IT: DNS for `legacy.agweather.cals.wisc.edu` pointing at the old server, its TLS certificate, and nginx's `server_name` on the old server answering to it (D62). Check v1 serves its API there before `agweather.cals.wisc.edu` moves to v2.
 
 - [x] DATCP's v1 query: confirmed by DATCP (2026-11-02) and in the logs (8 settings × 23 points daily).
