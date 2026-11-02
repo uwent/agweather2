@@ -80,3 +80,25 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 - [x] Q22 decided: Open-Meteo's 9 km IFS, `omfiles` optional (D53).
 - [ ] Optional, in the Crop Risk Tool (`tmp/shiny/`'s source repo): don't show model outputs until the on-demand weather has loaded; today they flash on incomplete data first (Ben, 2026-11-01). v2 doesn't need this: jobs fetch weather before a page asks.
 - [ ] Optional: tell your department (or WARF) that AgWeather v2 and WISP 3 are public under AGPL-3.0, since the Regents hold the copyright.
+
+## Phase 5: API v2
+
+- [ ] Before launch (Phase 8), with IT: DNS for `legacy.agweather.cals.wisc.edu` pointing at the old server, its TLS certificate, and nginx's `server_name` on the old server answering to it (D62). Check v1 serves its API there before `agweather.cals.wisc.edu` moves to v2.
+
+- [x] DATCP's v1 query: confirmed by DATCP (2026-11-02) and in the logs (8 settings × 23 points daily).
+- [x] DATCP's normals spreadsheet (2026-11-02): mean cumulative modified 50/86 GDD at their 23 points, from the State Climatology Office. Drop a copy in `tmp/` if Phase 6 should compare our gridded normals with it.
+- [x] Who else calls v1: the nginx access logs for 2026-10-19 to 11-02 (`tmp/v1-logs/access.log`, 21,760 API requests in 15 days) summarized 2026-11-02; December 2024's Rails log (`tmp/agwx-production.log`) agrees. The Rails log has been empty since the Rails 8 upgrade (December 2024) sent it to STDOUT, which Passenger writes to nginx's error log; left as is, since v1 is being retired.
+- [ ] Name the callers still unknown (the two .NET clients), and send each caller the new URLs once Phase 5 C is done: and send each the new URLs once Phase 5 C is done:
+  - `165.189.65.24` (State of Wisconsin; was `165.189.255.59` in 2024): DATCP. Unchanged: 8 degree-day settings × 23 points, 184 requests every morning at 08:00–09:00, January 1 to yesterday.
+  - `52.36.85.186` (AWS, "Ruby"): the current AgWeather website (12,868). v2 replaces it.
+  - `216.105.223.230` ("RestSharp", .NET): ET at one point (44.1188, −89.5333), last 30 days, both classic and `method=adjusted` (Desai & Talib's emissivity), ~93 a day around the clock (1,392). Polls far more than daily data needs.
+  - `71.13.161.79` ("RestSharp"): ET at 28 points, last 10 days, daily at 09:00 (420). An irrigation scheduler?
+  - **Nortera** ("Nortera-Production-Tracker/1.0", through Cloudflare 104.23.160.x): sine 50/86 degree days from May 1, and precip, at 8 points daily at 06:00 (109 in 7 days). A vegetable processor: worth a direct email.
+  - `waunakee-lawn-notifier (eli@solow.org)`: `dd_table` (`dd_50_86`, `dd_32`) and precip at one point, twice a day (68). Has a contact address in its user agent.
+  - Veg Path (`pest_forecasts/vegpath` from AWS 3.19.85.241 and 18.221.246.67; 753): Ben's WordPress site for the UW Vegetable Pathology lab, through wpDataTables (weather and early/late blight charts for 7 Wisconsin locations).
+  - `144.92.74.104` ("httr2", UW campus Posit Connect): Ben's alfalfa Shiny app, `/api/weather/grid?date=…` about once a day. Replaced by v2's alfalfa tool.
+  - UW Insect Diagnostic Lab (https://insectlab.russell.wisc.edu/): links "Today's Growing Degree Day Map" to v1's `/api/degree_days/map.png`. Ask them to switch to v2's `/maps/…png` (D60) once it exists.
+  - `146.151.193.173` ("python-requests", 2026-10-28 and 29): our own Phase 2 comparisons of v2 against the old API.
+  - The rest is scanners (`/api/.env`, `/api/mcp`) and a few one-off browsers.
+- [ ] Tell DATCP and anyone else found the new URLs once Phase 5 C is done.
+- [ ] Optional, to see v1's use until the switch: keep more nginx history on the old server. `/etc/logrotate.d/nginx` rotates daily and keeps 14 (Ubuntu's default); `sudo sed -i 's/rotate 14/rotate 400/' /etc/logrotate.d/nginx` keeps about 13 months (~2 MB a day before compression, ~120 KB after).

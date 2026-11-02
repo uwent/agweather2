@@ -9,6 +9,7 @@ AgWeather v2: one Django app replacing the AgWeather API (`../ag-weather`), the 
 - `PLAN.md`: architecture, recorded decisions (D#), phases and open questions (Q#). The current phase is detailed; later phases are sketches that get detailed when they start. Check it before starting work, and tick its checklists as work lands.
 - `TODO.md`: things only Ben can do (installs, accounts, IT, data copies, exit checks), by phase.
 - `docs/project-plan.md`: the original inventory and rebuild proposal, with the option comparisons, storage budget and server sizing behind PLAN.md's decisions. Background only; PLAN.md wins where they differ.
+- `docs/api.md`: the API v2 contract (envelope, formats, endpoints); PLAN.md Phase 5 has the work list and its open questions.
 - `tmp/`: gitignored scratch (downloads, pilot output, one-off scripts). `data/` (gitignored) holds the local Zarr archive.
 - `tmp/session-log.md`: a running log of sessions (what was done, learned and measured). Read it with the handoff at the top of the current phase in PLAN.md; add an entry, newest first, before ending a session. `tmp/references/` holds papers Ben has added.
 - `../wisp3`: the peer app (Rails + Inertia + Svelte). Its frontend (layout, tokens, charts, maps, units, accessibility tests) is the source to port from; its Ruby services map to Python here.
