@@ -8,7 +8,7 @@ import pytest
 from agdata import series
 from agdata.grid import NDFD
 from api import envelope, locations
-from api.tests.conftest import NOW, POINT
+from api.tests.fixture_archive import NOW, POINT
 
 pytestmark = pytest.mark.urls("api.tests.routes")
 LAT, LNG = POINT

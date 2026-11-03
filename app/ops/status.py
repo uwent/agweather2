@@ -19,8 +19,10 @@ from procrastinate import sql
 from procrastinate.contrib.django import app
 from procrastinate.contrib.django.models import ProcrastinateEvent, ProcrastinateJob
 
+from agdata import forecast
 from agdata.ingest import SOIL
-from agdata.store import DAILY, HOURLY, SOURCE_NAMES
+from agdata.rebuild import find_stale
+from agdata.store import CUMULATIVE, DAILY, HOURLY, SOURCE_NAMES, StoreLayout
 from ops.forecast import forecast_health
 from ops.health import ingest_health
 from ops.ifs import last_read
@@ -296,3 +298,76 @@ def _hours(value: float | None) -> str:
 
 def _seconds(value: float) -> str:
     return f"{value:.0f} s" if value < 90 else f"{value / 60:.0f} min"
+
+
+def span(data_dir: Path, layout: StoreLayout, name: str) -> tuple[datetime | None, datetime | None]:
+    """The first and last steps of `name` any source has written, across every year's store: hours as their UTC
+    end, days as midnight UTC of the day."""
+    step = timedelta(hours=1) if layout.step == "hour" else timedelta(days=1)
+    found: list[datetime] = []
+    for path in sorted(layout.path(data_dir, 2000).parent.glob("[0-9][0-9][0-9][0-9].zarr")):
+        codes = _meta(path, name)
+        if codes is not None and (written := np.flatnonzero(codes > 0)).size:
+            start = datetime(int(path.stem), 1, 1, tzinfo=UTC)
+            found += [start + int(written[0]) * step, start + int(written[-1]) * step]
+    return (min(found), max(found)) if found else (None, None)
+
+
+def last_hour_by_source(data_dir: Path, year: int, names) -> dict[str, datetime]:
+    """Each source's last hour in the archive over `names`, this year and last."""
+    found: dict[str, datetime] = {}
+    for y in (year - 1, year):
+        for name in names:
+            codes = _meta(HOURLY.path(data_dir, y), name)
+            if codes is None:
+                continue
+            for code in np.unique(codes[codes > 0]).tolist():
+                if (source := SOURCE_NAMES.get(code)) is not None:
+                    hour = datetime(y, 1, 1, tzinfo=UTC) + timedelta(hours=int(np.flatnonzero(codes == code)[-1]))
+                    found[source] = max(found.get(source, hour), hour)
+    return dict(sorted(found.items()))
+
+
+# The variables whose sources say what each feed last delivered: URMA and RTMA (temperature, precip), HRRR
+# (shortwave), ERA5-Land and IFS (soil); the others add reads and nothing new
+SOURCE_VARIABLES = ("air_temperature", "precipitation", "shortwave_radiation", "soil_temperature_4cm")
+SPAN_VARIABLES = {"hourly": "air_temperature", "daily": "air_temperature_min", "cumulative": "dd_sine_50"}
+
+
+def refresh_dataset_status(data_dir: Path, now: datetime | None = None) -> None:
+    """Reads each dataset's extent, sources and stale variables from the stores into `DatasetStatus` (~0.5 s: the
+    stale check opens every store). Called with the write lock held, as it's released (`ops.locks.write_lock`), and
+    by `manage.py jobs start`, since a deploy can make stores stale without any write."""
+    from ops.models import DatasetStatus
+
+    now = now or datetime.now(UTC)
+    stale: dict[str, dict[str, list[str]]] = {}
+    for key, names in find_stale(data_dir).stale.items():
+        kind, year = key.split("/")
+        stale.setdefault(kind, {})[year] = names
+    rows: dict[str, dict[str, Any]] = {}
+    for layout in (HOURLY, DAILY, CUMULATIVE):
+        first, last = span(data_dir, layout, SPAN_VARIABLES[layout.kind])
+        rows[layout.kind] = {"first": first, "last": last, "stale": stale.get(layout.kind, {})}
+    sources = last_hour_by_source(data_dir, now.year, SOURCE_VARIABLES)
+    rows["hourly"]["last_by_source"] = {k: v.isoformat() for k, v in sources.items() if k != "derived"}
+    run = forecast.current_run(data_dir)
+    info = forecast.run_info(run) if run is not None else {}
+    rows["forecast"] = {
+        "first": datetime.fromisoformat(info["cycle"]) if "cycle" in info else None,
+        "last": datetime.fromisoformat(info["last_hour"]) if "last_hour" in info else None,
+        "details": {key: info.get(key) for key in ("cycle", "last_hour", "last_observed")} if info else {},
+    }
+    for dataset, values in rows.items():
+        DatasetStatus.objects.update_or_create(dataset=dataset, defaults={**values, "refreshed_at": now})
+
+
+def dataset_status(data_dir: Path) -> dict[str, Any]:
+    """The `DatasetStatus` rows by dataset, refreshed first if there are none yet (a new install)."""
+    from ops.models import DatasetStatus
+
+    rows = {row.dataset: row for row in DatasetStatus.objects.all()}
+    if len(rows) < len(DatasetStatus.Dataset):
+        refresh_dataset_status(data_dir)
+        rows = {row.dataset: row for row in DatasetStatus.objects.all()}
+    return rows

@@ -134,14 +134,14 @@ All under `/api/v2`. ✓ marks what exists today.
 
 ### Discovery
 
-| endpoint              | returns                                                                                                                                                                                                                           |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /status` ✓       | service version, and (to add) each dataset's range, the last ingest, the forecast run in use and stale variables                                                                                                                  |
-| `GET /variables`      | the catalog: name, long name, unit (stored and per unit system), hourly/daily, daily statistics available, date range, precision                                                                                                  |
-| `GET /models`         | every model: id, name, crops, pests, status, version, region, season, citations (with DOIs)                                                                                                                                       |
-| `GET /models/{id}`    | one model's spec: required daily inputs and the hourly variables that derive them, outputs (name, unit), options (biofix, planting, maturity group: type, range, default), risk levels and criteria, changelog (see Models below) |
-| `GET /layers`         | every mappable layer and its time axis, range, units and palette (PLAN.md Phase 5)                                                                                                                                                |
-| `GET /locate?lat&lng` | cell (j, i, center, corners for the map highlight), in box, timezone, county and state, typical planting dates                                                                                                                    |
+| endpoint                | returns                                                                                                                                                                                                                                                  |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /status` ✓         | service version; the archive's first hour, each source's newest hour, the last day rolled up and stale stores; the forecast run (cycle, last hour, in use or why not); the model count. Data facts only: jobs, the write lock and failures stay on `/up` |
+| `GET /variables` ✓      | the catalog: name, long name, kind (hourly, daily, cumulative), unit (stored, and `us`/`metric` labels), precision, valid range; a daily variable's statistic and the hourly variables it comes from. Date ranges are `/status`'s                        |
+| `GET /models` ✓         | every model: id, name, group, crops, topics, status, version, summary, region, season, citations (with DOIs)                                                                                                                                             |
+| `GET /models/{id}` ✓    | one model's spec: required daily inputs and the hourly variables that derive them, outputs (name, unit), options (biofix, planting, maturity group: type, range, default), risk levels and criteria, changelog (see Models below)                        |
+| `GET /layers`           | every mappable layer and its time axis, range, units and palette (PLAN.md Phase 5)                                                                                                                                                                       |
+| `GET /locate?lat&lng` ✓ | `meta.location`'s fields (cell, in box, timezone, county, state) plus the cell's corners ([lat, lng], SW, SE, NE, NW, for the map highlight) and typical planting dates per crop (early, typical, late, D34)                                             |
 
 ### Weather at points
 
@@ -174,44 +174,147 @@ VDIFN reads its model list from its database. Here the registry in code (`agmode
 
 ```json
 {
-  "meta": { "…": "…" },
+  "meta": {
+    "…": "…"
+  },
   "data": {
     "id": "tar-spot",
     "name": "Tar spot spore probability",
-    "version": "0.1",
+    "group": "disease",
     "status": "stable",
+    "version": "0.1",
+    "summary": "The probability of tar spot spores being present, …",
+    "crops": ["Corn"],
+    "topics": ["tar-spot"],
     "region": [],
     "season": ["07-01", "08-15"],
+    "citations": [
+      {
+        "text": "Webster, R. W., Nicolli, C., Allen, T. W…",
+        "doi": "10.1038/s41598-023-44338-6",
+        "url": "https://doi.org/10.1038/s41598-023-44338-6"
+      }
+    ],
     "lookback_days": 30,
     "inputs": [
       {
         "name": "air_temperature_mean",
         "label": "Mean temperature",
         "unit": "degC",
-        "units": { "us": "°F", "metric": "°C" },
-        "description": "…"
+        "units": {
+          "us": "°F",
+          "metric": "°C"
+        },
+        "description": "…",
+        "model": "tar-spot"
       },
-      { "name": "relative_humidity_max", "label": "Maximum RH", "unit": "percent", "description": "…" },
-      { "name": "hours_rh_over_90_night", "label": "Night hours with RH ≥ 90%", "unit": "hour", "description": "…" },
-      { "name": "air_temperature_min", "label": "Minimum temperature", "unit": "degC", "description": "…" }
+      {
+        "name": "relative_humidity_max",
+        "label": "Maximum RH",
+        "unit": "percent",
+        "units": {
+          "us": "%",
+          "metric": "%"
+        },
+        "description": "…",
+        "model": "tar-spot"
+      },
+      {
+        "name": "hours_rh_over_90_night",
+        "label": "Night hours with RH ≥ 90%",
+        "unit": "hour",
+        "units": {
+          "us": "h",
+          "metric": "h"
+        },
+        "description": "…",
+        "model": "tar-spot"
+      },
+      {
+        "name": "air_temperature_min",
+        "label": "Minimum temperature",
+        "unit": "degC",
+        "units": {
+          "us": "°F",
+          "metric": "°C"
+        },
+        "description": "…",
+        "model": "tar-spot"
+      },
+      {
+        "name": "air_temperature_max",
+        "label": "Maximum temperature",
+        "unit": "degC",
+        "units": {
+          "us": "°F",
+          "metric": "°C"
+        },
+        "description": "…",
+        "model": "corn-stages"
+      }
     ],
     "derivable_from_hourly": {
       "air_temperature_mean": ["air_temperature"],
       "relative_humidity_max": ["relative_humidity"],
-      "hours_rh_over_90_night": ["relative_humidity"],
-      "air_temperature_min": ["air_temperature"]
+      "hours_rh_over_90_night": ["air_temperature", "dew_point"],
+      "air_temperature_min": ["air_temperature"],
+      "air_temperature_max": ["air_temperature"]
     },
+    "context": [],
+    "crop_models": ["corn-stages"],
+    "outputs": [
+      {
+        "name": "probability",
+        "label": "Spore probability",
+        "unit": "percent",
+        "units": {
+          "us": "%",
+          "metric": "%"
+        },
+        "description": "…"
+      }
+    ],
     "options": [],
     "biofix": null,
-    "outputs": [{ "name": "…", "label": "…", "unit": "…" }],
-    "risk": { "levels": ["Very low", "Low", "Moderate", "High"], "criteria": "…" },
-    "citations": [{ "text": "…", "doi": "…" }],
-    "changelog": [{ "version": "0.1", "date": "…", "note": "…" }]
+    "susceptible": {
+      "crop": "corn-stages",
+      "first": "V10",
+      "last": "R3",
+      "source": "…",
+      "note": ""
+    },
+    "risk": {
+      "levels": ["Very low", "Low", "Moderate", "High"],
+      "criteria": "…",
+      "thresholds": []
+    },
+    "explorer": [
+      {
+        "name": "temperature_mean_30day",
+        "label": "Mean temperature, 30-day average",
+        "unit": "degC",
+        "units": {
+          "us": "°F",
+          "metric": "°C"
+        },
+        "minimum": 10.0,
+        "maximum": 35.0,
+        "step": 0.5,
+        "default": 22.0
+      }
+    ],
+    "changelog": [
+      {
+        "version": "0.1",
+        "date": "2026-10-28",
+        "note": "Ported from the Crop Risk Tool."
+      }
+    ]
   }
 }
 ```
 
-(Spec values are tar spot's as of 2026-11-02; labels and descriptions abbreviated.) `inputs` lists the daily variables the runner needs, including those of a crop model it's gated by (`runner.required_inputs`), under their catalog names. `derivable_from_hourly` says which hourly variables can produce each one. A client can tell from this alone whether its station can run the model.
+(Tar spot's spec as served on 2026-11-03, with long text and lists cut short.) `inputs` lists the daily variables the runner needs under their catalog names, including those of a crop model it's gated by (`runner.required_inputs`; tar spot's `air_temperature_max` comes from `corn-stages`), each with the `model` that reads it. `derivable_from_hourly` says which hourly variables produce each one, found by probing the rollup itself (`agdata.point.hourly_sources`), so it always matches what `POST /models/{id}/run` will do with a station's hours. Note that humid-hour counts come from the temperature and dew point (RH computed from them), not from hourly RH. A client can tell from this alone whether its station can run the model.
 
 ### Running models on your own weather
 

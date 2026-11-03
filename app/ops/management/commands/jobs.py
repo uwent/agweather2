@@ -21,7 +21,7 @@ from procrastinate.contrib.django import app
 
 from ops import tasks
 from ops.management.base import ReportingCommand, positive
-from ops.status import day_lines, fail_stalled_jobs, short_name, snapshot, status_lines
+from ops.status import day_lines, fail_stalled_jobs, refresh_dataset_status, short_name, snapshot, status_lines
 
 
 def _registered() -> dict[str, object]:
@@ -121,6 +121,8 @@ class Command(ReportingCommand):
         (each works from the data's state, so one run covers any outage up to its own lookback), then the worker."""
         try:
             self.status(fail_on_problems=False)
+            refresh_dataset_status(settings.DATA_DIR)  # a deploy can make stores stale without a write
+            self.report.step("dataset status refreshed for /api/v2/status")
             for job_id, name in fail_stalled_jobs():
                 self.report.step(f"{short_name(name)}: job {job_id} was left by a stopped worker; marked failed")
             now = int(time.time())

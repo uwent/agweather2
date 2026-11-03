@@ -146,3 +146,20 @@ def test_hours_outside_the_series_are_missing():
 def test_hours_start_on_the_hour():
     with pytest.raises(ValueError, match="on the hour"):
         daily_at_point(START + timedelta(minutes=30), {}, "America/Chicago", FIRST, FIRST)
+
+
+def test_each_daily_variable_names_the_hourly_variables_it_is_made_from():
+    from agdata.point import hourly_sources
+    from agmodels.registry import all_models
+    from agmodels.runner import required_inputs
+
+    table = hourly_sources()
+    assert table["air_temperature_max"] == ("air_temperature",)
+    assert table["precipitation_sum"] == ("precipitation",)
+    # Humid hours count RH computed from the temperature and dew point, not the hourly RH
+    assert table["hours_rh_over_90_from_8pm"] == ("air_temperature", "dew_point")
+    assert table["temperature_mean_rh_over_80_from_8pm"] == ("air_temperature", "dew_point")
+    assert table["hours_soil_8in_below_27f"] == ("soil_temperature_10cm", "soil_temperature_30cm")
+    assert all(table.values())  # every daily value comes from some hour
+    inputs = {name for m in all_models().values() for name in required_inputs(m)}
+    assert inputs <= set(table), sorted(inputs - set(table))  # every model input can be made from hours

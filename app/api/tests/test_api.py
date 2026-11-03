@@ -1,8 +1,13 @@
-def test_status(client):
+import pytest
+
+
+@pytest.mark.django_db
+def test_status(client, settings, tmp_path):
+    settings.DATA_DIR = tmp_path  # an empty archive, not the real one
     response = client.get("/api/v2/status")
     assert response.status_code == 200
     body = response.json()
-    assert body["data"] == {"service": "agweather", "version": "dev", "service_box": "wisconsin"}
+    assert (body["data"]["service"], body["data"]["version"]) == ("agweather", "dev")
     assert body["meta"]["api_version"] == "2.0"
     # Nothing that would keep a shared cache from storing it
     assert "Cookie" not in response.get("Vary", "") and not response.cookies

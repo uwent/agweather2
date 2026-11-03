@@ -1,6 +1,7 @@
 """One writer at a time for the Zarr archive: two would write the same chunks and double the memory and bandwidth."""
 
 import fcntl
+import logging
 import os
 import time
 from collections.abc import Callable, Iterator
@@ -58,4 +59,18 @@ def write_lock(
     try:
         yield
     finally:
-        handle.close()
+        try:
+            _refresh_status(data_dir)
+        finally:
+            handle.close()
+
+
+def _refresh_status(data_dir: Path) -> None:
+    """`/status` from what the writer left, still under its lock. Never fails the writer: a status that can't be
+    refreshed is logged and stays as it was until the next write."""
+    from ops.status import refresh_dataset_status
+
+    try:
+        refresh_dataset_status(data_dir)
+    except Exception:
+        logging.getLogger(__name__).warning("couldn't refresh the dataset status for %s", data_dir, exc_info=True)

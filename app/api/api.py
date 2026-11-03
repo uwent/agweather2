@@ -1,11 +1,10 @@
-from django.conf import settings
-from django.http import HttpRequest, HttpResponse
-from ninja import NinjaAPI, Schema
+"""API v2 (docs/api.md): the NinjaAPI, its error handlers, and a router per area under `api.routes`."""
+
+from ninja import NinjaAPI
 
 from api import errors
-from api.envelope import Result, respond
 from api.params import QueryParser
-from api.schemas import Meta, responses
+from api.routes import discovery
 
 api = NinjaAPI(
     title="AgWeather API",
@@ -15,20 +14,4 @@ api = NinjaAPI(
     parser=QueryParser(),
 )
 errors.install(api)
-
-
-class StatusData(Schema):
-    service: str
-    version: str
-    service_box: str
-
-
-class StatusResponse(Schema):
-    meta: Meta
-    data: StatusData
-
-
-@api.get("/status", response=responses(StatusResponse), summary="Service status")
-def status(request: HttpRequest) -> HttpResponse:
-    data = StatusData(service="agweather", version=settings.APP_VERSION, service_box=settings.SERVICE_BOX)
-    return respond(request, Result(request={}, data=data.model_dump()))
+api.add_router("/", discovery.router)

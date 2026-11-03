@@ -57,3 +57,29 @@ class WeatherCellCache(models.Model):
 
     def __str__(self) -> str:
         return f"{self.cell} {self.endpoint} {self.first_day}–{self.last_day}"
+
+
+class DatasetStatus(models.Model):
+    """What `/api/v2/status` says about each dataset, read from the stores themselves (not logged beside the writes)
+    whenever the write lock is released and when the worker starts (`ops.status.refresh_dataset_status`), so the
+    API answers from a row instead of opening every store."""
+
+    class Dataset(models.TextChoices):
+        HOURLY = "hourly"
+        DAILY = "daily"
+        CUMULATIVE = "cumulative"
+        FORECAST = "forecast"  # the published run
+
+    dataset = models.CharField(max_length=16, choices=Dataset.choices, primary_key=True)
+    first = models.DateTimeField(null=True, help_text="First hour (UTC end), or first day")
+    last = models.DateTimeField(null=True, help_text="Last hour (UTC end), or last day rolled up")
+    last_by_source = models.JSONField(default=dict, blank=True, help_text="Hourly: each source's newest hour")
+    stale = models.JSONField(default=dict, blank=True, help_text="Year → derived variables from older code (D29)")
+    details = models.JSONField(default=dict, blank=True, help_text="Forecast: cycle, last hour, last observed hour")
+    refreshed_at = models.DateTimeField()
+
+    class Meta:
+        verbose_name_plural = "dataset statuses"
+
+    def __str__(self) -> str:
+        return f"{self.dataset}: {self.first} to {self.last}"

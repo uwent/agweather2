@@ -6,12 +6,13 @@ rule (D25), the same features. The ET0 estimate across gaps is left out; it belo
 """
 
 from collections.abc import Mapping
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
+from functools import cache
 from zoneinfo import ZoneInfo
 
 import numpy as np
 
-from agdata.catalog import DAILY_STATISTICS
+from agdata.catalog import DAILY_STATISTICS, VARIABLES
 from agdata.daily import daily_statistic
 from agdata.timezones import day_bounds, from_8pm_bounds
 from agmodels import features
@@ -77,3 +78,43 @@ def daily_at_point(
         for name, value in values.items():
             out.setdefault(name, []).append(np.broadcast_to(np.asarray(value, dtype=float), rest))
     return {name: np.array(series) for name, series in out.items()}
+
+
+# A day's hours that give every daily variable a value: humid (RH ≈ 97%, so the humid-hour means exist) and frozen
+# soil (so the soil-hour counts aren't all zero by construction); anything else at 1 above its QC minimum
+_PROBE = {
+    "air_temperature": 20.0,
+    "dew_point": 19.5,
+    "relative_humidity": 97.0,
+    "soil_temperature_4cm": -5.0,
+    "soil_temperature_10cm": -5.0,
+    "soil_temperature_30cm": -5.0,
+}
+
+
+@cache
+def hourly_sources() -> dict[str, tuple[str, ...]]:
+    """For each daily variable `daily_at_point` makes, the hourly variables it's made from (in catalog order): found
+    by rolling up one probe day with every hourly variable, then with each left out in turn, and seeing which daily
+    values go missing. So the table always says what the rollup does (`GET /models/{id}`'s `derivable_from_hourly`,
+    and which station variables a POSTed run needs, D58)."""
+    day, first_hour, n = date(2025, 7, 15), datetime(2025, 7, 14, tzinfo=UTC), 72  # the day, with a day either side
+
+    def roll_up(left_out: str | None) -> dict[str, np.ndarray]:
+        hours = {
+            name: np.full(n, _PROBE.get(name, (v.valid_min if np.isfinite(v.valid_min) else 0.0) + 1))
+            for name, v in VARIABLES.items()
+            if name != left_out
+        }
+        return daily_at_point(first_hour, hours, "America/Chicago", day, day)
+
+    whole = roll_up(None)
+    unmade = [name for name, value in whole.items() if np.isnan(value).all()]
+    if unmade:
+        raise RuntimeError(f"the probe day leaves {', '.join(unmade)} missing; adjust _PROBE")
+    needs: dict[str, list[str]] = {name: [] for name in whole}
+    for hourly in VARIABLES:
+        for name, value in roll_up(hourly).items():
+            if np.isnan(value).all():
+                needs[name].append(hourly)
+    return {name: tuple(sources) for name, sources in needs.items()}
