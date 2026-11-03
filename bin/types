@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Regenerates frontend/types/generated from the Pydantic page props (each app's props.py). Commit the output;
-# bin/ci fails when it's stale.
+# Regenerates frontend/types/generated from the Pydantic page props (each app's props.py) and the API's OpenAPI
+# schemas (api/). Commit the output; bin/ci fails when it's stale.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 mkdir -p tmp
 DJANGO_ENV=test uv run app/manage.py export_types > tmp/props.schema.json
 node scripts/generate-types.js tmp/props.schema.json frontend/types/generated/props.ts
+DJANGO_ENV=test uv run app/manage.py export_types --api > tmp/api.schema.json
+node scripts/generate-types.js tmp/api.schema.json frontend/types/generated/api.ts ApiSchemas "the API's OpenAPI schemas (app/api)"

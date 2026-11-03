@@ -44,7 +44,7 @@ def record_run(
     sources = {}
     for name in SOURCE_SUMMARY:
         counts: dict[str, int] = {}
-        for source in store.sources(name)[t0 : t0 + hours]:
+        for source in store.sources(name, t0, t0 + hours):
             counts[source or "none"] = counts.get(source or "none", 0) + 1
         sources[name] = counts
     return IngestRecord.objects.create(

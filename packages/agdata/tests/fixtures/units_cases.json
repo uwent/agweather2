@@ -44,6 +44,18 @@
       "expected": 18.0
     },
     {
+      "value": 10,
+      "from": "delta_degC",
+      "to": "delta_degF",
+      "expected": 18.0
+    },
+    {
+      "value": 0,
+      "from": "delta_degC",
+      "to": "delta_degF",
+      "expected": 0.0
+    },
+    {
       "value": 1000,
       "from": "degF_day",
       "to": "degC_day",

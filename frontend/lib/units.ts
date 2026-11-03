@@ -26,6 +26,8 @@ export const UNITS: Record<string, Unit> = {
   degC: u('°C', 'temperature', 1),
   degF: u('°F', 'temperature', 0, 5 / 9, (-32 * 5) / 9),
   K: u('K', 'temperature', 1, 1, -273.15),
+  delta_degC: u('°C', 'temperature_difference', 1),
+  delta_degF: u('°F', 'temperature_difference', 0, 5 / 9),
   degC_day: u('°C·d', 'degree_days', 0),
   degF_day: u('°F·d', 'degree_days', 0, 5 / 9),
   mm: u('mm', 'depth', 1),
@@ -56,6 +58,7 @@ export const UNITS: Record<string, Unit> = {
 const DISPLAY: Record<UnitSystem, Record<string, string>> = {
   metric: {
     temperature: 'degC',
+    temperature_difference: 'delta_degC',
     degree_days: 'degC_day',
     depth: 'mm',
     speed: 'km_h',
@@ -65,6 +68,7 @@ const DISPLAY: Record<UnitSystem, Record<string, string>> = {
   },
   imperial: {
     temperature: 'degF',
+    temperature_difference: 'delta_degF',
     degree_days: 'degF_day',
     depth: 'in',
     speed: 'mph',

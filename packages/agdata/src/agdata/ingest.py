@@ -203,7 +203,7 @@ def _keep_stored(
         gaps = [n for n, s in enumerate(sources[variable.name]) if s is None]
         if not gaps:
             continue
-        stored_sources = store.sources(variable.name)[t0 : t0 + hours]
+        stored_sources = store.sources(variable.name, t0, t0 + hours)
         keep = [n for n in gaps if stored_sources[n] is not None]
         if not keep:
             continue
@@ -226,10 +226,10 @@ def write_soil(store: GridStore, hours: "era5land.Hours", source: str) -> int:
     t0 = store.index_of(start)
     keep = np.zeros(last - first, dtype=bool)
     if source != "era5land":
-        keep = np.array([s == "era5land" for s in store.sources(SOIL[0])[t0 : t0 + last - first]])
+        keep = np.array([s == "era5land" for s in store.sources(SOIL[0], t0, t0 + last - first)])
     for name in SOIL:
         cleaned, _ = check_range(store.variables[name], hours.values[name][first:last])
-        stored_sources = store.sources(name)[t0 : t0 + last - first]
+        stored_sources = store.sources(name, t0, t0 + last - first)
         if keep.any():
             cleaned = np.where(keep[:, None, None], store.read_steps(name, t0, t0 + last - first), cleaned)
         written = [
@@ -259,7 +259,7 @@ def refetch_precipitation(
     variable = store.variables["precipitation"]
     t0 = store.index_of(start)
     values = store.read_steps("precipitation", t0, t0 + hours)
-    sources = store.sources("precipitation")[t0 : t0 + hours]
+    sources = store.sources("precipitation", t0, t0 + hours)
     replaced: set[int] = set()
 
     def one(n: int) -> None:

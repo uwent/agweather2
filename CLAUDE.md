@@ -38,7 +38,7 @@ Setup and the rest are in `DEVELOPMENT.md`.
 - Pages: a view returns `web.inertia.render(request, "Folder/Page", SomeProps(...))`, which maps to `frontend/pages/Folder/Page.svelte`. Props are Pydantic models subclassing `web.inertia.Props`, defined in each app's `props.py`; `bin/types` generates their TypeScript types (`@/types`), and CI fails if they're stale. Every page uses `AppLayout`.
 - Shared props (`web.middleware.SharedPropsMiddleware`): `app` (`SharedProps`) and `errors`. Flash is Django's messages framework, which inertia-django sends as `page.flash.messages` (`{level, message}`).
 - Forms: on a validation failure, `redirect_with_errors(request, path, {"input.name": ["message"]})`; the next page gets them as `errors` once. inertia-django has no errors handling of its own.
-- Public API: Django Ninja under `/api/v2` (`api/api.py`), docs at `/api/v2/docs`.
+- Public API: Django Ninja under `/api/v2` (`api/api.py`), docs at `/api/v2/docs`. An endpoint takes the shared query groups (`api.params`: `Query[PointsQuery]`, `DaysQuery`, `SeriesQuery`, `OutputQuery`), computes its ETag first (`etag_for` with a data stamp such as `series.last_written`) and returns `not_modified` if the client holds it, else builds an `api.envelope.Result` (columns in stored units via `catalog_column`) and returns `respond(request, result)`, which converts units, rounds, renders JSON or CSV and sets the headers; failures raise `api.errors.ApiError` or `params.fail` and come back as `{meta, errors}`. `bin/types` also writes the API's types (`@/types/api`). API tests use the `archive` fixture (`app/api/tests/conftest.py`, built from `agdata.testing`).
 - Jobs: Procrastinate (`procrastinate.contrib.django`); tasks in each app's `tasks.py`, run by the worker that `manage.py jobs start` becomes after printing the status and queueing a catch-up run of every periodic job (`bin/dev`, the worker container). `manage.py jobs` shows the archive, forecast, lock and queue; `jobs run NAME|all [--defer]` runs jobs; `jobs days` lists each day's hours.
 - Vite: root `frontend/`, served under `/static/vite/`. django-vite loads `entrypoints/inertia.ts` from the dev server in development and unit tests (`VITE_DEV_MODE`), and from the build's manifest in `app/static/vite` otherwise.
 - Gridded weather lives in Zarr (one store per year), never in Postgres rows. Postgres holds app data: users, sites, alert rules, job queue, ingest status.
@@ -88,6 +88,8 @@ Django and tests:
 - **django-types lags Django 6:** symbols new in 6 (`django.utils.csp`, `ASGIStaticFilesHandler`) need a `# pyright: ignore[...]` with the reason.
 - **uvicorn doesn't serve static files**: `config/asgi.py` wraps the app in `ASGIStaticFilesHandler` in development and tests; Caddy serves them in production.
 - **honcho sets `PORT`** (5000, 5100, …) for every process, so `Procfile.dev` uses `DJANGO_PORT`.
+- **Ninja drops query parameters it doesn't declare** before Pydantic sees them, and leaves out a whole `Query[Schema]` group when none of its fields was sent: aliases go through `api.params.QueryParser`, and anything undeclared is read from `request.GET`.
+- **inertia-django's middleware sets a CSRF cookie and `Vary: Cookie` on every response**; `web.middleware.InertiaMiddleware` skips `/api/` so shared caches can store API answers.
 - **pytest-socket** blocks the network; only localhost (Postgres) is allowed. Tests run in importlib mode with `app/` on the path. A test that must read a real service is marked `@pytest.mark.network` and `@pytest.mark.enable_socket`, and runs only with `uv run pytest --network` (not in CI).
 
 Data (`agdata`):
@@ -116,6 +118,7 @@ Outside services:
 Working here:
 
 - **Propose a plan before building a new feature** unless it's a simple change: the design, the data model and any choices to make, then wait for Ben's go-ahead before implementing.
+- **Size a plan, don't time it** (Ben, 2026-11-03): with each plan, estimate its complexity (S/M/L, as the phases are sized), how much existing code has to change, the risks, and the alternatives worth weighing. No hours or days for building: Claude's time isn't the constraint, and human-developer estimates are off by about 10×. Give clock time only for waiting outside the session (backfills, the CDS queue, outside parties).
 - Things only Ben can do go in `TODO.md` under the current phase, with the exact commands.
 - `tmp/herbie`, `tmp/urma`: downloaded GRIB for exploring; the fixture makers in `packages/agdata/tests/fixtures/make_*.py` rebuild the committed fixtures.
 - **Checking CI on GitHub:** filter by workflow (`gh run list --workflow CI`, `gh run watch <id>`). GitHub's "Dependency Graph" runs on every push too, and the newest run is often that one.

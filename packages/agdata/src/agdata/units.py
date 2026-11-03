@@ -33,6 +33,9 @@ UNITS: dict[str, Unit] = {
         Unit(symbol="degC", label="°C", dimension="temperature", digits=1),
         Unit(symbol="degF", label="°F", dimension="temperature", factor=5 / 9, offset=-32 * 5 / 9, digits=0),
         Unit(symbol="K", label="K", dimension="temperature", offset=-273.15, digits=1),
+        # temperature differences (dew point depression, a day's range): no offset (base °C)
+        Unit(symbol="delta_degC", label="°C", dimension="temperature_difference", digits=1),
+        Unit(symbol="delta_degF", label="°F", dimension="temperature_difference", factor=5 / 9, digits=0),
         # degree days and other temperature-time sums (base °C·d)
         Unit(symbol="degC_day", label="°C·d", dimension="degree_days", digits=0),
         Unit(symbol="degF_day", label="°F·d", dimension="degree_days", factor=5 / 9, digits=0),
@@ -74,6 +77,7 @@ UNITS: dict[str, Unit] = {
 DISPLAY: dict[System, dict[str, str]] = {
     "metric": {
         "temperature": "degC",
+        "temperature_difference": "delta_degC",
         "degree_days": "degC_day",
         "depth": "mm",
         "speed": "km_h",
@@ -83,6 +87,7 @@ DISPLAY: dict[System, dict[str, str]] = {
     },
     "imperial": {
         "temperature": "degF",
+        "temperature_difference": "delta_degF",
         "degree_days": "degF_day",
         "depth": "in",
         "speed": "mph",

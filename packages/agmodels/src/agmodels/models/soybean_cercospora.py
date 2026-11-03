@@ -54,13 +54,13 @@ SPEC = ModelSpec(
         Quantity(
             name="dew_point_depression_mean",
             label="Mean dew point depression",
-            unit="degC",
+            unit="delta_degC",
             description="5-day moving average",
         ),
         Quantity(
             name="dew_point_depression_max",
             label="Maximum dew point depression",
-            unit="degC",
+            unit="delta_degC",
             description="5-day moving average",
         ),
         Quantity(name="wind_speed_max", label="Maximum wind speed", unit="m_s", description="14-day moving average"),
@@ -92,7 +92,7 @@ SPEC = ModelSpec(
         ExplorerInput(
             name="mean_dpd_5day",
             label="Mean dew point depression, 5-day average",
-            unit="degC",
+            unit="delta_degC",
             minimum=0,
             maximum=15,
             step=0.5,
@@ -101,7 +101,7 @@ SPEC = ModelSpec(
         ExplorerInput(
             name="max_dpd_5day",
             label="Maximum dew point depression, 5-day average",
-            unit="degC",
+            unit="delta_degC",
             minimum=0,
             maximum=25,
             step=0.5,

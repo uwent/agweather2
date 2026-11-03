@@ -113,7 +113,7 @@ def _rolled_up(data_dir, window, day0: date, day1: date) -> bool:
         store = open_or_create_daily(data_dir, day.year, window)
         t0 = store.index_of(day)
         last = min(day1, date(day.year, 12, 31))
-        if any(s is None for s in store.sources("air_temperature_min")[t0 : t0 + (last - day).days + 1]):
+        if any(s is None for s in store.sources("air_temperature_min", t0, t0 + (last - day).days + 1)):
             return False
         day = last + timedelta(days=1)
     return True

@@ -362,6 +362,7 @@ _TEMPERATURE = {
     "derived": True,
     "gap_fill": "interpolate",
 }
+_DEPRESSION = {**_TEMPERATURE, "unit": "delta_degC"}  # a difference of temperatures: °F is ×1.8, no offset
 DAILY_FEATURES: dict[str, Variable] = {
     v.name: v
     for v in [
@@ -403,9 +404,9 @@ DAILY_FEATURES: dict[str, Variable] = {
             version=2,  # 2: from ERA5-Land's soil (D52)
             **_HOURS,
         ),
-        Variable(name="dew_point_depression_min", long_name="Dew point depression, daily min", **_TEMPERATURE),
-        Variable(name="dew_point_depression_mean", long_name="Dew point depression, daily mean", **_TEMPERATURE),
-        Variable(name="dew_point_depression_max", long_name="Dew point depression, daily max", **_TEMPERATURE),
+        Variable(name="dew_point_depression_min", long_name="Dew point depression, daily min", **_DEPRESSION),
+        Variable(name="dew_point_depression_mean", long_name="Dew point depression, daily mean", **_DEPRESSION),
+        Variable(name="dew_point_depression_max", long_name="Dew point depression, daily max", **_DEPRESSION),
         Variable(
             name="temperature_mean_rh_over_80_from_8pm",
             long_name="Mean temperature, RH ≥ 80%, day from 8 pm",

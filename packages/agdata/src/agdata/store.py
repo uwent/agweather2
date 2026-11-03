@@ -324,9 +324,18 @@ class GridStore:
         """A whole `_meta` array (per-step sources and write times, or a daily store's time zones)."""
         return np.asarray(self._array(f"_meta/{name}")[:])
 
-    def sources(self, name: str) -> list[str | None]:
-        codes = np.asarray(self._array(f"_meta/{name}.source")[:])
-        return [SOURCE_NAMES.get(int(code)) for code in codes]
+    def written(self, name: str, start: int = 0, stop: int | None = None) -> float | None:
+        """When any step in start..stop-1 was last written (epoch seconds), or None if none has been. Every write goes
+        through `write`, which stamps its steps, so this changes whenever their values can have."""
+        stamps = np.asarray(self._array(f"_meta/{name}.written")[start:stop])
+        return float(np.nanmax(stamps)) if stamps.size and not np.isnan(stamps).all() else None
+
+    def sources(self, name: str, start: int = 0, stop: int | None = None) -> list[str | None]:
+        """Each step's source over start..stop-1 (default the year): decode only the steps you need, as a year of
+        hours is 8,760 lookups."""
+        codes = np.asarray(self._array(f"_meta/{name}.source")[start:stop])
+        lookup = {code: SOURCE_NAMES.get(code) for code in np.unique(codes).tolist()}
+        return [lookup[code] for code in codes.tolist()]
 
     def _array(self, path: str) -> zarr.Array:
         array = self.group[path]

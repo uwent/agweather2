@@ -16,7 +16,7 @@ Agreed 2026-11-02 (D57, D58). The contract for `/api/v2`: what each endpoint tak
 - **Explicit units.** Every value's unit is in `meta.units`. Storage is SI (D18); conversion happens here, at the edge.
 - **Every value says where it came from.** Each day or hour carries its kind (observed, forecast, estimated). Models carry their version and their estimated and missing days (D45, D56).
 - **Missing is `null`** in JSON and an empty cell in CSV. NaN never appears (it isn't valid JSON).
-- **Compact by default:** values rounded to the variable's stored precision (no 15-digit floats), columnar JSON, gzip/zstd at Caddy, and `Cache-Control: immutable` with an ETag on anything wholly in the past.
+- **Compact by default:** values rounded to the variable's stored precision (no 15-digit floats), columnar JSON, gzip/zstd at Caddy, and an ETag on every answer, so a client that holds it gets a bodiless 304.
 
 ## The envelope
 
@@ -35,6 +35,8 @@ Every JSON response except tiles and binary grids:
       "forecast": true
     },
     "location": {
+      "lat": 43.073,
+      "lng": -89.401,
       "cell": { "j": 112, "i": 140, "lat": 43.071, "lng": -89.398 },
       "in_box": true,
       "timezone": "America/Chicago",
@@ -75,6 +77,9 @@ Every JSON response except tiles and binary grids:
 - `meta.warnings` is for non-fatal notes in plain language ("2 days of precipitation missing and counted as no rain", "forecast past day 7 is NBM's", "model status beta").
 - Errors return 4xx with the same envelope and `errors` in place of `data`: `{"meta": {…}, "errors": [{"code": "out_of_range", "param": "start", "message": "…"}]}`. This replaces Ninja's default `{"detail": …}`.
 - Timing also goes in a `Server-Timing` header, so latency checks against §3 don't need to parse the body.
+- **Rounding:** each value to its stored precision (the catalog's scale) in the unit shown, rounded up to a whole decimal: 0.1 °C is 0.18 °F, so 1 decimal; 0.02 mm is 0.0008 in, so 4. The summary's statistics use the same digits (a mean one more).
+- **Error codes** (`errors[].code`): `missing`, `conflict`, `invalid`, `out_of_range`, `out_of_order`, `too_many`, `unknown_variable`, `bad_unit`, `format_unavailable`, `not_found`, `internal_error`, and Pydantic's own type names for a value of the wrong type (`float_parsing`, `date_from_datetime_parsing`, `literal_error`). `param` names the query parameter at fault, or is `null`.
+- **Caching:** every answer carries an ETag and `Cache-Control: public, no-cache`: clients and caches keep it but check before reusing it, and a request with `If-None-Match` gets a bodiless 304 while the answer stands. The ETag changes when the data the answer reads is rewritten (an ingest, a rebuild), when the service is updated, or when the request does (including a default such as today's date). API responses set no cookies.
 
 **Name:** `meta`, not v1's `info`. `meta` is the common convention (JSON:API and most data APIs), and `info` would collide with discovery endpoints. v1's URLs keep working by redirecting to the old server until it's retired (Phase 8), so v2 doesn't need v1's names.
 
@@ -109,7 +114,7 @@ Both read into a data frame in one line in R and pandas. Table tools that want r
 | `png` / `webp`   | maps                                      | tiles                                    |
 | `xml`            | not offered (below)                       | —                                        |
 
-- **CSV** puts `meta` as `# key: value` comment lines above the header (as v1 did; `headers=false` drops them). `read.csv(url, comment.char = "#")` and `pd.read_csv(url, comment="#")` skip them. A `Content-Disposition` filename describes the query.
+- **CSV** puts `meta` as `# key: value` comment lines above the header (as v1 did; `headers=false` drops them), one per top-level key, its value as compact JSON (`# units: {"air_temperature_max":"°F"}`). `read.csv(url, comment.char = "#")` and `pd.read_csv(url, comment="#")` skip them. A `Content-Disposition` filename describes the query.
 - **NetCDF** keeps the native grid with its CRS (CF `grid_mapping`, Lambert conformal) and 2-D `lat`/`lon`, so `xr.open_dataset` puts it on a map correctly. Attributes carry `meta`. This is what "xarray format" means over HTTP. Zarr stays internal; a remote Zarr endpoint isn't worth exposing.
 - **XML:** not offered unless a named consumer needs it. Nobody in the v1 logs is known to, it doubles the serializer and test surface, and every agency tool that reads XML also reads CSV or JSON. If one turns up, it's a serializer over the same envelope.
 - Parquet is a cheap later addition for bulk downloads if anyone asks.
@@ -120,7 +125,7 @@ Both read into a data frame in one line in R and pandas. Table tools that want r
 - **Dates:** `date` (one day) or `start`/`end` (inclusive, ISO). Daily dates are the location's local calendar days (PLAN.md §5.4). Defaults: from January 1 to today.
 - **Hours:** `start`/`end` as ISO datetimes. Times come back in UTC (`2026-05-01T05:00Z`), and `tz=local` adds a `local_time` column in the location's zone.
 - **Forecast:** `forecast=true` (default) runs through the forecast, with `kind` marking it; `false` stops at the last observed day.
-- **Units:** `units=us|metric`, plus per-variable overrides (`units=metric&precipitation=in`), **`us` by default**: that's v1's audience, and Wisconsin growers, DATCP and the site all think in °F and inches. `meta.units` always states the units in force, so nothing is ambiguous. Degree days stay in each model's own unit (D18).
+- **Units:** `units=us|metric`, plus per-variable overrides (`units=metric&precipitation=in`; the value is a unit symbol, its label, or `us`/`metric`, and a variable's name covers its daily statistics, so `precipitation` sets `precipitation_sum` too), **`us` by default**: that's v1's audience, and Wisconsin growers, DATCP and the site all think in °F and inches. `meta.units` always states the units in force, so nothing is ambiguous. Degree days stay in each model's own unit (D18).
 - **Gaps:** `gaps=estimate|missing` on cumulative variables (D25).
 
 ## Endpoints
@@ -293,7 +298,7 @@ Yearly NetCDF per variable for bulk users, as static files beside the API (Phase
 
 - **Anonymous reads** with Caddy rate limits at launch. Optional free API keys (`X-API-Key`) for higher limits, and so we know who to tell before a change, are added when someone needs more.
 - **Stability:** `/api/v2` changes only by addition (new endpoints, parameters, columns, `meta` keys). Anything breaking is announced on the changelog page and in `meta.warnings` well ahead. Clients should ignore keys they don't know.
-- **Types:** the frontend's TypeScript types are generated from the OpenAPI schema, as `bin/types` does for props, so CI fails when the frontend and API disagree.
+- **Types:** the frontend's TypeScript types are generated from the OpenAPI schema, as `bin/types` does for props (`@/types/api`), so CI fails when the frontend and API disagree.
 - **Docs:** OpenAPI at `/api/v2/docs`, with an R, Python and curl example per endpoint, D53's attribution, and the changelog.
 
 ## Examples (target)

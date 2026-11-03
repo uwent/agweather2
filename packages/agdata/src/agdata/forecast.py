@@ -377,7 +377,7 @@ def _copy_archive_hours(data_dir: Path, path: Path, window: Window, start: datet
         for name in VARIABLES:
             values = archive.read_steps(name, t0, t1, window)
             store.write(begin, {name: values}, source=None)
-            store.set_sources(name, begin, archive.sources(name)[t0:t1])
+            store.set_sources(name, begin, archive.sources(name, t0, t1))
 
 
 def _continue_totals(data_dir: Path, path: Path, window: Window, first_day: date, last_day: date) -> None:

@@ -55,6 +55,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "api.middleware.TimingMiddleware",  # first, so compute_ms covers the rest
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.csp.ContentSecurityPolicyMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -63,7 +64,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "inertia.middleware.InertiaMiddleware",
+    "web.middleware.InertiaMiddleware",  # inertia-django's, skipping /api/
     "web.middleware.SharedPropsMiddleware",
 ]
 

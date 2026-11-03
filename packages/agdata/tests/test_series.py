@@ -4,6 +4,9 @@ import numpy as np
 import pytest
 
 from agdata import forecast, series
+from agdata.catalog import VARIABLES
+from agdata.cumulative import update_days
+from agdata.store import HOURLY, GridStore
 
 HOUR = timedelta(hours=1)
 CYCLE = datetime(2025, 7, 10, 13, tzinfo=UTC)
@@ -133,13 +136,41 @@ def test_a_point_off_the_grid_is_refused(world):
         series.model_at_point(world, 10.0, -88.0, "degree-days", date(2025, 7, 5), date(2025, 7, 20), now=NOW)
 
 
-def test_a_cell_in_a_year_without_stores_is_an_error_not_an_empty_series(world, tmp_path):
-    with pytest.raises(FileNotFoundError, match="no daily store"):
-        series.point_days(world, *CELL, date(2024, 7, 9), date(2024, 7, 10), ["air_temperature_max"], now=NOW)
+def test_days_in_a_year_without_stores_are_missing(world, tmp_path):
+    days = series.point_days(
+        world, *CELL, date(2024, 7, 9), date(2024, 7, 10), ["air_temperature_max"], totals=["dd_sine_50"], now=NOW
+    )
+    assert days.zone == "America/Chicago"  # the cell's own zone, without a daily store to read it from
+    assert days.kinds == [None, None]
+    assert np.isnan(days.values["air_temperature_max"]).all() and np.isnan(days.totals["dd_sine_50"]).all()
     with pytest.raises(FileNotFoundError, match="no daily store"):
         series.cell_zone(tmp_path, *CELL, years=[2024])
 
 
-def test_a_day_on_the_map_in_a_year_without_stores_is_missing_not_zero(world, fx_module):
-    values, _ = series.grid_day(world, "air_temperature_max", date(2024, 7, 9), fx_module.window, now=NOW)
+def test_a_day_on_the_map_in_a_year_without_stores_is_missing_not_observed(world, fx_module):
+    values, kind = series.grid_day(world, "air_temperature_max", date(2024, 7, 9), fx_module.window, now=NOW)
     assert values.shape == fx_module.window.shape and np.isnan(values).all()
+    assert kind is None
+
+
+def test_the_written_stamp_changes_only_when_the_days_read_are_rewritten(tmp_path, fx):
+    fx.archive(tmp_path, datetime(2025, 7, 1, tzinfo=UTC), datetime(2025, 7, 20, tzinfo=UTC))
+    now = datetime(2025, 7, 21, tzinfo=UTC)
+
+    def stamp(first: date, last: date) -> str:
+        return series.last_written(tmp_path, first, last, totals=["dd_sine_50"], now=now)
+
+    early, late = stamp(date(2025, 7, 3), date(2025, 7, 5)), stamp(date(2025, 7, 14), date(2025, 7, 16))
+    assert early == stamp(date(2025, 7, 3), date(2025, 7, 5))  # nothing written: the same
+    assert early.endswith(":none")  # no forecast run published
+
+    store = GridStore.open(tmp_path, HOURLY, 2025, VARIABLES.values())
+    store.write(
+        datetime(2025, 7, 15, 12, tzinfo=UTC), {"air_temperature": np.full((1, *fx.window.shape), 20.0)}, "urma"
+    )
+    assert stamp(date(2025, 7, 3), date(2025, 7, 5)) == early  # a write outside the days read
+    assert stamp(date(2025, 7, 14), date(2025, 7, 16)) != late
+
+    late = stamp(date(2025, 7, 14), date(2025, 7, 16))
+    update_days(tmp_path, fx.window, date(2025, 7, 15), date(2025, 7, 15))  # the totals from July 15 on
+    assert stamp(date(2025, 7, 14), date(2025, 7, 16)) != late

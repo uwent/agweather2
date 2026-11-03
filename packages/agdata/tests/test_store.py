@@ -54,11 +54,12 @@ def test_missing_stays_missing_and_zero_stays_zero(hourly):
 
 def test_rewriting_an_hour_replaces_it_and_its_source(hourly):
     when = datetime(2025, 3, 1, 12, tzinfo=UTC)
+    t = hourly.index_of(when)
     hourly.write(when, {"air_temperature": np.full(WINDOW.shape, 1.0)}, source="rtma")
     hourly.write(when, {"air_temperature": np.full(WINDOW.shape, 2.0)}, source="urma")
-    t = hourly.index_of(when)
     assert hourly.read_point("air_temperature", 920, 1440, t, t + 1)[0] == pytest.approx(2.0)
     assert hourly.sources("air_temperature")[t] == "urma"
+    assert hourly.sources("air_temperature", t - 1, t + 2) == [None, "urma", None]  # only the steps asked for
 
 
 def test_time_checks(hourly):

@@ -28,7 +28,7 @@ from agdata.places import county_at
 from agdata.planting import typical_planting
 from agdata.point import daily_at_point
 from agdata.store import CUMULATIVE, DAILY, HOURLY, GridStore, StoreLayout
-from agdata.timezones import day_bounds
+from agdata.timezones import day_bounds, zone_at
 from agmodels import runner
 from agmodels.registry import model as find_model
 from agmodels.runner import ModelRun
@@ -123,8 +123,12 @@ def point_hours(
     beyond = run.last_hour if run.path is not None else observed_until
     if fill_soil is not None and run.path is not None:
         _fill_soil(fill_soil, times, values, sources, [n for n in names if n in SOIL], cut, run.last_hour)
+    archived = {year: stores.get(data_dir, HOURLY, year) is not None for year in {t.year for t in times[:cut]}}
     kinds: list[str | None] = [
-        OBSERVED if k < cut else (FORECAST if beyond is not None and times[k] <= beyond else None) for k in range(n)
+        (OBSERVED if archived[times[k].year] else None)  # an hour before the archive began is missing
+        if k < cut
+        else (FORECAST if beyond is not None and times[k] <= beyond else None)
+        for k in range(n)
     ]
     return HourlyFrame(times=times, values=values, sources=sources, kinds=kinds, forecast=run)
 
@@ -146,12 +150,16 @@ def point_days(
     A point's days come from its hours rather than the daily store, whose chunks are a day of a map: a season of
     them is ~300 chunk reads per variable (2.4 s for five), its hours ~11 (0.5 s for every variable, days included).
     Running totals (`totals`) are read from the cumulative stores: the archive's before the first day that isn't
-    observed, the run's from it. `fill_soil` is used only when one of `names` is a soil variable."""
+    observed, the run's from it. `fill_soil` is used only when one of `names` is a soil variable. Days in a year
+    the archive doesn't have are missing."""
     run = current_forecast(data_dir, now)
     n = (last - first).days + 1
     dates = [first + timedelta(days=k) for k in range(n)]
     stores = _Stores([*VARIABLES, *totals])
-    zone = cell_zone(data_dir, j, i, range(first.year, last.year + 1), stores)
+    try:
+        zone = cell_zone(data_dir, j, i, range(first.year, last.year + 1), stores)
+    except FileNotFoundError:  # none of these years is in the archive: every day is missing, in the cell's own zone
+        zone = zone_at(*(float(v) for v in NDFD.latlon(j, i)))
     start = _midnight(first - timedelta(days=1))  # before the first day's 8 pm-day in any zone
     end = _midnight(last + timedelta(days=1)) + timedelta(hours=8)  # past the last day's end in any zone
     wants_soil = any("soil" in name for name in names)
@@ -179,6 +187,36 @@ def point_days(
         totals=out_totals,
         corrections=in_box_corrections(kinds, run),
     )
+
+
+def last_written(data_dir: Path, first: date, last: date, totals=(), now: datetime | None = None) -> str:
+    """A stamp that changes whenever `point_days(first..last, totals=…)` at a cell can answer differently for the same
+    `now`, at any cell: the latest write time of the hours it reads (archive and forecast run) and of its running
+    totals, and which run it takes the forecast from (a run going stale ends the series without any write). Write
+    times are kept per step, not per cell, so a write anywhere in the window counts. Cheap next to the read itself:
+    one small array per variable and year."""
+    run = current_forecast(data_dir, now)
+    stamps: list[float] = []
+    start = _midnight(first - timedelta(days=1))
+    end = _midnight(last + timedelta(days=1)) + timedelta(hours=8)
+    stores = _Stores([*VARIABLES, *totals])
+    for path in (data_dir, run.path):
+        if path is None:
+            continue
+        for year in range(start.year, end.year + 1):
+            hourly = stores.get(path, HOURLY, year)
+            if hourly is not None:
+                lo = max(start, datetime(year, 1, 1, tzinfo=UTC))
+                hi = min(end, datetime(year, 12, 31, 23, tzinfo=UTC))
+                t0, t1 = hourly.index_of(lo), hourly.index_of(hi) + 1
+                stamps += [s for name in VARIABLES if (s := hourly.written(name, t0, t1)) is not None]
+            if totals and (cumulative := stores.get(path, CUMULATIVE, year)) is not None:
+                d0 = cumulative.index_of(max(first, date(year, 1, 1)))
+                d1 = cumulative.index_of(min(last, date(year, 12, 31))) + 1
+                stamps += [s for name in totals if (s := cumulative.written(name, d0, d1)) is not None]
+    latest = max(stamps) if stamps else None
+    cycle = run.cycle.isoformat() if run.cycle is not None and run.path is not None else run.reason
+    return f"{latest}:{cycle}"
 
 
 def in_box_corrections(kinds: list[str | None], run: Forecast) -> tuple[str, ...]:
@@ -262,7 +300,8 @@ def _grid(data_dir, layout, name, day, window, now):
         return archive, None
     # The day is observed everywhere once the westernmost zone has closed it (the lower 48 are UTC−4 to −8)
     if _midnight(day + timedelta(days=1)) + timedelta(hours=8) <= observed_until:
-        return archive, OBSERVED
+        # ...and only if the archive has its year (a day before the archive began is missing, not observed)
+        return archive, OBSERVED if stores.get(data_dir, layout, day.year) is not None else None
     if run.path is None:
         return archive, None
     values = _read_day(stores, run.path, layout, name, day, window)
@@ -322,7 +361,7 @@ def _point_steps(
             t = store.index_of(when)
             values[k : k + count] = store.read_point(name, j, i, t, t + count)
             if hourly:
-                sources[k : k + count] = store.sources(name)[t : t + count]
+                sources[k : k + count] = store.sources(name, t, t + count)
         k += count
     return values, sources
 
