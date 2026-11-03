@@ -26,8 +26,8 @@ from agdata.daily import cell_timezones
 from agdata.grid import NDFD, Window
 from agdata.places import county_at
 from agdata.planting import typical_planting
-from agdata.point import daily_at_point
-from agdata.store import CUMULATIVE, DAILY, HOURLY, GridStore, StoreLayout
+from agdata.point import daily_at_point, hourly_sources
+from agdata.store import CUMULATIVE, DAILY, HOURLY, SOURCES, GridStore, StoreLayout
 from agdata.timezones import day_bounds, zone_at
 from agmodels import runner
 from agmodels.registry import model as find_model
@@ -89,6 +89,7 @@ class DailySeries:
     zone: str = ""
     totals: dict[str, np.ndarray] = field(default_factory=dict)  # running totals from January 1, if asked for
     corrections: tuple[str, ...] = ()  # the source corrections its days went through (`agdata.corrections` labels)
+    sources: tuple[str, ...] = ()  # the sources of the hours its days were rolled up from, in catalog order
 
 
 def point_hours(
@@ -99,7 +100,7 @@ def point_hours(
     end: datetime,
     names,
     now: datetime | None = None,
-    stores: "_Stores | None" = None,
+    stores: "Stores | None" = None,
     fill_soil: FillSoil | None = None,
 ) -> HourlyFrame:
     """Hours ending start..end (inclusive, UTC) at a cell: the archive's through its last observed hour, then the
@@ -107,8 +108,8 @@ def point_hours(
     run = current_forecast(data_dir, now)
     times = [start + k * HOUR for k in range((end - start) // HOUR + 1)]
     n = len(times)
-    stores = stores or _Stores(names)
-    observed_until = _last_observed(data_dir, run, end, now)
+    stores = stores or Stores(names)
+    observed_until = _last_observed(data_dir, run, end, now, stores)
     cut = 0 if observed_until is None else max(0, min(n, (observed_until - start) // HOUR + 1))
     values: dict[str, np.ndarray] = {}
     sources: dict[str, list[str | None]] = {}
@@ -143,30 +144,36 @@ def point_days(
     totals=(),
     now: datetime | None = None,
     fill_soil: FillSoil | None = None,
+    stores: "Stores | None" = None,
 ) -> DailySeries:
     """Local days first..last at a cell, from its stitched hours by the rollup's definitions (`agdata.point`): a
     day is observed if every hour is, partial with some of each, forecast with only forecast hours.
 
     A point's days come from its hours rather than the daily store, whose chunks are a day of a map: a season of
-    them is ~300 chunk reads per variable (2.4 s for five), its hours ~11 (0.5 s for every variable, days included).
+    them is ~300 chunk reads per variable (2.4 s for five), its hours ~11 per variable. Only the hourly variables
+    `names` are made from are read (`hourly_needed`), and only `names` are rolled up.
     Running totals (`totals`) are read from the cumulative stores: the archive's before the first day that isn't
     observed, the run's from it. `fill_soil` is used only when one of `names` is a soil variable. Days in a year
-    the archive doesn't have are missing."""
+    the archive doesn't have are missing. `stores`, shared by a caller reading many points, must open at least
+    `hourly_needed(names)` and `totals`."""
     run = current_forecast(data_dir, now)
     n = (last - first).days + 1
     dates = [first + timedelta(days=k) for k in range(n)]
-    stores = _Stores([*VARIABLES, *totals])
+    hourly = hourly_needed(names)
+    if stores is not None and not {*hourly, *totals} <= stores.names:
+        raise ValueError(f"the shared stores don't open {sorted({*hourly, *totals} - stores.names)}")
+    stores = stores or Stores([*hourly, *totals])
     try:
         zone = cell_zone(data_dir, j, i, range(first.year, last.year + 1), stores)
     except FileNotFoundError:  # none of these years is in the archive: every day is missing, in the cell's own zone
         zone = zone_at(*(float(v) for v in NDFD.latlon(j, i)))
     start = _midnight(first - timedelta(days=1))  # before the first day's 8 pm-day in any zone
     end = _midnight(last + timedelta(days=1)) + timedelta(hours=8)  # past the last day's end in any zone
-    wants_soil = any("soil" in name for name in names)
+    wants_soil = any(name in SOIL for name in hourly)
     frame = point_hours(
-        data_dir, j, i, start, end, list(VARIABLES), now=now, stores=stores, fill_soil=fill_soil if wants_soil else None
+        data_dir, j, i, start, end, hourly, now=now, stores=stores, fill_soil=fill_soil if wants_soil else None
     )
-    days = daily_at_point(start, frame.values, zone, first, last)
+    days = daily_at_point(start, frame.values, zone, first, last, names=names)
     kinds = day_kinds(frame.times, frame.kinds, zone, dates)
     split = next((k for k, kind in enumerate(kinds) if kind != OBSERVED), n)
     out_totals: dict[str, np.ndarray] = {}
@@ -185,8 +192,30 @@ def point_days(
         forecast=run,
         zone=zone,
         totals=out_totals,
-        corrections=in_box_corrections(kinds, run),
+        corrections=in_box_corrections(kinds, run, hourly),
+        sources=_sources_seen(frame),
     )
+
+
+def hourly_needed(names) -> list[str]:
+    """The hourly variables the daily `names` are rolled up from (`agdata.point.hourly_sources`), in catalog order:
+    a read of the min and max temperature reads one variable's hours, not all of them. A name the table doesn't
+    know (`et0_sum_estimate`) reads them all."""
+    table = hourly_sources()
+    if any(name not in table for name in names):
+        return list(VARIABLES)
+    wanted = {hourly for name in names for hourly in table[name]}
+    return [name for name in VARIABLES if name in wanted]
+
+
+def _sources_seen(frame: HourlyFrame) -> tuple[str, ...]:
+    seen = {source for sources in frame.sources.values() for source in sources if source is not None}
+    return source_order(seen)
+
+
+def source_order(sources) -> tuple[str, ...]:
+    """Sources in the store's code order: the archive's (URMA, RTMA, HRRR) before the forecast's."""
+    return tuple(sorted(sources, key=lambda name: SOURCES.get(name, 99)))
 
 
 def last_written(data_dir: Path, first: date, last: date, totals=(), now: datetime | None = None) -> str:
@@ -199,7 +228,7 @@ def last_written(data_dir: Path, first: date, last: date, totals=(), now: dateti
     stamps: list[float] = []
     start = _midnight(first - timedelta(days=1))
     end = _midnight(last + timedelta(days=1)) + timedelta(hours=8)
-    stores = _Stores([*VARIABLES, *totals])
+    stores = Stores([*VARIABLES, *totals])
     for path in (data_dir, run.path):
         if path is None:
             continue
@@ -219,15 +248,26 @@ def last_written(data_dir: Path, first: date, last: date, totals=(), now: dateti
     return f"{latest}:{cycle}"
 
 
-def in_box_corrections(kinds: list[str | None], run: Forecast) -> tuple[str, ...]:
+# Hourly variables computed from others at ingest, so a correction to those is in them too
+_DERIVED_FROM = {
+    "et0": ("air_temperature", "dew_point", "wind_speed", "shortwave_radiation", "surface_pressure"),
+    "relative_humidity": ("air_temperature", "dew_point"),
+}
+
+
+def in_box_corrections(kinds: list[str | None], run: Forecast, variables=None) -> tuple[str, ...]:
     """The corrections behind a series in the box: HRRR's shortwave on observed days, the forecast's calibration
     on forecast days (D48, D49), and IFS's soil shifted at the ERA5-Land seam (D55) whenever the series reaches the
     forecast. (The last few observed days' soil went through it too until ERA5-Land replaces them, ~5 days; a series
-    ending before the forecast doesn't list it.)"""
+    ending before the forecast doesn't list it.) With `variables` (the hourly ones read), only the corrections to
+    them or to what they're computed from."""
     applied = [corrections.HRRR_SHORTWAVE] if any(k in (OBSERVED, PARTIAL) for k in kinds) else []
     if run.path is not None and any(k in (PARTIAL, FORECAST) for k in kinds):
         applied += [corrections.NBM_SHORTWAVE, corrections.NBM_MAX, corrections.NBM_NIGHT_MIN, corrections.NBM_RH]
         applied += [corrections.IFS_SOIL_SEAM]
+    if variables is not None:
+        read = set(variables) | {source for name in variables for source in _DERIVED_FROM.get(name, ())}
+        applied = [c for c in applied if any(name in c.variable.replace(",", " ").split() for name in read)]
     return tuple(c.label for c in applied)
 
 
@@ -246,9 +286,9 @@ def grid_total(
     return _grid(data_dir, CUMULATIVE, name, day, window, now)
 
 
-def cell_zone(data_dir: Path, j: int, i: int, years, stores: "_Stores | None" = None) -> str:
+def cell_zone(data_dir: Path, j: int, i: int, years, stores: "Stores | None" = None) -> str:
     """The time zone a cell's days follow, from the archive's daily store of the latest of `years` that has one."""
-    stores = stores or _Stores([])
+    stores = stores or Stores([])
     store = next((s for y in sorted(years, reverse=True) if (s := stores.get(data_dir, DAILY, y)) is not None), None)
     if store is None:
         raise FileNotFoundError(f"no daily store for {sorted(years)} in {data_dir}")
@@ -283,9 +323,17 @@ def _midnight(day: date) -> datetime:
     return datetime(day.year, day.month, day.day, tzinfo=UTC)
 
 
-def _last_observed(data_dir: Path, run: Forecast, before: datetime, now: datetime | None) -> datetime | None:
+def _last_observed(
+    data_dir: Path, run: Forecast, before: datetime, now: datetime | None, stores: "Stores | None" = None
+) -> datetime | None:
     """The archive's last observed hour now (it may have moved past the run's stitch)."""
-    found = forecast.last_observed_hour(data_dir, min(before, now or datetime.now(UTC)))
+    key = (str(data_dir), before, now)
+    if stores is not None and key in stores.observed:
+        found = stores.observed[key]
+    else:
+        found = forecast.last_observed_hour(data_dir, min(before, now or datetime.now(UTC)))
+        if stores is not None:
+            stores.observed[key] = found
     if found is None and run.last_observed is not None:
         return run.last_observed
     return found
@@ -293,7 +341,7 @@ def _last_observed(data_dir: Path, run: Forecast, before: datetime, now: datetim
 
 def _grid(data_dir, layout, name, day, window, now):
     run = current_forecast(data_dir, now)
-    stores = _Stores([name])
+    stores = Stores([name])
     archive = _read_day(stores, data_dir, layout, name, day, window)
     observed_until = _last_observed(data_dir, run, _midnight(day + timedelta(days=2)), now)
     if observed_until is None:
@@ -311,13 +359,15 @@ def _grid(data_dir, layout, name, day, window, now):
     return values, PARTIAL if started else FORECAST
 
 
-class _Stores:
+class Stores:
     """Stores opened once per call, each for only the variables the call reads (an open checks every variable it's
-    given: ~90 ms for a daily store's 45, ~40 ms for one)."""
+    given: ~90 ms for a daily store's 45, ~40 ms for one). A caller reading many points (an API request) passes one
+    to each `point_days` so they share the opens, and the archive's last observed hour, read once."""
 
     def __init__(self, names):
         self.names = set(names)
         self.opened: dict[tuple[str, str, int], GridStore | None] = {}
+        self.observed: dict[tuple[str, datetime, datetime | None], datetime | None] = {}
 
     def get(self, path: Path, layout: StoreLayout, year: int) -> GridStore | None:
         key = (str(path), layout.kind, year)
@@ -332,7 +382,7 @@ class _Stores:
 
 
 def _read_day(
-    stores: _Stores, path: Path, layout: StoreLayout, name: str, day: date, window: Window | None
+    stores: Stores, path: Path, layout: StoreLayout, name: str, day: date, window: Window | None
 ) -> np.ndarray:
     store = stores.get(path, layout, day.year)
     if store is None:
@@ -343,7 +393,7 @@ def _read_day(
 
 
 def _point_steps(
-    stores: _Stores, path: Path, layout: StoreLayout, name: str, j: int, i: int, first, n: int
+    stores: Stores, path: Path, layout: StoreLayout, name: str, j: int, i: int, first, n: int
 ) -> tuple[np.ndarray, list[str | None]]:
     """n steps from `first` (a UTC hour or a date) at a cell, across years; NaN and None where nothing's stored."""
     hourly = layout.step == "hour"

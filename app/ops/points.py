@@ -7,9 +7,8 @@ import numpy as np
 from django.conf import settings
 
 from agdata import series
-from agdata.catalog import DAILY_VARIABLES
 from agdata.grid import NDFD, service_window
-from agdata.store import DAILY, GridStore
+from agdata.store import DAILY
 from agmodels.registry import model as find_model
 from agmodels.runner import ModelRun, first_day_needed
 from ops import openmeteo
@@ -20,12 +19,8 @@ def in_archive(latitude: float, longitude: float, first: date, last: date) -> bo
     cell = NDFD.cell_of(latitude, longitude)
     if cell is None or not service_window(settings.SERVICE_BOX).contains(*cell):
         return False
-    for year in range(first.year, last.year + 1):
-        try:
-            GridStore.open(settings.DATA_DIR, DAILY, year, [DAILY_VARIABLES["air_temperature_max"]])
-        except FileNotFoundError:
-            return False
-    return True
+    # A store is renamed into place only once it's whole (`GridStore.create`), so its path existing is enough
+    return all(DAILY.path(settings.DATA_DIR, year).exists() for year in range(first.year, last.year + 1))
 
 
 def model_at_point(

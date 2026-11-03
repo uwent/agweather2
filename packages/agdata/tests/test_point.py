@@ -95,6 +95,27 @@ def test_point_days_match_the_rollup(stores):
     assert np.isnan(may_31)  # 19 of 24 hours is too few (D25)
 
 
+def test_rolling_up_only_some_names_gives_the_same_values_from_only_their_hours(stores):
+    from agdata.series import hourly_needed
+
+    hourly, _ = stores
+    t0 = hourly.index_of(START)
+    all_hours = {name: hourly.read_steps(name, t0, t0 + HOURS)[:, 0, 0] for name in VARIABLES}
+    whole = daily_at_point(START, all_hours, ZONES[0], FIRST, LAST)
+    for names in (["air_temperature_min", "air_temperature_max"], ["hours_rh_over_90_night", "precipitation_sum"]):
+        needed = hourly_needed(names)
+        some = daily_at_point(START, {n: all_hours[n] for n in needed}, ZONES[0], FIRST, LAST, names=names)
+        for name in names:
+            np.testing.assert_array_equal(some[name], whole[name], err_msg=name)
+    assert hourly_needed(["air_temperature_min", "air_temperature_max"]) == ["air_temperature"]
+    assert hourly_needed(["hours_rh_over_90_night", "precipitation_sum"]) == [
+        "air_temperature",
+        "dew_point",
+        "precipitation",
+    ]
+    assert hourly_needed(["et0_sum_estimate"]) == list(VARIABLES)  # not made by the rollup: read everything
+
+
 def test_points_in_one_zone_roll_up_together(stores):
     hourly, _ = stores
     t0 = hourly.index_of(START)

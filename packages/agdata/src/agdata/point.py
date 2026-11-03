@@ -5,14 +5,14 @@ the daily store's cell for cell: the same local-day and 8 pm-day bounds, the sam
 rule (D25), the same features. The ET0 estimate across gaps is left out; it belongs to the running totals.
 """
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from datetime import UTC, date, datetime, timedelta
 from functools import cache
 from zoneinfo import ZoneInfo
 
 import numpy as np
 
-from agdata.catalog import DAILY_STATISTICS, VARIABLES
+from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES
 from agdata.daily import daily_statistic
 from agdata.timezones import day_bounds, from_8pm_bounds
 from agmodels import features
@@ -21,10 +21,31 @@ from agmodels.weather import relative_humidity_percent
 HOUR = timedelta(hours=1)
 
 
+def _feature_groups() -> dict[str, str]:
+    """Which feature function makes each daily feature, from one call of each on a day of probe hours."""
+    t, td, soil = np.full(24, 20.0), np.full(24, 19.5), np.full(24, -5.0)
+    rh = relative_humidity_percent(t, td)
+    made = {
+        "calendar": features.calendar_features(t, rh, td),
+        "soil": features.soil_features(soil, soil, soil),
+        "from_8pm": features.from_8pm_features(t, rh, features.is_night(np.arange(24))),
+    }
+    return {name: group for group, values in made.items() for name in values}
+
+
+_FEATURE_GROUP = _feature_groups()
+
+
 def daily_at_point(
-    first_hour: datetime, hours: Mapping[str, np.ndarray], zone: str, first: date, last: date
+    first_hour: datetime,
+    hours: Mapping[str, np.ndarray],
+    zone: str,
+    first: date,
+    last: date,
+    names: Collection[str] | None = None,
 ) -> dict[str, np.ndarray]:
-    """Every daily variable for local days first..last (inclusive) at a point in `zone`.
+    """Every daily variable (or those in `names`, and any others computed with them) for local days first..last
+    (inclusive) at a point in `zone`.
 
     `hours` holds hourly catalog variables, each a series of hours ending at `first_hour`, `first_hour` + 1 h, …
     in stored units. Hours outside a series, and variables not given, count as missing. A series may carry more
@@ -58,23 +79,29 @@ def daily_at_point(
             "rh": relative_humidity_percent(temperature, dew_point),
         }
 
+    wanted = set(DAILY_VARIABLES) if names is None else set(names)
+    statistics = [s for s in DAILY_STATISTICS.values() if s.variable.name in wanted]
+    groups = {group for name in wanted if (group := _FEATURE_GROUP.get(name)) is not None}
     out: dict[str, list[np.ndarray]] = {}
     for day in days:
         begin, end = day_bounds(day, zone)
         values: dict[str, np.ndarray] = {
-            s.variable.name: daily_statistic(segment(s.hourly, begin, end), s) for s in DAILY_STATISTICS.values()
+            s.variable.name: daily_statistic(segment(s.hourly, begin, end), s) for s in statistics
         }
-        h = humid(begin, end)
-        values |= features.calendar_features(h["temperature"], h["rh"], h["dew_point"])
-        values |= features.soil_features(
-            segment("soil_temperature_4cm", begin, end),
-            segment("soil_temperature_10cm", begin, end),
-            segment("soil_temperature_30cm", begin, end),
-        )
-        begin, end = from_8pm_bounds(day, zone)
-        h = humid(begin, end)
-        local_hour = np.array([(begin + n * HOUR).astimezone(tz).hour for n in range(len(h["rh"]))])
-        values |= features.from_8pm_features(h["temperature"], h["rh"], features.is_night(local_hour))
+        if "calendar" in groups:
+            h = humid(begin, end)
+            values |= features.calendar_features(h["temperature"], h["rh"], h["dew_point"])
+        if "soil" in groups:
+            values |= features.soil_features(
+                segment("soil_temperature_4cm", begin, end),
+                segment("soil_temperature_10cm", begin, end),
+                segment("soil_temperature_30cm", begin, end),
+            )
+        if "from_8pm" in groups:
+            begin, end = from_8pm_bounds(day, zone)
+            h = humid(begin, end)
+            local_hour = np.array([(begin + n * HOUR).astimezone(tz).hour for n in range(len(h["rh"]))])
+            values |= features.from_8pm_features(h["temperature"], h["rh"], features.is_night(local_hour))
         for name, value in values.items():
             out.setdefault(name, []).append(np.broadcast_to(np.asarray(value, dtype=float), rest))
     return {name: np.array(series) for name, series in out.items()}

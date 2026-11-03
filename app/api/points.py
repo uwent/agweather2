@@ -1,0 +1,118 @@
+"""Weather at a point, wherever it comes from (docs/api.md, "Locations"): inside the box and the archive's years,
+the archive and the forecast (`agdata.series`); outside, or before the archive, Open-Meteo through the per-cell
+cache (`ops.openmeteo`), fetched in the request if the cache doesn't have it (CLAUDE.md's one exception).
+
+`stamp` gives the ETag's data stamp before anything is read: the stores' write times for the archive, None for
+Open-Meteo (its cache refetches recent days on a timer, so a 304 there could hold an answer the cache has since
+replaced; those answers are computed each time, from the cache)."""
+
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
+
+import numpy as np
+from django.conf import settings
+
+from agdata import series
+from agdata.grid import NDFD
+from agdata.timezones import zone_at
+from ops import openmeteo
+from ops.points import in_archive
+
+HOUR = timedelta(hours=1)
+
+
+def from_archive(lat: float, lng: float, first: date, last: date) -> bool:
+    return in_archive(lat, lng, first, last)
+
+
+def stamp(points: list[tuple[float, float]], first: date, last: date, now: datetime) -> str | None:
+    """The data stamp for reading days first..last at these points, or None if any comes from Open-Meteo."""
+    if not all(from_archive(lat, lng, first, last) for lat, lng in points):
+        return None
+    return series.last_written(settings.DATA_DIR, first, last, now=now)
+
+
+def days(
+    lat: float,
+    lng: float,
+    first: date,
+    last: date,
+    names: list[str],
+    now: datetime,
+    stores: series.Stores | None = None,
+) -> series.DailySeries:
+    """Local days first..last at a point, each with its kind; sources and corrections on the series. Points read in
+    one request share `stores` (`shared_stores`)."""
+    if from_archive(lat, lng, first, last):
+        cell = NDFD.cell_of(lat, lng)
+        assert cell is not None
+        return series.point_days(settings.DATA_DIR, *cell, first, last, names, now=now, stores=stores)
+    found = openmeteo.point_days(lat, lng, first, last, names, now)
+    found.sources = ("openmeteo",)
+    return found
+
+
+def shared_stores(names: list[str]) -> series.Stores:
+    """One request's store opens, shared by its points."""
+    return series.Stores(series.hourly_needed(names))
+
+
+@dataclass(kw_only=True)
+class Hours:
+    times: list[datetime]
+    values: dict[str, np.ndarray]
+    kinds: list[str | None]
+    zone: str
+    sources: tuple[str, ...]
+    corrections: tuple[str, ...]
+
+
+def hours(
+    lat: float,
+    lng: float,
+    start: datetime,
+    end: datetime,
+    names: list[str],
+    now: datetime,
+    stores: series.Stores | None = None,
+) -> Hours:
+    """Hours ending start..end (UTC) at a point; points read in one request share `stores` (opening `names`)."""
+    if from_archive(lat, lng, start.date(), end.date()):
+        cell = NDFD.cell_of(lat, lng)
+        assert cell is not None
+        frame = series.point_hours(settings.DATA_DIR, *cell, start, end, names, now=now, stores=stores)
+        seen = {s for sources in frame.sources.values() for s in sources if s is not None}
+        return Hours(
+            times=frame.times,
+            values=frame.values,
+            kinds=frame.kinds,
+            zone=series.cell_zone(settings.DATA_DIR, *cell, range(start.year, end.year + 1), stores),
+            sources=series.source_order(seen),
+            corrections=series.in_box_corrections(frame.kinds, frame.forecast, names),
+        )
+    values, kinds, applied = openmeteo.cell_hours(lat, lng, start, end, now)
+    n = (end - start) // HOUR + 1
+    return Hours(
+        times=[start + k * HOUR for k in range(n)],
+        values={name: values.get(name, np.full(n, np.nan)) for name in names},
+        kinds=kinds,
+        zone=zone_at(lat, lng),
+        sources=("openmeteo",),
+        corrections=applied,
+    )
+
+
+def hour_stamp(points: list[tuple[float, float]], start: datetime, end: datetime, now: datetime) -> str | None:
+    if not all(from_archive(lat, lng, start.date(), end.date()) for lat, lng in points):
+        return None
+    return series.last_written(settings.DATA_DIR, start.date(), end.date(), now=now)
+
+
+def keep(kinds: list[str | None], forecast: bool, trim_end: bool) -> int:
+    """How many leading rows a series keeps: through its last observed one with `forecast=false`, else, when the
+    end was a default, through its last with any data (a default end reaches past every forecast)."""
+    if not forecast:
+        return next((k + 1 for k in range(len(kinds) - 1, -1, -1) if kinds[k] == series.OBSERVED), 0)
+    if trim_end:
+        return next((k + 1 for k in range(len(kinds) - 1, -1, -1) if kinds[k] is not None), 0)
+    return len(kinds)

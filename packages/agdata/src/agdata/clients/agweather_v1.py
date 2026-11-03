@@ -6,6 +6,10 @@ Grids (each `?date=YYYY-MM-DD`, with `lat_range`/`lng_range` bounds):
 - `precips/grid` (`units=mm`): daily precip.
 - `evapotranspirations/grid` (`units=mm`): its own ET (Diak et al. 1998), not FAO-56.
 - `insolations/grid`: SSEC's GOES satellite insolation, MJ/m² per day.
+
+Points (`point`): `degree_days` (`method`, `base`, `upper`), `evapotranspirations` (`method=adjusted` for its other
+emissivity), `precips` (`units=mm`), each with `lat`, `lng`, `start_date` and `end_date`: `{info, data: [{date,
+value, cumulative_value, …}]}`.
 """
 
 from datetime import date
@@ -32,6 +36,12 @@ class AgWeatherV1(JsonClient):
             south, north, west, east = bounds
             full |= {"lat_range": f"{south:.1f},{north:.1f}", "lng_range": f"{west:.1f},{east:.1f}"}
         return self.get(path, params=full, cache_key=key)["data"]
+
+    def point(self, path: str, **params: str | float) -> dict:
+        """A point endpoint's whole response, cached by its query."""
+        query = "&".join(f"{k}={v}" for k, v in sorted(params.items()))
+        key = f"{path}_{query}".replace("/", "_").replace("&", "_").replace("=", "-") + ".json"
+        return self.get(path, params={k: str(v) for k, v in params.items()}, cache_key=key)
 
     def weather(self, day: date, bounds: Bounds | None = None) -> dict:
         return self.grid("weather/grid", day, bounds)

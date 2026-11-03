@@ -34,6 +34,23 @@ export interface CitationInfo {
   doi: string | null
   url: string | null
 }
+/**
+ * Local calendar days: one `date`, or `start` to `end` inclusive. Defaults are the endpoint's (`span`).
+ */
+export interface DaysQuery {
+  /**
+   * One day (ISO, YYYY-MM-DD), in place of start and end
+   */
+  date?: string | null
+  /**
+   * First day (ISO), inclusive; default January 1 of end's year
+   */
+  start?: string | null
+  /**
+   * Last day (ISO), inclusive; default today
+   */
+  end?: string | null
+}
 export interface DisplayUnits {
   us: string
   metric: string
@@ -70,6 +87,20 @@ export interface ForecastStatus {
   last_hour: string | null
   in_use: boolean
   reason: string | null
+}
+/**
+ * Hours by their UTC end, `start` to `end` inclusive: ISO times on the hour, with a zone (`Z`, `-05:00`) or
+ * taken as UTC; a bare date means its 00Z. Defaults are the endpoint's (`span`).
+ */
+export interface HoursQuery {
+  /**
+   * First hour's end (ISO, UTC unless a zone is given)
+   */
+  start?: string | null
+  /**
+   * Last hour's end (ISO), inclusive
+   */
+  end?: string | null
 }
 export interface InputInfo {
   name: string
@@ -204,6 +235,27 @@ export interface ModelsResponse {
   data: ModelSummary[]
 }
 /**
+ * Units and format. A catalog variable's name as a parameter overrides its unit (`precipitation=mm`).
+ */
+export interface OutputQuery {
+  /**
+   * Unit system: us (°F, in, mph) or metric (°C, mm, km/h); a variable's name overrides it
+   */
+  units?: 'us' | 'metric'
+  /**
+   * json (default) or csv, where offered; else from the Accept header
+   */
+  format?: string | null
+  /**
+   * JSON data as an object of columns, or as an array of row objects
+   */
+  orient?: 'columns' | 'records'
+  /**
+   * CSV: the meta lines (#) above the column names; false drops them
+   */
+  headers?: boolean
+}
+/**
  * One point (`lat`, `lng`) or several (`points`).
  */
 export interface PointsQuery {
@@ -219,6 +271,23 @@ export interface PointsQuery {
    * Several points as `lat,lng;lat,lng` (up to 50), in place of `lat` and `lng`
    */
   points?: string | null
+}
+/**
+ * How a series runs: through the forecast or not, gaps in running totals, and times' zone.
+ */
+export interface SeriesQuery {
+  /**
+   * Run through the forecast (each row's kind says which); false: stop at the last observed day
+   */
+  forecast?: boolean
+  /**
+   * Cumulative values: bridge missing days with a flagged estimate, or leave them missing
+   */
+  gaps?: 'estimate' | 'missing'
+  /**
+   * Hourly times in UTC; local adds a local_time column
+   */
+  tz?: 'utc' | 'local'
 }
 export interface StatusData {
   service: string
