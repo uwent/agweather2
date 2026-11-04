@@ -695,7 +695,7 @@ Ben asked for a review once Phase 4 was done: four Sonnet reviewers (agdata's so
 > 5. **v1's grid caller** was Ben's own alfalfa Shiny app (`/api/weather/grid?date=`, TODO.md), which v2's alfalfa tool replaces: a v1 grid comparison is a check, not a migration need.
 > 6. **Leave room for climate** (Phase 6): layers with a day-of-year axis, `period=`, a `projection` kind; the past-years store (`agdata.pastyears`) is the climatology's point reader, the daily store its map reader.
 >
-> **Waiting on Ben:** the dev backfill to 2016 (TODO.md, Phase 5; then `manage.py pastyears`). With it: measure the projection on ten years (all models at a point, §3's < 1 s; `/models/run?models=all` is 1.06 s without projection, for H), and Q36 (weighting years by similarity) once there's history to test against.
+> **Waiting on the dev backfill to 2016** (running since 2026-11-04 14:26 as `archive fill --from 2016 --to 2025`, which builds the past-years copies too; watch it in `bin/agwx`; H's "Data operations"). With it: measure the projection on ten years (all models at a point, §3's < 1 s; `/models/run?models=all` is 1.06 s without projection, for H), and Q36 (weighting years by similarity) once there's history to test against.
 >
 > **Housekeeping:** restart the worker (`bin/dev`) for the new `build_past_years` job, the NBM shortwave table v2 and `/status` refreshes. Still open in C: the lawn notifier's `dd_table` comparison, and the R grid caller (with E). Phase 4's leftovers (verification archive, region masks, Open-Meteo fallback when NBM is stale, Open-Meteo usage on admin, H seasonal products, the week of unattended jobs) can run alongside; only `region=` on grids needs the masks.
 
@@ -822,6 +822,15 @@ Planned 2026-11-03 (D64). Measured first on the real archive (Madison, Nov 1–1
 - [ ] Rate limits in Caddy per IP (and a header saying the limit), sized from the latency checks.
 - [ ] Latency checks against §3's targets, on the fixture archive in CI (relative) and on the real archive (absolute, `bin/` script): risk map < 300 ms, custom DD map season-to-date < 2 s, point season hourly < 300 ms, point with forecast and all models < 1 s.
 - [ ] Every endpoint in the API tests: envelope shape, units, formats, errors, missing as `null`, and one parity test per legacy endpoint it replaces.
+- [x] **Data operations** (Ben, 2026-11-04; built that day, M+M+M). A first look found the dev backfill loop still running (it had looked dead: `--quiet` printed nothing in an 11-hour step) and showed what was missing: no way to see which command held the lock, and starvation. A backfill retook the lock between blocks, so a waiter (the hourly ingest, a one-off command) almost never caught it free. (bin/dev was also down, which is why the archive had stopped at 05:42Z.) Built:
+  - `agdata.progress.Reporter` gives v1-style per-file `detail()` lines (`2023-06-01 05Z  GET noaa-urma-pds/…: 7 msgs, 43.1 MB in 13.7 s, decoded in 0.3 s`) from `RemoteGrib` itself, spinner `activity()` rows, a live Rich display on a terminal, and a JSON-lines events file.
+  - `ops.runs` records every data command in `data/runs/`; `--background` and a graceful first stop come with it.
+  - `ops.locks`: the lock names its holder (pid, label, since); waiters leave markers that a polite writer lets go first; the hourly ingest and forecast wait 10 minutes instead of skipping at once.
+  - `agdata.ingest.fetch_block`/`write_block` and `ops.backfill`: the next block downloads while this one is written, holding the lock only to write.
+  - `manage.py archive` (each year's state, `fill --from`, `runs`, `log`, `stop`; `ops.archive` runs ERA5-Land and the past-years copy beside the next year's hours).
+  - The Textual dashboard (`ops.tui`) at `manage.py` with no command, or `bin/agwx`.
+
+  Measured: decoding is 0.1–0.4 s of a 43 MB URMA analysis file's 8–35 s, so the backfill is bound by the connection (~100 Mbit/s here), not the CPU: more parallel decoding wouldn't help. Whether more than 4 download threads do is still to be measured, once the old loop isn't sharing the line.
 
 - **Exit:** every v1 caller's query is served by the general endpoints, and v2 GDD matches the old API for DATCP's (or its differences are explained and recorded, D54); every endpoint in `docs/api.md` is built or moved to a later phase in writing; the latency targets are met on the real archive.
 

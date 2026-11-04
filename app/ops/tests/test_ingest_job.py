@@ -129,5 +129,6 @@ def test_the_ingest_job_skips_while_another_writer_holds_the_lock(tmp_path, sett
 
     settings.DATA_DIR = tmp_path
     monkeypatch.setattr(tasks, "refresh_recent", lambda *args: pytest.fail("ran without the lock"))
+    monkeypatch.setattr(tasks, "JOB_LOCK_WAIT_S", 0.2)  # it waits a while, then skips
     with write_lock(tmp_path):
         tasks.ingest_recent(int(NOW.timestamp()))

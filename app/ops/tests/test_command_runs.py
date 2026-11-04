@@ -52,7 +52,7 @@ def test_a_command_waits_for_a_held_lock_and_says_whose_it_is(data_dir, monkeypa
     timer.start()
     out, _ = run("rollup", "--start", "2025-07-01", "--end", "2025-07-01")
     timer.join()
-    assert f"waiting for the write lock (held by pid {holder_pid()})" in out
+    assert f"waiting for the write lock (held by pid {holder_pid()} (" in out  # its pid, then its label
     assert "rolled up 2025-07-01 to 2025-07-01" in out
 
 
@@ -288,7 +288,7 @@ def test_refetch_precip_refuses_an_empty_range(precip):
 
 @pytest.fixture
 def backfill_fakes(data_dir, monkeypatch):
-    from ops.management.commands import backfill
+    from ops import backfill
 
     log = SimpleNamespace()
     log.blocks, log.records, log.rolled, log.stale_asked = [], [], [], []
@@ -304,12 +304,15 @@ def backfill_fakes(data_dir, monkeypatch):
             else [start + timedelta(hours=h) for h in range(int((stop - start) / timedelta(hours=1)))]
         )
 
-    def ingest_block(store, start, hours, workers, progress):
+    def fetch_block(window, start, hours, workers, progress):
         log.blocks.append((start, hours, workers))
         progress(hours)
+        return SimpleNamespace(start=start, hours=hours)
+
+    def write_block(store, fetched):
         return BlockReport(
-            start=start,
-            hours=hours,
+            start=fetched.start,
+            hours=fetched.hours,
             missing={"air_temperature": 0},
             out_of_range={},
             spikes={},
@@ -317,12 +320,13 @@ def backfill_fakes(data_dir, monkeypatch):
         )
 
     monkeypatch.setattr(backfill, "stale_hours", stale_hours)
-    monkeypatch.setattr(backfill, "ingest_block", ingest_block)
+    monkeypatch.setattr(backfill, "fetch_block", fetch_block)
+    monkeypatch.setattr(backfill, "write_block", write_block)
     monkeypatch.setattr(backfill, "record_run", lambda *args: log.records.append(args))
     monkeypatch.setattr(
         backfill, "update_days", lambda data, window, first, last: log.rolled.append((first, last)) or [first.year]
     )
-    monkeypatch.setattr(backfill, "_rolled_up", lambda *args: False)
+    monkeypatch.setattr(backfill, "rolled_up", lambda *args: False)
     return log
 
 
@@ -369,12 +373,12 @@ def test_backfill_with_failed_hours_exits_nonzero_after_the_summary(backfill_fak
 
 
 def test_backfill_records_a_block_that_raises_and_stops(backfill_fakes, monkeypatch):
-    from ops.management.commands import backfill
+    from ops import backfill
 
     def broken(*args, **kwargs):
         raise RuntimeError("disk full")
 
-    monkeypatch.setattr(backfill, "ingest_block", broken)
+    monkeypatch.setattr(backfill, "write_block", broken)
     with pytest.raises(RuntimeError, match="disk full"):
         call_command("backfill", "--start", "2025-07-01", "--end", "2025-07-04", "--box", BOX, stdout=StringIO())
     (args,) = backfill_fakes.records
@@ -407,7 +411,7 @@ def test_backfill_holds_the_lock_one_block_at_a_time(backfill_fakes, data_dir):
 def cds(data_dir, settings, monkeypatch):
     """era5land with the CDS and the archive faked: a month's request fails when its first day is in `fail`."""
     from agdata.sources import era5land as source
-    from ops.management.commands import era5land as command
+    from ops import era5land as command
 
     settings.COPERNICUS_API_KEY = "key"
     log = SimpleNamespace()
@@ -464,7 +468,7 @@ def test_one_failing_span_is_reported_the_other_is_written_and_the_exit_is_nonze
 
 
 def test_a_failure_while_writing_is_reported_and_the_file_is_still_removed(cds, monkeypatch):
-    from ops.management.commands import era5land as command
+    from ops import era5land as command
 
     def broken(data, window, path, land):
         cds.files_seen.append(path)
@@ -484,7 +488,7 @@ def test_era5land_keeps_downloads_in_a_folder_it_is_given(cds, tmp_path):
 
 
 def test_era5land_redo_fetches_every_day_of_the_range(cds, monkeypatch):
-    from ops.management.commands import era5land as command
+    from ops import era5land as command
 
     monkeypatch.setattr(command, "missing_days", lambda *args: pytest.fail("--redo doesn't ask what's missing"))
     out, _ = run("era5land", "--start", "2025-06-01", "--end", "2025-06-04", "--box", BOX, "--redo")
@@ -518,10 +522,10 @@ def test_era5land_default_downloads_folder_is_under_the_data_dir(cds, data_dir):
 
 
 def test_backfill_skips_the_rollup_of_a_complete_block_whose_days_are_already_in(backfill_fakes, monkeypatch):
-    from ops.management.commands import backfill
+    from ops import backfill
 
     backfill_fakes.stale = lambda start, stop: []
-    monkeypatch.setattr(backfill, "_rolled_up", lambda *args: True)
+    monkeypatch.setattr(backfill, "rolled_up", lambda *args: True)
     run("backfill", "--start", "2025-07-01", "--end", "2025-07-04", "--box", BOX)
     assert backfill_fakes.rolled == []
 
@@ -531,7 +535,7 @@ def test_rolled_up_means_every_day_has_a_daily_minimum_temperature_across_a_year
 
     from agdata.daily import open_or_create_daily
     from agdata.grid import service_window
-    from ops.management.commands.backfill import _rolled_up
+    from ops.backfill import rolled_up as _rolled_up
 
     window = service_window(BOX)
     assert not _rolled_up(data_dir, window, date(2025, 12, 30), date(2026, 1, 1))  # nothing written
@@ -543,7 +547,7 @@ def test_rolled_up_means_every_day_has_a_daily_minimum_temperature_across_a_year
 
 
 def test_era5land_says_so_while_requests_sit_in_the_queue(cds, monkeypatch):
-    from ops.management.commands import era5land as command
+    from ops import era5land as command
 
     monkeypatch.setattr(command, "HEARTBEAT_S", 0.05)
     original = cds.fail

@@ -23,6 +23,8 @@ import requests
 
 from agdata.catalog import FILL, VARIABLES, Variable
 from agdata.grid import NDFD, Window
+from agdata.progress import activity as progress_activity
+from agdata.progress import current as progress_current
 from agdata.qc import check_range, remove_spikes
 from agdata.shortwave import RAW, correct_w_m2
 from agdata.sources import era5land, hrrr
@@ -91,6 +93,19 @@ class BlockReport:
     failed: list[datetime] = field(default_factory=list)  # hours whose fetch failed after retries
 
 
+@dataclass(kw_only=True)
+class FetchedBlock:
+    """A block's hours as fetched, range-checked and packed, before anything is written: what `fetch_block` returns
+    (without the write lock) and `write_block` writes (with it)."""
+
+    window: Window
+    start: datetime
+    hours: int
+    packed: dict[str, np.ndarray]
+    sources: dict[str, list[str | None]]
+    report: BlockReport
+
+
 def ingest_block(
     store: GridStore,
     start: datetime,
@@ -102,11 +117,28 @@ def ingest_block(
 ) -> BlockReport:
     """Fetches, QCs, derives and writes `hours` consecutive hours from `start` (all within the store's year).
     `progress` is called with the number of hours fetched so far as each one finishes."""
+    store.index_of(start + (hours - 1) * HOUR)  # the block must fit in the store's year
+    fetched = fetch_block(
+        store.window, start, hours, fetch=fetch, workers=workers, session_factory=session_factory, progress=progress
+    )
+    return write_block(store, fetched)
+
+
+def fetch_block(
+    window: Window,
+    start: datetime,
+    hours: int,
+    fetch: Fetcher = fetch_hour,
+    workers: int = 8,
+    session_factory: Callable[[], requests.Session] = requests.Session,
+    progress: Callable[[int], None] | None = None,
+) -> FetchedBlock:
+    """Fetches `hours` consecutive hours from `start`, `workers` at a time, range-checking and packing each as it
+    arrives. Reads and writes no store, so it needs no write lock. Each hour is an activity on the current reporter
+    (`agdata.progress`), and its files' reads are detail lines."""
     if start.utcoffset() != timedelta(0):
         raise ValueError(f"ingest_block takes UTC times, not {start}")  # the solar geometry reads them as UTC
     times = [start + timedelta(hours=n) for n in range(hours)]
-    store.index_of(times[-1])  # the block must fit in the store's year
-    window = store.window
     packed = {v.name: np.full((hours, *window.shape), FILL, dtype=np.int16) for v in HOURLY_VARIABLES}
     sources: dict[str, list[str | None]] = {v.name: [None] * hours for v in HOURLY_VARIABLES}
     report = BlockReport(start=start, hours=hours, missing={}, out_of_range={}, spikes={})
@@ -115,13 +147,23 @@ def ingest_block(
 
     def one(n: int) -> None:
         nonlocal done
-        fetch_one(n)
+        label = f"{times[n]:%Y-%m-%d %H}Z"
+        began = time.monotonic()
+        with progress_activity(label):
+            got = fetch_one(n)
+        reporter = progress_current()
+        if reporter is not None:
+            if got is None:
+                reporter.detail(f"{label}  FAILED after {ATTEMPTS} attempts")
+            else:
+                parts = ", ".join(f"{name} {src}" for name, src in _summary_sources(got.sources).items())
+                reporter.detail(f"{label}  ==> OK in {time.monotonic() - began:.1f} s ({parts or 'nothing published'})")
         with done_lock:
             done += 1
             if progress is not None:
                 progress(done)
 
-    def fetch_one(n: int) -> None:
+    def fetch_one(n: int) -> Hour | None:
         session = _session(session_factory)
         for attempt in range(1, ATTEMPTS + 1):
             try:
@@ -130,19 +172,41 @@ def ingest_block(
             except Exception as error:  # network errors are usually transient; the hour stays missing after the last
                 if attempt == ATTEMPTS:
                     logger.warning("fetching %s failed %d times: %r", times[n], ATTEMPTS, error)
-                    report.failed.append(times[n])
-                    return
+                    with done_lock:
+                        report.failed.append(times[n])
+                    return None
                 time.sleep(RETRY_SECONDS * attempt)
         for name, values in hour.values.items():
-            variable = store.variables[name]
+            variable = VARIABLES[name]
             cleaned, bad = check_range(variable, values)
             with done_lock:  # threads add to the same counts
                 report.out_of_range[name] = report.out_of_range.get(name, 0) + bad
             packed[name][n] = variable.encode(cleaned)
             sources[name][n] = hour.sources[name]
+        return hour
 
     with ThreadPoolExecutor(workers) as pool:
         list(pool.map(one, range(hours)))
+    report.failed.sort()
+    return FetchedBlock(window=window, start=start, hours=hours, packed=packed, sources=sources, report=report)
+
+
+def write_block(store: GridStore, fetched: FetchedBlock) -> BlockReport:
+    """QCs a fetched block against what the store holds (hours it didn't get keep what's stored; spikes are checked
+    with the stored hours on either side), derives RH, corrected shortwave and ET0, and writes it. The caller holds
+    the write lock."""
+    if fetched.window != store.window:
+        raise ValueError(f"the block was fetched for {fetched.window}, the store covers {store.window}")
+    start, hours, packed, sources, report = (
+        fetched.start,
+        fetched.hours,
+        fetched.packed,
+        fetched.sources,
+        fetched.report,
+    )
+    times = [start + timedelta(hours=n) for n in range(hours)]
+    store.index_of(times[-1])  # the block must fit in the store's year
+    window = store.window
     _keep_stored(store, start, packed, sources)
 
     # Spikes, over the block, for measured variables
@@ -348,6 +412,18 @@ def blocks(start: datetime, end: datetime, max_days: int = 31) -> list[tuple[dat
         stop = min(next_month, end, t + timedelta(days=max_days))
         out.append((t, int((stop - t) / timedelta(hours=1))))
         t = stop
+    return out
+
+
+def _summary_sources(sources: dict[str, str]) -> dict[str, str]:
+    """An hour's sources for its detail line: the analysis, precip and shortwave."""
+    out = {}
+    if "air_temperature" in sources:
+        out["analysis"] = sources["air_temperature"]
+    if "precipitation" in sources:
+        out["precip"] = sources["precipitation"]
+    if RAW in sources:
+        out["shortwave"] = sources[RAW]
     return out
 
 

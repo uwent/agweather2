@@ -1,5 +1,5 @@
-"""The jobs in ops.tasks: each skips a turn (a warning) when another writer holds the lock, and the download jobs
-wait for it instead."""
+"""The jobs in ops.tasks: each waits a while for the write lock (the download jobs longer), labels it with its name,
+and skips a turn (a warning) when it doesn't come."""
 
 import logging
 from datetime import UTC, datetime
@@ -50,7 +50,7 @@ def warnings(caplog) -> list[str]:
 def test_each_job_skips_with_a_warning_when_the_lock_is_held(job, refresh, lock_calls, monkeypatch, caplog):
     monkeypatch.setattr(tasks, refresh, locked)
     if refresh in ("refresh_recent", "refresh_forecast"):
-        monkeypatch.setattr(tasks, "write_lock", locked)  # these take the lock themselves, without waiting
+        monkeypatch.setattr(tasks, "write_lock", locked)  # these take the lock themselves
     with caplog.at_level(logging.WARNING, logger=tasks.__name__):
         job(NOW)  # returns, doesn't raise
     (message,) = warnings(caplog)
@@ -80,6 +80,7 @@ def test_the_download_jobs_wait_for_the_lock_in_the_refresh_and_the_restitch(loc
         with seen[name]():  # what the refresh function enters when it writes
             pass
     assert [c["wait"] for c in lock_calls] == [tasks.DOWNLOAD_LOCK_WAIT_S] * 2
+    assert [c["label"] for c in lock_calls] == ["job ingest_era5land", "job ingest_ifs"]
     assert tasks.DOWNLOAD_LOCK_WAIT_S >= 60
 
 
@@ -87,7 +88,7 @@ def test_the_download_jobs_restitch_waits_for_the_lock_too(lock_calls, monkeypat
     monkeypatch.setattr(tasks, "refresh_era5land", lambda *args, **kwargs: [("a span",)])
     monkeypatch.setattr(tasks, "restitch_current", lambda data_dir, box: None)
     tasks.ingest_era5land(NOW)
-    assert lock_calls == [{"wait": tasks.DOWNLOAD_LOCK_WAIT_S}]
+    assert lock_calls == [{"wait": tasks.DOWNLOAD_LOCK_WAIT_S, "label": "job ingest_era5land"}]
 
 
 def test_nothing_new_from_era5land_or_ifs_does_not_restitch(lock_calls, monkeypatch):
@@ -127,4 +128,5 @@ def test_the_forecast_job_builds_with_the_service_box_and_the_job_time(lock_call
     monkeypatch.setattr(tasks, "refresh_forecast", lambda data_dir, box, now: seen.append((data_dir, box, now)))
     tasks.ingest_forecast(NOW)
     assert seen == [(settings.DATA_DIR, settings.SERVICE_BOX, datetime.fromtimestamp(NOW, UTC))]
-    assert lock_calls == [{}]  # the hourly and forecast jobs don't wait: they skip a turn
+    # the hourly and forecast jobs wait less: a backfill lets them in between its blocks
+    assert lock_calls == [{"wait": tasks.JOB_LOCK_WAIT_S, "label": "job ingest_forecast"}]

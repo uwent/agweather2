@@ -7,6 +7,7 @@ does, by (name, level), e.g. ("TMP", "2 m above ground").
 """
 
 import struct
+import time
 import warnings
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
@@ -21,6 +22,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message="ecCodes .* or higher is recommended")
     import eccodes
 
+from agdata import progress
 from agdata.grid import NDFD, LambertGrid, Window
 
 Key = tuple[str, str]  # (name, level), as in a wgrib2 .idx line
@@ -208,12 +210,12 @@ class RemoteGrib:
         """Downloads and decodes the messages with these keys; keys the file lacks are left out."""
         wanted = set(keys)
         found = {}
+        first: dict[Key, MessageRef] = {}
         for ref in self.index():
-            if ref.key in wanted and ref.key not in found:
-                end = ref.offset + ref.length - 1 if ref.length else None
-                field = decode(self._read_range(ref.offset, end))
-                field.key = ref.key
-                found[ref.key] = field
+            if ref.key in wanted:
+                first.setdefault(ref.key, ref)
+        for ref, field in self._read(list(first.values())):
+            found[ref.key] = field
         return found
 
     def fields_where(self, predicate: Callable[[MessageRef], bool]) -> list[tuple[MessageRef, Field]]:
@@ -222,12 +224,25 @@ class RemoteGrib:
 
     def iter_fields_where(self, predicate: Callable[[MessageRef], bool]) -> Iterator[tuple[MessageRef, Field]]:
         """As `fields_where`, one message at a time, so a caller that crops each field holds one whole field."""
-        for ref in self.index():
-            if predicate(ref):
-                end = ref.offset + ref.length - 1 if ref.length else None
-                field = decode(self._read_range(ref.offset, end))
-                field.key = ref.key
-                yield ref, field
+        yield from self._read([ref for ref in self.index() if predicate(ref)])
+
+    def _read(self, refs: list[MessageRef]) -> Iterator[tuple[MessageRef, Field]]:
+        """Downloads and decodes `refs` in turn, then reports the file's reads (`agdata.progress.file_read`)."""
+        progress.file_opened(self.url)
+        get_s = decode_s = 0.0
+        nbytes = 0
+        for ref in refs:
+            end = ref.offset + ref.length - 1 if ref.length else None
+            began = time.monotonic()
+            raw = self._read_range(ref.offset, end)
+            decoding = time.monotonic()
+            field = decode(raw)
+            get_s += decoding - began
+            decode_s += time.monotonic() - decoding
+            nbytes += len(raw)
+            field.key = ref.key
+            yield ref, field
+        progress.file_read(self.url, len(refs), nbytes, get_s, decode_s)
 
     def _read_range(self, start: int, end: int | None) -> bytes:
         headers = {"Range": f"bytes={start}-{'' if end is None else end}"}

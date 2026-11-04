@@ -26,6 +26,7 @@ from agdata.store import CUMULATIVE, DAILY, HOURLY, SOURCE_NAMES, StoreLayout
 from ops.forecast import forecast_health
 from ops.health import ingest_health
 from ops.ifs import last_read
+from ops.locks import parse_holder, waiting
 
 RECENT = timedelta(days=1)  # failures this recent are listed
 STALLED_AFTER_S = 60  # a running job whose worker hasn't sent a heartbeat this long was left by a stopped worker
@@ -54,7 +55,8 @@ class Status:
     daily_through: date | None
     era5land_through: datetime | None
     ifs_run: str | None
-    lock_holder: str | None  # pid holding the write lock, or None when free
+    lock_holder: str | None  # who holds the write lock (pid, label, since), or None when free
+    lock_waiting: list[str] = field(default_factory=list)  # who's waiting for it
     jobs: list[JobState]
     failures: list[str] = field(default_factory=list)  # recent failed jobs, one line each
 
@@ -72,6 +74,7 @@ def snapshot(data_dir: Path, now: datetime) -> Status:
         era5land_through=last_hour_from(data_dir, now.year, SOIL[0], "era5land"),
         ifs_run=run,
         lock_holder=lock_holder(data_dir),
+        lock_waiting=[str(h) for h in waiting(data_dir)],
         jobs=job_states(now),
         failures=recent_failures(now),
     )
@@ -164,7 +167,7 @@ def recent_failures(now: datetime) -> list[str]:
 
 
 def lock_holder(data_dir: Path) -> str | None:
-    """The pid in `write.lock` if a writer holds it now, else None."""
+    """Who holds `write.lock` now (`pid 123 (backfill …, since 11:59)`), else None."""
     path = data_dir / "write.lock"
     if not path.exists():
         return None
@@ -172,7 +175,7 @@ def lock_holder(data_dir: Path) -> str | None:
         try:
             fcntl.flock(handle, fcntl.LOCK_SH | fcntl.LOCK_NB)
         except BlockingIOError:
-            return handle.read().strip() or "?"
+            return str(parse_holder(handle.read()))
         fcntl.flock(handle, fcntl.LOCK_UN)
     return None
 
@@ -257,7 +260,9 @@ def status_lines(status: Status) -> list[str]:
             f"  forecast: {_when(f['cycle'])} run ({_hours(f['age_hours'])} old), through {_when(f['last_hour'])}"
             + failed
         )
-    out.append(f"  lock:    {'held by pid ' + status.lock_holder if status.lock_holder else 'free'}")
+    out.append(f"  lock:    {'held by ' + status.lock_holder if status.lock_holder else 'free'}")
+    for waiter in status.lock_waiting:
+        out.append(f"           waiting: {waiter}")
     out.append("  jobs:")
     width = max((len(j.name) for j in status.jobs), default=0)
     for j in status.jobs:

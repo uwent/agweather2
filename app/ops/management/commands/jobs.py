@@ -30,6 +30,7 @@ def _registered() -> dict[str, object]:
 
 class Command(ReportingCommand):
     help = "Status of the archive and the job queue; run or queue jobs; start the worker after a catch-up."
+    tracked = False  # not a data run: `jobs start` becomes the worker, which the dashboard shows on its own
 
     def add_arguments(self, parser):
         sub = parser.add_subparsers(dest="action")

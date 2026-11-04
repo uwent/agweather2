@@ -96,6 +96,7 @@ def test_the_forecast_job_is_periodic_and_takes_the_lock(tmp_path, settings, mon
     assert [p.cron for p in periodic] == ["15,45 * * * *"]
     settings.DATA_DIR = tmp_path
     monkeypatch.setattr(tasks, "refresh_forecast", lambda *args: pytest.fail("ran without the lock"))
+    monkeypatch.setattr(tasks, "JOB_LOCK_WAIT_S", 0.2)  # it waits a while, then skips
     with write_lock(tmp_path):
         tasks.ingest_forecast(int(NOW.timestamp()))
 

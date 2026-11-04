@@ -14,12 +14,15 @@ from ops.locks import WriteLocked, write_lock
 logger = logging.getLogger(__name__)
 
 # The jobs whose work is a slow download (ERA5-Land's CDS queue, IFS's read) wait this long for the write lock to
-# write it, rather than throw it away; the hourly ingest and forecast skip a turn instead (the next run catches up).
+# write it, rather than throw it away.
 DOWNLOAD_LOCK_WAIT_S = 900
+# The hourly ingest and forecast wait this long, then skip a turn (the next run catches up). A backfill takes the
+# lock politely (`ops.locks`), so they get it between its blocks, within a block's write (about a minute).
+JOB_LOCK_WAIT_S = 600
 
 
-def _waiting_lock():
-    return write_lock(settings.DATA_DIR, wait=DOWNLOAD_LOCK_WAIT_S)
+def _waiting_lock(label: str):
+    return lambda: write_lock(settings.DATA_DIR, wait=DOWNLOAD_LOCK_WAIT_S, label=label)
 
 
 @app.periodic(cron="40 * * * *")  # after RTMA's hour is usually published
@@ -28,7 +31,7 @@ def ingest_recent(timestamp: int) -> None:
     """Keeps the archive current: the last week's missing and RTMA-only hours, then their days and totals, then the
     published forecast run's stitch to them."""
     try:
-        with write_lock(settings.DATA_DIR):
+        with write_lock(settings.DATA_DIR, wait=JOB_LOCK_WAIT_S, label="job ingest_recent"):
             records = refresh_recent(settings.DATA_DIR, settings.SERVICE_BOX, datetime.fromtimestamp(timestamp, UTC))
             if records:
                 restitch_current(settings.DATA_DIR, settings.SERVICE_BOX)
@@ -41,7 +44,7 @@ def ingest_recent(timestamp: int) -> None:
 def ingest_forecast(timestamp: int) -> None:
     """Builds and publishes the newest long NBM run (D38) once it's complete, if it isn't current already."""
     try:
-        with write_lock(settings.DATA_DIR):
+        with write_lock(settings.DATA_DIR, wait=JOB_LOCK_WAIT_S, label="job ingest_forecast"):
             refresh_forecast(settings.DATA_DIR, settings.SERVICE_BOX, datetime.fromtimestamp(timestamp, UTC))
     except WriteLocked as error:
         logger.warning("ingest_forecast skipped: %s", error)
@@ -61,10 +64,10 @@ def ingest_era5land(timestamp: int) -> None:
             settings.SERVICE_BOX,
             datetime.fromtimestamp(timestamp, UTC),
             settings.COPERNICUS_API_KEY,
-            lock=_waiting_lock,
+            lock=_waiting_lock("job ingest_era5land"),
         )
         if spans:
-            with _waiting_lock():
+            with _waiting_lock("job ingest_era5land")():
                 restitch_current(settings.DATA_DIR, settings.SERVICE_BOX)
     except WriteLocked as error:
         logger.warning("ingest_era5land skipped: %s", error)
@@ -81,9 +84,9 @@ def ingest_ifs(timestamp: int) -> None:
             settings.SERVICE_BOX,
             datetime.fromtimestamp(timestamp, UTC),
             settings.COPERNICUS_API_KEY,
-            lock=_waiting_lock,
+            lock=_waiting_lock("job ingest_ifs"),
         ):
-            with _waiting_lock():
+            with _waiting_lock("job ingest_ifs")():
                 restitch_current(settings.DATA_DIR, settings.SERVICE_BOX)
     except WriteLocked as error:
         logger.warning("ingest_ifs skipped: %s", error)

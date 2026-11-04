@@ -5,6 +5,13 @@ import pytest
 from api.tests import fixture_archive
 
 
+@pytest.fixture(autouse=True)
+def _own_data_dir(settings, tmp_path_factory):
+    """Every test gets an empty DATA_DIR unless it sets one (`archive`, or its own tmp_path), so a command's run
+    record (`ops.runs`) or a lock never lands in the real archive."""
+    settings.DATA_DIR = tmp_path_factory.mktemp("data")
+
+
 @pytest.fixture(scope="session")
 def archive_dir(tmp_path_factory):
     """The fixture archive (`api.tests.fixture_archive`), built once per session."""

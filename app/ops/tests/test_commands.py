@@ -28,7 +28,7 @@ def test_commands_refuse_bad_ranges_before_touching_anything(settings, tmp_path)
         call_command("rollup", "--start", "2025-01-02", "--end", "2025-01-01")
     with pytest.raises(CommandError, match="--box"):
         call_command("rollup", "--start", "2025-01-01", "--end", "2025-01-01", "--box", "nowhere")
-    assert not any(tmp_path.iterdir())
+    assert [p.name for p in tmp_path.iterdir()] == ["runs"]  # only the commands' run records (ops.runs)
 
 
 def test_rebuild_check_says_when_nothing_is_stale(settings, tmp_path, capsys):
@@ -45,7 +45,7 @@ def test_backfill_fetches_only_what_is_missing_and_rolls_up_lost_days(settings, 
 
     from agdata import ingest
     from agdata.ingest import Hour
-    from ops.management.commands import backfill
+    from ops import backfill
 
     settings.DATA_DIR = tmp_path
     calls = []
@@ -68,8 +68,8 @@ def test_backfill_fetches_only_what_is_missing_and_rolls_up_lost_days(settings, 
         }
         return Hour(values=values, sources=dict.fromkeys(values, "urma"))
 
-    real = ingest.ingest_block
-    monkeypatch.setattr(backfill, "ingest_block", lambda *a, **k: real(*a, fetch=fetch, **k))
+    real = ingest.fetch_block
+    monkeypatch.setattr(backfill, "fetch_block", lambda *a, **k: real(*a, fetch=fetch, **k))
     args = ("backfill", "--start", "2025-07-01", "--end", "2025-07-04", "--box", "43.05,-89.45,43.1,-89.4", "--quiet")
     call_command(*args)
     assert len(calls) == 72
