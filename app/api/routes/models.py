@@ -11,20 +11,24 @@ Response shapes for model runs stay provisional until Phase 6's frontend uses th
 
 import itertools
 import json
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from typing import Any
 
 import numpy as np
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from ninja import Field, Query, Router, Schema
 
 from agdata import units as agunits
 from agdata.point import hourly_sources
-from agdata.series import FORECAST, PARTIAL, DailySeries, Forecast, days_needed, runs_at_point, sliced
+from agdata.projection import PROJECTION
+from agdata.series import FORECAST, PARTIAL, DailySeries, Forecast, archive_years, days_needed, runs_at_point, sliced
 from agdata.timezones import zone_at
 from agmodels.crops import MARGIN, NOT_SUSCEPTIBLE, SUSCEPTIBLE
 from agmodels.registry import all_models
 from agmodels.runner import ModelRun, default_biofix
+from agmodels.scenarios import milestones, spread
 from agmodels.spec import Model
 from api import clock, points, runs, stations
 from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_modified, respond, table
@@ -33,7 +37,7 @@ from api.locations import describe
 from api.params import DaysQuery, OutputQuery, PointsQuery, SeriesQuery
 from api.routes.weather import FORECAST_DAYS, MAX_DAYS, check_size, located
 from api.schemas import TableResponse, responses
-from ops.points import models_at_point
+from ops.points import models_at_point, projected_at_point
 
 router = Router(tags=["models"])
 
@@ -62,8 +66,13 @@ def run(
     output: Query[OutputQuery],
     biofix: date | None = None,
     planting_date: str | None = None,
+    projection: str | None = None,
 ) -> HttpResponse:
     """The model at one point from `start` to `end` (default: from its biofix, or January 1, through the forecast).
+    `projection=true` carries it past the forecast to `end` (default: the season's end) once per earlier archive year
+    (D63): projected days have kind `projection`, each number column their P50, with `<name>_p10` and `<name>_p90`
+    beside it and `projection_years`; `projection=years` gives each year's path instead (a `year` column). When
+    stages, risk levels and action windows come is in `meta.summary.projection.milestones`.
     `planting_date` (YYYY-MM-DD, or `early`, `mid`, `late` for the point's typical dates, or `all`) runs the crop's
     stages for a disease's susceptible window and a stage biofix; without it there's no window. The model's options
     and its crop model's are plain parameters (`GET /models/{id}` lists them); `all` runs every choice."""
@@ -73,9 +82,12 @@ def run(
     today = now.date()
     season = (when.date or when.start or when.end or today).year
     the_plan = runs.plan(m, request.GET, lat, lng, season, biofix=biofix, planting=planting_date)
+    mode = _projection_mode(projection)
     trim_end = when.end is None and when.date is None
     default_end = today + timedelta(days=FORECAST_DAYS) if options.forecast else today
     first, last = _span(when, m, the_plan, default_end, today)
+    if mode and trim_end:
+        last, trim_end = _season_end(m.SPEC, first), False
     check_size((last - first).days + 1, len(the_plan.runs), MAX_DAYS, "days")
     computed = {
         **where.echo(),
@@ -83,16 +95,28 @@ def run(
         "start": first,
         "end": last,
         "forecast": options.forecast,
+        "projection": mode,
         "units": output.units,
     }
-    etag, unchanged, needed = _revalidate(request, [the_plan], computed, lat, lng, first, last, now)
+    etag, unchanged, needed = _revalidate(
+        request, [the_plan], computed, lat, lng, first, last, now, projecting=bool(mode)
+    )
     if unchanged is not None:
         return unchanged
     location = located(where, needed, last)[0]
-    results = _execute([the_plan], lat, lng, first, last, now)[0]
-    kept = max(points.keep(r.kinds, options.forecast, trim_end) for r in results)
-    table, summary, warnings = _table(m, results, kept, multiple=len(results) > 1)
-    if trim_end and results and kept:
+    found, notes = _projected([the_plan], lat, lng, first, last, now, mode) if mode else (None, [])
+    if found is not None:
+        results = found[0].results
+        table, summary, warnings = _table(
+            m, results, len(results[0].dates), labels=found[0].labels, bands=found[0].bands
+        )
+        summary["projection"] = found[0].summary
+    else:
+        results = _execute([the_plan], lat, lng, first, last, now)[0]
+        kept = max(points.keep(r.kinds, options.forecast, trim_end) for r in results)
+        table, summary, warnings = _table(m, results, kept, labels=_labels(results))
+    warnings = [*notes, *warnings]
+    if trim_end and found is None and results and kept:
         computed["end"] = results[0].dates[kept - 1]
     if results[0].biofix is not None and len(results) == 1:
         computed["biofix"] = results[0].biofix
@@ -123,8 +147,10 @@ def run_several(
     output: Query[OutputQuery],
     models: str = "all",
     planting_date: str | None = None,
+    projection: str | None = None,
 ) -> HttpResponse:
-    """Several models (`models=a,b`, or `all`) at one point on one read of the weather: `data` holds each model's
+    """Several models (`models=a,b`, or `all`) at one point on one read of the weather (and with `projection`, as
+    `GET /models/{id}/run` takes it, to `end`, default December 31): `data` holds each model's
     answer under its id, with its own `meta` (`request`, `units`, `summary`, `warnings`) and `data`, as
     `GET /models/{id}/run` gives it (D64); the top-level `meta` has what they share (location, sources). Options are
     plain parameters and apply to every model that has them; `planting_date` applies to every model with a crop.
@@ -137,8 +163,11 @@ def run_several(
     plans = [
         runs.plan(m, request.GET, lat, lng, season, biofix=None, planting=planting_date, lenient=True) for m in chosen
     ]
+    mode = _projection_mode(projection)
     trim_end = when.end is None and when.date is None
     first, last = when.span(default_end=today + timedelta(days=FORECAST_DAYS) if options.forecast else today)
+    if mode and trim_end:
+        last, trim_end = max(last, date(first.year, 12, 31)), False
     total = sum(len(p.runs) for p in plans)
     if total > MAX_RUNS:
         raise ApiError("too_many", f"{total} model runs asked for; up to {MAX_RUNS} per request", "models")
@@ -150,17 +179,23 @@ def run_several(
         "start": first,
         "end": last,
         "forecast": options.forecast,
+        "projection": mode,
         "units": output.units,
     }
-    etag, unchanged, needed = _revalidate(request, plans, computed, lat, lng, first, last, now)
+    etag, unchanged, needed = _revalidate(request, plans, computed, lat, lng, first, last, now, projecting=bool(mode))
     if unchanged is not None:
         return unchanged
     location = located(where, needed, last)[0]
-    grouped = _execute(plans, lat, lng, first, last, now)
-    kept = max(points.keep(r.kinds, options.forecast, trim_end) for results in grouped for r in results)
-    if trim_end and kept:
-        computed["end"] = grouped[0][0].dates[kept - 1]
-    answers = _nested(request, plans, grouped, kept)
+    found, notes = _projected(plans, lat, lng, first, last, now, mode) if mode else (None, [])
+    if found is not None:
+        grouped = [f.results for f in found]
+        answers = _nested(request, plans, grouped, max(len(r.dates) for rs in grouped for r in rs), projected=found)
+    else:
+        grouped = _execute(plans, lat, lng, first, last, now)
+        kept = max(points.keep(r.kinds, options.forecast, trim_end) for results in grouped for r in results)
+        if trim_end and kept:
+            computed["end"] = grouped[0][0].dates[kept - 1]
+        answers = _nested(request, plans, grouped, kept)
     some = grouped[0][0]
     return respond(
         request,
@@ -170,6 +205,7 @@ def run_several(
             location=location,
             summary={"corrections": list(some.corrections)},
             sources=list(some.sources),
+            warnings=notes,
             etag=etag,
         ),
     )
@@ -183,11 +219,14 @@ def risk(
     date: date | None = None,
     models: str | None = None,
     planting_date: str | None = None,
+    projection: str | None = None,
 ) -> HttpResponse:
     """One row per model with a risk layer: `model`, `name`, `group`, `version`, the day's `kind`, `risk_level`,
     `risk_label`, `risk_value` (continuous risk), `susceptibility` (with a planting date), `in_season` and `reason`
     (why there's no risk). `date` defaults to today. Without `models`, only those in season and in their region; with
-    it (`models=a,b` or `all`), every one asked. The Crop Risk Tool's dashboard and the alerts' query."""
+    it (`models=a,b` or `all`), every one asked. The Crop Risk Tool's dashboard and the alerts' query. With
+    `projection=true`, a `date` past the forecast takes each model's P50 across the archive's earlier years (D63),
+    with `projection_years` saying how many."""
     lat, lng = _one_point(where)
     now = clock.now()
     day = date or now.date()
@@ -199,12 +238,19 @@ def risk(
     if sum(len(p.runs) for p in plans) > MAX_RUNS:
         raise ApiError("too_many", f"more than {MAX_RUNS} model runs asked for", "models")
     computed = {**where.echo(), "date": day, "models": [m.SPEC.id for m in chosen] if asked else "in season"}
-    computed |= {"planting_date": planting_date, "units": output.units}
-    etag, unchanged, needed = _revalidate(request, plans, computed, lat, lng, day, day, now)
+    mode = _projection_mode(projection)
+    computed |= {"planting_date": planting_date, "units": output.units, "projection": mode and "band"}
+    etag, unchanged, needed = _revalidate(request, plans, computed, lat, lng, day, day, now, projecting=bool(mode))
     if unchanged is not None:
         return unchanged
     location = located(where, needed, day)[0]
-    grouped = _execute(plans, lat, lng, day, day, now)
+    found, notes = _projected(plans, lat, lng, day, day, now, "band") if mode else (None, [])
+    projected_years = [None] * len(plans)
+    if found is not None:
+        grouped = [f.results for f in found]
+        projected_years = [f.bands for f in found]
+    else:
+        grouped = _execute(plans, lat, lng, day, day, now)
     rows: dict[str, list[Any]] = {
         name: []
         for name in (
@@ -220,12 +266,14 @@ def risk(
             "susceptibility",
             "in_season",
             "reason",
+            "projection_years",
         )
     }
-    for the_plan, results in zip(plans, grouped, strict=True):
+    for the_plan, results, bands in zip(plans, grouped, projected_years, strict=True):
         spec = the_plan.model.SPEC
         assert spec.risk is not None
         for k, r in enumerate(results):
+            years_behind = int(bands[k].years[0]) if bands and bands[k].years.size and bands[k].years[0] > 0 else None
             in_season = None if r.in_season is None else bool(r.in_season[0])
             if not asked and (in_season is False or r.reason == "outside the model's region"):
                 continue
@@ -244,6 +292,7 @@ def risk(
             rows["susceptibility"].append(None if gate is None or gate != gate else SUSCEPTIBILITY.get(float(gate)))
             rows["in_season"].append(in_season)
             rows["reason"].append(r.reason)
+            rows["projection_years"].append(years_behind)
     columns = [
         Column(name=name, values=values, unit="index" if name == "risk_value" else None)
         for name, values in rows.items()
@@ -258,7 +307,7 @@ def risk(
             location=location,
             summary={"models": len(rows["model"]), **({"option_sets": sets} if sets else {})},
             sources=list(some.sources) if some else [],
-            warnings=sorted({w for p in plans for w in p.warnings}),
+            warnings=[*notes, *sorted({w for p in plans for w in p.warnings})],
             filename=f"agweather-risk-{day}",
             etag=etag,
         ),
@@ -489,7 +538,7 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
     }
     if single:
         the_plan = plans[0]
-        columns, summary, table_warnings = _table(the_plan.model, results, kept, multiple=len(results) > 1)
+        columns, summary, table_warnings = _table(the_plan.model, results, kept, labels=_labels(results))
         if the_plan.option_sets:
             summary["option_sets"] = the_plan.option_sets
         summary |= counts
@@ -569,11 +618,23 @@ def _station_days(
     return DailySeries(dates=dates, values=values, kinds=kinds, forecast=Forecast(path=None), zone=zone), sources
 
 
-def _nested(request: HttpRequest, plans, grouped, kept: int, units: str | None = None) -> dict[str, Any]:
+def _nested(
+    request: HttpRequest,
+    plans,
+    grouped,
+    kept: int,
+    units: str | None = None,
+    projected: "list[Projected] | None" = None,
+) -> dict[str, Any]:
     """Each model's answer under its id: its `meta` (`request`, `units`, `summary`, `warnings`) and `data`."""
     answers = {}
-    for the_plan, results in zip(plans, grouped, strict=True):
-        columns, summary, warnings = _table(the_plan.model, results, kept, multiple=len(results) > 1)
+    for k, (the_plan, results) in enumerate(zip(plans, grouped, strict=True)):
+        if projected is not None:
+            p = projected[k]
+            columns, summary, warnings = _table(the_plan.model, results, kept, labels=p.labels, bands=p.bands)
+            summary["projection"] = p.summary
+        else:
+            columns, summary, warnings = _table(the_plan.model, results, kept, labels=_labels(results))
         if the_plan.option_sets:
             summary["option_sets"] = the_plan.option_sets
         request_echo = {**the_plan.request}
@@ -610,10 +671,12 @@ def _one_point(where: PointsQuery) -> tuple[float, float]:
     return where.locations()[0]
 
 
-def _revalidate(request, plans, computed, lat, lng, first, last, now):
-    """(ETag, a 304 if the client holds it, the first day read): before any read or run."""
+def _revalidate(request, plans, computed, lat, lng, first, last, now, projecting: bool = False):
+    """(ETag, a 304 if the client holds it, the first day read): before any read or run. A projection reads the
+    archive's earlier years too, so their writes count."""
     needed, _ = days_needed([r for p in plans for r in p.runs], first)
-    stamp = points.stamp([(lat, lng)], needed, last, now)
+    years = archive_years(settings.DATA_DIR) if projecting else []
+    stamp = points.stamp([(lat, lng)], min([needed, *(date(y, 1, 1) for y in years if y < needed.year)]), last, now)
     etag = None if stamp is None else etag_for(request, computed, stamp)
     unchanged = None if etag is None else not_modified(request, etag)
     return etag, unchanged, needed
@@ -645,13 +708,41 @@ def _span(when: DaysQuery, m: Model, the_plan: runs.Plan, default_end: date, tod
     return min(first, last), last
 
 
-def _table(m: Model, results: list[ModelRun], n: int, multiple: bool) -> tuple[list[Column], dict, list[str]]:
+@dataclass(kw_only=True)
+class Band:
+    """A projected run's spread: per number column, its P10 and P90 per day (NaN before the projection), and how
+    many years each day has."""
+
+    low: dict[str, np.ndarray]
+    high: dict[str, np.ndarray]
+    years: np.ndarray
+
+
+def _labels(results: list[ModelRun]) -> list[dict[str, Any]] | None:
+    return [{"option_set": k} for k in range(len(results))] if len(results) > 1 else None
+
+
+def _table(
+    m: Model,
+    results: list[ModelRun],
+    n: int,
+    labels: list[dict[str, Any]] | None = None,
+    bands: list[Band] | None = None,
+) -> tuple[list[Column], dict, list[str]]:
+    """One row per day of each run, in order: `labels[k]` adds columns naming run k (`option_set`, `year`), and
+    `bands[k]` its P10 and P90 beside each number column (`projection=true`)."""
     spec = m.SPEC
     warnings: list[str] = []
     columns: dict[str, list[Any]] = {}
 
     def add(name: str, values) -> None:
         columns.setdefault(name, []).extend(list(values))
+
+    def numbers(name: str, values: list[float], k: int, count: int) -> None:
+        add(name, values)
+        if bands is not None:
+            for suffix, side in (("p10", bands[k].low), ("p90", bands[k].high)):
+                add(f"{name}_{suffix}", _values(side.get(name), count))
 
     estimated = sorted({name for r in results for name in r.estimated})
     gated = any(r.susceptibility is not None for r in results)
@@ -661,17 +752,18 @@ def _table(m: Model, results: list[ModelRun], n: int, multiple: bool) -> tuple[l
     for k, r in enumerate(results):
         rows = r.dates[:n]
         count = len(rows)
-        if multiple:
-            add("option_set", [k] * count)
+        label = labels[k] if labels else {}
+        for key, value in label.items():
+            add(key, [value] * count)
         add("date", rows)
         add("kind", r.kinds[:n])
         for q in spec.inputs:
-            add(q.name, _values(r.inputs.get(q.name), count))
+            numbers(q.name, _values(r.inputs.get(q.name), count), k, count)
         for name in estimated:
             flags = r.estimated.get(name)
             add(f"{name}_estimated", [False] * count if flags is None else [bool(f) for f in flags[:n]])
         for q in spec.outputs:
-            add(q.name, _values(r.outputs.get(q.name), count))
+            numbers(q.name, _values(r.outputs.get(q.name), count), k, count)
         if is_crop:
             stage = _values(r.outputs.get("stage"), count)
             add("stage_code", [stages[int(s)] if s == s and s >= 0 else None for s in stage])
@@ -680,33 +772,42 @@ def _table(m: Model, results: list[ModelRun], n: int, multiple: bool) -> tuple[l
             add("risk_level", [None if v != v else int(v) for v in level])
             add("risk_label", [None if v != v else spec.risk.levels[int(v)] for v in level])
             if spec.risk.thresholds:
-                add("risk_value", _values(r.risk, count))
+                numbers("risk_value", _values(r.risk, count), k, count)
         if gated:
             gate = _values(r.susceptibility, count)
             add("susceptibility", [SUSCEPTIBILITY.get(float(v)) if v == v else None for v in gate])
         if spec.season is not None:
             add("in_season", [None] * count if r.in_season is None else [bool(v) for v in r.in_season[:n]])
+        if bands is not None:
+            add("projection_years", [int(v) if v > 0 else None for v in _values(bands[k].years, count)])
         if r.reason:
-            warnings.append(f"option set {k}: {r.reason}" if multiple else f"no output: {r.reason}")
+            named = ", ".join(f"{key} {value}" for key, value in label.items())
+            warnings.append(f"{named}: {r.reason}" if named else f"no output: {r.reason}")
         if r.windows:
             windows.append(
                 {
-                    **({"option_set": k} if multiple else {}),
+                    **label,
                     "windows": {
-                        label: [[a.isoformat(), b.isoformat()] for a, b in periods]
-                        for label, periods in r.windows.items()
+                        name: [[a.isoformat(), b.isoformat()] for a, b in periods]
+                        for name, periods in r.windows.items()
                     },
                 }
             )
 
+    inputs = {q.name for q in spec.inputs}
+    outputs = {q.name: q for q in spec.outputs}
     table: list[Column] = []
     for name, values in columns.items():
-        if name in {q.name for q in spec.inputs}:
-            table.append(catalog_column(name, values))
-        elif name in {q.name for q in spec.outputs}:
-            q = next(q for q in spec.outputs if q.name == name)
-            table.append(Column(name=name, values=values, unit=q.unit, summarize=True))
-        elif name == "risk_value":
+        base = name.removesuffix("_p10").removesuffix("_p90")
+        summarize = base == name
+        if base in inputs:
+            v = catalog_column(base, values)
+            table.append(
+                Column(name=name, values=values, unit=v.unit, step=v.step, variable=v.variable, summarize=summarize)
+            )
+        elif base in outputs:
+            table.append(Column(name=name, values=values, unit=outputs[base].unit, summarize=summarize))
+        elif base == "risk_value":
             table.append(Column(name=name, values=values, unit="index"))
         else:
             table.append(Column(name=name, values=values))
@@ -719,9 +820,145 @@ def _table(m: Model, results: list[ModelRun], n: int, multiple: bool) -> tuple[l
             name: sum(int(np.sum(r.estimated[name][:n])) for r in results if name in r.estimated) for name in estimated
         },
     }
+    if bands is not None:
+        summary["days_projected"] = sum(kind == PROJECTION for kind in kinds)
     if windows:
         summary["windows"] = windows
     return table, summary, warnings
+
+
+def _median(m: Model, runs: list[ModelRun], begins: date) -> tuple[ModelRun, Band]:
+    """A run's scenarios as one: P50 per day (the line), with their P10 and P90 (the band) on projected days; a
+    level, stage or susceptibility code is the P50 rounded down. Before `begins` every scenario is the same."""
+    first = runs[0]
+    k = min(max(0, (begins - first.dates[0]).days), len(first.dates)) if first.dates else 0  # the first projected row
+    low: dict[str, np.ndarray] = {}
+    high: dict[str, np.ndarray] = {}
+
+    def middle(name: str, series: list[np.ndarray | None]) -> np.ndarray | None:
+        if any(v is None for v in series):
+            return None
+        found = spread([np.asarray(v, dtype=float) for v in series if v is not None])
+        p50 = found.p50.copy()
+        p50[:k] = np.asarray(series[0], dtype=float)[:k]
+        low[name] = np.where(np.arange(p50.size) >= k, found.p10, np.nan)
+        high[name] = np.where(np.arange(p50.size) >= k, found.p90, np.nan)
+        return p50
+
+    def coded(series: list[np.ndarray | None]) -> np.ndarray | None:
+        if any(v is None for v in series):
+            return None
+        found = spread([np.asarray(v, dtype=float) for v in series if v is not None]).p50
+        return np.floor(found)
+
+    inputs = {name: middle(name, [r.inputs.get(name) for r in runs]) for name in first.inputs}
+    outputs = {name: middle(name, [r.outputs.get(name) for r in runs]) for name in first.outputs}
+    if "stage" in outputs and outputs["stage"] is not None:
+        outputs["stage"] = coded([r.outputs.get("stage") for r in runs])
+    risk = middle("risk_value", [r.risk for r in runs]) if first.risk is not None else None
+    years = spread([next(iter(r.outputs.values())) if r.outputs else np.full(len(first.dates), np.nan) for r in runs])
+    biofixes = {r.biofix for r in runs}
+    reasons = {r.reason for r in runs}
+    merged = replace(
+        first,
+        inputs={name: v for name, v in inputs.items() if v is not None},
+        outputs={name: v for name, v in outputs.items() if v is not None},
+        risk=risk,
+        level=coded([r.level for r in runs]),
+        susceptibility=coded([r.susceptibility for r in runs]),
+        biofix=first.biofix if len(biofixes) == 1 else None,
+        reason=first.reason if len(reasons) == 1 else None,
+        windows={},
+    )
+    counts = np.where(np.arange(len(first.dates)) >= k, years.count, 0)
+    return merged, Band(low=low, high=high, years=counts)
+
+
+# --- Projection (D63) ---------------------------------------------------------------------------------------------
+
+
+@dataclass(kw_only=True)
+class Projected:
+    """One plan's runs ready for `_table`: rows, their labels and bands, and `meta.summary.projection`."""
+
+    results: list[ModelRun]
+    labels: list[dict[str, Any]] | None
+    bands: list[Band] | None
+    summary: dict[str, Any]
+
+
+def _projection_mode(raw: str | None) -> str | None:
+    """None (off), "band" (P10/P50/P90) or "years" (each past year's path)."""
+    if raw in (None, "", "false", "none"):
+        return None
+    if raw in ("true", "band"):
+        return "band"
+    if raw == "years":
+        return "years"
+    raise ApiError(
+        "invalid", "projection is true (P10, P50 and P90 across past years) or years (each one)", "projection"
+    )
+
+
+def _season_end(spec, first: date) -> date:
+    """The last day of the season `first` falls in (the spec's, a crossing one in the next year), else December 31."""
+    if spec.season is None:
+        return date(first.year, 12, 31)
+    month, day = (int(p) for p in spec.season[1].split("-"))
+    end = date(first.year, month, day)
+    return end if end >= first else date(first.year + 1, month, day)
+
+
+def _projected(
+    plans: list[runs.Plan], lat: float, lng: float, first: date, last: date, now, mode: str
+) -> tuple[list[Projected] | None, list[str]]:
+    """Each plan's runs carried past the forecast on the archive's earlier years, or None outside the archive."""
+    every = [r for p in plans for r in p.runs]
+    found = projected_at_point(lat, lng, every, first, last, now)
+    if found is None:
+        return None, ["no projection outside the service box or before the archive: the series ends with the forecast"]
+    warnings = []
+    if found.start is None:
+        warnings.append(f"the series has data through {last}: nothing to project")
+    elif not found.years:
+        warnings.append("no earlier years in the archive to project with: the series ends with the forecast")
+    elif len(found.years) == 1:
+        warnings.append(
+            f"one earlier year in the archive ({found.years[0]}): the projection is that year, with no band"
+        )
+    out, k = [], 0
+    for p in plans:
+        groups = found.runs[k : k + len(p.runs)]
+        k += len(p.runs)
+        sets = len(groups) > 1
+        info: dict[str, Any] = {"mode": mode, "start": found.start, "years": found.years}
+        if found.start is not None and found.years:
+            reached = [[_milestone(r) for r in milestones(p.model, rs)] for rs in groups]
+            info["milestones"] = reached if sets else reached[0]
+        if mode == "band" and found.years and found.start is not None:
+            pairs = [_median(p.model, rs, found.start) for rs in groups]
+            out.append(
+                Projected(
+                    results=[a for a, _ in pairs],
+                    labels=_labels([a for a, _ in pairs]),
+                    bands=[b for _, b in pairs],
+                    summary=info,
+                )
+            )
+        else:
+            results, labels = [], []
+            for s_index, rs in enumerate(groups):
+                for year, r in zip(found.years or [None], rs, strict=False):
+                    results.append(r)
+                    labels.append(
+                        {**({"option_set": s_index} if sets else {}), **({"year": year} if found.years else {})}
+                    )
+            out.append(Projected(results=results, labels=labels if any(labels) else None, bands=None, summary=info))
+    return out, warnings
+
+
+def _milestone(r) -> dict[str, Any]:
+    return {"what": r.what, "name": r.name, "reached": r.reached, "of": r.of, "p10": r.p10, "p50": r.p50, "p90": r.p90}
 
 
 def _values(array, count: int) -> list[float]:

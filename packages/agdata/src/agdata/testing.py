@@ -37,13 +37,20 @@ def weather(times: list[datetime], warm: float) -> dict[str, np.ndarray]:
     }
 
 
-def archive(data_dir, start: datetime, end: datetime) -> None:
-    """Archive hours start..end (inclusive) at 15 °C ± 6, rolled up with running totals from the next day."""
+def archive(
+    data_dir, start: datetime, end: datetime, warm: float = 15.0, hole: tuple[datetime, datetime] | None = None
+) -> None:
+    """Archive hours start..end (inclusive) at `warm` °C ± 6 (missing through `hole`, inclusive), rolled up with
+    running totals from the next day."""
     times = [start + k * HOUR for k in range((end - start) // HOUR + 1)]
-    values = weather(times, warm=15)
+    values = weather(times, warm=warm)
     values["surface_pressure"] = np.full((len(times), *WINDOW.shape), 98.0)
     values["relative_humidity"] = np.full((len(times), *WINDOW.shape), 75.0)
     values["et0"] = np.full((len(times), *WINDOW.shape), 0.1)
+    if hole is not None:
+        gone = [n for n, t in enumerate(times) if hole[0] <= t <= hole[1]]
+        for v in values.values():
+            v[gone] = np.nan
     for year in range(start.year, end.year + 1):
         store = GridStore.create(data_dir, HOURLY, year, WINDOW, VARIABLES.values())
         k = [n for n, t in enumerate(times) if t.year == year]

@@ -71,6 +71,42 @@ def _openmeteo_runs(latitude, longitude, runs, start, end, now) -> list[ModelRun
     return series.runs_at_point(read_days, latitude, longitude, runs, start, end, planting_default=False)
 
 
+def projected_at_point(
+    latitude: float,
+    longitude: float,
+    runs: Sequence[series.RunSpec],
+    start: date,
+    end: date,
+    now: datetime,
+) -> series.Projected | None:
+    """Runs carried past the forecast on each earlier archive year (D63); None for a point outside the archive (no
+    projection there yet: Ben, 2026-11-03)."""
+    first, names = series.days_needed(runs, start)
+    if not in_archive(latitude, longitude, first, min(end, now.date())):
+        return None
+    cell = NDFD.cell_of(latitude, longitude)
+    assert cell is not None
+    stores = series.Stores(series.hourly_needed(names))
+
+    def fill_soil(first_hour: datetime, last_hour: datetime, wanted: list[str]) -> dict[str, np.ndarray]:
+        values, _, _ = openmeteo.cell_hours(latitude, longitude, first_hour, last_hour, now)  # soil only
+        return {name: values[name] for name in wanted if name in values}
+
+    def read_days(a: date, b: date, wanted: list[str]) -> series.DailySeries:
+        return series.point_days(settings.DATA_DIR, *cell, a, b, wanted, now=now, fill_soil=fill_soil, stores=stores)
+
+    return series.projected_runs(
+        read_days,
+        series.past_reader(settings.DATA_DIR, *cell, stores=stores),
+        latitude,
+        longitude,
+        runs,
+        start,
+        end,
+        years=series.archive_years(settings.DATA_DIR),
+    )
+
+
 def model_at_point(
     latitude: float,
     longitude: float,

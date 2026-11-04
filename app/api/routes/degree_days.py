@@ -14,12 +14,16 @@ from collections.abc import Callable
 from datetime import date, timedelta
 
 import numpy as np
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from ninja import Query, Router
 
-from agdata.series import FORECAST, PARTIAL
+from agdata import projection
+from agdata.grid import NDFD
+from agdata.series import FORECAST, PARTIAL, archive_years, past_reader
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
+from agmodels.scenarios import first_days, reached, spread
 from api import clock, points
 from api.envelope import Column, Result, catalog_column, not_modified, respond
 from api.errors import ApiError
@@ -34,6 +38,7 @@ from api.params import (
     setting,
     temperature_threshold,
 )
+from api.routes.models import _projection_mode
 from api.routes.weather import (
     FORECAST_DAYS,
     MAX_DAYS,
@@ -93,8 +98,8 @@ def degree_days(s: DegreeDaySetting, lo_f: np.ndarray, hi_f: np.ndarray) -> np.n
 
 
 def running(daily: np.ndarray, usable: np.ndarray, start: int) -> np.ndarray:
-    """A running total from index `start` (NaN before it), adding nothing for an unusable day (D56)."""
-    total = np.cumsum(np.where(usable, daily, 0.0))
+    """A running total from index `start` (NaN before it), adding nothing for an unusable day (D56); time on axis 0."""
+    total = np.cumsum(np.where(usable, daily, 0.0), axis=0)
     if start > 0:
         total = total - total[start - 1]
     total[:start] = np.nan
@@ -122,60 +127,139 @@ def daily(
     upper: float | None = None,
     method: str | None = None,
     biofix: date | None = None,
+    targets: str | None = None,
+    projection: str | None = None,
 ) -> HttpResponse:
     """One row per point and day: `date`, `kind`, the minimum and maximum temperature, `temperature_estimated` (the
     day's degree days use estimated temperatures), and for each setting `dd_<setting>` (that day's) and
     `dd_<setting>_cum` (the running total from `biofix`, default `start`). Settings: `dd=sine_48_86,modified_50_86,
     average_43` (method_base[_upper], in the request's units), or `base`, `upper` and `method` (sine, average,
-    modified) for one. Defaults: January 1 through the forecast."""
+    modified) for one. Defaults: January 1 through the forecast. `targets=1400,2000` (degree days in the request's
+    units): when each setting's running total reaches each, in `meta.summary.targets`. `projection=true` carries
+    the series past the forecast to `end` (default December 31) on each earlier archive year (D63), as
+    `GET /models/{id}/run` does: P50 with `_p10` and `_p90` columns, or `projection=years` for each year's."""
     warnings: list[str] = []
     found_settings = settings_from(request, dd, output.units, warnings)
+    goals = _targets(targets, output.units)
+    mode = _projection_mode(projection)
     read_from, first, last, trim_end = dd_window(when, options, biofix)
+    if mode and when.end is None and when.date is None:
+        last, trim_end = date(first.year, 12, 31), False
     check_size((last - read_from).days + 1, len(where.locations()), MAX_DAYS, "days")
     now = clock.now()
     computed = _computed(where, first, last, found_settings, biofix or first, options, output)
-    etag = _etag(request, computed, points.stamp(where.locations(), read_from, last, now))
+    computed |= {"targets": goals or None, "projection": mode}
+    years = archive_years(settings.DATA_DIR) if mode else []
+    stamp_from = min([read_from, *(date(y, 1, 1) for y in years if y < read_from.year)])
+    etag = _etag(request, computed, points.stamp(where.locations(), stamp_from, last, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, read_from, last)
     found, read_warnings, sources, corrections = read_days(where, read_from, last, TEMPERATURES, options, trim_end, now)
     warnings += read_warnings
     skip = (first - read_from).days
-    columns: dict[str, list] = {"point": [], "date": [], "kind": [], "temperature_estimated": []}
-    columns |= {name: [] for name in TEMPERATURES}
-    for s in found_settings:
-        columns[f"dd_{s.name}"], columns[f"dd_{s.name}_cum"] = [], []
-    start_at = (biofix or first) - read_from
+    start_at = max(0, ((biofix or first) - read_from).days)
     if biofix is not None and biofix > last:
         warnings.append(f"biofix {biofix} is after the last day ({last}): no running totals")
+    columns: dict[str, list] = {}
+    reached_targets: list[dict] = []
+    projections: list[dict] = []
+
+    def add(name: str, values) -> None:
+        columns.setdefault(name, []).extend(list(values))
+
     for k, (days, n) in enumerate(found):
-        lo_f, hi_f, estimated, usable = temperatures(days, n, options.gaps)
-        shown = slice(skip, n)
-        columns["point"] += [k] * max(0, n - skip)
-        columns["date"] += days.dates[shown]
-        columns["kind"] += days.kinds[shown]
-        columns["temperature_estimated"] += estimated[shown].tolist()
-        for name in TEMPERATURES:
-            columns[name] += list(days.values[name][shown])
-        for s in found_settings:
-            values = degree_days(s, lo_f, hi_f)
-            columns[f"dd_{s.name}"] += list(np.where(usable, values, np.nan)[shown])
-            columns[f"dd_{s.name}_cum"] += list(running(values, usable, max(0, start_at.days))[shown])
-    table = [Column(name=name, values=columns[name]) for name in ("point", "date", "kind")]
-    if where.points is None:
-        table = table[1:]
-    table += [catalog_column(name, columns[name]) for name in TEMPERATURES]
-    table.append(Column(name="temperature_estimated", values=columns["temperature_estimated"]))
-    for s in found_settings:
-        for name in (f"dd_{s.name}", f"dd_{s.name}_cum"):
-            table.append(Column(name=name, values=columns[name], unit="degF_day", step=DD_STEP, summarize=True))
+        lat, lng = where.locations()[k]
+        tmin = np.asarray(days.values["air_temperature_min"][:n], dtype=float)[:, None]
+        tmax = np.asarray(days.values["air_temperature_max"][:n], dtype=float)[:, None]
+        kinds, labels, cut = list(days.kinds[:n]), [None], n
+        if mode:
+            tmin, tmax, kinds, labels, cut, info, note = _project(days, n, lat, lng, last, years)
+            projections.append({"point": k, **info})
+            warnings += [note] if note and note not in warnings else []
+        lo_f, hi_f, estimated, usable = temperatures_of(tmin, tmax, options.gaps)
+        dds = {s.name: degree_days(s, lo_f, hi_f) for s in found_settings}
+        totals = {name: running(values, usable, start_at) for name, values in dds.items()}
+        rows = len(kinds)
+        for target_f, shown_target in goals:
+            for s in found_settings:
+                days_hit = first_days(
+                    days.dates[:cut] + _projected_dates(days.dates, cut, rows),
+                    [totals[s.name][:, j] >= target_f for j in range(totals[s.name].shape[1])],
+                )
+                hit = reached("target", s.name, days_hit)
+                reached_targets.append(
+                    {"point": k, "setting": s.name, "target": shown_target, "reached": hit.reached, "of": hit.of}
+                    | {"p10": hit.p10, "p50": hit.p50, "p90": hit.p90}
+                )
+        dates = days.dates[:cut] + _projected_dates(days.dates, cut, rows)
+        shown = slice(skip, rows)
+        temps = {"air_temperature_min": tmin, "air_temperature_max": tmax}
+        sums = {}
+        for s in found_settings:  # each setting's day, then its running total
+            sums[f"dd_{s.name}"] = np.where(usable, dds[s.name], np.nan)
+            sums[f"dd_{s.name}_cum"] = totals[s.name]
+        before = np.arange(rows) < cut
+        if mode == "band" and labels != [None]:  # projected: the line, P50, and the band
+            add("point", [k] * (rows - skip))
+            add("date", dates[shown])
+            add("kind", kinds[shown])
+            for group in (temps, sums):
+                for name, values in group.items():
+                    found_spread = spread([values[:, j] for j in range(values.shape[1])])
+                    add(name, np.where(before, values[:, 0], found_spread.p50)[shown])
+                    for suffix, side in (("p10", found_spread.p10), ("p90", found_spread.p90)):
+                        add(f"{name}_{suffix}", np.where(before, np.nan, side)[shown])
+                if group is temps:
+                    add(
+                        "temperature_estimated", [bool(estimated[d, 0]) if d < cut else None for d in range(skip, rows)]
+                    )
+            years_with = np.isfinite(tmin).sum(axis=1)
+            add("projection_years", [int(years_with[d]) if d >= cut else None for d in range(skip, rows)])
+        else:
+            for j, year in enumerate(labels):
+                add("point", [k] * (rows - skip))
+                if mode == "years":
+                    add("year", [year] * (rows - skip))
+                add("date", dates[shown])
+                add("kind", kinds[shown])
+                for name, values in temps.items():
+                    add(name, values[shown, j])
+                add("temperature_estimated", estimated[shown, j].tolist())
+                for name, values in sums.items():
+                    add(name, values[shown, j])
+    table = []
+    for name, values in columns.items():
+        base_name = name.removesuffix("_p10").removesuffix("_p90")
+        if name == "point" and where.points is None:
+            continue
+        if base_name in TEMPERATURES:
+            column = catalog_column(base_name, values)
+            table.append(
+                Column(
+                    name=name,
+                    values=values,
+                    unit=column.unit,
+                    step=column.step,
+                    variable=column.variable,
+                    summarize=name == base_name,
+                )
+            )
+        elif base_name.startswith("dd_"):
+            table.append(Column(name=name, values=values, unit="degF_day", step=DD_STEP, summarize=name == base_name))
+        else:
+            table.append(Column(name=name, values=values))
     if found and trim_end:
         computed["end"] = max((days.dates[n - 1] for days, n in found if n), default=last)
     summary = {
         **day_counts([(days, n) for days, n in found]),
-        "days_estimated": sum(columns["temperature_estimated"]),
+        "days_estimated": sum(v for v in columns.get("temperature_estimated", []) if v),
         "corrections": corrections,
     }
+    if goals:
+        summary["targets"] = reached_targets
+    if mode:
+        summary["projection"] = projections if where.points is not None else (projections[0] if projections else None)
     return respond(
         request,
         Result(
@@ -189,6 +273,75 @@ def daily(
             etag=etag,
         ),
     )
+
+
+def _targets(raw: str | None, units: str) -> list[tuple[float, float]]:
+    """(°F·d, as given) per target: degree days in the request's units."""
+    if not raw:
+        return []
+    found = []
+    for part in raw.split(","):
+        try:
+            value = float(part)
+        except ValueError:
+            raise ApiError("invalid", "targets are degree-day totals separated by commas", "targets") from None
+        if value <= 0:
+            raise ApiError("out_of_range", f"target {value:g} must be above 0", "targets")
+        found.append((value * 1.8 if units == "metric" else value, value))
+    return found
+
+
+def _projected_dates(dates: list[date], cut: int, rows: int) -> list[date]:
+    start = dates[cut - 1] + timedelta(days=1) if cut else dates[0]
+    return [start + timedelta(days=d) for d in range(rows - cut)]
+
+
+def _project(days, n: int, lat: float, lng: float, last: date, years: list[int]):
+    """The point's min and max, (days × years) with each earlier year's after the series' last day with data."""
+    tmin = np.asarray(days.values["air_temperature_min"][:n], dtype=float)
+    tmax = np.asarray(days.values["air_temperature_max"][:n], dtype=float)
+    kinds = list(days.kinds[:n])
+    begins = projection.projection_start(days.dates[:n], kinds)
+    plain = (tmin[:, None], tmax[:, None], kinds, [None], n)
+    if begins is None or begins > last:
+        return *plain, {"start": None, "years": []}, f"the series has data through {last}: nothing to project"
+    cell = NDFD.cell_of(lat, lng)
+    if cell is None or not points.from_archive(lat, lng, days.dates[0], begins - timedelta(days=1)):
+        return *plain, {"start": None, "years": []}, "no projection outside the service box or before the archive"
+    cut = (begins - days.dates[0]).days
+    found = projection.build(
+        begins, last, [y for y in years if y < last.year], TEMPERATURES, past_reader(settings.DATA_DIR, *cell)
+    )
+    if not found.years:
+        return *plain, {"start": begins, "years": []}, "no earlier years in the archive to project with"
+    values, all_kinds = projection.stacked(
+        {"air_temperature_min": tmin[:cut], "air_temperature_max": tmax[:cut]}, kinds[:cut], found
+    )
+    note = (
+        f"one earlier year in the archive ({found.years[0]}): the projection is that year, with no band"
+        if len(found.years) == 1
+        else None
+    )
+    return (
+        values["air_temperature_min"],
+        values["air_temperature_max"],
+        all_kinds,
+        found.years,
+        cut,
+        {"start": begins, "years": found.years},
+        note,
+    )
+
+
+def temperatures_of(tmin: np.ndarray, tmax: np.ndarray, gaps: str):
+    """`temperatures` on (days × scenarios) arrays."""
+    known = np.isfinite(tmin) & np.isfinite(tmax)
+    lo, hi = np.where(known, tmin, np.nan), np.where(known, tmax, np.nan)
+    if gaps == "estimate":
+        lo, _ = fill_short_gaps(lo, MAX_GAP_DAYS)
+        hi, _ = fill_short_gaps(hi, MAX_GAP_DAYS)
+    usable = np.isfinite(lo) & np.isfinite(hi)
+    return lo * 1.8 + 32, hi * 1.8 + 32, usable & ~known, usable
 
 
 @router.get("/degree-days/table", response=responses(TableResponse), summary="Degree-day totals at points")

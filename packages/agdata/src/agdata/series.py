@@ -20,7 +20,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata import corrections, forecast
+from agdata import corrections, forecast, projection
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, GAP_FILL, VARIABLES
 from agdata.daily import cell_timezones
 from agdata.grid import NDFD, Window
@@ -32,6 +32,7 @@ from agdata.timezones import day_bounds, zone_at
 from agmodels import runner
 from agmodels.registry import model as find_model
 from agmodels.runner import ModelRun
+from agmodels.scenarios import run_scenarios
 
 HOUR = timedelta(hours=1)
 MAX_RUN_AGE = timedelta(hours=12)  # past this a run's forecast isn't used (D43; the job runs every 6 hours)
@@ -505,6 +506,92 @@ def runs_at_point(
         )
         results[-1].sources, results[-1].corrections = days.sources, days.corrections
     return results
+
+
+@dataclass(kw_only=True)
+class Projected:
+    """Runs carried past the series' last day with data on each earlier year's days (D63): per `RunSpec`, one
+    `ModelRun` per scenario (in `years` order), or the one plain run when there's nothing to project."""
+
+    runs: list[list[ModelRun]]
+    years: list[int]  # each scenario's source year; empty: no projection
+    start: date | None = None  # the first projected day
+    coverage: np.ndarray = field(default_factory=lambda: np.zeros(0, dtype=int))  # years with every input, per day
+
+
+def archive_years(data_dir: Path) -> list[int]:
+    """The years the archive has a daily store for."""
+    folder = DAILY.path(data_dir, 2000).parent
+    found = []
+    for path in folder.glob("*.zarr") if folder.exists() else ():
+        try:
+            found.append(int(path.stem))
+        except ValueError:
+            continue
+    return sorted(found)
+
+
+def projected_runs(
+    read_days: ReadDays,
+    read_past: Callable[[date, date, list[str]], dict[str, np.ndarray]],
+    latitude: float,
+    longitude: float,
+    runs: Sequence[RunSpec],
+    start: date,
+    end: date,
+    years: Sequence[int],
+) -> Projected:
+    """`runs_at_point` carried on past the series' last day with data to `end`, once per earlier year in `years`
+    (`agdata.projection`; `read_past` reads a past year's days). Each run's scenarios come from
+    `agmodels.scenarios.run_scenarios`, the same as running each year alone."""
+    first, names = days_needed(runs, start)
+    days = read_days(first, end, names)
+    begins = projection.projection_start(days.dates, days.kinds)
+    county = county_at(latitude, longitude)
+    if begins is None or begins > end:
+        plain = runs_at_point(lambda *_: days, latitude, longitude, runs, start, end, planting_default=False)
+        return Projected(runs=[[r] for r in plain], years=[])
+    kept = (begins - first).days
+    scenarios_found = projection.build(begins, end, [y for y in years if y < end.year], names, read_past)
+    if not scenarios_found.years:
+        plain = runs_at_point(lambda *_: days, latitude, longitude, runs, start, end, planting_default=False)
+        return Projected(runs=[[r] for r in plain], years=[], start=begins, coverage=scenarios_found.coverage)
+    values, kinds = projection.stacked(
+        {name: days.values[name][:kept] for name in names}, days.kinds[:kept], scenarios_found
+    )
+    dates = days.dates[:kept] + scenarios_found.dates
+    out = []
+    for run in runs:
+        m = find_model(run.model_id)
+        k = (runner.first_day_needed(m, start, biofix=run.biofix, planting=run.planting) - first).days
+        in_region = not m.SPEC.region or (county is not None and county.state in m.SPEC.region)
+        found = run_scenarios(
+            m,
+            dates=dates[k:],
+            daily={name: values[name][k:] for name in runner.required_inputs(m)},
+            latitude=latitude,
+            start=start,
+            kinds=kinds[k:],
+            biofix=run.biofix,
+            planting=run.planting,
+            options=run.options,
+            crop_options=run.crop_options,
+            in_region=in_region,
+            gap_fill=GAP_FILL,
+        )
+        for r in found:
+            r.sources, r.corrections = days.sources, days.corrections
+        out.append(found)
+    return Projected(runs=out, years=scenarios_found.years, start=begins, coverage=scenarios_found.coverage)
+
+
+def past_reader(data_dir: Path, j: int, i: int, stores: "Stores | None" = None):
+    """`projected_runs`' `read_past` at a cell: a past year's days from the archive (observed, so no forecast)."""
+
+    def read(first: date, last: date, names: list[str]) -> dict[str, np.ndarray]:
+        return point_days(data_dir, j, i, first, last, names, stores=stores).values
+
+    return read
 
 
 def models_at_point(

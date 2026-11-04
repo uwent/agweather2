@@ -18,3 +18,17 @@ def archive(archive_dir, settings, monkeypatch):
     settings.SERVICE_BOX = fixture_archive.BOX
     monkeypatch.setattr("api.clock.now", lambda: fixture_archive.NOW)
     return archive_dir
+
+
+@pytest.fixture(scope="session")
+def projection_archive_dir(tmp_path_factory):
+    """The fixture archive with two earlier years (`fixture_archive.build_with_past_years`), built once."""
+    return fixture_archive.build_with_past_years(tmp_path_factory.mktemp("projection-archive"))
+
+
+@pytest.fixture
+def projection_archive(projection_archive_dir, settings, monkeypatch):
+    settings.DATA_DIR = projection_archive_dir
+    settings.SERVICE_BOX = fixture_archive.BOX
+    monkeypatch.setattr("api.clock.now", lambda: fixture_archive.NOW)
+    return projection_archive_dir
