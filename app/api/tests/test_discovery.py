@@ -167,3 +167,12 @@ def test_a_model_says_what_a_planting_date_adds(client):
     corn = client.get("/api/v2/models/corn-stages").json()["data"]["crop"]
     assert corn["model"] == "corn-stages" and corn["options"] == []  # its own options are under options
     assert client.get("/api/v2/models/degree-days").json()["data"]["crop"] is None
+
+
+def test_a_model_declares_what_evaluate_returns(client):
+    dd = client.get("/api/v2/models/degree-days").json()["data"]["explorer_outputs"]
+    assert [(q["name"], q["unit"]) for q in dd] == [
+        ("sine", "degF_day"),
+        ("modified", "degF_day"),
+        ("average", "degF_day"),
+    ]

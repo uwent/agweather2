@@ -289,6 +289,7 @@ class ModelDetail(ModelSummary):
     crop: CropInfo | None  # None: the model takes no planting date
     risk: RiskInfo | None
     explorer: list[ExplorerInputInfo]
+    explorer_outputs: list[QuantityInfo]  # what POST /models/{id}/evaluate gives beyond `outputs`
     changelog: list[ChangeInfo]
 
 
@@ -382,6 +383,7 @@ def _detail(spec: ModelSpec) -> ModelDetail:
             )
             for e in spec.explorer
         ],
+        explorer_outputs=[QuantityInfo(**_quantity(q)) for q in spec.explorer_outputs],
         changelog=[ChangeInfo(version=c.version, date=c.date, note=c.note) for c in spec.changelog],
     )
 

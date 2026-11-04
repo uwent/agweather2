@@ -216,3 +216,43 @@ def test_risk_with_a_planting_date_shows_susceptibility(client, archive):
         {"lat": LAT, "lng": LNG, "date": "2025-07-08", "models": "tar-spot", "planting_date": "2025-05-01"},
     ).json()["data"]
     assert data["susceptibility"][0] in ("not susceptible", "margin", "susceptible")
+
+
+# --- Evaluate ------------------------------------------------------------------------------------------------------
+
+
+def evaluate(client, model_id, inputs, **query):
+    path = f"/api/v2/models/{model_id}/evaluate"
+    if query:
+        path += "?" + "&".join(f"{k}={v}" for k, v in query.items())
+    return client.post(path, {"inputs": inputs}, content_type="application/json")
+
+
+def test_evaluate_runs_the_models_core(client):
+    body = evaluate(client, "early-blight-pdays", {"tmin": 9.0, "tmax": 21.0}, units="metric").json()
+    assert body["data"]["pdays"] == [pytest.approx(OBSERVED_PDAYS, abs=0.001)]
+    assert body["data"]["tmin"] == [9.0] and body["meta"]["units"]["tmin"] == "°C"
+    assert body["meta"]["request"]["inputs"] == {"tmin": 9.0, "tmax": 21.0} and body["meta"]["warnings"] == []
+
+
+def test_evaluate_takes_the_requests_units_and_sweeps_lists(client):
+    body = evaluate(client, "degree-days", {"min_temp": 50, "max_temp": [70, 86, 100]}).json()  # °F by default
+    data = body["data"]
+    assert data["max_temp"] == [70, 86, 100] and len(data["sine"]) == 3
+    assert data["average"][0] == pytest.approx(10, abs=0.1)  # (50 + 70) / 2 − 50, in °F·d
+    assert body["meta"]["units"]["sine"] == "°F·d"
+    metric = evaluate(client, "degree-days", {"min_temp": 10, "max_temp": 21.1111}, units="metric").json()
+    assert metric["data"]["average"][0] == pytest.approx(10 / 1.8, abs=0.1)  # the same day, in °C·d
+
+
+def test_evaluate_defaults_warnings_and_errors(client):
+    defaults = evaluate(client, "late-blight-dsv", {}).json()
+    assert all(len(v) == 1 for v in defaults["data"].values())
+    assert all(v is not None for v in defaults["meta"]["request"]["inputs"].values())
+    far = evaluate(client, "early-blight-pdays", {"tmin": 10, "tmax": 140}).json()  # °F: 140 is past its 40 °C
+    assert any("tmax 140 is outside its usual" in w for w in far["meta"]["warnings"])
+    unknown = evaluate(client, "early-blight-pdays", {"rain": 1})
+    assert unknown.status_code == 422 and unknown.json()["errors"][0]["code"] == "unknown_input"
+    big = evaluate(client, "early-blight-pdays", {"tmin": list(range(200)), "tmax": list(range(200))})
+    assert big.status_code == 422 and big.json()["errors"][0]["code"] == "too_large"
+    assert evaluate(client, "no-such-model", {}).status_code == 404

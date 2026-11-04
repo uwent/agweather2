@@ -68,6 +68,11 @@ SPEC = ModelSpec(
             name="max_temp", label="Maximum temperature", unit="degF", minimum=-10, maximum=115, step=1, default=80
         ),
     ),
+    explorer_outputs=(
+        Quantity(name="sine", label="Single sine degree days (base 50 °F, upper 86 °F)", unit="degF_day"),
+        Quantity(name="modified", label="Modified degree days (base 50 °F, upper 86 °F)", unit="degF_day"),
+        Quantity(name="average", label="Simple average degree days (base 50 °F)", unit="degF_day"),
+    ),
     sweep={
         "min_temp": tuple(float(t) for t in range(30, 91, 5)),
         "max_temp": tuple(float(t) for t in range(40, 111, 5)),

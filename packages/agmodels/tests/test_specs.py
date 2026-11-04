@@ -67,3 +67,13 @@ def test_citations_with_a_doi_are_the_journal_articles_and_the_rest_name_a_sourc
         for c in m.SPEC.citations:
             if not c.doi and not c.url:
                 assert re.search(r"Crop Risk Tool|VDIFN|unpublished|Unpublished|\(\d{4}\)", c.text), (m.SPEC.id, c.text)
+
+
+@pytest.mark.parametrize("model_id", sorted(all_models()))
+def test_every_explore_output_is_declared_with_a_unit(model_id):
+    """`POST /models/{id}/evaluate` shows explore()'s values in the request's units, so each needs one."""
+    m = all_models()[model_id]
+    declared = {q.name for q in (*m.SPEC.outputs, *m.SPEC.explorer_outputs)}
+    values = m.explore(**{e.name: e.default for e in m.SPEC.explorer})
+    assert set(values) <= declared, f"undeclared: {sorted(set(values) - declared)}"
+    assert not {q.name for q in m.SPEC.explorer_outputs} & {q.name for q in m.SPEC.outputs}

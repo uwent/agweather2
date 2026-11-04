@@ -89,6 +89,14 @@ export interface ErrorResponse {
   meta: ErrorMeta
   errors: ErrorItem[]
 }
+export interface EvaluateBody {
+  /**
+   * Explorer inputs (`GET /models/{id}`'s `explorer`) in the request's units: a number, or a list to sweep; lists multiply into rows. Inputs left out take their defaults.
+   */
+  inputs?: {
+    [k: string]: number | number[]
+  }
+}
 export interface ExplorerInputInfo {
   name: string
   label: string
@@ -204,6 +212,7 @@ export interface ModelDetail {
   crop: CropInfo | null
   risk: RiskInfo | null
   explorer: ExplorerInputInfo[]
+  explorer_outputs: QuantityInfo[]
   changelog: ChangeInfo[]
 }
 export interface QuantityInfo {

@@ -100,6 +100,15 @@ SPEC = ModelSpec(
             default=5,
         ),
     ),
+    explorer_outputs=(
+        Quantity(name="probability_dry", label="Apothecia probability, dry", unit="percent"),
+        Quantity(
+            name="probability_irrigated_30in", label="Apothecia probability, irrigated, 30-inch rows", unit="percent"
+        ),
+        Quantity(
+            name="probability_irrigated_15in", label="Apothecia probability, irrigated, 15-inch rows", unit="percent"
+        ),
+    ),
     sweep={
         "temperature_max_30day": (20.0, 25.0, 30.0),
         "rh_max_30day": (80.0, 90.0, 100.0),

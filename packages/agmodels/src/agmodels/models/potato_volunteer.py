@@ -83,6 +83,9 @@ SPEC = ModelSpec(
         )
         for d, label in DEPTHS.items()
     ),
+    explorer_outputs=(
+        Quantity(name="risk", label="Risk level", unit="index", description="Index into the risk levels"),
+    ),
     sweep={f"killing_hours_{d}": (0.0, 60.0, 119.0, 120.0, 240.0) for d in DEPTHS},
     season=("10-01", "09-30"),
     biofix=Biofix(

@@ -185,6 +185,7 @@ class InsectModel:
                     default=500,
                 ),
             ),
+            explorer_outputs=self._explored(),
             sweep={"dd_total": tuple(float(d) for d in range(0, 4001, 100))},
             biofix=Biofix(default=insect.biofix, label=insect.biofix_label),
             context=("day_of_year",),  # the freeze reduction; without it there's none
@@ -193,6 +194,9 @@ class InsectModel:
                 *insect.changelog,
             ),
         )
+
+    def _explored(self) -> tuple[Quantity, ...]:
+        return (Quantity(name="severity", label="Severity", unit="index"),)
 
     def _outputs(self) -> tuple[Quantity, ...]:
         return (
@@ -228,6 +232,9 @@ class InsectModel:
 
 
 class PhenologyModel(InsectModel):
+    def _explored(self) -> tuple[Quantity, ...]:
+        return (Quantity(name="risk", label="Activity (1: a weight-1 stage's first-generation peak)", unit="index"),)
+
     """An insect declared by its life stages (D36)."""
 
     def _outputs(self) -> tuple[Quantity, ...]:

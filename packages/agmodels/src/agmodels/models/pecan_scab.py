@@ -71,6 +71,9 @@ SPEC = ModelSpec(
             default=10,
         ),
     ),
+    explorer_outputs=(
+        Quantity(name="risk", label="Risk level", unit="index", description="Index into the risk levels"),
+    ),
     sweep={"scab_hours_total": tuple(float(h) for h in range(0, 41))},
     region=PECAN_STATES,
     season=("03-01", "08-31"),

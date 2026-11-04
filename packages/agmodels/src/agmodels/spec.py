@@ -127,6 +127,8 @@ class ModelSpec:
     outputs: tuple[Quantity, ...]  # the first is the primary output (risk coloring, maps)
     risk: Risk | None  # None for crop growth-stage models
     explorer: tuple[ExplorerInput, ...]
+    # what `explore()` returns beyond `outputs` (a rate, each method's degree days, the risk), with units
+    explorer_outputs: tuple[Quantity, ...] = ()
     sweep: Mapping[str, tuple[float, ...]] = field(default_factory=dict)  # explorer values to run, for snapshots
     options: tuple[Option, ...] = ()
     lookback_days: int = 0  # days of inputs needed before the first output (moving averages)

@@ -9,20 +9,22 @@ with a season adds `in_season`. Insects' action windows go in `meta.summary.wind
 
 Response shapes for model runs stay provisional until Phase 6's frontend uses them (D64)."""
 
+import itertools
 from datetime import date, timedelta
 from typing import Any
 
 import numpy as np
 from django.http import HttpRequest, HttpResponse
-from ninja import Query, Router
+from ninja import Field, Query, Router, Schema
 
+from agdata import units as agunits
 from agdata.series import FORECAST, PARTIAL, days_needed
 from agmodels.crops import MARGIN, NOT_SUSCEPTIBLE, SUSCEPTIBLE
 from agmodels.registry import all_models
 from agmodels.runner import ModelRun, default_biofix
 from agmodels.spec import Model
 from api import clock, points, runs
-from api.envelope import Column, Result, catalog_column, etag_for, not_modified, respond, table
+from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_modified, respond, table
 from api.errors import ApiError
 from api.params import DaysQuery, OutputQuery, PointsQuery, SeriesQuery
 from api.routes.weather import FORECAST_DAYS, MAX_DAYS, check_size, located
@@ -31,7 +33,17 @@ from ops.points import models_at_point
 
 router = Router(tags=["models"])
 
+
+class EvaluateBody(Schema):
+    inputs: dict[str, float | list[float]] = Field(
+        default_factory=dict,
+        description="Explorer inputs (`GET /models/{id}`'s `explorer`) in the request's units: a number, or a list "
+        "to sweep; lists multiply into rows. Inputs left out take their defaults.",
+    )
+
+
 MAX_RUNS = 200  # model runs (models × option sets) per request
+MAX_EVALUATIONS = 10_000  # rows of POST /models/{id}/evaluate
 
 SUSCEPTIBILITY = {NOT_SUSCEPTIBLE: "not susceptible", MARGIN: "margin", SUSCEPTIBLE: "susceptible"}
 
@@ -262,6 +274,74 @@ def risk(
             warnings=sorted({w for p in plans for w in p.warnings}),
             filename=f"agweather-risk-{day}",
             etag=etag,
+        ),
+    )
+
+
+@router.post("/models/{model_id}/evaluate", response=responses(TableResponse), summary="A model's core at values")
+def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Query[OutputQuery]) -> HttpResponse:
+    """The model's core at single values of its explorer inputs (the model page's interactive chart, PLAN.md Phase 3
+    A), from the same code as its runs: one row per combination, the inputs and what `explore` gives. Values outside
+    an input's usual range run, with a warning."""
+    m = runs.model_or_404(model_id)
+    spec = m.SPEC
+    explorer = {e.name: e for e in spec.explorer}
+    unknown = sorted(set(body.inputs) - set(explorer))
+    if unknown:
+        raise ApiError(
+            "unknown_input", f"{', '.join(unknown)} isn't an input here; use {', '.join(explorer)}", unknown[0]
+        )
+    system = SYSTEMS[output.units]
+    warnings: list[str] = []
+    given: dict[str, list[float]] = {}
+    echo: dict[str, float | list[float]] = {}
+    for name, e in explorer.items():
+        raw = body.inputs.get(name)
+        shown = agunits.display_unit(e.unit, system)
+        if raw is None:
+            values = [float(agunits.convert(float(e.default), e.unit, shown))]
+        else:
+            values = [float(v) for v in raw] if isinstance(raw, list) else [float(raw)]
+        if not values or not all(np.isfinite(v) for v in values):
+            raise ApiError("invalid", f"{name} needs finite numbers", name)
+        stored = [float(agunits.convert(v, shown, e.unit)) for v in values]
+        outside = [v for v, x in zip(values, stored, strict=True) if not e.minimum <= x <= e.maximum]
+        if outside:
+            lo, hi = (float(agunits.convert(b, e.unit, shown)) for b in (e.minimum, e.maximum))
+            label = agunits.unit(shown).label
+            warnings.append(f"{name} {outside[0]:g} is outside its usual {lo:g}–{hi:g} {label}".rstrip())
+        given[name] = stored
+        echo[name] = values if isinstance(raw, list) else values[0]
+    count = 1
+    for values in given.values():
+        count *= len(values)
+    if count > MAX_EVALUATIONS:
+        raise ApiError("too_large", f"{count} combinations asked for; up to {MAX_EVALUATIONS}", "inputs")
+    declared = {q.name: q for q in (*spec.outputs, *spec.explorer_outputs)}
+    rows: dict[str, list[float]] = {name: [] for name in given}
+    for combo in itertools.product(*given.values()):
+        values = dict(zip(given, combo, strict=True))
+        try:
+            found = m.explore(**values)
+        except ValueError as error:
+            raise ApiError("invalid", str(error), "inputs") from None
+        for name, v in values.items():
+            rows[name].append(v)
+        for name, v in found.items():
+            rows.setdefault(name, []).append(v)
+    columns = [Column(name=name, values=rows[name], unit=explorer[name].unit) for name in given]
+    columns += [
+        Column(name=name, values=values, unit=declared[name].unit if name in declared else None)
+        for name, values in rows.items()
+        if name not in given
+    ]
+    return respond(
+        request,
+        Result(
+            request={"model": spec.id, "version": spec.version, "inputs": echo, "units": output.units},
+            columns=columns,
+            warnings=warnings,
+            filename=f"agweather-{spec.id}-evaluate",
         ),
     )
 

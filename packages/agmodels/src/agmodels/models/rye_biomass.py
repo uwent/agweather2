@@ -87,6 +87,9 @@ SPEC = ModelSpec(
             default=100,
         ),
     ),
+    explorer_outputs=(
+        Quantity(name="level", label="Biomass level", unit="index", description="Index into the risk levels"),
+    ),
     sweep={
         "gdd_total": tuple(float(g) for g in range(0, 3001, 100)),
         "planting_day": (250.0, 280.0, 310.0),

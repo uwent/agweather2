@@ -157,6 +157,38 @@ SPEC = ModelSpec(
             name="maturity_group", label="Maturity group", unit="index", minimum=0, maximum=4, step=0.1, default=2
         ),
     ),
+    explorer_outputs=(
+        Quantity(
+            name="emergence_to_v1",
+            label="Emergence to V1: development rate",
+            unit="index",
+            description="Fraction of the phase completed per day",
+        ),
+        Quantity(
+            name="floral_induction",
+            label="Floral induction: development rate",
+            unit="index",
+            description="Fraction of the phase completed per day",
+        ),
+        Quantity(
+            name="r0_to_r1",
+            label="R0 to R1: development rate",
+            unit="index",
+            description="Fraction of the phase completed per day",
+        ),
+        Quantity(
+            name="r1_to_r5",
+            label="R1 to R5: development rate",
+            unit="index",
+            description="Fraction of the phase completed per day",
+        ),
+        Quantity(
+            name="r1_to_r7",
+            label="R1 to R7: development rate",
+            unit="index",
+            description="Fraction of the phase completed per day",
+        ),
+    ),
     sweep={
         "temperature": tuple(float(t) for t in range(0, 46)),
         "day_length": tuple(float(p) for p in range(10, 19, 2)),

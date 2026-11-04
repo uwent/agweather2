@@ -66,6 +66,9 @@ SPEC = ModelSpec(
             name="day_of_year", label="Day of the year", unit="day", minimum=1, maximum=365, step=1, default=150
         ),
     ),
+    explorer_outputs=(
+        Quantity(name="risk", label="Risk level", unit="index", description="Index into the risk levels"),
+    ),
     sweep={"dd_total": tuple(float(d) for d in range(0, 3001, 100)), "day_of_year": (120.0, 196.0, 203.0)},
     context=("day_of_year", "year"),
     season=("03-01", "07-31"),
