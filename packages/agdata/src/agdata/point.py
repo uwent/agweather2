@@ -43,9 +43,11 @@ def daily_at_point(
     first: date,
     last: date,
     names: Collection[str] | None = None,
+    rh_90_at: float | None = None,
 ) -> dict[str, np.ndarray]:
     """Every daily variable (or those in `names`, and any others computed with them) for local days first..last
-    (inclusive) at a point in `zone`.
+    (inclusive) at a point in `zone`. `rh_90_at`: the RH that "≥ 90%" hours are counted at (default D50's gridded
+    88%; a station's own hours, 90).
 
     `hours` holds hourly catalog variables, each a series of hours ending at `first_hour`, `first_hour` + 1 h, …
     in stored units. Hours outside a series, and variables not given, count as missing. A series may carry more
@@ -90,7 +92,7 @@ def daily_at_point(
         }
         if "calendar" in groups:
             h = humid(begin, end)
-            values |= features.calendar_features(h["temperature"], h["rh"], h["dew_point"])
+            values |= features.calendar_features(h["temperature"], h["rh"], h["dew_point"], rh_90_at=rh_90_at)
         if "soil" in groups:
             values |= features.soil_features(
                 segment("soil_temperature_4cm", begin, end),
@@ -101,7 +103,9 @@ def daily_at_point(
             begin, end = from_8pm_bounds(day, zone)
             h = humid(begin, end)
             local_hour = np.array([(begin + n * HOUR).astimezone(tz).hour for n in range(len(h["rh"]))])
-            values |= features.from_8pm_features(h["temperature"], h["rh"], features.is_night(local_hour))
+            values |= features.from_8pm_features(
+                h["temperature"], h["rh"], features.is_night(local_hour), rh_90_at=rh_90_at
+            )
         for name, value in values.items():
             out.setdefault(name, []).append(np.broadcast_to(np.asarray(value, dtype=float), rest))
     return {name: np.array(series) for name, series in out.items()}

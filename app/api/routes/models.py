@@ -10,6 +10,7 @@ with a season adds `in_season`. Insects' action windows go in `meta.summary.wind
 Response shapes for model runs stay provisional until Phase 6's frontend uses them (D64)."""
 
 import itertools
+import json
 from datetime import date, timedelta
 from typing import Any
 
@@ -18,14 +19,17 @@ from django.http import HttpRequest, HttpResponse
 from ninja import Field, Query, Router, Schema
 
 from agdata import units as agunits
-from agdata.series import FORECAST, PARTIAL, days_needed
+from agdata.point import hourly_sources
+from agdata.series import FORECAST, PARTIAL, DailySeries, Forecast, days_needed, runs_at_point, sliced
+from agdata.timezones import zone_at
 from agmodels.crops import MARGIN, NOT_SUSCEPTIBLE, SUSCEPTIBLE
 from agmodels.registry import all_models
 from agmodels.runner import ModelRun, default_biofix
 from agmodels.spec import Model
-from api import clock, points, runs
+from api import clock, points, runs, stations
 from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_modified, respond, table
 from api.errors import ApiError
+from api.locations import describe
 from api.params import DaysQuery, OutputQuery, PointsQuery, SeriesQuery
 from api.routes.weather import FORECAST_DAYS, MAX_DAYS, check_size, located
 from api.schemas import TableResponse, responses
@@ -156,24 +160,7 @@ def run_several(
     kept = max(points.keep(r.kinds, options.forecast, trim_end) for results in grouped for r in results)
     if trim_end and kept:
         computed["end"] = grouped[0][0].dates[kept - 1]
-    answers = {}
-    for the_plan, results in zip(plans, grouped, strict=True):
-        columns, summary, warnings = _table(the_plan.model, results, kept, multiple=len(results) > 1)
-        if the_plan.option_sets:
-            summary["option_sets"] = the_plan.option_sets
-        request_echo = {**the_plan.request}
-        if len(results) == 1 and results[0].biofix is not None:
-            request_echo["biofix"] = results[0].biofix
-        found = table(request, columns, summary)
-        answers[the_plan.model.SPEC.id] = {
-            "meta": {
-                "request": request_echo,
-                "units": found["units"],
-                "summary": found["summary"],
-                "warnings": [*the_plan.warnings, *warnings],
-            },
-            "data": found["data"],
-        }
+    answers = _nested(request, plans, grouped, kept)
     some = grouped[0][0]
     return respond(
         request,
@@ -346,6 +333,265 @@ def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Qu
     )
 
 
+# --- Runs on your own weather (D58) -----------------------------------------------------------------------------
+
+POST_FIELDS = ("lat", "lng", "units", "start", "end", "fill", "extend", "models", "biofix", "planting_date")
+
+
+@router.post("/models/{model_id}/run", response=responses(TableResponse), summary="A model on your weather")
+def run_posted(request: HttpRequest, model_id: str) -> HttpResponse:
+    """The model on weather you send (`api.stations`: hourly and/or daily, JSON or CSV), as `GET /models/{id}/run`
+    gives it on ours. JSON: `{"location": {"lat", "lng"}, "units", "input_units", "hourly", "daily", "start",
+    "end", "options", "fill", "extend"}`; CSV: the body is the hourly or daily table and the rest are query
+    parameters. `kind` per day: provided, estimated (a gap the model's inputs bridged), grid (`fill=grid`: our
+    archive at the cell), forecast (`extend=forecast`). Nothing sent is stored."""
+    return _run_posted(request, [runs.model_or_404(model_id)], single=True)
+
+
+@router.post("/models/run", summary="Several models on your weather")
+def run_posted_several(request: HttpRequest) -> HttpResponse:
+    """Several models (`"models": ["tar-spot", …]` or `"all"`) on weather you send, shaped as `GET /models/run`."""
+    body, _ = _posted(request)
+    raw = body.get("models", "all")
+    return _run_posted(request, _models(raw if isinstance(raw, str) else ",".join(map(str, raw))), single=False)
+
+
+def _posted(request: HttpRequest) -> tuple[dict[str, Any], dict[str, str]]:
+    """(the weather and settings, the model options as strings) from a JSON body, or a CSV body and the query."""
+    kind = request.content_type or ""
+    if kind == "text/csv":
+        body: dict[str, Any] = stations.parse_csv(request.body.decode("utf-8-sig"))
+        query = {key: request.GET[key] for key in request.GET}
+        body |= {key: query[key] for key in POST_FIELDS if key in query}
+        if "lat" in query and "lng" in query:
+            body["location"] = {"lat": query["lat"], "lng": query["lng"]}
+        options = {key: value for key, value in query.items() if key not in POST_FIELDS}
+        return body, options | {k: query[k] for k in ("biofix", "planting_date") if k in query}
+    try:
+        body = json.loads(request.body or b"{}")
+    except ValueError:
+        raise ApiError("invalid", "the body isn't JSON (send Content-Type: text/csv for a CSV)", "body") from None
+    if not isinstance(body, dict):
+        raise ApiError("invalid", "the body must be a JSON object", "body")
+    options = {str(k): str(v) for k, v in (body.get("options") or {}).items()}
+    return body, options
+
+
+def _date_field(body: dict[str, Any], name: str) -> date | None:
+    value = body.get(name)
+    if value in (None, ""):
+        return None
+    try:
+        return date.fromisoformat(str(value))
+    except ValueError:
+        raise ApiError("invalid", f"{name} must be a date (YYYY-MM-DD)", name) from None
+
+
+def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> HttpResponse:
+    body, options = _posted(request)
+    location = body.get("location") or {}
+    try:
+        lat, lng = float(location["lat"]), float(location["lng"])
+    except (KeyError, TypeError, ValueError):
+        raise ApiError(
+            "missing", "give the location as lat and lng: it sets the day boundaries and region", "location"
+        ) from None
+    if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+        raise ApiError("out_of_range", f"({lat}, {lng}) isn't a point on Earth", "location")
+    units = str(body.get("units") or request.GET.get("units") or "us")
+    fill, extend = str(body.get("fill") or "none"), str(body.get("extend") or "none")
+    if fill not in ("none", "grid"):
+        raise ApiError("invalid", "fill is none or grid", "fill")
+    if extend not in ("none", "forecast"):
+        raise ApiError("invalid", "extend is none or forecast", "extend")
+    overrides = {str(k): str(v) for k, v in (body.get("input_units") or {}).items()}
+    overrides |= {k: request.GET[k] for k in request.GET if k in stations.HOURLY or k in stations.DAILY}
+    station = stations.parse(body, units, overrides)
+    zone = zone_at(lat, lng)
+    sent = station.local_days(zone)
+    if sent is None:
+        raise ApiError("missing", "nothing was sent", "body")
+    now = clock.now()
+    start, end = _date_field(body, "start"), _date_field(body, "end")
+    first = start or sent[0]
+    trim_end = end is None
+    last = end or (now.date() + timedelta(days=FORECAST_DAYS) if extend == "forecast" else sent[1])
+    if first > last:
+        raise ApiError("out_of_order", f"start ({first}) is after end ({last})", "start")
+    biofix = _date_field({"biofix": options.pop("biofix", None)}, "biofix")
+    planting = options.pop("planting_date", None)
+    plans = [
+        runs.plan(m, options, lat, lng, first.year, biofix=biofix, planting=planting, lenient=not single)
+        for m in chosen
+    ]
+    available = station.available()
+    skipped: dict[str, str] = {}
+    if fill != "grid":
+        runnable = []
+        for p in plans:
+            lacking = [name for name in days_needed(p.runs, first)[1] if name not in available]
+            if not lacking:
+                runnable.append(p)
+                continue
+            message = _cannot_make(lacking)
+            if single:
+                raise ApiError("missing_inputs", message, "body")
+            skipped[p.model.SPEC.id] = message
+        if not runnable:
+            raise ApiError("missing_inputs", "no model asked for can run on what was sent", "body")
+        plans = runnable
+    every = [r for p in plans for r in p.runs]
+    if len(every) > MAX_RUNS:
+        raise ApiError("too_many", f"{len(every)} model runs asked for; up to {MAX_RUNS} per request", "models")
+    needed, names = days_needed(every, first)
+    if (last - needed).days + 1 > MAX_DAYS:
+        raise ApiError("too_large", f"{(last - needed).days + 1} days asked for; up to {MAX_DAYS}", "start")
+    warnings = list(station.warnings)
+    lacking = [name for name in names if name not in available]
+    if lacking:
+        warnings.append(f"{', '.join(lacking)} from our archive at the cell (fill=grid): the station didn't send them")
+    days, sources = _station_days(station, zone, needed, last, names, lat, lng, now, fill, extend, sent[1])
+    results = runs_at_point(
+        lambda first_day, _last, wanted: sliced(days, first_day, wanted),
+        lat,
+        lng,
+        every,
+        first,
+        last,
+        planting_default=False,
+    )
+    for r in results:  # a provided day whose inputs the model bridged is estimated
+        for k, kind in enumerate(r.kinds):
+            if kind == "provided" and any(flags[k] for flags in r.estimated.values()):
+                r.kinds[k] = "estimated"
+    grouped, k = [], 0
+    for p in plans:
+        grouped.append(results[k : k + len(p.runs)])
+        k += len(p.runs)
+    kept = max(points.keep(r.kinds, True, trim_end) for r in results)
+    kinds = [kind for r in results[:1] for kind in r.kinds[:kept]]
+    counts = {f"days_{name}": kinds.count(name) for name in ("provided", "estimated", "grid", "forecast")}
+    counts["days_missing"] = kinds.count(None)
+    computed = {
+        "lat": lat,
+        "lng": lng,
+        "units": units,
+        "start": first,
+        "end": results[0].dates[kept - 1] if kept else last,
+        "fill": fill,
+        "extend": extend,
+        "sent": {
+            "first_day": sent[0],
+            "last_day": sent[1],
+            "hourly": sorted(station.hourly),
+            "daily": sorted(station.daily),
+        },
+    }
+    if single:
+        the_plan = plans[0]
+        columns, summary, table_warnings = _table(the_plan.model, results, kept, multiple=len(results) > 1)
+        if the_plan.option_sets:
+            summary["option_sets"] = the_plan.option_sets
+        summary |= counts
+        computed |= the_plan.request
+        if len(results) == 1 and results[0].biofix is not None:
+            computed["biofix"] = results[0].biofix
+        return respond(
+            request,
+            Result(
+                request=computed,
+                columns=columns,
+                location=describe(lat, lng),
+                summary=summary,
+                sources=sources,
+                warnings=[*warnings, *the_plan.warnings, *table_warnings],
+                filename=f"agweather-{the_plan.model.SPEC.id}-{first}",
+                units=units,
+            ),
+        )
+    computed["models"] = [m.SPEC.id for m in chosen]
+    return respond(
+        request,
+        Result(
+            request=computed,
+            data=_nested(request, plans, grouped, kept, units=units),
+            location=describe(lat, lng),
+            summary={**counts, **({"skipped": skipped} if skipped else {})},
+            sources=sources,
+            warnings=warnings,
+            units=units,
+        ),
+    )
+
+
+def _cannot_make(lacking: list[str]) -> str:
+    sources = hourly_sources()
+    needs = "; ".join(f"{n} (hourly: {', '.join(sources.get(n, ())) or 'none'})" for n in lacking)
+    return f"can't make {needs} from what was sent: send them, daily or hourly, or add fill=grid"
+
+
+def _station_days(
+    station, zone, first, last, names, lat, lng, now, fill, extend, last_sent
+) -> tuple[DailySeries, list[str]]:
+    """The days a POSTed run reads: the station's, with our archive's where `fill=grid` (kind grid) and our
+    forecast after the station's last day with `extend=forecast` (grid for the archive's days, forecast after)."""
+    n = (last - first).days + 1
+    dates = [first + timedelta(days=k) for k in range(n)]
+    values = station.daily_series(zone, first, last, names)
+    kinds: list[str | None] = [
+        "provided" if any(np.isfinite(values[name][k]) for name in names) else None for k in range(n)
+    ]
+    sources = ["provided"]
+    if fill == "grid" or extend == "forecast":
+        ours = points.days(lat, lng, first, last, names, now)
+        used = False
+        for k, day in enumerate(dates):
+            theirs = ours.kinds[k]
+            if theirs is None:
+                continue
+            ours_kind = "forecast" if theirs in (FORECAST, PARTIAL) else "grid"
+            if kinds[k] == "provided":
+                if fill != "grid":
+                    continue
+                gaps = [
+                    name for name in names if not np.isfinite(values[name][k]) and np.isfinite(ours.values[name][k])
+                ]
+                for name in gaps:
+                    values[name][k] = ours.values[name][k]
+                if gaps:
+                    kinds[k], used = "grid", True
+            elif fill == "grid" or (extend == "forecast" and day > last_sent):
+                for name in names:
+                    values[name][k] = ours.values[name][k]
+                kinds[k], used = ours_kind, True
+        if used:
+            sources += [s for s in ours.sources if s not in sources]
+    return DailySeries(dates=dates, values=values, kinds=kinds, forecast=Forecast(path=None), zone=zone), sources
+
+
+def _nested(request: HttpRequest, plans, grouped, kept: int, units: str | None = None) -> dict[str, Any]:
+    """Each model's answer under its id: its `meta` (`request`, `units`, `summary`, `warnings`) and `data`."""
+    answers = {}
+    for the_plan, results in zip(plans, grouped, strict=True):
+        columns, summary, warnings = _table(the_plan.model, results, kept, multiple=len(results) > 1)
+        if the_plan.option_sets:
+            summary["option_sets"] = the_plan.option_sets
+        request_echo = {**the_plan.request}
+        if len(results) == 1 and results[0].biofix is not None:
+            request_echo["biofix"] = results[0].biofix
+        found = table(request, columns, summary, units=units)
+        answers[the_plan.model.SPEC.id] = {
+            "meta": {
+                "request": request_echo,
+                "units": found["units"],
+                "summary": found["summary"],
+                "warnings": [*the_plan.warnings, *warnings],
+            },
+            "data": found["data"],
+        }
+    return answers
+
+
 def _models(raw: str) -> list[Model]:
     if raw.strip() == runs.ALL:
         return list(all_models().values())
@@ -469,7 +715,7 @@ def _table(m: Model, results: list[ModelRun], n: int, multiple: bool) -> tuple[l
         "days_returned": len(kinds),
         "days_forecast": sum(kind in (FORECAST, PARTIAL) for kind in kinds),
         "days_missing": sum(kind is None for kind in kinds),
-        "days_estimated": {
+        "estimated_by_input": {
             name: sum(int(np.sum(r.estimated[name][:n])) for r in results if name in r.estimated) for name in estimated
         },
     }

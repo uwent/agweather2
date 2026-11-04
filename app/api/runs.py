@@ -13,11 +13,10 @@ model whose biofix is a crop stage (the blights' emergence, red crown rot's R1) 
 are none rather than guessing."""
 
 import itertools
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
-
-from django.http import QueryDict
 
 from agdata.planting import CROPS, PlantingDate, typical_planting
 from agdata.series import RunSpec
@@ -62,7 +61,7 @@ def planting_crop(spec: ModelSpec) -> tuple[str, str] | None:
 
 def plan(
     m: Model,
-    params: QueryDict,
+    params: Mapping[str, str],
     lat: float,
     lng: float,
     season: int,

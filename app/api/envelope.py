@@ -94,6 +94,7 @@ class Result:
     filename: str = "agweather"  # a CSV download's name, without the extension
     formats: tuple[str, ...] | None = None  # offered; default json and csv for a table, json otherwise
     timings: dict[str, float] = field(default_factory=dict)  # name → ms, for Server-Timing beside the total
+    units: str | None = None  # the unit system, when the request gave it outside the query (a POSTed body)
 
 
 # --- Units and rounding ------------------------------------------------------------------------------------------
@@ -214,7 +215,7 @@ def respond(request: HttpRequest, result: Result) -> HttpResponse:
     formats = result.formats or (("json", "csv") if result.columns is not None else ("json",))
     fmt = _format(request, formats)
     params = request.GET
-    system = SYSTEMS.get(params.get("units", "us"), "imperial")
+    system = SYSTEMS.get(result.units or params.get("units", "us"), "imperial")
     overrides = unit_overrides(request)
     meta: dict[str, Any] = {"request": result.request}
     if result.location is not None:
@@ -259,11 +260,14 @@ def respond(request: HttpRequest, result: Result) -> HttpResponse:
     return response
 
 
-def table(request: HttpRequest, columns: list[Column], summary: dict[str, Any] | None = None) -> dict[str, Any]:
+def table(
+    request: HttpRequest, columns: list[Column], summary: dict[str, Any] | None = None, units: str | None = None
+) -> dict[str, Any]:
     """One table as a nested answer holds it (`GET /models/run`'s per-model `meta` and `data`): `units`, `summary`
-    (with `missing` and `stats`) and `data`, in the request's units and orientation, as `respond` makes them."""
+    (with `missing` and `stats`) and `data`, in the request's units (or `units`) and orientation, as `respond`
+    makes them."""
     params = request.GET
-    system = SYSTEMS.get(params.get("units", "us"), "imperial")
+    system = SYSTEMS.get(units or params.get("units", "us"), "imperial")
     prepared = [_prepare(c, system, unit_overrides(request)) for c in columns]
     found = _table(prepared, params.get("orient", "columns"))
     return {"units": found["units"], "summary": {**(summary or {}), **found["summary"]}, "data": found["data"]}

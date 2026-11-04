@@ -68,16 +68,22 @@ def is_night(local_hour: np.ndarray) -> np.ndarray:
 
 
 def calendar_features(
-    temperature_c: np.ndarray, rh_percent: np.ndarray, dew_point_c: np.ndarray | None = None
+    temperature_c: np.ndarray,
+    rh_percent: np.ndarray,
+    dew_point_c: np.ndarray | None = None,
+    rh_90_at: float | None = None,
 ) -> dict[str, np.ndarray]:
-    """Features over a calendar day's hours (with the dew point, its depression's daily statistics too)."""
+    """Features over a calendar day's hours (with the dew point, its depression's daily statistics too). `rh_90_at`
+    is the RH the "≥ 90%" hours are counted at: `STATION_RH_90_AS_GRIDDED` on gridded RH (the default), 90 on a
+    station's own (a POSTed run, D58)."""
+    rh_90 = STATION_RH_90_AS_GRIDDED if rh_90_at is None else rh_90_at
     extra = {} if dew_point_c is None else daily_statistics("dew_point_depression", temperature_c - dew_point_c)
     return extra | {
         "hours_temperature_over_20c": hours_at_or_above(temperature_c, 20),
         "hours_temperature_over_30c": hours_at_or_above(temperature_c, 30),
         "hours_rh_under_70": hours_below(rh_percent, 70),
         "hours_rh_over_80": hours_at_or_above(rh_percent, 80),
-        "hours_rh_over_90": hours_at_or_above(rh_percent, STATION_RH_90_AS_GRIDDED),
+        "hours_rh_over_90": hours_at_or_above(rh_percent, rh_90),
         "hours_rh_over_90_temperature_over_70f": hours_humid_and_warm(temperature_c, rh_percent, 90, SCAB_C),
     }
 
@@ -106,13 +112,15 @@ def soil_features(soil_4cm_c: np.ndarray, soil_10cm_c: np.ndarray, soil_30cm_c: 
     }
 
 
-def from_8pm_features(temperature_c: np.ndarray, rh_percent: np.ndarray, night: np.ndarray) -> dict[str, np.ndarray]:
+def from_8pm_features(
+    temperature_c: np.ndarray, rh_percent: np.ndarray, night: np.ndarray, rh_90_at: float | None = None
+) -> dict[str, np.ndarray]:
     """Features over a day from 8 pm (20:00 the evening before through 19:59); `night` marks its night hours
-    (bool, broadcast against the hours axis)."""
+    (bool, broadcast against the hours axis). `rh_90_at` as in `calendar_features`."""
     rh = np.asarray(rh_percent, dtype=float)
     night = np.asarray(night, dtype=bool).reshape(-1, *([1] * (rh.ndim - 1)))
     out = {}
-    for threshold, counted_at in ((80, 80.0), (90, STATION_RH_90_AS_GRIDDED)):
+    for threshold, counted_at in ((80, 80.0), (90, STATION_RH_90_AS_GRIDDED if rh_90_at is None else rh_90_at)):
         wet = np.where(np.isnan(rh), np.nan, rh >= counted_at)
         out[f"hours_rh_over_{threshold}_from_8pm"] = hours_at_or_above(rh, counted_at)
         out[f"hours_rh_over_{threshold}_night"] = np.where(
