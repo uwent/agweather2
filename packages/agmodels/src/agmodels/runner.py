@@ -167,7 +167,7 @@ def run(
         result.susceptibility = None if gate is None else gate[shown:]
     if spec.season is not None:
         result.in_season = np.array([_in_season(spec, d) for d in result.dates])
-    if isinstance(m, PhenologyModel):
+    if isinstance(m, PhenologyModel) and next(iter(result.outputs.values())).ndim == 1:  # scenarios: per year
         for w in m.insect.action_windows:
             periods = window_periods(result.outputs[f"window_{w.key}"])
             result.windows[w.label] = [(result.dates[a], result.dates[b]) for a, b in periods]
