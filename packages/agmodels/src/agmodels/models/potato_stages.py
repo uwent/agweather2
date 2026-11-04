@@ -6,8 +6,9 @@ Pathology's Vegetable Crop Updates give each season for early, mid and late plan
 (120 dates at 7 locations, 2020–2026, compiled by Ben Bradford; `tmp/potato/` in the repository holds the fit), on
 Open-Meteo's daily temperature at each location: held out by year, 3.3 days' mean error (RMSE 4.0), against 7.5 days
 for a fixed 24 days from planting. Bases from 2 to 7 °C fit about as well, and soil temperature no better than air;
-at a 45 °F base the same dates take about 250 °F·d, inside the 200–300 °F·d that Columbia Basin extension work gives
-for emergence. The newsletters' dates are estimates (planting from growers' reports), not field records.
+at a 45 °F base the same dates take about 250 °F·d: Holden et al. (2011) give 200–300 heat units above 45 °F in air
+for potatoes planted 8 inches deep in Washington's Columbia Basin, and use 250 as their base value. The newsletters'
+dates are estimates (planting from growers' reports), not field records.
 
 Only planting and emergence are modelled: emergence is the biofix of the early and late blight models
 (`biofix_stage`), so a planting date times their start. Tuber initiation and later stages need another source.
@@ -45,6 +46,11 @@ SPEC = ModelSpec(
             text="UW Vegetable Pathology, Vegetable Crop Updates (2020–2026): early, mid and late planting and 50% "
             "emergence dates by location, in each season's early and late blight table.",
             url="https://vegpath.plantpath.wisc.edu/2026/08/23/vegetable-crop-update-aug-23-2026/",
+        ),
+        Citation(
+            text="Holden, Z. J., Pavek, M. J., Knowles, N. R. and Knowles, L. O. (2011). Accumulated heat units for "
+            "2011: Ice age cometh? Potato Progress XI(6). Washington State Potato Commission.",
+            url="https://www.nwpotatoresearch.com/images/documents/PotatoProgressXI6.pdf",
         ),
     ),
     inputs=(
