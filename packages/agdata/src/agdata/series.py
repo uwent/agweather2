@@ -13,8 +13,8 @@ A point's forecast soil hours past HRRR's 48 can be filled from another source (
 Open-Meteo's ECMWF IFS through its cell cache, D44). Maps keep the gap rather than mixing sources.
 """
 
-from collections.abc import Callable
-from dataclasses import dataclass, field
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -416,6 +416,119 @@ def _point_steps(
     return values, sources
 
 
+ReadDays = Callable[[date, date, list[str]], DailySeries]  # local days first..last of the named variables
+
+
+@dataclass(frozen=True, kw_only=True)
+class RunSpec:
+    """One model run at a point: the model and the choices that change it (`runner.run`'s)."""
+
+    model_id: str
+    biofix: date | None = None
+    planting: date | None = None
+    options: Mapping[str, str] = field(default_factory=dict)
+    crop_options: Mapping[str, str] = field(default_factory=dict)
+
+
+def with_planting(run: RunSpec, latitude: float, longitude: float, start: date) -> RunSpec:
+    """The run with the typical planting date (D34) for a stage-gated model given none, where one is published."""
+    crops = runner.crop_models(find_model(run.model_id).SPEC)
+    if run.planting is not None or not crops:
+        return run
+    typical = typical_planting(crops[0].removesuffix("-stages"), latitude, longitude)
+    if typical is None:
+        return run
+    month, day = (int(p) for p in typical.typical.split("-"))
+    return replace(run, planting=date(start.year, month, day))
+
+
+def days_needed(runs: Sequence[RunSpec], start: date) -> tuple[date, list[str]]:
+    """The first day and the daily variables that every run from `start` needs, so they're read once."""
+    first, names = start, []
+    for run in runs:
+        m = find_model(run.model_id)
+        first = min(first, runner.first_day_needed(m, start, biofix=run.biofix, planting=run.planting))
+        names += [name for name in runner.required_inputs(m) if name not in names]
+    return first, names
+
+
+def sliced(days: DailySeries, first: date, names: list[str]) -> DailySeries:
+    """The days from `first` of the named variables (running totals and sources as they are)."""
+    k = (first - days.dates[0]).days
+    if k < 0:
+        raise ValueError(f"{first} is before the series' first day, {days.dates[0]}")
+    return replace(days, dates=days.dates[k:], kinds=days.kinds[k:], values={n: days.values[n][k:] for n in names})
+
+
+def runs_at_point(
+    read_days: ReadDays,
+    latitude: float,
+    longitude: float,
+    runs: Sequence[RunSpec],
+    start: date,
+    end: date,
+    planting_default: bool = True,
+) -> list[ModelRun]:
+    """Models at a point from any source of days (the archive and forecast, or Open-Meteo), read once for them all
+    (`days_needed`): each run gets its own days from its `runner.first_day_needed`, so the result is the same as
+    running it alone. The region is checked against the county grid; `planting_default` gives a stage-gated model
+    without a planting date the typical one (D34)."""
+    if planting_default:
+        runs = [with_planting(run, latitude, longitude, start) for run in runs]
+    first, names = days_needed(runs, start)
+    days = read_days(first, end, names)
+    county = county_at(latitude, longitude)
+    results = []
+    for run in runs:
+        m = find_model(run.model_id)
+        own = sliced(
+            days,
+            first=runner.first_day_needed(m, start, biofix=run.biofix, planting=run.planting),
+            names=runner.required_inputs(m),
+        )
+        in_region = not m.SPEC.region or (county is not None and county.state in m.SPEC.region)
+        results.append(
+            runner.run(
+                m,
+                dates=own.dates,
+                daily=own.values,
+                latitude=latitude,
+                start=start,
+                kinds=own.kinds,
+                biofix=run.biofix,
+                planting=run.planting,
+                options=run.options,
+                crop_options=run.crop_options,
+                in_region=in_region,
+                gap_fill=GAP_FILL,
+            )
+        )
+    return results
+
+
+def models_at_point(
+    data_dir: Path,
+    latitude: float,
+    longitude: float,
+    runs: Sequence[RunSpec],
+    start: date,
+    end: date,
+    now: datetime | None = None,
+    fill_soil: FillSoil | None = None,
+    planting_default: bool = True,
+) -> list[ModelRun]:
+    """Models at a point in the box from `start` to `end`, through the forecast (D30), from the archive and the
+    current run (`runs_at_point` with one `point_days`; soil past the run's from `fill_soil`, D44)."""
+    cell = NDFD.cell_of(latitude, longitude)
+    if cell is None:
+        raise ValueError(f"({latitude}, {longitude}) is off the grid")
+
+    def read_days(first: date, last: date, names: list[str]) -> DailySeries:
+        return point_days(data_dir, *cell, first, last, names, now=now, fill_soil=fill_soil)
+
+    return runs_at_point(read_days, latitude, longitude, runs, start, end, planting_default=planting_default)
+
+
 def model_at_point(
     data_dir: Path,
     latitude: float,
@@ -430,31 +543,15 @@ def model_at_point(
     now: datetime | None = None,
     fill_soil: FillSoil | None = None,
 ) -> ModelRun:
-    """A model's three layers at a point in the box from `start` to `end`, through the forecast (D30), from the
-    archive and the current run (`run_at_point` with `point_days`; soil past the run's from `fill_soil`, D44)."""
-    cell = NDFD.cell_of(latitude, longitude)
-    if cell is None:
-        raise ValueError(f"({latitude}, {longitude}) is off the grid")
-
-    def read_days(first: date, last: date, names: list[str]) -> DailySeries:
-        return point_days(data_dir, *cell, first, last, names, now=now, fill_soil=fill_soil)
-
-    return run_at_point(
-        read_days,
-        latitude,
-        longitude,
-        model_id,
-        start,
-        end,
-        biofix=biofix,
-        planting=planting,
-        options=options,
-        crop_options=crop_options,
+    """One model's three layers at a point in the box (`models_at_point`)."""
+    run = RunSpec(
+        model_id=model_id, biofix=biofix, planting=planting, options=options or {}, crop_options=crop_options or {}
     )
+    return models_at_point(data_dir, latitude, longitude, [run], start, end, now=now, fill_soil=fill_soil)[0]
 
 
 def run_at_point(
-    read_days: Callable[[date, date, list[str]], DailySeries],
+    read_days: ReadDays,
     latitude: float,
     longitude: float,
     model_id: str,
@@ -465,34 +562,11 @@ def run_at_point(
     options: dict[str, str] | None = None,
     crop_options: dict[str, str] | None = None,
 ) -> ModelRun:
-    """A model at a point from any source of days (the archive and forecast, or Open-Meteo): the days it needs
-    (`runner.first_day_needed`), the region checked against the county grid, and for a stage-gated model the
-    typical planting date (D34) unless one is given."""
-    m = find_model(model_id)
-    crops = runner.crop_models(m.SPEC)
-    if planting is None and crops:
-        typical = typical_planting(crops[0].removesuffix("-stages"), latitude, longitude)
-        if typical is not None:
-            month, day = (int(p) for p in typical.typical.split("-"))
-            planting = date(start.year, month, day)
-    county = county_at(latitude, longitude)
-    in_region = not m.SPEC.region or (county is not None and county.state in m.SPEC.region)
-    first = runner.first_day_needed(m, start, biofix=biofix, planting=planting)
-    days = read_days(first, end, runner.required_inputs(m))
-    return runner.run(
-        m,
-        dates=days.dates,
-        daily=days.values,
-        latitude=latitude,
-        start=start,
-        kinds=days.kinds,
-        biofix=biofix,
-        planting=planting,
-        options=options,
-        crop_options=crop_options,
-        in_region=in_region,
-        gap_fill=GAP_FILL,
+    """One model at a point from any source of days (`runs_at_point`)."""
+    run = RunSpec(
+        model_id=model_id, biofix=biofix, planting=planting, options=options or {}, crop_options=crop_options or {}
     )
+    return runs_at_point(read_days, latitude, longitude, [run], start, end)[0]
 
 
 def day_kinds(times: list[datetime], hour_kinds: list[str | None], zone: str, dates: list[date]) -> list[str | None]:

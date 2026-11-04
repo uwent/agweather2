@@ -126,6 +126,60 @@ def test_every_model_runs_at_a_point_through_the_forecast(world, monkeypatch):
     assert np.isfinite(daily).all() and daily[8] > daily[0] + 10
 
 
+def test_models_read_their_days_once_and_match_running_alone(world, monkeypatch):
+    from agdata.grid import NDFD
+    from agmodels.registry import all_models
+
+    lat, lon = (float(v) for v in NDFD.latlon(*CELL))
+    start, end = date(2025, 7, 5), date(2025, 7, 20)
+    runs = [series.RunSpec(model_id=model_id) for model_id in sorted(all_models())]
+    runs.append(series.RunSpec(model_id="degree-days", biofix=date(2025, 7, 2)))  # a biofix before the others' days
+    runs.append(series.RunSpec(model_id="frogeye-leaf-spot", planting=date(2025, 7, 3)))  # gated, its own planting
+    alone = [
+        series.model_at_point(
+            world,
+            lat,
+            lon,
+            run.model_id,
+            start,
+            end,
+            biofix=run.biofix,
+            planting=run.planting,
+            options=dict(run.options),
+            now=NOW,
+        )
+        for run in runs
+    ]
+    real, reads = series.point_days, []
+
+    def counted(*args, **kwargs):
+        reads.append(args[3:5])
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(series, "point_days", counted)
+    together = series.models_at_point(world, lat, lon, runs, start, end, now=NOW)
+    assert len(reads) == 1
+    for one, shared in zip(alone, together, strict=True):
+        assert (shared.model_id, shared.dates, shared.kinds) == (one.model_id, one.dates, one.kinds)
+        assert (shared.biofix, shared.reason) == (one.biofix, one.reason), one.model_id
+        assert shared.outputs.keys() == one.outputs.keys()
+        for name, values in one.outputs.items():
+            np.testing.assert_array_equal(shared.outputs[name], values, err_msg=f"{one.model_id} {name}")
+        for left, right in ((shared.level, one.level), (shared.susceptibility, one.susceptibility)):
+            assert (left is None) == (right is None)
+            if left is not None:
+                np.testing.assert_array_equal(left, right)
+        assert shared.estimated.keys() == one.estimated.keys() and shared.missing.keys() == one.missing.keys()
+
+
+def test_a_slice_starts_inside_the_series(world):
+    days = series.point_days(world, *CELL, date(2025, 7, 3), date(2025, 7, 6), ["air_temperature_max"], now=NOW)
+    part = series.sliced(days, date(2025, 7, 5), ["air_temperature_max"])
+    assert part.dates == [date(2025, 7, 5), date(2025, 7, 6)] and part.kinds == days.kinds[2:]
+    with pytest.raises(ValueError, match="before the series"):
+        series.sliced(days, date(2025, 7, 2), ["air_temperature_max"])
+
+
 def test_no_published_run_means_no_forecast(tmp_path):
     found = series.current_forecast(tmp_path, NOW)
     assert (found.path, found.reason) == (None, "none")
