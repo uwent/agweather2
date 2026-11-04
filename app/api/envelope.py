@@ -222,14 +222,12 @@ def respond(request: HttpRequest, result: Result) -> HttpResponse:
     if result.locations is not None:
         meta["locations"] = result.locations
 
+    orient = params.get("orient", "columns")
     if result.columns is not None:
         prepared = [_prepare(c, system, overrides) for c in result.columns]
-        lengths = {len(p.values) for p in prepared}
-        if len(lengths) > 1:
-            raise ValueError(f"columns of different lengths: { {p.name: len(p.values) for p in prepared} }")
-        meta["units"] = {p.name: p.label for p in prepared if p.label is not None}
-        missing, stats = _stats(prepared)
-        meta["summary"] = {**result.summary, "missing": missing, "stats": stats}
+        table = _table(prepared, orient)
+        meta["units"] = table["units"]
+        meta["summary"] = {**result.summary, **table["summary"]}
     else:
         prepared = []
         meta["units"] = {}
@@ -241,14 +239,7 @@ def respond(request: HttpRequest, result: Result) -> HttpResponse:
     meta["api_version"] = API_VERSION
     meta["generated_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    orient = params.get("orient", "columns")
-    if result.columns is None:
-        data: Any = result.data
-    elif orient == "records":
-        names = [p.name for p in prepared]
-        data = [dict(zip(names, row, strict=True)) for row in zip(*(p.values for p in prepared), strict=True)]
-    else:
-        data = {p.name: p.values for p in prepared}
+    data: Any = result.data if result.columns is None else table["data"]
 
     elapsed = _elapsed_ms(request)
     meta["compute_ms"] = round(elapsed)
@@ -266,6 +257,33 @@ def respond(request: HttpRequest, result: Result) -> HttpResponse:
     if not params.get("format") and len(formats) > 1:
         patch_vary_headers(response, ("Accept",))  # the format came from it
     return response
+
+
+def table(request: HttpRequest, columns: list[Column], summary: dict[str, Any] | None = None) -> dict[str, Any]:
+    """One table as a nested answer holds it (`GET /models/run`'s per-model `meta` and `data`): `units`, `summary`
+    (with `missing` and `stats`) and `data`, in the request's units and orientation, as `respond` makes them."""
+    params = request.GET
+    system = SYSTEMS.get(params.get("units", "us"), "imperial")
+    prepared = [_prepare(c, system, unit_overrides(request)) for c in columns]
+    found = _table(prepared, params.get("orient", "columns"))
+    return {"units": found["units"], "summary": {**(summary or {}), **found["summary"]}, "data": found["data"]}
+
+
+def _table(prepared: list[_Prepared], orient: str) -> dict[str, Any]:
+    lengths = {len(p.values) for p in prepared}
+    if len(lengths) > 1:
+        raise ValueError(f"columns of different lengths: { {p.name: len(p.values) for p in prepared} }")
+    missing, stats = _stats(prepared)
+    if orient == "records":
+        names = [p.name for p in prepared]
+        data: Any = [dict(zip(names, row, strict=True)) for row in zip(*(p.values for p in prepared), strict=True)]
+    else:
+        data = {p.name: p.values for p in prepared}
+    return {
+        "units": {p.name: p.label for p in prepared if p.label is not None},
+        "summary": {"missing": missing, "stats": stats},
+        "data": data,
+    }
 
 
 def etag_for(request: HttpRequest, computed: dict[str, Any], data_stamp: str | None) -> str:

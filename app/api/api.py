@@ -14,7 +14,7 @@ api = NinjaAPI(
     parser=QueryParser(),
 )
 errors.install(api)
+api.add_router("/", models.router)  # before discovery: /models/run isn't a model id
 api.add_router("/", discovery.router)
 api.add_router("/", weather.router)
 api.add_router("/", degree_days.router)
-api.add_router("/", models.router)

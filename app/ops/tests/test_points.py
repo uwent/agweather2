@@ -78,3 +78,21 @@ def test_a_point_before_the_archive_runs_wholly_on_open_meteo(archive, monkeypat
     )
     assert days == ("days", (*MADISON, date(2024, 5, 1), date(2024, 5, 3), ["air_temperature_max"], NOW))
     assert [(run.model_id, run.biofix) for run in seen["runs"]] == [("degree-days", date(2024, 5, 1))]
+
+
+def test_runs_reaching_before_the_archive_read_open_meteo_and_the_rest_the_archive(archive, monkeypatch):
+    seen = {}
+    monkeypatch.setattr(
+        points,
+        "_archive_runs",
+        lambda lat, lon, runs, *a: seen.setdefault("archive", runs) and [f"a:{r.model_id}" for r in runs],
+    )
+    monkeypatch.setattr(
+        points,
+        "_openmeteo_runs",
+        lambda lat, lon, runs, *a: seen.setdefault("om", runs) and [f"o:{r.model_id}" for r in runs],
+    )
+    runs = [points.series.RunSpec(model_id=m) for m in ("tar-spot", "potato-volunteer", "degree-days")]
+    found = points.models_at_point(*MADISON, runs, date(2025, 7, 1), date(2025, 7, 10), NOW, planting_default=False)
+    assert found == ["a:tar-spot", "o:potato-volunteer", "a:degree-days"]  # in the order asked
+    assert [r.model_id for r in seen["om"]] == ["potato-volunteer"]  # its season began October 1, 2024

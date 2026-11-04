@@ -61,12 +61,27 @@ def planting_crop(spec: ModelSpec) -> tuple[str, str] | None:
 
 
 def plan(
-    m: Model, params: QueryDict, lat: float, lng: float, season: int, biofix: date | None, planting: str | None
+    m: Model,
+    params: QueryDict,
+    lat: float,
+    lng: float,
+    season: int,
+    biofix: date | None,
+    planting: str | None,
+    lenient: bool = False,
 ) -> Plan:
-    """The runs a request asks for. `season` is the year a typical planting date falls in."""
+    """The runs a request asks for. `season` is the year a typical planting date falls in. `lenient` (several models
+    in one request): a planting date is ignored by a model without a crop, and a crop without typical dates here
+    runs without one, with a warning."""
     spec = m.SPEC
     warnings: list[str] = []
     crop = planting_crop(spec)
+    if lenient and planting:
+        if crop is None:
+            planting = None
+        elif planting in (*TIERS, ALL) and (crop[1] not in CROPS or typical_planting(crop[1], lat, lng) is None):
+            warnings.append(f"no typical {crop[1]} planting dates for this point, so no planting date")
+            planting = None
     crop_spec = find_model(crop[0]).SPEC if crop and crop[0] != spec.id else None
     own = {o.name: _option_values(o, params.get(o.name), warnings) for o in spec.options}
     crop_opts = (

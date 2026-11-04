@@ -32,29 +32,39 @@ def models_at_point(
     now: datetime,
     planting_default: bool = True,
 ) -> list[ModelRun]:
-    """Models' three layers at a point, each day marked observed, partial or forecast; their inputs are read once,
-    all from the archive or all from Open-Meteo."""
+    """Models' three layers at a point, each day marked observed, partial or forecast, in the order of `runs`. The
+    runs whose days the archive covers read it once; any that reach before it (or a point outside the box) read
+    Open-Meteo once, so one model's long lookback doesn't move the others off the archive."""
     if planting_default:
         runs = [series.with_planting(run, latitude, longitude, start) for run in runs]
-    first, _ = series.days_needed(runs, start)
-    if in_archive(latitude, longitude, first, end):
-
-        def fill_soil(first_hour: datetime, last_hour: datetime, names: list[str]) -> dict[str, np.ndarray]:
-            values, _, _ = openmeteo.cell_hours(latitude, longitude, first_hour, last_hour, now)  # soil only
-            return {name: values[name] for name in names if name in values}
-
-        return series.models_at_point(
-            settings.DATA_DIR,
-            latitude,
-            longitude,
-            runs,
-            start,
-            end,
-            now=now,
-            fill_soil=fill_soil,
-            planting_default=False,
+    archived = [in_archive(latitude, longitude, series.days_needed([run], start)[0], end) for run in runs]
+    results: list[ModelRun | None] = [None] * len(runs)
+    for from_archive in (True, False):
+        group = [k for k, a in enumerate(archived) if a == from_archive]
+        if not group:
+            continue
+        chosen = [runs[k] for k in group]
+        found = (
+            _archive_runs(latitude, longitude, chosen, start, end, now)
+            if from_archive
+            else _openmeteo_runs(latitude, longitude, chosen, start, end, now)
         )
+        for k, result in zip(group, found, strict=True):
+            results[k] = result
+    return [r for r in results if r is not None]
 
+
+def _archive_runs(latitude, longitude, runs, start, end, now) -> list[ModelRun]:
+    def fill_soil(first_hour: datetime, last_hour: datetime, names: list[str]) -> dict[str, np.ndarray]:
+        values, _, _ = openmeteo.cell_hours(latitude, longitude, first_hour, last_hour, now)  # soil only
+        return {name: values[name] for name in names if name in values}
+
+    return series.models_at_point(
+        settings.DATA_DIR, latitude, longitude, runs, start, end, now=now, fill_soil=fill_soil, planting_default=False
+    )
+
+
+def _openmeteo_runs(latitude, longitude, runs, start, end, now) -> list[ModelRun]:
     def read_days(first: date, last: date, names: list[str]) -> series.DailySeries:
         return openmeteo.point_days(latitude, longitude, first, last, names, now)
 

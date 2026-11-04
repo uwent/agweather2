@@ -1,8 +1,12 @@
 """Models at a point (PLAN.md Phase 5 D, D64) on the fixture archive: observed days July 1–10, 2025 (to 10 am
 on the 10th), then the forecast to about July 21. Days before July 1 have no data."""
 
+from datetime import timedelta
+
+import numpy as np
 import pytest
 
+from agdata.series import DailySeries, Forecast
 from agmodels.models.early_blight import pdays
 from api.tests.fixture_archive import POINT
 
@@ -124,3 +128,91 @@ def test_unknown_models_and_several_points(client, archive):
     assert missing.status_code == 404 and missing.json()["errors"][0]["code"] == "not_found"
     two = client.get("/api/v2/models/tar-spot/run", {"points": f"{LAT},{LNG};{LAT},{LNG}"})
     assert two.status_code == 422 and two.json()["errors"][0]["param"] == "points"
+
+
+# --- Several models ------------------------------------------------------------------------------------------------
+
+
+def several(client, **params):
+    return client.get("/api/v2/models/run", {"lat": LAT, "lng": LNG, **params})
+
+
+def test_several_models_each_with_its_own_table(client, archive):
+    body = several(
+        client, models="early-blight-pdays,tar-spot,corn-stages", start="2025-07-05", end="2025-07-12"
+    ).json()
+    assert list(body["data"]) == ["early-blight-pdays", "tar-spot", "corn-stages"]
+    blight = body["data"]["early-blight-pdays"]
+    assert blight["data"]["date"][0] == "2025-07-05" and "pdays_total" in blight["data"]
+    assert blight["meta"]["request"]["model"] == "early-blight-pdays" and "pdays" in blight["meta"]["units"]
+    assert "risk_level" not in body["data"]["corn-stages"]["data"]
+    assert body["meta"]["request"]["models"] == ["early-blight-pdays", "tar-spot", "corn-stages"]
+    assert body["meta"]["location"]["in_box"] is True and body["meta"]["sources"][:1] == ["urma"]
+    # The same answer as one model alone
+    alone = get(client, "early-blight-pdays", start="2025-07-05", end="2025-07-12").json()
+    assert blight["data"] == alone["data"]
+
+
+def test_a_planting_date_applies_to_models_with_a_crop(client, archive):
+    body = several(
+        client, models="tar-spot,degree-days,late-blight-dsv", planting_date="mid", start="2025-07-05", end="2025-07-06"
+    ).json()
+    assert "susceptibility" in body["data"]["tar-spot"]["data"]
+    assert body["data"]["degree-days"]["meta"]["request"]["planting_date"] is None
+    assert any("no typical potato" in w for w in body["data"]["late-blight-dsv"]["meta"]["warnings"])
+
+
+def test_several_models_refuse_csv_and_unknown_ids(client, archive):
+    csv = several(client, models="tar-spot,white-mold", format="csv", start="2025-07-05")
+    assert csv.status_code == 422 and csv.json()["errors"][0]["code"] == "format_unavailable"
+    unknown = several(client, models="tar-spot,nope")
+    assert unknown.status_code == 404 or unknown.json()["errors"][0]["param"] == "models"
+
+
+def test_models_run_is_not_taken_for_a_model_id(client, archive):
+    response = client.get("/api/v2/models/run", {"lat": LAT, "lng": LNG, "models": "tar-spot", "start": "2025-07-05"})
+    assert response.status_code == 200
+
+
+# --- Risk ----------------------------------------------------------------------------------------------------------
+
+
+@pytest.fixture
+def no_open_meteo(monkeypatch):
+    """Open-Meteo with nothing to give: potato volunteer's season begins October 1, before the fixture archive, so
+    it alone reads Open-Meteo (ops.points), and gets missing days."""
+
+    def point_days(lat, lng, first, last, names, now):
+        n = (last - first).days + 1
+        dates = [first + timedelta(days=k) for k in range(n)]
+        values = {name: np.full(n, np.nan) for name in names}
+        return DailySeries(dates=dates, values=values, kinds=[None] * n, forecast=Forecast(path=None))
+
+    monkeypatch.setattr("ops.points.openmeteo.point_days", point_days)
+
+
+def test_risk_lists_models_in_season_and_in_region(client, archive, no_open_meteo):
+    body = client.get("/api/v2/risk", {"lat": LAT, "lng": LNG, "date": "2025-07-08"}).json()
+    data = body["data"]
+    assert "tar-spot" in data["model"] and "early-blight-pdays" in data["model"]
+    assert "pecan-scab" not in data["model"] and "corn-stages" not in data["model"]  # outside its region; no risk
+    assert all(season is not False for season in data["in_season"])
+    k = data["model"].index("early-blight-pdays")
+    assert data["kind"][k] == "observed" and data["risk_label"][k] == "Very low" and data["reason"][k] is None
+    assert body["meta"]["summary"]["models"] == len(data["model"]) and body["meta"]["request"]["models"] == "in season"
+
+
+def test_risk_for_models_asked_includes_why_there_is_none(client, archive):
+    data = client.get(
+        "/api/v2/risk", {"lat": LAT, "lng": LNG, "date": "2025-07-08", "models": "pecan-scab,tar-spot"}
+    ).json()["data"]
+    assert data["model"] == ["pecan-scab", "tar-spot"]
+    assert data["reason"][0] == "outside the model's region" and data["risk_level"][0] is None
+
+
+def test_risk_with_a_planting_date_shows_susceptibility(client, archive):
+    data = client.get(
+        "/api/v2/risk",
+        {"lat": LAT, "lng": LNG, "date": "2025-07-08", "models": "tar-spot", "planting_date": "2025-05-01"},
+    ).json()["data"]
+    assert data["susceptibility"][0] in ("not susceptible", "margin", "susceptible")
