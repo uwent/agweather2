@@ -83,7 +83,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 
 ## Phase 5: API v2
 
-- [ ] Compile the Veg Path newsletters' potato tables (early/mid/late planting and 50% emergence by location, every season on vegpath.plantpath.wisc.edu, as in 2026-08-23's) into a spreadsheet in `tmp/`, for a GDD-based planting and emergence model (PLAN.md Phase 5 D, D64). Ben, in progress 2026-11-03.
+- [x] Compile the Veg Path newsletters' potato tables (early/mid/late planting and 50% emergence by location, every season on vegpath.plantpath.wisc.edu, as in 2026-08-23's) into a spreadsheet in `tmp/`, for a GDD-based planting and emergence model (PLAN.md Phase 5 D, D64). Done 2026-11-03 (2020–2026); `potato-stages` is fitted to it.
 
 - [ ] Send `docs/server-sizing.md` to IT (Q4): r7i.2xlarge, 1.5 TB gp3 data volume (500 MB/s), 200 GB scratch, RDS PostgreSQL db.t4g.medium, us-east-1, and a temporary resize for the backfill.
 

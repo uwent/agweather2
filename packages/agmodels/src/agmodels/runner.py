@@ -51,7 +51,8 @@ class ModelRun:
     missing: dict[str, np.ndarray] = field(default_factory=dict)
     biofix: date | None = None
     # Why there are no outputs: "outside the model's region", "biofix after the series" (not started yet), "biofix
-    # not in the series" (the days given start after it: read from `first_day_needed`)
+    # not in the series" (the days given start after it: read from `first_day_needed`), "<stage> isn't reached in the
+    # series" (a biofix at a crop stage the planting hasn't reached: not started yet)
     reason: str | None = None
 
 
@@ -128,7 +129,10 @@ def run(
         crop = cast(CropModel, find_model(spec.biofix_stage[0]))
         k = [s.code for s in crop.stages(**(crop_options or {}))].index(code)
         reached = stage_days(crop_stage, k + 1)[k]
-        biofix = dates[int(reached)] if np.isfinite(reached) else None
+        if not np.isfinite(reached):  # not there yet: the model hasn't started, rather than starting on a guess
+            result.reason = f"{code} isn't reached in the series"
+            return result
+        biofix = dates[int(reached)]
     biofix = biofix or default_biofix(spec, start)
     biofix_index = 0 if biofix is None else _index(dates, biofix)
     if biofix_index is None:

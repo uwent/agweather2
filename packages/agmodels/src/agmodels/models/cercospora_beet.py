@@ -31,7 +31,7 @@ SPEC = ModelSpec(
     id="cercospora-beet-div",
     name="Cercospora leaf spot daily infection values",
     group="disease",
-    version="0.1",
+    version="0.2",
     status="stable",
     summary="Daily infection values (0–7) from hours of high humidity and their temperature; their 2- and "
     "7-day means time fungicide sprays for Cercospora leaf spot of table and sugar beet.",
@@ -92,6 +92,11 @@ SPEC = ModelSpec(
             note="Ported from the Crop Risk Tool; humid hours and their temperature from "
             "the same window (the day from 8 pm).",
         ),
+        Change(
+            version="0.2",
+            date="2026-11-03",
+            note="DIV totals count from the biofix, as the risk does (were from the first day read).",
+        ),
     ),
 )
 
@@ -132,7 +137,7 @@ def div(temperature_c, hours) -> np.ndarray:
 
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
     values = div(inputs["temperature_mean_rh_over_90_from_8pm"], inputs["hours_rh_over_90_from_8pm"])
-    return {"div": values, **_accumulated(values, 0)}
+    return {"div": values, **_accumulated(values, biofix_index)}
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:

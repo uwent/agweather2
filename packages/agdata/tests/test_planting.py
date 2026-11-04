@@ -63,7 +63,22 @@ def test_the_table_is_consistent():
         if r["crop"] != "winter-wheat":  # winter wheat's can run into January
             assert season == sorted(season), r
     for crop in CROPS:
-        assert any(r["crop"] == crop and r["level"] == "state" for r in rows)
+        if crop != "potato":  # its own table, by place
+            assert any(r["crop"] == crop and r["level"] == "state" for r in rows)
+
+
+def test_potato_near_veg_paths_places_only():
+    plover = typical_planting("potato", 44.40, -89.50)  # ~8 km from Veg Path's Plover field
+    assert (
+        plover is not None and plover.area == "Plover" and plover.level == "location" and "Vegetable" in plover.source
+    )
+    assert plover.early < plover.typical < plover.late
+    antigo = typical_planting("potato", 45.14, -89.15)
+    assert antigo is not None and antigo.area == "Antigo" and antigo.typical > plover.typical  # the north plants later
+    assert typical_planting("potato", 43.07, -87.91) is None  # Milwaukee: ~120 km from Arlington
+    with (DATA / "potato_planting.csv").open() as f:
+        for r in csv.DictReader(f):
+            assert r["early"] < r["mid"] < r["late"], r
 
 
 def test_crop_models_have_planting_dates():

@@ -37,7 +37,7 @@ SPEC = ModelSpec(
     id="carrot-foliar-dsv",
     name="Carrot foliar blight disease severity values (TOMCAST)",
     group="disease",
-    version="0.2",
+    version="0.3",
     status="stable",
     summary="Daily disease severity values (0–4) from hours of leaf wetness and their temperature; the last "
     "7 days' total times fungicide sprays for Alternaria and Cercospora leaf blights of carrot.",
@@ -109,6 +109,12 @@ SPEC = ModelSpec(
             note="FAST's table (Madden et al. 1978): the first step at 13–17 °C from 7 h and at 18–20 °C from 4 h, and "
             "18, 21 and 26 °C in the band above.",
         ),
+        Change(
+            version="0.3",
+            date="2026-11-03",
+            note="DSV totals (season and 7-day) count from the biofix, as the risk does "
+            "(were from the first day read).",
+        ),
     ),
 )
 
@@ -127,7 +133,7 @@ def dsv(temperature_c, hours) -> np.ndarray:
 
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
     values = dsv(inputs["temperature_mean_rh_over_90_from_8pm"], inputs["hours_rh_over_90_from_8pm"])
-    return {"dsv": values, **_accumulated(values, 0)}
+    return {"dsv": values, **_accumulated(values, biofix_index)}
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:

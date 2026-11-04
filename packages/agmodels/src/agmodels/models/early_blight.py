@@ -31,7 +31,7 @@ SPEC = ModelSpec(
     id="early-blight-pdays",
     name="Early blight P-days",
     group="disease",
-    version="0.1",
+    version="0.2",
     status="stable",
     summary="Potato physiological days from daily minimum and maximum temperature, accumulated from emergence "
     "to time the first fungicide spray for early blight (about 300 P-days).",
@@ -79,11 +79,18 @@ SPEC = ModelSpec(
     sweep={"tmin": tuple(float(t) for t in range(-2, 34)), "tmax": tuple(float(t) for t in range(4, 40))},
     season=("05-01", "09-30"),
     biofix=Biofix(default="05-15", label="Crop emergence"),
+    biofix_stage=("potato-stages", "EM"),  # emergence from a planting date, when one is given
     changelog=(
         Change(
             version="0.1",
             date="2026-10-28",
             note="Ported from the Crop Risk Tool; the last term weighs P(Tmax), as Sands et al.",
+        ),
+        Change(
+            version="0.2",
+            date="2026-11-03",
+            note="P-day totals and their 7-day mean count from the biofix, as the risk does "
+            "(were from the first day read).",
         ),
     ),
 )
@@ -108,7 +115,7 @@ def pdays(tmin_c, tmax_c, last_term: str = "tmax") -> np.ndarray:
 
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
     values = pdays(inputs["air_temperature_min"], inputs["air_temperature_max"])
-    return {"pdays": values, **_accumulated(values, 0)}
+    return {"pdays": values, **_accumulated(values, biofix_index)}
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:

@@ -35,7 +35,7 @@ SPEC = ModelSpec(
     id="botrytis-onion-botcast",
     name="Botrytis leaf blight (BOTCAST)",
     group="disease",
-    version="0.1",
+    version="0.2",
     status="stable",
     summary="BOTCAST's daily disease severity index from inoculum and infection conditions, accumulated from "
     "emergence to time fungicide sprays for Botrytis leaf blight of onion.",
@@ -133,6 +133,11 @@ SPEC = ModelSpec(
             note="Ported from the Crop Risk Tool; humid hours and their temperature from "
             "the same window; missing inputs give no DSI.",
         ),
+        Change(
+            version="0.2",
+            date="2026-11-03",
+            note="DSI total count from the biofix, as the risk does (were from the first day read).",
+        ),
     ),
 )
 
@@ -178,7 +183,7 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
     inoc = inoculum(days["hot_past_5_days"], dry_yesterday, hours)
     infect = infection(inputs["temperature_mean_rh_over_90_from_8pm"], hours)
     dsi = inoc * infect
-    return {"dsi": dsi, "inoculum": inoc, "infection": infect, "dsi_total": running_total(dsi, 0)}
+    return {"dsi": dsi, "inoculum": inoc, "infection": infect, "dsi_total": running_total(dsi, biofix_index)}
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:

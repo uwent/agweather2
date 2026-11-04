@@ -1,4 +1,4 @@
-{"version": "0.1", "rows": [
+{"version": "0.2", "rows": [
 {"inputs":{"tmin":-2.0,"tmax":4.0},"outputs":{"pdays":0.0}},
 {"inputs":{"tmin":-2.0,"tmax":5.0},"outputs":{"pdays":0.0}},
 {"inputs":{"tmin":-2.0,"tmax":6.0},"outputs":{"pdays":0.0}},

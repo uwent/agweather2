@@ -33,7 +33,7 @@ SPEC = ModelSpec(
     id="late-blight-dsv",
     name="Late blight disease severity values",
     group="disease",
-    version="0.1",
+    version="0.2",
     status="stable",
     summary="Daily disease severity values (0–4) from hours of high humidity and their temperature, "
     "accumulated from crop emergence to time fungicide sprays for potato and tomato late blight.",
@@ -95,12 +95,19 @@ SPEC = ModelSpec(
     region=(),
     season=("05-01", "09-30"),
     biofix=Biofix(default="05-15", label="Crop emergence or the last fungicide application"),
+    biofix_stage=("potato-stages", "EM"),  # emergence from a planting date, when one is given
     changelog=(
         Change(
             version="0.1",
             date="2026-10-28",
             note="Ported from the Crop Risk Tool; humid hours and their temperature from "
             "the same window (the day from 8 pm).",
+        ),
+        Change(
+            version="0.2",
+            date="2026-11-03",
+            note="DSV totals (season and 14-day) count from the biofix, as the risk does "
+            "(were from the first day read).",
         ),
     ),
 )
@@ -121,7 +128,7 @@ def dsv(temperature_c, hours) -> np.ndarray:
 
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
     values = dsv(inputs["temperature_mean_rh_over_90_from_8pm"], inputs["hours_rh_over_90_from_8pm"])
-    return {"dsv": values, **_accumulated(values, 0)}
+    return {"dsv": values, **_accumulated(values, biofix_index)}
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:

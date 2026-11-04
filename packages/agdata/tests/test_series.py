@@ -115,6 +115,8 @@ def test_every_model_runs_at_a_point_through_the_forecast(world, monkeypatch):
             assert result.reason == "outside the model's region"
         elif result.biofix is not None and result.biofix > date(2025, 7, 20):  # corn earworm's August 1
             assert result.reason == "biofix after the series"
+        elif model_id == "red-crown-rot":  # the typical planting's R1 comes after July 20: not started
+            assert result.reason == "R1 isn't reached in the series"
         else:
             assert result.reason is None, (model_id, result.reason)
 

@@ -130,6 +130,32 @@ def test_a_biofix_at_a_crop_stage():
     assert result.biofix is not None and date(2025, 6, 25) < result.biofix < date(2025, 8, 1)
 
 
+def test_blight_starts_at_the_emergence_a_planting_date_gives():
+    planting = date(2025, 5, 1)
+    potato = runner.run("potato-stages", dates=DATES, daily=WEATHER, latitude=LATITUDE, biofix=planting, start=planting)
+    emerged = potato.dates[int(np.argmax(potato.outputs["stage"] >= 1))]
+    assert planting < emerged < date(2025, 6, 15)
+    for model_id in ("early-blight-pdays", "late-blight-dsv"):
+        result = runner.run(model_id, dates=DATES, daily=WEATHER, latitude=LATITUDE, planting=planting)
+        assert result.biofix == emerged, model_id
+        k = result.dates.index(emerged)
+        total = result.outputs["pdays_total" if model_id == "early-blight-pdays" else "dsv_total"]
+        daily = result.outputs["pdays" if model_id == "early-blight-pdays" else "dsv"]
+        assert np.isnan(total[:k]).all() and total[k] == daily[k], model_id  # the total starts at emergence
+        unplanted = runner.run(model_id, dates=DATES, daily=WEATHER, latitude=LATITUDE, start=planting)
+        assert unplanted.biofix == date(2025, 5, 15), model_id  # without a planting date, the spec's default
+
+
+def test_a_stage_biofix_not_yet_reached_means_not_started():
+    last = date(2025, 5, 3)  # two days after planting: not emerged
+    days = (last - DATES[0]).days + 1
+    daily = {name: values[:days] for name, values in WEATHER.items()}
+    result = runner.run(
+        "early-blight-pdays", dates=DATES[:days], daily=daily, latitude=LATITUDE, planting=date(2025, 5, 1)
+    )
+    assert result.reason == "EM isn't reached in the series" and not result.outputs and result.biofix is None
+
+
 def test_action_windows_become_dates():
     result = runner.run("seedcorn-maggot", dates=DATES, daily=WEATHER, latitude=LATITUDE, start=date(2025, 1, 1))
     periods = result.windows["Avoid planting during adult flight"]
