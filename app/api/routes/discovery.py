@@ -23,12 +23,13 @@ from agdata.series import MAX_RUN_AGE
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
 from agmodels.runner import crop_models
-from agmodels.spec import Citation, ModelSpec, Quantity
+from agmodels.spec import Citation, ModelSpec, Option, Quantity
 from api import clock
 from api.envelope import Result, etag_for, not_modified, respond
 from api.errors import ApiError
 from api.locations import describe
 from api.params import PointsQuery
+from api.runs import planting_crop
 from api.schemas import Location, Meta, responses
 from ops.status import dataset_status
 
@@ -258,6 +259,17 @@ class ExplorerInputInfo(Schema):
     default: float
 
 
+class CropInfo(Schema):
+    """What `planting_date` adds (D64): the crop model it runs, whether typical dates exist (`early`, `mid`, `late`),
+    and that model's options, which the run also takes as parameters. Optional: without a planting date a disease
+    runs all season without its susceptible window."""
+
+    model: str
+    crop: str
+    typical_dates: bool
+    options: list[OptionInfo]
+
+
 class ChangeInfo(Schema):
     version: str
     date: str
@@ -274,6 +286,7 @@ class ModelDetail(ModelSummary):
     options: list[OptionInfo]
     biofix: BiofixInfo | None
     susceptible: SusceptibilityInfo | None
+    crop: CropInfo | None  # None: the model takes no planting date
     risk: RiskInfo | None
     explorer: list[ExplorerInputInfo]
     changelog: list[ChangeInfo]
@@ -308,6 +321,21 @@ def _quantity(q: Quantity) -> dict:
     return {"name": q.name, "label": q.label, "unit": q.unit, "units": _units(q.unit), "description": q.description}
 
 
+def _option(o: Option) -> OptionInfo:
+    return OptionInfo(
+        name=o.name, label=o.label, choices=[Choice(value=v, label=label) for v, label in o.choices], default=o.default
+    )
+
+
+def _crop(spec: ModelSpec) -> CropInfo | None:
+    found = planting_crop(spec)
+    if found is None:
+        return None
+    crop_spec = find_model(found[0]).SPEC
+    options = [] if crop_spec.id == spec.id else [_option(o) for o in crop_spec.options]
+    return CropInfo(model=found[0], crop=found[1], typical_dates=found[1] in CROPS, options=options)
+
+
 def _detail(spec: ModelSpec) -> ModelDetail:
     crops = crop_models(spec)
     inputs = [InputInfo(**_quantity(q), model=spec.id) for q in spec.inputs]
@@ -330,19 +358,12 @@ def _detail(spec: ModelSpec) -> ModelDetail:
         context=list(spec.context),
         crop_models=crops,
         outputs=[QuantityInfo(**_quantity(q)) for q in spec.outputs],
-        options=[
-            OptionInfo(
-                name=o.name,
-                label=o.label,
-                choices=[Choice(value=value, label=label) for value, label in o.choices],
-                default=o.default,
-            )
-            for o in spec.options
-        ],
+        options=[_option(o) for o in spec.options],
         biofix=biofix,
         susceptible=None
         if s is None
         else SusceptibilityInfo(crop=s.crop, first=s.first, last=s.last, source=s.source, note=s.note),
+        crop=_crop(spec),
         risk=None
         if spec.risk is None
         else RiskInfo(

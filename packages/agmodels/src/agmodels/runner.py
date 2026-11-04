@@ -54,6 +54,9 @@ class ModelRun:
     # not in the series" (the days given start after it: read from `first_day_needed`), "<stage> isn't reached in the
     # series" (a biofix at a crop stage the planting hasn't reached: not started yet)
     reason: str | None = None
+    # Where the weather came from, set by the caller that read it (`agdata.series`): its sources and corrections
+    sources: tuple[str, ...] = ()
+    corrections: tuple[str, ...] = ()
 
 
 def required_inputs(m: Model) -> list[str]:

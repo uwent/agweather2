@@ -35,6 +35,23 @@ export interface CitationInfo {
   url: string | null
 }
 /**
+ * What `planting_date` adds (D64): the crop model it runs, whether typical dates exist (`early`, `mid`, `late`),
+ * and that model's options, which the run also takes as parameters. Optional: without a planting date a disease
+ * runs all season without its susceptible window.
+ */
+export interface CropInfo {
+  model: string
+  crop: string
+  typical_dates: boolean
+  options: OptionInfo[]
+}
+export interface OptionInfo {
+  name: string
+  label: string
+  choices: Choice[]
+  default: string
+}
+/**
  * Local calendar days: one `date`, or `start` to `end` inclusive. Defaults are the endpoint's (`span`).
  */
 export interface DaysQuery {
@@ -184,6 +201,7 @@ export interface ModelDetail {
   options: OptionInfo[]
   biofix: BiofixInfo | null
   susceptible: SusceptibilityInfo | null
+  crop: CropInfo | null
   risk: RiskInfo | null
   explorer: ExplorerInputInfo[]
   changelog: ChangeInfo[]
@@ -194,12 +212,6 @@ export interface QuantityInfo {
   unit: string
   units: DisplayUnits
   description: string
-}
-export interface OptionInfo {
-  name: string
-  label: string
-  choices: Choice[]
-  default: string
 }
 export interface SusceptibilityInfo {
   crop: string

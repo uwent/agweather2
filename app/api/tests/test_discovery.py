@@ -156,3 +156,14 @@ def test_status_answers_from_the_table_without_opening_a_store(client, archive, 
     monkeypatch.setattr("ops.status.find_stale", lambda data_dir: pytest.fail("opened the stores"))
     monkeypatch.setattr("ops.status.span", lambda *a: pytest.fail("opened the stores"))
     assert client.get("/api/v2/status").json()["data"]["archive"]["daily_through"] == "2025-07-09"
+
+
+def test_a_model_says_what_a_planting_date_adds(client):
+    tar = client.get("/api/v2/models/tar-spot").json()["data"]["crop"]
+    assert tar["model"] == "corn-stages" and tar["crop"] == "corn" and tar["typical_dates"] is True
+    assert [o["name"] for o in tar["options"]] == ["black_layer_gdd"]
+    blight = client.get("/api/v2/models/late-blight-dsv").json()["data"]["crop"]
+    assert blight["model"] == "potato-stages" and blight["crop"] == "potato"
+    corn = client.get("/api/v2/models/corn-stages").json()["data"]["crop"]
+    assert corn["model"] == "corn-stages" and corn["options"] == []  # its own options are under options
+    assert client.get("/api/v2/models/degree-days").json()["data"]["crop"] is None

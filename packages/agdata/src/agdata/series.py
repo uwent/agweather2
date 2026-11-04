@@ -503,6 +503,7 @@ def runs_at_point(
                 gap_fill=GAP_FILL,
             )
         )
+        results[-1].sources, results[-1].corrections = days.sources, days.corrections
     return results
 
 
