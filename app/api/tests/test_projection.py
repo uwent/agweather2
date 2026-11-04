@@ -135,3 +135,22 @@ def test_risk_past_the_forecast(client, projection_archive):
     hole = client.get("/api/v2/risk", {**params, "date": "2025-08-01", "projection": "true"}).json()["data"]
     # Inside 2023's hole: early blight's daily P-days need that day; tar spot's 30-day means span the gap
     assert hole["projection_years"] == [1, 2]
+
+
+def test_the_copies_laid_out_for_points_give_the_same_projection(client, projection_archive, tmp_path):
+    import shutil
+
+    from agdata import pastyears
+
+    before = get(client, "early-blight-pdays", **BLIGHT, projection="years").json()["data"]
+    copy_dir = tmp_path / "with-copies"
+    shutil.copytree(projection_archive, copy_dir)
+    for year in (2023, 2024):
+        pastyears.build(copy_dir, year)
+    from django.conf import settings
+
+    settings.DATA_DIR = copy_dir
+    after = get(client, "early-blight-pdays", **BLIGHT, projection="years").json()["data"]
+    # The copies hold the daily store's packed values: the same days, to the stored precision
+    assert after["year"] == before["year"] and after["kind"] == before["kind"]
+    assert after["pdays_total"] == pytest.approx(before["pdays_total"], abs=0.5, nan_ok=True)

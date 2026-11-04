@@ -6,7 +6,6 @@ about one run. What can differ between scenarios is handled here: a biofix at a 
 red crown rot's R1) can fall on different days, so scenarios are grouped by it; action windows are found per
 scenario. The result is one `ModelRun` per scenario, the same as running each alone."""
 
-import warnings
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date
@@ -132,14 +131,27 @@ def spread(values: Sequence[np.ndarray]) -> Spread:
     """The spread of one series across scenarios (each a day-aligned array)."""
     a = np.stack([np.asarray(v, dtype=float) for v in values], axis=1)
     count = np.isfinite(a).sum(axis=1)
-    out = {}
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", RuntimeWarning)  # days with no scenario
-        for p in PERCENTILES:
-            out[p] = np.nanpercentile(a, p, axis=1) if a.size else np.full(a.shape[0], np.nan)
-    out[10] = np.where(count >= 2, out[10], np.nan)
-    out[90] = np.where(count >= 2, out[90], np.nan)
-    return Spread(p10=out[10], p50=out[50], p90=out[90], count=count)
+    out = {p: percentile_rows(a, count, p) for p in PERCENTILES}
+    return Spread(
+        p10=np.where(count >= 2, out[10], np.nan),
+        p50=out[50],
+        p90=np.where(count >= 2, out[90], np.nan),
+        count=count,
+    )
+
+
+def percentile_rows(a: np.ndarray, count: np.ndarray, p: float) -> np.ndarray:
+    """Each row's p-th percentile over its finite values (linear, as `np.nanpercentile`'s default), NaN for a row
+    with none. Vectorized: `nanpercentile` along a short axis takes a slow path, 70 ms a call on a season."""
+    ordered = np.sort(np.where(np.isfinite(a), a, np.inf), axis=1)  # missing last
+    rank = np.maximum(count - 1, 0) * p / 100
+    lo = np.floor(rank).astype(int)
+    hi = np.minimum(lo + 1, np.maximum(count - 1, 0))
+    low = np.take_along_axis(ordered, lo[:, None], axis=1)[:, 0]
+    high = np.take_along_axis(ordered, hi[:, None], axis=1)[:, 0]
+    with np.errstate(invalid="ignore"):
+        found = low + (high - low) * (rank - lo)
+    return np.where(count > 0, np.where(hi == lo, low, found), np.nan)
 
 
 @dataclass(frozen=True, kw_only=True)

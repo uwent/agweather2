@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from django.conf import settings
 from procrastinate.contrib.django import app
 
+from agdata import pastyears
 from ops.era5land import refresh_era5land
 from ops.forecast import refresh_forecast, restitch_current
 from ops.ifs import refresh_ifs
@@ -86,6 +87,20 @@ def ingest_ifs(timestamp: int) -> None:
                 restitch_current(settings.DATA_DIR, settings.SERVICE_BOX)
     except WriteLocked as error:
         logger.warning("ingest_ifs skipped: %s", error)
+
+
+@app.periodic(cron="30 3 * * 1")  # Mondays: a past year settles once ERA5-Land has caught up (~5 days)
+@app.task(queue="maintenance", queueing_lock="build_past_years")
+def build_past_years(timestamp: int) -> None:
+    """Builds the copies of past years laid out for points (`agdata.pastyears`, D63) that are missing or older
+    than their daily stores. Reads only, so no write lock; not in the catch-up (a backfill's years take minutes)."""
+    year = datetime.fromtimestamp(timestamp, UTC).year
+    for past, reason in pastyears.stale_years(settings.DATA_DIR, before=year).items():
+        try:
+            pastyears.build(settings.DATA_DIR, past)
+            logger.info("built the past-years copy of %s (%s)", past, reason)
+        except ValueError as error:
+            logger.warning("past-years copy of %s not built: %s", past, error)
 
 
 # The order `manage.py jobs run all` and `jobs start` use: the archive first, then soil (IFS's provisional hours, then

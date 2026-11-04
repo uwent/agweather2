@@ -102,6 +102,8 @@ du -sh data/*                       # archive size
 - After each block it rolls up the local days the block finished into `data/daily/<year>.zarr` and rebuilds that
   year's running totals in `data/cumulative/<year>.zarr` (about 20 s).
 
+`pastyears` builds, for each settled year, a copy of its daily store laid out for reading a point over time (`data/daily-by-point/<year>.zarr`, ~0.3 GB a year), which the projection past the forecast reads (D63); `--check` lists the years that need it. A weekly job keeps them current.
+
 `rollup` redoes the daily stores and running totals for a range of local days from the hourly archive, e.g.
 after changing a daily statistic or for days a backfill skipped:
 

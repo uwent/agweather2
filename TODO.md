@@ -96,7 +96,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
   ls data/hourly                      # the years so far
   ```
 
-  Then `uv run app/manage.py rebuild --check` (should print nothing). Files before 2017-05 have no `.idx`, so those hours read GRIB section headers (CLAUDE.md, URMA).
+  Then `uv run app/manage.py rebuild --check` (should print nothing) and `uv run app/manage.py pastyears` (the copies of past years laid out for points that the projection reads, D63: about 1.5 minutes a year; the weekly job keeps them after). Files before 2017-05 have no `.idx`, so those hours read GRIB section headers (CLAUDE.md, URMA).
 
 - [x] Compile the Veg Path newsletters' potato tables (early/mid/late planting and 50% emergence by location, every season on vegpath.plantpath.wisc.edu, as in 2026-08-23's) into a spreadsheet in `tmp/`, for a GDD-based planting and emergence model (PLAN.md Phase 5 D, D64). Done 2026-11-03 (2020–2026); `potato-stages` is fitted to it.
 

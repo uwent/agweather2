@@ -20,7 +20,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata import corrections, forecast, projection
+from agdata import corrections, forecast, pastyears, projection
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, GAP_FILL, VARIABLES
 from agdata.daily import cell_timezones
 from agdata.grid import NDFD, Window
@@ -521,14 +521,7 @@ class Projected:
 
 def archive_years(data_dir: Path) -> list[int]:
     """The years the archive has a daily store for."""
-    folder = DAILY.path(data_dir, 2000).parent
-    found = []
-    for path in folder.glob("*.zarr") if folder.exists() else ():
-        try:
-            found.append(int(path.stem))
-        except ValueError:
-            continue
-    return sorted(found)
+    return pastyears.years_on_disk(data_dir, DAILY)
 
 
 def projected_runs(
@@ -586,9 +579,14 @@ def projected_runs(
 
 
 def past_reader(data_dir: Path, j: int, i: int, stores: "Stores | None" = None):
-    """`projected_runs`' `read_past` at a cell: a past year's days from the archive (observed, so no forecast)."""
+    """`projected_runs`' `read_past` at a cell: a past year's days from the copies laid out for points
+    (`agdata.pastyears`), or rolled up from the archive's hours where a year has none yet."""
+    copies = pastyears.Reader(data_dir)
 
     def read(first: date, last: date, names: list[str]) -> dict[str, np.ndarray]:
+        found = copies.read(j, i, first, last, names)
+        if found is not None:
+            return found
         return point_days(data_dir, j, i, first, last, names, stores=stores).values
 
     return read

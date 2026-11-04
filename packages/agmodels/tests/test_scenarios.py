@@ -1,6 +1,7 @@
 """Models over scenarios at once (D63's projection; PLAN.md Phase 5 D P2): each scenario as if run alone, and the
 spread across them."""
 
+import warnings
 from datetime import date, timedelta
 
 import numpy as np
@@ -102,3 +103,16 @@ def test_milestones_say_when_stages_and_risk_levels_come_across_scenarios():
     first = windows[0]
     assert first.reached == 3 and first.p50 is not None and first.p10 is not None
     assert first.p50 - first.p10 < timedelta(days=60)
+
+
+def test_percentiles_match_numpys():
+    rng = np.random.default_rng(1)
+    a = rng.normal(size=(200, 7))
+    a[rng.random(a.shape) < 0.3] = np.nan
+    a[5] = np.nan  # a day with no scenario
+    count = np.isfinite(a).sum(axis=1)
+    for p in (10, 50, 90):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)  # the empty day
+            expected = np.nanpercentile(a, p, axis=1)
+        np.testing.assert_allclose(scenarios.percentile_rows(a, count, p), expected, equal_nan=True)
