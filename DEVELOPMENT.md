@@ -6,14 +6,14 @@ How to set up a machine to work on AgWeather v2 and the day-to-day commands. Con
 
 Written for Ubuntu 24.04 under WSL2.
 
-| Tool | Version | Why |
-|---|---|---|
-| uv | latest | Python 3.13 (`.python-version`, downloaded by uv), the workspace and its lockfile |
-| Node.js | 24 (`.node-version`) | Vite, the frontend tests, pyright |
-| pnpm | from `packageManager` in `package.json` | JavaScript packages |
-| PostgreSQL | 18 | App data and the job queue (CI uses 18) |
-| ecCodes | 2.34 or newer (`libeccodes0`, `libeccodes-tools`) | GRIB decoding, through the system library (not the eccodeslib wheel; CLAUDE.md) |
-| Docker | Engine or Desktop with WSL integration | Only for the container build (`infra/`) |
+| Tool       | Version                                           | Why                                                                               |
+| ---------- | ------------------------------------------------- | --------------------------------------------------------------------------------- |
+| uv         | latest                                            | Python 3.13 (`.python-version`, downloaded by uv), the workspace and its lockfile |
+| Node.js    | 24 (`.node-version`)                              | Vite, the frontend tests, pyright                                                 |
+| pnpm       | from `packageManager` in `package.json`           | JavaScript packages                                                               |
+| PostgreSQL | 18                                                | App data and the job queue (CI uses 18)                                           |
+| ecCodes    | 2.34 or newer (`libeccodes0`, `libeccodes-tools`) | GRIB decoding, through the system library (not the eccodeslib wheel; CLAUDE.md)   |
+| Docker     | Engine or Desktop with WSL integration            | Only for the container build (`infra/`)                                           |
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -77,12 +77,12 @@ On a server, settings go in `infra/.env` (gitignored): `SECRET_KEY`, `DATABASE_U
 
 ## 6. Managing data from the console
 
-`backfill` fills the hourly archive (`data/hourly/<year>.zarr`) for the `SERVICE_BOX` window from NOAA's AWS buckets
+`backfill` fills the hourly archive (`data/hourly/<year>.zarr`, any year from 2016) for the `SERVICE_BOX` window from NOAA's AWS buckets
 (URMA, RTMA, HRRR). It downloads about 50 MB per hour of data and runs at about 6 s per hour of data on a home
 connection, so run it detached, so that it outlives the terminal:
 
 ```bash
-setsid nohup uv run app/manage.py backfill --start 2025-01-01 --end 2026-10-28 > tmp/backfill.log 2>&1 < /dev/null &
+setsid nohup uv run app/manage.py backfill --start 2016-01-01 --end 2017-01-01 > tmp/backfill.log 2>&1 < /dev/null &
 tail -f tmp/backfill.log            # a line every 6 hours of data, with time left; Ctrl-C stops watching, not the backfill
 pgrep -af 'manage.py backfill'      # is it running?
 cat data/write.lock                 # its pid

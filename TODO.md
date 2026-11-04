@@ -83,6 +83,21 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 
 ## Phase 5: API v2
 
+- [ ] **Backfill the dev archive to 2016** (Ben, 2026-11-03: more past years for the projection, D63), newest year first so each finished year is usable at once. About 15 hours of URMA per year here (6 s per hour of data) and ~1 hour of ERA5-Land soil and snow per year from the CDS: about 6 days for 2016–2024 in all, ~30 GB of stores (878 GB free). Start it from your own terminal; it waits for the worker's write lock between blocks and resumes if restarted (each year's December 31 needs the next year's first UTC hours, already in when going backwards, hence the one-day rollup):
+
+  ```bash
+  cd ~/code/agweather2
+  setsid nohup bash -c 'for y in 2024 2023 2022 2021 2020 2019 2018 2017 2016; do
+    uv run app/manage.py backfill --start $y-01-01 --end $((y+1))-01-01 --quiet &&
+    uv run app/manage.py rollup --start $y-12-31 --end $y-12-31 --quiet &&
+    uv run app/manage.py era5land --start $y-01-01 --end $((y+1))-01-01 --quiet || exit 1
+  done' > tmp/backfill-2016.log 2>&1 < /dev/null &
+  tail -f tmp/backfill-2016.log       # summaries and warnings per year (--quiet)
+  ls data/hourly                      # the years so far
+  ```
+
+  Then `uv run app/manage.py rebuild --check` (should print nothing). Files before 2017-05 have no `.idx`, so those hours read GRIB section headers (CLAUDE.md, URMA).
+
 - [x] Compile the Veg Path newsletters' potato tables (early/mid/late planting and 50% emergence by location, every season on vegpath.plantpath.wisc.edu, as in 2026-08-23's) into a spreadsheet in `tmp/`, for a GDD-based planting and emergence model (PLAN.md Phase 5 D, D64). Done 2026-11-03 (2020–2026); `potato-stages` is fitted to it.
 
 - [ ] Send `docs/server-sizing.md` to IT (Q4): r7i.2xlarge, 1.5 TB gp3 data volume (500 MB/s), 200 GB scratch, RDS PostgreSQL db.t4g.medium, us-east-1, and a temporary resize for the backfill.
