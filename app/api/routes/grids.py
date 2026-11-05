@@ -10,11 +10,16 @@ cell's estimated and missing days beside it. Degree days for any setting are com
 maximum; a setting the archive keeps as a running total (`agdata.cumulative`) is read from it for `stat=sum`
 when every day in the range has data, which is the same sum (to its stored 0.5 °F·d) in a fraction of the time.
 
+A model's layer (its id is the model's) is finished per cell from its stored ingredients (`agdata.modelgrid`): one
+output (`output=`, default the risk level or a crop's stage) with the model's scenario options. Maps take each
+place's own settings (D66), so a biofix, planting date or maturity is refused, pointing to the point endpoints.
+
 A daily variable that a newer version of its code hasn't rebuilt yet (D29: between a deploy and `rebuild --stale`)
 is computed from the hours for up to MAX_STALE_DAYS days; a longer range is a 503 until the rebuild is done.
 """
 
 import time
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, Literal
 
@@ -23,15 +28,17 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from ninja import Field, Query, Router, Schema
 
-from agdata import regions, series
+from agdata import modelgrid, modelmaps, regions, series
 from agdata import units as agunits
 from agdata.catalog import DAILY_STATISTICS
 from agdata.daily import cell_timezones, days_from_hours
 from agdata.grid import NDFD, Box, Window
 from agdata.grids import cube_terms, degree_days, reduce
-from agdata.layers import DEGREE_DAYS, LAYERS, Layer
+from agdata.layers import DEGREE_DAYS, LAYERS, SUSCEPTIBILITY, Layer, LayerOutput
+from agdata.planting import planting_crop, planting_map
 from agdata.regrid import MIN_LATLON_RES, LatLonIndex, latlon_index
 from agdata.store import CUMULATIVE, DAILY
+from agmodels.spec import ModelSpec
 from api import clock
 from api.envelope import (
     Column,
@@ -48,6 +55,7 @@ from api.errors import ApiError
 from api.gridfiles import GridFile, geotiff, netcdf
 from api.params import OutputQuery, degree_day_settings
 from api.routes.discovery import DisplayUnits, _units
+from api.runs import _option_values
 from api.schemas import Meta, TableResponse, responses
 from ops.status import dataset_status
 
@@ -72,10 +80,19 @@ class LayerRange(Schema):
     forecast_through: str | None  # the last day (or hour) of the forecast in use; None without one
 
 
+class LayerOutputInfo(Schema):
+    name: str  # `output=`
+    label: str
+    unit: str
+    units: DisplayUnits
+    precision: float
+    palette: str
+
+
 class LayerInfo(Schema):
     id: str
     name: str
-    group: Literal["weather", "running_total", "degree_days"]
+    group: Literal["weather", "running_total", "degree_days", "model"]
     time_axis: Literal["day", "hour", "day_of_year"]
     variable: str | None  # the catalog variable (`/variables`); None where the layer is computed (degree days)
     unit: str  # stored unit symbol
@@ -86,6 +103,10 @@ class LayerInfo(Schema):
     parameters: list[str]  # required beyond the time and area (`dd` for degree days)
     range: LayerRange
     description: str
+    outputs: list[LayerOutputInfo] = Field(default_factory=list)  # a model layer's, the default first (`output=`)
+    # a model layer's scenario options (`GET /models/{id}` describes them), and its planting tiers (`planting=`)
+    options: list[str] = Field(default_factory=list)
+    planting: list[str] = Field(default_factory=list)
 
 
 class LayersResponse(Schema):
@@ -96,7 +117,8 @@ class LayersResponse(Schema):
 @router.get("/layers", response=responses(LayersResponse), summary="Every mappable layer")
 def layers(request: HttpRequest) -> HttpResponse:
     """Each layer `/grids/{layer}` serves, with its time axis and the range the archive and forecast hold now (from
-    `/status`'s rows). Normals and departures (time axis `day_of_year`) and model outputs join later."""
+    `/status`'s rows), and for a model its outputs and options. Normals and departures (time axis `day_of_year`)
+    join later."""
     rows = dataset_status(settings.DATA_DIR)
     run = rows["forecast"]
     in_use = run.first is not None and clock.now() - run.first <= series.MAX_RUN_AGE
@@ -129,10 +151,27 @@ def layers(request: HttpRequest) -> HttpResponse:
             parameters=["dd"] if layer.id == DEGREE_DAYS else [],
             range=ranges[layer.time_axis],
             description=layer.description,
+            outputs=[_output_info(o) for o in layer.outputs],
+            options=_map_options(layer),
+            planting=["early", "mid", "late", "none"] if layer.planting else [],
         )
         for layer in LAYERS.values()
     ]
     return respond(request, Result(request={}, data=[f.model_dump() for f in found]))
+
+
+def _output_info(o: LayerOutput) -> LayerOutputInfo:
+    return LayerOutputInfo(
+        name=o.name, label=o.label, unit=o.unit, units=_units(o.unit), precision=o.step, palette=o.palette
+    )
+
+
+def _map_options(layer: Layer) -> list[str]:
+    """A model layer's options a map takes: the scenario's, not the place's (D66)."""
+    if layer.source != "model":
+        return []
+    spec = modelgrid.mapped()[layer.id].SPEC
+    return [o.name for o in spec.options if o.name not in modelgrid.PLACE_OPTIONS]
 
 
 def _hour(when: datetime | None) -> str | None:
@@ -173,6 +212,14 @@ class GridQuery(Schema):
     gaps: Literal["estimate", "missing"] = Field(
         "estimate", description="stat=sum and degree days: bridge gaps up to 7 days with a flagged estimate, or not"
     )
+    output: str | None = Field(
+        None, description="A model layer's output (`/layers` lists them); default its risk level, or a crop's stage"
+    )
+    planting: Literal["early", "mid", "late", "none"] | None = Field(
+        None,
+        description="A model layer with a crop: each place's typical planting date at this tier (default mid), or "
+        "none for the model's default dates and no crop-stage gating",
+    )
 
 
 @router.get("/grids/{layer}", response=responses(TableResponse), summary="A layer over an area")
@@ -198,6 +245,10 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
     if stat is not None and stat not in found.stats:
         offered = ", ".join(found.stats) if found.stats else "none: each day is already a running total"
         raise ApiError("invalid", f"{found.id} can't be reduced by {stat}; stats: {offered}", "stat")
+    model = _model_request(request, found, query, warnings) if found.source == "model" else None
+    if model is None and (query.output is not None or query.planting is not None):
+        param = "output" if query.output is not None else "planting"
+        raise ApiError("invalid", f"{param} applies to model layers", param)
     setting = None
     if found.id == DEGREE_DAYS:
         settings_found = degree_day_settings(query.dd, output.units, warnings)
@@ -214,6 +265,8 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
         opened += ["air_temperature_min", "air_temperature_max"]
     if cubes:
         opened += [c for c in cubes if c] + ["temperature_estimated_days", "temperature_missing_days"]
+    if model is not None:
+        opened += [q.name for q in model.spec.inputs] + modelgrid.read_names(found.id)
     stores = series.Stores(opened)
     archive = _archive_window(data_dir, stores)
     window, mask, area = _area(query, archive)
@@ -235,6 +288,7 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
             }
         ),
         "stat": stat,
+        **(model.echo if model is not None else {}),
         "dd": setting.name if setting else None,
         "gaps": query.gaps,
         **area,
@@ -246,20 +300,40 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
     daily_names = [found.variable] if found.source == "daily" and found.variable else []
     if found.id == DEGREE_DAYS:
         daily_names = ["air_temperature_min", "air_temperature_max"]
+    if model is not None and found.id in modelgrid.ON_REQUEST:
+        daily_names = [q.name for q in model.spec.inputs]  # computed from the days themselves
     totals = [found.variable] if found.source == "cumulative" and found.variable else []
     totals += [c for c in (cubes or ()) if c]
     hourly_stamped = [found.variable] if found.source == "hourly" and found.variable else []
+    ingredients: list[str] = []
+    if model is not None:
+        in_store = {v.name for v in modelmaps.variables()}
+        names = modelgrid.read_names(found.id)
+        ingredients = [n for n in names if n in in_store]
+        totals += [n for n in names if n not in in_store]
     stamp = series.last_written(
-        data_dir, first_day, last_day, totals=totals, now=now, daily=daily_names, hourly=hourly_stamped
+        data_dir,
+        first_day,
+        last_day,
+        totals=totals,
+        now=now,
+        daily=daily_names,
+        hourly=hourly_stamped,
+        ingredients=ingredients,
     )
     etag = etag_for(request, computed, stamp)
     if (unchanged := not_modified(request, etag)) is not None:
         return unchanged
 
     read_started = time.perf_counter()
-    values, kinds, extra, sources, run, step_labels, from_cubes = _compute(
-        found, first, last, window, stat, setting, query.gaps, cubes, data_dir, now, stores
-    )
+    if model is not None:
+        values, kinds, extra, sources, run, step_labels, from_cubes = _model_compute(
+            found, model, first, last, window, stat, data_dir, now, stores, warnings
+        )
+    else:
+        values, kinds, extra, sources, run, step_labels, from_cubes = _compute(
+            found, first, last, window, stat, setting, query.gaps, cubes, data_dir, now, stores
+        )
     compute_ms = (time.perf_counter() - read_started) * 1000
     values = np.where(mask[None], values, np.nan)
     extra = {name: np.where(mask, v, np.nan) for name, v in extra.items()}
@@ -282,11 +356,16 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
     if cubes and from_cubes:
         summary["from_running_totals"] = [c for c in cubes if c]
 
+    if model is not None:
+        summary["model"] = {"id": found.id, "version": model.spec.version, "output": model.output.name}
+        if model.planted is not None:
+            summary["planting"] = _planting_summary(model, mask, warnings)
+    unit, step = (model.output.unit, model.output.step) if model is not None else (found.unit, found.step)
     column = Column(
         name=found.id,
         values=[],
-        unit=found.unit,
-        step=found.step,
+        unit=unit,
+        step=step,
         variable=found.variable or found.id,
         summarize=True,
         total=False,
@@ -304,13 +383,16 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
     index = grid_spec.get("index")
     if fmt in ("netcdf", "geotiff"):
         system, overrides = output_units(request)
-        unit = shown_unit(column, system, overrides)
-        digits = digits_for(found.step, found.unit, unit)
-        shown = np.round(agunits.convert(values, found.unit, unit), digits)
+        shown_as = shown_unit(column, system, overrides)
+        digits = digits_for(step, unit, shown_as)
+        shown = np.round(agunits.convert(values, unit, shown_as), digits)
+        long_name = found.name + (f" ({setting.name})" if setting else "")
+        if model is not None:
+            long_name = f"{found.name}: {model.output.label}"
         file = GridFile(
             name=found.id,
-            long_name=found.name + (f" ({setting.name})" if setting else ""),
-            unit=unit,
+            long_name=long_name,
+            unit=shown_as,
             values=shown if index is None else index.resample(shown),
             steps=None if stat is not None else step_labels,
             window=window if index is None else None,
@@ -320,7 +402,7 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
             extra=extra if index is None else {k: index.resample(v[None])[0] for k, v in extra.items()},
             cell_methods=_cell_methods(found, stat),
         )
-        result.binary_units = {found.id: agunits.unit(unit).label}
+        result.binary_units = {found.id: agunits.unit(shown_as).label}
 
         def render(kind: str, meta: dict[str, Any]) -> bytes:
             file.attrs = {key: meta[key] for key in ("request", "sources", "warnings", "attribution", "api_version")}
@@ -523,6 +605,117 @@ def _cubes(layer: Layer, setting, stat, gaps: str, first, last) -> tuple[str, st
     return cube_terms(setting.method, setting.base_f, setting.upper_f)
 
 
+# --- Model layers --------------------------------------------------------------------------------------------------
+
+# A user's own dates and settings apply at points, not on maps (D66)
+_POINT_ONLY = ("biofix", "planting_date")
+
+
+@dataclass(kw_only=True)
+class _ModelRequest:
+    spec: ModelSpec
+    output: LayerOutput
+    options: dict[str, str]
+    tier: str | None  # the planting tier, or None
+    crop: str | None  # the crop it's for (`agdata.planting`)
+    echo: dict[str, Any]
+    planted: np.ndarray | None = None  # each cell's planting date (ordinals), once computed
+    window: Window | None = None
+
+
+def _model_request(request: HttpRequest, layer: Layer, query: GridQuery, warnings: list[str]) -> _ModelRequest:
+    """A model layer's output, options and planting tier from the request; a point's own settings are refused
+    (D66)."""
+    output = query.output
+    spec = modelgrid.mapped()[layer.id].SPEC
+    crop = modelgrid.tiered(spec.id)
+    if query.planting is not None and crop is None:
+        later = planting_crop(spec)
+        message = f"{spec.id} has no crop to plant"
+        if later is not None:
+            message = f"{later[0]} isn't on maps yet, so {spec.id}'s map takes no planting tier"
+        raise ApiError("not_applicable", message, "planting")
+    tier = None if crop is None or query.planting == "none" else (query.planting or "mid")
+    if tier is None and spec.id in modelmaps.TIER_MODELS:
+        raise ApiError("invalid", f"{spec.id} is mapped per planting tier: early, mid or late", "planting")
+    pointed = f"maps use each place's own settings (D66); for yours at a point, GET /api/v2/models/{spec.id}/run"
+    for name in (*_POINT_ONLY, *modelgrid.PLACE_OPTIONS):
+        if request.GET.get(name):
+            raise ApiError("not_applicable", f"{name} doesn't apply to a map: {pointed}", name)
+    chosen = layer.outputs[0] if output is None else next((o for o in layer.outputs if o.name == output), None)
+    if chosen is None:
+        names = ", ".join(o.name for o in layer.outputs)
+        raise ApiError("invalid", f"{layer.id} has no output {output!r}; outputs: {names}", "output")
+    options = {}
+    for o in spec.options:
+        if o.name in modelgrid.PLACE_OPTIONS:
+            continue
+        if request.GET.get(o.name) == "all":
+            raise ApiError("invalid", f"one {o.name} per map; /models/{spec.id}/run runs them all at a point", o.name)
+        options[o.name] = _option_values(o, request.GET.get(o.name), warnings)[0]
+    if chosen.name == SUSCEPTIBILITY and tier is None:
+        raise ApiError("invalid", "susceptibility needs a planting tier (early, mid or late)", "planting")
+    echo = {"model": {"id": spec.id, "version": spec.version}, "output": chosen.name, "options": options}
+    if crop is not None:
+        echo["planting"] = tier or "none"
+    return _ModelRequest(
+        spec=spec, output=chosen, options=options, tier=tier, crop=crop[1] if crop else None, echo=echo
+    )
+
+
+def _planting_summary(model: _ModelRequest, mask: np.ndarray, warnings: list[str]) -> dict[str, Any]:
+    """The tier's planting dates over the cells asked for, and how many have none (the model's defaults)."""
+    assert model.planted is not None
+    land = mask & (regions.cell_counties(model.window) > 0)  # open water is in no county, so has no crop
+    dates = model.planted[land]
+    known = dates[np.isfinite(dates)]
+    without = int(dates.size - known.size)
+    if not known.size:
+        warnings.append(f"no typical {model.crop} planting dates here, so the model's default dates")
+    elif without:
+        then = "take the model's default dates"
+        if model.spec.id in modelmaps.TIER_MODELS:
+            then = "have no stages"
+        elif model.spec.susceptible is not None:
+            then = "aren't gated by the crop's stages"
+        warnings.append(f"{without:,} cells have no typical {model.crop} planting date, so {then}")
+    span = [date.fromordinal(int(v)).isoformat() for v in (known.min(), known.max())] if known.size else None
+    return {"crop": model.crop, "tier": model.tier, "dates": span, "cells_without": without}
+
+
+def _model_compute(layer, model: _ModelRequest, first, last, window, stat, data_dir, now, stores, warnings):
+    """A model layer's output over days first..last, as `_compute` returns a layer's."""
+    found = modelgrid.model_map(
+        data_dir, layer.id, first, last, window, model.options, tier=model.tier, now=now, stores=stores
+    )
+    if model.tier is not None and model.crop is not None:
+        model.planted = planting_map(model.crop, model.tier, window, season=first.year)
+        model.window = window
+    if found.stale:
+        raise ApiError(
+            "stale",
+            f"{layer.id}'s ingredients are being rebuilt after an update; try again in a few minutes",
+            None,
+            status=503,
+        )
+    name = model.output.name
+    values = found.level if name == "risk_level" else found.risk if name == "risk_value" else found.outputs[name]
+    assert values is not None
+    if found.in_region is not None and not found.in_region.any():
+        warnings.append(f"{layer.id} is valid only in {', '.join(model.spec.region)}: no cells here")
+    if found.in_season is not None and not any(found.in_season):
+        first_md, last_md = model.spec.season or ("", "")
+        warnings.append(f"out of season ({first_md} to {last_md})")
+    started = [b is not None and d >= b for d, b in zip(found.dates, found.biofix, strict=True)]
+    if model.spec.accumulations and not any(started):
+        warnings.append(f"the season starts at the biofix, {found.biofix[-1]}: nothing accumulated yet")
+    extra: dict[str, np.ndarray] = {}
+    if stat is not None:
+        value, _, missing = reduce(values, stat, None)
+        values, extra = value[None], {"missing_days": missing}
+    return values, found.kinds, extra, found.sources, found.forecast, found.dates, False
+
+
 # --- Reading and computing -----------------------------------------------------------------------------------------
 
 
@@ -618,6 +811,8 @@ _TOTALS_FROM = {"precipitation": ["precipitation"], "et0": ["et0"]}
 
 def _hourly_of(layer: Layer) -> list[str]:
     """The hourly variables a layer is made from, for the corrections it lists."""
+    if layer.source == "model":
+        return series.hourly_needed([q.name for q in modelgrid.mapped()[layer.id].SPEC.inputs])
     if layer.variable is None or layer.id == DEGREE_DAYS or layer.variable.startswith("dd_"):
         return ["air_temperature"]
     if layer.source == "hourly":

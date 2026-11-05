@@ -35,13 +35,12 @@ import numpy as np
 
 from agdata.catalog import DAILY_VARIABLES, GAP_FILL, Variable
 from agdata.grid import Window
-from agdata.store import DAILY, DEFAULT_CHUNKS, GridStore, StoreLayout
+from agdata.store import DAILY, DEFAULT_CHUNKS, INGREDIENTS, GridStore
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps, fill_zero
 from agmodels.ingredients import LOOKBACK_DAYS, Ingredient
 from agmodels.registry import all_models
 from agmodels.spec import Model
 
-INGREDIENTS = StoreLayout(kind="ingredients", step="day")
 # Cells × days computed at once: over Wisconsin (58,000 cells) blocks of 45 days, 2.8 GB at peak with the lookback;
 # a band of more cells (the launch box's 256 rows) takes fewer days, down to MIN_BLOCK_DAYS
 BLOCK_CELL_DAYS = 2_600_000
@@ -153,9 +152,50 @@ def stored() -> dict[str, Stored]:
     return out
 
 
+# Crop models without ingredients (day-by-day state machines), stored instead as their outputs per planting tier
+# (`agdata.croptiers`, D66): each output's storage (scale, valid_min, valid_max)
+TIER_MODELS = ("soybean-stages", "spring-wheat-stages")
+TIERS = ("early", "mid", "late")
+_TIER_OUTPUTS: dict[str, tuple[float, float, float]] = {
+    "stage": (1, -1, 100),
+    "nodes": (0.01, 0, 60),
+    "gdd_total": (0.5, 0, 16000),
+    "gdd": (0.1, 0, 100),
+}
+
+
+def tier_key(model_id: str, output: str, tier: str) -> str:
+    """Where a crop model's output for a planting tier is kept: `{model_id}.{output}.{tier}`."""
+    return f"{model_id}.{output}.{tier}"
+
+
+@cache
+def tier_variables() -> list[Variable]:
+    models = all_models()
+    out = []
+    for model_id in TIER_MODELS:
+        spec = models[model_id].SPEC
+        for q in spec.outputs:
+            scale, low, high = _TIER_OUTPUTS[q.name]
+            for tier in TIERS:
+                out.append(
+                    Variable(
+                        name=tier_key(model_id, q.name, tier),
+                        long_name=f"{spec.name}: {q.label} ({tier} planting)",
+                        unit=q.unit,
+                        scale=scale,
+                        valid_min=low,
+                        valid_max=high,
+                        derived=True,
+                        version=_version(spec.version),
+                    )
+                )
+    return out
+
+
 @cache
 def variables() -> list[Variable]:
-    return [v for s in stored().values() for v in s.variables()]
+    return [v for s in stored().values() for v in s.variables()] + tier_variables()
 
 
 def open_or_create(root: Path, year: int, window: Window) -> GridStore:
@@ -235,11 +275,23 @@ def build(
     lock: Callable[[], AbstractContextManager] | None = None,
     progress: Callable[[int, int], None] | None = None,
 ) -> tuple[date, date] | None:
-    """A year's ingredients from January 1, marked current (D29), and the next year's January, whose windows
-    reach back into this one."""
+    """A year's ingredients from January 1 and its crops' stages per planting tier (`agdata.croptiers`), marked
+    current (D29), and the next year's January, whose windows reach back into this one."""
+    from agdata import croptiers  # it uses this module
+
+    tiers = {v.name for v in tier_variables()}
+    reason = status(data_dir, year)
+    if reason is not None and reason.endswith("stale variables"):
+        stale = GridStore.stale_variables(data_dir, INGREDIENTS, year, variables())
+        rolled = _rolled_days(data_dir, year)
+        if stale <= tiers and rolled is not None:  # only the crops' tiers: the rest is current
+            last = date(year, 1, 1) + timedelta(days=int(rolled[-1]))
+            croptiers.update(data_dir, window, year, last, lock=lock)
+            return date(year, 1, 1), last
     days = build_year(data_dir, window, year, lock=lock, progress=progress)
     if days is None:
         return None
+    croptiers.update(data_dir, window, year, days[1], lock=lock)
     with (lock or nullcontext)():
         store = GridStore.open(data_dir, INGREDIENTS, year, variables(), add_missing=True)
         store.mark_current([v.name for v in variables()])

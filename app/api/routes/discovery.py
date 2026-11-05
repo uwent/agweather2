@@ -17,7 +17,7 @@ from ninja import Query, Router, Schema
 from agdata import units as agunits
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES, Variable
 from agdata.grid import NDFD
-from agdata.planting import CROPS, typical_planting
+from agdata.planting import CROPS, planting_crop, typical_planting
 from agdata.point import hourly_sources
 from agdata.series import MAX_RUN_AGE
 from agmodels.registry import all_models
@@ -29,7 +29,6 @@ from api.envelope import Result, etag_for, not_modified, respond
 from api.errors import ApiError
 from api.locations import describe
 from api.params import PointsQuery
-from api.runs import planting_crop
 from api.schemas import Location, Meta, responses
 from ops.status import dataset_status
 

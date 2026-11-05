@@ -21,13 +21,13 @@ from pathlib import Path
 import numpy as np
 
 from agdata import corrections, forecast, pastyears, projection
-from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, GAP_FILL, VARIABLES
+from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, GAP_FILL, VARIABLES, Variable
 from agdata.daily import cell_timezones
 from agdata.grid import NDFD, Window
 from agdata.places import county_at
 from agdata.planting import typical_planting
 from agdata.point import daily_at_point, hourly_sources
-from agdata.store import CUMULATIVE, DAILY, HOURLY, SOURCES, GridStore, StoreLayout
+from agdata.store import CUMULATIVE, DAILY, HOURLY, INGREDIENTS, SOURCES, GridStore, StoreLayout
 from agdata.timezones import day_bounds, zone_at
 from agmodels import runner
 from agmodels.registry import model as find_model
@@ -227,6 +227,7 @@ def last_written(
     now: datetime | None = None,
     daily=(),
     hourly: Sequence[str] | None = None,
+    ingredients=(),
 ) -> str:
     """A stamp that changes whenever `point_days(first..last, totals=…)` at a cell can answer differently for the same
     `now`, at any cell: the latest write time of the hours it reads (archive and forecast run) and of its running
@@ -235,13 +236,14 @@ def last_written(
     one small array per variable and year. `daily` adds daily-store variables (a map reads them, and a rebuild of
     a stale variable writes them without writing any hour). `hourly` limits the hours stamped to those variables
     (default every one): a map of a daily variable needs none, since its daily store is written after its hours,
-    and opening a store for all 16 hourly variables is most of a small map's time."""
+    and opening a store for all 16 hourly variables is most of a small map's time. `ingredients` adds a model map's
+    variables in `agdata.modelmaps`' store (a running total rewritten at its biofix is rewritten after it too)."""
     run = current_forecast(data_dir, now)
     stamps: list[float] = []
     start = _midnight(first - timedelta(days=1))
     end = _midnight(last + timedelta(days=1)) + timedelta(hours=8)
     hourly_names = list(VARIABLES) if hourly is None else list(hourly)
-    stores = Stores([*hourly_names, *totals, *daily])
+    stores = Stores([*hourly_names, *totals, *daily, *ingredients])
     for path in (data_dir, run.path):
         if path is None:
             continue
@@ -256,7 +258,7 @@ def last_written(
             lo, hi = max(first, date(year, 1, 1)), min(last, date(year, 12, 31))
             if lo > hi:
                 continue
-            for layout, names in ((CUMULATIVE, totals), (DAILY, daily)):
+            for layout, names in ((CUMULATIVE, totals), (DAILY, daily), (INGREDIENTS, ingredients)):
                 if names and (days := stores.get(path, layout, year)) is not None:
                     d0, d1 = days.index_of(lo), days.index_of(hi) + 1
                     stamps += [s for name in names if (s := days.written(name, d0, d1)) is not None]
@@ -341,22 +343,8 @@ def grid_days(
     if observed_until is not None:
         closed = sum(_midnight(d + timedelta(days=1)) + timedelta(hours=8) <= observed_until for d in dates)
     cut = closed if run.path is not None else n  # without a run, the archive's values with no kind
-    values = np.full((n, *window.shape), np.nan, dtype=np.float32)
-    stale = np.zeros(n, dtype=bool)
-    kinds: list[str | None] = [None] * n
-    for path, k0, k1 in ((data_dir, 0, cut), (run.path, cut, n)):
-        if path is None or k0 >= k1:
-            continue
-        for year, a, b in _year_runs(dates, k0, k1):
-            store = stores.get(path, layout, year)
-            if store is None:
-                continue
-            if read:
-                t0 = store.index_of(dates[a])
-                values[a:b] = store.read_steps(name, t0, t0 + b - a, window)
-            stale[a:b] = name in store.stale
-            if path == data_dir:
-                kinds[a : min(b, closed)] = [OBSERVED] * max(0, min(b, closed) - a)
+    values, stale, archived = read_split(stores, data_dir, run.path, layout, name, dates, cut, window, read=read)
+    kinds: list[str | None] = [OBSERVED if archived[k] and k < closed else None for k in range(n)]
     if run.path is not None and observed_until is not None:
         for k in range(cut, n):
             if run.last_hour is not None and dates[k] > run.last_hour.date():
@@ -424,6 +412,39 @@ def last_observed(data_dir: Path, now: datetime | None = None) -> datetime | Non
 def last_closed_day(observed_until: datetime) -> date:
     """The last day observed everywhere in the box (`grid_days`' rule: the westernmost zone has closed it)."""
     return (observed_until - timedelta(hours=8)).date() - timedelta(days=1)
+
+
+def read_split(
+    stores: "Stores",
+    data_dir: Path,
+    run_path: Path | None,
+    layout: StoreLayout,
+    name: str,
+    dates: list[date],
+    cut: int,
+    window: Window,
+    read: bool = True,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """A variable on `dates` over the window, the archive's before index `cut` and the run's from it: (values, stale,
+    whether the archive held the day), as `grid_days` reads them. One read per year and store; `read=False` leaves the
+    values missing."""
+    n = len(dates)
+    values = np.full((n, *window.shape), np.nan, dtype=np.float32)
+    stale = np.zeros(n, dtype=bool)
+    archived = np.zeros(n, dtype=bool)
+    for path, k0, k1 in ((data_dir, 0, cut), (run_path, cut, n)):
+        if path is None or k0 >= k1:
+            continue
+        for year, a, b in _year_runs(dates, k0, k1):
+            store = stores.get(path, layout, year)
+            if store is None:
+                continue
+            if read:
+                t0 = store.index_of(dates[a])
+                values[a:b] = store.read_steps(name, t0, t0 + b - a, window)
+            stale[a:b] = name in store.stale
+            archived[a:b] = path == data_dir
+    return values, stale, archived
 
 
 def _year_runs(steps: list, k0: int, k1: int):
@@ -552,13 +573,21 @@ class Stores:
     def get(self, path: Path, layout: StoreLayout, year: int) -> GridStore | None:
         key = (str(path), layout.kind, year)
         if key not in self.opened:
-            catalog = {"hourly": VARIABLES, "daily": DAILY_VARIABLES, "cumulative": CUMULATIVE_VARIABLES}[layout.kind]
+            catalog = _catalog(layout.kind)
             wanted = [catalog[n] for n in self.names if n in catalog] or [next(iter(catalog.values()))]
             try:
                 self.opened[key] = GridStore.open(path, layout, year, wanted, add_missing=True)
             except FileNotFoundError:
                 self.opened[key] = None
         return self.opened[key]
+
+
+def _catalog(kind: str) -> Mapping[str, Variable]:
+    if kind == "ingredients":
+        from agdata import modelmaps  # imports every model: only when a model map is read
+
+        return {v.name: v for v in modelmaps.variables()}
+    return {"hourly": VARIABLES, "daily": DAILY_VARIABLES, "cumulative": CUMULATIVE_VARIABLES}[kind]
 
 
 def _read_day(

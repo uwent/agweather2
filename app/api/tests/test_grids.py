@@ -19,6 +19,7 @@ from agdata.store import DAILY
 from agdata.testing import WINDOW
 from api.gridfiles import CRS_NAME
 from api.routes import grids
+from api.routes.models import SUSCEPTIBILITY
 from api.tests.fixture_archive import NOW, POINT
 
 LAT, LNG = POINT
@@ -234,6 +235,19 @@ def test_a_stale_variable_is_computed_from_the_hours(client, archive, monkeypatc
         ("air_temperature_max", {"bbox": "44,-90,45,-89"}, 422, "bbox"),
         ("air_temperature_max", {"region": "atlantis"}, 422, "region"),
         ("air_temperature_max", {"format": "xml"}, 422, "format"),
+        ("air_temperature_max", {"output": "risk_level"}, 422, "output"),
+        ("tar-spot", {"output": "nothing"}, 422, "output"),
+        ("tar-spot", {"planting_date": "mid"}, 422, "planting_date"),
+        ("late-blight-dsv", {"biofix": "2025-06-01"}, 422, "biofix"),
+        ("corn-stages", {"black_layer_gdd": "2400"}, 422, "black_layer_gdd"),
+        ("white-mold", {"irrigation": "all"}, 422, "irrigation"),
+        ("white-mold", {"irrigation": "sometimes"}, 422, "irrigation"),
+        ("tar-spot", {"start": "2025-07-01", "end": "2025-07-05", "stat": "sum"}, 422, "stat"),
+        ("tar-spot", {"planting": "sometime"}, 422, "planting"),
+        ("tar-spot", {"planting": "none", "output": "susceptibility"}, 422, "planting"),
+        ("alfalfa-weevil", {"planting": "mid"}, 422, "planting"),
+        ("soybean-stages", {"planting": "none"}, 422, "planting"),
+        ("air_temperature_max", {"planting": "mid"}, 422, "planting"),
     ],
 )
 def test_requests_that_cant_be_answered(client, archive, layer, params, status, param):
@@ -264,3 +278,118 @@ def test_a_sum_past_the_running_totals_is_computed_from_the_days_there_are(clien
     assert "from_running_totals" not in past["meta"]["summary"]
     assert set(past["data"]["missing_days"]) == {3}
     np.testing.assert_allclose(past["data"]["degree_days"], to_run_end["data"]["degree_days"], atol=0.5)
+
+
+# Model layers (Phase 5 F3, D66): finished per cell from the stored ingredients
+
+
+@pytest.mark.django_db
+def test_layers_list_each_mapped_models_outputs_and_options(client, archive):
+    data = {layer["id"]: layer for layer in client.get("/api/v2/layers").json()["data"]}
+    tar = data["tar-spot"]
+    assert tar["group"] == "model" and tar["time_axis"] == "day" and tar["options"] == []
+    assert [o["name"] for o in tar["outputs"]] == ["risk_level", "probability", "susceptibility"]
+    assert tar["palette"] == "risk_4" and tar["planting"] == ["early", "mid", "late", "none"]
+    assert data["alfalfa-weevil"]["planting"] == [] and data["late-blight-dsv"]["planting"]
+    assert data["white-mold"]["options"] == ["irrigation", "row_spacing"]
+    assert data["corn-stages"]["outputs"][0]["name"] == "stage" and data["corn-stages"]["options"] == []
+    assert data["alfalfa-weevil"]["outputs"][0]["name"] == "risk_level"
+    assert [o["name"] for o in data["seedcorn-maggot"]["outputs"]][:2] == ["risk_level", "risk_value"]
+    assert "degree-days" not in data and "potato-volunteer" not in data
+    assert data["soybean-stages"]["outputs"][0]["name"] == "stage" and data["red-crown-rot"]["planting"]
+    assert "susceptibility" in [o["name"] for o in data["white-mold"]["outputs"]]
+
+
+def test_a_model_map_is_its_risk_level_per_cell(client, archive):
+    body = get(client, "late-blight-dsv", date="2025-07-08").json()
+    data, meta = body["data"], body["meta"]
+    assert len(data["lat"]) == WINDOW.size and set(data["kind"]) == {"observed"}
+    assert all(level in (0, 1, 2, 3, 4) for level in data["late-blight-dsv"])
+    assert meta["request"]["model"]["id"] == "late-blight-dsv" and meta["request"]["output"] == "risk_level"
+    assert meta["summary"]["model"]["output"] == "risk_level" and meta["sources"] == ["urma"]
+
+
+def test_a_model_output_matches_the_point(client, archive):
+    """The map's cell and `/models/{id}/run` at its center give the same severity total (the map from stored
+    ingredients and running totals, the point from the hours)."""
+    total = get(client, "late-blight-dsv", date="2025-07-08", output="dsv_total").json()["data"]
+    row = _row_of(total, (LAT, LNG))
+    run = client.get("/api/v2/models/late-blight-dsv/run", {"lat": LAT, "lng": LNG, "start": "2025-07-08"}).json()
+    point = run["data"]["dsv_total"][0]
+    assert total["late-blight-dsv"][row] == pytest.approx(point, abs=1)
+
+
+def test_a_model_map_runs_into_the_forecast(client, archive):
+    data = get(client, "tar-spot", start="2025-07-09", end="2025-07-12", output="probability").json()["data"]
+    assert data["kind"] == ["observed"] * 6 + ["partial"] * 6 + ["forecast"] * 12
+    assert all(v is None or 0 <= v <= 100 for v in data["tar-spot"])
+
+
+def test_a_scenario_option_changes_the_map(client, archive):
+    dry = get(client, "white-mold", date="2025-07-08", output="probability", irrigation="dry").json()
+    wet = get(client, "white-mold", date="2025-07-08", output="probability", irrigation="irrigated").json()
+    assert dry["meta"]["request"]["options"]["irrigation"] == "dry"
+    assert dry["data"]["white-mold"] != wet["data"]["white-mold"]
+
+
+def test_a_models_range_reduces_by_its_stats(client, archive):
+    body = get(client, "late-blight-dsv", start="2025-07-02", end="2025-07-08", stat="max").json()
+    assert set(body["data"]) >= {"late-blight-dsv", "missing_days"} and len(body["data"]["lat"]) == WINDOW.size
+
+
+def test_a_model_outside_its_states_is_missing_with_a_warning(client, archive):
+    body = get(client, "pecan-scab", date="2025-07-08").json()
+    assert set(body["data"]["pecan-scab"]) == {None}
+    assert any("valid only in" in w for w in body["meta"]["warnings"])
+
+
+def test_a_model_map_revalidates(client, archive):
+    first = get(client, "tar-spot", date="2025-07-05")
+    again = get(client, "tar-spot", http_headers={"If-None-Match": first["ETag"]}, date="2025-07-05")
+    assert again.status_code == 304
+    other = get(
+        client, "tar-spot", http_headers={"If-None-Match": first["ETag"]}, date="2025-07-05", output="probability"
+    )
+    assert other.status_code == 200
+
+
+def test_a_model_map_as_a_file(client, archive):
+    response = get(client, "corn-stages", date="2025-07-08", format="geotiff")
+    assert response.status_code == 200
+    with tifffile.TiffFile(io.BytesIO(response.content)) as tif:
+        assert tif.pages[0].asarray().shape == WINDOW.shape
+
+
+def test_a_gated_disease_map_has_its_crops_susceptibility_as_at_the_point(client, archive):
+    """With each place's typical (mid) planting, the map's susceptibility and the point's for the same tier agree."""
+    body = get(client, "tar-spot", date="2025-07-08", output="susceptibility").json()
+    assert body["meta"]["request"]["planting"] == "mid"
+    found = body["data"]["tar-spot"][_row_of(body["data"], (LAT, LNG))]
+    params = {"lat": LAT, "lng": LNG, "start": "2025-07-08", "end": "2025-07-20", "planting_date": "mid"}
+    point = client.get("/api/v2/models/tar-spot/run", params).json()["data"]
+    assert SUSCEPTIBILITY[found] == point["susceptibility"][0]  # the point gives it in words
+    plain = get(client, "tar-spot", date="2025-07-08", planting="none").json()
+    assert plain["meta"]["request"]["planting"] == "none" and plain["meta"]["warnings"] == []
+
+
+def test_a_crop_map_starts_at_each_places_planting_as_at_the_point(client, archive):
+    for tier in ("early", "late"):
+        body = get(client, "corn-stages", date="2025-07-08", output="gdd_total", planting=tier).json()
+        params = {"lat": LAT, "lng": LNG, "start": "2025-07-08", "end": "2025-07-08", "planting_date": tier}
+        point = client.get("/api/v2/models/corn-stages/run", params).json()["meta"]["request"]
+        planting = body["meta"]["summary"]["planting"]
+        assert planting["dates"] == [point["planting_date"]["date"]] * 2 and planting["cells_without"] == 0
+
+
+def test_without_typical_planting_dates_a_map_warns_and_takes_the_defaults(client, archive):
+    body = get(client, "late-blight-dsv", date="2025-07-08").json()  # no Veg Path potato place near Fayette County
+    assert any("no typical potato planting dates here" in w for w in body["meta"]["warnings"])
+    assert body["meta"]["request"]["planting"] == "mid"
+
+
+def test_soybean_maps_take_a_tier(client, archive):
+    """Soybean's stages are stored per tier (`agdata.croptiers`); the fixture's July has none written, so the map is
+    missing, but the request is answered with the tier's dates."""
+    for layer, params in (("soybean-stages", {}), ("white-mold", {"output": "susceptibility"}), ("red-crown-rot", {})):
+        body = get(client, layer, date="2025-07-08", **params).json()
+        assert body["meta"]["summary"]["planting"]["crop"] == "soybean", layer

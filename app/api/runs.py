@@ -18,16 +18,14 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
-from agdata.planting import CROPS, PlantingDate, typical_planting
+from agdata.planting import CROPS, TIERS, PlantingDate, planting_crop, typical_planting
 from agdata.series import RunSpec
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
-from agmodels.runner import crop_models
 from agmodels.spec import Model, ModelSpec, Option
 from api.errors import ApiError
 
 MAX_OPTION_SETS = 20
-TIERS = {"early": "early", "mid": "typical", "late": "late"}  # planting_date's words → `PlantingDate` fields
 ALL = "all"
 
 
@@ -46,17 +44,6 @@ def model_or_404(model_id: str) -> Model:
     if model_id not in all_models():
         raise ApiError("not_found", f"no model {model_id!r}; GET /api/v2/models lists them", "model", status=404)
     return find_model(model_id)
-
-
-def planting_crop(spec: ModelSpec) -> tuple[str, str] | None:
-    """(the crop model a planting date runs, its crop in `agdata.planting`), or None if the model takes no planting:
-    a disease's gating or anchoring crop model, or a crop model itself when its biofix is the planting."""
-    crops = crop_models(spec)
-    if crops:
-        return crops[0], crops[0].removesuffix("-stages")
-    if spec.group == "crop" and spec.biofix is not None and spec.biofix.label.lower().startswith("planting"):
-        return spec.id, spec.topics[0]
-    return None
 
 
 def plan(

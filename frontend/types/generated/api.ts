@@ -173,6 +173,14 @@ export interface GridQuery {
    * stat=sum and degree days: bridge gaps up to 7 days with a flagged estimate, or not
    */
   gaps?: 'estimate' | 'missing'
+  /**
+   * A model layer's output (`/layers` lists them); default its risk level, or a crop's stage
+   */
+  output?: string | null
+  /**
+   * A model layer with a crop: each place's typical planting date at this tier (default mid), or none for the model's default dates and no crop-stage gating
+   */
+  planting?: ('early' | 'mid' | 'late' | 'none') | null
 }
 /**
  * Hours by their UTC end, `start` to `end` inclusive: ISO times on the hour, with a zone (`Z`, `-05:00`) or
@@ -199,7 +207,7 @@ export interface InputInfo {
 export interface LayerInfo {
   id: string
   name: string
-  group: 'weather' | 'running_total' | 'degree_days'
+  group: 'weather' | 'running_total' | 'degree_days' | 'model'
   time_axis: 'day' | 'hour' | 'day_of_year'
   variable: string | null
   unit: string
@@ -210,11 +218,22 @@ export interface LayerInfo {
   parameters: string[]
   range: LayerRange
   description: string
+  outputs?: LayerOutputInfo[]
+  options?: string[]
+  planting?: string[]
 }
 export interface LayerRange {
   first: string | null
   last: string | null
   forecast_through: string | null
+}
+export interface LayerOutputInfo {
+  name: string
+  label: string
+  unit: string
+  units: DisplayUnits
+  precision: number
+  palette: string
 }
 export interface LayersResponse {
   meta: Meta

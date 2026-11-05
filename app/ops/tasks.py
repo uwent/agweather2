@@ -4,7 +4,8 @@ from datetime import UTC, datetime
 from django.conf import settings
 from procrastinate.contrib.django import app
 
-from agdata import pastyears
+from agdata import croptiers, pastyears, series
+from agdata.store import DAILY
 from ops.era5land import refresh_era5land
 from ops.forecast import refresh_forecast, restitch_current
 from ops.ifs import refresh_ifs
@@ -107,6 +108,32 @@ def build_past_years(timestamp: int) -> None:
             logger.warning("past-years copy of %s not built: %s", past, error)
 
 
+@app.periodic(cron="55 * * * *")  # after the hour's ingest (:40) and the forecast's (:45)
+@app.task(queue="maintenance", queueing_lock="update_crop_tiers", task_middleware=JOB_MIDDLEWARE)
+def update_crop_tiers(timestamp: int) -> None:
+    """Soybean and spring wheat stages per planting tier (`agdata.croptiers`, D66) through the archive's last day
+    and the forecast run's, while a crop is in season. Its own job (~15 s over Wisconsin, ~10× on the launch box),
+    so the ingest's lock isn't held for it: computed outside the lock, written inside."""
+    try:
+        stores = series.Stores(["air_temperature_min"])
+        years = series.archive_years(settings.DATA_DIR)
+        if not years:
+            return
+        store = stores.get(settings.DATA_DIR, DAILY, years[-1])
+        if store is None:
+            return
+        done = croptiers.refresh(
+            settings.DATA_DIR,
+            store.window,
+            datetime.fromtimestamp(timestamp, UTC).date(),
+            lock=_waiting_lock("job update_crop_tiers"),
+        )
+        if done:
+            logger.info("crop tiers written: %s", {where: len(names) for where, names in done.items()})
+    except WriteLocked as error:
+        logger.warning("update_crop_tiers skipped: %s", error)
+
+
 # The order `manage.py jobs run all` and `jobs start` use: the archive first, then soil (IFS's provisional hours, then
 # ERA5-Land's over them), then the forecast, which stitches to all of it.
-CATCH_UP = (ingest_recent, ingest_ifs, ingest_era5land, ingest_forecast)
+CATCH_UP = (ingest_recent, ingest_ifs, ingest_era5land, ingest_forecast, update_crop_tiers)

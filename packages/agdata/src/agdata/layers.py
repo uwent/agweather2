@@ -1,10 +1,15 @@
 """Mappable layers (PLAN.md Phase 5 E, docs/api.md "Grids"): what `/layers` lists and `/grids/{layer}` reads.
 
 A layer is a catalog variable on the grid with a time axis: a daily variable (local days, `agdata.daily`), an
-hourly one (hours by their UTC end), a running total from January 1 (`agdata.cumulative`), or degree days for any
-setting (`degree_days`, computed from each day's minimum and maximum, the same way as at points). Model outputs
-(Phase 5 F) and normals and departures (Phase 6, time axis `day_of_year`) join the list later without changing
-what's here.
+hourly one (hours by their UTC end), a running total from January 1 (`agdata.cumulative`), degree days for any
+setting (`degree_days`, computed from each day's minimum and maximum, the same way as at points), or a model's
+outputs (`model`, finished from its ingredients by `agdata.modelgrid`; the layer's id is the model's). Normals and
+departures (Phase 6, time axis `day_of_year`) join the list later without changing what's here.
+
+A model layer's value is one of the model's outputs (`output=`): by default its risk level (an index into the
+spec's levels), or a crop model's stage; `risk_value` is a continuous risk (the insects' summed activity) before it
+becomes a level; `susceptibility` is a stage-gated disease's crop stage window (D33: 0 not susceptible, 1 within
+the crop model's margin, 2 susceptible), from each place's typical planting.
 
 `stats` are the statistics a range of steps can be reduced to: mean, min and max for any level, and sum where the
 values add up (precipitation, ET0, shortwave, hour counts, degree days). A running total has none: each day is
@@ -18,7 +23,7 @@ from typing import Literal
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES, Variable
 
 TimeAxis = Literal["day", "hour", "day_of_year"]
-Source = Literal["daily", "hourly", "cumulative", "degree_days"]
+Source = Literal["daily", "hourly", "cumulative", "degree_days", "model"]
 Stat = Literal["sum", "mean", "min", "max"]
 LEVEL_STATS: tuple[Stat, ...] = ("mean", "min", "max")
 SUM_STATS: tuple[Stat, ...] = ("sum", "mean", "min", "max")
@@ -27,10 +32,21 @@ DD_STEP = 0.1  # °F·d: daily values from temperatures stored to 0.1 °C
 
 
 @dataclass(frozen=True, kw_only=True)
+class LayerOutput:
+    """One output a model layer can show."""
+
+    name: str
+    label: str
+    unit: str
+    step: float
+    palette: str
+
+
+@dataclass(frozen=True, kw_only=True)
 class Layer:
     id: str
     name: str
-    group: Literal["weather", "running_total", "degree_days"]  # for pickers
+    group: Literal["weather", "running_total", "degree_days", "model"]  # for pickers
     time_axis: TimeAxis
     source: Source
     variable: str | None  # the catalog variable read; None for degree days (computed from min and max)
@@ -39,6 +55,8 @@ class Layer:
     palette: str
     stats: tuple[Stat, ...]
     description: str = ""
+    outputs: tuple[LayerOutput, ...] = ()  # a model layer's, the default first
+    planting: bool = False  # a model layer that takes a planting tier (`planting=early|mid|late`)
 
     @property
     def summable(self) -> bool:
@@ -152,4 +170,58 @@ def _layers() -> list[Layer]:
     return found
 
 
-LAYERS: dict[str, Layer] = {layer.id: layer for layer in _layers()}
+RISK_LEVEL, RISK_VALUE, SUSCEPTIBILITY = "risk_level", "risk_value", "susceptibility"
+
+
+def _model_layers() -> list[Layer]:
+    from agdata.modelgrid import OUTPUT_STEPS, mapped, tiered  # imports every model
+
+    found = []
+    models = mapped()
+    for m in models.values():
+        spec = m.SPEC
+        outputs = [
+            LayerOutput(
+                name=q.name,
+                label=q.label,
+                unit=q.unit,
+                step=1 if q.name == "stage" else OUTPUT_STEPS[q.unit],
+                palette="crop_stage" if q.name == "stage" else palette_for(q.name),
+            )
+            for q in spec.outputs
+        ]
+        if spec.risk is not None:
+            palette = f"risk_{len(spec.risk.levels)}"
+            risk = [LayerOutput(name=RISK_LEVEL, label="Risk level", unit="index", step=1, palette=palette)]
+            if spec.risk.thresholds:
+                risk.append(LayerOutput(name=RISK_VALUE, label="Risk", unit="index", step=0.001, palette="risk_value"))
+            outputs = [*risk, *outputs]
+        if spec.susceptible is not None and spec.susceptible.crop in models:
+            outputs.append(
+                LayerOutput(
+                    name=SUSCEPTIBILITY, label="Crop susceptibility", unit="index", step=1, palette="susceptibility"
+                )
+            )
+        default = outputs[0] if spec.risk is not None else next((o for o in outputs if o.name == "stage"), outputs[0])
+        outputs = [default, *(o for o in outputs if o is not default)]
+        found.append(
+            Layer(
+                id=spec.id,
+                name=spec.name,
+                group="model",
+                time_axis="day",
+                source="model",
+                variable=None,
+                unit=default.unit,
+                step=default.step,
+                palette=default.palette,
+                stats=LEVEL_STATS,
+                description=spec.summary,
+                outputs=tuple(outputs),
+                planting=tiered(spec.id) is not None,
+            )
+        )
+    return found
+
+
+LAYERS: dict[str, Layer] = {layer.id: layer for layer in [*_layers(), *_model_layers()]}

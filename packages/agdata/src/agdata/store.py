@@ -58,6 +58,7 @@ class StoreLayout:
 HOURLY = StoreLayout(kind="hourly", step="hour")
 DAILY = StoreLayout(kind="daily", step="day")
 CUMULATIVE = StoreLayout(kind="cumulative", step="day")
+INGREDIENTS = StoreLayout(kind="ingredients", step="day")  # models' ingredients (`agdata.modelmaps`)
 
 
 def steps_in_year(year: int, step: Step) -> int:
@@ -164,7 +165,8 @@ class GridStore:
             raise FileNotFoundError(path)
         store = cls(zarr.open_group(path, mode="r+"), path)
         wanted = {v.name: v for v in variables}
-        missing = set(wanted) - set(store.group.array_keys())
+        # Each wanted array's own metadata file: listing the group reads every array's (~2 ms each)
+        missing = {name for name in wanted if not (path / name / "zarr.json").exists()}
         if missing and not add_missing:
             raise KeyError(f"{path} has no {', '.join(sorted(missing))}")
         for name in sorted(missing):
