@@ -17,6 +17,7 @@ from agdata.catalog import DAILY_VARIABLES
 from agdata.grid import NDFD
 from agdata.store import DAILY
 from agdata.testing import WINDOW
+from api import layermaps
 from api.gridfiles import CRS_NAME
 from api.routes import grids
 from api.routes.models import SUSCEPTIBILITY
@@ -205,8 +206,8 @@ def test_a_stale_variable_is_computed_from_the_hours(client, archive, monkeypatc
     )
     assert found.stale.all()
     calls = []
-    real = grids.days_from_hours
-    monkeypatch.setattr(grids, "days_from_hours", lambda *a: calls.append(a) or real(*a))
+    real = layermaps.days_from_hours
+    monkeypatch.setattr(layermaps, "days_from_hours", lambda *a: calls.append(a) or real(*a))
     assert get(client, "air_temperature_max", date="2025-07-06").json()["data"]["air_temperature_max"] == fresh
     assert len(calls) == 1
     response = get(client, "air_temperature_max", start="2025-07-01", end="2025-07-09", stat="max")

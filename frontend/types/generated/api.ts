@@ -114,7 +114,7 @@ export interface ForecastStatus {
   reason: string | null
 }
 /**
- * When, where and how: a layer's step or range, its area, and the grid it's given on.
+ * When, where and how: a layer's step or range (`LayerQuery`), its area, and the grid it's given on.
  */
 export interface GridQuery {
   /**
@@ -137,6 +137,26 @@ export interface GridQuery {
    * Reduce the range to one map; without it, each step is returned
    */
   stat?: ('sum' | 'mean' | 'min' | 'max') | null
+  /**
+   * degree_days: the setting, method_base[_upper] (sine_50_86)
+   */
+  dd?: string | null
+  /**
+   * stat=sum and degree days: bridge gaps up to 7 days with a flagged estimate, or not
+   */
+  gaps?: 'estimate' | 'missing'
+  /**
+   * A model layer's output (`/layers` lists them); default its risk level, or a crop's stage
+   */
+  output?: string | null
+  /**
+   * A model layer with a crop: each place's typical planting date at this tier (default mid), or none for the model's default dates and no crop-stage gating
+   */
+  planting?: ('early' | 'mid' | 'late' | 'none') | null
+  /**
+   * A seasonal product (`/layers` lists its seasons): the season, as 2025-26; default the current one. Its map is the count through the season's last day, or the last observed day before it
+   */
+  season?: string | null
   /**
    * south,west,north,east in degrees; default the whole service box
    */
@@ -165,26 +185,6 @@ export interface GridQuery {
    * JSON and CSV: add each cell's j and i on the native grid
    */
   cells?: boolean
-  /**
-   * degree_days: the setting, method_base[_upper] (sine_50_86)
-   */
-  dd?: string | null
-  /**
-   * stat=sum and degree days: bridge gaps up to 7 days with a flagged estimate, or not
-   */
-  gaps?: 'estimate' | 'missing'
-  /**
-   * A model layer's output (`/layers` lists them); default its risk level, or a crop's stage
-   */
-  output?: string | null
-  /**
-   * A model layer with a crop: each place's typical planting date at this tier (default mid), or none for the model's default dates and no crop-stage gating
-   */
-  planting?: ('early' | 'mid' | 'late' | 'none') | null
-  /**
-   * A seasonal product (`/layers` lists its seasons): the season, as 2025-26; default the current one. Its map is the count through the season's last day, or the last observed day before it
-   */
-  season?: string | null
 }
 /**
  * Hours by their UTC end, `start` to `end` inclusive: ISO times on the hour, with a zone (`Z`, `-05:00`) or
