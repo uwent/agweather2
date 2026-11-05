@@ -71,25 +71,30 @@ def update(
         names = [q.name for q in spec.inputs]
         _, season_end = season(model_id, year)
         end = min(last, season_end)
+        # Each tier with planting dates here and days to write: (its planting map, the first day written)
+        tiers: dict[str, tuple[np.ndarray, date]] = {}
         for tier in modelmaps.TIERS:
             sown = planting.planting_map(crop, tier, window, season=year)
             if not np.isfinite(sown).any():
                 continue
-            begin = date.fromordinal(int(np.nanmin(sown)))
-            if end < begin:
-                continue
-            write_from = max(begin, run_first or begin, since or begin)
-            if end < write_from:
-                continue
-            n = (end - begin).days + 1
-            for j in range(window.j0, window.j1, rows):
-                band = Window(j0=j, j1=min(j + rows, window.j1), i0=window.i0, i1=window.i1)
-                y0 = j - window.j0
+            planted_from = date.fromordinal(int(np.nanmin(sown)))
+            write_from = max(planted_from, run_first or planted_from, since or planted_from)
+            if write_from <= end:
+                tiers[tier] = (sown, write_from)
+        if not tiers:
+            continue
+        # The inputs are read once a band from the earliest planting of any tier, and each tier runs from them
+        begin = min(date.fromordinal(int(np.nanmin(sown))) for sown, _ in tiers.values())
+        n = (end - begin).days + 1
+        for j in range(window.j0, window.j1, rows):
+            band = Window(j0=j, j1=min(j + rows, window.j1), i0=window.i0, i1=window.i1)
+            y0 = j - window.j0
+            inputs = {
+                name: modelmaps._filled(name, modelmaps._read(data_dir, run, run_first, name, begin, n, band))
+                for name in names
+            }
+            for tier, (sown, write_from) in tiers.items():
                 planted = sown[y0 : y0 + band.shape[0]]
-                inputs = {
-                    name: modelmaps._filled(name, modelmaps._read(data_dir, run, run_first, name, begin, n, band))
-                    for name in names
-                }
                 found = _season(m, spec, inputs, planted, begin, n, band, options)
                 k = (write_from - begin).days
                 values = {modelmaps.tier_key(model_id, q, tier): v[k:] for q, v in found.items()}
