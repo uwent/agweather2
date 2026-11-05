@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import admin
 from django.urls import path, re_path
 
@@ -13,3 +14,7 @@ urlpatterns = [
     re_path(r"^api/v2/(?P<rest>.*)$", api_views.not_found),  # after the API's own routes
     path("admin/", admin.site.urls),
 ]
+
+if settings.DEBUG or settings.TESTING:
+    # The yearly downloads (ops.downloads); in production Caddy serves them from the data volume
+    urlpatterns.append(re_path(r"^downloads/(?P<path>.+)$", ops.download, name="downloads"))

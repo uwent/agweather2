@@ -3,8 +3,9 @@ import logging
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.utils import timezone
+from django.views.static import serve
 
 from ops.forecast import forecast_health
 from ops.health import ingest_health
@@ -44,3 +45,11 @@ def up(request: HttpRequest) -> JsonResponse:
         "problems": problems,
     }
     return JsonResponse(body)
+
+
+def download(request: HttpRequest, path: str) -> HttpResponse:
+    """A yearly download (`ops.downloads`) in development and tests, from the data folder as it is now; Caddy serves
+    them in production."""
+    from ops import downloads
+
+    return serve(request, path, document_root=str(downloads.folder(settings.DATA_DIR)))

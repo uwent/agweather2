@@ -19,6 +19,7 @@ ModelsResponse = "Every model the service runs."
 ModelResponse = "One model's full description."
 LocateResponse = "What the service knows about a location."
 LayersResponse = "Every layer that can be shown as a map."
+DownloadsResponse = "The yearly data files available for download."
 
 [shared]
 lat = "Latitude of the location, in decimal degrees (for example 43.07). `latitude` is also accepted."

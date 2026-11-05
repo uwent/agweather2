@@ -30,6 +30,7 @@ from api.errors import ApiError
 from api.locations import describe
 from api.params import PointsQuery
 from api.schemas import Location, Meta, responses
+from ops import downloads
 from ops.status import dataset_status
 
 router = Router(tags=["About the data"])
@@ -70,6 +71,11 @@ class ArchiveStatus(Schema):
     refreshed_at: str  # when this was read from the stores (after the last write, or the worker's start)
 
 
+class DownloadsStatus(Schema):
+    files: int  # yearly NetCDF files listed by /downloads
+    built_at: str | None  # when the newest was built
+
+
 class StatusData(Schema):
     service: str
     version: str
@@ -77,6 +83,7 @@ class StatusData(Schema):
     archive: ArchiveStatus
     forecast: ForecastStatus
     models: int
+    downloads: DownloadsStatus
 
 
 class StatusResponse(Schema):
@@ -92,6 +99,7 @@ def _iso(when: datetime | None) -> str | None:
 def status(request: HttpRequest) -> HttpResponse:
     """From `DatasetStatus`, which every write refreshes (`ops.status.refresh_dataset_status`): no store is opened."""
     rows = dataset_status(settings.DATA_DIR)
+    files = downloads.read_index(settings.DATA_DIR)
     hourly, daily, run = rows["hourly"], rows["daily"], rows["forecast"]
     cycle = run.first
     in_use = cycle is not None and clock.now() - cycle <= MAX_RUN_AGE
@@ -121,8 +129,61 @@ def status(request: HttpRequest) -> HttpResponse:
             reason=None if in_use else ("none" if cycle is None else "stale"),
         ),
         models=len(all_models()),
+        downloads=DownloadsStatus(files=len(files), built_at=max((e.built_at for e in files), default=None)),
     )
     return respond(request, Result(request={}, data=data.model_dump()))
+
+
+# --- /downloads ----------------------------------------------------------------------------------------------------
+
+
+class DownloadFile(Schema):
+    variable: str  # a daily variable (`/variables`)
+    year: int
+    url: str
+    bytes: int
+    first: str  # the first and last day it holds
+    last: str
+    complete: bool  # every day of the year
+    built_at: str
+
+
+class DownloadsData(Schema):
+    time_zones: str | None  # each cell's time zone, which sets its days, for every file
+    files: list[DownloadFile]
+
+
+class DownloadsResponse(Schema):
+    meta: Meta
+    data: DownloadsData
+
+
+@router.get("/downloads", response=responses(DownloadsResponse), summary="Yearly NetCDF files")
+def download_list(request: HttpRequest) -> HttpResponse:
+    """`ops.downloads`' index, with each file's URL under /downloads/ (served by Caddy as static files, D69)."""
+    index = downloads.folder(settings.DATA_DIR) / "index.json"
+    etag, unchanged = _cached(request, {"index": index.stat().st_mtime if index.exists() else None})
+    if unchanged is not None:
+        return unchanged
+    files = [
+        DownloadFile(
+            variable=e.variable,
+            year=e.year,
+            url=request.build_absolute_uri(f"/{downloads.FOLDER}/{e.path}"),
+            bytes=e.bytes,
+            first=e.first,
+            last=e.last,
+            complete=e.complete,
+            built_at=e.built_at,
+        )
+        for e in downloads.read_index(settings.DATA_DIR)
+    ]
+    zones = downloads.folder(settings.DATA_DIR) / "daily" / "time_zones.nc"
+    data = DownloadsData(
+        time_zones=request.build_absolute_uri(f"/{downloads.FOLDER}/daily/time_zones.nc") if zones.exists() else None,
+        files=files,
+    )
+    return respond(request, Result(request={}, data=data.model_dump(), etag=etag))
 
 
 # --- /variables ----------------------------------------------------------------------------------------------------

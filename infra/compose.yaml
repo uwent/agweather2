@@ -54,6 +54,7 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - static:/srv/static:ro
+      - data:/srv/data:ro  # only downloads/ is served (Caddyfile)
       - caddy_data:/data
     depends_on:
       web:

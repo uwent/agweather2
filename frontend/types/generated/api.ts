@@ -55,6 +55,59 @@ export interface DisplayUnits {
   us: string
   metric: string
 }
+export interface DownloadFile {
+  variable: string
+  year: number
+  url: string
+  bytes: number
+  first: string
+  last: string
+  complete: boolean
+  built_at: string
+}
+export interface DownloadsData {
+  time_zones: string | null
+  files: DownloadFile[]
+}
+/**
+ * The yearly data files available for download.
+ */
+export interface DownloadsResponse {
+  meta: Meta
+  data: DownloadsData
+}
+export interface Meta {
+  request: {
+    [k: string]: unknown
+  }
+  location?: Location | null
+  locations?: Location[] | null
+  units: {
+    [k: string]: string
+  }
+  summary: {
+    [k: string]: unknown
+  }
+  sources: string[]
+  warnings: string[]
+  attribution: string
+  api_version: string
+  generated_at: string
+  compute_ms: number
+}
+export interface Location {
+  lat: number
+  lng: number
+  cell: Cell | null
+  in_box: boolean
+  timezone: string | null
+  county: string | null
+  state: string | null
+}
+export interface DownloadsStatus {
+  files: number
+  built_at: string | null
+}
 export interface ErrorItem {
   code: string
   param: string | null
@@ -170,34 +223,6 @@ export interface LayerOutputInfo {
 export interface LayersResponse {
   meta: Meta
   data: LayerInfo[]
-}
-export interface Meta {
-  request: {
-    [k: string]: unknown
-  }
-  location?: Location | null
-  locations?: Location[] | null
-  units: {
-    [k: string]: string
-  }
-  summary: {
-    [k: string]: unknown
-  }
-  sources: string[]
-  warnings: string[]
-  attribution: string
-  api_version: string
-  generated_at: string
-  compute_ms: number
-}
-export interface Location {
-  lat: number
-  lng: number
-  cell: Cell | null
-  in_box: boolean
-  timezone: string | null
-  county: string | null
-  state: string | null
 }
 export interface LocateData {
   lat: number
@@ -346,6 +371,7 @@ export interface StatusData {
   archive: ArchiveStatus
   forecast: ForecastStatus
   models: number
+  downloads: DownloadsStatus
 }
 /**
  * What the archive and forecast hold now.

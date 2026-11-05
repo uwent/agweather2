@@ -146,6 +146,17 @@ def render_default_maps(timestamp: int) -> None:
         logger.info("maps drawn: %s", {layer: f"{ms:.0f} ms" for layer, ms in drawn.items()})
 
 
+@app.periodic(cron="0 5 * * 1")  # Mondays, after the past-years copies: past years settle, this year's is weekly
+@app.task(queue="maintenance", queueing_lock="build_downloads", task_middleware=JOB_MIDDLEWARE)
+def build_downloads(timestamp: int) -> None:
+    """Builds the yearly NetCDF downloads that are missing or out of date (`ops.downloads`, D69)."""
+    from ops import downloads
+
+    built = downloads.build_wanted(settings.DATA_DIR, datetime.now(UTC))
+    if built:
+        logger.info("downloads: %d files built (%.0f MB)", len(built), sum(e.bytes for e in built) / 1e6)
+
+
 @app.periodic(cron="10 4 * * *")
 @app.task(queue="maintenance", queueing_lock="prune_api_usage", task_middleware=JOB_MIDDLEWARE)
 def prune_api_usage(timestamp: int) -> None:

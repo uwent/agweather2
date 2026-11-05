@@ -221,6 +221,16 @@ def test_background_starts_the_same_command_detached(settings, tmp_path, monkeyp
     assert "pid 4242" in out.getvalue() and "archive stop 4242" in out.getvalue()
 
 
+def test_background_works_with_no_other_arguments(settings, tmp_path, monkeypatch):
+    from ops.management.commands import downloads as command
+
+    settings.DATA_DIR = tmp_path
+    launched = []
+    monkeypatch.setattr(runs, "launch", lambda data, argv: launched.append(argv) or (4242, tmp_path / "x.log"))
+    command.Command(stdout=StringIO()).run_from_argv(["manage.py", "downloads", "--background"])
+    assert launched == [["downloads"]]
+
+
 def test_jobs_is_not_recorded_as_a_run(settings, tmp_path):
     settings.DATA_DIR = tmp_path
     call_command("jobs", "list", stdout=StringIO())

@@ -96,9 +96,9 @@ class ReportingCommand(BaseCommand):
             runs.finish(settings.DATA_DIR, self.run_record, ok, summary)
 
     def launch_background(self) -> None:
-        argv = [a for a in getattr(self, "_argv", []) if a != "--background"]
-        if not argv:
+        if not hasattr(self, "_argv"):  # call_command: no command line to start again
             raise CommandError("--background works from the command line only")
+        argv = [a for a in self._argv if a != "--background"]
         pid, log = runs.launch(settings.DATA_DIR, [self.command_name, *argv])
         self.stdout.write(
             f"Started `{' '.join([self.command_name, *argv])}` in the background (pid {pid}).\n"

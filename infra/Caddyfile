@@ -11,6 +11,16 @@ handle_path /static/* {
 	file_server
 }
 
+# The yearly NetCDF downloads (ops.downloads), built by the worker in the data volume; rebuilt in place, so clients
+# revalidate (Caddy sends an ETag and Last-Modified)
+handle_path /downloads/* {
+	root * /srv/data/downloads
+	@netcdf path *.nc
+	header @netcdf Content-Type application/x-netcdf
+	header Cache-Control "public, no-cache"
+	file_server
+}
+
 handle {
 	reverse_proxy web:8000
 }

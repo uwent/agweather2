@@ -30,6 +30,8 @@ uv run app/manage.py migrate     # or any other manage.py command
 bin/agwx                         # the data dashboard (= `uv run app/manage.py` with no command, on a terminal)
 bin/agwx archive                 # each year of the archive, the lock and the runs, as text; `archive fill --from 2016`
 uv run app/manage.py ingredients # build the models' ingredients (agdata.modelmaps) for years missing or stale; --check
+uv run app/manage.py downloads   # build the yearly NetCDF downloads that are missing or out of date; --check, --background
+uv run app/manage.py latency     # time §3's fast paths on this archive (maps' first tiles, points), against their targets
 ```
 
 Setup and the rest are in `DEVELOPMENT.md`.

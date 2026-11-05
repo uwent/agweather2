@@ -13,7 +13,7 @@ Every request is a simple web address (a GET request), so you can open it in a b
 - **Locations** are latitude and longitude in decimal degrees (`lat`, `lng`), with west longitudes negative. Most endpoints also take up to 50 locations at once (`points`).
 - **Dates** are calendar days in the location's time zone, written as YYYY-MM-DD. Hours are given in UTC, and each hour is labeled by its end.
 - **Units** are US customary (°F, inches, mph) unless you add `units=metric`. You can also set the unit of a single variable by its name, for example `precipitation=mm`.
-- **Formats:** JSON by default, or CSV with `format=csv`. Maps are also available as NetCDF and GeoTIFF files, map tiles and finished images.
+- **Formats:** JSON by default, or CSV with `format=csv`. Maps are also available as NetCDF and GeoTIFF files, map tiles and finished images. For the whole archive, `/downloads` lists a NetCDF file for each daily variable and year.
 
 ## What a response contains
 

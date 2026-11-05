@@ -66,18 +66,18 @@ def netcdf(grid: GridFile) -> bytes:
     if grid.window is not None:
         jj, ii = _native_indices(grid)
         x0, y0 = NDFD.origin
-        coords["x"] = ("x", x0 + ii * NDFD.dx, _axis("X", "projection_x_coordinate", "x on the Lambert grid", "m"))
-        coords["y"] = ("y", y0 + jj * NDFD.dx, _axis("Y", "projection_y_coordinate", "y on the Lambert grid", "m"))
+        coords["x"] = ("x", x0 + ii * NDFD.dx, axis_attrs("X", "projection_x_coordinate", "x on the Lambert grid", "m"))
+        coords["y"] = ("y", y0 + jj * NDFD.dx, axis_attrs("Y", "projection_y_coordinate", "y on the Lambert grid", "m"))
         lat, lon = NDFD.latlon(*np.meshgrid(jj, ii, indexing="ij"))
-        data_vars["lat"] = (("y", "x"), lat.astype(np.float32), _cell_degrees("latitude"))
-        data_vars["lon"] = (("y", "x"), lon.astype(np.float32), _cell_degrees("longitude"))
-        data_vars["lambert_conformal_conic"] = ((), np.int32(0), _cf_lambert())
+        data_vars["lat"] = (("y", "x"), lat.astype(np.float32), cell_degrees("latitude"))
+        data_vars["lon"] = (("y", "x"), lon.astype(np.float32), cell_degrees("longitude"))
+        data_vars["lambert_conformal_conic"] = ((), np.int32(0), cf_lambert())
         dims: tuple[str, ...] = ("y", "x")
         mapping = {"grid_mapping": "lambert_conformal_conic"}
     else:
         assert grid.lats is not None and grid.lons is not None
-        coords["lat"] = ("lat", grid.lats, _axis("Y", "latitude", "latitude", "degrees_north"))
-        coords["lon"] = ("lon", grid.lons, _axis("X", "longitude", "longitude", "degrees_east"))
+        coords["lat"] = ("lat", grid.lats, axis_attrs("Y", "latitude", "latitude", "degrees_north"))
+        coords["lon"] = ("lon", grid.lons, axis_attrs("X", "longitude", "longitude", "degrees_east"))
         dims, mapping = ("lat", "lon"), {}
     attrs = {"long_name": grid.long_name, "units": grid.unit, **mapping}
     if grid.cell_methods:
@@ -107,7 +107,7 @@ def netcdf(grid: GridFile) -> bytes:
     return bytes(ds.to_netcdf(engine="h5netcdf", encoding=encoding))
 
 
-def _cell_degrees(what: str) -> dict[str, str]:
+def cell_degrees(what: str) -> dict[str, str]:
     """A plain lat/lon variable's attributes: no `standard_name` or CF units, so GDAL doesn't take it as geolocation."""
     return {
         "long_name": f"{what} of the cell center",
@@ -117,7 +117,7 @@ def _cell_degrees(what: str) -> dict[str, str]:
     }
 
 
-def _axis(axis: str, standard_name: str, long_name: str, units: str) -> dict[str, str]:
+def axis_attrs(axis: str, standard_name: str, long_name: str, units: str) -> dict[str, str]:
     return {"axis": axis, "standard_name": standard_name, "long_name": long_name, "units": units}
 
 
@@ -171,7 +171,7 @@ def _native_indices(grid: GridFile) -> tuple[np.ndarray, np.ndarray]:
     return np.arange(w.j0, w.j1, s), np.arange(w.i0, w.i1, s)
 
 
-def _cf_lambert() -> dict[str, Any]:
+def cf_lambert() -> dict[str, Any]:
     return {
         "grid_mapping_name": "lambert_conformal_conic",
         "standard_parallel": LAT_0,
