@@ -8,10 +8,12 @@ forecast run. A season is final once its last day is in and none of the hours be
 (`store.PROVISIONAL`: ERA5-Land's soil has replaced IFS's, ~5 days after).
 
 The projection carries each accumulation from a day to its end (the season's last day, or its `until`) on each
-earlier season the archive holds (D63, every year counted the same, D67): the day's total plus that season's total
-over the same calendar days, a difference of its running totals, so ten winters cost a few reads each. Each
-season's totals are finished and given a risk as the model's own, and a cell's projection is their median and the
-share of seasons ending at each risk level.
+earlier season the archive holds whole (D63, every year counted the same, D67): the day's total plus that season's
+total over the same calendar days, a difference of its running totals, so ten winters cost a few reads each. A
+season missing a day of an input is left out, since a missing day adds nothing to a running total and would read
+as no cold (the daily store marks a day's variable only where some cell has a value). Each season's totals are
+finished and given a risk as the model's own, and a cell's projection is their median and the share of seasons
+ending at each risk level.
 """
 
 from dataclasses import dataclass
@@ -22,9 +24,10 @@ from typing import Any
 import numpy as np
 
 from agdata import modelgrid, series
+from agdata.catalog import DAILY_VARIABLES
 from agdata.grid import Window
 from agdata.projection import source_day
-from agdata.store import HOURLY, PROVISIONAL
+from agdata.store import DAILY, HOURLY, PROVISIONAL, GridStore
 from agmodels.ingredients import until_day
 from agmodels.registry import model as find_model
 from agmodels.seasons import Season, season_of, season_starting
@@ -94,6 +97,21 @@ class Projection:
     counted: np.ndarray  # (y, x): the seasons each cell has
 
 
+def _written(data_dir: Path, spec: ModelSpec, first: date, last: date) -> bool:
+    """Whether the daily store has every day first..last of each of the model's inputs (a day's variable is marked
+    only where some cell has a value: a year the backfill hasn't reached has its days but no soil)."""
+    for year in range(first.year, last.year + 1):
+        try:
+            store = GridStore.open(data_dir, DAILY, year, [DAILY_VARIABLES[q.name] for q in spec.inputs])
+        except (FileNotFoundError, KeyError):
+            return False
+        a = (max(first, date(year, 1, 1)) - date(year, 1, 1)).days
+        b = (min(last, date(year, 12, 31)) - date(year, 1, 1)).days + 1
+        if any(not (store.read_meta(f"{q.name}.source")[a:b] > 0).all() for q in spec.inputs):
+            return False
+    return True
+
+
 def level_key(level: str) -> str:
     return level.lower().replace(" ", "_")
 
@@ -124,6 +142,10 @@ def project(
     ]
     if all(day >= end for end in ends.values()):
         back = []  # nothing left to count: the season's own totals
+    # A season with a day not in the archive would count it as no cold at all (a missing day adds nothing to a
+    # running total): only seasons whose every day is written count
+    rest_first, rest_last = day + timedelta(days=1), max(ends.values())
+    back = [k for k in back if _written(data_dir, spec, source_day(rest_first, k), source_day(rest_last, k))]
     _, reader = modelgrid._base(data_dir, spec, day, day, window, now, stores, modelgrid.read_names(model_id))
     scenarios: dict[str, list[np.ndarray]] = {a.name: [] for a in spec.accumulations}
     for k in back:
@@ -171,12 +193,18 @@ def project(
 
 
 def _median(values: np.ndarray, known: np.ndarray, method: str = "linear") -> np.ndarray:
-    v = np.where(known, values, np.nan)
-    out = np.full(v.shape[1:], np.nan)
-    has = known.any(axis=0)
-    if has.any():
-        out[has] = np.nanquantile(v[:, has], 0.5, axis=0, method=method)  # type: ignore[call-overload]
-    return out
+    """Each cell's median over axis 0 of its `known` values: the mean of the middle two of an even count
+    ("linear"), or the higher of them ("higher"); NaN where none is known. Sorted once for every cell
+    (`np.nanquantile` loops over cells: 3 s a map)."""
+    ordered = np.sort(np.where(known, values, np.nan), axis=0)  # NaN sorts last
+    count = known.sum(axis=0)
+    upper = np.take_along_axis(ordered, np.minimum(count // 2, len(ordered) - 1)[None], axis=0)[0]
+    if method == "higher":
+        middle = upper
+    else:
+        lower = np.take_along_axis(ordered, np.maximum((count - 1) // 2, 0)[None], axis=0)[0]
+        middle = (lower + upper) / 2
+    return np.where(count > 0, middle, np.nan)
 
 
 def describe(data_dir: Path, spec: ModelSpec, season: Season, last: date, observed_day: date) -> dict[str, Any]:

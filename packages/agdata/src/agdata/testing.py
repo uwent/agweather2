@@ -107,7 +107,9 @@ def winters(root, last: date = WINTER_LAST):
         days = [first + timedelta(days=k) for k in range((min(last, date(year, 12, 31)) - first).days + 1)]
         store = daily.open_or_create_daily(root, year, WINDOW)
         counts = np.array([float(rate(d)) for d in days])[:, None, None] * np.ones((1, *WINDOW.shape))
-        store.write(first, {f"hours_soil_{d}_below_27f": counts for d in ("4cm", "10cm", "8in")}, source="test")
+        values = {f"hours_soil_{d}_below_27f": counts for d in ("4cm", "10cm", "8in")}
+        values |= {f"{name}_min": np.where(counts > 0, -5.0, 2.0) for name in SOIL}
+        store.write(first, values, source="test")
 
         start = datetime(year, 1, 1, tzinfo=UTC)
         times = [start + k * HOUR for k in range(int((min(end, datetime(year + 1, 1, 1, tzinfo=UTC)) - start) / HOUR))]

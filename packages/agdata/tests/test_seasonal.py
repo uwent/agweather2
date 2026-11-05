@@ -82,3 +82,27 @@ def test_a_season_is_final_once_its_last_day_is_permanent(tmp_path):
 def test_the_test_winters_are_final_through_the_spring(built):
     assert seasonal.is_final(built, POTATO, season_named(POTATO, "2024-25"), LAST)
     assert not seasonal.is_final(built, POTATO, season_named(POTATO, "2025-26"), LAST)
+
+
+def test_medians_over_the_known_seasons_per_cell():
+    values = np.array([[1.0, 5.0, 2.0], [3.0, np.nan, 4.0], [10.0, 7.0, 0.0], [2.0, 1.0, 9.0]])
+    known = np.isfinite(values)
+    known[3, 2] = False  # a season a cell lacks
+    np.testing.assert_allclose(seasonal._median(values, known), [2.5, 5.0, 2.0])
+    np.testing.assert_allclose(seasonal._median(values, known, method="higher"), [3.0, 5.0, 2.0])
+    assert np.isnan(seasonal._median(values, np.zeros_like(known))).all()
+
+
+def test_a_season_missing_a_day_isnt_projected_on(built, tmp_path):
+    """A day an earlier season lacks would add no cold to its total, so that season is left out."""
+    import shutil
+
+    from agdata.catalog import DAILY_VARIABLES
+    from agdata.store import DAILY
+
+    root = shutil.copytree(built, tmp_path / "archive")
+    name = "hours_soil_4cm_below_27f"
+    GridStore.open(root, DAILY, 2025, [DAILY_VARIABLES[name]]).set_sources(name, date(2025, 2, 10), [None])
+    found = _at(root, LAST)
+    projected = seasonal.project(root, POTATO.id, LAST, WINDOW, found, [2023, 2024, 2025])
+    assert projected.years == [2023]
