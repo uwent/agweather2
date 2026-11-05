@@ -28,7 +28,7 @@ from typing import Any, Literal
 
 import numpy as np
 from django.http import HttpRequest
-from ninja import Field, Schema
+from ninja import Schema
 
 from agdata import modelgrid, modelmaps, palettes, regions, seasonal, series
 from agdata.daily import cell_timezones, days_from_hours
@@ -51,32 +51,16 @@ HOUR = timedelta(hours=1)
 class LayerQuery(Schema):
     """When and how: a layer's step or range, its statistic, and its settings."""
 
-    date: str | None = Field(None, description="One day (YYYY-MM-DD) for a daily layer; default the last observed day")
-    time: str | None = Field(
-        None, description="One hour (ISO, UTC unless a zone is given) for an hourly layer; default the last observed"
-    )
-    start: str | None = Field(None, description="First day (or hour) of a range, inclusive")
-    end: str | None = Field(None, description="Last day (or hour) of a range, inclusive; default the last observed")
-    stat: Literal["sum", "mean", "min", "max"] | None = Field(
-        None, description="Reduce the range to one map; without it, each step is returned"
-    )
-    dd: str | None = Field(None, description="degree_days: the setting, method_base[_upper] (sine_50_86)")
-    gaps: Literal["estimate", "missing"] = Field(
-        "estimate", description="stat=sum and degree days: bridge gaps up to 7 days with a flagged estimate, or not"
-    )
-    output: str | None = Field(
-        None, description="A model layer's output (`/layers` lists them); default its risk level, or a crop's stage"
-    )
-    planting: Literal["early", "mid", "late", "none"] | None = Field(
-        None,
-        description="A model layer with a crop: each place's typical planting date at this tier (default mid), or "
-        "none for the model's default dates and no crop-stage gating",
-    )
-    season: str | None = Field(
-        None,
-        description="A seasonal product (`/layers` lists its seasons): the season, as 2025-26; default the current "
-        "one. Its map is the count through the season's last day, or the last observed day before it",
-    )
+    date: str | None = None
+    time: str | None = None
+    start: str | None = None
+    end: str | None = None
+    stat: Literal["sum", "mean", "min", "max"] | None = None
+    dd: str | None = None
+    gaps: Literal["estimate", "missing"] = "estimate"
+    output: str | None = None
+    planting: Literal["early", "mid", "late", "none"] | None = None
+    season: str | None = None
 
 
 @dataclass(kw_only=True)

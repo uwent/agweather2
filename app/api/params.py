@@ -14,7 +14,7 @@ from typing import Any, Literal, LiteralString
 
 from django.http import HttpRequest
 from django.utils.datastructures import MultiValueDict
-from ninja import Field, Schema
+from ninja import Schema
 from ninja.parser import Parser
 from pydantic import PrivateAttr, model_validator
 from pydantic_core import PydanticCustomError
@@ -47,13 +47,9 @@ class QueryParser(Parser):
 class PointsQuery(Schema):
     """One point (`lat`, `lng`) or several (`points`)."""
 
-    lat: float | None = Field(None, description="Latitude, decimal degrees (alias `latitude`)")
-    lng: float | None = Field(
-        None, description="Longitude, decimal degrees, west negative (aliases `lon`, `long`, `longitude`)"
-    )
-    points: str | None = Field(
-        None, description=f"Several points as `lat,lng;lat,lng` (up to {MAX_POINTS}), in place of `lat` and `lng`"
-    )
+    lat: float | None = None
+    lng: float | None = None
+    points: str | None = None
     _parsed: list[tuple[float, float]] = PrivateAttr(default_factory=list)
 
     @model_validator(mode="after")
@@ -108,9 +104,9 @@ def _check_point(lat: float, lng: float, lat_param: str, lng_param: str) -> None
 class DaysQuery(Schema):
     """Local calendar days: one `date`, or `start` to `end` inclusive. Defaults are the endpoint's (`span`)."""
 
-    date: dt.date | None = Field(None, description="One day (ISO, YYYY-MM-DD), in place of start and end")
-    start: dt.date | None = Field(None, description="First day (ISO), inclusive; default January 1 of end's year")
-    end: dt.date | None = Field(None, description="Last day (ISO), inclusive; default today")
+    date: dt.date | None = None
+    start: dt.date | None = None
+    end: dt.date | None = None
 
     @model_validator(mode="after")
     def _check(self) -> "DaysQuery":
@@ -135,26 +131,23 @@ class DaysQuery(Schema):
 class SeriesQuery(Schema):
     """How a series runs: through the forecast or not, gaps in running totals, and times' zone."""
 
-    forecast: bool = Field(
-        True, description="Run through the forecast (each row's kind says which); false: stop at the last observed day"
-    )
-    gaps: Literal["estimate", "missing"] = Field(
-        "estimate", description="Cumulative values: bridge missing days with a flagged estimate, or leave them missing"
-    )
-    tz: Literal["utc", "local"] = Field("utc", description="Hourly times in UTC; local adds a local_time column")
+    forecast: bool = True
+    gaps: Literal["estimate", "missing"] = "estimate"
+    tz: Literal["utc", "local"] = "utc"
 
 
-class OutputQuery(Schema):
-    """Units and format. A catalog variable's name as a parameter overrides its unit (`precipitation=mm`)."""
+class UnitsQuery(Schema):
+    """The unit system; a catalog variable's name as a parameter overrides its unit (`precipitation=mm`)."""
 
-    units: Literal["us", "metric"] = Field(
-        "us", description="Unit system: us (°F, in, mph) or metric (°C, mm, km/h); a variable's name overrides it"
-    )
-    format: str | None = Field(None, description="json (default) or csv, where offered; else from the Accept header")
-    orient: Literal["columns", "records"] = Field(
-        "columns", description="JSON data as an object of columns, or as an array of row objects"
-    )
-    headers: bool = Field(True, description="CSV: the meta lines (#) above the column names; false drops them")
+    units: Literal["us", "metric"] = "us"
+
+
+class OutputQuery(UnitsQuery):
+    """Units and format, for endpoints that return a table."""
+
+    format: str | None = None  # json (default), csv, and where offered netcdf or geotiff; else from Accept
+    orient: Literal["columns", "records"] = "columns"
+    headers: bool = True  # CSV: the meta lines (#) above the column names
 
 
 def check_vars(raw: str | None, valid: Mapping[str, Any], default: list[str], param: str = "vars") -> list[str]:
@@ -173,8 +166,8 @@ class HoursQuery(Schema):
     """Hours by their UTC end, `start` to `end` inclusive: ISO times on the hour, with a zone (`Z`, `-05:00`) or
     taken as UTC; a bare date means its 00Z. Defaults are the endpoint's (`span`)."""
 
-    start: dt.datetime | None = Field(None, description="First hour's end (ISO, UTC unless a zone is given)")
-    end: dt.datetime | None = Field(None, description="Last hour's end (ISO), inclusive")
+    start: dt.datetime | None = None
+    end: dt.datetime | None = None
 
     @model_validator(mode="after")
     def _check(self) -> "HoursQuery":

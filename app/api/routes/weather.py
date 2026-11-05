@@ -22,7 +22,7 @@ from api.locations import describe
 from api.params import DaysQuery, HoursQuery, OutputQuery, PointsQuery, SeriesQuery, check_vars
 from api.schemas import TableResponse, responses
 
-router = Router(tags=["weather"])
+router = Router(tags=["Weather"])
 
 FORECAST_DAYS = 16  # a default end this far ahead reaches past every forecast; trailing empty days are dropped
 MAX_DAYS = 3660  # per point and request: ten years of days
@@ -236,8 +236,8 @@ def totals(
 ) -> HttpResponse:
     """One row per point: each variable's total from `start` to `end` (sums and hour counts: precipitation, ET0,
     shortwave, hours with RH ≥ 90%, …), with `<var>_estimated_days` and `<var>_missing_days`. Precipitation's
-    missing days count as no rain and are never estimated. Defaults: January 1 to today (`forecast=true` adds the
-    forecast's days)."""
+    missing days count as no rain and are never estimated. Defaults: January 1 through the forecast (to today with
+    `forecast=false`)."""
     names = check_vars(vars, TOTALLED, TOTALS_DEFAULT)
     now = clock.now()
     today = now.date()

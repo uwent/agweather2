@@ -34,11 +34,6 @@ export interface CitationInfo {
   doi: string | null
   url: string | null
 }
-/**
- * What `planting_date` adds (D64): the crop model it runs, whether typical dates exist (`early`, `mid`, `late`),
- * and that model's options, which the run also takes as parameters. Optional: without a planting date a disease
- * runs all season without its susceptible window.
- */
 export interface CropInfo {
   model: string
   crop: string
@@ -51,21 +46,9 @@ export interface OptionInfo {
   choices: Choice[]
   default: string
 }
-/**
- * Local calendar days: one `date`, or `start` to `end` inclusive. Defaults are the endpoint's (`span`).
- */
 export interface DaysQuery {
-  /**
-   * One day (ISO, YYYY-MM-DD), in place of start and end
-   */
   date?: string | null
-  /**
-   * First day (ISO), inclusive; default January 1 of end's year
-   */
   start?: string | null
-  /**
-   * Last day (ISO), inclusive; default today
-   */
   end?: string | null
 }
 export interface DisplayUnits {
@@ -85,13 +68,16 @@ export interface ErrorMeta {
   generated_at: string
   compute_ms: number
 }
+/**
+ * A request that could not be answered. `errors` lists each problem, the parameter at fault, and what to change.
+ */
 export interface ErrorResponse {
   meta: ErrorMeta
   errors: ErrorItem[]
 }
 export interface EvaluateBody {
   /**
-   * Explorer inputs (`GET /models/{id}`'s `explorer`) in the request's units: a number, or a list to sweep; lists multiply into rows. Inputs left out take their defaults.
+   * The model's inputs by name (`/models/{model_id}` lists them under `explorer`), in the request's units. Each is a number, or a list of numbers to try in turn; several lists give a row for every combination. Inputs you leave out take their usual values.
    */
   inputs?: {
     [k: string]: number | number[]
@@ -113,91 +99,27 @@ export interface ForecastStatus {
   in_use: boolean
   reason: string | null
 }
-/**
- * When, where and how: a layer's step or range (`LayerQuery`), its area, and the grid it's given on.
- */
 export interface GridQuery {
-  /**
-   * One day (YYYY-MM-DD) for a daily layer; default the last observed day
-   */
   date?: string | null
-  /**
-   * One hour (ISO, UTC unless a zone is given) for an hourly layer; default the last observed
-   */
   time?: string | null
-  /**
-   * First day (or hour) of a range, inclusive
-   */
   start?: string | null
-  /**
-   * Last day (or hour) of a range, inclusive; default the last observed
-   */
   end?: string | null
-  /**
-   * Reduce the range to one map; without it, each step is returned
-   */
   stat?: ('sum' | 'mean' | 'min' | 'max') | null
-  /**
-   * degree_days: the setting, method_base[_upper] (sine_50_86)
-   */
   dd?: string | null
-  /**
-   * stat=sum and degree days: bridge gaps up to 7 days with a flagged estimate, or not
-   */
   gaps?: 'estimate' | 'missing'
-  /**
-   * A model layer's output (`/layers` lists them); default its risk level, or a crop's stage
-   */
   output?: string | null
-  /**
-   * A model layer with a crop: each place's typical planting date at this tier (default mid), or none for the model's default dates and no crop-stage gating
-   */
   planting?: ('early' | 'mid' | 'late' | 'none') | null
-  /**
-   * A seasonal product (`/layers` lists its seasons): the season, as 2025-26; default the current one. Its map is the count through the season's last day, or the last observed day before it
-   */
   season?: string | null
-  /**
-   * south,west,north,east in degrees; default the whole service box
-   */
   bbox?: string | null
-  /**
-   * A state (wisconsin, WI) or county (FIPS code, 55025): only its cells are returned
-   */
   region?: string | null
-  /**
-   * Every nth cell in each direction (native grid only)
-   */
   stride?: number
-  /**
-   * native: NDFD's 2.5 km Lambert cells; latlon: a regular grid every `res` degrees
-   */
   grid?: 'native' | 'latlon'
-  /**
-   * latlon: the step in degrees, at least 0.025
-   */
   res?: number | null
-  /**
-   * latlon: the cell under each point, or the mean of the cells within ±res/2 (default: mean from 0.05°, nearest below)
-   */
   method?: ('nearest' | 'mean') | null
-  /**
-   * JSON and CSV: add each cell's j and i on the native grid
-   */
   cells?: boolean
 }
-/**
- * Hours by their UTC end, `start` to `end` inclusive: ISO times on the hour, with a zone (`Z`, `-05:00`) or
- * taken as UTC; a bare date means its 00Z. Defaults are the endpoint's (`span`).
- */
 export interface HoursQuery {
-  /**
-   * First hour's end (ISO, UTC unless a zone is given)
-   */
   start?: string | null
-  /**
-   * Last hour's end (ISO), inclusive
-   */
   end?: string | null
 }
 export interface InputInfo {
@@ -242,6 +164,9 @@ export interface LayerOutputInfo {
   palette: string
   domain: number[] | null
 }
+/**
+ * Every layer that can be shown as a map.
+ */
 export interface LayersResponse {
   meta: Meta
   data: LayerInfo[]
@@ -293,65 +218,26 @@ export interface PlantingInfo {
   level: string
   source: string
 }
+/**
+ * What the service knows about a location.
+ */
 export interface LocateResponse {
   meta: Meta
   data: LocateData
 }
-/**
- * A layer's time and settings (as `/grids`), the area, and a shortcut for the last days.
- */
 export interface MapQuery {
-  /**
-   * One day (YYYY-MM-DD) for a daily layer; default the last observed day
-   */
   date?: string | null
-  /**
-   * One hour (ISO, UTC unless a zone is given) for an hourly layer; default the last observed
-   */
   time?: string | null
-  /**
-   * First day (or hour) of a range, inclusive
-   */
   start?: string | null
-  /**
-   * Last day (or hour) of a range, inclusive; default the last observed
-   */
   end?: string | null
-  /**
-   * Reduce the range to one map; without it, each step is returned
-   */
   stat?: ('sum' | 'mean' | 'min' | 'max') | null
-  /**
-   * degree_days: the setting, method_base[_upper] (sine_50_86)
-   */
   dd?: string | null
-  /**
-   * stat=sum and degree days: bridge gaps up to 7 days with a flagged estimate, or not
-   */
   gaps?: 'estimate' | 'missing'
-  /**
-   * A model layer's output (`/layers` lists them); default its risk level, or a crop's stage
-   */
   output?: string | null
-  /**
-   * A model layer with a crop: each place's typical planting date at this tier (default mid), or none for the model's default dates and no crop-stage gating
-   */
   planting?: ('early' | 'mid' | 'late' | 'none') | null
-  /**
-   * A seasonal product (`/layers` lists its seasons): the season, as 2025-26; default the current one. Its map is the count through the season's last day, or the last observed day before it
-   */
   season?: string | null
-  /**
-   * The N days ending on `end` (default the latest)
-   */
   days?: number | null
-  /**
-   * A state (wisconsin, WI) or county (55025): its cells, framed
-   */
   region?: string | null
-  /**
-   * The image's width in pixels
-   */
   width?: number
 }
 export interface ModelDetail {
@@ -403,6 +289,9 @@ export interface RiskInfo {
   criteria: string
   thresholds: number[]
 }
+/**
+ * One model's full description.
+ */
 export interface ModelResponse {
   meta: Meta
   data: ModelDetail
@@ -421,29 +310,17 @@ export interface ModelSummary {
   seasonal_appears?: string | null
   citations: CitationInfo[]
 }
+/**
+ * Every model the service runs.
+ */
 export interface ModelsResponse {
   meta: Meta
   data: ModelSummary[]
 }
-/**
- * Units and format. A catalog variable's name as a parameter overrides its unit (`precipitation=mm`).
- */
 export interface OutputQuery {
-  /**
-   * Unit system: us (°F, in, mph) or metric (°C, mm, km/h); a variable's name overrides it
-   */
   units?: 'us' | 'metric'
-  /**
-   * json (default) or csv, where offered; else from the Accept header
-   */
   format?: string | null
-  /**
-   * JSON data as an object of columns, or as an array of row objects
-   */
   orient?: 'columns' | 'records'
-  /**
-   * CSV: the meta lines (#) above the column names; false drops them
-   */
   headers?: boolean
 }
 export interface PaletteInfo {
@@ -452,38 +329,14 @@ export interface PaletteInfo {
   colors: string[]
   description: string
 }
-/**
- * One point (`lat`, `lng`) or several (`points`).
- */
 export interface PointsQuery {
-  /**
-   * Latitude, decimal degrees (alias `latitude`)
-   */
   lat?: number | null
-  /**
-   * Longitude, decimal degrees, west negative (aliases `lon`, `long`, `longitude`)
-   */
   lng?: number | null
-  /**
-   * Several points as `lat,lng;lat,lng` (up to 50), in place of `lat` and `lng`
-   */
   points?: string | null
 }
-/**
- * How a series runs: through the forecast or not, gaps in running totals, and times' zone.
- */
 export interface SeriesQuery {
-  /**
-   * Run through the forecast (each row's kind says which); false: stop at the last observed day
-   */
   forecast?: boolean
-  /**
-   * Cumulative values: bridge missing days with a flagged estimate, or leave them missing
-   */
   gaps?: 'estimate' | 'missing'
-  /**
-   * Hourly times in UTC; local adds a local_time column
-   */
   tz?: 'utc' | 'local'
 }
 export interface StatusData {
@@ -494,12 +347,15 @@ export interface StatusData {
   forecast: ForecastStatus
   models: number
 }
+/**
+ * What the archive and forecast hold now.
+ */
 export interface StatusResponse {
   meta: Meta
   data: StatusData
 }
 /**
- * A table: columns (default) or rows (`orient=records`).
+ * A table of results. `meta` describes the request as computed, the location, the units of each column and a summary; `data` holds the columns.
  */
 export interface TableResponse {
   meta: Meta
@@ -511,34 +367,16 @@ export interface TableResponse {
         [k: string]: number | string | boolean | null
       }[]
 }
-/**
- * A layer's settings, as on `/grids`.
- */
 export interface TileQuery {
-  /**
-   * A range of days: reduce it to one map
-   */
   stat?: ('sum' | 'mean' | 'min' | 'max') | null
-  /**
-   * degree_days: the setting, method_base[_upper] (sine_50_86)
-   */
   dd?: string | null
-  /**
-   * As on /grids
-   */
   gaps?: 'estimate' | 'missing'
-  /**
-   * A model layer's output (`/layers` lists them)
-   */
   output?: string | null
-  /**
-   * A model's planting tier
-   */
   planting?: ('early' | 'mid' | 'late' | 'none') | null
-  /**
-   * default: colored with the layer's palette (`/palettes`) for any map client; none: data
-   */
   style?: 'default' | null
+}
+export interface UnitsQuery {
+  units?: 'us' | 'metric'
 }
 export interface VariableInfo {
   name: string
@@ -553,6 +391,9 @@ export interface VariableInfo {
   hourly_sources: string[]
   notes: string
 }
+/**
+ * The weather variables the service provides.
+ */
 export interface VariablesResponse {
   meta: Meta
   data: VariableInfo[]

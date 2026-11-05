@@ -32,7 +32,7 @@ from api.params import PointsQuery
 from api.schemas import Location, Meta, responses
 from ops.status import dataset_status
 
-router = Router(tags=["discovery"])
+router = Router(tags=["About the data"])
 
 
 def _cached(request: HttpRequest, computed: dict) -> tuple[str, HttpResponse | None]:

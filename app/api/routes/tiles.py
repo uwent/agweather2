@@ -16,7 +16,7 @@ import time
 from typing import Any, Literal
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from ninja import Field, Query, Router, Schema
+from ninja import Query, Router, Schema
 
 from agdata import mapimage, palettes, tiles
 from agdata import units as agunits
@@ -25,9 +25,9 @@ from api import clock, layermaps
 from api.envelope import Column, etag_for, not_modified, output_units, shown_unit
 from api.errors import ApiError
 from api.layermaps import LayerQuery
-from api.params import OutputQuery
+from api.params import UnitsQuery
 
-router = Router(tags=["tiles"])
+router = Router(tags=["Maps and grids"])
 
 SEASON = re.compile(r"^\d{4}-\d{2}$")
 RANGE = re.compile(r"^(\d{4}-\d{2}-\d{2})\.\.(\d{4}-\d{2}-\d{2})$")
@@ -36,14 +36,12 @@ RANGE = re.compile(r"^(\d{4}-\d{2}-\d{2})\.\.(\d{4}-\d{2}-\d{2})$")
 class TileQuery(Schema):
     """A layer's settings, as on `/grids`."""
 
-    stat: Literal["sum", "mean", "min", "max"] | None = Field(None, description="A range of days: reduce it to one map")
-    dd: str | None = Field(None, description="degree_days: the setting, method_base[_upper] (sine_50_86)")
-    gaps: Literal["estimate", "missing"] = Field("estimate", description="As on /grids")
-    output: str | None = Field(None, description="A model layer's output (`/layers` lists them)")
-    planting: Literal["early", "mid", "late", "none"] | None = Field(None, description="A model's planting tier")
-    style: Literal["default"] | None = Field(
-        None, description="default: colored with the layer's palette (`/palettes`) for any map client; none: data"
-    )
+    stat: Literal["sum", "mean", "min", "max"] | None = None
+    dd: str | None = None
+    gaps: Literal["estimate", "missing"] = "estimate"
+    output: str | None = None
+    planting: Literal["early", "mid", "late", "none"] | None = None
+    style: Literal["default"] | None = None
 
 
 def _layer_query(when: str, q: TileQuery) -> LayerQuery:
@@ -111,7 +109,7 @@ def tile(
     x: int,
     y: int,
     query: Query[TileQuery],
-    output: Query[OutputQuery],
+    output: Query[UnitsQuery],
 ) -> HttpResponse:
     """A 256-pixel tile whose pixels hold the layer's values (`/tiles/{layer}.json` gives the decoding): value =
     (R·65536 + G·256 + B) × step − 8,388,608 × step, in the layer's stored unit; transparent where missing."""
@@ -145,7 +143,7 @@ def tilejson(
     request: HttpRequest,
     layer: str,
     query: Query[TileQuery],
-    output: Query[OutputQuery],
+    output: Query[UnitsQuery],
     time: str = "latest",
 ) -> HttpResponse:
     """TileJSON 3.0 for a layer at `time` (default `latest`) with its settings: the tile URL, the box's bounds, the
@@ -198,7 +196,7 @@ def legend(
     request: HttpRequest,
     layer: str,
     query: Query[TileQuery],
-    output: Query[OutputQuery],
+    output: Query[UnitsQuery],
     time: str = "latest",
 ) -> HttpResponse:
     """The legend of `?style=default` tiles at `time` (default `latest`) with the same settings: a color bar with
@@ -236,7 +234,7 @@ class PaletteInfo(Schema):
     description: str
 
 
-@router.get("/palettes", response=list[PaletteInfo], summary="Map palettes", tags=["grids"])
+@router.get("/palettes", response=list[PaletteInfo], summary="Map palettes")
 def palette_list(request: HttpRequest) -> list[PaletteInfo]:
     """Every palette a layer's `palette` names (`/layers`): its kind and colors, low to high. The frontend colors
     data tiles with them over each layer's `domain`, as `?style=default` tiles and static maps do."""

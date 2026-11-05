@@ -42,14 +42,15 @@ from api.routes.weather import FORECAST_DAYS, MAX_DAYS, check_size, located
 from api.schemas import TableResponse, responses
 from ops.points import models_at_point, projected_at_point
 
-router = Router(tags=["models"])
+router = Router(tags=["Models"])
 
 
 class EvaluateBody(Schema):
     inputs: dict[str, float | list[float]] = Field(
         default_factory=dict,
-        description="Explorer inputs (`GET /models/{id}`'s `explorer`) in the request's units: a number, or a list "
-        "to sweep; lists multiply into rows. Inputs left out take their defaults.",
+        description="The model's inputs by name (`/models/{model_id}` lists them under `explorer`), in the request's "
+        "units. Each is a number, or a list of numbers to try in turn; several lists give a row for every combination. "
+        "Inputs you leave out take their usual values.",
     )
 
 

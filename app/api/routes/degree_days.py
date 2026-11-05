@@ -51,7 +51,7 @@ from api.routes.weather import (
 )
 from api.schemas import TableResponse, responses
 
-router = Router(tags=["degree days"])
+router = Router(tags=["Degree days and freezes"])
 
 TEMPERATURES = ["air_temperature_min", "air_temperature_max"]
 METHOD: dict[str, Callable] = {
@@ -359,7 +359,7 @@ def table(
 ) -> HttpResponse:
     """One row per point and setting: the total from `biofix` (default `start`) to `end`, and its estimated,
     missing and forecast days. What a daily report across many places and settings needs in one request
-    (`points=` up to 50, `dd=` several). Defaults: January 1 to today (`forecast=true` adds the forecast's days)."""
+    (`points=` up to 50, `dd=` several). Defaults: January 1 through the forecast (to today with `forecast=false`)."""
     warnings: list[str] = []
     found_settings = settings_from(request, dd, output.units, warnings)
     read_from, first, last, trim_end = dd_window(when, options, biofix)

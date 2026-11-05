@@ -30,9 +30,9 @@ from api import clock, layermaps
 from api.envelope import Column, etag_for, not_modified, output_units, shown_unit
 from api.errors import ApiError
 from api.layermaps import LayerQuery
-from api.params import OutputQuery
+from api.params import UnitsQuery
 
-router = Router(tags=["maps"])
+router = Router(tags=["Maps and grids"])
 
 MAX_DAYS = 366
 MARGIN_CELLS = 6  # around a region's cells
@@ -54,9 +54,9 @@ DEFAULT_MAPS: list[tuple[str, dict[str, str]]] = [
 class MapQuery(LayerQuery):
     """A layer's time and settings (as `/grids`), the area, and a shortcut for the last days."""
 
-    days: int | None = Field(None, ge=1, le=MAX_DAYS, description="The N days ending on `end` (default the latest)")
-    region: str | None = Field(None, description="A state (wisconsin, WI) or county (55025): its cells, framed")
-    width: int = Field(800, ge=400, le=2000, description="The image's width in pixels")
+    days: int | None = Field(None, ge=1, le=MAX_DAYS)
+    region: str | None = None
+    width: int = Field(800, ge=400, le=2000)
 
 
 @router.get(
@@ -65,7 +65,7 @@ class MapQuery(LayerQuery):
     response={200: None},
     openapi_extra={"responses": {"200": {"content": {"image/png": {}}}}},
 )
-def static_map(request: HttpRequest, layer: str, query: Query[MapQuery], output: Query[OutputQuery]) -> HttpResponse:
+def static_map(request: HttpRequest, layer: str, query: Query[MapQuery], output: Query[UnitsQuery]) -> HttpResponse:
     """A finished map of a layer on one day (default the latest), an hour, a season, or a range with `stat` (`days=7`
     for the last week), over the service box or a `region`: outlines, title, date and legend, in `units`."""
     started = time.perf_counter()
@@ -203,7 +203,7 @@ def render_default_maps() -> dict[str, float]:
         request = factory.get(f"/api/v2/maps/{layer}.png", params)
         started = time.perf_counter()
         before = {p.name for p in _maps_dir().glob("*.png")} if _maps_dir().exists() else set()
-        static_map(request, layer, query=MapQuery(**params), output=OutputQuery())  # type: ignore[arg-type]
+        static_map(request, layer, query=MapQuery(**params), output=UnitsQuery())  # type: ignore[arg-type]
         after = {p.name for p in _maps_dir().glob("*.png")}
         found[layer] = (time.perf_counter() - started) * 1000 if after - before else 0.0
     cutoff = time.time() - KEEP_DAYS * 86400

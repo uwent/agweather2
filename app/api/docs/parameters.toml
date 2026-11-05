@@ -1,0 +1,134 @@
+# Public text for the API's parameters, tags and response schemas (see __init__.py). Written for the public:
+# follow CLAUDE.md's "Writing for the public". [shared] holds the parameters that mean the same thing on every
+# endpoint; a table named after an operation holds that endpoint's own parameters, and replaces a shared one's
+# text where its meaning differs there.
+
+[tags]
+"About the data" = "What the service holds: the dates covered by the archive and forecast, the variables, the models, and the grid cell, county and typical planting dates at a location."
+"Weather" = "Hourly and daily weather at one or more locations, and totals over a period of days."
+"Degree days and freezes" = "Growing degree days by any method and thresholds, totals for reports covering many locations, and freeze dates."
+"Models" = "Crop disease, insect and crop development models, run on our weather at a location or on weather you send from your own station."
+"Maps and grids" = "Any weather variable or model as a map: gridded data in JSON, CSV, NetCDF or GeoTIFF, map tiles for web and GIS software, and finished map images."
+
+[schemas]
+TableResponse = "A table of results. `meta` describes the request as computed, the location, the units of each column and a summary; `data` holds the columns."
+ErrorResponse = "A request that could not be answered. `errors` lists each problem, the parameter at fault, and what to change."
+StatusResponse = "What the archive and forecast hold now."
+VariablesResponse = "The weather variables the service provides."
+ModelsResponse = "Every model the service runs."
+ModelResponse = "One model's full description."
+LocateResponse = "What the service knows about a location."
+LayersResponse = "Every layer that can be shown as a map."
+
+[shared]
+lat = "Latitude of the location, in decimal degrees (for example 43.07). `latitude` is also accepted."
+lng = "Longitude of the location, in decimal degrees, negative west of Greenwich (for example -89.40). `lon`, `long` and `longitude` are also accepted."
+points = "Several locations in one request, in place of `lat` and `lng`: latitude and longitude pairs separated by semicolons, as `43.07,-89.40;44.52,-89.57`. Up to 50 locations. Each row of the response has a `point` column giving its location's position in `meta.locations`."
+date = "A single day, as YYYY-MM-DD, in place of `start` and `end`."
+start = "The first day, as YYYY-MM-DD. The default is January 1 of the year of `end`."
+end = "The last day, as YYYY-MM-DD, included in the results. The default runs through the forecast, or through today with `forecast=false`."
+forecast = "Whether to continue past the last observed day into the forecast (`true`, the default) or stop there (`false`). The `kind` column marks forecast days."
+gaps = "How a running total handles missing days. With `estimate` (the default), short gaps are filled with an estimate and the days are marked as estimated; with `missing`, they add nothing and are counted as missing."
+tz = "The time zone of hourly times. Times are always given in UTC; `local` adds a `local_time` column in the location's own time zone. Daily results use the location's calendar days either way."
+units = "The unit system: `us` (°F, inches, mph; the default) or `metric` (°C, millimeters, km/h). To set one variable's unit, add its name as a parameter, as `precipitation=mm`."
+format = "The format of the response: `json` (the default) or `csv`. Without it, the `Accept` header is used."
+orient = "The layout of JSON data: `columns` (the default), an object with one list per column, or `records`, a list of rows. Spreadsheet and table tools often prefer `records`."
+headers = "For CSV: whether to include the description of the request as lines beginning with `#` above the column names (`true`, the default). Use `false` for a plain table."
+model_id = "The model's identifier, as listed by `/models` (for example `tar-spot`)."
+layer = "The layer's identifier, as listed by `/layers` (for example `air_temperature_max`, `degree_days` or `tar-spot`)."
+dd = "The degree-day settings, required unless `base` is given. Each is a method, a base temperature and an optional upper threshold, joined by underscores, in the request's units: `sine_50_86`, `modified_50_86` or `average_43`. The methods are `sine` (single sine), `modified` (daily minimum and maximum limited to the base and upper threshold, then averaged) and `average` (simple average). A decimal threshold is written `39.2` or `39p2`. Several settings may be given, separated by commas."
+base = "The base temperature of a single degree-day setting, in the request's units, in place of `dd`."
+upper = "The upper threshold of a single degree-day setting given with `base`. Leave it out for no upper threshold."
+method = "The method of a single degree-day setting given with `base`: `sine` (the default), `modified` or `average`."
+biofix = "The day from which running totals start, as YYYY-MM-DD. The default is `start`."
+projection = "Continue past the forecast to `end` using the weather of each earlier year in the archive. With `true`, each value is the median across those years, with the 10th and 90th percentiles in columns ending `_p10` and `_p90`. With `years`, each year's path is returned separately, with a `year` column. Off by default."
+planting_date = "The crop's planting date, which sets the crop's growth stages and the period when it is susceptible: a date (YYYY-MM-DD), or `early`, `mid` or `late` for the typical planting dates at the location, or `all` for all three. Without it, no susceptible period is applied."
+stat = "Combine a range of days into one map: `sum`, `mean`, `min` or `max`. Only values that add up over days (precipitation, evapotranspiration, sunlight, hour counts and degree days) can be summed."
+output = "For a model layer, which of the model's results to show (`/layers` lists them). The default is the model's risk level, or the growth stage for a crop model."
+planting = "For a model layer that depends on a crop: use each location's typical `early`, `mid` (the default) or `late` planting date, or `none` for the model's own default dates without regard to the crop's growth stage."
+season = "For a seasonal layer such as potato volunteer survival: the season, as `2025-26`. The default is the current season. The map shows the season through its last day, or through the last observed day if the season isn't over."
+region = "Limit the map to a state (by name or postal code, as `wisconsin` or `WI`) or a county (by its five-digit FIPS code, as `55025`)."
+style = "Leave this out for data tiles, whose colors encode values for map software to read. Use `default` for tiles colored with the layer's palette, ready to display in ArcGIS, QGIS or a web map."
+time = "The time to show: `latest` (the default), a day (`2025-07-08`), an hour in UTC (`2025-07-08T15`), a range of days with `stat` (`2025-07-01..2025-07-07`), or a season (`2025-26`)."
+
+[weather_daily]
+vars = "The variables to return, separated by commas, by their names in `/variables` (daily variables). The default is the minimum and maximum air temperature and precipitation."
+
+[weather_hourly]
+start = "The first hour, as an ISO date and time (`2026-06-01T05:00Z`). Times without a time zone are taken as UTC, and each hour is labeled by its end. The default is seven days before the last hour."
+end = "The last hour, as an ISO date and time, included in the results. The default runs through the forecast, or through the last observed hour with `forecast=false`."
+vars = "The variables to return, separated by commas, by their names in `/variables` (hourly variables). The default is air temperature, dew point, relative humidity, precipitation and wind speed."
+
+[weather_totals]
+start = "The first day of the period, as YYYY-MM-DD. The default is January 1 of the year of `end`."
+end = "The last day of the period, as YYYY-MM-DD. The default runs through the forecast, or through today with `forecast=false`."
+forecast = "Whether to include forecast days in the totals (`true`, the default) or only observed days (`false`). The `forecast_days` column says how many forecast days each total includes."
+vars = "The variables to total, separated by commas: precipitation, evapotranspiration, sunlight and counts of hours (such as hours with relative humidity of 90% or more). The default is precipitation, reference evapotranspiration (ET0) and sunlight."
+
+[degree_days_daily]
+targets = "Running totals to watch for, in degree days in the request's units, separated by commas (as `1400,2000`). For each setting, `meta.summary.targets` gives the day each total is reached, or is expected to be reached when the forecast or a projection is included."
+end = "The last day, as YYYY-MM-DD. The default runs through the forecast; with `projection`, it is December 31."
+
+[degree_days_table]
+end = "The last day of the period, as YYYY-MM-DD. The default runs through the forecast, or through today with `forecast=false`."
+forecast = "Whether to include forecast days in the totals (`true`, the default) or only observed days (`false`). The `forecast_days` column says how many forecast days each total includes."
+
+[degree_days_freeze]
+thresholds = "The temperatures to count as a freeze, in the request's units, separated by commas. The default is 32, 28 and 24 °F."
+
+[models_run]
+points = "Not used: a model runs at one location, given by `lat` and `lng`."
+start = "The first day. The default is the model's start for the season: the biofix or planting date where the model has one, otherwise January 1."
+end = "The last day. The default runs through the forecast; with `projection`, it is the end of the model's season."
+biofix = "The day the model starts counting, as YYYY-MM-DD, where the model uses one (`/models/{model_id}` says whether it does and what its default is)."
+season = "For a seasonal model such as potato volunteer survival: the season, as `2025-26`, in place of `start` and `end`. The default is the current season."
+
+[models_run_several]
+points = "Not used: the models run at one location, given by `lat` and `lng`."
+models = "The models to run, separated by commas (as `tar-spot,white-mold`), or `all` (the default)."
+start = "The first day. The default is January 1."
+end = "The last day. The default runs through the forecast; with `projection`, it is December 31."
+format = "The format of the response: only `json` is available, because the result holds a table for each model."
+
+[models_risk]
+points = "Not used: risk is reported for one location, given by `lat` and `lng`."
+date = "The day to report, as YYYY-MM-DD. The default is today. A day past the forecast needs `projection=true`."
+models = "The models to report, separated by commas, or `all`. The default is every model that is in season and covers the location's region."
+projection = "With `true`, a `date` past the forecast reports each model's median risk across the earlier years in the archive."
+
+[models_evaluate]
+units = "The unit system of the input values you send and of the results: `us` (the default) or `metric`."
+
+[grids_grid]
+date = "A single day for a daily layer, as YYYY-MM-DD. The default is the last day observed across the whole map."
+time = "A single hour for an hourly layer, as an ISO date and time (UTC unless a time zone is given). The default is the last observed hour."
+start = "The first day (or hour) of a range. Each step of the range is returned, unless `stat` combines them into one map. A range can cover up to 366 days or 31 days of hours."
+end = "The last day (or hour) of a range, included in the results. The default is the last observed day."
+gaps = "With `stat=sum` and degree days: `estimate` (the default) fills gaps of up to seven days with an estimate and counts them in `estimated_days`; `missing` leaves them out and counts them in `missing_days`. Precipitation is never estimated."
+bbox = "Limit the map to a box: its south, west, north and east edges in decimal degrees, separated by commas. The default is the whole area the service covers."
+stride = "Return every nth cell in each direction, for a quick overview of a large area. The default is 1, every cell."
+grid = "The grid of the results: `native` (the default), the National Weather Service's 2.5 km grid on its Lambert conformal projection, or `latlon`, a regular latitude and longitude grid with a spacing of `res` degrees."
+res = "For `grid=latlon`: the spacing in degrees, at least 0.025 (for example `0.1`)."
+method = "For `grid=latlon`: how each point gets its value, from the cell it falls in (`nearest`) or the mean of the cells within half a spacing of it (`mean`). The default is `mean` for spacings of 0.05° or more and `nearest` below that."
+cells = "For JSON and CSV: add each cell's row and column on the native grid (`j` and `i`)."
+format = "The format of the response: `json` (the default), `csv`, `netcdf` or `geotiff`. JSON and CSV hold up to 2 million values; larger maps are available as NetCDF or GeoTIFF files. Without it, the `Accept` header is used."
+
+[tiles_tile]
+when = "The time to show: `latest`, a day (`2025-07-08`), an hour in UTC (`2025-07-08T15`), a range of days with `stat` (`2025-07-01..2025-07-07`), or a season (`2025-26`)."
+z = "The zoom level, from 0 to 8."
+x = "The tile's column at this zoom level."
+y = "The tile's row at this zoom level."
+units = "Tiles look the same in either unit system, and data tiles always hold values in the layer's stored unit, given by the TileJSON. The parameter is accepted so that a tile, its TileJSON and its legend can share the same settings."
+
+[tiles_legend]
+units = "The unit system of the legend's labels: `us` (the default) or `metric`."
+
+[maps_static_map]
+date = "A single day for a daily layer, as YYYY-MM-DD. The default is the latest day, so a link to the map always shows the current one."
+time = "A single hour for an hourly layer, as an ISO date and time (UTC unless a time zone is given)."
+start = "The first day of a range, which `stat` combines into one map."
+end = "The last day of a range. The default is the latest day."
+days = "A shortcut for a range: the number of days ending on `end` or the latest day. For example, `days=7&stat=sum` shows the past week's total."
+region = "Show only a state (by name or postal code, as `wisconsin` or `WI`) or a county (by its five-digit FIPS code, as `55025`), framed on the map."
+width = "The image's width in pixels, from 400 to 2000. The default is 800."
+gaps = "With `stat=sum`: `estimate` (the default) fills gaps of up to seven days with an estimate; `missing` leaves them out."

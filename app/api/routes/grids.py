@@ -43,7 +43,7 @@ from api.routes.discovery import DisplayUnits, _units
 from api.schemas import Meta, TableResponse, responses
 from ops.status import dataset_status
 
-router = Router(tags=["grids"])
+router = Router(tags=["Maps and grids"])
 
 FORMATS = ("json", "csv", "netcdf", "geotiff")
 MAX_TEXT_VALUES = 2_000_000  # JSON and CSV: ~70 MB and 1.5–2.5 s to write; NetCDF and GeoTIFF beyond it
@@ -194,21 +194,13 @@ def _hour(when: datetime | None) -> str | None:
 class GridQuery(LayerQuery):
     """When, where and how: a layer's step or range (`LayerQuery`), its area, and the grid it's given on."""
 
-    bbox: str | None = Field(None, description="south,west,north,east in degrees; default the whole service box")
-    region: str | None = Field(
-        None, description="A state (wisconsin, WI) or county (FIPS code, 55025): only its cells are returned"
-    )
-    stride: int = Field(1, ge=1, le=MAX_STRIDE, description="Every nth cell in each direction (native grid only)")
-    grid: Literal["native", "latlon"] = Field(
-        "native", description="native: NDFD's 2.5 km Lambert cells; latlon: a regular grid every `res` degrees"
-    )
-    res: float | None = Field(None, description=f"latlon: the step in degrees, at least {MIN_LATLON_RES}")
-    method: Literal["nearest", "mean"] | None = Field(
-        None,
-        description="latlon: the cell under each point, or the mean of the cells within ±res/2 (default: mean "
-        "from 0.05°, nearest below)",
-    )
-    cells: bool = Field(False, description="JSON and CSV: add each cell's j and i on the native grid")
+    bbox: str | None = None
+    region: str | None = None
+    stride: int = Field(1, ge=1, le=MAX_STRIDE)
+    grid: Literal["native", "latlon"] = "native"
+    res: float | None = None
+    method: Literal["nearest", "mean"] | None = None
+    cells: bool = False
 
 
 @router.get("/grids/{layer}", response=responses(TableResponse), summary="A layer over an area")
