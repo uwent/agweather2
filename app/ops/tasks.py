@@ -134,6 +134,18 @@ def update_crop_tiers(timestamp: int) -> None:
         logger.warning("update_crop_tiers skipped: %s", error)
 
 
+@app.periodic(cron="52 * * * *")  # after the hour's ingest (:40) and forecast (:45)
+@app.task(queue="maintenance", queueing_lock="render_default_maps", task_middleware=JOB_MIDDLEWARE)
+def render_default_maps(timestamp: int) -> None:
+    """Draws the default static maps (`api.routes.maps.DEFAULT_MAPS`, D60) for the latest data, so an embedded link
+    ("Today's growing degree day map") answers at once; a map whose data hasn't changed is already drawn."""
+    from api.routes import maps
+
+    drawn = {layer: ms for layer, ms in maps.render_default_maps().items() if ms}
+    if drawn:
+        logger.info("maps drawn: %s", {layer: f"{ms:.0f} ms" for layer, ms in drawn.items()})
+
+
 # The order `manage.py jobs run all` and `jobs start` use: the archive first, then soil (IFS's provisional hours, then
 # ERA5-Land's over them), then the forecast, which stitches to all of it.
-CATCH_UP = (ingest_recent, ingest_ifs, ingest_era5land, ingest_forecast, update_crop_tiers)
+CATCH_UP = (ingest_recent, ingest_ifs, ingest_era5land, ingest_forecast, update_crop_tiers, render_default_maps)

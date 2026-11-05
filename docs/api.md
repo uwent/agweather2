@@ -380,9 +380,14 @@ Size limit: JSON and CSV take up to 2 million values (Wisconsin is 57,820 cells,
 
 ### Tiles
 
-- `GET /tiles/{layer}/{time}/{z}/{x}/{y}.png`: data tiles (values encoded in RGB, `agdata` tile encoding) for our MapLibre frontend, which colors them on the GPU with the layer's palette.
-- **Rendered, colored tiles** for outside users (`?style=default`, XYZ, plus `/tiles/{layer}.json` TileJSON), so DATCP can add a layer in ArcGIS Online, QGIS or Leaflet with one URL. Rendering is the same palette applied server-side, and it's the easiest way for an agency to use the maps. A legend image goes with it (`/tiles/{layer}/legend.png`).
-- Past times are immutable and cached by Caddy; today and the forecast get a short max-age tied to the ingest schedule.
+Built (Phase 5 G1–G2, ✓):
+
+- `GET /tiles/{layer}/{time}/{z}/{x}/{y}.png`: data tiles, 256-pixel web mercator, zooms 0–8 (TileJSON says 3–8; past 8 a client enlarges zoom 8). `{time}` is one step: a day (`2025-07-08`), an hour (`2025-07-08T15`), a range of days with `stat` (`2025-07-01..2025-07-07`), a seasonal product's season (`2025-26`), or `latest`. The layer's settings are query parameters as on `/grids` (`dd`, `output`, `planting`, a model's options). Each pixel is the grid cell under it, its value packed into the color: `value = (R·65536 + G·256 + B) × step − 8,388,608 × step` in the layer's stored unit, transparent (code 0, alpha 0) where missing. MapLibre reads them as a `raster-dem` source with `encoding: "custom"` and the TileJSON's factors, for a `color-relief` layer to color with the layer's palette; a client reads the value under the pointer from the pixel. Model layers are land only (no Great Lakes).
+- `?style=default`: the same tiles colored with the layer's palette (`/palettes`) over its `domain` (`/layers`; a layer without one takes it from the whole map, so every tile agrees), for ArcGIS Online, QGIS or Leaflet with one URL.
+- `GET /tiles/{layer}.json?time=&…`: TileJSON 3.0 (the tile URL with the settings, bounds, zooms) with `encoding`: `unit`, `step` and MapLibre's `redFactor`, `greenFactor`, `blueFactor`, `baseShift`.
+- `GET /tiles/{layer}/legend.png?time=&units=&…`: the colored tiles' legend: a color bar with ticks in the request's units, or a swatch per level.
+- `GET /palettes`: every palette: `id`, `kind` (sequential, diverging, categorical, cyclic), `colors` low to high, and what its hues stand for.
+- Tiles revalidate by ETag (the request and its data stamp; a tile's stamp is reused for 15 s, so new data shows within that). Caching past times in Caddy is Phase 5 G4.
 
 ### Climate
 
@@ -405,7 +410,7 @@ Normals of anything with a threshold (degree days, freeze dates, hours above or 
 
 ### Static maps
 
-`GET /maps/{layer}.png?date=&region=&units=` (D60): a finished map image for embedding by URL, with outlines, title, date and legend. Without `date` it shows the latest day, so a link such as "Today's growing degree day map" stays current. Rendered with matplotlib on the native grid, cached for past dates, and pre-rendered for today by a job.
+`GET /maps/{layer}.png` ✓ (D60, Phase 5 G3): a finished map image to embed by URL, with county and state outlines (Census 1:5M), the title, the date, a legend and a credit. It takes the layer's time and settings as `/grids` does (`date`, `time`, `season`, `start`/`end` with `stat`, `dd`, `output`, `planting`, options), plus `days=N` (the N days ending on `end` or the latest day, with `stat`: `days=7&stat=sum` is the last week's rain), `region` (a state or county: its cells, framed, the rest blank), `units` and `width` (400–2000 px, default 800). Without a time it's the latest day, so a link such as "Today's growing degree day map" (`/maps/dd_modified_50_86.png`) stays current. Images are kept by ETag, drawn once per change of their data; a job draws the default set after each hourly ingest (modified 50/86 degree days, the day's high and low, the last week's rain and ET0, the day's sunlight, the season's rain and ET0).
 
 ### Downloads
 
