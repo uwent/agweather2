@@ -1,5 +1,5 @@
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from django.conf import settings
 from procrastinate.contrib.django import app
@@ -146,6 +146,25 @@ def render_default_maps(timestamp: int) -> None:
         logger.info("maps drawn: %s", {layer: f"{ms:.0f} ms" for layer, ms in drawn.items()})
 
 
+@app.periodic(cron="10 4 * * *")
+@app.task(queue="maintenance", queueing_lock="prune_api_usage", task_middleware=JOB_MIDDLEWARE)
+def prune_api_usage(timestamp: int) -> None:
+    """Deletes the API's usage counts (`ops.models.ApiUsage`, D69) older than a week."""
+    from ops.models import ApiUsage
+
+    deleted, _ = ApiUsage.objects.filter(minute__lt=datetime.now(UTC) - timedelta(days=7)).delete()
+    if deleted:
+        logger.info("API usage: %d rows older than a week deleted", deleted)
+
+
 # The order `manage.py jobs run all` and `jobs start` use: the archive first, then soil (IFS's provisional hours, then
 # ERA5-Land's over them), then the forecast, which stitches to all of it.
-CATCH_UP = (ingest_recent, ingest_ifs, ingest_era5land, ingest_forecast, update_crop_tiers, render_default_maps)
+CATCH_UP = (
+    ingest_recent,
+    ingest_ifs,
+    ingest_era5land,
+    ingest_forecast,
+    update_crop_tiers,
+    render_default_maps,
+    prune_api_usage,
+)

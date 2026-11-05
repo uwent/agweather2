@@ -3,8 +3,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from django.contrib import admin
 
-from ops.admin import IngestRecordAdmin
-from ops.models import IngestRecord
+from ops.admin import ApiUsageAdmin, IngestRecordAdmin
+from ops.models import ApiUsage, IngestRecord
 
 
 @pytest.fixture
@@ -35,3 +35,10 @@ def test_run_history_is_read_only(rf):
     assert model_admin.has_change_permission(request) is False
     assert model_admin.has_change_permission(request, obj=IngestRecord()) is False
     assert set(model_admin.readonly_fields) >= {"status", "failed_hours", "finished_at"}
+
+
+def test_api_usage_is_read_only(rf):
+    model_admin = ApiUsageAdmin(ApiUsage, admin.site)
+    request = rf.get("/")
+    assert model_admin.has_add_permission(request) is False
+    assert model_admin.has_change_permission(request, obj=ApiUsage()) is False

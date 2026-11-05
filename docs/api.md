@@ -418,7 +418,7 @@ Yearly NetCDF per daily variable for bulk users, as static files beside the API,
 
 ## Access, limits, stability
 
-- **Anonymous reads** with per-IP rate limits at launch, weighted by what each request costs to compute (PLAN.md D69). Optional free API keys (`X-API-Key`) for higher limits, and so we know who to tell before a change, are added when someone needs more.
+- **Anonymous reads** with per-IP rate limits ✓ (PLAN.md D69, `api.ratelimit`): a budget of 200 units a minute per IPv4 address or IPv6 /64 (`API_RATE_LIMIT`), a request costing 1 unit plus 1 per 100 ms of server time, so a kept tile or a 304 costs 1 and a map computed afresh several. Every API response carries `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` (seconds to the minute's end); a client over its budget gets a 429 (`rate_limited`) with `Retry-After`. Optional free API keys (`X-API-Key`) for higher limits, and so we know who to tell before a change, are added when someone needs more.
 - **Stability:** `/api/v2` changes only by addition (new endpoints, parameters, columns, `meta` keys). Anything breaking is announced on the changelog page and in `meta.warnings` well ahead. Clients should ignore keys they don't know.
 - **Types:** the frontend's TypeScript types are generated from the OpenAPI schema, as `bin/types` does for props (`@/types/api`), so CI fails when the frontend and API disagree.
 - **Docs:** OpenAPI at `/api/v2/docs`, with an R, Python and curl example per endpoint, D53's attribution, and the changelog.

@@ -83,3 +83,20 @@ class DatasetStatus(models.Model):
 
     def __str__(self) -> str:
         return f"{self.dataset}: {self.first} to {self.last}"
+
+
+class ApiUsage(models.Model):
+    """The API's use by one client in one minute (D69): the requests it made and what they cost, which
+    `api.ratelimit` charges by the server time each took. Rows older than a week are deleted (`prune_api_usage`)."""
+
+    client = models.CharField(max_length=64, help_text="IPv4 address, or IPv6 /64 network")
+    minute = models.DateTimeField(help_text="The minute's start (UTC)")
+    requests = models.IntegerField(default=0)
+    cost = models.IntegerField(default=0, help_text="Units: 1 a request, plus 1 per API_RATE_UNIT_MS of server time")
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["client", "minute"], name="one_row_per_client_minute")]
+        indexes = [models.Index(fields=["minute"])]
+
+    def __str__(self) -> str:
+        return f"{self.client} {self.minute:%Y-%m-%d %H:%M}Z: {self.requests} requests, cost {self.cost}"

@@ -39,6 +39,11 @@ OPEN_METEO_API_KEY = os.environ.get("OPEN_METEO_API_KEY") or None  # the custome
 COPERNICUS_API_KEY = os.environ.get("COPERNICUS_API_KEY") or None  # the CDS, for ERA5-Land (D52); None: no job
 # The worker's jobs recorded as runs in DATA_DIR/runs/ for the dashboard (ops.jobruns): development only
 JOB_RUNS = os.environ.get("JOB_RUNS", "1" if ENV == "development" else "0") == "1"
+# The API's rate limit (D69, api.ratelimit): units a minute per client (an IPv4 address or IPv6 /64), a request
+# costing 1 plus 1 per API_RATE_UNIT_MS of server time. Off in tests (their own turn it on); local addresses exempt.
+API_RATE_LIMIT: int | None = None if TESTING else int(os.environ.get("API_RATE_LIMIT", "200"))
+API_RATE_UNIT_MS = 100
+API_RATE_EXEMPT = [n.strip() for n in os.environ.get("API_RATE_EXEMPT", "127.0.0.0/8,::1/128").split(",") if n.strip()]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -58,6 +63,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "api.middleware.TimingMiddleware",  # first, so compute_ms covers the rest
+    "api.ratelimit.RateLimitMiddleware",  # /api/ only: refuse a client over its budget before any work
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.csp.ContentSecurityPolicyMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
