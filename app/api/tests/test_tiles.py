@@ -118,3 +118,12 @@ def test_legends_palettes_and_domains(client, archive):
     layers = {layer["id"]: layer for layer in client.get("/api/v2/layers").json()["data"]}
     assert layers["air_temperature_max"]["domain"] == [-30, 40]
     assert layers["dd_modified_50_86"]["domain"] is None and layers["late-blight-dsv"]["domain"] == [0, 4]
+
+
+@pytest.mark.django_db
+def test_recent_and_latest_tiles_expire_soon_and_settled_ones_later(client, archive):
+    recent = _tile(client, "precipitation_sum", "2025-07-08")
+    assert recent["Cache-Control"] == "public, max-age=300, stale-while-revalidate=300"
+    assert _tile(client, "precipitation_sum", "latest")["Cache-Control"].startswith("public, max-age=300")
+    old = _tile(client, "precipitation_sum", "2025-06-01")  # before the archive: missing, but settled
+    assert old["Cache-Control"] == "public, max-age=86400, stale-while-revalidate=86400"

@@ -661,3 +661,19 @@ def cached(a: LayerAsk, window: Window, now: datetime, data_stamp: Any) -> Compu
         while len(_maps) > MAP_CACHE_SIZE:
             _maps.popitem(last=False)
     return found
+
+
+# How long a client or shared cache may keep an image of a layer: the hourly ingest rewrites the last week (URMA
+# replacing RTMA) and ERA5-Land replaces soil ~5 days late, so recent times and `latest` stay short; older ones are
+# settled but for a rebuild after a deploy, so a day
+RECENT_DAYS = 10
+RECENT_SECONDS = 300
+SETTLED_SECONDS = 86_400
+
+
+def cache_control(a: LayerAsk, now: datetime, latest: bool) -> str:
+    """`Cache-Control` for a tile, legend or map image of `a` (`latest`: asked without a time, so it moves on)."""
+    last = a.last.date() if isinstance(a.last, datetime) else a.last
+    settled = not latest and last < now.date() - timedelta(days=RECENT_DAYS)
+    age = SETTLED_SECONDS if settled else RECENT_SECONDS
+    return f"public, max-age={age}, stale-while-revalidate={age}"

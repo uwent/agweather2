@@ -86,7 +86,8 @@ def static_map(request: HttpRequest, layer: str, query: Query[MapQuery], output:
         _keep(path, body)
     response = HttpResponse(body, content_type="image/png")
     response["ETag"] = etag
-    response["Cache-Control"] = "public, no-cache"
+    latest = not (query.date or query.time or query.start or query.end or query.season)
+    response["Cache-Control"] = layermaps.cache_control(a, now, latest=latest)
     response["Server-Timing"] = f"total;dur={(time.perf_counter() - started) * 1000:.1f}"
     return response
 

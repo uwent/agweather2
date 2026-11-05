@@ -135,7 +135,7 @@ def tile(
             body = tiles.png(colors)
     response = HttpResponse(body, content_type="image/png")
     response["ETag"] = etag
-    response["Cache-Control"] = "public, no-cache"
+    response["Cache-Control"] = layermaps.cache_control(a, now, latest=when == "latest")
     response["Server-Timing"] = f"total;dur={(time.perf_counter() - started) * 1000:.1f}"
     return response
 
@@ -225,7 +225,7 @@ def legend(
     )
     response = HttpResponse(body, content_type="image/png")
     response["ETag"] = etag
-    response["Cache-Control"] = "public, no-cache"
+    response["Cache-Control"] = layermaps.cache_control(a, now, latest=time == "latest")
     return response
 
 

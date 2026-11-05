@@ -218,6 +218,7 @@ export interface LayerInfo {
   units: DisplayUnits
   precision: number
   palette: string
+  domain: number[] | null
   stats: string[]
   parameters: string[]
   range: LayerRange
@@ -239,6 +240,7 @@ export interface LayerOutputInfo {
   units: DisplayUnits
   precision: number
   palette: string
+  domain: number[] | null
 }
 export interface LayersResponse {
   meta: Meta
@@ -294,6 +296,63 @@ export interface PlantingInfo {
 export interface LocateResponse {
   meta: Meta
   data: LocateData
+}
+/**
+ * A layer's time and settings (as `/grids`), the area, and a shortcut for the last days.
+ */
+export interface MapQuery {
+  /**
+   * One day (YYYY-MM-DD) for a daily layer; default the last observed day
+   */
+  date?: string | null
+  /**
+   * One hour (ISO, UTC unless a zone is given) for an hourly layer; default the last observed
+   */
+  time?: string | null
+  /**
+   * First day (or hour) of a range, inclusive
+   */
+  start?: string | null
+  /**
+   * Last day (or hour) of a range, inclusive; default the last observed
+   */
+  end?: string | null
+  /**
+   * Reduce the range to one map; without it, each step is returned
+   */
+  stat?: ('sum' | 'mean' | 'min' | 'max') | null
+  /**
+   * degree_days: the setting, method_base[_upper] (sine_50_86)
+   */
+  dd?: string | null
+  /**
+   * stat=sum and degree days: bridge gaps up to 7 days with a flagged estimate, or not
+   */
+  gaps?: 'estimate' | 'missing'
+  /**
+   * A model layer's output (`/layers` lists them); default its risk level, or a crop's stage
+   */
+  output?: string | null
+  /**
+   * A model layer with a crop: each place's typical planting date at this tier (default mid), or none for the model's default dates and no crop-stage gating
+   */
+  planting?: ('early' | 'mid' | 'late' | 'none') | null
+  /**
+   * A seasonal product (`/layers` lists its seasons): the season, as 2025-26; default the current one. Its map is the count through the season's last day, or the last observed day before it
+   */
+  season?: string | null
+  /**
+   * The N days ending on `end` (default the latest)
+   */
+  days?: number | null
+  /**
+   * A state (wisconsin, WI) or county (55025): its cells, framed
+   */
+  region?: string | null
+  /**
+   * The image's width in pixels
+   */
+  width?: number
 }
 export interface ModelDetail {
   id: string
@@ -387,6 +446,12 @@ export interface OutputQuery {
    */
   headers?: boolean
 }
+export interface PaletteInfo {
+  id: string
+  kind: 'sequential' | 'diverging' | 'categorical' | 'cyclic'
+  colors: string[]
+  description: string
+}
 /**
  * One point (`lat`, `lng`) or several (`points`).
  */
@@ -445,6 +510,35 @@ export interface TableResponse {
     | {
         [k: string]: number | string | boolean | null
       }[]
+}
+/**
+ * A layer's settings, as on `/grids`.
+ */
+export interface TileQuery {
+  /**
+   * A range of days: reduce it to one map
+   */
+  stat?: ('sum' | 'mean' | 'min' | 'max') | null
+  /**
+   * degree_days: the setting, method_base[_upper] (sine_50_86)
+   */
+  dd?: string | null
+  /**
+   * As on /grids
+   */
+  gaps?: 'estimate' | 'missing'
+  /**
+   * A model layer's output (`/layers` lists them)
+   */
+  output?: string | null
+  /**
+   * A model's planting tier
+   */
+  planting?: ('early' | 'mid' | 'late' | 'none') | null
+  /**
+   * default: colored with the layer's palette (`/palettes`) for any map client; none: data
+   */
+  style?: 'default' | null
 }
 export interface VariableInfo {
   name: string

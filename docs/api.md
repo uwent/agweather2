@@ -387,7 +387,7 @@ Built (Phase 5 G1–G2, ✓):
 - `GET /tiles/{layer}.json?time=&…`: TileJSON 3.0 (the tile URL with the settings, bounds, zooms) with `encoding`: `unit`, `step` and MapLibre's `redFactor`, `greenFactor`, `blueFactor`, `baseShift`.
 - `GET /tiles/{layer}/legend.png?time=&units=&…`: the colored tiles' legend: a color bar with ticks in the request's units, or a swatch per level.
 - `GET /palettes`: every palette: `id`, `kind` (sequential, diverging, categorical, cyclic), `colors` low to high, and what its hues stand for.
-- Tiles revalidate by ETag (the request and its data stamp; a tile's stamp is reused for 15 s, so new data shows within that). Caching past times in Caddy is Phase 5 G4.
+- Tiles, legends and maps revalidate by ETag (the request and its data stamp; a tile's stamp is reused for 15 s, so new data shows within that) and carry `Cache-Control`: `latest` and the last 10 days `max-age=300`, older times a day, with `stale-while-revalidate`.
 
 ### Climate
 
