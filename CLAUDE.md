@@ -61,6 +61,20 @@ Setup and the rest are in `DEVELOPMENT.md`.
 - **Python style:** ruff (format and lint, rules in the root `pyproject.toml`), pyright in basic mode, type hints on public functions. pytest runs in importlib mode, so test files may share names across packages. Prefer plain functions and small modules for domain math; no Django signals cascading recalculation.
 - **Name the arguments in calls** (Ben, 2026-10-29): `Insect(id="…", name="…", crops=(…))`, not positional. Every dataclass is `kw_only=True`, so pyright enforces it there; calls to the project's own functions name their arguments too. Positional is fine for a function's one obvious argument (`len(x)`, `running_total(dd)`) and for library calls whose convention is positional (`np.where(c, a, b)`).
 
+## Writing for the public
+
+AgWeather is a service of a public university's agricultural extension program, and everything the public reads should sound like it (Ben, 2026-11-05). This covers page text, help and about pages, the API docs (`/api/v2/docs`, `docs/api.md`'s public parts, endpoint and parameter descriptions), error messages and `meta.warnings`, map titles, legends and credits, emails and alerts, and model descriptions. It does not cover code comments, PLAN.md, the session log or other notes for ourselves.
+
+- **Readers:** growers, crop consultants, extension educators, agency staff and researchers. Many are expert in agronomy and not in software, so write for an informed reader who is busy, not for a developer.
+- **Plain, courteous, exact.** Write in complete sentences, in the active voice, addressing the reader as "you" and the service as "we" or "AgWeather". Fragments belong only in headings, labels, buttons, legends and table cells.
+- **No marketing and no buzzwords.** Say what the service does and let that stand: no "powerful", "seamless", "robust", "cutting-edge", "leverage", "unlock", "empower" or "insights". No exclamation marks, emoji, jokes or idioms.
+- **No tech-speak where a plain word will do.** Use "data", "map", "request", "download" and "location" rather than "payload", "layer stack", "backend", "pipeline" or "ingest". Never use internal names (ingredients, cubes, layermaps, phase or decision numbers). The API docs may use standard HTTP and file-format terms (query parameter, JSON, CSV, NetCDF, status code), but should explain anything beyond them.
+- **Use agricultural terms correctly and define them once.** Growing degree days, biofix, emergence and disease severity values are the readers' terms; give each a short definition or a glossary link where it first appears on a page.
+- **Be honest about what a number means.** A model's output is guidance based on weather data, not a guarantee. Name the source and its limits (estimated days, missing data, the area a model was developed for), cite the research, and never claim more accuracy than the validation shows.
+- **Error messages and warnings** say what happened and what the reader can do about it, in one or two sentences ("The end date is before the start date. Choose an end date on or after March 1, 2026."), never just a code.
+- **Conventions:** dates as "April 1, 2027"; times with their time zone ("2 p.m. CST"); units on every number, US customary first with metric where readers expect it; "University of Wisconsin–Madison" and "UW–Madison" with an en dash.
+- Aim for language a general reader follows on first reading (about grade 8–10 for page text). Short paragraphs, the main point first.
+
 ## Gotchas
 
 Carried over from WISP 3; they apply once the frontend exists.
