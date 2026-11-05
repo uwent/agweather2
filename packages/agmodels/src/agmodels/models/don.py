@@ -13,8 +13,19 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels.accumulate import rolling_sum
+from agmodels.ingredients import Ingredient, finished
 from agmodels.probability import logistic, moving_mean, risk_level
-from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk, Susceptibility
+from agmodels.spec import (
+    PROBABILITY_LEVELS,
+    Change,
+    Citation,
+    ExplorerInput,
+    Input,
+    ModelSpec,
+    Quantity,
+    Risk,
+    Susceptibility,
+)
 
 SPEC = ModelSpec(
     id="gibberella-ear-rot-don",
@@ -34,31 +45,31 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(
+        Input(
             name="air_temperature_max",
             label="Maximum temperature",
             unit="degC",
             description="14-day mean, 7 days earlier",
         ),
-        Quantity(
+        Input(
             name="air_temperature_min",
             label="Minimum temperature",
             unit="degC",
             description="14-day mean, 7 days earlier",
         ),
-        Quantity(
+        Input(
             name="air_temperature_mean",
             label="Mean temperature",
             unit="degC",
             description="Days ≥ 25 °C in 14, 7 days earlier",
         ),
-        Quantity(
+        Input(
             name="precipitation_sum",
             label="Precipitation",
             unit="mm",
             description="Days with rain in 14, 7 days earlier",
         ),
-        Quantity(
+        Input(
             name="relative_humidity_mean",
             label="Mean RH",
             unit="percent",
@@ -139,6 +150,14 @@ SPEC = ModelSpec(
         last="R1",
         source="The Crop Risk Tool (susceptible during silking); the model's windows end on silking day",
     ),
+    ingredients=(
+        Ingredient(name="air_temperature_max_14_day_lag_7", unit="degC"),
+        Ingredient(name="air_temperature_min_14_day_lag_7", unit="degC"),
+        Ingredient(name="days_temperature_over_25c_14_day_lag_7", unit="day"),
+        Ingredient(name="days_with_precipitation_14_day_lag_7", unit="day"),
+        Ingredient(name="relative_humidity_mean_14_day", unit="percent"),
+        Ingredient(name="days_rh_over_80_14_day", unit="day"),
+    ),
     changelog=(
         Change(
             version="0.1",
@@ -159,7 +178,9 @@ def probability(w7_max_temp, w7_min_temp, w7_days_temp_over_25, w7_days_precip, 
     )
 
 
-def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+    """The model's windows: 14 days ending a week before (temperature, rain days) and the last 14 days (RH)."""
+
     def count(condition) -> np.ndarray:
         return rolling_sum(np.asarray(condition, dtype=float), 14)
 
@@ -167,15 +188,29 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
         return np.concatenate([np.full((7, *values.shape[1:]), np.nan), values[:-7]])[: values.shape[0]]
 
     rh = np.asarray(inputs["relative_humidity_mean"], dtype=float)
-    p = probability(
-        lag(moving_mean(inputs["air_temperature_max"], 14)),
-        lag(moving_mean(inputs["air_temperature_min"], 14)),
-        lag(count(np.asarray(inputs["air_temperature_mean"]) >= 25)),
-        lag(count(np.asarray(inputs["precipitation_sum"]) > 0)),
-        moving_mean(rh, 14),
-        count(rh > 80),
+    return {
+        "air_temperature_max_14_day_lag_7": lag(moving_mean(inputs["air_temperature_max"], 14)),
+        "air_temperature_min_14_day_lag_7": lag(moving_mean(inputs["air_temperature_min"], 14)),
+        "days_temperature_over_25c_14_day_lag_7": lag(count(np.asarray(inputs["air_temperature_mean"]) >= 25)),
+        "days_with_precipitation_14_day_lag_7": lag(count(np.asarray(inputs["precipitation_sum"]) > 0)),
+        "relative_humidity_mean_14_day": moving_mean(rh, 14),
+        "days_rh_over_80_14_day": count(rh > 80),
+    }
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    return {"probability": probability(*(values[i.name] for i in SPEC.ingredients))}
+
+
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+    return finished(
+        accumulations=(),
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
     )
-    return {"probability": p}
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:

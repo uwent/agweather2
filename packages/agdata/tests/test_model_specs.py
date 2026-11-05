@@ -41,3 +41,16 @@ def test_regions_are_states():
     states = {c.state for c in counties() if c}
     for model in all_models().values():
         assert set(model.SPEC.region) <= states, model.SPEC.id
+
+
+def test_names_are_current():
+    """`agmodels/names.py` types model specs' names from the catalog; regenerate it with `bin/types`."""
+    import importlib.util
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[3] / "scripts/generate_names.py"
+    spec = importlib.util.spec_from_file_location("generate_names", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.TARGET.read_text() == module.render(), "agmodels/names.py is stale: run bin/types"

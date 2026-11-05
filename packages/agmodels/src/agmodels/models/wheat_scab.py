@@ -10,8 +10,9 @@ from collections.abc import Mapping
 
 import numpy as np
 
+from agmodels.ingredients import Ingredient, finished
 from agmodels.probability import logistic, moving_mean, risk_level
-from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Option, Quantity, Risk
+from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity, Risk
 
 RESISTANCE = {  # option value: (label, intercept shift)
     "vs": ("Very susceptible", 0.0),
@@ -38,7 +39,7 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(name="relative_humidity_mean", label="Mean RH", unit="percent", description="14-day moving average"),
+        Input(name="relative_humidity_mean", label="Mean RH", unit="percent", description="14-day moving average"),
     ),
     outputs=(
         Quantity(name="probability", label="Probability for the chosen resistance", unit="percent"),
@@ -66,6 +67,7 @@ SPEC = ModelSpec(
         ),
     ),
     lookback_days=14,
+    ingredients=(Ingredient(name="relative_humidity_mean_14_day", unit="percent"),),
     changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
@@ -77,9 +79,26 @@ def probabilities(rh_mean_14day) -> dict[str, np.ndarray]:
     }
 
 
-def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
-    each = probabilities(moving_mean(inputs["relative_humidity_mean"], 14))
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+    return {
+        "relative_humidity_mean_14_day": moving_mean(inputs["relative_humidity_mean"], 14),
+    }
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    each = probabilities(values["relative_humidity_mean_14_day"])
     return {"probability": each[f"probability_{options.get('resistance', 's')}"], **each}
+
+
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+    return finished(
+        accumulations=(),
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:

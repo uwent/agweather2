@@ -19,7 +19,8 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels.crops import CropStage, stage_reached
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, ModelSpec, Quantity
+from agmodels.ingredients import Accumulation, DegreeDays, Ingredient, finished
+from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity
 
 BASE_C = 4.0
 EMERGENCE_DD = 208.0
@@ -54,8 +55,8 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
-        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
+        Input(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Input(name="air_temperature_max", label="Maximum temperature", unit="degC"),
     ),
     outputs=(
         Quantity(name="stage", label="Growth stage", unit="index", description="Index in the crop's stage list"),
@@ -77,6 +78,15 @@ SPEC = ModelSpec(
     sweep={"dd_total": tuple(float(d) for d in range(0, 401, 5))},
     season=("03-15", "07-31"),
     biofix=Biofix(default="05-01", label="Planting date"),
+    ingredients=(
+        Ingredient(
+            name="dd",
+            unit="degC_day",
+            description="Mean temperature above 4 °C (39.2 °F)",
+            degree_days=DegreeDays(method="average", base_f=39.2),
+        ),
+    ),
+    accumulations=(Accumulation(name="dd_total", of="dd"),),
     changelog=(Change(version="0.1", date="2026-11-03", note="First version, fitted to Veg Path's 2020–2026 dates."),),
 )
 
@@ -85,13 +95,26 @@ def stages(**options: str) -> tuple[CropStage, ...]:
     return STAGES
 
 
-def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
     lo, hi = (np.asarray(inputs[k], dtype=float) for k in ("air_temperature_min", "air_temperature_max"))
-    dd = np.maximum((lo + hi) / 2 - BASE_C, 0.0)  # NaN where either is missing
-    dd[:biofix_index] = np.nan
-    total = np.full(dd.shape, np.nan)
-    total[biofix_index:] = np.cumsum(np.nan_to_num(dd[biofix_index:]), axis=0)  # a missing day adds nothing
+    return {"dd": np.maximum((lo + hi) / 2 - BASE_C, 0.0)}  # NaN where either is missing
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    total = values["dd_total"]  # a missing day adds nothing
+    dd = np.where(np.isnan(total), np.nan, values["dd"])  # shown from the planting
     return {"stage": stage_reached(total, THRESHOLDS), "dd_total": total, "dd": dd}
+
+
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+    return finished(
+        accumulations=SPEC.accumulations,
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def explore(dd_total: float) -> dict[str, float]:

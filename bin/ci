@@ -23,7 +23,7 @@ step "Style: frontend" pnpm format:check
 step "Lint: frontend" pnpm lint
 step "Types: Python" pnpm typecheck:py
 step "Types: Svelte/TypeScript" pnpm check
-step "Generated types are current" bash -c "bin/types && git diff --exit-code frontend/types/generated"
+step "Generated types are current" bash -c "bin/types && git diff --exit-code frontend/types/generated packages/agmodels/src/agmodels/names.py"
 step "Migrations are current" uv run app/manage.py makemigrations --check --dry-run
 
 step "Tests: Python" uv run pytest

@@ -16,8 +16,19 @@ from collections.abc import Mapping
 
 import numpy as np
 
+from agmodels.ingredients import Ingredient, finished
 from agmodels.probability import logistic, moving_mean, risk_level
-from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk, Susceptibility
+from agmodels.spec import (
+    PROBABILITY_LEVELS,
+    Change,
+    Citation,
+    ExplorerInput,
+    Input,
+    ModelSpec,
+    Quantity,
+    Risk,
+    Susceptibility,
+)
 
 KMH_PER_MS = 3.6
 SPECIES = {  # output name: (label, risk thresholds in %)
@@ -48,23 +59,21 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(
-            name="air_temperature_min", label="Minimum temperature", unit="degC", description="5-day moving average"
-        ),
-        Quantity(
+        Input(name="air_temperature_min", label="Minimum temperature", unit="degC", description="5-day moving average"),
+        Input(
             name="dew_point_depression_mean",
             label="Mean dew point depression",
             unit="delta_degC",
             description="5-day moving average",
         ),
-        Quantity(
+        Input(
             name="dew_point_depression_max",
             label="Maximum dew point depression",
             unit="delta_degC",
             description="5-day moving average",
         ),
-        Quantity(name="wind_speed_max", label="Maximum wind speed", unit="m_s", description="14-day moving average"),
-        Quantity(
+        Input(name="wind_speed_max", label="Maximum wind speed", unit="m_s", description="14-day moving average"),
+        Input(
             name="hours_rh_over_90",
             label="Hours with RH ≥ 90%",
             unit="hour",
@@ -151,6 +160,14 @@ SPEC = ModelSpec(
         source="Provisional: CPN (symptoms from beginning seed set)",
         note="The fit is unpublished and its author gave no risk period: confirm with Webster.",
     ),
+    ingredients=(
+        Ingredient(name="air_temperature_min_5_day", unit="degC"),
+        Ingredient(name="dew_point_depression_mean_5_day", unit="delta_degC"),
+        Ingredient(name="dew_point_depression_max_5_day", unit="delta_degC"),
+        Ingredient(name="wind_speed_max_14_day", unit="m_s"),
+        Ingredient(name="hours_rh_over_90_10_day", unit="hour"),
+        Ingredient(name="hours_rh_over_90_14_day", unit="hour"),
+    ),
     changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
@@ -169,14 +186,29 @@ def probabilities(min_temp_5day, mean_dpd_5day, max_dpd_5day, max_wind_14day, ho
     }
 
 
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+    return {
+        "air_temperature_min_5_day": moving_mean(inputs["air_temperature_min"], 5),
+        "dew_point_depression_mean_5_day": moving_mean(inputs["dew_point_depression_mean"], 5),
+        "dew_point_depression_max_5_day": moving_mean(inputs["dew_point_depression_max"], 5),
+        "wind_speed_max_14_day": moving_mean(inputs["wind_speed_max"], 14),
+        "hours_rh_over_90_10_day": moving_mean(inputs["hours_rh_over_90"], 10),
+        "hours_rh_over_90_14_day": moving_mean(inputs["hours_rh_over_90"], 14),
+    }
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    return probabilities(*(values[i.name] for i in SPEC.ingredients))
+
+
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
-    return probabilities(
-        moving_mean(inputs["air_temperature_min"], 5),
-        moving_mean(inputs["dew_point_depression_mean"], 5),
-        moving_mean(inputs["dew_point_depression_max"], 5),
-        moving_mean(inputs["wind_speed_max"], 14),
-        moving_mean(inputs["hours_rh_over_90"], 10),
-        moving_mean(inputs["hours_rh_over_90"], 14),
+    return finished(
+        accumulations=(),
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
     )
 
 

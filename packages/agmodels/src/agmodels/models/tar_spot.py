@@ -13,8 +13,19 @@ from collections.abc import Mapping
 
 import numpy as np
 
+from agmodels.ingredients import Ingredient, finished
 from agmodels.probability import attenuate_for_cold, logistic, moving_mean, risk_level
-from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk, Susceptibility
+from agmodels.spec import (
+    PROBABILITY_LEVELS,
+    Change,
+    Citation,
+    ExplorerInput,
+    Input,
+    ModelSpec,
+    Quantity,
+    Risk,
+    Susceptibility,
+)
 
 SPEC = ModelSpec(
     id="tar-spot",
@@ -39,17 +50,15 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(
-            name="air_temperature_mean", label="Mean temperature", unit="degC", description="30-day moving average"
-        ),
-        Quantity(name="relative_humidity_max", label="Maximum RH", unit="percent", description="30-day moving average"),
-        Quantity(
+        Input(name="air_temperature_mean", label="Mean temperature", unit="degC", description="30-day moving average"),
+        Input(name="relative_humidity_max", label="Maximum RH", unit="percent", description="30-day moving average"),
+        Input(
             name="hours_rh_over_90_night",
             label="Night hours with RH ≥ 90%",
             unit="hour",
             description="14-day moving average",
         ),
-        Quantity(
+        Input(
             name="air_temperature_min",
             label="Minimum temperature",
             unit="degC",
@@ -100,6 +109,12 @@ SPEC = ModelSpec(
         last="R3",
         source="The Crop Risk Tool (V10–R3, 10th leaf to milk); Tarspotter's fungicide window",
     ),
+    ingredients=(
+        Ingredient(name="air_temperature_mean_30_day", unit="degC"),
+        Ingredient(name="relative_humidity_max_30_day", unit="percent", shared="relative_humidity_max_30_day"),
+        Ingredient(name="hours_rh_over_90_night_14_day", unit="hour"),
+        Ingredient(name="air_temperature_min_21_day", unit="degC", shared="air_temperature_min_21_day"),
+    ),
     changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
@@ -109,13 +124,33 @@ def probability(temperature_mean_30day, rh_max_30day, night_hours_rh_90_14day) -
     return (logistic(32.06987 - 0.89471 * t - 0.14373 * rh) + logistic(20.35950 - 0.91093 * t - 0.29240 * night)) / 2
 
 
-def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+    return {
+        "air_temperature_mean_30_day": moving_mean(inputs["air_temperature_mean"], 30),
+        "relative_humidity_max_30_day": moving_mean(inputs["relative_humidity_max"], 30),
+        "hours_rh_over_90_night_14_day": moving_mean(inputs["hours_rh_over_90_night"], 14),
+        "air_temperature_min_21_day": moving_mean(inputs["air_temperature_min"], 21),
+    }
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
     p = probability(
-        moving_mean(inputs["air_temperature_mean"], 30),
-        moving_mean(inputs["relative_humidity_max"], 30),
-        moving_mean(inputs["hours_rh_over_90_night"], 14),
+        values["air_temperature_mean_30_day"],
+        values["relative_humidity_max_30_day"],
+        values["hours_rh_over_90_night_14_day"],
     )
-    return {"probability": attenuate_for_cold(p, moving_mean(inputs["air_temperature_min"], 21))}
+    return {"probability": attenuate_for_cold(p, values["air_temperature_min_21_day"])}
+
+
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+    return finished(
+        accumulations=(),
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:

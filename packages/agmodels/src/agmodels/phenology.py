@@ -35,14 +35,16 @@ from typing import Literal
 
 import numpy as np
 
-from agmodels.accumulate import rolling_sum, running_total
+from agmodels.accumulate import rolling_sum
 from agmodels.degree_days import degree_days_average, degree_days_sine
+from agmodels.ingredients import Accumulation, DegreeDays, Ingredient, finished
 from agmodels.spec import (
     SEVERITY_LEVELS,
     Biofix,
     Change,
     Citation,
     ExplorerInput,
+    Input,
     ModelSpec,
     Quantity,
     Risk,
@@ -165,8 +167,8 @@ class InsectModel:
             crops=insect.crops,
             citations=insect.citations or (Citation(text=f"{insect.source} (UW–Madison Vegetable Entomology)"),),
             inputs=(
-                Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
-                Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
+                Input(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+                Input(name="air_temperature_max", label="Maximum temperature", unit="degC"),
             ),
             outputs=(
                 Quantity(name="dd_total", label="Degree days since the biofix", unit="degF_day"),
@@ -193,7 +195,19 @@ class InsectModel:
                 Change(version="0.1", date="2026-10-28", note=f"Ported from {insect.source}."),
                 *insect.changelog,
             ),
+            ingredients=(
+                Ingredient(
+                    name="dd",
+                    unit="degF_day",
+                    degree_days=DegreeDays(method=insect.dd_method, base_f=insect.base_f, upper_f=insect.upper_f),
+                ),
+                Ingredient(name=self.FREEZE, unit="index", shared=self.FREEZE),
+            ),
+            accumulations=(Accumulation(name="dd_total", of="dd"),),
         )
+
+    # The shared freeze ingredient: the days in the last 14 at or below −2 °C after day 250 (the legacy reduction)
+    FREEZE = "insect_freeze_reduction"
 
     def _explored(self) -> tuple[Quantity, ...]:
         return (Quantity(name="severity", label="Severity", unit="index"),)
@@ -207,17 +221,34 @@ class InsectModel:
     def _risk(self) -> Risk:
         return Risk(levels=SEVERITY_LEVELS, criteria=criteria(self.insect))
 
-    def outputs(self, inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
-        i = self.insect
+    def ingredients(self, inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
         lo, hi = (np.asarray(inputs[k], dtype=float) * 1.8 + 32 for k in ("air_temperature_min", "air_temperature_max"))
-        dd = insect_degree_days(insect=i, min_f=lo, max_f=hi)
-        total = running_total(dd, biofix_index)
-        reduction = (
-            freeze_reduction(inputs["air_temperature_min"], inputs["day_of_year"])
-            if "day_of_year" in inputs
-            else np.zeros_like(total)
+        dd = insect_degree_days(insect=self.insect, min_f=lo, max_f=hi)
+        return {"dd": dd, self.FREEZE: self._freeze(inputs, dd)}
+
+    def _freeze(self, inputs: Mapping[str, np.ndarray], dd: np.ndarray) -> np.ndarray:
+        if "day_of_year" not in inputs:
+            return np.zeros_like(dd)
+        return freeze_reduction(inputs["air_temperature_min"], inputs["day_of_year"])
+
+    def finish(self, values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+        total = values["dd_total"]
+        return {
+            "dd_total": total,
+            "dd": values["dd"],
+            "stage": stage_index(total, self.insect.stages),
+            "freeze_reduction": values[self.FREEZE],
+        }
+
+    def outputs(self, inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+        return finished(
+            accumulations=self.SPEC.accumulations,
+            values=self.ingredients(inputs),
+            inputs=inputs,
+            biofix_index=biofix_index,
+            finish=self.finish,
+            options=options,
         )
-        return {"dd_total": total, "dd": dd, "stage": stage_index(total, i.stages), "freeze_reduction": reduction}
 
     def risk(self, outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
         level = severity(np.asarray(outputs["dd_total"], dtype=float), self.insect)
@@ -260,19 +291,19 @@ class PhenologyModel(InsectModel):
             levels=SEVERITY_LEVELS, criteria=phenology_criteria(self.insect), thresholds=self.insect.risk_thresholds
         )
 
-    def outputs(self, inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
-        i = self.insect
-        lo, hi = (np.asarray(inputs[k], dtype=float) * 1.8 + 32 for k in ("air_temperature_min", "air_temperature_max"))
-        dd = insect_degree_days(insect=i, min_f=lo, max_f=hi)
-        total = running_total(dd, biofix_index)
-        factor = (
-            freeze_factor(tmin_c=inputs["air_temperature_min"], day_of_year=inputs["day_of_year"])
-            if "day_of_year" in inputs
-            else np.ones_like(total)
-        )
+    # The shared freeze ingredient: 1 until fall freezes, then the share left, held at its lowest that year
+    FREEZE = "insect_freeze_factor"
+
+    def _freeze(self, inputs: Mapping[str, np.ndarray], dd: np.ndarray) -> np.ndarray:
+        if "day_of_year" not in inputs:
+            return np.ones_like(dd)
+        return freeze_factor(tmin_c=inputs["air_temperature_min"], day_of_year=inputs["day_of_year"])
+
+    def finish(self, values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+        total, factor = values["dd_total"], values[self.FREEZE]
         alive = factor > 0
-        out = {"dd_total": total, "dd": dd}
-        for name, value in evaluate(insect=i, dd_total=total).items():
+        out = {"dd_total": total, "dd": values["dd"]}
+        for name, value in evaluate(insect=self.insect, dd_total=total).items():
             if name.startswith("activity_"):
                 value = value * factor
             elif name.startswith("window_"):

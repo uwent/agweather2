@@ -17,8 +17,8 @@ from collections.abc import Mapping
 
 import numpy as np
 
-from agmodels.accumulate import running_total
 from agmodels.features import across_days
+from agmodels.ingredients import Accumulation, Ingredient, finished, with_accumulations
 from agmodels.lookup import steps_over
 from agmodels.spec import (
     SEVERITY_LEVELS,
@@ -26,6 +26,7 @@ from agmodels.spec import (
     Change,
     Citation,
     ExplorerInput,
+    Input,
     ModelSpec,
     Quantity,
     Risk,
@@ -54,26 +55,26 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(
+        Input(
             name="hours_rh_over_90_from_8pm",
             label="Hours with RH ≥ 90%",
             unit="hour",
             description="Day from 8 pm the evening before",
         ),
-        Quantity(name="temperature_mean_rh_over_90_from_8pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
-        Quantity(
+        Input(name="temperature_mean_rh_over_90_from_8pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
+        Input(
             name="hours_temperature_over_30c",
             label="Hours at or above 30 °C",
             unit="hour",
             description="Four or more on any of the last 5 days makes inoculum unlikely",
         ),
-        Quantity(
+        Input(
             name="hours_rh_under_70",
             label="Hours with RH below 70%",
             unit="hour",
             description="With under 1 mm of rain, 6 or more make a dry day",
         ),
-        Quantity(name="precipitation_sum", label="Precipitation", unit="mm"),
+        Input(name="precipitation_sum", label="Precipitation", unit="mm"),
     ),
     outputs=(
         Quantity(name="dsi", label="Disease severity index", unit="index"),
@@ -126,6 +127,12 @@ SPEC = ModelSpec(
     },
     season=("05-15", "09-15"),
     biofix=Biofix(default="05-15", label="Crop emergence"),
+    ingredients=(
+        Ingredient(name="dsi", unit="index"),
+        Ingredient(name="inoculum", unit="index"),
+        Ingredient(name="infection", unit="index"),
+    ),
+    accumulations=(Accumulation(name="dsi_total", of="dsi"),),
     changelog=(
         Change(
             version="0.1",
@@ -175,7 +182,7 @@ def infection(temperature_c, hours) -> np.ndarray:
     )
 
 
-def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
     days = across_days(inputs)
     dry = np.asarray(days["dry"], dtype=float)
     dry_yesterday = np.concatenate([np.zeros((1, *dry.shape[1:])), dry[:-1]])  # before the first day: not dry
@@ -183,11 +190,26 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
     inoc = inoculum(days["hot_past_5_days"], dry_yesterday, hours)
     infect = infection(inputs["temperature_mean_rh_over_90_from_8pm"], hours)
     dsi = inoc * infect
-    return {"dsi": dsi, "inoculum": inoc, "infection": infect, "dsi_total": running_total(dsi, biofix_index)}
+    return {"dsi": dsi, "inoculum": inoc, "infection": infect}
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    return {name: values[name] for name in ("dsi", "inoculum", "infection", "dsi_total")}
+
+
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+    return finished(
+        accumulations=SPEC.accumulations,
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
-    total = running_total(np.asarray(outputs["dsi"], dtype=float), biofix_index)
+    total = with_accumulations(outputs, SPEC.accumulations, biofix_index)["dsi_total"]
     return np.where(np.isnan(total), np.nan, steps_over(total, 10, 20, 30, 40))
 
 

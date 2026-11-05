@@ -20,8 +20,9 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels.crops import number_option
+from agmodels.ingredients import Ingredient, finished
 from agmodels.probability import logistic, risk_level
-from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Option, Quantity, Risk
+from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity, Risk
 
 RAIN_DAYS, COLD_DAYS = 3, 9
 COEFFICIENTS = (-22.4611, -0.3359, 0.01118, -0.00750, 0.03929)  # intercept, Pythium, year, rain (mm), min temp (°C)
@@ -78,13 +79,13 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(
+        Input(
             name="precipitation_sum",
             label="Precipitation",
             unit="mm",
             description="Total over the 3 days from planting",
         ),
-        Quantity(
+        Input(
             name="air_temperature_min",
             label="Minimum temperature",
             unit="degC",
@@ -124,6 +125,10 @@ SPEC = ModelSpec(
     context=("year",),
     region=COTTON_STATES,
     season=("03-15", "06-30"),
+    ingredients=(
+        Ingredient(name="precipitation_3_day_ahead", unit="mm", description="The planting day and the two after"),
+        Ingredient(name="air_temperature_min_9_day_ahead", unit="degC", description="The planting day and the 8 after"),
+    ),
     changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
@@ -140,15 +145,32 @@ def probability_below(rain_3day, min_temp_9day, pythium, planting, limiting, yea
     return _normal_cdf(z), emergence
 
 
-def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
-    rain = _forward(inputs["precipitation_sum"], RAIN_DAYS, np.sum)
-    cold = _forward(inputs["air_temperature_min"], COLD_DAYS, _mean_of_present)
-    year = np.asarray(inputs["year"], dtype=float).reshape((-1,) + (1,) * (rain.ndim - 1))
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+    return {
+        "precipitation_3_day_ahead": _forward(inputs["precipitation_sum"], RAIN_DAYS, np.sum),
+        "air_temperature_min_9_day_ahead": _forward(inputs["air_temperature_min"], COLD_DAYS, _mean_of_present),
+    }
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    rain, cold = values["precipitation_3_day_ahead"], values["air_temperature_min_9_day_ahead"]
+    year = np.asarray(values["year"], dtype=float).reshape((-1,) + (1,) * (rain.ndim - 1))
     pythium = 1.0 if options.get(PYTHIUM.name, PYTHIUM.default) == "present" else 0.0
     p, emergence = probability_below(
         rain, cold, pythium, number_option(options, PLANTING), number_option(options, LIMITING), year
     )
     return {"probability": p * 100, "emergence": emergence * 100}
+
+
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+    return finished(
+        accumulations=(),
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:

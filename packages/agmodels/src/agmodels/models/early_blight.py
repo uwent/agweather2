@@ -14,7 +14,7 @@ from collections.abc import Mapping
 
 import numpy as np
 
-from agmodels.accumulate import rolling_mean, running_total
+from agmodels.ingredients import Accumulation, Ingredient, finished, with_accumulations
 from agmodels.lookup import level_reached
 from agmodels.spec import (
     SEVERITY_LEVELS,
@@ -22,6 +22,7 @@ from agmodels.spec import (
     Change,
     Citation,
     ExplorerInput,
+    Input,
     ModelSpec,
     Quantity,
     Risk,
@@ -54,8 +55,8 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
-        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
+        Input(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Input(name="air_temperature_max", label="Maximum temperature", unit="degC"),
     ),
     outputs=(
         Quantity(name="pdays", label="P-days", unit="index"),
@@ -80,6 +81,11 @@ SPEC = ModelSpec(
     season=("05-01", "09-30"),
     biofix=Biofix(default="05-15", label="Crop emergence"),
     biofix_stage=("potato-stages", "EM"),  # emergence from a planting date, when one is given
+    ingredients=(Ingredient(name="pdays", unit="index"),),
+    accumulations=(
+        Accumulation(name="pdays_total", of="pdays"),
+        Accumulation(name="pdays_7_day_mean", of="pdays", how="mean", days=7),
+    ),
     changelog=(
         Change(
             version="0.1",
@@ -113,13 +119,27 @@ def pdays(tmin_c, tmax_c, last_term: str = "tmax") -> np.ndarray:
     return (5 * p(lo) + 8 * p(2 * lo / 3 + hi / 3) + 8 * p(2 * hi / 3 + lo / 3) + 3 * last) / 24
 
 
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+    return {"pdays": pdays(inputs["air_temperature_min"], inputs["air_temperature_max"])}
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    return {name: values[name] for name in ("pdays", "pdays_total", "pdays_7_day_mean")}
+
+
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
-    values = pdays(inputs["air_temperature_min"], inputs["air_temperature_max"])
-    return {"pdays": values, **_accumulated(values, biofix_index)}
+    return finished(
+        accumulations=SPEC.accumulations,
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
-    totals = _accumulated(np.asarray(outputs["pdays"], dtype=float), biofix_index)
+    totals = with_accumulations(outputs, SPEC.accumulations, biofix_index)
     total, recent = totals["pdays_total"], totals["pdays_7_day_mean"]
     by_total, by_rate = level_reached(total, 200, 250, 300, 350), level_reached(recent, 1, 3, 5, 9)
     return np.where(total >= 400, by_rate, by_total)
@@ -127,7 +147,3 @@ def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: st
 
 def explore(tmin: float, tmax: float) -> dict[str, float]:
     return {"pdays": float(pdays(tmin, tmax))}
-
-
-def _accumulated(values: np.ndarray, start: int) -> dict[str, np.ndarray]:
-    return {"pdays_total": running_total(values, start), "pdays_7_day_mean": rolling_mean(values, 7, start)}

@@ -14,7 +14,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels.crops import CropStage, stage_reached
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, ModelSpec, Quantity
+from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity
 
 BASE_F = 32.0
 EARLY_CAP_F, LATE_CAP_F = 70.0, 95.0
@@ -64,8 +64,8 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
-        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
+        Input(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Input(name="air_temperature_max", label="Maximum temperature", unit="degC"),
     ),
     outputs=(
         Quantity(name="stage", label="Growth stage", unit="index", description="Index in the crop's stage list"),

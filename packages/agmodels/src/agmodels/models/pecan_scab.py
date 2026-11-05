@@ -16,9 +16,9 @@ from collections.abc import Mapping
 
 import numpy as np
 
-from agmodels.accumulate import rolling_sum, running_total
+from agmodels.ingredients import Accumulation, Ingredient, finished, with_accumulations
 from agmodels.lookup import level_reached
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk
+from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk
 
 THRESHOLDS = (10, 20, 30)  # highly, moderately and low susceptible varieties' spray thresholds (scab hours)
 PECAN_STATES = ("AL", "AR", "AZ", "CA", "FL", "GA", "KS", "LA", "MO", "MS", "NC", "NM", "OK", "SC", "TN", "TX")
@@ -41,7 +41,7 @@ SPEC = ModelSpec(
         Citation(text="University of Arkansas: Pecan scab.", url="https://pecanscab.uada.edu/"),
     ),
     inputs=(
-        Quantity(
+        Input(
             name="hours_rh_over_90_temperature_over_70f",
             label="Scab hours (RH ≥ 90% and ≥ 70 °F)",
             unit="hour",
@@ -78,23 +78,38 @@ SPEC = ModelSpec(
     region=PECAN_STATES,
     season=("03-01", "08-31"),
     biofix=Biofix(default="03-01", label="March 1, or the last fungicide application"),
+    ingredients=(Ingredient(name="scab_hours", unit="hour"),),
+    accumulations=(
+        Accumulation(name="scab_hours_total", of="scab_hours"),
+        Accumulation(name="scab_hours_14_day", of="scab_hours", how="sum", days=14),
+    ),
     changelog=(
         Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool, with the Mesonet's thresholds."),
     ),
 )
 
 
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+    return {"scab_hours": np.asarray(inputs["hours_rh_over_90_temperature_over_70f"], dtype=float)}
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    return {name: values[name] for name in ("scab_hours_total", "scab_hours", "scab_hours_14_day")}
+
+
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
-    hours = np.asarray(inputs["hours_rh_over_90_temperature_over_70f"], dtype=float)
-    return {
-        "scab_hours_total": running_total(hours, biofix_index),
-        "scab_hours": hours,
-        "scab_hours_14_day": rolling_sum(hours, 14, biofix_index),
-    }
+    return finished(
+        accumulations=SPEC.accumulations,
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
-    return level_reached(outputs["scab_hours_total"], *THRESHOLDS)
+    return level_reached(with_accumulations(outputs, SPEC.accumulations, biofix_index)["scab_hours_total"], *THRESHOLDS)
 
 
 def explore(scab_hours_total: float) -> dict[str, float]:

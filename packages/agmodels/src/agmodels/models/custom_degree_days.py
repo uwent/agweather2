@@ -16,7 +16,7 @@ import numpy as np
 from agmodels.accumulate import running_total
 from agmodels.crops import number_option
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, ModelSpec, Option, Quantity
+from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity
 
 METHOD = Option(
     name="method",
@@ -52,8 +52,8 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
-        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
+        Input(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Input(name="air_temperature_max", label="Maximum temperature", unit="degC"),
     ),
     outputs=(
         Quantity(name="dd_total", label="Degree days since the biofix", unit="degF_day"),

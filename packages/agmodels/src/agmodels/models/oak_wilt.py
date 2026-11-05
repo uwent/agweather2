@@ -10,9 +10,9 @@ from collections.abc import Mapping
 
 import numpy as np
 
-from agmodels.accumulate import running_total
 from agmodels.degree_days import degree_days_sine
-from agmodels.spec import SEVERITY_LEVELS, Biofix, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk
+from agmodels.ingredients import Accumulation, DegreeDays, Ingredient, finished
+from agmodels.spec import SEVERITY_LEVELS, Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk
 
 # Degree-day bounds of each flight level (C. truncatus, C. sayi)
 FLIGHT = ((180, 0), (231, 1), (283, 2), (388, 3), (913, 4), (1792, 3), (2172, 2), (np.inf, 1))
@@ -38,13 +38,19 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
-        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
+        Input(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Input(name="air_temperature_max", label="Maximum temperature", unit="degC"),
     ),
     outputs=(
         Quantity(name="dd_total", label="Degree days since January 1 (base 41 °F)", unit="degF_day"),
         Quantity(name="dd", label="Degree days", unit="degF_day"),
         Quantity(name="flight", label="Vector flight level", unit="index"),
+        Quantity(
+            name="seasonal",
+            label="Flight level for the season",
+            unit="index",
+            description="Lowered from July 15 (wounds rarely lead to infection); the risk",
+        ),
     ),
     risk=Risk(
         levels=SEVERITY_LEVELS,
@@ -73,6 +79,8 @@ SPEC = ModelSpec(
     context=("day_of_year", "year"),
     season=("03-01", "07-31"),
     biofix=Biofix(default="01-01", label="January 1"),
+    ingredients=(Ingredient(name="dd", unit="degF_day", degree_days=DegreeDays(method="sine", base_f=41)),),
+    accumulations=(Accumulation(name="dd_total", of="dd"),),
     changelog=(
         Change(version="0.1", date="2026-10-28", note="Ported from VDIFN."),
         Change(
@@ -107,15 +115,29 @@ def seasonal(level, day_of_year, year=None) -> np.ndarray:
     return np.where(np.isnan(level), np.nan, np.maximum(after, 0))
 
 
-def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
     lo, hi = (np.asarray(inputs[k], dtype=float) * 1.8 + 32 for k in ("air_temperature_min", "air_temperature_max"))
-    dd = degree_days_sine(lo, hi, 41)
-    total = running_total(dd, biofix_index)
+    return {"dd": degree_days_sine(lo, hi, 41)}
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    total = values["dd_total"]
     flight = flight_level(total)
-    out = {"dd_total": total, "dd": dd, "flight": flight}
-    if "day_of_year" in inputs:
-        out["seasonal"] = seasonal(flight, inputs["day_of_year"], inputs.get("year"))
+    out = {"dd_total": total, "dd": values["dd"], "flight": flight}
+    if "day_of_year" in values:
+        out["seasonal"] = seasonal(flight, values["day_of_year"], values.get("year"))
     return out
+
+
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+    return finished(
+        accumulations=SPEC.accumulations,
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:

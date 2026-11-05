@@ -10,8 +10,19 @@ from collections.abc import Mapping
 
 import numpy as np
 
+from agmodels.ingredients import Ingredient, finished
 from agmodels.probability import logistic, moving_mean, risk_level
-from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk, Susceptibility
+from agmodels.spec import (
+    PROBABILITY_LEVELS,
+    Change,
+    Citation,
+    ExplorerInput,
+    Input,
+    ModelSpec,
+    Quantity,
+    Risk,
+    Susceptibility,
+)
 
 SPEC = ModelSpec(
     id="gray-leaf-spot",
@@ -31,10 +42,10 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(
+        Input(
             name="air_temperature_min", label="Minimum temperature", unit="degC", description="21-day moving average"
         ),
-        Quantity(name="dew_point_min", label="Minimum dew point", unit="degC", description="30-day moving average"),
+        Input(name="dew_point_min", label="Minimum dew point", unit="degC", description="30-day moving average"),
     ),
     outputs=(Quantity(name="probability", label="Spore probability", unit="percent"),),
     risk=Risk(levels=PROBABILITY_LEVELS, criteria="Very low below 1%, Low from 1%, Moderate from 40%, High from 60%."),
@@ -64,6 +75,10 @@ SPEC = ModelSpec(
     susceptible=Susceptibility(
         crop="corn-stages", first="V10", last="R3", source="The Crop Risk Tool (V10–R3, 10th leaf to milk)"
     ),
+    ingredients=(
+        Ingredient(name="air_temperature_min_21_day", unit="degC", shared="air_temperature_min_21_day"),
+        Ingredient(name="dew_point_min_30_day", unit="degC"),
+    ),
     changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
@@ -72,12 +87,26 @@ def probability(temperature_min_21day, dew_point_min_30day) -> np.ndarray:
     return logistic(-2.9467 - 0.03729 * np.asarray(temperature_min_21day) + 0.6534 * np.asarray(dew_point_min_30day))
 
 
-def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
     return {
-        "probability": probability(
-            moving_mean(inputs["air_temperature_min"], 21), moving_mean(inputs["dew_point_min"], 30)
-        )
+        "air_temperature_min_21_day": moving_mean(inputs["air_temperature_min"], 21),
+        "dew_point_min_30_day": moving_mean(inputs["dew_point_min"], 30),
     }
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    return {"probability": probability(values["air_temperature_min_21_day"], values["dew_point_min_30_day"])}
+
+
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+    return finished(
+        accumulations=(),
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:

@@ -20,7 +20,7 @@ from collections.abc import Mapping
 
 import numpy as np
 
-from agmodels.accumulate import rolling_sum, running_total
+from agmodels.ingredients import Accumulation, Ingredient, finished, with_accumulations
 from agmodels.lookup import level_reached
 from agmodels.spec import (
     SEVERITY_LEVELS,
@@ -28,6 +28,7 @@ from agmodels.spec import (
     Change,
     Citation,
     ExplorerInput,
+    Input,
     ModelSpec,
     Quantity,
     Risk,
@@ -61,13 +62,13 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(
+        Input(
             name="hours_rh_over_90_from_8pm",
             label="Hours with RH ≥ 90%",
             unit="hour",
             description="Day from 8 pm the evening before",
         ),
-        Quantity(name="temperature_mean_rh_over_90_from_8pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
+        Input(name="temperature_mean_rh_over_90_from_8pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
     ),
     outputs=(
         Quantity(name="dsv", label="Disease severity values", unit="index"),
@@ -96,6 +97,11 @@ SPEC = ModelSpec(
     sweep={"temperature": tuple(float(t) for t in range(8, 35)), "hours": tuple(float(h) for h in range(25))},
     season=("06-01", "09-30"),
     biofix=Biofix(default="06-01", label="Planting or the last fungicide application"),
+    ingredients=(Ingredient(name="dsv", unit="index"),),
+    accumulations=(
+        Accumulation(name="dsv_7_day", of="dsv", how="sum", days=7),
+        Accumulation(name="dsv_total", of="dsv"),
+    ),
     changelog=(
         Change(
             version="0.1",
@@ -131,19 +137,29 @@ def dsv(temperature_c, hours) -> np.ndarray:
     return np.where(h == 0, 0.0, np.where(np.isnan(h) | np.isnan(t), np.nan, steps))
 
 
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+    return {"dsv": dsv(inputs["temperature_mean_rh_over_90_from_8pm"], inputs["hours_rh_over_90_from_8pm"])}
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    return {name: values[name] for name in ("dsv", "dsv_7_day", "dsv_total")}
+
+
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
-    values = dsv(inputs["temperature_mean_rh_over_90_from_8pm"], inputs["hours_rh_over_90_from_8pm"])
-    return {"dsv": values, **_accumulated(values, biofix_index)}
+    return finished(
+        accumulations=SPEC.accumulations,
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
-    recent = _accumulated(np.asarray(outputs["dsv"], dtype=float), biofix_index)["dsv_7_day"]
+    recent = with_accumulations(outputs, SPEC.accumulations, biofix_index)["dsv_7_day"]
     return level_reached(recent, 5, 10, 15, 20)
 
 
 def explore(temperature: float, hours: float) -> dict[str, float]:
     return {"dsv": float(dsv(temperature, hours))}
-
-
-def _accumulated(values: np.ndarray, start: int) -> dict[str, np.ndarray]:
-    return {"dsv_7_day": rolling_sum(values, 7, start), "dsv_total": running_total(values, start)}

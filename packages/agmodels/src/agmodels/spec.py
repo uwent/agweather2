@@ -26,6 +26,9 @@ from typing import Literal, Protocol
 
 import numpy as np
 
+from agmodels.ingredients import Accumulation, Ingredient
+from agmodels.names import DailyName, UnitSymbol
+
 Status = Literal["beta", "stable", "retired"]
 Group = Literal["disease", "insect", "crop", "agronomic", "degree_days"]  # agronomic: field management (volunteers)
 
@@ -49,11 +52,23 @@ class Citation:
 
 @dataclass(frozen=True, kw_only=True)
 class Quantity:
-    """An input or output series: its name in the frame, a label for charts and its unit (`agdata.units`)."""
+    """An output series (or an explored value): its name in the frame, a label for charts and its unit
+    (`agdata.units`)."""
 
     name: str
     label: str
-    unit: str
+    unit: UnitSymbol
+    description: str = ""
+
+
+@dataclass(frozen=True, kw_only=True)
+class Input:
+    """A model's input: a daily variable or feature from the catalog (`agmodels.names`, generated from
+    `agdata.catalog`), so a name the grid doesn't store is a type error where it's written."""
+
+    name: DailyName
+    label: str
+    unit: UnitSymbol
     description: str = ""
 
 
@@ -70,7 +85,7 @@ class Risk:
 class ExplorerInput:
     name: str
     label: str
-    unit: str
+    unit: UnitSymbol
     minimum: float
     maximum: float
     step: float
@@ -123,7 +138,7 @@ class ModelSpec:
     topics: tuple[str, ...]  # ids of the disease or insect pages it predicts
     crops: tuple[str, ...]
     citations: tuple[Citation, ...]
-    inputs: tuple[Quantity, ...]
+    inputs: tuple[Input, ...]
     outputs: tuple[Quantity, ...]  # the first is the primary output (risk coloring, maps)
     risk: Risk | None  # None for crop growth-stage models
     explorer: tuple[ExplorerInput, ...]
@@ -142,6 +157,10 @@ class ModelSpec:
     season: tuple[str, str] | None = None  # MM-DD first and last day it's shown
     biofix: Biofix | None = None
     changelog: tuple[Change, ...] = ()
+    # What the outputs are finished from (`agmodels.ingredients`, D66): the module then defines `ingredients()` and
+    # `finish()`, and a map combines them per cell. Empty: no ingredients (a state machine such as soybean stages)
+    ingredients: tuple[Ingredient, ...] = ()
+    accumulations: tuple[Accumulation, ...] = ()
 
 
 class Model(Protocol):

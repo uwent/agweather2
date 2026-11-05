@@ -23,7 +23,7 @@ from agdata.series import MAX_RUN_AGE
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
 from agmodels.runner import crop_models
-from agmodels.spec import Citation, ModelSpec, Option, Quantity
+from agmodels.spec import Citation, Input, ModelSpec, Option, Quantity
 from api import clock
 from api.envelope import Result, etag_for, not_modified, respond
 from api.errors import ApiError
@@ -318,7 +318,7 @@ def _summary(spec: ModelSpec) -> dict:
     }
 
 
-def _quantity(q: Quantity) -> dict:
+def _quantity(q: Quantity | Input) -> dict:
     return {"name": q.name, "label": q.label, "unit": q.unit, "units": _units(q.unit), "description": q.description}
 
 

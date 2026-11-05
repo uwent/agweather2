@@ -34,7 +34,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels.crops import CropStage, number_option
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, ModelSpec, Option, Quantity
+from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity
 from agmodels.weather import day_length_hours
 
 RADICLE_CD = 40.0
@@ -140,7 +140,7 @@ SPEC = ModelSpec(
             "University.",
         ),
     ),
-    inputs=(Quantity(name="air_temperature_mean", label="Mean temperature", unit="degC"),),
+    inputs=(Input(name="air_temperature_mean", label="Mean temperature", unit="degC"),),
     outputs=(
         Quantity(name="stage", label="Growth stage", unit="index", description="Index in the crop's stage list"),
         Quantity(name="nodes", label="Main-stem nodes (V-stage)", unit="index"),

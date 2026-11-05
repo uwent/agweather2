@@ -19,12 +19,11 @@ from collections.abc import Mapping
 
 import numpy as np
 
-from agmodels.accumulate import running_total
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk
+from agmodels.ingredients import Accumulation, Ingredient, finished, with_accumulations
+from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk
 
 KILLING_HOURS = 120  # this many at a depth kills the tubers there (the tool's; MSU says more than 120)
 DEPTHS = {"4cm": "2 in (4 cm)", "10cm": "4 in (10 cm)", "8in": "8 in (10–30 cm interpolated)"}
-SHOWN_LEVELS = ("4cm", "10cm", "30cm")  # stored soil levels whose daily minimums the chart shows
 
 SPEC = ModelSpec(
     id="potato-volunteer",
@@ -48,18 +47,26 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        *(
-            Quantity(name=f"hours_soil_{d}_below_27f", label=f"Hours with soil at {label} below 27 °F", unit="hour")
-            for d, label in DEPTHS.items()
+        Input(name="hours_soil_4cm_below_27f", label=f"Hours with soil at {DEPTHS['4cm']} below 27 °F", unit="hour"),
+        Input(name="hours_soil_10cm_below_27f", label=f"Hours with soil at {DEPTHS['10cm']} below 27 °F", unit="hour"),
+        Input(name="hours_soil_8in_below_27f", label=f"Hours with soil at {DEPTHS['8in']} below 27 °F", unit="hour"),
+        Input(
+            name="soil_temperature_4cm_min",
+            label="Minimum soil temperature at 4 cm",
+            unit="degC",
+            description="Shown, not used",
         ),
-        *(
-            Quantity(
-                name=f"soil_temperature_{d}_min",
-                label=f"Minimum soil temperature at {d[:-2]} cm",
-                unit="degC",
-                description="Shown, not used",
-            )
-            for d in SHOWN_LEVELS
+        Input(
+            name="soil_temperature_10cm_min",
+            label="Minimum soil temperature at 10 cm",
+            unit="degC",
+            description="Shown, not used",
+        ),
+        Input(
+            name="soil_temperature_30cm_min",
+            label="Minimum soil temperature at 30 cm",
+            unit="degC",
+            description="Shown, not used",
         ),
     ),
     outputs=tuple(
@@ -91,16 +98,34 @@ SPEC = ModelSpec(
     biofix=Biofix(
         default="10-01", label="October 1, the start of the season (the winter's count carries through the next summer)"
     ),
+    ingredients=tuple(Ingredient(name=f"hours_below_27f_{d}", unit="hour") for d in DEPTHS),
+    accumulations=tuple(Accumulation(name=f"killing_hours_{d}", of=f"hours_below_27f_{d}") for d in DEPTHS),
     changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Wisconsin potato volunteer tool."),),
 )
 
 
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+    return {f"hours_below_27f_{d}": np.asarray(inputs[f"hours_soil_{d}_below_27f"], dtype=float) for d in DEPTHS}
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    return {f"killing_hours_{d}": values[f"killing_hours_{d}"] for d in DEPTHS}
+
+
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
-    return {f"killing_hours_{d}": running_total(inputs[f"hours_soil_{d}_below_27f"], biofix_index) for d in DEPTHS}
+    return finished(
+        accumulations=SPEC.accumulations,
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
-    totals = [np.asarray(outputs[f"killing_hours_{d}"], dtype=float) for d in DEPTHS]
+    values = with_accumulations(outputs, SPEC.accumulations, biofix_index)
+    totals = [np.asarray(values[f"killing_hours_{d}"], dtype=float) for d in DEPTHS]
     killed = sum(((t >= KILLING_HOURS).astype(float) for t in totals), np.zeros_like(totals[0]))
     unknown = np.any([np.isnan(t) for t in totals], axis=0)
     return np.where(unknown, np.nan, len(DEPTHS) - killed)

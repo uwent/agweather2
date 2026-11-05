@@ -16,10 +16,10 @@ from collections.abc import Mapping
 
 import numpy as np
 
-from agmodels.accumulate import running_total
 from agmodels.crops import CropStage, stage_reached
 from agmodels.degree_days import degree_days_sine
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, ModelSpec, Quantity
+from agmodels.ingredients import Accumulation, DegreeDays, Ingredient, finished
+from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity
 
 BASE_F, UPPER_F = 41.0, 86.0
 CUT_FROM, CUT_UNTIL = 900.0, 1100.0
@@ -67,8 +67,8 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
-        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
+        Input(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Input(name="air_temperature_max", label="Maximum temperature", unit="degC"),
     ),
     outputs=(
         Quantity(name="stage", label="Growth stage", unit="index", description="Index in the crop's stage list"),
@@ -90,6 +90,10 @@ SPEC = ModelSpec(
     sweep={"gdd_total": tuple(float(g) for g in range(0, 1501, 10))},
     season=("03-01", "11-30"),
     biofix=Biofix(default="01-01", label="January 1 in spring, or the date of the last cutting"),
+    ingredients=(
+        Ingredient(name="gdd", unit="degF_day", degree_days=DegreeDays(method="sine", base_f=BASE_F, upper_f=UPPER_F)),
+    ),
+    accumulations=(Accumulation(name="gdd_total", of="gdd"),),
     changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the UW alfalfa tool."),),
 )
 
@@ -98,11 +102,25 @@ def stages(**options: str) -> tuple[CropStage, ...]:
     return STAGES
 
 
-def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
     lo, hi = (np.asarray(inputs[k], dtype=float) * 1.8 + 32 for k in ("air_temperature_min", "air_temperature_max"))
-    gdd = degree_days_sine(lo, hi, BASE_F, UPPER_F)
-    total = running_total(gdd, biofix_index)
-    return {"stage": stage_reached(total, THRESHOLDS), "gdd_total": total, "gdd": gdd}
+    return {"gdd": degree_days_sine(lo, hi, BASE_F, UPPER_F)}
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    total = values["gdd_total"]
+    return {"stage": stage_reached(total, THRESHOLDS), "gdd_total": total, "gdd": values["gdd"]}
+
+
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+    return finished(
+        accumulations=SPEC.accumulations,
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def explore(gdd_total: float) -> dict[str, float]:

@@ -24,6 +24,7 @@ from agmodels.spec import (
     Change,
     Citation,
     ExplorerInput,
+    Input,
     ModelSpec,
     Quantity,
     Risk,
@@ -53,13 +54,13 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(
+        Input(
             name="air_temperature_mean",
             label="Mean temperature",
             unit="degC",
             description="Mean over the 31 days from R1",
         ),
-        Quantity(
+        Input(
             name="precipitation_sum",
             label="Precipitation",
             unit="mm",

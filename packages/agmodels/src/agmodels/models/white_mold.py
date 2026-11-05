@@ -12,12 +12,14 @@ from collections.abc import Mapping
 
 import numpy as np
 
+from agmodels.ingredients import Ingredient, finished
 from agmodels.probability import attenuate_for_cold, logistic, moving_mean, risk_level
 from agmodels.spec import (
     PROBABILITY_LEVELS,
     Change,
     Citation,
     ExplorerInput,
+    Input,
     ModelSpec,
     Option,
     Quantity,
@@ -48,17 +50,17 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(
+        Input(
             name="air_temperature_max", label="Maximum temperature", unit="degC", description="30-day moving average"
         ),
-        Quantity(name="relative_humidity_max", label="Maximum RH", unit="percent", description="30-day moving average"),
-        Quantity(
+        Input(name="relative_humidity_max", label="Maximum RH", unit="percent", description="30-day moving average"),
+        Input(
             name="wind_speed_max",
             label="Maximum wind speed",
             unit="m_s",
             description="30-day moving average (non-irrigated)",
         ),
-        Quantity(
+        Input(
             name="air_temperature_min",
             label="Minimum temperature",
             unit="degC",
@@ -136,6 +138,12 @@ SPEC = ModelSpec(
         last="R3",
         source="The Crop Risk Tool (R1–R3); Sporecaster runs only with flowers present",
     ),
+    ingredients=(
+        Ingredient(name="air_temperature_max_30_day", unit="degC", shared="air_temperature_max_30_day"),
+        Ingredient(name="relative_humidity_max_30_day", unit="percent", shared="relative_humidity_max_30_day"),
+        Ingredient(name="wind_speed_max_30_day", unit="m_s"),
+        Ingredient(name="air_temperature_min_21_day", unit="degC", shared="air_temperature_min_21_day"),
+    ),
     changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )
 
@@ -153,13 +161,32 @@ def probability_irrigated(temperature_max_30day, rh_max_30day, row_spacing: str)
     return logistic(-52.65 - 2.38 * wide + 0.65 * np.asarray(temperature_max_30day) + 0.38 * np.asarray(rh_max_30day))
 
 
-def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
-    t = moving_mean(inputs["air_temperature_max"], 30)
-    rh = moving_mean(inputs["relative_humidity_max"], 30)
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+    return {
+        "air_temperature_max_30_day": moving_mean(inputs["air_temperature_max"], 30),
+        "relative_humidity_max_30_day": moving_mean(inputs["relative_humidity_max"], 30),
+        "wind_speed_max_30_day": moving_mean(inputs["wind_speed_max"], 30),
+        "air_temperature_min_21_day": moving_mean(inputs["air_temperature_min"], 21),
+    }
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    t, rh = values["air_temperature_max_30_day"], values["relative_humidity_max_30_day"]
     if options.get("irrigation", "dry") == "irrigated":
         return {"probability": probability_irrigated(t, rh, options.get("row_spacing", "30"))}
-    p = probability_dry(t, moving_mean(inputs["wind_speed_max"], 30), rh)
-    return {"probability": attenuate_for_cold(p, moving_mean(inputs["air_temperature_min"], 21))}
+    p = probability_dry(t, values["wind_speed_max_30_day"], rh)
+    return {"probability": attenuate_for_cold(p, values["air_temperature_min_21_day"])}
+
+
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+    return finished(
+        accumulations=(),
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:

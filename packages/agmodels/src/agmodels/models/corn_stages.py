@@ -27,10 +27,10 @@ from collections.abc import Mapping
 
 import numpy as np
 
-from agmodels.accumulate import running_total
 from agmodels.crops import CropStage, number_option, stage_reached
 from agmodels.degree_days import degree_days_modified
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, ModelSpec, Option, Quantity
+from agmodels.ingredients import Accumulation, DegreeDays, Ingredient, finished
+from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity
 
 EMERGENCE_GDD = 110.0
 LEAF_GDD_TO_V10 = 82.0
@@ -125,8 +125,8 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
-        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
+        Input(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Input(name="air_temperature_max", label="Maximum temperature", unit="degC"),
     ),
     outputs=(
         Quantity(name="stage", label="Growth stage", unit="index", description="Index in the crop's stage list"),
@@ -161,6 +161,10 @@ SPEC = ModelSpec(
     options=(MATURITY,),
     season=("04-01", "10-31"),
     biofix=Biofix(default="05-10", label="Planting date"),
+    ingredients=(
+        Ingredient(name="gdd", unit="degF_day", degree_days=DegreeDays(method="modified", base_f=50, upper_f=86)),
+    ),
+    accumulations=(Accumulation(name="gdd_total", of="gdd"),),
     changelog=(Change(version="0.1", date="2026-10-28", note="First version."),),
 )
 
@@ -183,12 +187,29 @@ def thresholds(black_layer_gdd: float) -> np.ndarray:
     return np.array([EMERGENCE_GDD, *v, vt, r1, *fill])
 
 
-def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
     lo, hi = (np.asarray(inputs[k], dtype=float) * 1.8 + 32 for k in ("air_temperature_min", "air_temperature_max"))
-    gdd = degree_days_modified(lo, hi, 50, 86)
-    total = running_total(gdd, biofix_index)
-    stage = stage_reached(total, thresholds(number_option(options, MATURITY)))
-    return {"stage": stage, "gdd_total": total, "gdd": gdd}
+    return {"gdd": degree_days_modified(lo, hi, 50, 86)}
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    total = values["gdd_total"]
+    return {
+        "stage": stage_reached(total, thresholds(number_option(options, MATURITY))),
+        "gdd_total": total,
+        "gdd": values["gdd"],
+    }
+
+
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+    return finished(
+        accumulations=SPEC.accumulations,
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def explore(gdd_total: float, black_layer_gdd: float) -> dict[str, float]:

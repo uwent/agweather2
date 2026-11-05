@@ -16,10 +16,10 @@ from collections.abc import Mapping
 
 import numpy as np
 
-from agmodels.accumulate import running_total
 from agmodels.degree_days import degree_days_sine
+from agmodels.ingredients import Accumulation, DegreeDays, Ingredient, finished
 from agmodels.lookup import level_reached
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, ModelSpec, Quantity, Risk
+from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk
 
 BASE_C, UPPER_C = 0.0, 35.0
 B0, B_PLANTING, B_FALL_PRECIP, K, X0 = 423.1, -1.031, -0.2878, 0.003663, 1049.0
@@ -48,9 +48,9 @@ SPEC = ModelSpec(
         ),
     ),
     inputs=(
-        Quantity(name="air_temperature_min", label="Minimum temperature", unit="degC"),
-        Quantity(name="air_temperature_max", label="Maximum temperature", unit="degC"),
-        Quantity(
+        Input(name="air_temperature_min", label="Minimum temperature", unit="degC"),
+        Input(name="air_temperature_max", label="Maximum temperature", unit="degC"),
+        Input(
             name="precipitation_sum", label="Precipitation", unit="mm", description="From planting through December 31"
         ),
     ),
@@ -99,6 +99,14 @@ SPEC = ModelSpec(
     region=("WI", "MN", "IA", "IL", "MI"),
     season=("09-01", "06-30"),
     biofix=Biofix(default="10-01", label="Fall planting date"),
+    ingredients=(
+        Ingredient(name="gdd", unit="degC_day", degree_days=DegreeDays(method="sine", base_f=32, upper_f=95)),
+        Ingredient(name="precipitation", unit="mm", cumulative="precipitation"),
+    ),
+    accumulations=(
+        Accumulation(name="gdd_total", of="gdd"),
+        Accumulation(name="precipitation_fall", of="precipitation", year_end=True),
+    ),
     changelog=(
         Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),
         Change(
@@ -119,18 +127,33 @@ def biomass(gdd_total, planting_day, precipitation_fall) -> np.ndarray:
     return (height / (1 + np.exp(-K * (g - X0)))) ** 2
 
 
-def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
     lo, hi = (np.asarray(inputs[k], dtype=float) for k in ("air_temperature_min", "air_temperature_max"))
-    gdd_total = running_total(degree_days_sine(lo, hi, BASE_C, UPPER_C), biofix_index)
-    doy = np.asarray(inputs["day_of_year"], dtype=float)
-    planting_day = doy[biofix_index] if doy.size > biofix_index else np.nan
-    # Fall precip: planting through December 31, the days before the day of year first falls back (January 1)
-    new_year = np.flatnonzero(np.diff(doy[biofix_index:]) < 0)
-    fall_end = biofix_index + int(new_year[0]) + 1 if new_year.size else doy.size
-    precip = np.array(inputs["precipitation_sum"], dtype=float)
-    precip[fall_end:] = 0.0
-    fall = running_total(precip, biofix_index)
-    return {"biomass": biomass(gdd_total, planting_day, fall), "gdd_total": gdd_total, "precipitation_fall": fall}
+    return {
+        "gdd": degree_days_sine(lo, hi, BASE_C, UPPER_C),
+        "precipitation": np.asarray(inputs["precipitation_sum"], dtype=float),
+    }
+
+
+def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
+    """Biomass from the GDD and fall rain (planting through December 31) since planting, and its day of year."""
+    gdd_total, fall = values["gdd_total"], values["precipitation_fall"]
+    return {
+        "biomass": biomass(gdd_total, values["biofix_day_of_year"], fall),
+        "gdd_total": gdd_total,
+        "precipitation_fall": fall,
+    }
+
+
+def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
+    return finished(
+        accumulations=SPEC.accumulations,
+        values=ingredients(inputs),
+        inputs=inputs,
+        biofix_index=biofix_index,
+        finish=finish,
+        options=options,
+    )
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
