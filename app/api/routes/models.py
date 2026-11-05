@@ -20,15 +20,18 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from ninja import Field, Query, Router, Schema
 
+from agdata import seasonal, series
 from agdata import units as agunits
 from agdata.point import hourly_sources
 from agdata.projection import PROJECTION
 from agdata.series import FORECAST, PARTIAL, DailySeries, Forecast, archive_years, days_needed, runs_at_point, sliced
 from agdata.timezones import zone_at
+from agmodels import seasons
 from agmodels.crops import MARGIN, NOT_SUSCEPTIBLE, SUSCEPTIBLE
 from agmodels.registry import all_models
 from agmodels.runner import ModelRun, default_biofix
 from agmodels.scenarios import milestones, spread
+from agmodels.seasons import Season
 from agmodels.spec import Model
 from api import clock, points, runs, stations
 from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_modified, respond, table
@@ -67,8 +70,10 @@ def run(
     biofix: date | None = None,
     planting_date: str | None = None,
     projection: str | None = None,
+    season: str | None = None,
 ) -> HttpResponse:
-    """The model at one point from `start` to `end` (default: from its biofix, or January 1, through the forecast).
+    """The model at one point from `start` to `end` (default: from its biofix, or January 1, through the forecast;
+    a seasonal product's current season, or `season=2025-26`, D68).
     `projection=true` carries it past the forecast to `end` (default: the season's end) once per earlier archive year
     (D63): projected days have kind `projection`, each number column their P50, with `<name>_p10` and `<name>_p90`
     beside it and `projection_years`; `projection=years` gives each year's path instead (a `year` column). When
@@ -80,12 +85,17 @@ def run(
     lat, lng = _one_point(where)
     now = clock.now()
     today = now.date()
-    season = (when.date or when.start or when.end or today).year
-    the_plan = runs.plan(m, request.GET, lat, lng, season, biofix=biofix, planting=planting_date)
+    planting_season = (when.date or when.start or when.end or today).year
+    the_plan = runs.plan(m, request.GET, lat, lng, planting_season, biofix=biofix, planting=planting_date)
     mode = _projection_mode(projection)
     trim_end = when.end is None and when.date is None
     default_end = today + timedelta(days=FORECAST_DAYS) if options.forecast else today
     first, last = _span(when, m, the_plan, default_end, today)
+    the_season = None
+    if m.SPEC.seasonal is not None:
+        first, last, the_season = _season_days(m.SPEC, when, season, first, last, default_end, today)
+    elif season is not None:
+        raise ApiError("not_applicable", f"{m.SPEC.id} isn't a seasonal product", "season")
     if mode and trim_end:
         last, trim_end = _season_end(m.SPEC, first), False
     check_size((last - first).days + 1, len(the_plan.runs), MAX_DAYS, "days")
@@ -97,6 +107,7 @@ def run(
         "forecast": options.forecast,
         "projection": mode,
         "units": output.units,
+        **({"season": the_season.name} if the_season is not None else {}),
     }
     etag, unchanged, needed = _revalidate(
         request, [the_plan], computed, lat, lng, first, last, now, projecting=bool(mode)
@@ -123,6 +134,10 @@ def run(
     if the_plan.option_sets:
         summary["option_sets"] = the_plan.option_sets
     summary["corrections"] = list(results[0].corrections)
+    if the_season is not None:
+        observed = series.last_observed(settings.DATA_DIR, now)
+        observed_day = series.last_closed_day(observed) if observed is not None else first
+        summary["season"] = seasonal.describe(settings.DATA_DIR, m.SPEC, the_season, computed["end"], observed_day)
     return respond(
         request,
         Result(
@@ -691,6 +706,25 @@ def _execute(plans: list[runs.Plan], lat: float, lng: float, first: date, last: 
         grouped.append(results[k : k + len(p.runs)])
         k += len(p.runs)
     return grouped
+
+
+def _season_days(
+    spec, when: DaysQuery, name: str | None, first: date, last: date, default_end: date, today: date
+) -> tuple[date, date, Season | None]:
+    """A seasonal product's days (D68): `season=` or, with no dates, the current season (its start through its end
+    or the default end); dates as asked, in the season their last day falls in."""
+    if name is not None and (when.date or when.start or when.end):
+        raise ApiError("conflict", "give either season, or a date or range, not both", "season")
+    if name is None and (when.date or when.start or when.end):
+        return first, last, seasons.season_of(spec, last)
+    try:
+        found = seasons.season_named(spec, name) if name is not None else seasons.current_season(spec, today)
+    except ValueError as error:
+        raise ApiError("invalid", str(error), "season") from None
+    end = min(found.last, default_end)
+    if end < found.first:
+        raise ApiError("not_yet", f"the {found.label} season hasn't started", "season", status=404)
+    return found.first, end, found
 
 
 def _span(when: DaysQuery, m: Model, the_plan: runs.Plan, default_end: date, today: date) -> tuple[date, date]:

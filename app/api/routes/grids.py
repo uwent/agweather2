@@ -28,7 +28,7 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from ninja import Field, Query, Router, Schema
 
-from agdata import modelgrid, modelmaps, regions, series
+from agdata import modelgrid, modelmaps, regions, seasonal, series
 from agdata import units as agunits
 from agdata.catalog import DAILY_STATISTICS
 from agdata.daily import cell_timezones, days_from_hours
@@ -38,6 +38,8 @@ from agdata.layers import DEGREE_DAYS, LAYERS, SUSCEPTIBILITY, Layer, LayerOutpu
 from agdata.planting import planting_crop, planting_map
 from agdata.regrid import MIN_LATLON_RES, LatLonIndex, latlon_index
 from agdata.store import CUMULATIVE, DAILY
+from agmodels import seasons
+from agmodels.seasons import Season
 from agmodels.spec import ModelSpec
 from api import clock
 from api.envelope import (
@@ -107,6 +109,7 @@ class LayerInfo(Schema):
     # a model layer's scenario options (`GET /models/{id}` describes them), and its planting tiers (`planting=`)
     options: list[str] = Field(default_factory=list)
     planting: list[str] = Field(default_factory=list)
+    seasons: list[str] = Field(default_factory=list)  # a seasonal product's (`season=`), oldest first
 
 
 class LayersResponse(Schema):
@@ -154,6 +157,7 @@ def layers(request: HttpRequest) -> HttpResponse:
             outputs=[_output_info(o) for o in layer.outputs],
             options=_map_options(layer),
             planting=["early", "mid", "late", "none"] if layer.planting else [],
+            seasons=_seasons_held(layer, observed),
         )
         for layer in LAYERS.values()
     ]
@@ -164,6 +168,14 @@ def _output_info(o: LayerOutput) -> LayerOutputInfo:
     return LayerOutputInfo(
         name=o.name, label=o.label, unit=o.unit, units=_units(o.unit), precision=o.step, palette=o.palette
     )
+
+
+def _seasons_held(layer: Layer, observed: datetime | None) -> list[str]:
+    spec = seasonal.seasonal_spec(layer.id) if layer.source == "model" else None
+    if spec is None or observed is None:
+        return []
+    held = seasonal.held(spec, series.archive_years(settings.DATA_DIR), series.last_closed_day(observed))
+    return [s.name for s in held]
 
 
 def _map_options(layer: Layer) -> list[str]:
@@ -220,6 +232,11 @@ class GridQuery(Schema):
         description="A model layer with a crop: each place's typical planting date at this tier (default mid), or "
         "none for the model's default dates and no crop-stage gating",
     )
+    season: str | None = Field(
+        None,
+        description="A seasonal product (`/layers` lists its seasons): the season, as 2025-26; default the current "
+        "one. Its map is the count through the season's last day, or the last observed day before it",
+    )
 
 
 @router.get("/grids/{layer}", response=responses(TableResponse), summary="A layer over an area")
@@ -249,6 +266,14 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
     if model is None and (query.output is not None or query.planting is not None):
         param = "output" if query.output is not None else "planting"
         raise ApiError("invalid", f"{param} applies to model layers", param)
+    if model is not None and model.spec.seasonal is not None:
+        first, last = _season_span(model, query, first, last, series.last_closed_day(observed), now.date(), warnings)
+        if model.projected and (first != last or stat is not None):
+            raise ApiError("invalid", f"{model.output.name} is one day's projection: give a date or season", "output")
+        if model.projected and model.season is None:
+            raise ApiError("invalid", f"{model.output.name} projects a season: {first} is between seasons", "output")
+    elif query.season is not None:
+        raise ApiError("not_applicable", f"{found.id} isn't a seasonal product", "season")
     setting = None
     if found.id == DEGREE_DAYS:
         settings_found = degree_day_settings(query.dd, output.units, warnings)
@@ -289,6 +314,7 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
         ),
         "stat": stat,
         **(model.echo if model is not None else {}),
+        **({"season": model.season.name} if model is not None and model.season is not None else {}),
         "dd": setting.name if setting else None,
         "gaps": query.gaps,
         **area,
@@ -311,9 +337,14 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
         names = modelgrid.read_names(found.id)
         ingredients = [n for n in names if n in in_store]
         totals += [n for n in names if n not in in_store]
+    stamp_from = first_day
+    if model is not None and model.season is not None:
+        # A season's count reads back to its start, and a projection the earlier seasons
+        years = series.archive_years(data_dir) if model.projected else []
+        stamp_from = min([model.season.first, *(date(y, 1, 1) for y in years)])
     stamp = series.last_written(
         data_dir,
-        first_day,
+        stamp_from,
         last_day,
         totals=totals,
         now=now,
@@ -360,6 +391,15 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
         summary["model"] = {"id": found.id, "version": model.spec.version, "output": model.output.name}
         if model.planted is not None:
             summary["planting"] = _planting_summary(model, mask, warnings)
+        if model.season is not None:
+            summary["season"] = seasonal.describe(
+                data_dir, model.spec, model.season, last, series.last_closed_day(observed)
+            )
+        if model.projection is not None:
+            projected: dict[str, Any] = {"seasons": [_season_name(model.spec, y) for y in model.projection.years]}
+            if not model.projection.years:
+                projected["note"] = "the season is over: its own count"
+            summary["projection"] = projected
     unit, step = (model.output.unit, model.output.step) if model is not None else (found.unit, found.step)
     column = Column(
         name=found.id,
@@ -621,6 +661,12 @@ class _ModelRequest:
     echo: dict[str, Any]
     planted: np.ndarray | None = None  # each cell's planting date (ordinals), once computed
     window: Window | None = None
+    season: Season | None = None  # a seasonal product's season the map is in
+    projection: seasonal.Projection | None = None  # once computed
+
+    @property
+    def projected(self) -> bool:
+        return self.output.name.startswith((seasonal.PROJECTED, seasonal.CHANCE))
 
 
 def _model_request(request: HttpRequest, layer: Layer, query: GridQuery, warnings: list[str]) -> _ModelRequest:
@@ -699,7 +745,14 @@ def _model_compute(layer, model: _ModelRequest, first, last, window, stat, data_
             status=503,
         )
     name = model.output.name
-    values = found.level if name == "risk_level" else found.risk if name == "risk_value" else found.outputs[name]
+    extra: dict[str, np.ndarray] = {}
+    if model.projected:
+        years = series.archive_years(data_dir)
+        model.projection = seasonal.project(data_dir, layer.id, first, window, found, years, stores=stores, now=now)
+        values = (model.projection.medians | model.projection.chances)[name][None]
+        extra["projection_seasons"] = model.projection.counted.astype(float)
+    else:
+        values = found.level if name == "risk_level" else found.risk if name == "risk_value" else found.outputs[name]
     assert values is not None
     if found.in_region is not None and not found.in_region.any():
         warnings.append(f"{layer.id} is valid only in {', '.join(model.spec.region)}: no cells here")
@@ -709,11 +762,53 @@ def _model_compute(layer, model: _ModelRequest, first, last, window, stat, data_
     started = [b is not None and d >= b for d, b in zip(found.dates, found.biofix, strict=True)]
     if model.spec.accumulations and not any(started):
         warnings.append(f"the season starts at the biofix, {found.biofix[-1]}: nothing accumulated yet")
-    extra: dict[str, np.ndarray] = {}
     if stat is not None:
         value, _, missing = reduce(values, stat, None)
         values, extra = value[None], {"missing_days": missing}
     return values, found.kinds, extra, found.sources, found.forecast, found.dates, False
+
+
+def _season_span(
+    model: _ModelRequest, query: GridQuery, first: Any, last: Any, observed_day: date, today: date, warnings
+) -> tuple[Any, Any]:
+    """A seasonal product's days (D68): `season=` is its last day counted; no date its current season's; a date or
+    range as asked, observed days only (Q16), the partial season with a warning before it's shown."""
+    spec = model.spec
+    if query.season is not None:
+        if query.date or query.start or query.end:
+            raise ApiError("conflict", "give either season, or a date or range, not both", "season")
+        try:
+            model.season = seasons.season_named(spec, query.season)
+        except ValueError as error:
+            raise ApiError("invalid", str(error), "season") from None
+        day = seasonal.through(model.season, observed_day)
+        if day is None:
+            raise ApiError("not_yet", f"the {model.season.label} season hasn't started", "season", status=404)
+        return day, day
+    if not (query.date or query.start or query.end):
+        model.season = seasons.current_season(spec, today)
+        day = seasonal.through(model.season, observed_day)
+        assert day is not None  # a season appears after it starts
+        return day, day
+    if last > observed_day:
+        raise ApiError(
+            "not_observed",
+            f"{spec.id} counts observed days only; the last is {observed_day}",
+            "date" if query.date else "end",
+        )
+    model.season = seasons.season_of(spec, last)
+    if model.season is None:
+        settled = seasons.current_season(spec, last)
+        warnings.append(f"{last} is between seasons; season={settled.name} gives the last one's count")
+    elif last < model.season.appears:
+        warnings.append(
+            f"the {model.season.label} season is open: its count so far, shown from {model.season.appears} on"
+        )
+    return first, last
+
+
+def _season_name(spec: ModelSpec, year: int) -> str:
+    return seasons.season_starting(spec, year).name
 
 
 # --- Reading and computing -----------------------------------------------------------------------------------------

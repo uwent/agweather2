@@ -53,7 +53,9 @@ def test_finish_is_day_by_day(model_id):
     m = model(model_id)
     inputs = _inputs(m)
     values = m.ingredients(inputs)  # type: ignore[attr-defined]
-    full = dict(values) | accumulate(values, m.SPEC.accumulations, BIOFIX, day_of_year=inputs.get("day_of_year"))
+    full = dict(values) | accumulate(
+        values, m.SPEC.accumulations, BIOFIX, day_of_year=inputs.get("day_of_year"), year=inputs.get("year")
+    )
     full |= {name: np.asarray(inputs[name], dtype=float) for name in CONTEXT if name in inputs}
     if "day_of_year" in inputs:
         full["biofix_day_of_year"] = np.asarray(inputs["day_of_year"][BIOFIX])
@@ -85,11 +87,19 @@ def test_a_risk_given_only_daily_values_accumulates_them():
     np.testing.assert_equal(given["t"], np.zeros(4))  # what's there is used as it is
 
 
-def test_a_year_end_total_stops_at_december_31():
+def test_an_until_total_stops_after_its_day():
     doy = np.array([364.0, 365, 1, 2])
-    acc = (Accumulation(name="fall", of="rain", year_end=True),)
-    out = accumulate({"rain": np.ones(4)}, acc, biofix_index=0, day_of_year=doy)
+    year = np.array([2025.0, 2025, 2026, 2026])
+    acc = (Accumulation(name="fall", of="rain", until="12-31"),)
+    out = accumulate({"rain": np.ones(4)}, acc, biofix_index=0, day_of_year=doy, year=year)
     np.testing.assert_equal(out["fall"], [1, 2, 2, 2])
+    # March 31 is day 91 in a leap year: the total grows through it, whichever year the winter ends in
+    for end_year, last in ((2027, 90), (2028, 91)):
+        doy = np.array([last - 1.0, last, last + 1, last + 2])
+        year = np.full(4, float(end_year))
+        acc = (Accumulation(name="winter", of="cold", until="03-31"),)
+        out = accumulate({"cold": np.ones(4)}, acc, biofix_index=0, day_of_year=doy, year=year)
+        np.testing.assert_equal(out["winter"], [1, 2, 2, 2])
 
 
 @pytest.mark.parametrize("model_id", _with_ingredients())

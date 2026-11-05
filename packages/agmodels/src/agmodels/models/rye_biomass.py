@@ -105,7 +105,7 @@ SPEC = ModelSpec(
     ),
     accumulations=(
         Accumulation(name="gdd_total", of="gdd"),
-        Accumulation(name="precipitation_fall", of="precipitation", year_end=True),
+        Accumulation(name="precipitation_fall", of="precipitation", until="12-31"),
     ),
     changelog=(
         Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),

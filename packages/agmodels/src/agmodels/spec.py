@@ -103,6 +103,14 @@ class Option:
 
 
 @dataclass(frozen=True, kw_only=True)
+class Seasonal:
+    """A product that settles once a season (PLAN.md Phase 4 H, D68): counted over the spec's `season` from its
+    biofix, it is one map a season. `agmodels.seasons` names seasons and says which one is current."""
+
+    appears: str  # MM-DD the season's product is first shown (it has data to chew on by then); the last one before
+
+
+@dataclass(frozen=True, kw_only=True)
 class Biofix:
     default: str  # MM-DD
     label: str  # what the date means to a grower, e.g. "Crop emergence or last fungicide application"
@@ -155,6 +163,7 @@ class ModelSpec:
     )
     region: tuple[str, ...] = ()  # state abbreviations where it's valid; empty: anywhere
     season: tuple[str, str] | None = None  # MM-DD first and last day it's shown
+    seasonal: Seasonal | None = None  # a once-a-season product (`agmodels.seasons`); None: a daily model
     biofix: Biofix | None = None
     changelog: tuple[Change, ...] = ()
     # What the outputs are finished from (`agmodels.ingredients`, D66): the module then defines `ingredients()` and

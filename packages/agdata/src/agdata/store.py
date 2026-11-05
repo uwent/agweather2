@@ -40,6 +40,9 @@ SOURCES = {
     "test": 99,
 }
 SOURCE_NAMES = {code: name for name, code in SOURCES.items()}
+# Sources whose hours a later, permanent one replaces: RTMA's by URMA's, IFS's soil and snow by ERA5-Land's (D52).
+# A seasonal product is final once its season's last day has none of these (D68)
+PROVISIONAL = frozenset({"rtma", "ifs"})
 
 # Chunks (time steps, y, x): hourly for point reads (a cell's month is one chunk), daily for map tiles.
 # pcodec compresses the packed int16 values 25-45% better than zstd at the same speed (docs/pilot.md).

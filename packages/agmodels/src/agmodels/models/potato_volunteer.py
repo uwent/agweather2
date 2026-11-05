@@ -1,18 +1,20 @@
-"""Potato volunteer survival: hours of killing soil cold (below 27 °F) at 2, 4 and 8 in since October 1.
+"""Potato volunteer survival: hours of killing soil cold (below 27 °F) at 2, 4 and 8 in over the winter.
 
 Tubers left after harvest survive the winter, sprout as volunteers and can carry late blight and insect pests into
 the next season, unless the soil around them freezes hard enough. Kirk and Wharton's rule (Michigan State
 University): count the hours with soil below 27 °F at 2 and 4 in over the winter; more than 120 at both depths makes
 survival unlikely, at neither likely. The Wisconsin potato volunteer tool adds 8 in: each depth reaching 120 hours
-lowers the risk a level, from Very high (none) to Low (all three). Here 2 and 4 in are HRRR's 4 and 10 cm levels
-(D9), and 8 in is interpolated between 10 and 30 cm, all counted from hourly values as daily features.
+lowers the risk a level, from Very high (none) to Low (all three). Here 2 and 4 in are the archive's 4 and 10 cm
+soil, and 8 in is interpolated between 10 and 30 cm (ERA5-Land's layers, IFS's on the newest days and in the
+forecast, D52), all counted from hourly values as daily features.
 
-Ported from the tool (`calc_vol_risk`, on Wisconet stations), with its season and threshold (Ben): a full year from
-October 1, so the count catches the winter's freeze and its risk carries through the next growing season, with the
-soil temperatures shown alongside (their daily minimums are in the inputs layer, for the chart); and at least 120
-hours. MSU counts November 1 through March 31, but soil doesn't fall below 27 °F in a Wisconsin October, so the
-counts are the same there. A day missing an hour adds nothing to the counts (D25), which leans the risk high where
-data are short.
+Ported from the tool (`calc_vol_risk`, on Wisconet stations), with its threshold (at least 120 hours) and MSU's
+window, November 1 through March 31 (Ben, 2026-10-30; the tool counted a full year from October 1, which is the
+same in Wisconsin, where soil doesn't fall below 27 °F in October, but kept counting April's cold after the
+winter). The winter is a seasonal product (Phase 4 H, D68): one map a season, shown from January 1, and the
+settled winter's count and risk carry through to the next one. The soil temperatures are shown alongside (their
+daily minimums are in the inputs layer, for the chart). A day missing an hour adds nothing to the counts (D25),
+which leans the risk high where data are short.
 """
 
 from collections.abc import Mapping
@@ -20,7 +22,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels.ingredients import Accumulation, Ingredient, finished, with_accumulations
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk
+from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk, Seasonal
 
 KILLING_HOURS = 120  # this many at a depth kills the tubers there (the tool's; MSU says more than 120)
 DEPTHS = {"4cm": "2 in (4 cm)", "10cm": "4 in (10 cm)", "8in": "8 in (10–30 cm interpolated)"}
@@ -29,7 +31,7 @@ SPEC = ModelSpec(
     id="potato-volunteer",
     name="Potato volunteer survival",
     group="agronomic",
-    version="0.1",
+    version="0.2",
     status="beta",
     summary="Whether potato tubers left in the field are likely to survive the winter, from the hours of soil "
     "below 27 °F at 2, 4 and 8 in; surviving volunteers can carry late blight and insect pests into the next season.",
@@ -70,13 +72,13 @@ SPEC = ModelSpec(
         ),
     ),
     outputs=tuple(
-        Quantity(name=f"killing_hours_{d}", label=f"Hours below 27 °F at {label} since October 1", unit="hour")
+        Quantity(name=f"killing_hours_{d}", label=f"Hours below 27 °F at {label} since November 1", unit="hour")
         for d, label in DEPTHS.items()
     ),
     risk=Risk(
         levels=("Low", "Moderate", "High", "Very high"),
-        criteria="The chance tubers survive, by the depths (2, 4 and 8 in) with at least 120 hours below 27 °F since "
-        "October 1: Low at all three, Moderate at two, High at one, Very high at none.",
+        criteria="The chance tubers survive, by the depths (2, 4 and 8 in) with at least 120 hours below 27 °F from "
+        "November 1 through March 31: Low at all three, Moderate at two, High at one, Very high at none.",
     ),
     explorer=tuple(
         ExplorerInput(
@@ -94,13 +96,23 @@ SPEC = ModelSpec(
         Quantity(name="risk", label="Risk level", unit="index", description="Index into the risk levels"),
     ),
     sweep={f"killing_hours_{d}": (0.0, 60.0, 119.0, 120.0, 240.0) for d in DEPTHS},
-    season=("10-01", "09-30"),
-    biofix=Biofix(
-        default="10-01", label="October 1, the start of the season (the winter's count carries through the next summer)"
-    ),
+    season=("11-01", "03-31"),
+    seasonal=Seasonal(appears="01-01"),
+    context=("day_of_year", "year"),
+    biofix=Biofix(default="11-01", label="November 1, the start of the winter's count"),
     ingredients=tuple(Ingredient(name=f"hours_below_27f_{d}", unit="hour") for d in DEPTHS),
-    accumulations=tuple(Accumulation(name=f"killing_hours_{d}", of=f"hours_below_27f_{d}") for d in DEPTHS),
-    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Wisconsin potato volunteer tool."),),
+    accumulations=tuple(
+        Accumulation(name=f"killing_hours_{d}", of=f"hours_below_27f_{d}", until="03-31") for d in DEPTHS
+    ),
+    changelog=(
+        Change(version="0.1", date="2026-10-28", note="Ported from the Wisconsin potato volunteer tool."),
+        Change(
+            version="0.2",
+            date="2026-11-05",
+            note="Counts November 1 through March 31 (MSU's window), not a year from October 1: April's cold no "
+            "longer counts. A seasonal product, shown from January 1.",
+        ),
+    ),
 )
 
 

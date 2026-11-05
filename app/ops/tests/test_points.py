@@ -93,6 +93,7 @@ def test_runs_reaching_before_the_archive_read_open_meteo_and_the_rest_the_archi
         lambda lat, lon, runs, *a: seen.setdefault("om", runs) and [f"o:{r.model_id}" for r in runs],
     )
     runs = [points.series.RunSpec(model_id=m) for m in ("tar-spot", "potato-volunteer", "degree-days")]
+    runs[1] = points.series.RunSpec(model_id="potato-volunteer", biofix=date(2024, 11, 1))  # last winter's start
     found = points.models_at_point(*MADISON, runs, date(2025, 7, 1), date(2025, 7, 10), NOW, planting_default=False)
     assert found == ["a:tar-spot", "o:potato-volunteer", "a:degree-days"]  # in the order asked
-    assert [r.model_id for r in seen["om"]] == ["potato-volunteer"]  # its season began October 1, 2024
+    assert [r.model_id for r in seen["om"]] == ["potato-volunteer"]  # its biofix is before the archive

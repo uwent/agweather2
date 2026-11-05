@@ -47,9 +47,10 @@ def test_outputs_match_the_model_called_directly():
 
 def test_default_biofix_follows_the_season():
     assert runner.default_biofix(model("late-blight-dsv").SPEC, date(2025, 7, 1)) == date(2025, 5, 15)
-    potato = model("potato-volunteer").SPEC  # Oct 1 to Sep 30
-    assert runner.default_biofix(potato, date(2026, 1, 15)) == date(2025, 10, 1)
-    assert runner.default_biofix(potato, date(2025, 10, 2)) == date(2025, 10, 1)
+    potato = model("potato-volunteer").SPEC  # Nov 1 to Mar 31
+    assert runner.default_biofix(potato, date(2026, 1, 15)) == date(2025, 11, 1)
+    assert runner.default_biofix(potato, date(2025, 11, 2)) == date(2025, 11, 1)
+    assert runner.default_biofix(potato, date(2026, 7, 1)) == date(2026, 11, 1)  # between seasons: the next one
     rye = model("rye-biomass").SPEC  # Sep 1 to Jun 30, biofix Oct 1
     assert runner.default_biofix(rye, date(2026, 3, 1)) == date(2025, 10, 1)
     assert runner.default_biofix(rye, date(2025, 7, 15)) == date(2025, 10, 1)  # between seasons: the next one

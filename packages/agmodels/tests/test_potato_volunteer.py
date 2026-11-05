@@ -1,4 +1,6 @@
-"""Potato volunteer survival (MSU's rule and the Wisconsin tool's 8 in, on HRRR's soil temperature)."""
+"""Potato volunteer survival (MSU's rule and the Wisconsin tool's 8 in, on the archive's soil temperature)."""
+
+from datetime import date, timedelta
 
 import numpy as np
 
@@ -18,17 +20,20 @@ def test_risk_by_depths_past_120_hours():
     assert pv.SPEC.risk is not None and pv.SPEC.risk.levels[3] == "Very high"
 
 
-def inputs(days, *per_day):
-    return {f"hours_soil_{d}_below_27f": np.full(days, h, dtype=float) for d, h in zip(pv.DEPTHS, per_day, strict=True)}
+def inputs(days, *per_day, first=date(2025, 10, 22)):
+    dates = [first + timedelta(days=k) for k in range(days)]
+    out = {f"hours_soil_{d}_below_27f": np.full(days, h, dtype=float) for d, h in zip(pv.DEPTHS, per_day, strict=True)}
+    out["day_of_year"] = np.array([d.timetuple().tm_yday for d in dates], dtype=float)
+    out["year"] = np.array([d.year for d in dates], dtype=float)
+    return out
 
 
-def test_the_count_runs_the_season_and_holds_into_summer():
-    days = inputs(365, 2.0, 1.0, 0.0)
-    for d in pv.DEPTHS:
-        days[f"hours_soil_{d}_below_27f"][200:] = 0  # spring thaw: the counts stop growing and the winter's risk holds
+def test_the_count_runs_the_winter_and_holds_after_it():
+    days = inputs(365, 2.0, 1.0, 0.0)  # from Oct 22, so the biofix (Nov 1) is day 10
     out = pv.outputs(days, biofix_index=10)
     total = out["killing_hours_4cm"]
-    assert np.isnan(total[:10]).all() and total[10] == 2 and total[-1] == 2 * 190
+    winter = (date(2026, 3, 31) - date(2025, 11, 1)).days + 1  # 151 days counted; April's cold isn't
+    assert np.isnan(total[:10]).all() and total[10] == 2 and total[-1] == 2 * winter
     risk = pv.risk(out, biofix_index=10)
     assert risk[20] == 3 and risk[80] == 2 and risk[-1] == 1  # 4 cm reaches 120 hours on day 69, 10 cm on day 129
 

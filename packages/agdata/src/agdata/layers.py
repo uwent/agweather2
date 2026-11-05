@@ -204,6 +204,8 @@ def _model_layers() -> list[Layer]:
             )
         default = outputs[0] if spec.risk is not None else next((o for o in outputs if o.name == "stage"), outputs[0])
         outputs = [default, *(o for o in outputs if o is not default)]
+        if spec.seasonal is not None:
+            outputs += _projected_outputs(outputs, spec.risk.levels if spec.risk is not None else ())
         found.append(
             Layer(
                 id=spec.id,
@@ -222,6 +224,35 @@ def _model_layers() -> list[Layer]:
             )
         )
     return found
+
+
+def _projected_outputs(outputs: list[LayerOutput], levels: tuple[str, ...]) -> list[LayerOutput]:
+    """A seasonal product's season end projected on the earlier seasons (`agdata.seasonal`): each output's and the
+    risk level's median, and the percent of seasons ending at each risk level."""
+    from agdata.seasonal import CHANCE, PROJECTED, level_key
+
+    medians = [
+        LayerOutput(
+            name=f"{PROJECTED}{o.name}",
+            label=f"{o.label}, projected to the season's end (median)",
+            unit=o.unit,
+            step=o.step,
+            palette=o.palette,
+        )
+        for o in outputs
+        if o.name not in (RISK_VALUE, SUSCEPTIBILITY)
+    ]
+    chances = [
+        LayerOutput(
+            name=f"{CHANCE}{level_key(level)}",
+            label=f"Chance the season ends at {level} risk",
+            unit="percent",
+            step=1,
+            palette="chance",
+        )
+        for level in levels
+    ]
+    return medians + chances
 
 
 LAYERS: dict[str, Layer] = {layer.id: layer for layer in [*_layers(), *_model_layers()]}

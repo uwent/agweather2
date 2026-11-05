@@ -195,6 +195,8 @@ class ModelSummary(Schema):
     topics: list[str]
     region: list[str]  # state abbreviations; empty: anywhere
     season: list[str] | None  # [first, last] as MM-DD; None: all year
+    # a once-a-season product (D68): MM-DD its season's map is first shown (the last one's until then); None: daily
+    seasonal_appears: str | None = None
     citations: list[CitationInfo]
 
 
@@ -313,6 +315,7 @@ def _summary(spec: ModelSpec) -> dict:
         "topics": list(spec.topics),
         "region": list(spec.region),
         "season": list(spec.season) if spec.season else None,
+        "seasonal_appears": spec.seasonal.appears if spec.seasonal else None,
         "citations": [_citation(c) for c in spec.citations],
     }
 

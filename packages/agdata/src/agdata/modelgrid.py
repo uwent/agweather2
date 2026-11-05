@@ -35,7 +35,7 @@ from agdata.grid import Window
 from agdata.grids import cube_terms
 from agdata.store import CUMULATIVE, DAILY, INGREDIENTS, StoreLayout
 from agmodels.crops import CropModel, disease_susceptibility, stage_days
-from agmodels.ingredients import Accumulation, Ingredient
+from agmodels.ingredients import Accumulation, Ingredient, until_day
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
 from agmodels.runner import default_biofix
@@ -44,7 +44,6 @@ from agmodels.spec import Model, ModelSpec
 # Models with ingredients that aren't model layers, and why
 NOT_MAPPED = {
     "degree-days": "custom degree days are the degree_days layer",
-    "potato-volunteer": "its map is a seasonal product (Phase 4 H)",
 }
 # Options that describe the place rather than a scenario: maps use each place's (D66; the model's default until
 # location-adjusted maturity lands)
@@ -93,6 +92,7 @@ class ModelDays:
     run_from: int  # the first day read from the forecast run
     reads: int = 0  # map-days read, for timing
     options: dict[str, str] = field(default_factory=dict)
+    accumulated: dict[str, np.ndarray] = field(default_factory=dict)  # each accumulation, (days, y, x)
 
 
 def model_days(
@@ -182,6 +182,7 @@ def model_days(
         run_from=base.run_from,
         reads=reader.reads,
         options=opts,
+        accumulated={a.name: values[a.name] for a in spec.accumulations},
     )
 
 
@@ -609,7 +610,7 @@ def _accumulated(reader: _Reader, spec: ModelSpec, a: Accumulation, dates: list[
         start = b if a.how == "total" else np.maximum(b, (d - timedelta(days=a.days - 1)).toordinal())
         starts = np.unique(start[started])
         firsts = [date.fromordinal(int(u)) for u in starts]
-        ends = [min(d, date(f.year, 12, 31)) if a.year_end else d for f in firsts]
+        ends = [min(d, until_day(a.until, f)) if a.until is not None else d for f in firsts]
         pairs: list[tuple[date | None, date]] = list(zip(firsts, ends, strict=True))
         sums = _spans(total, pairs, reader.window)
         if a.how == "mean":

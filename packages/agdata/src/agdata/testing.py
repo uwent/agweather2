@@ -78,3 +78,50 @@ def central(monkeypatch: "pytest.MonkeyPatch") -> SimpleNamespace:
     index = np.zeros(WINDOW.shape, dtype=np.uint8)
     monkeypatch.setattr(daily, "window_timezones", lambda window: (["America/Chicago"], index))
     return SimpleNamespace(window=WINDOW, archive=archive, nbm_run=nbm_run, read=read, weather=weather)
+
+
+# Potato volunteer's winters (`winters`): hours below 27 °F a day at every depth, by the year the winter starts
+WINTER_RATES = {2023: 1.0, 2024: 2.0, 2025: 3.0}
+WINTER_LAST = date(2025, 12, 15)  # the archive's last day: 2025-26 is open
+SOIL = ("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm")
+
+
+def winters(root, last: date = WINTER_LAST):
+    """An archive of potato volunteer's winters over WINDOW from 2023 through `last`: hourly soil at −5 °C for
+    `WINTER_RATES` hours a day (from 10Z, 4 am in Central time, so each local day has them all) and +2 °C the rest,
+    ERA5-Land's (permanent) through April 1 of the last year and IFS's (provisional) after; daily stores with just
+    the counts, the ingredients built from them, and temperature sources saying the archive is observed through
+    12Z the day after `last`. Returns `root`."""
+    from datetime import UTC
+
+    from agdata import modelmaps
+    from agmodels.registry import model
+
+    def rate(day: date) -> int:
+        return int(WINTER_RATES.get(day.year if day.month >= 7 else day.year - 1, 0))
+
+    end = datetime(last.year, last.month, last.day, tzinfo=UTC) + timedelta(hours=37)  # through 12Z the next day
+    spring = datetime(last.year, 4, 2, tzinfo=UTC)
+    for year in range(2023, last.year + 1):
+        first = date(year, 1, 1)
+        days = [first + timedelta(days=k) for k in range((min(last, date(year, 12, 31)) - first).days + 1)]
+        store = daily.open_or_create_daily(root, year, WINDOW)
+        counts = np.array([float(rate(d)) for d in days])[:, None, None] * np.ones((1, *WINDOW.shape))
+        store.write(first, {f"hours_soil_{d}_below_27f": counts for d in ("4cm", "10cm", "8in")}, source="test")
+
+        start = datetime(year, 1, 1, tzinfo=UTC)
+        times = [start + k * HOUR for k in range(int((min(end, datetime(year + 1, 1, 1, tzinfo=UTC)) - start) / HOUR))]
+        cold = np.array([10 <= t.hour < 10 + rate(t.date()) for t in times])
+        soil = np.where(cold, -5.0, 2.0)[:, None, None] * np.ones((1, *WINDOW.shape))
+        hourly = GridStore.create(root, HOURLY, year, WINDOW, [VARIABLES[n] for n in ("air_temperature", *SOIL)])
+        for name in SOIL:
+            hourly.write(start, {name: soil}, source="era5land")
+            if year == last.year:
+                k = int((spring - start) / HOUR)
+                hourly.set_sources(name, spring, ["ifs"] * (len(times) - k))
+        if year == last.year:
+            hourly.set_sources("air_temperature", start, ["test"] * len(times))
+    spec = model("potato-volunteer").SPEC
+    keys = [modelmaps.key(spec.id, i) for i in spec.ingredients]
+    modelmaps.update(root, WINDOW, date(2023, 1, 1), last, keys=keys)
+    return root

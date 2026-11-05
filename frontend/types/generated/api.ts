@@ -181,6 +181,10 @@ export interface GridQuery {
    * A model layer with a crop: each place's typical planting date at this tier (default mid), or none for the model's default dates and no crop-stage gating
    */
   planting?: ('early' | 'mid' | 'late' | 'none') | null
+  /**
+   * A seasonal product (`/layers` lists its seasons): the season, as 2025-26; default the current one. Its map is the count through the season's last day, or the last observed day before it
+   */
+  season?: string | null
 }
 /**
  * Hours by their UTC end, `start` to `end` inclusive: ISO times on the hour, with a zone (`Z`, `-05:00`) or
@@ -221,6 +225,7 @@ export interface LayerInfo {
   outputs?: LayerOutputInfo[]
   options?: string[]
   planting?: string[]
+  seasons?: string[]
 }
 export interface LayerRange {
   first: string | null
@@ -301,6 +306,7 @@ export interface ModelDetail {
   topics: string[]
   region: string[]
   season: string[] | null
+  seasonal_appears?: string | null
   citations: CitationInfo[]
   lookback_days: number
   inputs: InputInfo[]
@@ -353,6 +359,7 @@ export interface ModelSummary {
   topics: string[]
   region: string[]
   season: string[] | null
+  seasonal_appears?: string | null
   citations: CitationInfo[]
 }
 export interface ModelsResponse {

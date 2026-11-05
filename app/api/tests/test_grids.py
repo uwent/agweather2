@@ -295,7 +295,7 @@ def test_layers_list_each_mapped_models_outputs_and_options(client, archive):
     assert data["corn-stages"]["outputs"][0]["name"] == "stage" and data["corn-stages"]["options"] == []
     assert data["alfalfa-weevil"]["outputs"][0]["name"] == "risk_level"
     assert [o["name"] for o in data["seedcorn-maggot"]["outputs"]][:2] == ["risk_level", "risk_value"]
-    assert "degree-days" not in data and "potato-volunteer" not in data
+    assert "degree-days" not in data and data["potato-volunteer"]["seasons"] == []  # none: the archive is July
     assert data["soybean-stages"]["outputs"][0]["name"] == "stage" and data["red-crown-rot"]["planting"]
     assert "susceptibility" in [o["name"] for o in data["white-mold"]["outputs"]]
 
