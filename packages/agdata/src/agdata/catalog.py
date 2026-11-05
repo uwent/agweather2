@@ -428,8 +428,10 @@ GAP_FILL: dict[str, GapFill] = {name: v.gap_fill for name, v in DAILY_VARIABLES.
 # Running totals from local January 1 (D26, D27): any range is cum[end] - cum[start - 1]. Degree days are
 # cubes per threshold: single sine is linear, so a sine pair is the difference of its two thresholds' cubes.
 # Thresholds are those the planned models use (°F, D18); corn's modified average isn't linear, so it has its own.
-DD_SINE_THRESHOLDS_F: tuple[float, ...] = (39.2, 41, 42.8, 45, 48.2, 50, 52, 55, 80.1, 86, 90, 92)
+DD_SINE_THRESHOLDS_F: tuple[float, ...] = (32, 39.2, 41, 42.8, 45, 48.2, 50, 52, 55, 80.1, 86, 90, 92, 95)
 DD_MODIFIED_PAIRS_F: tuple[tuple[float, float], ...] = ((50, 86),)
+# The simple average isn't linear in its thresholds either: seedcorn maggot's 39/84.2 and potato's 39.2 (4 °C)
+DD_AVERAGE_SETTINGS_F: tuple[tuple[float, float | None], ...] = ((39, 84.2), (39.2, None))
 _DD_RANGE = {
     "scale": 0.5,
     "valid_min": 0,
@@ -438,8 +440,8 @@ _DD_RANGE = {
 }  # a base-39.2 year in Florida is about 13,000
 
 
-def dd_name(method: Literal["sine", "modified"], base: float, upper: float | None = None) -> str:
-    """`dd_sine_39p2`, `dd_modified_50_86`: the legacy naming, with the method."""
+def dd_name(method: Literal["sine", "modified", "average"], base: float, upper: float | None = None) -> str:
+    """`dd_sine_39p2`, `dd_modified_50_86`, `dd_average_39_84p2`: the legacy naming, with the method."""
 
     def f(t: float) -> str:
         return f"{t:g}".replace(".", "p")
@@ -448,23 +450,37 @@ def dd_name(method: Literal["sine", "modified"], base: float, upper: float | Non
 
 
 def _cumulative() -> list[Variable]:
-    dd = [
-        Variable(
-            name=dd_name("sine", t),
-            long_name=f"Single-sine degree days above {t:g} °F since Jan 1",
-            unit="degF_day",
-            **_DD_RANGE,
-        )
-        for t in DD_SINE_THRESHOLDS_F
-    ] + [
-        Variable(
-            name=dd_name("modified", base, upper),
-            long_name=f"Modified-average degree days {base:g}/{upper:g} °F since Jan 1",
-            unit="degF_day",
-            **_DD_RANGE,
-        )
-        for base, upper in DD_MODIFIED_PAIRS_F
-    ]
+    dd = (
+        [
+            Variable(
+                name=dd_name("sine", t),
+                long_name=f"Single-sine degree days above {t:g} °F since Jan 1",
+                unit="degF_day",
+                **_DD_RANGE,
+            )
+            for t in DD_SINE_THRESHOLDS_F
+        ]
+        + [
+            Variable(
+                name=dd_name("modified", base, upper),
+                long_name=f"Modified-average degree days {base:g}/{upper:g} °F since Jan 1",
+                unit="degF_day",
+                **_DD_RANGE,
+            )
+            for base, upper in DD_MODIFIED_PAIRS_F
+        ]
+        + [
+            Variable(
+                name=dd_name("average", base, upper),
+                long_name=f"Simple-average degree days above {base:g} °F"
+                + (f", capped at {upper:g} °F" if upper is not None else "")
+                + " since Jan 1",
+                unit="degF_day",
+                **_DD_RANGE,
+            )
+            for base, upper in DD_AVERAGE_SETTINGS_F
+        ]
+    )
     totals = [
         Variable(
             name="precipitation",

@@ -324,7 +324,9 @@ def backfill_fakes(data_dir, monkeypatch):
     monkeypatch.setattr(backfill, "write_block", write_block)
     monkeypatch.setattr(backfill, "record_run", lambda *args: log.records.append(args))
     monkeypatch.setattr(
-        backfill, "update_days", lambda data, window, first, last: log.rolled.append((first, last)) or [first.year]
+        backfill,
+        "update_days",
+        lambda data, window, first, last, **kw: log.rolled.append((first, last)) or [first.year],
     )
     monkeypatch.setattr(backfill, "rolled_up", lambda *args: False)
     return log

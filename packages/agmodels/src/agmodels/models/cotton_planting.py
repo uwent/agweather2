@@ -126,8 +126,18 @@ SPEC = ModelSpec(
     region=COTTON_STATES,
     season=("03-15", "06-30"),
     ingredients=(
-        Ingredient(name="precipitation_3_day_ahead", unit="mm", description="The planting day and the two after"),
-        Ingredient(name="air_temperature_min_9_day_ahead", unit="degC", description="The planting day and the 8 after"),
+        Ingredient(
+            name="precipitation_3_day_ahead",
+            unit="mm",
+            description="The planting day and the two after",
+            ahead_days=RAIN_DAYS - 1,
+        ),
+        Ingredient(
+            name="air_temperature_min_9_day_ahead",
+            unit="degC",
+            description="The planting day and the 8 after",
+            ahead_days=COLD_DAYS - 1,
+        ),
     ),
     changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
 )

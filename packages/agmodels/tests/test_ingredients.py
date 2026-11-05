@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from agmodels import runner
-from agmodels.ingredients import CONTEXT, Accumulation, accumulate, with_accumulations
+from agmodels.ingredients import CONTEXT, LOOKBACK_DAYS, Accumulation, accumulate, with_accumulations
 from agmodels.registry import all_models, model
 from agmodels.testing import DATES, DAYS, LATITUDE, WEATHER
 
@@ -90,3 +90,26 @@ def test_a_year_end_total_stops_at_december_31():
     acc = (Accumulation(name="fall", of="rain", year_end=True),)
     out = accumulate({"rain": np.ones(4)}, acc, biofix_index=0, day_of_year=doy)
     np.testing.assert_equal(out["fall"], [1, 2, 2, 2])
+
+
+@pytest.mark.parametrize("model_id", _with_ingredients())
+def test_a_days_weather_reaches_only_as_far_as_declared(model_id):
+    """Changing one day's weather moves an ingredient from its `ahead_days` before that day through LOOKBACK_DAYS
+    after it, no further (a running minimum may stay changed): the grid recomputes that span after a change."""
+    m = model(model_id)
+    inputs = _inputs(m)
+    before = m.ingredients(inputs)  # type: ignore[attr-defined]
+    k = 300
+    changed = {
+        name: (v.copy() if name not in m.SPEC.context else v) for name, v in inputs.items()
+    }  # every input that day, a lot warmer, wetter and windier
+    for q in m.SPEC.inputs:
+        changed[q.name][k] = changed[q.name][k] + (15 if q.unit == "degC" else 5)
+    after = m.ingredients(changed)  # type: ignore[attr-defined]
+    for i in m.SPEC.ingredients:
+        moved = np.flatnonzero(~np.all(np.isclose(before[i.name], after[i.name], equal_nan=True), axis=(1, 2)))
+        if moved.size == 0:
+            continue
+        assert moved.min() >= k - i.ahead_days, f"{model_id} {i.name}: reaches {k - moved.min()} days back"
+        if not i.running_minimum:
+            assert moved.max() < k + LOOKBACK_DAYS, f"{model_id} {i.name}: reaches {moved.max() - k} days on"

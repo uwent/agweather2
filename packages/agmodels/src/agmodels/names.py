@@ -56,7 +56,10 @@ DailyName = Literal[
 
 # Running totals from January 1 (`CUMULATIVE_VARIABLES`)
 CumulativeName = Literal[
+    "dd_average_39_84p2",
+    "dd_average_39p2",
     "dd_modified_50_86",
+    "dd_sine_32",
     "dd_sine_39p2",
     "dd_sine_41",
     "dd_sine_42p8",
@@ -69,6 +72,7 @@ CumulativeName = Literal[
     "dd_sine_86",
     "dd_sine_90",
     "dd_sine_92",
+    "dd_sine_95",
     "et0",
     "et0_estimated_days",
     "et0_missing_days",

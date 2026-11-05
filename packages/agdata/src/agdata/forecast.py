@@ -25,7 +25,7 @@ import numpy as np
 import requests
 import zarr
 
-from agdata import calibration, interpolate, shortwave
+from agdata import calibration, interpolate, modelmaps, shortwave
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
 from agdata.cumulative import MAX_BRIDGE_DAYS, open_or_create_cumulative, running_totals
 from agdata.daily import rollup_days
@@ -330,9 +330,9 @@ def _finish(
 
 
 def stitch(data_dir: Path, path: Path, window: Window) -> datetime | None:
-    """Copies the archive's hours, up to its last observed one, over the run's; rolls up the run's days from the
-    first one they touch and continues the archive's running totals through them. Returns the last observed hour
-    (None: the archive has none in the two weeks before)."""
+    """Copies the archive's hours, up to its last observed one, over the run's; rolls up the run's days from the first
+    one they touch and continues the archive's running totals and the models' ingredients through them. Returns the last
+    observed hour (None: the archive has none in the two weeks before)."""
     info = run_info(path)
     first_forecast = datetime.fromisoformat(info["first_hour"])
     last_forecast = datetime.fromisoformat(info["last_hour"])
@@ -346,6 +346,7 @@ def stitch(data_dir: Path, path: Path, window: Window) -> datetime | None:
     last_day = last_forecast.date()
     rollup_days(path, window, first_day, last_day)
     _continue_totals(data_dir, path, window, first_day, last_day)
+    modelmaps.update(data_dir, window, first_day, last_day, run=path, run_first=first_day)
     info |= {"last_observed": observed.isoformat() if observed else None, "first_day": first_day.isoformat()}
     _write_info(path, info)
     return observed

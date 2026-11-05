@@ -18,7 +18,7 @@ from typing import Literal
 
 import numpy as np
 
-from agdata.catalog import DD_MODIFIED_PAIRS_F, DD_SINE_THRESHOLDS_F, GAP_FILL, dd_name
+from agdata.catalog import DD_AVERAGE_SETTINGS_F, DD_MODIFIED_PAIRS_F, DD_SINE_THRESHOLDS_F, GAP_FILL, dd_name
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
 
@@ -107,4 +107,11 @@ def cube_terms(method: DDMethod, base_f: float, upper_f: float | None) -> tuple[
         for b, u in DD_MODIFIED_PAIRS_F:
             if round(b, 3) == round(base_f, 3) and round(u, 3) == round(upper_f, 3):
                 return dd_name("modified", b, u), None
+    if method == "average":
+        for b, u in DD_AVERAGE_SETTINGS_F:
+            same_upper = (u is None and upper_f is None) or (
+                u is not None and upper_f is not None and round(u, 3) == round(upper_f, 3)
+            )
+            if round(b, 3) == round(base_f, 3) and same_upper:
+                return dd_name("average", b, u), None
     return None

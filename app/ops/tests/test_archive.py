@@ -58,7 +58,11 @@ def fill_fakes(monkeypatch):
     monkeypatch.setattr(archive, "backfill_era5land", era5)
     monkeypatch.setattr(archive.pastyears, "build", lambda data, year, progress: log.order.append(("past", year)))
     monkeypatch.setattr(
-        archive, "update_days", lambda data, window, first, last: log.order.append(("dec31", first.year))
+        archive, "update_days", lambda data, window, first, last, **kw: log.order.append(("dec31", first.year))
+    )
+    monkeypatch.setattr(archive.modelmaps, "status", lambda data, year: "not built")
+    monkeypatch.setattr(
+        archive.modelmaps, "build", lambda data, window, year, **kw: log.order.append(("ingredients", year))
     )
     return log
 
@@ -99,9 +103,10 @@ def test_a_fill_goes_newest_first_with_soil_and_past_years_beside_the_next_year(
     )  # fmt: skip
     hours = [step for step in fill_fakes.order if step[0] in ("hours", "dec31")]
     assert hours == [("hours", 2024), ("dec31", 2024), ("hours", 2023), ("dec31", 2023)]
-    for year in (2024, 2023):  # each year's soil, then its copy, after its hours
+    for year in (2024, 2023):  # each year's soil, its models' ingredients (soil feeds them), then its copy
         assert fill_fakes.order.index(("hours", year)) < fill_fakes.order.index(("soil", year))
-        assert fill_fakes.order.index(("soil", year)) < fill_fakes.order.index(("past", year))
+        assert fill_fakes.order.index(("soil", year)) < fill_fakes.order.index(("ingredients", year))
+        assert fill_fakes.order.index(("ingredients", year)) < fill_fakes.order.index(("past", year))
     assert fill_fakes.soil_threads == {"fill-soil"}  # not the hours' thread
     assert result.years == [2024, 2023] and result.fetched == 200 and not result.stopped
 
@@ -219,3 +224,31 @@ def test_jobs_is_not_recorded_as_a_run(settings, tmp_path):
     settings.DATA_DIR = tmp_path
     call_command("jobs", "list", stdout=StringIO())
     assert runs.runs(tmp_path) == []
+
+
+def test_the_ingredients_command_builds_what_isnt_current(settings, tmp_path, monkeypatch):
+    from agdata import modelmaps
+
+    settings.DATA_DIR = tmp_path
+    (tmp_path / "daily" / "2025.zarr").mkdir(parents=True)
+    (tmp_path / "daily" / "2024.zarr").mkdir(parents=True)
+    monkeypatch.setattr(modelmaps, "status", lambda data, year: "not built" if year == 2025 else None)
+    built = []
+
+    def build(data, window, year, lock, progress):
+        with lock():
+            progress(1, 1)
+        built.append(year)
+        return date(year, 1, 1), date(year, 7, 1)
+
+    monkeypatch.setattr(modelmaps, "build", build)
+    monkeypatch.setattr(
+        "ops.management.commands.ingredients.GridStore.open", lambda *a, **k: SimpleNamespace(window=WINDOW)
+    )
+    out = StringIO()
+    call_command("ingredients", "--check", stdout=out)
+    assert "2025: not built" in out.getvalue() and "2024" not in out.getvalue()
+    call_command("ingredients", stdout=StringIO())
+    assert built == [2025]
+    call_command("ingredients", "--year", "2024", stdout=StringIO())
+    assert built == [2025, 2024]

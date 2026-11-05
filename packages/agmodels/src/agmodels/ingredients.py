@@ -26,6 +26,10 @@ from agmodels.accumulate import rolling_mean, rolling_sum, running_total
 from agmodels.names import CumulativeName, UnitSymbol
 
 DegreeDayMethod = Literal["sine", "average", "modified"]
+# The most days before its own any ingredient's value reads (30-day moving means and the day before), so the grid
+# reads that many days of weather before the first day it recomputes; a running minimum reaches further, and is
+# continued from the stored day before instead (`test_ingredients` checks every model against both)
+LOOKBACK_DAYS = 31
 Finish = Callable[..., dict[str, np.ndarray]]
 
 
@@ -52,6 +56,15 @@ class Ingredient:
     cumulative: CumulativeName | None = None
     # Kept once under this name for every model that declares it (the insects' freeze factor)
     shared: str = ""
+    # The days after its own a day's value reads (cotton's rain over the planting day and the two after: 2), so
+    # the grid recomputes that many days before the first day whose weather changed
+    ahead_days: int = 0
+    # Held at its lowest since January 1 (the insects' freeze factor): the grid continues it from the day before
+    # rather than recomputing the year
+    running_minimum: bool = False
+    # Of the code computing a shared ingredient: bump when its values change, so stores rebuild it (D29); an
+    # unshared one takes its model's version
+    version: int = 1
 
 
 @dataclass(frozen=True, kw_only=True)

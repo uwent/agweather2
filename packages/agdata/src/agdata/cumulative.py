@@ -2,7 +2,7 @@
 
 The year is rebuilt from the daily store whenever a day changes: totals are summed in float64 and each day
 rounded once on writing, so rounding never compounds. Degree days are cubes per threshold (single sine) plus
-corn's modified 50/86; a sine pair is the difference of its two thresholds' cubes.
+corn's modified 50/86 and two simple averages; a sine pair is the difference of its two thresholds' cubes.
 
 Gaps (D25): a day without a daily min or max temperature is estimated by linear interpolation of both across
 gaps of up to `MAX_BRIDGE_DAYS` days, with the year's neighbours on either side (the previous year's last days
@@ -17,12 +17,19 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, DD_MODIFIED_PAIRS_F, DD_SINE_THRESHOLDS_F, dd_name
+from agdata.catalog import (
+    CUMULATIVE_VARIABLES,
+    DAILY_VARIABLES,
+    DD_AVERAGE_SETTINGS_F,
+    DD_MODIFIED_PAIRS_F,
+    DD_SINE_THRESHOLDS_F,
+    dd_name,
+)
 from agdata.daily import rollup_days
 from agdata.grid import Window
 from agdata.qc import fill_short_gaps
 from agdata.store import CUMULATIVE, DAILY, GridStore, steps_in_year
-from agmodels.degree_days import degree_days_modified, degree_days_sine
+from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 
 MAX_BRIDGE_DAYS = 7
 BAND_CELL_DAYS = 3_000_000  # cells × days per band: about 300 bytes each at peak, so about 1 GB
@@ -88,6 +95,8 @@ def running_totals(
         out[dd_name("sine", t)] = _cumsum(degree_days_sine(lo_f, hi_f, t), usable)
     for base, upper in DD_MODIFIED_PAIRS_F:
         out[dd_name("modified", base, upper)] = _cumsum(degree_days_modified(lo_f, hi_f, base, upper), usable)
+    for base, upper in DD_AVERAGE_SETTINGS_F:
+        out[dd_name("average", base, upper)] = _cumsum(degree_days_average(lo_f, hi_f, base, upper), usable)
     out["temperature_estimated_days"] = np.cumsum(usable & ~known[year], axis=0, dtype=np.int16)
     out["temperature_missing_days"] = np.cumsum(~usable, axis=0, dtype=np.int16)
 
@@ -150,10 +159,16 @@ class _DailyYear:
             return None
 
 
-def update_days(data_dir: Path, window: Window, first: date, last: date) -> list[int]:
-    """Rolls up local days first..last and rebuilds every year whose running totals they reach (a year's first
-    and last days bridge into its neighbours); returns the years rebuilt."""
+def update_days(data_dir: Path, window: Window, first: date, last: date, ingredients: bool = True) -> list[int]:
+    """Rolls up local days first..last, rebuilds every year whose running totals they reach (a year's first and
+    last days bridge into its neighbours) and, unless `ingredients` is False (a backfill, which builds a year's at
+    its end), updates the models' ingredients they reach (`agdata.modelmaps`); returns the years rebuilt."""
+    from agdata import modelmaps  # it reads the model registry: import only when used
+
     rollup_days(data_dir, window, first, last)
     reach = timedelta(days=MAX_BRIDGE_DAYS)
     years = list(range((first - reach).year, (last + reach).year + 1))
-    return [year for year in years if rebuild_year(data_dir, window, year, changed_from=first) is not None]
+    rebuilt = [year for year in years if rebuild_year(data_dir, window, year, changed_from=first) is not None]
+    if ingredients:
+        modelmaps.update(data_dir, window, first, last)
+    return rebuilt

@@ -6,9 +6,10 @@ A year's fill is the TODO recipe it replaces, in one process:
 1. its URMA/RTMA/HRRR hours (`ops.backfill`: the next block downloads while this one is written);
 2. its December 31, which needs the next year's first UTC hours (in already, going backwards);
 3. its ERA5-Land soil and snow, a month per CDS request (`ops.era5land.backfill_era5land`);
-4. its copy laid out for points (`agdata.pastyears`, the projection's).
+4. its copy laid out for points (`agdata.pastyears`, the projection's);
+5. the models' ingredients (`agdata.modelmaps`, Phase 5 F).
 
-Steps 3 and 4 run in a second thread while the main thread starts the next year's hours, so the CDS's queue (about
+Steps 3 to 5 run in a second thread while the main thread starts the next year's hours, so the CDS's queue (about
 an hour a year) overlaps the downloads rather than adding to them. The two threads share the write lock like any
 two writers, politely.
 """
@@ -25,7 +26,7 @@ from pathlib import Path
 import numpy as np
 import zarr
 
-from agdata import pastyears
+from agdata import modelmaps, pastyears
 from agdata.cumulative import update_days
 from agdata.grid import Window
 from agdata.ingest import SOIL
@@ -227,6 +228,16 @@ def fill(
                 stopping=stopping,
                 label=f"ERA5-Land {plan.year}",
             )
+        if not stopping.is_set() and modelmaps.status(data_dir, plan.year) is not None:
+            began = time.monotonic()
+            modelmaps.build(
+                data_dir,
+                window,
+                plan.year,
+                lock=lambda: lock(polite=True),
+                progress=lambda done, n: report.progress(f"ingredients {plan.year}", done, n),
+            )
+            report.step(f"{plan.year}: models' ingredients built in {time.monotonic() - began:.0f} s")
         if past and not stopping.is_set():
             # Rolling up December 31 rewrote the next year's daily store too: its copy may be out of date now
             following = plan.year + 1
@@ -280,7 +291,7 @@ def fill(
                 break
             if plan.end == date(plan.year + 1, 1, 1) and HOURLY.path(data_dir, plan.year + 1).exists():
                 with lock(polite=True):  # December 31 runs into the next year's first UTC hours
-                    update_days(data_dir, window, date(plan.year, 12, 31), date(plan.year, 12, 31))
+                    update_days(data_dir, window, date(plan.year, 12, 31), date(plan.year, 12, 31), ingredients=False)
                 report.detail(f"{plan.year}: rolled up December 31")
             report.step(f"{plan.year}: hours in" + (" (soil and past years next, alongside)" if overlap else ""))
             later.put(plan)

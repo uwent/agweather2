@@ -29,6 +29,7 @@ bin/types                        # after changing any props.py; commit frontend/
 uv run app/manage.py migrate     # or any other manage.py command
 bin/agwx                         # the data dashboard (= `uv run app/manage.py` with no command, on a terminal)
 bin/agwx archive                 # each year of the archive, the lock and the runs, as text; `archive fill --from 2016`
+uv run app/manage.py ingredients # build the models' ingredients (agdata.modelmaps) for years missing or stale; --check
 ```
 
 Setup and the rest are in `DEVELOPMENT.md`.
@@ -122,6 +123,7 @@ Working here:
 
 - **Propose a plan before building a new feature** unless it's a simple change: the design, the data model and any choices to make, then wait for Ben's go-ahead before implementing.
 - **Size a plan, don't time it** (Ben, 2026-11-03): with each plan, estimate its complexity (S/M/L, as the phases are sized), how much existing code has to change, the risks, and the alternatives worth weighing. No hours or days for building: Claude's time isn't the constraint, and human-developer estimates are off by about 10×. Give clock time only for waiting outside the session (backfills, the CDS queue, outside parties).
+- **End-of-phase review** (Ben, 2026-11-04): before a major phase's exit gate passes, review what the phase built, so the next one starts buttoned up: (1) a code review for bugs, performance and refactoring (duplication, dead code, modules that grew past their purpose); (2) a documentation check (PLAN.md's notes and decisions, `docs/`, CLAUDE.md's gotchas and commands, docstrings) against what the code does now; (3) a test suite review (gaps, slow or redundant tests, fixtures, the suite's run time). Record the findings and fixes under the phase in PLAN.md (Phase 4's "Code review" is the model); fixes land before the phase is marked done, or are moved to a named later step in writing.
 - Things only Ben can do go in `TODO.md` under the current phase, with the exact commands.
 - `tmp/herbie`, `tmp/urma`: downloaded GRIB for exploring; the fixture makers in `packages/agdata/tests/fixtures/make_*.py` rebuild the committed fixtures.
 - **Checking CI on GitHub:** filter by workflow (`gh run list --workflow CI`, `gh run watch <id>`). GitHub's "Dependency Graph" runs on every push too, and the newest run is often that one.

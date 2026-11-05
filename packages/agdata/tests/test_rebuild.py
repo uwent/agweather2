@@ -20,14 +20,15 @@ def test_a_feature_from_older_code_is_found_and_recomputed(tmp_path):
         source="test",
     )
     rollup_days(tmp_path, WINDOW, date(2025, 7, 2), date(2025, 7, 3))
-    assert find_stale(tmp_path).stale == {}
+    # Rolled up directly, without the models' ingredients (the rollup hook's): reported until built
+    assert find_stale(tmp_path).stale == {"ingredients/2025": ["(not built)"]}
 
     # Older code wrote a wrong value and its version
     daily = GridStore.open(tmp_path, DAILY, 2025, DAILY_VARIABLES.values())
     t = daily.index_of(date(2025, 7, 2))
     daily.write(date(2025, 7, 2), {"hours_rh_over_90": np.zeros((2, *WINDOW.shape))}, source="derived")
     daily._array("hours_rh_over_90").attrs["version"] = 0
-    assert find_stale(tmp_path).stale == {"daily/2025": ["hours_rh_over_90"]}
+    assert find_stale(tmp_path).stale == {"daily/2025": ["hours_rh_over_90"], "ingredients/2025": ["(not built)"]}
 
     assert rebuild_stale(tmp_path, WINDOW, log=lambda line: None).stale == {}
     daily = GridStore.open(tmp_path, DAILY, 2025, DAILY_VARIABLES.values())

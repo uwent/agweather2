@@ -158,6 +158,7 @@ class Dashboard(App):
         Binding("e", "era5land", "ERA5-Land range"),
         Binding("r", "rebuild", "Rebuild stale"),
         Binding("p", "pastyears", "Past years"),
+        Binding("i", "ingredients", "Ingredients"),
         Binding("s", "stop", "Stop run"),
         Binding("c", "clear", "Clear finished"),
         Binding("tab", "focus_next", "Next section", show=True),
@@ -531,6 +532,12 @@ class Dashboard(App):
         self.push_screen(
             Confirm("Build the past-years copies that are missing or out of date (pastyears)?"),
             lambda yes: self.launch(["pastyears"] if yes else None),
+        )
+
+    def action_ingredients(self) -> None:
+        self.push_screen(
+            Confirm("Build the models' ingredients that are missing, stale or behind (ingredients)?"),
+            lambda yes: self.launch(["ingredients"] if yes else None),
         )
 
     def action_clear(self) -> None:

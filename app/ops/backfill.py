@@ -190,7 +190,7 @@ def roll_up(data_dir: Path, window: Window, block_start: datetime, hours: int, f
     day1 = (block_start + timedelta(hours=hours) - timedelta(days=2)).date()
     if day1 < day0 or (not force and rolled_up(data_dir, window, day0, day1)):
         return None
-    years = update_days(data_dir, window, day0, day1)
+    years = update_days(data_dir, window, day0, day1, ingredients=False)  # built per year at its end
     return f"{day0} to {day1} and the running totals of {years}"
 
 

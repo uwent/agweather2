@@ -201,13 +201,14 @@ class InsectModel:
                     unit="degF_day",
                     degree_days=DegreeDays(method=insect.dd_method, base_f=insect.base_f, upper_f=insect.upper_f),
                 ),
-                Ingredient(name=self.FREEZE, unit="index", shared=self.FREEZE),
+                Ingredient(name=self.FREEZE, unit="index", shared=self.FREEZE, running_minimum=self.HELD),
             ),
             accumulations=(Accumulation(name="dd_total", of="dd"),),
         )
 
     # The shared freeze ingredient: the days in the last 14 at or below −2 °C after day 250 (the legacy reduction)
     FREEZE = "insect_freeze_reduction"
+    HELD = False
 
     def _explored(self) -> tuple[Quantity, ...]:
         return (Quantity(name="severity", label="Severity", unit="index"),)
@@ -293,6 +294,7 @@ class PhenologyModel(InsectModel):
 
     # The shared freeze ingredient: 1 until fall freezes, then the share left, held at its lowest that year
     FREEZE = "insect_freeze_factor"
+    HELD = True
 
     def _freeze(self, inputs: Mapping[str, np.ndarray], dd: np.ndarray) -> np.ndarray:
         if "day_of_year" not in inputs:
