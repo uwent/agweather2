@@ -63,61 +63,8 @@ def rollup_days(data_dir: Path, window: Window, first: date, last: date) -> int:
     for days in _passes(first, last):
         store = open_or_create_daily(data_dir, days[0].year, window)
         zones, zone_index = cell_timezones(store)
-        # Per day, the zones grouped by their (first, last) hour ends, for calendar days and days from 8 pm
-        groups = _group_zones(days, zones, day_bounds)
-        evenings = _group_zones(days, zones, from_8pm_bounds)
-        span_start = min(b[0] for g in groups for b in g)
-        span_stop = max(b[1] for g in groups for b in g) + HOUR
-        feature_start = min(span_start, *(b[0] for g in evenings for b in g))
-
         has_value: dict[str, np.ndarray] = {}
-        for band in _bands(window):
-            y0, _ = window.local(band.j0, band.i0)
-            band_zones = zone_index[y0 : y0 + band.shape[0]]
-            day_zones = _DayZones(groups, band_zones, zones)
-            out: dict[str, np.ndarray] = {}
-            for name in VARIABLES:
-                stats = [s for s in DAILY_STATISTICS.values() if s.hourly == name]
-                if stats:
-                    hours = hourly.read(name, span_start, span_stop, band)
-                    for s in stats:
-                        out[s.variable.name] = day_zones.each_day(hours, span_start, s)
-            out["et0_sum_estimate"] = np.full_like(out["et0_sum"], np.nan)
-            short = np.flatnonzero(np.isnan(out["et0_sum"]).any(axis=(1, 2)))
-            if short.size:
-                # Only over the days missing some ET0, with context: the estimate's arrays are many times the hours'
-                d0, d1 = int(short[0]), int(short[-1]) + 1
-                some = _DayZones(groups[d0:d1], day_zones.zone_index, zones)
-                start = min(b[0] for g in some.groups for b in g) - ESTIMATE_CONTEXT
-                stop = max(b[1] for g in some.groups for b in g) + HOUR + ESTIMATE_CONTEXT
-                et0 = _estimated_et0_hours(hourly, start, stop, band)
-                estimate = some.each_day(et0, start, DAILY_STATISTICS["et0_sum"])
-                out["et0_sum_estimate"][d0:d1] = np.where(np.isnan(out["et0_sum"][d0:d1]), estimate, np.nan)
-            temperature = hourly.read("air_temperature", feature_start, span_stop, band)
-            dew_point = hourly.read("dew_point", feature_start, span_stop, band)
-            hours = {
-                "temperature": temperature,
-                "dew_point": dew_point,
-                "rh": relative_humidity_percent(temperature, dew_point),
-                "soil_4cm": hourly.read("soil_temperature_4cm", feature_start, span_stop, band),
-                "soil_10cm": hourly.read("soil_temperature_10cm", feature_start, span_stop, band),
-                "soil_30cm": hourly.read("soil_temperature_30cm", feature_start, span_stop, band),
-            }
-            out |= day_zones.each_window(
-                hours,
-                feature_start,
-                lambda h, _: (
-                    features.calendar_features(h["temperature"], h["rh"], h["dew_point"])
-                    | features.soil_features(h["soil_4cm"], h["soil_10cm"], h["soil_30cm"])
-                ),
-            )
-            out |= _DayZones(evenings, band_zones, zones).each_window(
-                hours,
-                feature_start,
-                lambda h, local_hour: features.from_8pm_features(
-                    h["temperature"], h["rh"], features.is_night(local_hour)
-                ),
-            )
+        for band, out in _rolled(hourly, window, days, zones, zone_index):
             store.write(days[0], out, source=None, window=band)
             for name, values in out.items():
                 some = np.isfinite(values).any(axis=(1, 2))
@@ -126,6 +73,83 @@ def rollup_days(data_dir: Path, window: Window, first: date, last: date) -> int:
             store.set_sources(name, days[0], ["derived" if x else None for x in some])
         written += len(days)
     return written
+
+
+def days_from_hours(
+    data_dir: Path, window: Window, first: date, last: date, zones: list[str], zone_index: np.ndarray
+) -> dict[str, np.ndarray]:
+    """Every daily variable for local days first..last over `window`, rolled up from `data_dir`'s hourly stores as
+    `rollup_days` does, without writing anything: a read of a stale variable (D29) computes it this way.
+    `zones` and `zone_index` are the daily store's (`cell_timezones`), over `window`."""
+    hourly = _HourlyReader(data_dir)
+    out: dict[str, np.ndarray] = {}
+    offset = 0
+    for days in _passes(first, last):
+        for band, values in _rolled(hourly, window, days, zones, zone_index):
+            y0 = band.j0 - window.j0
+            for name, v in values.items():
+                target = out.setdefault(name, np.full(((last - first).days + 1, *window.shape), np.nan, np.float32))
+                target[offset : offset + len(days), y0 : y0 + band.shape[0]] = v
+        offset += len(days)
+    return out
+
+
+def _rolled(
+    hourly: "_HourlyReader", window: Window, days: list[date], zones: list[str], zone_index: np.ndarray
+) -> Iterator[tuple[Window, dict[str, np.ndarray]]]:
+    """Each band of the window and its days' daily variables, (days, rows, columns)."""
+    # Per day, the zones grouped by their (first, last) hour ends, for calendar days and days from 8 pm
+    groups = _group_zones(days, zones, day_bounds)
+    evenings = _group_zones(days, zones, from_8pm_bounds)
+    span_start = min(b[0] for g in groups for b in g)
+    span_stop = max(b[1] for g in groups for b in g) + HOUR
+    feature_start = min(span_start, *(b[0] for g in evenings for b in g))
+    for band in _bands(window):
+        y0, _ = window.local(band.j0, band.i0)
+        band_zones = zone_index[y0 : y0 + band.shape[0]]
+        day_zones = _DayZones(groups, band_zones, zones)
+        out: dict[str, np.ndarray] = {}
+        for name in VARIABLES:
+            stats = [s for s in DAILY_STATISTICS.values() if s.hourly == name]
+            if stats:
+                hours = hourly.read(name, span_start, span_stop, band)
+                for s in stats:
+                    out[s.variable.name] = day_zones.each_day(hours, span_start, s)
+        out["et0_sum_estimate"] = np.full_like(out["et0_sum"], np.nan)
+        short = np.flatnonzero(np.isnan(out["et0_sum"]).any(axis=(1, 2)))
+        if short.size:
+            # Only over the days missing some ET0, with context: the estimate's arrays are many times the hours'
+            d0, d1 = int(short[0]), int(short[-1]) + 1
+            some = _DayZones(groups[d0:d1], day_zones.zone_index, zones)
+            start = min(b[0] for g in some.groups for b in g) - ESTIMATE_CONTEXT
+            stop = max(b[1] for g in some.groups for b in g) + HOUR + ESTIMATE_CONTEXT
+            et0 = _estimated_et0_hours(hourly, start, stop, band)
+            estimate = some.each_day(et0, start, DAILY_STATISTICS["et0_sum"])
+            out["et0_sum_estimate"][d0:d1] = np.where(np.isnan(out["et0_sum"][d0:d1]), estimate, np.nan)
+        temperature = hourly.read("air_temperature", feature_start, span_stop, band)
+        dew_point = hourly.read("dew_point", feature_start, span_stop, band)
+        hours = {
+            "temperature": temperature,
+            "dew_point": dew_point,
+            "rh": relative_humidity_percent(temperature, dew_point),
+            "soil_4cm": hourly.read("soil_temperature_4cm", feature_start, span_stop, band),
+            "soil_10cm": hourly.read("soil_temperature_10cm", feature_start, span_stop, band),
+            "soil_30cm": hourly.read("soil_temperature_30cm", feature_start, span_stop, band),
+        }
+        out |= day_zones.each_window(
+            hours,
+            feature_start,
+            lambda h, _: (
+                features.calendar_features(h["temperature"], h["rh"], h["dew_point"])
+                | features.soil_features(h["soil_4cm"], h["soil_10cm"], h["soil_30cm"])
+            ),
+        )
+        out |= _DayZones(evenings, band_zones, zones).each_window(
+            hours,
+            feature_start,
+            lambda h, local_hour: features.from_8pm_features(h["temperature"], h["rh"], features.is_night(local_hour)),
+        )
+        yield band, out
 
 
 Bounds = Callable[[date, str], tuple[datetime, datetime]]

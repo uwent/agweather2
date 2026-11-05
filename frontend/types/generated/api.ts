@@ -114,6 +114,67 @@ export interface ForecastStatus {
   reason: string | null
 }
 /**
+ * When, where and how: a layer's step or range, its area, and the grid it's given on.
+ */
+export interface GridQuery {
+  /**
+   * One day (YYYY-MM-DD) for a daily layer; default the last observed day
+   */
+  date?: string | null
+  /**
+   * One hour (ISO, UTC unless a zone is given) for an hourly layer; default the last observed
+   */
+  time?: string | null
+  /**
+   * First day (or hour) of a range, inclusive
+   */
+  start?: string | null
+  /**
+   * Last day (or hour) of a range, inclusive; default the last observed
+   */
+  end?: string | null
+  /**
+   * Reduce the range to one map; without it, each step is returned
+   */
+  stat?: ('sum' | 'mean' | 'min' | 'max') | null
+  /**
+   * south,west,north,east in degrees; default the whole service box
+   */
+  bbox?: string | null
+  /**
+   * A state (wisconsin, WI) or county (FIPS code, 55025): only its cells are returned
+   */
+  region?: string | null
+  /**
+   * Every nth cell in each direction (native grid only)
+   */
+  stride?: number
+  /**
+   * native: NDFD's 2.5 km Lambert cells; latlon: a regular grid every `res` degrees
+   */
+  grid?: 'native' | 'latlon'
+  /**
+   * latlon: the step in degrees, at least 0.025
+   */
+  res?: number | null
+  /**
+   * latlon: the cell under each point, or the mean of the cells within ±res/2 (default: mean from 0.05°, nearest below)
+   */
+  method?: ('nearest' | 'mean') | null
+  /**
+   * JSON and CSV: add each cell's j and i on the native grid
+   */
+  cells?: boolean
+  /**
+   * degree_days: the setting, method_base[_upper] (sine_50_86)
+   */
+  dd?: string | null
+  /**
+   * stat=sum and degree days: bridge gaps up to 7 days with a flagged estimate, or not
+   */
+  gaps?: 'estimate' | 'missing'
+}
+/**
  * Hours by their UTC end, `start` to `end` inclusive: ISO times on the hour, with a zone (`Z`, `-05:00`) or
  * taken as UTC; a bare date means its 00Z. Defaults are the endpoint's (`span`).
  */
@@ -135,28 +196,29 @@ export interface InputInfo {
   description: string
   model: string
 }
-export interface LocateData {
-  lat: number
-  lng: number
-  cell: Cell | null
-  in_box: boolean
-  timezone: string | null
-  county: string | null
-  state: string | null
-  corners: number[][] | null
-  planting: PlantingInfo[]
+export interface LayerInfo {
+  id: string
+  name: string
+  group: 'weather' | 'running_total' | 'degree_days'
+  time_axis: 'day' | 'hour' | 'day_of_year'
+  variable: string | null
+  unit: string
+  units: DisplayUnits
+  precision: number
+  palette: string
+  stats: string[]
+  parameters: string[]
+  range: LayerRange
+  description: string
 }
-export interface PlantingInfo {
-  crop: string
-  early: string
-  typical: string
-  late: string
-  level: string
-  source: string
+export interface LayerRange {
+  first: string | null
+  last: string | null
+  forecast_through: string | null
 }
-export interface LocateResponse {
+export interface LayersResponse {
   meta: Meta
-  data: LocateData
+  data: LayerInfo[]
 }
 export interface Meta {
   request: {
@@ -185,6 +247,29 @@ export interface Location {
   timezone: string | null
   county: string | null
   state: string | null
+}
+export interface LocateData {
+  lat: number
+  lng: number
+  cell: Cell | null
+  in_box: boolean
+  timezone: string | null
+  county: string | null
+  state: string | null
+  corners: number[][] | null
+  planting: PlantingInfo[]
+}
+export interface PlantingInfo {
+  crop: string
+  early: string
+  typical: string
+  late: string
+  level: string
+  source: string
+}
+export interface LocateResponse {
+  meta: Meta
+  data: LocateData
 }
 export interface ModelDetail {
   id: string

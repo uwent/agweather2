@@ -1,12 +1,14 @@
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 
 import numpy as np
 import pytest
 
 from agdata import forecast, series
-from agdata.catalog import VARIABLES
+from agdata.catalog import DAILY_VARIABLES, VARIABLES
 from agdata.cumulative import update_days
-from agdata.store import HOURLY, GridStore
+from agdata.daily import cell_timezones, days_from_hours
+from agdata.store import CUMULATIVE, DAILY, HOURLY, GridStore
 
 HOUR = timedelta(hours=1)
 CYCLE = datetime(2025, 7, 10, 13, tzinfo=UTC)
@@ -230,3 +232,84 @@ def test_the_written_stamp_changes_only_when_the_days_read_are_rewritten(tmp_pat
     late = stamp(date(2025, 7, 14), date(2025, 7, 16))
     update_days(tmp_path, fx.window, date(2025, 7, 15), date(2025, 7, 15))  # the totals from July 15 on
     assert stamp(date(2025, 7, 14), date(2025, 7, 16)) != late
+
+
+# --- Range reads for maps (Phase 5 E) ------------------------------------------------------------------------------
+
+
+def test_a_range_of_map_days_matches_each_day_read_alone(world, fx_module):
+    window = fx_module.window
+    first, last = date(2025, 7, 8), date(2025, 7, 20)
+    found = series.grid_days(world, DAILY, "air_temperature_max", first, last, window, now=NOW)
+    for k, day in enumerate(found.steps):
+        values, kind = series.grid_day(world, "air_temperature_max", day, window, now=NOW)
+        assert found.kinds[k] == kind, day
+        np.testing.assert_array_equal(found.values[k], values)
+    assert found.kinds[:2] == ["observed", "observed"] and found.kinds[2] == "partial"
+    assert found.run_from == 2 and not found.stale.any()
+    assert "urma" in found.sources and "nbm" in found.sources
+
+
+def test_map_kinds_alone_read_nothing(world, fx_module):
+    found = series.grid_days(
+        world, DAILY, "air_temperature_max", date(2025, 7, 8), date(2025, 7, 12), fx_module.window, now=NOW, read=False
+    )
+    assert np.isnan(found.values).all() and found.kinds[:3] == ["observed", "observed", "partial"]
+
+
+def test_a_range_of_running_totals_switches_to_the_run(world, fx_module):
+    found = series.grid_days(
+        world, CUMULATIVE, "dd_sine_50", date(2025, 7, 8), date(2025, 7, 14), fx_module.window, now=NOW
+    )
+    for k, day in enumerate(found.steps):
+        total, kind = series.grid_total(world, "dd_sine_50", day, fx_module.window, now=NOW)
+        assert found.kinds[k] == kind
+        np.testing.assert_array_equal(found.values[k], total)
+
+
+def test_map_hours_match_a_point_hour_by_hour(world, fx_module):
+    start, end = CYCLE - 3 * HOUR, CYCLE + 6 * HOUR
+    found = series.grid_hours(world, "air_temperature", start, end, fx_module.window, now=NOW)
+    frame = series.point_hours(world, *CELL, start, end, ["air_temperature"], now=NOW)
+    y, x = fx_module.window.local(*CELL)
+    np.testing.assert_allclose(found.values[:, y, x], frame.values["air_temperature"], rtol=1e-6)
+    assert found.kinds == frame.kinds
+    assert found.kinds[0] == "observed" and found.kinds[-1] == "forecast"
+
+
+def test_a_stale_daily_variable_is_flagged(world, fx_module, monkeypatch):
+    newer = replace(DAILY_VARIABLES["air_temperature_max"], version=DAILY_VARIABLES["air_temperature_max"].version + 1)
+    monkeypatch.setitem(DAILY_VARIABLES, "air_temperature_max", newer)
+    found = series.grid_days(
+        world, DAILY, "air_temperature_max", date(2025, 7, 8), date(2025, 7, 9), fx_module.window, now=NOW
+    )
+    assert found.stale.all()
+
+
+def test_days_from_hours_are_the_rollups_days(world, fx_module):
+    store = GridStore.open(world, DAILY, 2025, DAILY_VARIABLES.values())
+    zones, index = cell_timezones(store)
+    computed = days_from_hours(world, fx_module.window, date(2025, 7, 5), date(2025, 7, 6), zones, index)
+    for name in ("air_temperature_max", "precipitation_sum", "hours_rh_over_90"):
+        t = store.index_of(date(2025, 7, 5))
+        np.testing.assert_allclose(computed[name], store.read_steps(name, t, t + 2), atol=store_step(name))
+
+
+def store_step(name: str) -> float:
+    return DAILY_VARIABLES[name].scale / 2 + 1e-6
+
+
+def test_the_stamp_takes_a_range_from_january_first(tmp_path, fx):
+    fx.archive(tmp_path, datetime(2024, 12, 20, tzinfo=UTC), datetime(2025, 1, 10, tzinfo=UTC))
+    now = datetime(2025, 1, 11, tzinfo=UTC)
+    stamp = series.last_written(tmp_path, date(2025, 1, 1), date(2025, 1, 5), totals=["dd_sine_50"], now=now)
+    assert not stamp.startswith("None")
+    daily = series.last_written(
+        tmp_path, date(2025, 1, 1), date(2025, 1, 5), daily=["air_temperature_max"], hourly=[], now=now
+    )
+    assert not daily.startswith("None") and daily != stamp
+
+
+def test_the_last_closed_day_is_closed_in_the_westernmost_zone():
+    assert series.last_closed_day(datetime(2026, 7, 2, 8, tzinfo=UTC)) == date(2026, 7, 1)
+    assert series.last_closed_day(datetime(2026, 7, 2, 7, tzinfo=UTC)) == date(2026, 6, 30)

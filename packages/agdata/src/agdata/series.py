@@ -219,31 +219,47 @@ def source_order(sources) -> tuple[str, ...]:
     return tuple(sorted(sources, key=lambda name: SOURCES.get(name, 99)))
 
 
-def last_written(data_dir: Path, first: date, last: date, totals=(), now: datetime | None = None) -> str:
+def last_written(
+    data_dir: Path,
+    first: date,
+    last: date,
+    totals=(),
+    now: datetime | None = None,
+    daily=(),
+    hourly: Sequence[str] | None = None,
+) -> str:
     """A stamp that changes whenever `point_days(first..last, totals=…)` at a cell can answer differently for the same
     `now`, at any cell: the latest write time of the hours it reads (archive and forecast run) and of its running
     totals, and which run it takes the forecast from (a run going stale ends the series without any write). Write
     times are kept per step, not per cell, so a write anywhere in the window counts. Cheap next to the read itself:
-    one small array per variable and year."""
+    one small array per variable and year. `daily` adds daily-store variables (a map reads them, and a rebuild of
+    a stale variable writes them without writing any hour). `hourly` limits the hours stamped to those variables
+    (default every one): a map of a daily variable needs none, since its daily store is written after its hours,
+    and opening a store for all 16 hourly variables is most of a small map's time."""
     run = current_forecast(data_dir, now)
     stamps: list[float] = []
     start = _midnight(first - timedelta(days=1))
     end = _midnight(last + timedelta(days=1)) + timedelta(hours=8)
-    stores = Stores([*VARIABLES, *totals])
+    hourly_names = list(VARIABLES) if hourly is None else list(hourly)
+    stores = Stores([*hourly_names, *totals, *daily])
     for path in (data_dir, run.path):
         if path is None:
             continue
         for year in range(start.year, end.year + 1):
-            hourly = stores.get(path, HOURLY, year)
-            if hourly is not None:
+            hours = stores.get(path, HOURLY, year) if hourly_names else None
+            if hours is not None:
                 lo = max(start, datetime(year, 1, 1, tzinfo=UTC))
                 hi = min(end, datetime(year, 12, 31, 23, tzinfo=UTC))
-                t0, t1 = hourly.index_of(lo), hourly.index_of(hi) + 1
-                stamps += [s for name in VARIABLES if (s := hourly.written(name, t0, t1)) is not None]
-            if totals and (cumulative := stores.get(path, CUMULATIVE, year)) is not None:
-                d0 = cumulative.index_of(max(first, date(year, 1, 1)))
-                d1 = cumulative.index_of(min(last, date(year, 12, 31))) + 1
-                stamps += [s for name in totals if (s := cumulative.written(name, d0, d1)) is not None]
+                t0, t1 = hours.index_of(lo), hours.index_of(hi) + 1
+                stamps += [s for name in hourly_names if (s := hours.written(name, t0, t1)) is not None]
+            # Days are stamped only in the years first..last reach (the hours above start the evening before)
+            lo, hi = max(first, date(year, 1, 1)), min(last, date(year, 12, 31))
+            if lo > hi:
+                continue
+            for layout, names in ((CUMULATIVE, totals), (DAILY, daily)):
+                if names and (days := stores.get(path, layout, year)) is not None:
+                    d0, d1 = days.index_of(lo), days.index_of(hi) + 1
+                    stamps += [s for name in names if (s := days.written(name, d0, d1)) is not None]
     latest = max(stamps) if stamps else None
     cycle = run.cycle.isoformat() if run.cycle is not None and run.path is not None else run.reason
     return f"{latest}:{cycle}"
@@ -285,6 +301,169 @@ def grid_total(
 ) -> tuple[np.ndarray, str | None]:
     """A running total over the window on one date, and its kind, as `grid_day`."""
     return _grid(data_dir, CUMULATIVE, name, day, window, now)
+
+
+@dataclass(kw_only=True)
+class GridSteps:
+    """A run of steps (days or hours) of one variable over a window: values (steps, y, x), each step's kind (as
+    `grid_day`'s), the steps read from a store whose variable is stale (D29: another version of its code wrote
+    them), and the hourly sources behind them (store order)."""
+
+    steps: list
+    values: np.ndarray
+    kinds: list[str | None]
+    stale: np.ndarray
+    sources: tuple[str, ...]
+    forecast: Forecast
+    run_from: int  # the first step read from the forecast run (len(steps) if none)
+
+
+def grid_days(
+    data_dir: Path,
+    layout: StoreLayout,
+    name: str,
+    first: date,
+    last: date,
+    window: Window,
+    now: datetime | None = None,
+    stores: "Stores | None" = None,
+    read: bool = True,
+) -> GridSteps:
+    """Days first..last of a daily variable or running total over the window, as `grid_day` reads one day: the
+    archive's while the day is observed everywhere in the box, the run's after. One read per year and store;
+    `read=False` gives the kinds alone (values all missing)."""
+    run = current_forecast(data_dir, now)
+    stores = stores or Stores([name, *hourly_needed([name])])
+    n = (last - first).days + 1
+    dates = [first + timedelta(days=k) for k in range(n)]
+    observed_until = _last_observed(data_dir, run, _midnight(last + timedelta(days=2)), now, stores)
+    closed = 0  # observed once the westernmost zone has closed the day (the lower 48 are UTC−4 to −8)
+    if observed_until is not None:
+        closed = sum(_midnight(d + timedelta(days=1)) + timedelta(hours=8) <= observed_until for d in dates)
+    cut = closed if run.path is not None else n  # without a run, the archive's values with no kind
+    values = np.full((n, *window.shape), np.nan, dtype=np.float32)
+    stale = np.zeros(n, dtype=bool)
+    kinds: list[str | None] = [None] * n
+    for path, k0, k1 in ((data_dir, 0, cut), (run.path, cut, n)):
+        if path is None or k0 >= k1:
+            continue
+        for year, a, b in _year_runs(dates, k0, k1):
+            store = stores.get(path, layout, year)
+            if store is None:
+                continue
+            if read:
+                t0 = store.index_of(dates[a])
+                values[a:b] = store.read_steps(name, t0, t0 + b - a, window)
+            stale[a:b] = name in store.stale
+            if path == data_dir:
+                kinds[a : min(b, closed)] = [OBSERVED] * max(0, min(b, closed) - a)
+    if run.path is not None and observed_until is not None:
+        for k in range(cut, n):
+            if run.last_hour is not None and dates[k] > run.last_hour.date():
+                continue
+            started = _midnight(dates[k]) + timedelta(hours=5) <= observed_until  # the easternmost zone's day began
+            kinds[k] = PARTIAL if started else FORECAST
+    if read:  # a day with no value anywhere has nothing to show (the run's last, incomplete day)
+        kinds = [None if np.isnan(values[k]).all() else kind for k, kind in enumerate(kinds)]
+    start, end = _midnight(first - timedelta(days=1)), _midnight(last + timedelta(days=1)) + timedelta(hours=8)
+    sources = _grid_sources(stores, data_dir, run, hourly_needed([name]), start, end, observed_until)
+    return GridSteps(steps=dates, values=values, kinds=kinds, stale=stale, sources=sources, forecast=run, run_from=cut)
+
+
+def grid_hours(
+    data_dir: Path,
+    name: str,
+    start: datetime,
+    end: datetime,
+    window: Window,
+    now: datetime | None = None,
+    stores: "Stores | None" = None,
+) -> GridSteps:
+    """Hours ending start..end (UTC, inclusive) of an hourly variable over the window: the archive's through its last
+    observed hour, then the run's, as `point_hours`."""
+    run = current_forecast(data_dir, now)
+    stores = stores or Stores([name])
+    times = [start + k * HOUR for k in range((end - start) // HOUR + 1)]
+    n = len(times)
+    observed_until = _last_observed(data_dir, run, end, now, stores)
+    cut = 0 if observed_until is None else max(0, min(n, (observed_until - start) // HOUR + 1))
+    values = np.full((n, *window.shape), np.nan, dtype=np.float32)
+    kinds: list[str | None] = [None] * n
+    for path, k0, k1 in ((data_dir, 0, cut), (run.path, cut, n)):
+        if path is None or k0 >= k1:
+            continue
+        for year, a, b in _year_runs(times, k0, k1):
+            store = stores.get(path, HOURLY, year)
+            if store is None:
+                continue
+            t0 = store.index_of(times[a])
+            values[a:b] = store.read_steps(name, t0, t0 + b - a, window)
+            if path == data_dir:
+                kinds[a:b] = [OBSERVED] * (b - a)
+            else:
+                kinds[a:b] = [
+                    FORECAST if run.last_hour is not None and t <= run.last_hour else None for t in times[a:b]
+                ]
+    sources = _grid_sources(stores, data_dir, run, [name], start, end, observed_until)
+    return GridSteps(
+        steps=times,
+        values=values,
+        kinds=kinds,
+        stale=np.zeros(n, dtype=bool),
+        sources=sources,
+        forecast=run,
+        run_from=cut,
+    )
+
+
+def last_observed(data_dir: Path, now: datetime | None = None) -> datetime | None:
+    """The archive's last observed hour (its end, UTC), or the current run's stitch if the archive has none."""
+    return _last_observed(data_dir, current_forecast(data_dir, now), now or datetime.now(UTC), now)
+
+
+def last_closed_day(observed_until: datetime) -> date:
+    """The last day observed everywhere in the box (`grid_days`' rule: the westernmost zone has closed it)."""
+    return (observed_until - timedelta(hours=8)).date() - timedelta(days=1)
+
+
+def _year_runs(steps: list, k0: int, k1: int):
+    """(year, a, b): steps[a:b] within k0..k1 that fall in one year."""
+    a = k0
+    while a < k1:
+        year = steps[a].year
+        b = a
+        while b < k1 and steps[b].year == year:
+            b += 1
+        yield year, a, b
+        a = b
+
+
+def _grid_sources(
+    stores: "Stores",
+    data_dir: Path,
+    run: Forecast,
+    hourly: list[str],
+    start: datetime,
+    end: datetime,
+    observed_until: datetime | None,
+) -> tuple[str, ...]:
+    """The sources of the hours behind a grid read: the archive's through its last observed hour, the run's after."""
+    seen: set[str] = set()
+    cut = observed_until if observed_until is not None else start - HOUR
+    for path, lo, hi in ((data_dir, start, min(end, cut)), (run.path, max(start, cut + HOUR), end)):
+        if path is None or lo > hi:
+            continue
+        for year in range(lo.year, hi.year + 1):
+            store = stores.get(path, HOURLY, year)
+            if store is None:
+                continue
+            a = max(lo, datetime(year, 1, 1, tzinfo=UTC))
+            b = min(hi, datetime(year, 12, 31, 23, tzinfo=UTC))
+            if a > b:
+                continue
+            t0, t1 = store.index_of(a), store.index_of(b) + 1
+            seen |= {s for name in hourly for s in store.sources(name, t0, t1) if s is not None}
+    return source_order(seen)
 
 
 def cell_zone(data_dir: Path, j: int, i: int, years, stores: "Stores | None" = None) -> str:

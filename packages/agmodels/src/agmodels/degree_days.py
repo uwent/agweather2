@@ -46,13 +46,17 @@ def degree_days_modified(min_temp, max_temp, base, upper=None):
 
 def _sine_above(min_temp, max_temp, threshold):
     """Area of the day's sine above `threshold`, in degree days (no upper cutoff)."""
-    lo, hi = _arrays(min_temp, max_temp)
+    lo, hi = np.broadcast_arrays(*_arrays(min_temp, max_temp))
     mean = (lo + hi) / 2
-    amplitude = (hi - lo) / 2
-    with np.errstate(invalid="ignore", divide="ignore"):
-        theta = np.arcsin(np.clip((threshold - mean) / amplitude, -1, 1))
-        partial = ((mean - threshold) * (np.pi / 2 - theta) + amplitude * np.cos(theta)) / np.pi
-    return np.where(hi <= threshold, 0.0, np.where(lo >= threshold, mean - threshold, partial))
+    above = np.where(hi <= threshold, 0.0, mean - threshold)  # wholly below, or wholly above (NaN stays NaN)
+    # The sine's partial area only on days that cross the threshold: a season over the grid is ~17 M days, and
+    # the arcsin and cosine everywhere were most of a custom degree-day map's time
+    crossing = (lo < threshold) & (hi > threshold)
+    if np.any(crossing):
+        m, amplitude = mean[crossing], (hi[crossing] - lo[crossing]) / 2
+        theta = np.arcsin(np.clip((threshold - m) / amplitude, -1, 1))
+        above[crossing] = ((m - threshold) * (np.pi / 2 - theta) + amplitude * np.cos(theta)) / np.pi
+    return above
 
 
 def _arrays(min_temp, max_temp):

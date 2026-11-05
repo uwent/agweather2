@@ -10,6 +10,7 @@ payload for discovery) and returns `respond(request, result)`, which does the re
 - missing as `null` (NaN never reaches JSON), an empty cell in CSV;
 - the summary's missing counts and statistics per summarized column, in the units shown;
 - the format (`format=` first, then `Accept`): JSON, columnar or `orient=records`, or CSV with `meta` as `#` lines;
+  a grid also offers NetCDF and GeoTIFF, which the endpoint renders itself (`Result.render`);
 - headers: `Server-Timing`, and `Cache-Control: no-cache` (keep it, but ask before reusing it) with the ETag the
   endpoint computed before reading anything (`etag_for`); `not_modified` answers a matching `If-None-Match` with 304.
 """
@@ -20,7 +21,7 @@ import io
 import json
 import math
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from typing import Any
@@ -62,6 +63,7 @@ class Column:
     step: float | None = None
     variable: str | None = None  # the catalog name a unit override is matched against (default: name)
     summarize: bool = False  # count its missing values and give min, max, mean (and a total where values add)
+    total: bool | None = None  # give that total (default: where the unit's values add); a map's cells don't add
 
 
 def catalog_column(name: str, values: Sequence[Any] | np.ndarray, *, variable: str | None = None) -> Column:
@@ -95,6 +97,8 @@ class Result:
     formats: tuple[str, ...] | None = None  # offered; default json and csv for a table, json otherwise
     timings: dict[str, float] = field(default_factory=dict)  # name → ms, for Server-Timing beside the total
     units: str | None = None  # the unit system, when the request gave it outside the query (a POSTed body)
+    render: Callable[[str, dict[str, Any]], bytes] | None = None  # a binary format's file, from (format, meta)
+    binary_units: dict[str, str] = field(default_factory=dict)  # meta.units for a binary answer
 
 
 # --- Units and rounding ------------------------------------------------------------------------------------------
@@ -169,7 +173,7 @@ def _prepare(column: Column, system: agunits.System, overrides: dict[str, str]) 
         label=unit.label,
         numbers=numbers,
         digits=digits,
-        totalled=unit.dimension in TOTALLED,
+        totalled=unit.dimension in TOTALLED if column.total is None else column.total,
         summarize=column.summarize,
     )
 
@@ -224,7 +228,11 @@ def respond(request: HttpRequest, result: Result) -> HttpResponse:
         meta["locations"] = result.locations
 
     orient = params.get("orient", "columns")
-    if result.columns is not None:
+    if fmt in BINARY:
+        meta["units"] = result.binary_units
+        meta["summary"] = result.summary
+        prepared = []
+    elif result.columns is not None:
         prepared = [_prepare(c, system, overrides) for c in result.columns]
         table = _table(prepared, orient)
         meta["units"] = table["units"]
@@ -244,7 +252,12 @@ def respond(request: HttpRequest, result: Result) -> HttpResponse:
 
     elapsed = _elapsed_ms(request)
     meta["compute_ms"] = round(elapsed)
-    if fmt == "csv":
+    if fmt in BINARY:
+        assert result.render is not None, f"{fmt} offered without a renderer"
+        media, extension = BINARY[fmt]
+        response = HttpResponse(result.render(fmt, meta), content_type=media)
+        response["Content-Disposition"] = f'attachment; filename="{_safe(result.filename)}{extension}"'
+    elif fmt == "csv":
         if result.columns is None:
             raise ApiError("format_unavailable", "csv isn't offered here; use json", "format")
         body = _csv(meta, prepared, with_meta=params.get("headers", "true").lower() not in ("false", "0", "no"))
@@ -323,6 +336,17 @@ def error_response(request: HttpRequest, errors: list[dict[str, Any]], status: i
     return response
 
 
+def requested_format(request: HttpRequest, offered: tuple[str, ...]) -> str:
+    """The format a request asks for among those offered (`format=`, then `Accept`), for an endpoint that builds
+    its answer differently per format (a grid's long table, or its file)."""
+    return _format(request, offered)
+
+
+def output_units(request: HttpRequest) -> tuple[agunits.System, dict[str, str]]:
+    """The request's unit system and per-variable overrides, as `respond` applies them."""
+    return SYSTEMS.get(request.GET.get("units", "us"), "imperial"), unit_overrides(request)
+
+
 def _format(request: HttpRequest, offered: tuple[str, ...]) -> str:
     asked = request.GET.get("format")
     if asked:
@@ -341,7 +365,13 @@ def _format(request: HttpRequest, offered: tuple[str, ...]) -> str:
     return offered[0]
 
 
-_MEDIA = {"json": ("application/json",), "csv": ("text/csv",)}
+_MEDIA = {
+    "json": ("application/json",),
+    "csv": ("text/csv",),
+    "netcdf": ("application/x-netcdf", "application/netcdf"),
+    "geotiff": ("image/tiff", "image/geotiff"),
+}
+BINARY = {"netcdf": ("application/x-netcdf", ".nc"), "geotiff": ("image/tiff", ".tif")}  # media type, extension
 
 
 def _csv(meta: dict[str, Any], prepared: list[_Prepared], with_meta: bool) -> str:

@@ -22,6 +22,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 
 - [X] **Decide the local backfill range:** 2025-01-01 to now (decided 2026-10-28). About 0.8 TB of downloads; it runs at about 6 s per hour of data here (about 27 hours in all) with 1.3 GB of memory.
 - [X] **Let the backfill finish** (started 2026-10-28; finished 2026-10-28 20:05, before the 2026-10-29 WSL crash; `data/write.lock` still names its pid, which is harmless). Only one runs at a time (a second one exits naming the first's pid), and rerunning resumes, skipping complete 5-day blocks:
+
   ```bash
   cd ~/code/agweather2
   setsid nohup uv run app/manage.py backfill --start 2025-01-01 --end 2026-10-28 > tmp/backfill.log 2>&1 < /dev/null &
@@ -33,11 +34,13 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 
   After a WSL restart it isn't running: start it again with the same command.
 - [X] **Next (heavy, so pick a time the other session is idle):** fetch the 30 cm soil level added 2026-10-28 (HRRR's TSOIL at 30 cm, for the potato model's 8 in) over the backfilled hours; about 15,900 hours at ~3 MB each (~48 GB), then it rolls those days up. It holds the write lock, like the backfill. Claude can run it:
+
   ```bash
   setsid nohup uv run app/manage.py refetch_soil --start 2025-01-01 --end 2026-10-29 > tmp/refetch_soil.log 2>&1 < /dev/null &
   ```
 - [X] **Then:** `uv run app/manage.py rebuild --stale` (about an hour for 2025–2026: rolls the days up again for the model features and the 48.2 °F DD cube added 2026-10-28); `uv run app/manage.py rebuild --check` should then print nothing. Claude can run it.
 - [ ] **Phase 2 exit review:** `docs/validation-archive.md` covers the whole backfill (2026-10-29) but predates the shortwave correction (D48), ERA5-Land soil (D52) and ET0 v2: ask Claude to rerun it, then read it (tolerances agreed 2026-10-31, D54). Leave `bin/dev` running for a week afterwards so the hourly job and `/up` can be checked. Not running as of 2026-10-29 (nothing on :8000). It needs to outlive Claude's sessions, so start it from your own terminal:
+
   ```bash
   bin/dev                             # Django, Vite and the Procrastinate worker; the hourly ingest runs at :40
   curl -s localhost:8000/up           # should say ok; Claude can check it and the ingest records from here
@@ -86,6 +89,13 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 
 - [ ] **Backfill the dev archive to 2016** (Ben, 2026-11-03: more past years for the projection, D63). Running since 2026-11-04 14:26 as `archive fill --from 2016 --to 2025` (each year's hours, December 31, ERA5-Land and past-years copy, newest first; about 11.5 hours a year here). Watch it in `bin/agwx`; if it stops, start it again there with `f` (it resumes). When it's done, `uv run app/manage.py rebuild --check` should print nothing.
 - [X] Compile the Veg Path newsletters' potato tables (early/mid/late planting and 50% emergence by location, every season on vegpath.plantpath.wisc.edu, as in 2026-08-23's) into a spreadsheet in `tmp/`, for a GDD-based planting and emergence model (PLAN.md Phase 5 D, D64). Done 2026-11-03 (2020–2026); `potato-stages` is fitted to it.
+- [ ] **Open a v2 grid in the tools agencies use** (GeoTIFF in QGIS: fine, 2026-11-04. NetCDF in R: failed to reproject, fixed the same day; rerun your main.R on a fresh `tmax.nc` to confirm) (Phase 5 E, 2026-11-04): Claude checked the GeoTIFF with GDAL (rasterio) and the NetCDF with xarray, but not in QGIS or R. With `bin/dev` running:
+
+  ```bash
+  curl -o /tmp/gdd.tif "localhost:8000/api/v2/grids/degree_days?dd=modified_50_86&start=2026-05-01&end=2026-10-31&stat=sum&region=WI&format=geotiff"
+  curl -o /tmp/tmax.nc "localhost:8000/api/v2/grids/air_temperature_max?start=2026-07-01&end=2026-07-07&format=netcdf"
+  ```
+  QGIS: drag `/tmp/gdd.tif` in over an OpenStreetMap layer; Wisconsin should line up with its borders (a 2.5 km cell is visible at county zoom). R: `terra::rast("/tmp/tmax.nc")` should have 7 layers and a Lambert CRS, and `terra::project(r, "EPSG:4326")` should land on Wisconsin. Tell Claude if either is off.
 - [ ] Send `docs/server-sizing.md` to IT (Q4): r7i.2xlarge, 1.5 TB gp3 data volume (500 MB/s), 200 GB scratch, RDS PostgreSQL db.t4g.medium, us-east-1, and a temporary resize for the backfill.
 - [ ] Before launch (Phase 8), with IT: DNS for `legacy.agweather.cals.wisc.edu` pointing at the old server, its TLS certificate, and nginx's `server_name` on the old server answering to it (D62). Check v1 serves its API there before `agweather.cals.wisc.edu` moves to v2.
 - [X] DATCP's v1 query: confirmed by DATCP (2026-11-02) and in the logs (8 settings × 23 points daily).
