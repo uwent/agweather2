@@ -33,7 +33,14 @@ def test_a_waiter_leaves_a_marker_while_it_waits_and_removes_it(tmp_path):
     seen = []
 
     def waiter():
-        with write_lock(tmp_path, wait=5, poll=0.05, label="job ingest_recent"):
+        with write_lock(
+            tmp_path,
+            wait=5,
+            poll=0.05,
+            label="job ingest_recent",
+            on_wait=lambda holder: seen.append(f"waiting for {holder}"),
+            on_acquired=lambda: seen.append("acquired"),
+        ):
             seen.append("got it")
 
     thread = threading.Thread(target=waiter)
@@ -45,7 +52,11 @@ def test_a_waiter_leaves_a_marker_while_it_waits_and_removes_it(tmp_path):
     assert marker.label == "job ingest_recent"
     holder.close()
     thread.join()
-    assert seen == ["got it"] and waiting(tmp_path) == []
+    assert seen[1:] == ["acquired", "got it"] and "the holder" in seen[0] and waiting(tmp_path) == []
+    seen.clear()
+    with write_lock(tmp_path, on_acquired=lambda: seen.append("acquired")):
+        pass
+    assert seen == []  # no wait, nothing to say
 
 
 def test_a_polite_writer_lets_a_waiter_go_first(tmp_path):

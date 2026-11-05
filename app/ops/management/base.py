@@ -120,7 +120,13 @@ class ReportingCommand(BaseCommand):
         """The archive's write lock, waiting up to `wait` seconds (default LOCK_WAIT_S) for it and saying so;
         `polite` (a long run taking it block after block) lets anyone waiting go first."""
         wait = LOCK_WAIT_S if wait is None else wait
-        return write_lock(settings.DATA_DIR, wait=wait, on_wait=self.report.waiting_for_lock, polite=polite)
+        return write_lock(
+            settings.DATA_DIR,
+            wait=wait,
+            on_wait=self.report.waiting_for_lock,
+            on_acquired=self.report.got_lock,
+            polite=polite,
+        )
 
     def window(self, box: str | None):
         try:

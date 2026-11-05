@@ -133,6 +133,8 @@ class Reporter:
         self.failures: list[str] = []
         self.warnings: list[str] = []
         self.last_summary = ""  # what finish() printed
+        self.doing = ""  # the last step, which a wait for the lock interrupts and `got_lock()` puts back
+        self._waiting_since: float | None = None
         self.live = (not quiet and _is_terminal(self.out)) if live is None else live
         self._last_progress: dict[str, float] = {}
         self._started: dict[str, float] = {}
@@ -180,6 +182,7 @@ class Reporter:
 
     def step(self, message: str) -> None:
         """A line saying what's happening now."""
+        self.doing = message
         self._event("step", message=message)
         if not self.quiet:
             self._print(self.out, message)
@@ -253,7 +256,21 @@ class Reporter:
 
     def waiting_for_lock(self, holder: str) -> None:
         """For `ops.locks.write_lock(on_wait=)`: said when the wait starts and every minute after."""
+        doing = self.doing
+        if self._waiting_since is None:
+            self._waiting_since = self.clock()
         self.step(f"waiting for the write lock (held by {holder})")
+        self.doing = doing
+
+    def got_lock(self) -> None:
+        """For `ops.locks.write_lock(on_acquired=)`: the wait is over, so the step before it is what's happening
+        again (a `resume` event, which the dashboard's "doing" shows, and a detail line saying how long it took)."""
+        if self._waiting_since is None:
+            return
+        waited = self.clock() - self._waiting_since
+        self._waiting_since = None
+        self.detail(f"got the write lock after {_duration(waited)}")
+        self._event("resume", message=self.doing)
 
     def summary(self, done: str = "") -> str:
         """`Done in <time>[: done]; N failed: …` (the failures listed)."""

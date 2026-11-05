@@ -167,11 +167,14 @@ class Command(ReportingCommand):
             self.stdout.write(line)
 
     def stop(self, pid: int | None) -> None:
-        targets = [self._find(pid)] if pid else runs.running(settings.DATA_DIR)
+        targets = [self._find(pid)] if pid else [r for r in runs.running(settings.DATA_DIR) if not r.is_job]
         if not targets:
             self.stdout.write("Nothing running")
             return
         for run in targets:
+            if run.is_job:  # its pid is the worker's
+                self.stdout.write(f"{run.label} is a job: it stops with the worker (bin/dev)")
+                continue
             if runs.stop(run):
                 self.stdout.write(f"Asked pid {run.pid} ({run.label}) to stop after its current block")
             else:
@@ -183,7 +186,7 @@ class Command(ReportingCommand):
             if not found:
                 raise CommandError("no runs recorded")
             return found[0]
-        for run in found:
+        for run in sorted(found, key=lambda r: r.is_job):  # a command before a job of the worker with that pid
             if run.pid == pid:
                 return run
         raise CommandError(f"no run with pid {pid} (see `archive runs`)")

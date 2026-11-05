@@ -9,6 +9,7 @@ from ops.era5land import refresh_era5land
 from ops.forecast import refresh_forecast, restitch_current
 from ops.ifs import refresh_ifs
 from ops.ingest import refresh_recent
+from ops.jobruns import JOB_MIDDLEWARE
 from ops.locks import WriteLocked, write_lock
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ def _waiting_lock(label: str):
 
 
 @app.periodic(cron="40 * * * *")  # after RTMA's hour is usually published
-@app.task(queue="ingest", queueing_lock="ingest_recent")
+@app.task(queue="ingest", queueing_lock="ingest_recent", task_middleware=JOB_MIDDLEWARE)
 def ingest_recent(timestamp: int) -> None:
     """Keeps the archive current: the last week's missing and RTMA-only hours, then their days and totals, then the
     published forecast run's stitch to them."""
@@ -40,7 +41,7 @@ def ingest_recent(timestamp: int) -> None:
 
 
 @app.periodic(cron="15,45 * * * *")  # cheap when nothing's new; picks up late and missed runs
-@app.task(queue="ingest", queueing_lock="ingest_forecast")
+@app.task(queue="ingest", queueing_lock="ingest_forecast", task_middleware=JOB_MIDDLEWARE)
 def ingest_forecast(timestamp: int) -> None:
     """Builds and publishes the newest long NBM run (D38) once it's complete, if it isn't current already."""
     try:
@@ -51,7 +52,7 @@ def ingest_forecast(timestamp: int) -> None:
 
 
 @app.periodic(cron="20 */6 * * *")  # ERA5-Land publishes once a day; a run with nothing new asks nothing
-@app.task(queue="ingest", queueing_lock="ingest_era5land")
+@app.task(queue="ingest", queueing_lock="ingest_era5land", task_middleware=JOB_MIDDLEWARE)
 def ingest_era5land(timestamp: int) -> None:
     """Writes ERA5-Land's soil and snow (D52) over the days that don't have it yet, then rolls them up and
     restitches the published forecast. Downloads run outside the write lock."""
@@ -74,7 +75,7 @@ def ingest_era5land(timestamp: int) -> None:
 
 
 @app.periodic(cron="50 * * * *")  # reads only Open-Meteo's metadata unless a new IFS run is out (every 6 hours)
-@app.task(queue="ingest", queueing_lock="ingest_ifs")
+@app.task(queue="ingest", queueing_lock="ingest_ifs", task_middleware=JOB_MIDDLEWARE)
 def ingest_ifs(timestamp: int) -> None:
     """Reads a new IFS run's soil and snow (D52): the archive's provisional hours, and the forecast's (taken by the
     next forecast build); then restitches the published forecast."""
@@ -93,7 +94,7 @@ def ingest_ifs(timestamp: int) -> None:
 
 
 @app.periodic(cron="30 3 * * 1")  # Mondays: a past year settles once ERA5-Land has caught up (~5 days)
-@app.task(queue="maintenance", queueing_lock="build_past_years")
+@app.task(queue="maintenance", queueing_lock="build_past_years", task_middleware=JOB_MIDDLEWARE)
 def build_past_years(timestamp: int) -> None:
     """Builds the copies of past years laid out for points (`agdata.pastyears`, D63) that are missing or older
     than their daily stores. Reads only, so no write lock; not in the catch-up (a backfill's years take minutes)."""

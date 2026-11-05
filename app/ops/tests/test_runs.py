@@ -1,5 +1,6 @@
 """Run records (`ops.runs`): what the dashboard and `archive` read about the data commands running and done."""
 
+import contextlib
 import json
 import os
 import time
@@ -58,10 +59,15 @@ def test_latest_folds_events_into_bars_activities_and_the_last_step(tmp_path):
     assert state.bars == {"hours 2016–2024": (10, 100, 50.0)}  # a finished bar is gone
     assert state.activities == {1: ("2023-06-01 05Z", "GET f", 3)}
     assert state.problems == ["warning: slow"] and state.details == ["block written"]
+    runs.apply(state, {"t": 10, "kind": "step", "message": "waiting for the write lock (held by pid 7 backfill)"})
+    runs.apply(state, {"t": 11, "kind": "resume", "message": "2023: 8760 hours to fetch"})
+    assert state.step == "2023: 8760 hours to fetch"  # the wait is over
 
 
 def test_launch_starts_a_detached_command_with_its_output_in_a_log(tmp_path):
     pid, log = runs.launch(tmp_path, ["help", "archive"])
+    with contextlib.suppress(ProcessLookupError):  # it may have finished already
+        assert os.getpriority(os.PRIO_PROCESS, pid) >= os.getpriority(os.PRIO_PROCESS, 0) + runs.LAUNCH_NICE
     deadline = time.monotonic() + 60
     while runs._alive(pid) and time.monotonic() < deadline:
         try:
@@ -84,3 +90,19 @@ def test_clear_forgets_finished_runs_and_their_files_but_not_running_ones(tmp_pa
     assert runs.clear(tmp_path) == 1
     assert [r.pid for r in runs.runs(tmp_path)] == [running.pid]
     assert not (tmp_path / "runs" / "old.log").exists() and not (tmp_path / "runs" / "999999998.events.jsonl").exists()
+
+
+def test_a_job_is_keyed_by_its_id_and_clearing_marks_its_failures_seen(tmp_path):
+    command = runs.start(tmp_path, "backfill", [])
+    job = runs.start(tmp_path, "job", ["ingest_recent"], id="job-262")  # the same pid: the worker's
+    assert (job.key, job.is_job, command.key, command.is_job) == ("job-262", True, str(os.getpid()), False)
+    assert {r.key for r in runs.runs(tmp_path)} == {"job-262", command.key}
+    assert job.events.endswith("job-262.events.jsonl") and job.log is None
+    runs.finish(tmp_path, job, ok=False, summary="RuntimeError: no data")
+    assert runs.jobs_cleared_at(tmp_path) is None
+    assert runs.clear(tmp_path) == 1  # the failed job; the command's still running
+    assert [r.key for r in runs.runs(tmp_path)] == [command.key]
+    cleared = runs.jobs_cleared_at(tmp_path)
+    assert cleared is not None and cleared.tzinfo is not None
+    runs.forget(tmp_path, command)
+    assert runs.runs(tmp_path) == []

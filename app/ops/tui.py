@@ -3,9 +3,10 @@
 One screen of what v1's console logging and `DataImport.check_statuses` told you, kept live:
 
 - each year of the archive (`ops.archive.year_states`): hours, precip, shortwave, ERA5-Land, rolled up, past years;
-- the write lock's holder and who's waiting; the worker and its jobs; the archive's and forecast's health;
+- the write lock's holder and who's waiting; the archive's, forecast's and jobs' health;
 - every data command running (`ops.runs`), started here or from any shell: its bars with the time left, a spinner
-  per hour or request in flight, and its last step;
+  per hour or request in flight, and its last step; and bin/dev's worker, with its jobs under it while they run
+  and after they fail or are stopped (`ops.jobruns`, development only), each with its log and traceback;
 - the selected run's log: each file read, each block written (v1's `HOUR 05 ==> GET …`).
 
 Keys start commands as detached runs (they carry on when the dashboard closes; reopening it picks them up) and stop
@@ -51,6 +52,8 @@ RUN_COLUMNS = [
     ("read", "read"),
     ("doing", "doing"),
 ]
+JOBS_KEPT = 5  # failed or stopped jobs listed in the runs table (c clears them)
+WORKER = "worker"  # the command shown for bin/dev's worker in the runs table
 RUN_MARKS = {"running": ("●", "green"), "done": ("✓", "green"), "failed": ("✗", "red"), "stopped": ("■", "yellow")}
 CLOCK_TICKS = os.sysconf("SC_CLK_TCK") if hasattr(os, "sysconf") else 100
 PAGE_BYTES = os.sysconf("SC_PAGE_SIZE") if hasattr(os, "sysconf") else 4096
@@ -67,7 +70,7 @@ class Prompt(ModalScreen[list[str] | None]):
     DEFAULT_CSS = """
     Prompt { align: center middle; }
     #box { width: 76; height: auto; border: round $accent; padding: 1 2; background: $surface; }
-    #box Label { margin-bottom: 1; }
+    #box Label { width: 100%; margin-bottom: 1; }
     #buttons { height: auto; margin-top: 1; }
     #buttons Button { margin-right: 2; }
     """
@@ -120,6 +123,7 @@ class Confirm(ModalScreen[bool]):
     DEFAULT_CSS = """
     Confirm { align: center middle; }
     #box { width: 70; height: auto; border: round $warning; padding: 1 2; background: $surface; }
+    #box Label { width: 100%; }
     #buttons { height: auto; margin-top: 1; }
     #buttons Button { margin-right: 2; }
     """
@@ -169,14 +173,17 @@ class Dashboard(App):
         super().__init__()
         self.data_dir = data_dir
         self.run_list: list[runs.Run] = []
-        self.offsets: dict[int, int] = {}  # pid -> bytes of its events read
-        self.states: dict[int, runs.Latest] = {}
-        self.selected: int | None = None  # pid whose log is shown
+        self.offsets: dict[str, int] = {}  # run key -> bytes of its events read
+        self.states: dict[str, runs.Latest] = {}
+        self.selected: str | None = None  # key of the run whose log is shown
         self.lock_text = Text("")
         self.health_text = Text("")
         self.runs_drawn = Group()
         self.samples: dict[int, tuple[float, float, int]] = {}  # pid -> (when, CPU seconds, bytes read)
         self.usage: dict[int, tuple[str, str, str]] = {}  # pid -> (CPU, memory, read rate) as shown
+        # bin/dev's Procrastinate worker, found in /proc (it isn't a recorded run; its jobs are, in development)
+        self.job_workers: list[runs.Run] = []
+        self.worker_jobs = ""  # what the worker is running, from the job queue
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -199,6 +206,7 @@ class Dashboard(App):
             runs_table.add_column(label, key=key)
         runs_table.border_title = "runs (click or ↑/↓ to pick one; s stops it, c clears finished)"
         self.load_years()
+        self.find_workers()
         self.load_status()
         self.poll_runs()
         self.set_interval(YEARS_S, self.load_years)
@@ -250,25 +258,28 @@ class Dashboard(App):
             status = None
         finally:
             close_old_connections()
-        workers = _worker_pids()
-        lines.append("worker ", style="bold")
-        lines.append(
-            f"running (pid {', '.join(workers)})" if workers else "not running (bin/dev)",
-            style="green" if workers else "red",
-        )
+        lines.append("worker: ", style="bold")
+        if self.job_workers:
+            lines.append("running", style="green")
+        else:
+            lines.append("not running (start it with bin/dev)", style="red")
         if status is not None:
+            running = [f"{j.name} ({j.running})" if j.running > 1 else j.name for j in status.jobs if j.running]
+            self.worker_jobs = f"running {', '.join(running)}" if running else "idle"
             i = status.ingest
-            lines.append("   archive ", style="bold")
+            lines.append(" | archive: ", style="bold")
             lines.append(f"newest hour {_ago(i.get('newest_hour'))}, URMA {_ago(i.get('newest_urma_hour'))}")
             f = status.forecast
             if f.get("cycle"):
-                lines.append("   forecast ", style="bold")
+                lines.append(" | forecast: ", style="bold")
                 lines.append(f"run {_ago(f['cycle'])}")
             jobs = ", ".join(f"{j.name} {_ago(j.last_finished)}" for j in status.jobs if j.schedule and j.last_finished)
-            lines.append("\njobs ", style="bold")
+            lines.append("\n")
+            lines.append("jobs: ", style="bold")
             lines.append(jobs or "none run yet")
             if status.problems:
-                lines.append("\nproblems ", style="bold red")
+                lines.append("\n")
+                lines.append("problems: ", style="bold red")
                 lines.append("; ".join(status.problems), style="red")
         self.health_text = lines
         self.call_from_thread(self.draw_status)
@@ -280,7 +291,7 @@ class Dashboard(App):
 
             holder = lock_holder(self.data_dir)
         text = Text()
-        text.append("lock ", style="bold")
+        text.append("lock: ", style="bold")
         text.append(f"held by {holder}" if holder else "free", style="yellow" if holder else "green")
         for waiter in locks.waiting(self.data_dir):
             text.append(f"   waiting: {waiter}", style="dim")
@@ -291,54 +302,64 @@ class Dashboard(App):
     # Runs
 
     def poll_runs(self) -> None:
+        """The runs table's rows: the worker, its jobs running and those that failed or were stopped (a job that
+        succeeds removes its record), the commands running, then the last few finished."""
         found = runs.runs(self.data_dir)
-        active = [r for r in found if r.running]
-        recent = [r for r in found if not r.running][:3]
-        changed = [r.pid for r in active + recent] != [r.pid for r in self.run_list]
-        self.run_list = active + recent
-        if self.selected is None or self.selected not in {r.pid for r in self.run_list}:
-            self.select(self.run_list[0].pid if self.run_list else None)
+        workers = [w for w in self.job_workers if w.running]
+        jobs = [r for r in found if r.is_job and r.running] + [r for r in found if r.is_job and not r.running][
+            :JOBS_KEPT
+        ]
+        commands = [r for r in found if not r.is_job and r.running]
+        recent = [r for r in found if not r.is_job and not r.running][:3]
+        rows = workers + jobs + commands + recent
+        changed = [r.key for r in rows] != [r.key for r in self.run_list]
+        self.run_list = rows
+        if self.selected is None or self.selected not in {r.key for r in self.run_list}:
+            self.select(self.run_list[0].key if self.run_list else None)
         if changed:
             self.show_runs()
-        for run in active + [r for r in recent if r.pid == self.selected]:
-            state = self.states.setdefault(run.pid, runs.Latest(bars={}, activities={}, details=[], problems=[]))
-            if run.pid not in self.offsets:  # first sight: start from the tail, not the whole history
+        for run in [r for r in rows if r.running or r.key == self.selected]:
+            if run.command == WORKER:
+                continue  # no events: it logs to bin/dev's terminal
+            state = self.states.setdefault(run.key, runs.Latest(bars={}, activities={}, details=[], problems=[]))
+            if run.key not in self.offsets:  # first sight: start from the tail, not the whole history
                 size = Path(run.events).stat().st_size if Path(run.events).exists() else 0
-                self.offsets[run.pid] = max(0, size - 256_000)
-                if self.offsets[run.pid]:
-                    events, offset = runs.events(run, self.offsets[run.pid])
+                self.offsets[run.key] = max(0, size - 256_000)
+                if self.offsets[run.key]:
+                    events, offset = runs.events(run, self.offsets[run.key])
                     events = events[1:]  # the first line may be cut
                 else:
                     events, offset = runs.events(run, 0)
             else:
-                events, offset = runs.events(run, self.offsets[run.pid])
-            self.offsets[run.pid] = offset
+                events, offset = runs.events(run, self.offsets[run.key])
+            self.offsets[run.key] = offset
             log = self.query_one("#log", RichLog)
             for event in events:
                 runs.apply(state, event)
-                if run.pid == self.selected and (line := _log_line(event)) is not None:
-                    log.write(line)
+                if run.key == self.selected:
+                    for line in _log_lines(event):
+                        log.write(line)
         self.draw_status()
 
     def show_runs(self) -> None:
         """The runs table: rebuilt when runs come or go (the cursor stays on the picked run), else updated."""
         table = self.query_one("#runs", DataTable)
-        pids = [str(r.pid) for r in self.run_list]
-        rows = {run.pid: self.run_row(run) for run in self.run_list}
-        if [key.value for key in table.rows] != pids:
+        keys = [r.key for r in self.run_list]
+        rows = {run.key: self.run_row(run) for run in self.run_list}
+        if [key.value for key in table.rows] != keys:
             table.clear()
             for run in self.run_list:
-                table.add_row(*rows[run.pid], key=str(run.pid))
-            if self.selected is not None and str(self.selected) in pids:
-                table.move_cursor(row=pids.index(str(self.selected)), animate=False)
+                table.add_row(*rows[run.key], key=run.key)
+            if self.selected is not None and self.selected in keys:
+                table.move_cursor(row=keys.index(self.selected), animate=False)
             return
         for run in self.run_list:
-            for (key, _), value in zip(RUN_COLUMNS, rows[run.pid], strict=True):
-                table.update_cell(str(run.pid), key, value, update_width=True)
+            for (key, _), value in zip(RUN_COLUMNS, rows[run.key], strict=True):
+                table.update_cell(run.key, key, value, update_width=True)
 
     def run_row(self, run: runs.Run) -> list:
         mark, style = RUN_MARKS[run.state]
-        state = self.states.get(run.pid)
+        state = self.states.get(run.key)
         progress = left = doing = Text("")
         if run.running and state is not None:
             if state.bars:
@@ -346,14 +367,18 @@ class Dashboard(App):
                 progress = Text(f"{label}: {100 * done / max(total, 1):.0f}%")
                 left = Text(f"~{_duration(elapsed / done * (total - done))}" if done else "", style="cyan")
             doing = Text((state.step or "").splitlines()[0] if state.step else "", style="dim")
+        elif run.command == WORKER:
+            doing = Text(self.worker_jobs, style="dim")
         elif run.summary:
             doing = Text(run.summary.splitlines()[0], style="dim")
-        cpu, memory, read = self.usage.get(run.pid, ("", "", "")) if run.running else ("", "", "")
+        # a job's process is the worker's, whose row has the usage
+        shown = run.running and not run.is_job
+        cpu, memory, read = self.usage.get(run.pid, ("", "", "")) if shown else ("", "", "")
         started = _local(run.started)
         end = _local(run.finished) if run.finished else datetime.now().astimezone()
         return [
             Text(mark, style=style),
-            Text(run.label, style="bold", overflow="ellipsis", no_wrap=True),
+            Text(("└ " if run.is_job else "") + run.label, style="bold", overflow="ellipsis", no_wrap=True),
             str(run.pid),
             f"{started:%m-%d %H:%M}",
             _duration((end - started).total_seconds()),
@@ -368,9 +393,10 @@ class Dashboard(App):
     def sample_usage(self) -> None:
         """CPU, memory and bytes read per second of each running run, from /proc (bytes read include the network's,
         so for a backfill it's the download rate)."""
+        self.find_workers()
         now = time.monotonic()
         for run in self.run_list:
-            if not run.running:
+            if not run.running or run.is_job:
                 continue
             found = _proc_usage(run.pid)
             if found is None:
@@ -388,22 +414,39 @@ class Dashboard(App):
             )
         self.show_runs()
 
+    def find_workers(self) -> None:
+        """bin/dev's worker as rows of the runs table (found again every USAGE_S: bin/dev may start or stop)."""
+        known = {w.pid: w for w in self.job_workers}
+        self.job_workers = [
+            known.get(int(pid))
+            or runs.Run(pid=int(pid), command=WORKER, args=[], started=started, events="", id=f"worker-{pid}")
+            for pid in _worker_pids()
+            if (started := _proc_started(int(pid))) is not None
+        ]
+        if [w.pid for w in self.job_workers] != list(known):
+            self.poll_runs()
+
     def draw_detail(self) -> None:
         """The picked run: its bars with the time left, a spinner per activity in flight, its last step."""
         now = time.time()
         parts: list = []
-        run = next((r for r in self.run_list if r.pid == self.selected), None)
+        run = next((r for r in self.run_list if r.key == self.selected), None)
         if run is None:
             parts.append(Text("Nothing running. f fills years; b, e, r and p start the other commands.", style="dim"))
         else:
-            state = self.states.get(run.pid)
+            state = self.states.get(run.key)
             head = Text()
             head.append(f"{run.label}", style="bold")
-            head.append(f"   pid {run.pid}, {run.state}", style="dim")
+            where = (
+                f"job {run.id.removeprefix('job-')} in the worker (pid {run.pid})" if run.is_job else f"pid {run.pid}"
+            )
+            head.append(f"   {where}, {run.state}", style="dim")
             parts.append(head)
-            if not run.running:
+            if run.command == WORKER:
+                parts.append(Text(f"bin/dev's job worker: {self.worker_jobs or 'jobs not read yet'}", style="dim"))
+            elif not run.running:
                 if run.summary:
-                    parts.append(Text(run.summary, style="dim"))
+                    parts.append(Text(run.summary.splitlines()[0], style="dim", no_wrap=True, overflow="ellipsis"))
             elif state is not None:
                 bars = Table.grid(padding=(0, 1))
                 for label, (done, total, elapsed) in (state.bars or {}).items():
@@ -439,26 +482,35 @@ class Dashboard(App):
         """A click or ↑/↓ in the runs table picks that run: its log shows below and s stops it."""
         if event.data_table.id != "runs" or event.row_key.value is None:
             return
-        pid = int(event.row_key.value)
-        if pid != self.selected:
-            self.select(pid)
+        key = str(event.row_key.value)
+        if key != self.selected:
+            self.select(key)
 
-    def select(self, pid: int | None) -> None:
-        self.selected = pid
+    def select(self, key: str | None) -> None:
+        self.selected = key
         log = self.query_one("#log", RichLog)
         log.clear()
-        run = next((r for r in self.run_list if r.pid == pid), None)
+        run = next((r for r in self.run_list if r.key == key), None)
         if run is None:
             log.border_title = "log"
             return
-        log.border_title = f"log: {run.label} (pid {run.pid})"
+        log.border_title = (
+            f"log: {run.label} ({'job ' + run.id.removeprefix('job-') if run.is_job else f'pid {run.pid}'})"
+        )
+        if run.command == WORKER:
+            for line in (
+                "The worker logs to bin/dev's terminal; `manage.py jobs` shows its queue.",
+                "Its jobs are the └ rows below it while they run and once they fail or stop: pick one for its log.",
+            ):
+                log.write(Text(line, style="dim"))
+            return
         if run.log and Path(run.log).exists():
             for line in runs.tail(Path(run.log), 300):
                 log.write(Text(line))
             size = Path(run.events).stat().st_size if Path(run.events).exists() else 0
-            self.offsets[run.pid] = size  # the log has what came before; follow the events from here
+            self.offsets[run.key] = size  # the log has what came before; follow the events from here
             return
-        self.offsets.pop(run.pid, None)  # read its events' tail into the log on the next poll
+        self.offsets.pop(run.key, None)  # read its events' tail into the log on the next poll
 
     # Actions
 
@@ -542,28 +594,37 @@ class Dashboard(App):
 
     def action_clear(self) -> None:
         finished = [r for r in runs.runs(self.data_dir) if not r.running]
-        if not finished:
-            self.notify("No finished runs to clear")
-            return
 
         def clear(yes: bool | None) -> None:
             if yes:
                 removed = runs.clear(self.data_dir)
-                for pid in [p for p in self.states if not any(r.pid == p for r in runs.running(self.data_dir))]:
-                    self.states.pop(pid, None)
-                self.notify(f"Cleared {removed} finished run{'s' * (removed != 1)}")
+                running = {r.key for r in runs.running(self.data_dir)}
+                for key in [k for k in self.states if k not in running]:
+                    self.states.pop(key, None)
+                self.notify(f"Cleared {removed} finished run{'s' * (removed != 1)} and the failed jobs so far")
                 self.poll_runs()
+                self.load_status()
 
         self.push_screen(
-            Confirm(f"Forget {len(finished)} finished or stopped run(s), with their logs? Running ones stay."), clear
+            Confirm(
+                f"Forget {len(finished)} finished, failed or stopped run(s) with their logs, and stop counting the "
+                "jobs failed so far as a problem? Running ones stay."
+            ),
+            clear,
         )
 
     def action_stop(self) -> None:
-        run = next((r for r in self.run_list if r.pid == self.selected and r.running), None)
+        run = next((r for r in self.run_list if r.key == self.selected and r.running), None)
         if run is None:
             self.notify(
                 "Pick a running run in the runs table first (click it, or Tab there and ↑/↓)", severity="warning"
             )
+            return
+        if run.command == WORKER:  # honcho stops all of bin/dev when one of its processes ends
+            self.notify("The worker belongs to bin/dev: stop it there (Ctrl-C)", severity="warning")
+            return
+        if run.is_job:
+            self.notify("A job runs in the worker: it stops when bin/dev does", severity="warning")
             return
 
         def stop(yes: bool | None) -> None:
@@ -573,16 +634,20 @@ class Dashboard(App):
         self.push_screen(Confirm(f"Stop {run.label} (pid {run.pid}) after its current block?"), stop)
 
 
-def _log_line(event: dict) -> Text | None:
+def _log_lines(event: dict) -> list[Text]:
+    """An event's lines in the log (a failure's traceback is several)."""
     kind = event.get("kind")
     if kind not in ("step", "detail", "warn", "fail", "finish"):
-        return None
+        return []
     when = datetime.fromtimestamp(event.get("t", 0)).astimezone()
-    text = Text(f"{when:%H:%M:%S} ", style="dim")
     style = {"step": "bold", "detail": "", "warn": "yellow", "fail": "red", "finish": "bold green"}[kind]
     prefix = {"warn": "warning: ", "fail": "failed: "}.get(kind, "")
-    text.append(prefix + event.get("message", ""), style=style)
-    return text
+    out = []
+    for k, line in enumerate((prefix + event.get("message", "")).splitlines() or [""]):
+        text = Text(f"{when:%H:%M:%S} " if k == 0 else " " * 9, style="dim")
+        text.append(line, style=style)
+        out.append(text)
+    return out
 
 
 def _proc_usage(pid: int) -> tuple[float, int, int] | None:
@@ -596,6 +661,16 @@ def _proc_usage(pid: int) -> tuple[float, int, int] | None:
         return cpu_s, rss, int(io["rchar"])
     except (OSError, IndexError, KeyError, ValueError):
         return None
+
+
+def _proc_started(pid: int) -> str | None:
+    """When a process started (ISO, local), from /proc; None if it's gone."""
+    try:
+        ticks = int(Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[19])  # starttime (field 22)
+        boot = next(int(line.split()[1]) for line in Path("/proc/stat").read_text().splitlines() if line[:5] == "btime")
+    except (OSError, IndexError, ValueError, StopIteration):
+        return None
+    return datetime.fromtimestamp(boot + ticks / CLOCK_TICKS).astimezone().isoformat(timespec="seconds")
 
 
 def _worker_pids() -> list[str]:

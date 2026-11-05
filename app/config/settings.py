@@ -37,6 +37,8 @@ SERVICE_BOX = os.environ.get("SERVICE_BOX", "wisconsin")
 DATA_DIR = Path(os.environ.get("DATA_DIR", REPO_DIR / "data"))
 OPEN_METEO_API_KEY = os.environ.get("OPEN_METEO_API_KEY") or None  # the customer hosts; None: the free ones
 COPERNICUS_API_KEY = os.environ.get("COPERNICUS_API_KEY") or None  # the CDS, for ERA5-Land (D52); None: no job
+# The worker's jobs recorded as runs in DATA_DIR/runs/ for the dashboard (ops.jobruns): development only
+JOB_RUNS = os.environ.get("JOB_RUNS", "1" if ENV == "development" else "0") == "1"
 
 INSTALLED_APPS = [
     "django.contrib.admin",

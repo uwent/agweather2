@@ -1,4 +1,5 @@
 import io
+import json
 
 import pytest
 
@@ -62,6 +63,25 @@ def test_waiting_for_the_write_lock_names_its_holder():
     report, out, _, _ = reporter()
     report.waiting_for_lock("pid 4242 (backfill, since 11:59)")
     assert lines(out) == ["waiting for the write lock (held by pid 4242 (backfill, since 11:59))"]
+
+
+def test_once_it_has_the_lock_the_step_before_the_wait_is_what_it_is_doing_again(tmp_path):
+    path = tmp_path / "events.jsonl"
+    clock = Clock()
+    report = Reporter(out=io.StringIO(), err=io.StringIO(), live=False, clock=clock, events=path)
+    report.got_lock()  # without a wait, nothing
+    report.step("2025: building")
+    report.waiting_for_lock("pid 4242 (backfill)")
+    clock.now = 120
+    report.waiting_for_lock("pid 4242 (backfill)")
+    report.got_lock()
+    report.close()
+    events = [json.loads(line) for line in path.read_text().splitlines()]
+    assert report.doing == "2025: building"
+    assert [(e["kind"], e["message"]) for e in events[-2:]] == [
+        ("detail", "got the write lock after 2 min"),
+        ("resume", "2025: building"),
+    ]
 
 
 @pytest.mark.parametrize("seconds, said", [(45, "45 s"), (120, "2 min"), (89 * 60, "89 min"), (3 * 3600, "3.0 h")])

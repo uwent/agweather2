@@ -24,11 +24,10 @@ from agdata.ingest import SOIL
 from agdata.rebuild import find_stale
 from agdata.store import CUMULATIVE, DAILY, HOURLY, SOURCE_NAMES, StoreLayout
 from ops.forecast import forecast_health
-from ops.health import ingest_health
+from ops.health import failures_since, ingest_health
 from ops.ifs import last_read
 from ops.locks import parse_holder, waiting
 
-RECENT = timedelta(days=1)  # failures this recent are listed
 STALLED_AFTER_S = 60  # a running job whose worker hasn't sent a heartbeat this long was left by a stopped worker
 
 
@@ -75,8 +74,8 @@ def snapshot(data_dir: Path, now: datetime) -> Status:
         ifs_run=run,
         lock_holder=lock_holder(data_dir),
         lock_waiting=[str(h) for h in waiting(data_dir)],
-        jobs=job_states(now),
-        failures=recent_failures(now),
+        jobs=job_states(data_dir, now),
+        failures=recent_failures(data_dir, now),
     )
 
 
@@ -84,10 +83,11 @@ def short_name(task_name: str) -> str:
     return task_name.rsplit(".", 1)[-1]
 
 
-def job_states(now: datetime) -> list[JobState]:
+def job_states(data_dir: Path, now: datetime) -> list[JobState]:
     """Every registered task in `ops.tasks` (periodic or not), with its schedule and queue."""
     periodic = {p.task.name: p for p in app.periodic_registry.periodic_tasks.values()}
     names = sorted(name for name in app.tasks if name.startswith("ops.tasks."))
+    since = failures_since(data_dir, now)
     counts = {
         row["task_name"]: row
         for row in ProcrastinateJob.objects.filter(task_name__in=names)
@@ -95,7 +95,11 @@ def job_states(now: datetime) -> list[JobState]:
         .annotate(
             queued=Count("id", filter=Q(status="todo"), distinct=True),
             running=Count("id", filter=Q(status="doing"), distinct=True),
-            failed=Count("id", filter=Q(status="failed", procrastinateevent__at__gte=now - RECENT), distinct=True),
+            failed=Count(
+                "id",
+                filter=Q(status="failed", procrastinateevent__type="failed", procrastinateevent__at__gte=since),
+                distinct=True,
+            ),
         )
     }
     stalled = stalled_jobs()
@@ -142,12 +146,13 @@ def stalled_jobs() -> list[tuple[int, str]]:
         return [(row[0], row[2]) for row in cursor.fetchall()]
 
 
-def fail_stalled_jobs() -> list[tuple[int, str]]:
-    """Marks stalled jobs failed (their worker is gone, so they'll never finish) and returns them."""
+def abort_stalled_jobs() -> list[tuple[int, str]]:
+    """Marks stalled jobs aborted (their worker is gone, so they'll never finish) and returns them. Aborted, not
+    failed: a job cut off by a restart (bin/dev stopped, a deploy) isn't a problem, and reruns on the next turn."""
     jobs = stalled_jobs()
     with connection.cursor() as cursor:
         for job_id, _ in jobs:
-            cursor.execute(sql.queries["finish_job"], {"job_id": job_id, "status": "failed", "delete_job": False})
+            cursor.execute(sql.queries["finish_job"], {"job_id": job_id, "status": "aborted", "delete_job": False})
     return jobs
 
 
@@ -157,9 +162,10 @@ def _next_run(task: Any, now: datetime) -> datetime:
     return datetime.fromtimestamp(cron.get_next(ret_type=float), UTC)
 
 
-def recent_failures(now: datetime) -> list[str]:
+def recent_failures(data_dir: Path, now: datetime) -> list[str]:
+    """The jobs that failed in the last day and since the failures were last cleared (`runs.clear_jobs`)."""
     events = (
-        ProcrastinateEvent.objects.filter(type="failed", at__gte=now - RECENT)
+        ProcrastinateEvent.objects.filter(type="failed", job__status="failed", at__gte=failures_since(data_dir, now))
         .select_related("job")
         .order_by("-at")[:10]
     )

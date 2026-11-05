@@ -10,11 +10,13 @@ from procrastinate.contrib.django.models import ProcrastinateJob
 from agdata.catalog import VARIABLES
 from agdata.rebuild import find_stale
 from agdata.store import HOURLY, SOURCES, GridStore, steps_in_year
+from ops import runs
 from ops.models import IngestRecord
 
 MAX_LAG_HOURS = 3  # newest hour from any source
 MAX_URMA_LAG_HOURS = 12  # URMA runs about 6 h behind
 RECENT = timedelta(days=7)
+FAILED_JOBS_WINDOW = timedelta(days=1)  # failed jobs this recent are a problem (unless cleared since)
 UNPUBLISHED = timedelta(hours=2)  # the newest hours may not be out yet, so they don't count as missing
 
 
@@ -29,7 +31,7 @@ def ingest_health(data_dir: Path, now: datetime) -> tuple[dict[str, Any], list[s
     newest_urma = _last(times, codes == SOURCES["urma"])
     now64 = _utc64(now)
     recent = (times > now64 - np.timedelta64(RECENT)) & (times <= now64 - np.timedelta64(UNPUBLISHED))
-    since = now - timedelta(days=1)
+    since = failures_since(data_dir, now)
     failed_jobs = (
         ProcrastinateJob.objects.filter(
             status="failed", procrastinateevent__type="failed", procrastinateevent__at__gte=since
@@ -61,6 +63,13 @@ def ingest_health(data_dir: Path, now: datetime) -> tuple[dict[str, Any], list[s
     if failed_jobs:
         problems.append(f"{failed_jobs} failed jobs in the last day")
     return info, problems
+
+
+def failures_since(data_dir: Path, now: datetime) -> datetime:
+    """Where counts of failed jobs start: a day back, or when they were last cleared (`runs.clear_jobs`: the
+    dashboard's c, `jobs clear`) if that's later."""
+    cleared = runs.jobs_cleared_at(data_dir)
+    return max(now - FAILED_JOBS_WINDOW, cleared) if cleared is not None else now - FAILED_JOBS_WINDOW
 
 
 def _recent_sources(data_dir: Path, now: datetime) -> tuple[np.ndarray, np.ndarray] | None:

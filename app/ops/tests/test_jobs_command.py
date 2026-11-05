@@ -9,9 +9,10 @@ import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import connection
+from procrastinate import sql
 from procrastinate.contrib.django.models import ProcrastinateJob
 
-from ops import status, tasks
+from ops import runs, status, tasks
 from ops.tests.test_up import write_hours
 
 pytestmark = pytest.mark.django_db
@@ -125,15 +126,15 @@ def stall(task) -> int:
     return job_id
 
 
-def test_start_fails_stalled_jobs_queues_the_catch_up_then_becomes_the_worker(data_dir, monkeypatch):
+def test_start_aborts_stalled_jobs_queues_the_catch_up_then_becomes_the_worker(data_dir, monkeypatch):
     stalled = stall(tasks.ingest_recent)
     assert "1 stalled" in run()[0]
     became: list[list[str]] = []
     monkeypatch.setattr(os, "execv", lambda path, argv: became.append(argv))
     out, _ = run("start")
     assert "archive: empty" in out  # the status first
-    assert f"job {stalled} was left by a stopped worker; marked failed" in out
-    assert ProcrastinateJob.objects.get(id=stalled).status == "failed"
+    assert f"job {stalled} was left by a stopped worker; marked aborted" in out
+    assert ProcrastinateJob.objects.get(id=stalled).status == "aborted"
     queued = set(ProcrastinateJob.objects.filter(status="todo").values_list("task_name", flat=True))
     assert queued == {task.name for task in tasks.CATCH_UP}
     assert became and became[0][-2:] == ["procrastinate", "worker"]
@@ -163,3 +164,27 @@ def test_a_job_that_ran_shows_its_result_and_duration(data_dir):
             )
     line = next(line for line in run()[0].splitlines() if "ingest_ifs" in line)
     assert "last succeeded Nov 02 18:56Z in 6 min" in line
+
+
+def fail(task) -> int:
+    """A job that failed just now, as the worker records one."""
+    job_id = queue(task)
+    with connection.cursor() as cursor:
+        cursor.execute("UPDATE procrastinate_jobs SET status = 'doing' WHERE id = %s", [job_id])
+        cursor.execute(sql.queries["finish_job"], {"job_id": job_id, "status": "failed", "delete_job": False})
+    return job_id
+
+
+def test_clear_stops_counting_the_failed_jobs_so_far_and_forgets_their_records(data_dir):
+    failed = fail(tasks.ingest_recent)
+    runs.finish(data_dir, runs.start(data_dir, "job", ["ingest_recent"], id=f"job-{failed}"), ok=False)
+    out, _ = run()
+    assert "1 failed in 24 h" in out and "failed: " in out and f"(job {failed})" in out
+    out, _ = run("clear")
+    assert "Failed jobs until now cleared; forgot 1 job record" in out
+    out, _ = run()
+    assert "failed in 24 h" not in out and f"(job {failed})" not in out and runs.runs(data_dir) == []
+    later = fail(tasks.ingest_forecast)
+    with connection.cursor() as cursor:  # now() is the test's transaction's start, before the clear
+        cursor.execute("UPDATE procrastinate_events SET at = clock_timestamp() WHERE job_id = %s", [later])
+    assert f"(job {later})" in run()[0]  # a failure after the clear counts again

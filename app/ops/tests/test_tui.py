@@ -3,8 +3,10 @@ log, and its keys launch commands in the background."""
 
 import asyncio
 import json
+import os
 from datetime import UTC, datetime
 from io import StringIO
+from pathlib import Path
 
 from rich.console import Console
 
@@ -77,7 +79,7 @@ def test_a_click_or_the_arrows_pick_a_run_in_the_runs_table_and_s_stops_it(setti
             for _ in range(3):
                 focused.append(app.focused.id if app.focused else None)
                 await pilot.press("tab")
-            assert app.selected == first.pid  # the newest is picked to begin with
+            assert app.selected == first.key  # the newest is picked to begin with
             table = app.query_one("#runs", tui.DataTable)
             assert [key.value for key in table.rows] == [str(first.pid), str(second.pid)]
             await pilot.click("#runs", offset=(10, 3))  # the border, the header, then the second row
@@ -96,7 +98,7 @@ def test_a_click_or_the_arrows_pick_a_run_in_the_runs_table_and_s_stops_it(setti
 
     focused, (clicked, arrowed, picked) = asyncio.run(drive())
     assert set(focused) == {"years", "runs", "log"}  # Tab goes through all three
-    assert (clicked, arrowed, picked) == (second.pid, first.pid, second.pid)
+    assert (clicked, arrowed, picked) == (second.key, first.key, second.key)
     assert stopped == [second.pid]
 
 
@@ -106,3 +108,76 @@ def test_a_processs_usage_comes_from_proc():
     cpu_s, rss, read = tui._proc_usage(os.getpid()) or (0, 0, 0)
     assert cpu_s > 0 and rss > 10_000_000 and read > 0
     assert tui._proc_usage(999_999_999) is None
+
+
+def test_a_confirm_dialogs_question_wraps_inside_its_box(settings, tmp_path, monkeypatch):
+    settings.DATA_DIR = tmp_path
+    monkeypatch.setattr(tui, "_worker_pids", lambda: [])
+    question = "Stop " + "archive fill --from 2016 --to 2025 " * 4 + "(pid 4242)? It finishes its current block first."
+
+    async def drive():
+        app = tui.Dashboard(tmp_path)
+        async with app.run_test(size=(140, 48)) as pilot:
+            app.push_screen(tui.Confirm(question))
+            await pilot.pause(0.2)
+            label = app.screen.query_one(tui.Label)
+            box = app.screen.query_one("#box")
+            return label.size, box.content_region
+
+    size, content = asyncio.run(drive())
+    assert size.width <= content.width and size.height > 1
+
+
+def test_the_worker_is_a_row_of_the_runs_table_with_its_usage_but_isnt_stopped_here(settings, tmp_path, monkeypatch):
+    settings.DATA_DIR = tmp_path
+    me = os.getpid()
+    monkeypatch.setattr(tui, "_worker_pids", lambda: [str(me)])  # this process stands in for the worker
+    monkeypatch.setattr(tui, "USAGE_S", 0.2)
+    stopped = []
+    monkeypatch.setattr(runs, "stop", lambda run: stopped.append(run.pid) or True)
+
+    async def drive():
+        app = tui.Dashboard(tmp_path)
+        async with app.run_test(size=(140, 48)) as pilot:
+            await pilot.pause(1.0)
+            table = app.query_one("#runs", tui.DataTable)
+            row = [str(cell) for cell in table.get_row(f"worker-{me}")]
+            await pilot.press("s")
+            await pilot.pause(0.2)
+            return row, app.selected, app.query_one("#status", tui.Static).render()
+
+    row, selected, status = asyncio.run(drive())
+    assert row[1] == "worker" and row[2] == str(me) and row[7].endswith("%") and row[8].endswith("B")
+    assert selected == f"worker-{me}" and stopped == []
+    assert "worker: running" in str(status)
+
+
+def test_the_workers_jobs_are_rows_under_it_and_a_failed_ones_log_has_its_traceback(settings, tmp_path, monkeypatch):
+    settings.DATA_DIR = tmp_path
+    me = os.getpid()
+    monkeypatch.setattr(tui, "_worker_pids", lambda: [str(me)])
+    failed = runs.start(tmp_path, "job", ["ingest_recent"], id="job-262")
+    trace = 'ingest_recent: Traceback (most recent call last):\n  File "tasks.py"\nRuntimeError: no data'
+    events = [{"t": 1, "kind": "step", "message": "job 262: ingest_recent"}, {"t": 2, "kind": "fail", "message": trace}]
+    Path(failed.events).write_text("".join(json.dumps(e) + "\n" for e in events))
+    runs.finish(tmp_path, failed, ok=False, summary="RuntimeError: no data")
+    running = runs.start(tmp_path, "job", ["ingest_forecast"], id="job-263")
+    command = runs.start(tmp_path, "backfill", [])
+
+    async def drive():
+        app = tui.Dashboard(tmp_path)
+        async with app.run_test(size=(160, 48)) as pilot:
+            await pilot.pause(0.5)
+            table = app.query_one("#runs", tui.DataTable)
+            keys = [key.value for key in table.rows]
+            job_row = [str(cell) for cell in table.get_row("job-263")]
+            app.select("job-262")
+            await pilot.pause(0.5)
+            log = [str(line.text) for line in app.query_one("#log", tui.RichLog).lines]
+            return keys, job_row, log
+
+    keys, job_row, log = asyncio.run(drive())
+    assert keys == [f"worker-{me}", running.key, failed.key, command.key]  # the worker, its jobs, then the commands
+    assert job_row[1] == "└ job ingest_forecast" and job_row[7] == ""  # its CPU is the worker's row's
+    assert any("failed: ingest_recent: Traceback" in line for line in log)
+    assert any(line.strip() == "RuntimeError: no data" for line in log)

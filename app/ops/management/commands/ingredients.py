@@ -43,6 +43,7 @@ class Command(ReportingCommand):
             if self.stopping.is_set():
                 break
             began = time.monotonic()
+            self.report.step(f"{year}: building ({years[year]})")
             window = GridStore.open(data_dir, DAILY, year, DAILY_VARIABLES.values(), add_missing=True).window
             try:
                 days = modelmaps.build(

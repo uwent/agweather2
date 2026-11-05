@@ -5,6 +5,7 @@ manage.py jobs days --days 14       # a line per UTC day: hours of air temperatu
 manage.py jobs list                 # the jobs, their schedules and what they do
 manage.py jobs run ingest_recent    # run jobs here and now (`all`: every periodic job, in catch-up order)
 manage.py jobs run all --defer      # or queue them for the worker
+manage.py jobs clear                # the failed jobs so far stop counting as a problem (and their run records go)
 manage.py jobs start                # status, queue every periodic job once, then become the worker (bin/dev)
 """
 
@@ -19,9 +20,9 @@ from django.db import transaction
 from procrastinate import exceptions as procrastinate_errors
 from procrastinate.contrib.django import app
 
-from ops import tasks
+from ops import runs, tasks
 from ops.management.base import ReportingCommand, positive
-from ops.status import day_lines, fail_stalled_jobs, refresh_dataset_status, short_name, snapshot, status_lines
+from ops.status import abort_stalled_jobs, day_lines, refresh_dataset_status, short_name, snapshot, status_lines
 
 
 def _registered() -> dict[str, object]:
@@ -41,6 +42,7 @@ class Command(ReportingCommand):
         run = sub.add_parser("run", help="run jobs now, or queue them with --defer")
         run.add_argument("names", nargs="+", help="job names (see `jobs list`), or `all`")
         run.add_argument("--defer", action="store_true", help="queue them for the worker instead of running here")
+        sub.add_parser("clear", help="stop counting the failed jobs so far as a problem; forget their run records")
         sub.add_parser("start", help="print the status, queue every periodic job once, then run the worker")
 
     def handle(self, *args, **options):
@@ -53,6 +55,8 @@ class Command(ReportingCommand):
             self.list_jobs()
         elif action == "run":
             self.run_jobs(self.resolve(options["names"]), defer=options["defer"])
+        elif action == "clear":
+            self.clear()
         elif action == "start":
             self.start()
 
@@ -117,6 +121,17 @@ class Command(ReportingCommand):
         self.report.step(f"{short_name(task.name)}: queued")
         return True
 
+    def clear(self) -> None:
+        data_dir = settings.DATA_DIR
+        gone = [r for r in runs.runs(data_dir) if r.is_job and not r.running]
+        for run in gone:
+            runs.forget(data_dir, run)
+        runs.clear_jobs(data_dir)
+        self.stdout.write(
+            "Failed jobs until now cleared"
+            + (f"; forgot {len(gone)} job record{'s' * (len(gone) != 1)}" if gone else "")
+        )
+
     def start(self) -> None:
         """For bin/dev and the worker container: what state things are in, a catch-up run of every periodic job
         (each works from the data's state, so one run covers any outage up to its own lookback), then the worker."""
@@ -124,8 +139,8 @@ class Command(ReportingCommand):
             self.status(fail_on_problems=False)
             refresh_dataset_status(settings.DATA_DIR)  # a deploy can make stores stale without a write
             self.report.step("dataset status refreshed for /api/v2/status")
-            for job_id, name in fail_stalled_jobs():
-                self.report.step(f"{short_name(name)}: job {job_id} was left by a stopped worker; marked failed")
+            for job_id, name in abort_stalled_jobs():
+                self.report.step(f"{short_name(name)}: job {job_id} was left by a stopped worker; marked aborted")
             now = int(time.time())
             for task in tasks.CATCH_UP:
                 self.defer(task, now)

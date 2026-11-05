@@ -90,6 +90,7 @@ def write_lock(
     wait: float = 0,
     poll: float = 5,
     on_wait: Callable[[str], None] | None = None,
+    on_acquired: Callable[[], None] | None = None,
     label: str | None = None,
     polite: bool = False,
 ) -> Iterator[None]:
@@ -119,6 +120,8 @@ def write_lock(
     finally:
         if marker is not None:
             marker.unlink(missing_ok=True)
+    if said > -float("inf") and on_acquired is not None:
+        on_acquired()
     try:
         yield
     finally:

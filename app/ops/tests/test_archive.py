@@ -177,11 +177,12 @@ def test_archive_fill_dry_run_plans_and_estimates_without_fetching(settings, tmp
 def test_archive_stop_signals_each_running_run(settings, tmp_path, monkeypatch):
     settings.DATA_DIR = tmp_path
     run = runs.start(tmp_path, "backfill", [])
+    runs.start(tmp_path, "job", ["ingest_recent"], id="job-7")  # the worker's (same pid here): never signalled
     stopped = []
-    monkeypatch.setattr(runs, "stop", lambda r: stopped.append(r.pid) or True)
+    monkeypatch.setattr(runs, "stop", lambda r: stopped.append(r.key) or True)
     out = StringIO()
     call_command("archive", "stop", stdout=out)
-    assert stopped == [run.pid] and "to stop after its current block" in out.getvalue()
+    assert stopped == [run.key] and "to stop after its current block" in out.getvalue()
 
 
 def test_a_stoppable_command_finishes_its_block_on_the_first_stop(settings, tmp_path, monkeypatch):

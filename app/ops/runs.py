@@ -1,9 +1,14 @@
 """The data commands running now and lately, for `manage.py archive` and the dashboard (`ops.tui`).
 
 Each data command (`ops.management.base.ReportingCommand`) records itself in `data_dir/runs/` while it runs: a
-`<pid>.json` (what it is, when it started, its log) and a `<pid>.events.jsonl` of everything it reported
-(`agdata.progress.Reporter(events=)`), which the dashboard follows. A command started with `--background` runs
-detached with its output in `<started>-<command>.log` beside them.
+`<key>.json` (what it is, when it started, its log) and a `<key>.events.jsonl` of everything it reported
+(`agdata.progress.Reporter(events=)`), which the dashboard follows. A command's key is its pid. A command started
+with `--background` runs detached with its output in `<started>-<command>.log` beside them.
+
+In development the worker's jobs record themselves too (`ops.jobruns`), keyed `job-<id>` since they share the
+worker's pid; a job that succeeds removes its record, so what stays is the ones that failed or were stopped.
+`clear()` forgets finished runs and marks the job failures seen so far as cleared (`jobs_cleared_at`), which the
+health checks' "failed jobs" count starts from.
 
 Nothing here talks to the database, so the dashboard can list runs while the worker or a migration holds it.
 """
@@ -20,14 +25,16 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+JOBS_CLEARED = "jobs.cleared"  # in runs/: when the job failures were last cleared (ISO)
 KEEP_DAYS = 14  # finished runs' records and logs are removed after this
 INTERRUPTED = "Interrupted (Ctrl-C, or stopped twice); rerun to resume"
+LAUNCH_NICE = 10  # launched runs' niceness (lower CPU priority than the dashboard)
 LOG_ENV = "AGWX_RUN_LOG"  # a background run's log, passed to the detached process
 
 
 @dataclass(kw_only=True)
 class Run:
-    pid: int
+    pid: int  # a job's is its worker's
     command: str  # `backfill`, `archive`, …
     args: list[str]  # the arguments after the command's name
     started: str  # ISO time
@@ -36,6 +43,15 @@ class Run:
     finished: str | None = None
     ok: bool | None = None
     summary: str = ""
+    id: str = ""  # the record's key when it isn't the pid (`job-<id>`)
+
+    @property
+    def key(self) -> str:
+        return self.id or str(self.pid)
+
+    @property
+    def is_job(self) -> bool:
+        return self.id.startswith("job-")
 
     @property
     def label(self) -> str:
@@ -58,8 +74,9 @@ def folder(data_dir: Path) -> Path:
     return data_dir / "runs"
 
 
-def start(data_dir: Path, command: str, args: list[str]) -> Run:
-    """Records this process as a run of `command`; returns it (its `events` path is the reporter's)."""
+def start(data_dir: Path, command: str, args: list[str], id: str = "") -> Run:
+    """Records this process as a run of `command` (keyed `id`, else its pid); returns it (its `events` path is the
+    reporter's)."""
     base = folder(data_dir)
     base.mkdir(parents=True, exist_ok=True)
     _prune(base)
@@ -69,10 +86,11 @@ def start(data_dir: Path, command: str, args: list[str]) -> Run:
         command=command,
         args=args,
         started=datetime.now().astimezone().isoformat(timespec="seconds"),
-        events=str(base / f"{pid}.events.jsonl"),
-        log=os.environ.get(LOG_ENV),
+        events=str(base / f"{id or pid}.events.jsonl"),
+        log=None if id else os.environ.get(LOG_ENV),
+        id=id,
     )
-    Path(run.events).unlink(missing_ok=True)  # a reused pid's old events
+    Path(run.events).unlink(missing_ok=True)  # a reused key's old events
     _save(base, run)
     return run
 
@@ -113,15 +131,36 @@ def events(run: Run, offset: int = 0) -> tuple[list[dict[str, Any]], int]:
     return out, offset + end
 
 
+def forget(data_dir: Path, run: Run) -> None:
+    """Removes a run's record, events and log."""
+    _remove(folder(data_dir), run)
+
+
 def clear(data_dir: Path) -> int:
-    """Removes every run that isn't running (its record, events and log); returns how many."""
+    """Removes every run that isn't running (its record, events and log) and marks the job failures so far as
+    cleared; returns how many runs it removed."""
     removed = 0
     for run in runs(data_dir):
         if run.running:
             continue
         _remove(folder(data_dir), run)
         removed += 1
+    clear_jobs(data_dir)
     return removed
+
+
+def clear_jobs(data_dir: Path) -> None:
+    """Marks the jobs that failed until now as cleared: the "failed jobs" problem counts only later ones."""
+    base = folder(data_dir)
+    base.mkdir(parents=True, exist_ok=True)
+    (base / JOBS_CLEARED).write_text(datetime.now().astimezone().isoformat())  # to the microsecond: failures race it
+
+
+def jobs_cleared_at(data_dir: Path) -> datetime | None:
+    """When the job failures were last cleared, or None."""
+    with contextlib.suppress(OSError, ValueError):
+        return datetime.fromisoformat((folder(data_dir) / JOBS_CLEARED).read_text().strip())
+    return None
 
 
 def stop(run: Run) -> bool:
@@ -149,8 +188,16 @@ def launch(data_dir: Path, argv: list[str]) -> tuple[int, Path]:
             start_new_session=True,
             env={**os.environ, LOG_ENV: str(log), "PYTHONUNBUFFERED": "1"},
             cwd=manage.parents[1],
+            preexec_fn=_lower_priority,
         )
     return process.pid, log
+
+
+def _lower_priority() -> None:
+    """In the launched process before it starts: a lower CPU priority, so the dashboard and the shell stay quick
+    while a build uses every core (it runs as fast as before when nothing else wants the CPU)."""
+    with contextlib.suppress(OSError):
+        os.nice(LAUNCH_NICE)
 
 
 def tail(path: Path, lines: int = 200) -> list[str]:
@@ -166,7 +213,7 @@ def tail(path: Path, lines: int = 200) -> list[str]:
 
 
 def _save(base: Path, run: Run) -> None:
-    path = base / f"{run.pid}.json"
+    path = base / f"{run.key}.json"
     partial = path.with_suffix(".json.part")
     partial.write_text(json.dumps(asdict(run)))
     partial.replace(path)
@@ -181,7 +228,11 @@ def _prune(base: Path) -> None:
 
 
 def _remove(base: Path, run: Run) -> None:
-    for path in (base / f"{run.pid}.json", Path(run.events), Path(run.log) if run.log else None):
+    for path in (
+        base / f"{run.key}.json",
+        Path(run.events) if run.events else None,
+        Path(run.log) if run.log else None,
+    ):
         if path is not None:
             path.unlink(missing_ok=True)
 
@@ -247,7 +298,7 @@ def apply(state: Latest, event: dict[str, Any]) -> None:
     assert state.details is not None and state.problems is not None
     kind = event.get("kind")
     state.updated = event.get("t", state.updated)
-    if kind == "step":
+    if kind in ("step", "resume"):  # resume: the step before a wait for the lock, once it's over
         state.step = event["message"]
     elif kind == "progress":
         if event["done"] >= event["total"]:
