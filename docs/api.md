@@ -352,7 +352,7 @@ A weather network (Wisconet, a farm's own station, a vendor's sensors) sends its
 - **Checks:** the same QC as ingest (`agdata.qc`: ranges, spikes, short gaps in the hours filled). Out-of-range values become missing, with a warning saying how many and where. A model whose inputs can't be made from what was sent returns 422 naming what's missing, and which hourly variables would supply it.
 - **`fill=grid`:** fill the station's gaps from our archive at its cell, with those days' kind `grid`. **`extend=forecast`:** run on past the station's last day with our forecast for the cell, so a station network gets the next week's risk too. The default for both is `none`: by default the answer depends only on what was sent.
 - **Response:** the same envelope and columns as `GET /models/{id}/run`, with `kind` = `provided`, `estimated` (a provided day where the model bridged a gap in an input), `grid` or `forecast` per day, and `meta.summary` counting each kind. A CSV body takes the rest as query parameters (`lat`, `lng`, `units`, `start`, `end`, `fill`, `extend`, `biofix`, `planting_date`, options); `meta.request.sent` says which days and variables arrived.
-- **Nothing sent is stored.** Requests are computed and forgotten, and the docs say so. Limits: about two years of hourly data per request, and Caddy's rate limits.
+- **Nothing sent is stored.** Requests are computed and forgotten, and the docs say so. Limits: about two years of hourly data per request, and the rate limits (Phase 5 H, PLAN.md Q37).
 
 **POST only** for running on your own weather. A season of daily min/max would fit in a URL, but hourly data won't, and two ways to send the same thing doubles what has to be documented and tested. The GET form of `run` already covers "our weather at a point".
 
@@ -418,7 +418,7 @@ Yearly NetCDF per variable for bulk users, as static files beside the API (Phase
 
 ## Access, limits, stability
 
-- **Anonymous reads** with Caddy rate limits at launch. Optional free API keys (`X-API-Key`) for higher limits, and so we know who to tell before a change, are added when someone needs more.
+- **Anonymous reads** with per-IP rate limits at launch (where they live, the app or a Caddy plugin, is PLAN.md Q37). Optional free API keys (`X-API-Key`) for higher limits, and so we know who to tell before a change, are added when someone needs more.
 - **Stability:** `/api/v2` changes only by addition (new endpoints, parameters, columns, `meta` keys). Anything breaking is announced on the changelog page and in `meta.warnings` well ahead. Clients should ignore keys they don't know.
 - **Types:** the frontend's TypeScript types are generated from the OpenAPI schema, as `bin/types` does for props (`@/types/api`), so CI fails when the frontend and API disagree.
 - **Docs:** OpenAPI at `/api/v2/docs`, with an R, Python and curl example per endpoint, D53's attribution, and the changelog.
