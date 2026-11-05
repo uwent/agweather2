@@ -30,7 +30,7 @@ import numpy as np
 from django.http import HttpRequest
 from ninja import Field, Schema
 
-from agdata import modelgrid, modelmaps, regions, seasonal, series
+from agdata import modelgrid, modelmaps, palettes, regions, seasonal, series
 from agdata.daily import cell_timezones, days_from_hours
 from agdata.grid import Window
 from agdata.grids import cube_terms, degree_days, reduce
@@ -102,6 +102,31 @@ class LayerAsk:
     @property
     def step(self) -> float:
         return self.model.output.step if self.model is not None else self.layer.step
+
+    @property
+    def scale(self) -> palettes.Scale:
+        """The map's palette and its fixed domain (None: from the map's values, `auto_domain`)."""
+        if self.model is not None:
+            return palettes.scale_for(self.model.output.palette, "day", running=True)
+        running = self.layer.source == "cumulative" or self.stat is not None
+        return palettes.scale_for(self.layer.palette, self.layer.time_axis, running)
+
+    @property
+    def categories(self) -> list[str] | None:
+        """A categorical map's level names, in order."""
+        if self.model is None:
+            return None
+        name = self.model.output.name
+        if name in ("risk_level", f"{seasonal.PROJECTED}risk_level") and self.model.spec.risk is not None:
+            return list(self.model.spec.risk.levels)
+        if name == SUSCEPTIBILITY:
+            return ["Not susceptible", "Near susceptible stages", "Susceptible"]
+        return None
+
+    def domain(self, values: np.ndarray) -> tuple[float, float]:
+        """The scale's domain, or one from `values` (the whole map's, so every tile of it colors alike)."""
+        found = self.scale
+        return found.domain or palettes.auto_domain(values, diverging=found.palette.kind == "diverging")
 
     @property
     def label(self) -> str:
@@ -448,6 +473,8 @@ def _model_compute(layer, model: ModelRequest, first, last, window, stat, data_d
     else:
         values = found.level if name == "risk_level" else found.risk if name == "risk_value" else found.outputs[name]
     assert values is not None
+    # Land only: a crop's disease or pest over open water (the Great Lakes and their shore cells) means nothing
+    values = np.where(regions.land(data_dir, window), values, np.nan)
     if found.in_region is not None and not found.in_region.any():
         warnings.append(f"{layer.id} is valid only in {', '.join(model.spec.region)}: no cells here")
     if found.in_season is not None and not any(found.in_season):

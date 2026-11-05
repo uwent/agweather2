@@ -9,6 +9,7 @@ five-digit FIPS code (`55025`, Dane County).
 
 from dataclasses import dataclass
 from functools import cache
+from pathlib import Path
 
 import numpy as np
 
@@ -57,6 +58,26 @@ def cell_counties(window: Window) -> np.ndarray:
     """Each cell's county id over the window (0 for none), (y, x). Cached: ~0.1–0.5 s for a state-sized box."""
     lat, lon = NDFD.window_latlon(window)
     return county_ids(lat, lon)
+
+
+LAND_FRACTION = 0.5  # ERA5-Land's threshold for land (D52)
+
+
+@cache
+def land(data_dir: Path, window: Window) -> np.ndarray:
+    """True for the window's cells on land, (y, x): in a county, and where the archive keeps ERA5-Land's land-sea
+    mask (`data_dir/static`, D52), at least half land there (bilinear from its 0.1° cells). The county grid alone
+    gives shore cells within ~10 km of a county to it, whose air is the lake's; the mask leaves them out. Cached."""
+    found = cell_counties(window) > 0
+    from agdata.regrid import regrid
+    from agdata.sources.era5land import LandMask
+
+    for path in sorted((data_dir / "static").glob("era5land_land_*.npz")):
+        mask = LandMask.load(path)
+        with np.errstate(invalid="ignore"):
+            fraction = regrid(mask.fraction, mask.grid, window)
+        found &= ~(np.isfinite(fraction) & (fraction < LAND_FRACTION))
+    return found
 
 
 def mask(region: Region, window: Window) -> np.ndarray:

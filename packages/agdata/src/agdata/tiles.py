@@ -103,11 +103,15 @@ def decode(rgba: np.ndarray, step: float) -> np.ndarray:
     return np.where((rgba[..., 3] > 0) & (code > 0), (code - ZERO) * step, np.nan)
 
 
+def pick(values: np.ndarray, cells: np.ndarray) -> np.ndarray:
+    """A tile's values (SIZE, SIZE) from a map over the window (y, x) and the tile's `index` (NaN outside)."""
+    picked = np.where(cells >= 0, values.ravel()[np.clip(cells, 0, None)], np.nan)
+    return picked.reshape(SIZE, SIZE)
+
+
 def data_tile(values: np.ndarray, cells: np.ndarray, step: float) -> np.ndarray:
     """A tile's RGBA pixels (SIZE, SIZE, 4) from a map over the window (y, x) and the tile's `index`."""
-    flat = values.ravel()
-    picked = np.where(cells >= 0, flat[np.clip(cells, 0, None)], np.nan)
-    code = codes(picked, step)
+    code = codes(pick(values, cells).ravel(), step)
     rgba = np.empty((cells.size, 4), dtype=np.uint8)
     rgba[:, 0] = code >> 16
     rgba[:, 1] = (code >> 8) & 0xFF

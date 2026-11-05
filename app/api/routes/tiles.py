@@ -18,10 +18,11 @@ from typing import Any, Literal
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from ninja import Field, Query, Router, Schema
 
-from agdata import tiles
+from agdata import mapimage, palettes, tiles
+from agdata import units as agunits
 from agdata.grid import NDFD
 from api import clock, layermaps
-from api.envelope import etag_for, not_modified
+from api.envelope import Column, etag_for, not_modified, output_units, shown_unit
 from api.errors import ApiError
 from api.layermaps import LayerQuery
 from api.params import OutputQuery
@@ -40,11 +41,14 @@ class TileQuery(Schema):
     gaps: Literal["estimate", "missing"] = Field("estimate", description="As on /grids")
     output: str | None = Field(None, description="A model layer's output (`/layers` lists them)")
     planting: Literal["early", "mid", "late", "none"] | None = Field(None, description="A model's planting tier")
+    style: Literal["default"] | None = Field(
+        None, description="default: colored with the layer's palette (`/palettes`) for any map client; none: data"
+    )
 
 
 def _layer_query(when: str, q: TileQuery) -> LayerQuery:
     """`{time}` and the settings as `/grids` takes them."""
-    fields: dict[str, Any] = q.model_dump()
+    fields: dict[str, Any] = q.model_dump(exclude={"style"})
     if when == "latest":
         pass
     elif (span := RANGE.match(when)) is not None:
@@ -123,7 +127,12 @@ def tile(
         body = tiles.empty_png()
     else:
         found = layermaps.cached(a, window, now, data_stamp)
-        body = tiles.png(tiles.data_tile(found.values[0], cells, a.step))
+        if query.style is None:
+            body = tiles.png(tiles.data_tile(found.values[0], cells, a.step))
+        else:
+            scale = a.scale
+            colors = palettes.colorize(tiles.pick(found.values[0], cells), scale.palette, a.domain(found.values[0]))
+            body = tiles.png(colors)
     response = HttpResponse(body, content_type="image/png")
     response["ETag"] = etag
     response["Cache-Control"] = "public, no-cache"
@@ -177,3 +186,61 @@ def _data_dir():
     from django.conf import settings
 
     return settings.DATA_DIR
+
+
+@router.get(
+    "/tiles/{layer}/legend.png",
+    summary="A layer's legend",
+    response={200: None},
+    openapi_extra={"responses": {"200": {"content": {"image/png": {}}}}},
+)
+def legend(
+    request: HttpRequest,
+    layer: str,
+    query: Query[TileQuery],
+    output: Query[OutputQuery],
+    time: str = "latest",
+) -> HttpResponse:
+    """The legend of `?style=default` tiles at `time` (default `latest`) with the same settings: a color bar with
+    ticks in the request's units (`units=`), or a swatch per level for a categorical map. A map whose domain comes
+    from its values (running totals, reduced ranges, model outputs) takes the same domain as its tiles."""
+    a, now, window, data_stamp = _prepared(request, layer, time, query, output.units)
+    etag = etag_for(request, a.echo(), data_stamp)
+    if (unchanged := not_modified(request, etag)) is not None:
+        return unchanged
+    scale = a.scale
+    domain = scale.domain
+    if domain is None:
+        domain = a.domain(layermaps.cached(a, window, now, data_stamp).values[0])
+    column = Column(name=a.layer.id, values=[], unit=a.unit, step=a.step, variable=a.layer.variable or a.layer.id)
+    system, overrides = output_units(request)
+    shown_as = shown_unit(column, system, overrides)
+    body = mapimage.legend_png(
+        scale.palette,
+        domain,
+        a.label,
+        agunits.unit(shown_as).label,
+        lambda v: agunits.convert(v, a.unit, shown_as),
+        categories=a.categories,
+    )
+    response = HttpResponse(body, content_type="image/png")
+    response["ETag"] = etag
+    response["Cache-Control"] = "public, no-cache"
+    return response
+
+
+class PaletteInfo(Schema):
+    id: str
+    kind: Literal["sequential", "diverging", "categorical", "cyclic"]
+    colors: list[str]  # low to high, hex
+    description: str
+
+
+@router.get("/palettes", response=list[PaletteInfo], summary="Map palettes", tags=["grids"])
+def palette_list(request: HttpRequest) -> list[PaletteInfo]:
+    """Every palette a layer's `palette` names (`/layers`): its kind and colors, low to high. The frontend colors
+    data tiles with them over each layer's `domain`, as `?style=default` tiles and static maps do."""
+    return [
+        PaletteInfo(id=p.id, kind=p.kind, colors=list(p.colors), description=p.description)
+        for p in palettes.PALETTES.values()
+    ]

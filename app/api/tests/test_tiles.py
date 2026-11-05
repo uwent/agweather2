@@ -84,3 +84,37 @@ def test_tilejson_gives_the_url_and_decoding(client, archive):
     assert enc["baseShift"] == pytest.approx(-(2**23) * 0.1)
     lat, lon = NDFD.window_latlon(WINDOW)
     assert body["bounds"] == pytest.approx([float(lon.min()), float(lat.min()), float(lon.max()), float(lat.max())])
+
+
+@pytest.mark.django_db
+def test_a_styled_tile_colors_the_values_with_the_palette(client, archive):
+    from agdata import palettes
+
+    data = _cells_seen(_pixels(_tile(client, "air_temperature_max", "2025-07-08")), step=0.1)
+    styled = _pixels(_tile(client, "air_temperature_max", "2025-07-08", style="default"))
+    cells = tiles.index(WINDOW, Z, X, Y)
+    assert cells is not None
+    p = palettes.PALETTES["temperature"]
+    for k, cell in enumerate(cells):
+        if cell >= 0:
+            expected = palettes.colorize(np.array([data[int(cell)]]), p, (-30, 40))[0]
+            assert tuple(styled.reshape(-1, 4)[k]) == tuple(expected)
+            break
+    risk = _pixels(_tile(client, "late-blight-dsv", "2025-07-08", style="default"))
+    colors = {tuple(c[:3]) for c in risk.reshape(-1, 4) if c[3]}
+    assert colors <= {palettes.rgb(c) for c in palettes.PALETTES["risk_5"].colors}
+
+
+@pytest.mark.django_db
+def test_legends_palettes_and_domains(client, archive):
+    bar = Image.open(io.BytesIO(client.get("/api/v2/tiles/air_temperature_max/legend.png", {"units": "us"}).content))
+    assert bar.size[0] == 320 and 60 <= bar.size[1] <= 100
+    levels = client.get("/api/v2/tiles/late-blight-dsv/legend.png", {"time": "2025-07-08"})
+    assert levels.status_code == 200 and Image.open(io.BytesIO(levels.content)).size[1] > 80  # a swatch per level
+    total = client.get("/api/v2/tiles/dd_modified_50_86/legend.png", {"time": "2025-07-08"})
+    assert total.status_code == 200  # its domain from the map
+    found = {p["id"]: p for p in client.get("/api/v2/palettes").json()}
+    assert found["temperature"]["kind"] == "diverging" and found["risk_4"]["colors"][0] == "#4575b4"
+    layers = {layer["id"]: layer for layer in client.get("/api/v2/layers").json()["data"]}
+    assert layers["air_temperature_max"]["domain"] == [-30, 40]
+    assert layers["dd_modified_50_86"]["domain"] is None and layers["late-blight-dsv"]["domain"] == [0, 4]

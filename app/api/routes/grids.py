@@ -17,7 +17,7 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from ninja import Field, Query, Router, Schema
 
-from agdata import modelgrid, regions, seasonal, series
+from agdata import modelgrid, palettes, regions, seasonal, series
 from agdata import units as agunits
 from agdata.catalog import DAILY_STATISTICS
 from agdata.grid import NDFD, Box, Window
@@ -69,7 +69,8 @@ class LayerOutputInfo(Schema):
     unit: str
     units: DisplayUnits
     precision: float
-    palette: str
+    palette: str  # `/palettes`
+    domain: list[float] | None  # what the palette's ends stand for, in the stored unit; None: from the map's values
 
 
 class LayerInfo(Schema):
@@ -81,7 +82,8 @@ class LayerInfo(Schema):
     unit: str  # stored unit symbol
     units: DisplayUnits
     precision: float  # the stored step, in `unit`
-    palette: str  # a color scale id, the same for layers of one kind
+    palette: str  # `/palettes`: a color scale, the same for layers of one kind
+    domain: list[float] | None  # what the palette's ends stand for, in the stored unit; None: from the map's values
     stats: list[str]  # what a range can be reduced to (`stat=`); empty for running totals
     parameters: list[str]  # required beyond the time and area (`dd` for degree days)
     range: LayerRange
@@ -131,6 +133,7 @@ def layers(request: HttpRequest) -> HttpResponse:
             units=_units(layer.unit),
             precision=layer.step,
             palette=layer.palette,
+            domain=_layer_domain(layer),
             stats=list(layer.stats),
             parameters=["dd"] if layer.id == DEGREE_DAYS else [],
             range=ranges[layer.time_axis],
@@ -145,9 +148,23 @@ def layers(request: HttpRequest) -> HttpResponse:
     return respond(request, Result(request={}, data=[f.model_dump() for f in found]))
 
 
+def _layer_domain(layer: Layer) -> list[float] | None:
+    if layer.outputs:  # a model's: its default output's
+        return _output_info(layer.outputs[0]).domain
+    found = palettes.scale_for(layer.palette, layer.time_axis, running=layer.source == "cumulative").domain
+    return list(found) if found else None
+
+
 def _output_info(o: LayerOutput) -> LayerOutputInfo:
+    domain = palettes.scale_for(o.palette, "day", running=True).domain
     return LayerOutputInfo(
-        name=o.name, label=o.label, unit=o.unit, units=_units(o.unit), precision=o.step, palette=o.palette
+        name=o.name,
+        label=o.label,
+        unit=o.unit,
+        units=_units(o.unit),
+        precision=o.step,
+        palette=o.palette,
+        domain=list(domain) if domain else None,
     )
 
 
