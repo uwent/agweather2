@@ -18,7 +18,10 @@ A daily variable that a newer version of its code hasn't rebuilt yet (D29: betwe
 is computed from the hours for up to MAX_STALE_DAYS days; a longer range is a 503 until the rebuild is done.
 """
 
+import json
+import threading
 import time
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, Literal
@@ -606,3 +609,28 @@ def hourly_of(layer: Layer) -> list[str]:
     if layer.source == "cumulative":
         return _TOTALS_FROM.get(layer.variable, [])
     return series.hourly_needed([layer.variable])
+
+
+# --- Computed maps, kept -------------------------------------------------------------------------------------------
+
+# Maps computed for tiles and images, by what was asked and the data stamp: a screen of tiles is one map read
+# 12–20 times, so it's computed once. A Wisconsin map is ~0.5 MB; the launch box's a few MB.
+MAP_CACHE_SIZE = 24
+_maps: "OrderedDict[str, Computed]" = OrderedDict()
+_maps_lock = threading.Lock()
+
+
+def cached(a: LayerAsk, window: Window, now: datetime, data_stamp: Any) -> Computed:
+    """`compute` over `window`, kept for the next request asking the same of the same data."""
+    key = json.dumps([a.echo(), data_stamp, [window.j0, window.j1, window.i0, window.i1]], default=str)
+    with _maps_lock:
+        found = _maps.get(key)
+        if found is not None:
+            _maps.move_to_end(key)
+            return found
+    found = compute(a, window, now)
+    with _maps_lock:
+        _maps[key] = found
+        while len(_maps) > MAP_CACHE_SIZE:
+            _maps.popitem(last=False)
+    return found

@@ -4,7 +4,7 @@ from ninja import NinjaAPI
 
 from api import errors
 from api.params import QueryParser
-from api.routes import degree_days, discovery, grids, models, weather
+from api.routes import degree_days, discovery, grids, models, tiles, weather
 
 api = NinjaAPI(
     title="AgWeather API",
@@ -19,3 +19,4 @@ api.add_router("/", discovery.router)
 api.add_router("/", weather.router)
 api.add_router("/", degree_days.router)
 api.add_router("/", grids.router)
+api.add_router("/", tiles.router)
