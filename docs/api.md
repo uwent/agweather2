@@ -467,15 +467,34 @@ ds = xr.open_dataset(io.BytesIO(grid.content))
 
 **Where v1 goes (D62):** at launch v2 takes over `agweather.cals.wisc.edu`, and v1 moves to `legacy.agweather.cals.wisc.edu` for a year. Any `/api/…` request outside `/api/v2` is redirected there (308, path and query kept), so a v1 caller that follows redirects keeps working until the legacy host is retired; move to v2 before then.
 
-**DATCP** (confirmed 2026-11-02): their daily table has ten columns at 23 locations: the eight degree-day settings for this year, last year's modified 50/86, and the 1991–2020 normal modified 50/86 (from a State Climatology Office spreadsheet). v1 needs 184 requests and the spreadsheet; v2 needs one `/degree-days/table` for the eight settings (Phase 5), and once the climatology exists (Phase 6) one `/climate/compare`, which adds last year, the normal, the departure and days ahead or behind for every setting.
+Each v1 caller in the old server's logs (TODO.md, Phase 5, has the list) is below: its query, the v2 request that replaces it, and what it will see differently. The numbers come from comparisons with the live v1 API (D54: they explain differences, they don't judge accuracy), and the per-caller guides in Phase 8 are written from them. Three causes run through every comparison: v2 reads URMA where v1 read RTMA (URMA's minimums run a little cooler); v1 averages the 2.5 km cells around its 0.1° point while v2 reads the point's own cell; and v1's day is the Central-time hours 00–23 where v2's is the local hours ending 01–24. Two behaviours differ everywhere: v1 counts a day without data as 0 in a running total, silently, where v2 bridges gaps up to 7 days with a flagged estimate and counts longer ones as missing; and v1 ends at its last full day, where v2 runs through the forecast unless asked `forecast=false`.
 
-v1 took one location and one setting per request. Its biggest outside caller, DATCP's daily degree-day report (8 settings × 23 locations, 184 requests every morning, January 1 to yesterday; old server log, December 2024), becomes one request:
+**DATCP's degree-day report** (confirmed 2026-11-02; `docs/validation-v1.md`): eight settings at 23 locations every morning, January 1 to yesterday: 184 requests to `/api/degree_days`. Their table has ten columns: the eight settings, last year's modified 50/86, and the 1991–2020 normal modified 50/86 (from a State Climatology Office spreadsheet). In v2 the eight are one request:
 
 ```
-/api/v2/degree-days/table?points=43.2,-90.2;…&dd=average_43,average_50,average_52,modified_38_75,modified_40,modified_50_86,sine_39_84,sine_48_86&start=2026-01-01
+/api/v2/degree-days/table?points=43.2,-90.2;…&dd=average_43,average_50,average_52,modified_38_75,modified_40,modified_50_86,sine_39_84,sine_48_86&start=2026-01-01&forecast=false
 ```
 
-or `/degree-days` with the same parameters for the daily series. `units=us` is the default, as in v1.
+or `/degree-days` with the same parameters for the daily series; last year's column is a second request with last year's dates, and once the climatology exists (Phase 6) one `/climate/compare` adds last year, the normal, the departure and days ahead or behind for every setting. v2's totals run 0.4–0.6% below v1's for every setting (−13 to −24 °F·d on 2,500–5,200 by October 31; single points within about ±90), from a daily minimum 0.21 °F lower on average.
+
+**The Waunakee lawn notifier** (`docs/validation-v1-dd-table.md`): `/api/degree_days/dd_table?lat=43.18&lng=-89.45&models=dd_50_86,dd_32` and 30 days of `/api/precips`, twice a day. v1's `dd_50_86` is single sine 50/86 °F and `dd_32` single sine from 32 °F with no upper threshold, so in v2:
+
+```
+/api/v2/degree-days?lat=43.18&lng=-89.45&dd=sine_50_86,sine_32&forecast=false
+/api/v2/weather/totals?lat=43.18&lng=-89.45&start=2026-10-02&end=2026-10-31&vars=precipitation_sum
+```
+
+The columns match `dd_table`'s (each day's value and running total per setting, the day's minimum and maximum), as columns rather than an object per date. January 1 to October 31, 2026: sine 50/86 3,208 °F·d against v1's 3,203 (+0.2%), sine 32 7,202 against 7,203; precipitation October 2–31 27.0 mm against 28.9.
+
+**Nortera** (a vegetable processor): sine 50/86 degree days from May 1 and precipitation at 8 points, daily. In v2 one `/degree-days?points=…&dd=sine_50_86&start=2026-05-01` and one `/weather/totals` (or `/weather/daily`) with the same `points`. Expect what the lawn notifier's comparison shows for sine 50/86 (within a fraction of a percent) and DATCP's points show for precipitation (4% below v1 over January to October).
+
+**ET at points** (two .NET clients: one point over the last 30 days, with and without `method=adjusted`; 28 points over the last 10 days; `docs/validation-v1.md`): `/weather/daily?points=…&vars=et0_sum&start=…` for each day, or `/weather/totals` for the sum. v2's ET is FAO-56 grass reference ET0, not v1's own method (Diak et al. 1998), and has no `adjusted` variant. At DATCP's points, January to October: v2 772 mm against v1's 796 (3% below) and 566 for `method=adjusted` (36% above), so the client asking for `adjusted` sees the largest change.
+
+**Veg Path's tables** (`pest_forecasts/vegpath` at 7 points, through wpDataTables; `docs/validation-vegpath.md`): one `/weather/daily?points=…` for the weather, plus `/models/run?models=early-blight-pdays,late-blight-dsv` per point; wpDataTables reads `orient=records` with root `data`, or CSV. May to September 2026: daily temperatures within 0.5 °F, RH within 1%, P-days within ±4%. Late blight DSVs read higher by design: 27–51% above v1's season totals, mostly because gridded RH ≥ 90% is counted at 88% (D50), the rest from the late blight day starting at 8 p.m. and URMA against RTMA.
+
+**Daily Wisconsin grids** (`/api/weather/grid?date=…`, from R; `docs/validation-v1-grid.md`): one `/grids/{variable}?date=…&grid=latlon&res=0.1&method=mean` per variable, on the same 0.1° points. Minimum −0.20 °F on average (MAE 0.44), maximum +0.05 (0.38), dew point +0.01, RH within 0.5%, hours of RH ≥ 90% +1.45 (D50's 88%).
+
+**The UW Insect Diagnostic Lab's map link** ("Today's Growing Degree Day Map", v1's `/api/degree_days/map.png`, which draws v1's default, sine 50/86 since January 1): `/api/v2/maps/degree_days.png?dd=sine_50_86&stat=sum` runs from January 1 to the latest day, so the link stays current. v2's own default map, `/maps/dd_modified_50_86.png`, is modified 50/86 since January 1 (one of v1's default map set, Phase 5 G3); which one the lab links to is their call.
 
 ## Implementation choices
 
