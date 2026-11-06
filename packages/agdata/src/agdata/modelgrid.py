@@ -29,7 +29,7 @@ from typing import cast
 
 import numpy as np
 
-from agdata import modelmaps, planting, regions, series
+from agdata import croptiers, modelmaps, planting, regions, series
 from agdata import units as agunits
 from agdata.grid import Window
 from agdata.grids import cube_terms
@@ -401,8 +401,12 @@ def _stage_reached(data_dir, sown: _Planting, code: str, last: date, now):
     def biofix(day: date) -> np.ndarray:
         if day.year not in seasons:
             p = sown(day)
+            stored = _stored_reached(data_dir, sown, day.year, now) if np.isfinite(p).any() else None
             if not np.isfinite(p).any():
                 seasons[day.year] = p
+            elif stored is not None:
+                # As `update` kept them (D70): a day after the request's last counts as not reached yet
+                seasons[day.year] = np.where(stored[k] > last.toordinal(), np.inf, stored[k])
             else:
                 # The season's, whatever the request's last day: a day after it counts as not reached yet
                 begin, end = date.fromordinal(int(np.nanmin(p))), date(day.year, 12, 31)
@@ -420,6 +424,19 @@ def _stage_reached(data_dir, sown: _Planting, code: str, last: date, now):
         return seasons[day.year]
 
     return biofix
+
+
+def _stored_reached(data_dir, sown: _Planting, year: int, now) -> np.ndarray | None:
+    """A stored crop's first day at each stage (`croptiers.reached`): the current forecast run's, which runs on
+    through the forecast, else the archive's; None for a crop not stored, or stores from before they were kept."""
+    if sown.crop_id not in modelmaps.TIER_MODELS:
+        return None
+    run = series.current_forecast(data_dir, now).path
+    for root in (run, data_dir):
+        found = None if root is None else croptiers.reached(root, sown.crop_id, sown.tier, year, sown.window)
+        if found is not None:
+            return found[0]
+    return None
 
 
 def _crop_stamped(sown: _Planting) -> tuple[list[str], list[str]]:

@@ -335,3 +335,23 @@ def test_a_tier_stored_crop_takes_a_tier(built):
     root, _ = built
     with pytest.raises(ValueError, match="per planting tier"):
         modelgrid.model_map(root, "soybean-stages", DAYS[1], DAYS[1], WINDOW, tier=None)
+
+
+def test_stored_stage_days_are_what_the_search_finds_and_old_stores_still_search(built, potato_here, monkeypatch):
+    """`croptiers` keeps each tier's first day at each stage (D70); a blight's emergence biofix reads it, and a
+    store built before they were kept falls back to searching the stages."""
+    from agdata import croptiers, planting
+
+    root, _ = built
+    found = croptiers.reached(root, "potato-stages", "mid", 2025, WINDOW)
+    assert found is not None and found[1] == LAST
+    sown = modelgrid._Planting(crop_id="potato-stages", crop="potato", tier="mid", window=WINDOW)
+    p = planting.planting_map("potato", "mid", WINDOW, season=2025)
+    k = 1  # emergence
+    searched = modelgrid._first_day_at(root, sown, k, p, FIRST, LAST, None)
+    np.testing.assert_array_equal(found[0][k], searched)
+    stored = modelgrid.model_map(root, "early-blight-pdays", DAYS[1], DAYS[1], WINDOW, tier="mid")
+    monkeypatch.setattr(croptiers, "reached", lambda *args: None)
+    modelgrid._REACHED.clear()
+    fallback = modelgrid.model_map(root, "early-blight-pdays", DAYS[1], DAYS[1], WINDOW, tier="mid")
+    np.testing.assert_array_equal(stored.cell_biofix, fallback.cell_biofix)

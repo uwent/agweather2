@@ -20,12 +20,15 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager, nullcontext
 from datetime import date, timedelta
 from pathlib import Path
+from typing import Any, cast
 
 import numpy as np
+import zarr
 
 from agdata import modelmaps, planting
 from agdata.grid import NDFD, Window
 from agdata.store import INGREDIENTS, GridStore
+from agmodels.crops import CropModel, stage_days
 from agmodels.registry import model as find_model
 
 # The days an hourly update rewrites: the ingest's own reach back (`ops.ingest`, the last week) and a margin
@@ -37,6 +40,10 @@ CROPS = {  # model → `agdata.planting` crop
     "potato-stages": "potato",
 }
 RUN_STAMP = "croptiers.first_day"  # in a forecast run: the first day its tiers were computed from
+# In each ingredients store: each crop and tier's first day at each stage by cell, (stages, y, x), from the season
+# `update` computes (D70): a stage-anchored biofix (the blights' potato emergence) reads it rather than searching
+# the stages day by day (~0.15 s a blight map after each update, Phase 5 H4)
+REACHED = "_reached"
 
 
 def season(model_id: str, year: int) -> tuple[date, date]:
@@ -105,10 +112,12 @@ def update(
                 found = _season(m, spec, inputs, planted, begin, n, band, options)
                 k = (write_from - begin).days
                 values = {modelmaps.tier_key(model_id, q, tier): v[k:] for q, v in found.items()}
+                reached = _reached_days(m, found["stage"], planted, begin)
                 with (lock or nullcontext)():
                     store = modelmaps.open_or_create(root, year, store_window)
                     store.write(write_from, values, source="derived", window=band)
                     store.mark_current(list(values))
+                    _write_reached(store, model_id, tier, band, reached, end)
                 written += [name for name in values if name not in written]
     return written
 
@@ -132,6 +141,51 @@ def _season(m, spec, inputs, planted: np.ndarray, begin: date, n: int, band: Win
         for name, v in found.items():
             out[name][k0:, cells] = v
     return out
+
+
+def _reached_days(m, stage: np.ndarray, planted: np.ndarray, begin: date) -> np.ndarray:
+    """(stages, y, x): each cell's first day at each of the crop's stages (date ordinals) over the season computed,
+    inf where it isn't reached by its end, NaN where there's no planting."""
+    count = len(cast(CropModel, m).stages())
+    index = stage_days(stage, count)
+    found = np.where(np.isfinite(index), begin.toordinal() + index, np.inf)
+    return np.where(np.isfinite(planted)[None], found, np.nan).astype(np.float32)
+
+
+def _write_reached(store: GridStore, model_id: str, tier: str, band: Window, values: np.ndarray, through: date) -> None:
+    group = store.group.require_group(REACHED)
+    name = f"{model_id}.{tier}"
+    if name not in group:
+        group.create_array(
+            name,
+            shape=(values.shape[0], *store.window.shape),
+            chunks=(values.shape[0], *store.window.shape),
+            dtype="float32",
+            fill_value=np.nan,
+        )
+    array = group[name]
+    assert isinstance(array, zarr.Array)
+    y0, x0 = store.window.local(band.j0, band.i0)
+    array[:, y0 : y0 + band.shape[0], x0 : x0 + band.shape[1]] = values
+    array.attrs["through"] = through.isoformat()
+
+
+def reached(root: Path, model_id: str, tier: str, year: int, window: Window) -> tuple[np.ndarray, date] | None:
+    """A crop's first day at each stage by cell, (stages, y, x) over `window` (date ordinals; inf not reached by
+    `through`, NaN unplanted), and `through`, from the ingredients store under `root` (the archive, or a forecast
+    run's), as `update` wrote them; None if that store has none (one built before they were kept)."""
+    path = INGREDIENTS.path(root, year)
+    if not (path / REACHED / f"{model_id}.{tier}" / "zarr.json").exists():
+        return None
+    group = zarr.open_group(path, mode="r")
+    attrs: dict[str, Any] = dict(group.attrs)
+    w = attrs["window"]
+    store_window = Window(j0=w["j0"], j1=w["j1"], i0=w["i0"], i1=w["i1"])
+    array = group[f"{REACHED}/{model_id}.{tier}"]
+    assert isinstance(array, zarr.Array)
+    y0, x0 = window.j0 - store_window.j0, window.i0 - store_window.i0
+    values = np.asarray(array[:, y0 : y0 + window.shape[0], x0 : x0 + window.shape[1]], dtype=np.float64)
+    return values, date.fromisoformat(str(array.attrs["through"]))
 
 
 def last_stored(data_dir: Path, year: int, root: Path | None = None) -> date | None:
