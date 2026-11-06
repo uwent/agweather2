@@ -83,7 +83,7 @@ def test_a_stat_reduces_the_range_to_one_map_with_its_counts(client, archive):
 def test_days_without_data_are_counted_missing(client, archive):
     data = get(client, "air_temperature_max", start="2025-07-20", end="2025-07-23", stat="max").json()
     assert set(data["data"]["missing_days"]) == {3}  # the run ends at 13Z on July 21: not a whole day
-    assert "3 of 4 days have no data" in data["meta"]["warnings"]
+    assert "3 days of the 4 asked for have no data yet and show as missing." in data["meta"]["warnings"]
 
 
 def test_degree_days_from_running_totals_match_computing_them_and_the_points(client, archive):
@@ -171,7 +171,8 @@ def test_netcdf_on_a_latlon_grid_has_plain_coordinates(client, archive):
     ds = xr.open_dataset(io.BytesIO(response.content), engine="h5netcdf")
     assert ds["precipitation_sum"].dims == ("lat", "lon") and ds["lat"].attrs["axis"] == "Y"
     assert ds["precipitation_sum"].attrs["cell_methods"] == "time: sum time: sum"
-    assert "missing_days" in ds and "lambert_conformal_conic" not in ds
+    assert "lambert_conformal_conic" not in ds
+    assert "missing_days" not in ds  # one gridded variable a file (D71): the counts come with JSON, CSV and GeoTIFF
 
 
 def test_geotiff_has_a_band_per_day_north_up(client, archive):
@@ -337,7 +338,7 @@ def test_a_models_range_reduces_by_its_stats(client, archive):
 def test_a_model_outside_its_states_is_missing_with_a_warning(client, archive):
     body = get(client, "pecan-scab", date="2025-07-08").json()
     assert set(body["data"]["pecan-scab"]) == {None}
-    assert any("valid only in" in w for w in body["meta"]["warnings"])
+    assert any("was developed for" in w for w in body["meta"]["warnings"])
 
 
 def test_a_model_map_revalidates(client, archive):
@@ -380,7 +381,7 @@ def test_a_crop_map_starts_at_each_places_planting_as_at_the_point(client, archi
 
 def test_without_typical_planting_dates_a_map_warns_and_takes_the_defaults(client, archive):
     body = get(client, "late-blight-dsv", date="2025-07-08").json()  # no Veg Path potato place near Fayette County
-    assert any("no typical potato planting dates here" in w for w in body["meta"]["warnings"])
+    assert any("no typical potato planting dates in this area" in w for w in body["meta"]["warnings"])
     assert body["meta"]["request"]["planting"] == "mid"
 
 
@@ -390,3 +391,10 @@ def test_soybean_maps_take_a_tier(client, archive):
     for layer, params in (("soybean-stages", {}), ("white-mold", {"output": "susceptibility"}), ("red-crown-rot", {})):
         body = get(client, layer, date="2025-07-08", **params).json()
         assert body["meta"]["summary"]["planting"]["crop"] == "soybean", layer
+
+
+def test_a_range_reduced_by_a_stat_is_limited_too(client, archive):
+    # A stat returns one map, but reads every day of the range
+    years = get(client, "air_temperature_max", start="2016-01-01", end="2025-07-08", stat="mean")
+    assert years.status_code == 422 and years.json()["errors"][0]["code"] == "too_large"
+    assert get(client, "air_temperature_max", start="2024-07-09", end="2025-07-08", stat="mean").status_code == 200

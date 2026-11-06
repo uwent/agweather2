@@ -46,7 +46,7 @@ class DisplayUnits(Schema):
     metric: str
 
 
-def _units(symbol: str) -> DisplayUnits:
+def display_units(symbol: str) -> DisplayUnits:
     return DisplayUnits(
         us=agunits.unit(agunits.display_unit(symbol, "imperial")).label,
         metric=agunits.unit(agunits.display_unit(symbol, "metric")).label,
@@ -215,7 +215,7 @@ def _variable(v: Variable, kind: Literal["hourly", "daily", "cumulative"]) -> Va
         long_name=v.long_name,
         kind=kind,
         unit=v.unit,
-        units=_units(v.unit),
+        units=display_units(v.unit),
         precision=v.scale,
         valid_min=v.valid_min if v.valid_min > float("-inf") else None,
         valid_max=v.valid_max if v.valid_max < float("inf") else None,
@@ -382,7 +382,13 @@ def _summary(spec: ModelSpec) -> dict:
 
 
 def _quantity(q: Quantity | Input) -> dict:
-    return {"name": q.name, "label": q.label, "unit": q.unit, "units": _units(q.unit), "description": q.description}
+    return {
+        "name": q.name,
+        "label": q.label,
+        "unit": q.unit,
+        "units": display_units(q.unit),
+        "description": q.description,
+    }
 
 
 def _option(o: Option) -> OptionInfo:
@@ -438,7 +444,7 @@ def _detail(spec: ModelSpec) -> ModelDetail:
                 name=e.name,
                 label=e.label,
                 unit=e.unit,
-                units=_units(e.unit),
+                units=display_units(e.unit),
                 minimum=e.minimum,
                 maximum=e.maximum,
                 step=e.step,
@@ -463,7 +469,9 @@ def models(request: HttpRequest) -> HttpResponse:
 @router.get("/models/{model_id}", response=responses(ModelResponse), summary="One model's spec")
 def model(request: HttpRequest, model_id: str) -> HttpResponse:
     if model_id not in all_models():
-        raise Http404(f"no model {model_id!r}; GET /api/v2/models lists them")
+        raise Http404(
+            f"We don't have a model with the id {model_id!r}. GET /api/v2/models lists every model and its id."
+        )
     etag, unchanged = _cached(request, {"id": model_id})
     if unchanged is not None:
         return unchanged
@@ -498,7 +506,7 @@ class LocateResponse(Schema):
 )
 def locate(request: HttpRequest, where: Query[PointsQuery]) -> HttpResponse:
     if where.points is not None:
-        raise ApiError("conflict", "locate takes one point: lat and lng", "points")
+        raise ApiError("conflict", "This endpoint takes one location. Give lat and lng.", "points")
     computed = where.echo()
     etag, unchanged = _cached(request, computed)
     if unchanged is not None:

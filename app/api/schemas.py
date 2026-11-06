@@ -65,5 +65,6 @@ class TableResponse(Schema):
 
 
 def responses(ok: type[Schema]) -> dict[int, type[Schema]]:
-    """An endpoint's documented responses: `ok` and the error envelope."""
-    return {200: ok, 404: ErrorResponse, 422: ErrorResponse, 500: ErrorResponse}
+    """An endpoint's documented responses: `ok` and the error envelope (503: data being rebuilt, or Open-Meteo
+    unreachable)."""
+    return {200: ok, 404: ErrorResponse, 422: ErrorResponse, 500: ErrorResponse, 503: ErrorResponse}

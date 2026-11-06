@@ -20,6 +20,11 @@ FORECAST_TTL = timedelta(hours=3)
 RECENT_TTL = timedelta(days=1)
 
 
+class Unavailable(Exception):
+    """Open-Meteo couldn't be reached or didn't answer in time (after `openmeteo.fetch`'s retries), so a point it
+    serves has no weather for now; the API answers 503."""
+
+
 def spans(first: date, last: date, today: date) -> list[tuple[str, date, date]]:
     """The cache spans covering UTC days first..last: whole months of history (to the day before the forecast's
     reach), then the forecast endpoint's span, as (endpoint, first day, last day)."""
@@ -90,7 +95,12 @@ def _cached(cell, endpoint: str, first: date, last: date, now: datetime, session
     row = WeatherCellCache.objects.filter(cell=cell.key, endpoint=endpoint, first_day=first).first()
     if row is not None and row.last_day >= last and (row.expires_at is None or row.expires_at > now):
         return _unpack(bytes(row.data))
-    hours, calls = openmeteo.fetch(endpoint, cell, first, last, session, getattr(settings, "OPEN_METEO_API_KEY", None))
+    try:
+        hours, calls = openmeteo.fetch(
+            endpoint, cell, first, last, session, getattr(settings, "OPEN_METEO_API_KEY", None)
+        )
+    except requests.RequestException as error:
+        raise Unavailable(f"Open-Meteo {endpoint}: {error}") from error
     if endpoint == "forecast":
         expires = now + FORECAST_TTL
         WeatherCellCache.objects.filter(cell=cell.key, endpoint="forecast").exclude(first_day=first).delete()

@@ -9,6 +9,7 @@ and static maps.
 """
 
 import time
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
@@ -35,11 +36,11 @@ from api.envelope import (
     respond,
     shown_unit,
 )
-from api.errors import ApiError
+from api.errors import ApiError, counted
 from api.gridfiles import GridFile, geotiff, netcdf
 from api.layermaps import LayerQuery
 from api.params import OutputQuery
-from api.routes.discovery import DisplayUnits, _units
+from api.routes.discovery import DisplayUnits, display_units
 from api.schemas import Meta, TableResponse, responses
 from ops.status import dataset_status
 
@@ -48,8 +49,6 @@ router = Router(tags=["Maps and grids"])
 FORMATS = ("json", "csv", "netcdf", "geotiff")
 MAX_TEXT_VALUES = 2_000_000  # JSON and CSV: ~70 MB and 1.5–2.5 s to write; NetCDF and GeoTIFF beyond it
 MAX_FILE_VALUES = 22_000_000  # NetCDF and GeoTIFF: a leap year of days over Wisconsin (57,820 cells)
-MAX_DAYS = 366
-MAX_HOURS = 31 * 24
 MAX_STRIDE = 50
 HOUR = timedelta(hours=1)
 
@@ -130,7 +129,7 @@ def layers(request: HttpRequest) -> HttpResponse:
             time_axis=layer.time_axis,
             variable=layer.variable,
             unit=layer.unit,
-            units=_units(layer.unit),
+            units=display_units(layer.unit),
             precision=layer.step,
             palette=layer.palette,
             domain=_layer_domain(layer),
@@ -161,7 +160,7 @@ def _output_info(o: LayerOutput) -> LayerOutputInfo:
         name=o.name,
         label=o.label,
         unit=o.unit,
-        units=_units(o.unit),
+        units=display_units(o.unit),
         precision=o.step,
         palette=o.palette,
         domain=list(domain) if domain else None,
@@ -241,9 +240,12 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
 
     missing_steps = sum(k is None for k in kinds)
     if missing_steps:
-        warnings.append(f"{missing_steps} of {len(kinds)} {found.time_axis}s have no data")
+        warnings.append(
+            f"{counted(missing_steps, found.time_axis)} of the {len(kinds)} asked for "
+            f"{'has' if missing_steps == 1 else 'have'} no data yet and show as missing."
+        )
     if run.reason == "stale" and any(k is None for k in kinds):
-        warnings.append("the forecast run is out of date, so the map ends with the archive")
+        warnings.append("The forecast is out of date, so the map ends with the last observed day.")
     summary: dict[str, Any] = {
         "steps": len(kinds),
         "kinds": {kind or "missing": kinds.count(kind) for kind in dict.fromkeys(kinds)},
@@ -267,7 +269,7 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
                 "seasons": [layermaps.season_name(model.spec, y) for y in model.projection.years]
             }
             if not model.projection.years:
-                projected["note"] = "the season is over: its own count"
+                projected["note"] = "The season is over, so the map shows its own count rather than a projection."
             summary["projection"] = projected
     unit, step = a.unit, a.step
     column = Column(
@@ -314,11 +316,15 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
         def render(kind: str, meta: dict[str, Any]) -> bytes:
             file.attrs = {key: meta[key] for key in ("request", "sources", "warnings", "attribution", "api_version")}
             file.attrs["generated_at"] = meta["generated_at"]
-            return netcdf(file) if kind == "netcdf" else geotiff(file)
+            # One gridded variable a NetCDF file (D71): beside the counts GDAL opens it as subdatasets, which terra
+            # on Windows then reads without its projection. The counts are in JSON, CSV and GeoTIFF's bands.
+            return netcdf(replace(file, extra={})) if kind == "netcdf" else geotiff(file)
 
         result.render = render
     else:
-        result.columns = _long_form(found, column, values, kinds, extra, step_labels, stat, window, mask, query, index)
+        result.columns = _long_form(
+            found, column, values, kinds, extra, step_labels, stat, window, mask, query, index, grid_spec.get("inside")
+        )
     result.timings["read_and_shape"] = (time.perf_counter() - started) * 1000 - compute_ms
     return respond(request, result)
 
@@ -327,15 +333,8 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
 
 
 def _steps(layer: Layer, first, last) -> int:
-    if layer.time_axis == "hour":
-        n = (last - first) // HOUR + 1
-        if n > MAX_HOURS:
-            raise ApiError("too_large", f"{n} hours; up to {MAX_HOURS} a request", "start")
-        return n
-    n = (last - first).days + 1
-    if n > MAX_DAYS:
-        raise ApiError("too_large", f"{n} days; up to {MAX_DAYS} a request", "start")
-    return n
+    """Steps in the range (`layermaps.span` has checked its length)."""
+    return (last - first) // HOUR + 1 if layer.time_axis == "hour" else (last - first).days + 1
 
 
 def _area(q: GridQuery, archive: Window) -> tuple[Window, np.ndarray, dict[str, Any]]:
@@ -348,19 +347,28 @@ def _area(q: GridQuery, archive: Window) -> tuple[Window, np.ndarray, dict[str, 
         mask &= (lat >= box.south) & (lat <= box.north) & (lon >= box.west) & (lon <= box.east)
         echo["bbox"] = [box.south, box.west, box.north, box.east]
         if not mask.any():
-            raise ApiError("outside_box", f"the bbox has no cells in the service box ({settings.SERVICE_BOX})", "bbox")
+            raise ApiError(
+                "outside_box",
+                f"The bbox has no grid cells in the area we cover ({settings.SERVICE_BOX}, as south,west,north,east). "
+                "Choose a box that overlaps it.",
+                "bbox",
+            )
     if q.region is not None:
         region = regions.find(q.region)
         if region is None:
             raise ApiError(
                 "unknown_region",
-                f"{q.region!r} isn't a state (wisconsin, WI) or a county's FIPS code (55025)",
+                f"We don't recognize the region {q.region!r}. Give a state's name or postal code "
+                "(wisconsin or WI), or a "
+                "county's five-digit FIPS code (55025 for Dane County, Wisconsin).",
                 "region",
             )
         mask &= regions.mask(region, archive)
         echo["region"] = {"id": region.id, "name": region.name}
         if not mask.any():
-            raise ApiError("outside_box", f"{region.name} has no cells in the service box", "region")
+            raise ApiError(
+                "outside_box", f"{region.name} is outside the area we cover, so it has no grid cells here.", "region"
+            )
     rows, cols = np.flatnonzero(mask.any(axis=1)), np.flatnonzero(mask.any(axis=0))
     window = Window(
         j0=archive.j0 + int(rows[0]),
@@ -377,7 +385,12 @@ def _parse_bbox(text: str) -> Box:
         south, west, north, east = (float(v) for v in text.split(","))
         return Box(south=south, west=west, north=north, east=east)
     except ValueError:
-        raise ApiError("invalid", f"bbox ({text!r}) isn't south,west,north,east in degrees", "bbox") from None
+        raise ApiError(
+            "invalid",
+            f"The bbox ({text}) isn't four numbers. Give it as south,west,north,east in degrees, such as "
+            "42.5,-92.9,47.1,-86.8.",
+            "bbox",
+        ) from None
 
 
 def _grid_spec(q: GridQuery, window: Window, mask: np.ndarray) -> dict[str, Any]:
@@ -385,7 +398,11 @@ def _grid_spec(q: GridQuery, window: Window, mask: np.ndarray) -> dict[str, Any]
     a lat/lng grid its index."""
     if q.grid == "native":
         if q.res is not None or q.method is not None:
-            raise ApiError("invalid", "res and method apply to grid=latlon", "res" if q.res is not None else "method")
+            raise ApiError(
+                "invalid",
+                "res and method apply only to grid=latlon. Leave them out, or add grid=latlon.",
+                "res" if q.res is not None else "method",
+            )
         kept = mask[:: q.stride, :: q.stride]
         return {
             "cells": int(kept.sum()),
@@ -394,11 +411,21 @@ def _grid_spec(q: GridQuery, window: Window, mask: np.ndarray) -> dict[str, Any]
             "echo": {"grid": "native", "stride": q.stride, "window": [window.j0, window.j1, window.i0, window.i1]},
         }
     if q.stride != 1:
-        raise ApiError("invalid", "stride applies to the native grid; use res for a coarser lat/lng grid", "stride")
+        raise ApiError(
+            "invalid",
+            "stride applies only to the native grid. For a coarser latitude and longitude grid, give a larger res.",
+            "stride",
+        )
     if q.res is None:
-        raise ApiError("missing", f"grid=latlon needs res (degrees, at least {MIN_LATLON_RES})", "res")
+        raise ApiError(
+            "missing", f"grid=latlon needs res, the grid's spacing in degrees (at least {MIN_LATLON_RES}).", "res"
+        )
     if not MIN_LATLON_RES <= q.res <= 5:
-        raise ApiError("out_of_range", f"res {q.res} isn't between {MIN_LATLON_RES} and 5 degrees", "res")
+        raise ApiError(
+            "out_of_range",
+            f"res={q.res:g} isn't between {MIN_LATLON_RES} and 5 degrees. Choose a spacing in that range.",
+            "res",
+        )
     method = q.method or ("mean" if q.res >= 0.05 else "nearest")
     lat, lon = NDFD.window_latlon(window)
     lat, lon = lat[mask], lon[mask]
@@ -429,15 +456,17 @@ def _check_size(fmt: str, steps: int, cells: int, full: int) -> None:
         if steps * cells > MAX_TEXT_VALUES:
             raise ApiError(
                 "too_large",
-                f"{steps * cells:,} values ({steps} steps × {cells:,} cells); JSON and CSV take up to "
-                f"{MAX_TEXT_VALUES:,}: ask for format=netcdf or geotiff, a stat, a smaller area, or a stride",
+                f"This request has {steps * cells:,} values ({steps} steps × {cells:,} cells); JSON and CSV hold up to "
+                f"{MAX_TEXT_VALUES:,}. Ask for format=netcdf or geotiff, combine the days with "
+                "stat, or choose a smaller "
+                "area or a stride.",
                 "format",
             )
     elif steps * full > MAX_FILE_VALUES:
         raise ApiError(
             "too_large",
-            f"{steps * full:,} values ({steps} steps × {full:,} cells); files take up to {MAX_FILE_VALUES:,}: "
-            "a smaller area, a stride or fewer steps",
+            f"This request has {steps * full:,} values ({steps} steps × {full:,} cells); a file holds up to "
+            f"{MAX_FILE_VALUES:,}. Choose a smaller area, a stride or a shorter range.",
             "start",
         )
 
@@ -461,7 +490,7 @@ def _cell_methods(layer: Layer, stat: str | None) -> str | None:
 # --- Long form -----------------------------------------------------------------------------------------------------
 
 
-def _long_form(layer, column, values, kinds, extra, steps, stat, window, mask, q, index) -> list[Column]:
+def _long_form(layer, column, values, kinds, extra, steps, stat, window, mask, q, index, inside) -> list[Column]:
     """A row per cell (or lat/lng point) and step, cells south to north then west to east, steps in order."""
     if index is None:
         kept = mask[:: q.stride, :: q.stride].ravel()
@@ -471,7 +500,6 @@ def _long_form(layer, column, values, kinds, extra, steps, stat, window, mask, q
         flat = values.reshape(values.shape[0], -1)[:, kept]
         counts = {name: v.ravel()[kept] for name, v in extra.items()}
     else:
-        inside = _points_inside(index, mask)
         lat2, lng2 = np.meshgrid(index.lats, index.lons, indexing="ij")
         lat, lng = lat2.ravel()[inside], lng2.ravel()[inside]
         flat = index.resample(values).reshape(values.shape[0], -1)[:, inside]

@@ -24,5 +24,5 @@ def test_openapi_schema(client):
     schema = client.get("/api/v2/openapi.json").json()
     assert schema["info"]["title"] == "AgWeather API"
     status = schema["paths"]["/api/v2/status"]["get"]["responses"]
-    assert set(status) == {"200", "404", "422", "500"}
+    assert set(status) == {"200", "404", "422", "500", "503"}
     assert "ErrorResponse" in schema["components"]["schemas"]

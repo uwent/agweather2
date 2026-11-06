@@ -40,6 +40,12 @@ def test_days_regions_models_and_refusals(client, archive):
     assert client.get("/api/v2/maps/precipitation_sum.png", {"region": "atlantis"}).status_code == 422
     ranged = client.get("/api/v2/maps/air_temperature_max.png", {"start": "2025-07-01", "end": "2025-07-03"})
     assert ranged.status_code == 422  # a map is one step
+    bad_end = client.get("/api/v2/maps/precipitation_sum.png", {"days": "3", "stat": "sum", "end": "2025-07-xx"})
+    assert bad_end.status_code == 422 and bad_end.json()["errors"][0]["param"] == "end"
+    years = client.get(
+        "/api/v2/maps/precipitation_sum.png", {"start": "2016-01-01", "end": "2025-07-08", "stat": "sum"}
+    )
+    assert years.status_code == 422 and years.json()["errors"][0]["code"] == "too_large"
 
 
 @pytest.mark.django_db

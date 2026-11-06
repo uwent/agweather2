@@ -29,5 +29,5 @@ def test_a_season_shows_from_when_it_appears_until_the_next_one_does():
 
 
 def test_only_seasonal_products_have_seasons():
-    with pytest.raises(ValueError, match="seasonal"):
+    with pytest.raises(ValueError, match="isn't counted by season"):
         season_starting(model("late-blight-dsv").SPEC, 2025)

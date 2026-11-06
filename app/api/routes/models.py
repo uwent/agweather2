@@ -35,7 +35,7 @@ from agmodels.seasons import Season
 from agmodels.spec import Model
 from api import clock, points, runs, stations
 from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_modified, respond, table
-from api.errors import ApiError
+from api.errors import ApiError, day_text
 from api.locations import describe
 from api.params import DaysQuery, OutputQuery, PointsQuery, SeriesQuery
 from api.routes.weather import FORECAST_DAYS, MAX_DAYS, check_size, located
@@ -56,6 +56,38 @@ class EvaluateBody(Schema):
 
 MAX_RUNS = 200  # model runs (models × option sets) per request
 MAX_EVALUATIONS = 10_000  # rows of POST /models/{id}/evaluate
+
+NO_PROJECTION = (
+    "We can project only within our area and the years our records cover, so the series ends with the forecast."
+)
+# The runner's reasons for a run without outputs (`ModelRun.reason`, kept as they are in /risk's `reason`), as
+# warnings say them
+REASONS = {
+    "outside the model's region": "This location is outside the area the model was developed for, so it gives no "
+    "output here.",
+    "biofix after the series": "The model starts at its biofix, which comes after these dates, so it has no output "
+    "yet.",
+    "biofix not in the series": "The model starts at its biofix, which comes before the weather read, so it has no "
+    "output. Choose a start date on or before the biofix.",
+}
+
+
+def reason_text(reason: str) -> str:
+    """A run's reason for no outputs as a sentence (a crop stage not reached says which)."""
+    if reason in REASONS:
+        return REASONS[reason]
+    if reason.endswith("isn't reached in the series"):
+        stage = reason.removesuffix(" isn't reached in the series")
+        return f"The crop hasn't reached {stage}, where the model starts, by the last day, so it has no output yet."
+    return f"The model has no output: {reason}."
+
+
+def too_many_runs(count: int) -> str:
+    return (
+        f"This request asks for {count:,} model runs (models times their option sets); a request can include up to "
+        f"{MAX_RUNS}. Ask for fewer models or options."
+    )
+
 
 SUSCEPTIBILITY = {NOT_SUSCEPTIBLE: "not susceptible", MARGIN: "margin", SUSCEPTIBLE: "susceptible"}
 
@@ -88,7 +120,7 @@ def run(
     today = now.date()
     planting_season = (when.date or when.start or when.end or today).year
     the_plan = runs.plan(m, request.GET, lat, lng, planting_season, biofix=biofix, planting=planting_date)
-    mode = _projection_mode(projection)
+    mode = projection_mode(projection)
     trim_end = when.end is None and when.date is None
     default_end = today + timedelta(days=FORECAST_DAYS) if options.forecast else today
     first, last = _span(when, m, the_plan, default_end, today)
@@ -96,7 +128,11 @@ def run(
     if m.SPEC.seasonal is not None:
         first, last, the_season = _season_days(m.SPEC, when, season, first, last, default_end, today)
     elif season is not None:
-        raise ApiError("not_applicable", f"{m.SPEC.id} isn't a seasonal product", "season")
+        raise ApiError(
+            "not_applicable",
+            f"{m.SPEC.name} isn't counted by season, so it takes no season. Give dates instead.",
+            "season",
+        )
     if mode and trim_end:
         last, trim_end = _season_end(m.SPEC, first), False
     check_size((last - first).days + 1, len(the_plan.runs), MAX_DAYS, "days")
@@ -179,14 +215,14 @@ def run_several(
     plans = [
         runs.plan(m, request.GET, lat, lng, season, biofix=None, planting=planting_date, lenient=True) for m in chosen
     ]
-    mode = _projection_mode(projection)
+    mode = projection_mode(projection)
     trim_end = when.end is None and when.date is None
     first, last = when.span(default_end=today + timedelta(days=FORECAST_DAYS) if options.forecast else today)
     if mode and trim_end:
         last, trim_end = max(last, date(first.year, 12, 31)), False
     total = sum(len(p.runs) for p in plans)
     if total > MAX_RUNS:
-        raise ApiError("too_many", f"{total} model runs asked for; up to {MAX_RUNS} per request", "models")
+        raise ApiError("too_many", too_many_runs(total), "models")
     check_size((last - first).days + 1, total, MAX_DAYS, "days")
     computed = {
         **where.echo(),
@@ -252,9 +288,9 @@ def risk(
         runs.plan(m, request.GET, lat, lng, day.year, biofix=None, planting=planting_date, lenient=True) for m in chosen
     ]
     if sum(len(p.runs) for p in plans) > MAX_RUNS:
-        raise ApiError("too_many", f"more than {MAX_RUNS} model runs asked for", "models")
+        raise ApiError("too_many", too_many_runs(sum(len(p.runs) for p in plans)), "models")
     computed = {**where.echo(), "date": day, "models": [m.SPEC.id for m in chosen] if asked else "in season"}
-    mode = _projection_mode(projection)
+    mode = projection_mode(projection)
     computed |= {"planting_date": planting_date, "units": output.units, "projection": mode and "band"}
     etag, unchanged, needed = _revalidate(request, plans, computed, lat, lng, day, day, now, projecting=bool(mode))
     if unchanged is not None:
@@ -341,7 +377,9 @@ def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Qu
     unknown = sorted(set(body.inputs) - set(explorer))
     if unknown:
         raise ApiError(
-            "unknown_input", f"{', '.join(unknown)} isn't an input here; use {', '.join(explorer)}", unknown[0]
+            "unknown_input",
+            f"{spec.name} has no input named {', '.join(unknown)}. Its inputs are {', '.join(explorer)}.",
+            unknown[0],
         )
     system = SYSTEMS[output.units]
     warnings: list[str] = []
@@ -355,7 +393,7 @@ def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Qu
         else:
             values = [float(v) for v in raw] if isinstance(raw, list) else [float(raw)]
         if not values or not all(np.isfinite(v) for v in values):
-            raise ApiError("invalid", f"{name} needs finite numbers", name)
+            raise ApiError("invalid", f"{name} must be a number, or a list of numbers.", name)
         stored = [float(agunits.convert(v, shown, e.unit)) for v in values]
         outside = [v for v, x in zip(values, stored, strict=True) if not e.minimum <= x <= e.maximum]
         if outside:
@@ -368,7 +406,13 @@ def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Qu
     for values in given.values():
         count *= len(values)
     if count > MAX_EVALUATIONS:
-        raise ApiError("too_large", f"{count} combinations asked for; up to {MAX_EVALUATIONS}", "inputs")
+        raise ApiError(
+            "too_large",
+            f"This request asks for {count:,} combinations of inputs; a request can evaluate up to "
+            f"{MAX_EVALUATIONS:,}. "
+            "Give fewer values.",
+            "inputs",
+        )
     declared = {q.name: q for q in (*spec.outputs, *spec.explorer_outputs)}
     rows: dict[str, list[float]] = {name: [] for name in given}
     for combo in itertools.product(*given.values()):
@@ -435,9 +479,15 @@ def _posted(request: HttpRequest) -> tuple[dict[str, Any], dict[str, str]]:
     try:
         body = json.loads(request.body or b"{}")
     except ValueError:
-        raise ApiError("invalid", "the body isn't JSON (send Content-Type: text/csv for a CSV)", "body") from None
+        raise ApiError(
+            "invalid",
+            "The request body isn't valid JSON. To send a CSV instead, set the Content-Type header to text/csv.",
+            "body",
+        ) from None
     if not isinstance(body, dict):
-        raise ApiError("invalid", "the body must be a JSON object", "body")
+        raise ApiError(
+            "invalid", "The request body must be a JSON object, with the weather under hourly or daily.", "body"
+        )
     options = {str(k): str(v) for k, v in (body.get("options") or {}).items()}
     return body, options
 
@@ -449,7 +499,7 @@ def _date_field(body: dict[str, Any], name: str) -> date | None:
     try:
         return date.fromisoformat(str(value))
     except ValueError:
-        raise ApiError("invalid", f"{name} must be a date (YYYY-MM-DD)", name) from None
+        raise ApiError("invalid", f"{name} must be a date, as YYYY-MM-DD.", name) from None
 
 
 def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> HttpResponse:
@@ -459,30 +509,45 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
         lat, lng = float(location["lat"]), float(location["lng"])
     except (KeyError, TypeError, ValueError):
         raise ApiError(
-            "missing", "give the location as lat and lng: it sets the day boundaries and region", "location"
+            "missing",
+            "Give the location as lat and lng. It sets the local days and the region the models check.",
+            "location",
         ) from None
     if not (-90 <= lat <= 90 and -180 <= lng <= 180):
-        raise ApiError("out_of_range", f"({lat}, {lng}) isn't a point on Earth", "location")
+        raise ApiError(
+            "out_of_range",
+            f"The location ({lat:g}, {lng:g}) isn't valid: latitude runs from -90 to 90 and "
+            "longitude from -180 to 180.",
+            "location",
+        )
     units = str(body.get("units") or request.GET.get("units") or "us")
     fill, extend = str(body.get("fill") or "none"), str(body.get("extend") or "none")
     if fill not in ("none", "grid"):
-        raise ApiError("invalid", "fill is none or grid", "fill")
+        raise ApiError("invalid", "Give fill as none or grid.", "fill")
     if extend not in ("none", "forecast"):
-        raise ApiError("invalid", "extend is none or forecast", "extend")
+        raise ApiError("invalid", "Give extend as none or forecast.", "extend")
     overrides = {str(k): str(v) for k, v in (body.get("input_units") or {}).items()}
     overrides |= {k: request.GET[k] for k in request.GET if k in stations.HOURLY or k in stations.DAILY}
     station = stations.parse(body, units, overrides)
     zone = zone_at(lat, lng)
     sent = station.local_days(zone)
     if sent is None:
-        raise ApiError("missing", "nothing was sent", "body")
+        raise ApiError(
+            "missing", "The request has no weather values. Send hourly values, daily values or both.", "body"
+        )
     now = clock.now()
     start, end = _date_field(body, "start"), _date_field(body, "end")
     first = start or sent[0]
     trim_end = end is None
     last = end or (now.date() + timedelta(days=FORECAST_DAYS) if extend == "forecast" else sent[1])
     if first > last:
-        raise ApiError("out_of_order", f"start ({first}) is after end ({last})", "start")
+        raise ApiError(
+            "out_of_order",
+            f"The start date ({day_text(first)}) is after the end date ({day_text(last)}). Choose a "
+            "start date on or before "
+            "the end date.",
+            "start",
+        )
     biofix = _date_field({"biofix": options.pop("biofix", None)}, "biofix")
     planting = options.pop("planting_date", None)
     plans = [
@@ -503,14 +568,25 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
                 raise ApiError("missing_inputs", message, "body")
             skipped[p.model.SPEC.id] = message
         if not runnable:
-            raise ApiError("missing_inputs", "no model asked for can run on what was sent", "body")
+            raise ApiError(
+                "missing_inputs",
+                "None of the models asked for can run on the weather sent. Send the inputs they "
+                "need, or add fill=grid to "
+                "fill the rest from our data.",
+                "body",
+            )
         plans = runnable
     every = [r for p in plans for r in p.runs]
     if len(every) > MAX_RUNS:
-        raise ApiError("too_many", f"{len(every)} model runs asked for; up to {MAX_RUNS} per request", "models")
+        raise ApiError("too_many", too_many_runs(len(every)), "models")
     needed, names = days_needed(every, first)
     if (last - needed).days + 1 > MAX_DAYS:
-        raise ApiError("too_large", f"{(last - needed).days + 1} days asked for; up to {MAX_DAYS}", "start")
+        raise ApiError(
+            "too_large",
+            f"These models need {(last - needed).days + 1:,} days of weather; a request can cover up to {MAX_DAYS:,}. "
+            "Choose a shorter period.",
+            "start",
+        )
     warnings = list(station.warnings)
     lacking = [name for name in names if name not in available]
     if lacking:
@@ -592,7 +668,10 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
 def _cannot_make(lacking: list[str]) -> str:
     sources = hourly_sources()
     needs = "; ".join(f"{n} (hourly: {', '.join(sources.get(n, ())) or 'none'})" for n in lacking)
-    return f"can't make {needs} from what was sent: send them, daily or hourly, or add fill=grid"
+    return (
+        f"We can't make {needs} from the weather sent. Send them, daily or hourly, or add fill=grid to fill them "
+        "from our data."
+    )
 
 
 def _station_days(
@@ -674,16 +753,24 @@ def _models(raw: str) -> list[Model]:
         return list(all_models().values())
     ids = [part.strip() for part in raw.split(",") if part.strip()]
     if not ids:
-        raise ApiError("missing", "models is empty: give model ids separated by commas, or all", "models")
+        raise ApiError("missing", "The models list is empty. Give model ids separated by commas, or all.", "models")
     unknown = [i for i in ids if i not in all_models()]
     if unknown:
-        raise ApiError("not_found", f"no model {', '.join(unknown)}; GET /api/v2/models lists them", "models")
+        raise ApiError(
+            "not_found",
+            f"We don't have a model with the id {', '.join(unknown)}. GET /api/v2/models lists every model and its id.",
+            "models",
+        )
     return [all_models()[i] for i in dict.fromkeys(ids)]
 
 
 def _one_point(where: PointsQuery) -> tuple[float, float]:
     if len(where.locations()) > 1:
-        raise ApiError("too_many", "one point per request", "points")
+        raise ApiError(
+            "too_many",
+            "This endpoint takes one location. Give lat and lng, or make one request per location.",
+            "points",
+        )
     return where.locations()[0]
 
 
@@ -715,7 +802,7 @@ def _season_days(
     """A seasonal product's days (D68): `season=` or, with no dates, the current season (its start through its end
     or the default end); dates as asked, in the season their last day falls in."""
     if name is not None and (when.date or when.start or when.end):
-        raise ApiError("conflict", "give either season, or a date or range, not both", "season")
+        raise ApiError("conflict", "Give either a season, or a date or range of dates, but not both.", "season")
     if name is None and (when.date or when.start or when.end):
         return first, last, seasons.season_of(spec, last)
     try:
@@ -724,7 +811,9 @@ def _season_days(
         raise ApiError("invalid", str(error), "season") from None
     end = min(found.last, default_end)
     if end < found.first:
-        raise ApiError("not_yet", f"the {found.label} season hasn't started", "season", status=404)
+        raise ApiError(
+            "not_yet", f"The {found.label} season hasn't started yet. Choose an earlier season.", "season", status=404
+        )
     return found.first, end, found
 
 
@@ -817,7 +906,8 @@ def _table(
             add("projection_years", [int(v) if v > 0 else None for v in _values(bands[k].years, count)])
         if r.reason:
             named = ", ".join(f"{key} {value}" for key, value in label.items())
-            warnings.append(f"{named}: {r.reason}" if named else f"no output: {r.reason}")
+            text = reason_text(r.reason)
+            warnings.append(f"For {named}: {text[0].lower()}{text[1:]}" if named else text)
         if r.windows:
             windows.append(
                 {
@@ -922,7 +1012,7 @@ class Projected:
     summary: dict[str, Any]
 
 
-def _projection_mode(raw: str | None) -> str | None:
+def projection_mode(raw: str | None) -> str | None:
     """None (off), "band" (P10/P50/P90) or "years" (each past year's path)."""
     if raw in (None, "", "false", "none"):
         return None
@@ -931,7 +1021,9 @@ def _projection_mode(raw: str | None) -> str | None:
     if raw == "years":
         return "years"
     raise ApiError(
-        "invalid", "projection is true (P10, P50 and P90 across past years) or years (each one)", "projection"
+        "invalid",
+        "Give projection as true, for the middle and range across past years, or years, for each year's path.",
+        "projection",
     )
 
 
@@ -951,15 +1043,18 @@ def _projected(
     every = [r for p in plans for r in p.runs]
     found = projected_at_point(lat, lng, every, first, last, now)
     if found is None:
-        return None, ["no projection outside the service box or before the archive: the series ends with the forecast"]
+        return None, [NO_PROJECTION]
     warnings = []
     if found.start is None:
-        warnings.append(f"the series has data through {last}: nothing to project")
+        warnings.append(
+            f"The weather data runs through {day_text(last)}, the last day asked for, so there's nothing to project."
+        )
     elif not found.years:
-        warnings.append("no earlier years in the archive to project with: the series ends with the forecast")
+        warnings.append("The archive has no earlier years to project with, so the series ends with the forecast.")
     elif len(found.years) == 1:
         warnings.append(
-            f"one earlier year in the archive ({found.years[0]}): the projection is that year, with no band"
+            f"The archive has one earlier year ({found.years[0]}), so the projection follows that year alone, with no "
+            "range."
         )
     out, k = [], 0
     for p in plans:

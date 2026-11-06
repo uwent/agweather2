@@ -51,7 +51,11 @@ def _layer_query(when: str, q: TileQuery) -> LayerQuery:
         pass
     elif (span := RANGE.match(when)) is not None:
         if q.stat is None:
-            raise ApiError("invalid", "a tile is one map: a range of days needs stat", "stat")
+            raise ApiError(
+                "invalid",
+                "A tile shows one map, so a range of days needs stat to combine them (sum, mean, min or max).",
+                "stat",
+            )
         fields |= {"start": span.group(1), "end": span.group(2)}
     elif SEASON.match(when):
         fields["season"] = when
@@ -60,7 +64,11 @@ def _layer_query(when: str, q: TileQuery) -> LayerQuery:
     else:
         fields["date"] = when
     if q.stat is not None and RANGE.match(when) is None:
-        raise ApiError("invalid", "stat reduces a range of days (START..END)", "stat")
+        raise ApiError(
+            "invalid",
+            "stat combines a range of days. Give the time as START..END, such as 2025-07-01..2025-07-07.",
+            "stat",
+        )
     return LayerQuery(**fields)
 
 
@@ -68,7 +76,7 @@ def _ask(request: HttpRequest, layer: str, when: str, q: TileQuery, units: str):
     now = clock.now()
     a = layermaps.ask(request, layer, _layer_query(when, q), units, now)
     if a.first != a.last and a.stat is None:
-        raise ApiError("invalid", "a tile is one map: give one day or hour, or a range with stat", "time")
+        raise ApiError("invalid", "A tile shows one map. Give one day or hour, or a range of days with stat.", "time")
     return a, now
 
 
@@ -115,7 +123,9 @@ def tile(
     (R·65536 + G·256 + B) × step − 8,388,608 × step, in the layer's stored unit; transparent where missing."""
     started = time.perf_counter()
     if not (0 <= z <= tiles.MAX_ZOOM and 0 <= x < 2**z and 0 <= y < 2**z):
-        raise ApiError("out_of_range", f"no tile {z}/{x}/{y}; zooms 0 to {tiles.MAX_ZOOM}", "z", status=404)
+        raise ApiError(
+            "out_of_range", f"There's no tile {z}/{x}/{y}. Tiles run from zoom 0 to {tiles.MAX_ZOOM}.", "z", status=404
+        )
     a, now, window, data_stamp = _prepared(request, layer, when, query, output.units)
     cells = tiles.index(window, z, x, y)
     etag = etag_for(request, a.echo(), data_stamp)

@@ -844,25 +844,6 @@ def model_at_point(
     return models_at_point(data_dir, latitude, longitude, [run], start, end, now=now, fill_soil=fill_soil)[0]
 
 
-def run_at_point(
-    read_days: ReadDays,
-    latitude: float,
-    longitude: float,
-    model_id: str,
-    start: date,
-    end: date,
-    biofix: date | None = None,
-    planting: date | None = None,
-    options: dict[str, str] | None = None,
-    crop_options: dict[str, str] | None = None,
-) -> ModelRun:
-    """One model at a point from any source of days (`runs_at_point`)."""
-    run = RunSpec(
-        model_id=model_id, biofix=biofix, planting=planting, options=options or {}, crop_options=crop_options or {}
-    )
-    return runs_at_point(read_days, latitude, longitude, [run], start, end)[0]
-
-
 def day_kinds(times: list[datetime], hour_kinds: list[str | None], zone: str, dates: list[date]) -> list[str | None]:
     """Each local day's kind from its hours' (observed, partial, forecast; None when some hour has neither)."""
     start = times[0]

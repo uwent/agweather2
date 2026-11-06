@@ -33,7 +33,7 @@ class Season:
 def season_starting(spec: ModelSpec, year: int) -> Season:
     """The season that starts in `year`."""
     if spec.season is None or spec.seasonal is None:
-        raise ValueError(f"{spec.id} isn't a seasonal product")
+        raise ValueError(f"{spec.name} isn't counted by season.")
     first = _on(spec.season[0], year)
     last = _on(spec.season[1], year)
     if last < first:
@@ -49,10 +49,10 @@ def season_named(spec: ModelSpec, name: str) -> Season:
     """The season `name` (2025-26, or 2025 for one within a year); ValueError if it isn't one of the spec's."""
     match = NAME.match(name.strip())
     if match is None:
-        raise ValueError(f"a season is named like {season_starting(spec, 2025).name}, not {name!r}")
+        raise ValueError(f"Seasons are named by their years, such as {season_starting(spec, 2025).name}, not {name!r}.")
     found = season_starting(spec, int(match.group(1)))
     if found.name != name.strip():
-        raise ValueError(f"{spec.id}'s seasons are named like {found.name}, not {name!r}")
+        raise ValueError(f"{spec.name}'s seasons are named by their years, such as {found.name}, not {name!r}.")
     return found
 
 

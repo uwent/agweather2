@@ -119,7 +119,9 @@ def test_a_stage_biofix_not_reached_is_a_warning(client, archive):
     emerging = get(client, "early-blight-pdays", planting_date="2025-07-08").json()  # the warm forecast: up July 19
     assert emerging["meta"]["request"]["biofix"] == "2025-07-19" and emerging["meta"]["warnings"] == []
     body = get(client, "early-blight-pdays", planting_date="2025-07-18").json()  # not up by the forecast's end
-    assert body["meta"]["warnings"] == ["no output: EM isn't reached in the series"]
+    assert body["meta"]["warnings"] == [
+        "The crop hasn't reached EM, where the model starts, by the last day, so it has no output yet."
+    ]
     assert all(v is None for v in body["data"]["pdays_total"])
 
 
@@ -256,3 +258,10 @@ def test_evaluate_defaults_warnings_and_errors(client):
     big = evaluate(client, "early-blight-pdays", {"tmin": list(range(200)), "tmax": list(range(200))})
     assert big.status_code == 422 and big.json()["errors"][0]["code"] == "too_large"
     assert evaluate(client, "no-such-model", {}).status_code == 404
+
+
+def test_crop_options_without_a_planting_date_run_once(client, archive):
+    # The crop's stages need a planting date, so its options can't change the run: one run, with a warning
+    body = get(client, "frogeye-leaf-spot", start="2025-07-01", end="2025-07-03", maturity_group="all").json()
+    assert "option_sets" not in body["meta"]["summary"] and "option_set" not in body["data"]
+    assert any("maturity_group" in w for w in body["meta"]["warnings"])

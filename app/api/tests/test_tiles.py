@@ -13,7 +13,7 @@ from api.tests.fixture_archive import POINT
 
 LAT, LNG = POINT
 Z = 8
-X, Y = tiles._tile_of(LNG, LAT, Z)
+X, Y = tiles.tile_of(LNG, LAT, Z)
 
 
 def _pixels(response) -> np.ndarray:
@@ -127,3 +127,8 @@ def test_recent_and_latest_tiles_expire_soon_and_settled_ones_later(client, arch
     assert _tile(client, "precipitation_sum", "latest")["Cache-Control"].startswith("public, max-age=300")
     old = _tile(client, "precipitation_sum", "2025-06-01")  # before the archive: missing, but settled
     assert old["Cache-Control"] == "public, max-age=86400, stale-while-revalidate=86400"
+
+
+def test_a_tile_of_a_range_is_limited_as_a_grid_is(client, archive):
+    response = _tile(client, "air_temperature_max", "2016-01-01..2025-07-08", stat="mean")
+    assert response.status_code == 422 and response.json()["errors"][0]["code"] == "too_large"

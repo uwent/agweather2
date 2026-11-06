@@ -45,7 +45,7 @@ def test_the_open_winter_by_season_is_its_count_so_far(client, winters):
     assert season["through"] == "2025-12-15" and season["final"] is False and season["appears"] == "2026-01-01"
     by_date = get(client, date="2025-12-10", output="killing_hours_4cm").json()
     assert set(by_date["data"]["potato-volunteer"]) == {3 * 40}
-    assert any("2025–26 season is open" in w for w in by_date["meta"]["warnings"])
+    assert any("2025–26 season isn't over" in w for w in by_date["meta"]["warnings"])
 
 
 def test_the_open_winter_projected_on_the_earlier_ones(client, winters):

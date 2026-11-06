@@ -691,28 +691,25 @@ Ben asked for a review once Phase 4 was done: four Sonnet reviewers (agdata's so
 - [ ] Six journal citations have no DOI (Krause et al. 1975, Pitblado 1992, Neild and Newman 1987, Abendroth et al. 2011, Fehr and Caviness 1977, Bauer et al. 1984): check Crossref; some may have none. 30 models have no season (the insects, degree days, red crown rot, soybean Cercospora, wheat scab).
 - [ ] Phase 5 (point latency): `GridStore.sources()` decodes the whole year's sources on every call (1,616 calls, ~10 s, in the all-models point test); cache them per store open. `series.grid_day` calls a day "observed" in a year with no stores (its values are NaN); `series.point_days` raises FileNotFoundError for a year without a daily store (points before the archive go to Open-Meteo first, so it isn't reached today).
 
-### Phase 5: API v2 — in progress, planned 2026-11-02 (L, about 4–6 working days); A–H built, the end-of-phase review next
+### Phase 5: API v2 — in progress, planned 2026-11-02 (L, about 4–6 working days); A–H built, the end-of-phase review under way (code done; tests, then docs)
 
-> **Handoff (2026-11-05, night; the session log is `tmp/session-log.md`, newest entry first).** A–H are built and committed, and so are Phase 4 H (D68) and D69–D71. **Next: Phase 5's end-of-phase review** (CLAUDE.md, "Working here"), recorded under a "Code review (after Phase 5)" heading below the phase, as Phase 4's "Code review (2026-11-01)" is; its fixes land before the phase is marked done, or move to a named later step in writing. Public text follows CLAUDE.md's "Writing for the public" (added 2026-11-05).
+> **Handoff (2026-11-06; the session log is `tmp/session-log.md`, newest entry first).** A–H are built and committed, and so are Phase 4 H (D68) and D69–D71. Ben split the end-of-phase review (CLAUDE.md, "Working here") into three sessions, one after another: **(1) code review and fixes: done**, recorded under "Code review (2026-11-05/06, after Phase 5)" below the phase; **(2) next: the test suite review and fixes**, in a fresh session; (3) the documentation check and rewrite, last, once the code has stopped moving. Public text follows CLAUDE.md's "Writing for the public" (added 2026-11-05).
+>
+> **Session 2, the test suite** (record it under the same review heading, as Phase 4's "Test review" is):
+>
+> - The full suite takes 11–14 min (it was ~3 after Phase 4). Profile it (`uv run pytest --durations=50`), and look for slow tests, redundant ones, and fixtures built more than once that could be shared (the app's `archive` and `projection_archive` are session-scoped; `agdata`'s tests build their own stores). The goal is a suite that runs in a few minutes without losing coverage.
+> - `test_tui`'s runs-table test failed once in a full run (`#log` not found yet) and passes alone: find the race and fix it.
+> - Coverage of the new code (`uv run pytest --cov`): Phase 5's modules, especially the error paths session 1 changed (`api.errors`' 503, `layermaps.span`'s limit, `runs.plan`'s crop options).
+> - Session 1's regression tests are in `test_grids`, `test_maps`, `test_tiles`, `test_models`, `test_envelope` and `test_weather`; the message wording tests match fragments of the new sentences.
+>
+> **Session 3, the documentation:** PLAN.md's Phase 5 notes (several went through two or three versions in a day), `docs/api.md` (its examples' error messages are in the old style), CLAUDE.md's gotchas and commands, `app/api/docs/`, and the docstrings, against the code as it is now.
 >
 > **Where things stand:**
 >
-> - **API:** every endpoint in `docs/api.md` marked ✓ is built. Public docs at `/api/v2/docs` come from `app/api/docs/` (`test_docs` checks completeness and style). Rate limits are per client and weighted by server time (`api.ratelimit`, D69). Yearly downloads are in `ops.downloads`: one int16 variable per file, with the grid in `daily/grid.nc` (D71). `/grids` NetCDF has no 2-D lat/lon either.
-> - **Latency:** all seven §3 targets are met on the dev archive, on a quiet machine (`manage.py latency`, 2026-11-05 20:42): tar spot 114/204 ms, early blight 168/246 ms, custom DD 1.69 s, point hourly 134 ms, every model 736 ms. That came from storing corn and potato stages per tier (D70), each tier's first day at each stage (`croptiers` `_reached`), and opened zarr arrays kept per process (`store._ARRAYS`). The launch box is 11.7× Wisconsin: check map timings there before Phase 8.
-> - **Jobs** (worker restarted by Ben 2026-11-05): `build_downloads` (Mondays 05:00Z, first on Nov 9) and `prune_api_usage` (daily 04:10Z, ran) are new. The others run as before: ingest :40, forecast :15/:45, IFS :50, ERA5-Land 6-hourly, crop tiers :55, default maps :52, past years Mondays.
-> - **Data:** Ben stopped the backfill at 2021 (52% of 2021's hours; 2016–2020 empty) for the latency checks; restart it with `f` in `bin/agwx` (it resumes). 2022–2026 are complete, with current ingredients (including the new tiers and `_reached`), past-years copies (2025 rebuilt 2026-11-05) and downloads (266 files, 1.8 GB). After the backfill, run `ingredients` (the years it fills were built by code from before D70, so they lack corn and potato tiers) and `downloads`.
->
-> **The review's list so far** (found while building H; add to it):
->
-> 1. **Error messages and `meta.warnings`** are lowercase fragments ("give either lat and lng, or points, not both"): rewrite them to the public style, with their tests.
-> 2. **Open-Meteo unreachable gives a 500** at points outside the archive (and `/models/run` reaching before it): make it a 503 that says so.
-> 3. **`regions.cell_counties`** takes ~0.3 s once per process over Wisconsin, more over the launch box: vectorize `places.county_ids`' nearest search, or warm it at start.
-> 4. **Response schema fields** (~220) have no descriptions on the docs page: write them, or move them to Phase 6's API docs page in writing.
-> 5. **`stat=sum` NetCDF** still opens as GDAL subdatasets (the counts beside the total), so terra on Windows by absolute path may lose its CRS there (D71): decide whether to leave the counts out of NetCDF or accept.
-> 6. **`modelgrid._first_day_at`** (the emergence search) is only a fallback once every year's store has `_reached`: remove it after the backfill's years are rebuilt.
-> 7. **`ingredients --year`** rebuilds a year whole even when only tiers are stale (4–7 min against ~1): consider a `--tiers` path or say so in its help.
-> 8. **Tests:** `test_tui`'s runs-table test failed once in a full run (`#log` not found yet; passes alone). The full suite takes 11–14 min: look for slow and redundant tests and shared fixtures.
-> 9. **Docs:** PLAN.md's Phase 5 notes, `docs/api.md`, CLAUDE.md's gotchas and commands, and docstrings, checked against the code as it is now (several of today's notes went through two or three versions).
+> - **API:** every endpoint in `docs/api.md` marked ✓ is built. Public docs at `/api/v2/docs` come from `app/api/docs/` (`test_docs` checks completeness and style). Rate limits are per client and weighted by server time (`api.ratelimit`, D69). Yearly downloads are in `ops.downloads`: one int16 variable per file, with the grid in `daily/grid.nc` (D71). `/grids` NetCDF has no 2-D lat/lon, and since the review no per-cell counts either (one gridded variable a file).
+> - **Latency:** all seven §3 targets are met on the dev archive, on a quiet machine (`manage.py latency`, 2026-11-05 20:42): tar spot 114/204 ms, early blight 168/246 ms, custom DD 1.69 s, point hourly 134 ms, every model 736 ms. The launch box is 11.7× Wisconsin: check map timings there before Phase 8.
+> - **Jobs** (worker restarted by Ben 2026-11-05): `build_downloads` (Mondays 05:00Z, first on Nov 9) and `prune_api_usage` (daily 04:10Z) are new. The others run as before: ingest :40, forecast :15/:45, IFS :50, ERA5-Land 6-hourly, crop tiers :55, default maps :52, past years Mondays.
+> - **Data:** Ben stopped the backfill at 2021 (52% of 2021's hours; 2016–2020 empty) for the latency checks; restart it with `f` in `bin/agwx` (it resumes). 2022–2026 are complete, with current ingredients, past-years copies and downloads. After the backfill, run `ingredients` (its years lack the corn and potato tiers, D70) and `downloads`; then remove `modelgrid._first_day_at` (the review's later steps).
 >
 > **Waiting on the backfill:** the projection on ten years (all models at a point, §3's < 1 s; ~0.8 s expected), corn maturity option (a) if chosen (parked, D66), and ERA5's points before 2022 against the archive (Phase 4 next item 3).
 >
@@ -931,6 +928,39 @@ Planned 2026-11-03 (D64). Measured first on the real archive (Madison, Nov 1–1
   Measured: decoding is 0.1–0.4 s of a 43 MB URMA analysis file's 8–35 s, so the backfill is bound by the connection (~100 Mbit/s here), not the CPU: more parallel decoding wouldn't help. Whether more than 4 download threads do is still to be measured, once the old loop isn't sharing the line.
 
 - **Exit:** the end-of-phase review (CLAUDE.md) is done and its fixes landed; every v1 caller's query is served by the general endpoints, and v2 GDD matches the old API for DATCP's (or its differences are explained and recorded, D54); every endpoint in `docs/api.md` is built or moved to a later phase in writing; the latency targets are met on the real archive.
+
+### Code review (2026-11-05/06, after Phase 5)
+
+Ben asked for the review in three sessions, one after the other: (1) code review and fixes (this one, done by Claude reading the code itself, without subagents), (2) the test suite, (3) the documentation. The code covered: `app/api` (plumbing, every route, `layermaps`, `runs`, `stations`, `gridfiles`), `agdata`'s Phase 5 modules (`modelgrid`, `modelmaps`, `croptiers`, `series`, `regions`, `places`, `tiles`, `pastyears`), and `ops`' `locks`, `downloads` and `openmeteo`. Each suspected bug was reproduced against the fixture archive before it was fixed, and each fix has a regression test.
+
+**Fixed:**
+
+- [x] **No limit on a range reduced by `stat`.** `/grids` checked a range's length only when every step was returned, and `/tiles` and `/maps` never checked it, so `stat=mean` over 2016–2025 read ten years over the whole box (~1.7 GB as float64 over Wisconsin). `layermaps.span` now refuses more than 366 days or 744 hours for every map endpoint, whether or not a `stat` reduces them.
+- [x] **`/maps` with `days=` and a malformed `end`** was a 500 (`date.fromisoformat`); it's a 422 naming `end`.
+- [x] **A crop's options without a planting date** (`maturity_group=all` on frogeye leaf spot) were "ignored" with a warning, but still multiplied the option sets: nine identical runs, counted against the limit of 20. They now take their defaults.
+- [x] **One ETag for JSON and CSV.** When `Accept` chose the format (with `Vary: Accept` set), both formats had the same ETag, so a cache could revalidate a CSV with a JSON answer's tag. `etag_for` keys on `Accept` when `format=` isn't given.
+- [x] **Open-Meteo unreachable** (handoff item 2): it was a 500. `ops.openmeteo` raises `Unavailable` once `fetch`'s retries are spent, and the API answers 503 with `Retry-After: 300` and a message saying what happened. The endpoints document a 503 (data being rebuilt, or Open-Meteo unreachable).
+- [x] **`places.county_ids`' nearest search** (handoff item 3) went one missed cell at a time; it now tries the 80 offsets nearest first over all missed cells at once, with the same tie-breaking. Same answers over Wisconsin; 0.137 → 0.025 s there, and 0.19 s over the launch box (once per process, `regions.cell_counties`).
+- [x] **Error messages and warnings** (handoff item 1): all ~180 in `app/api` (and `agmodels.seasons`' season-name errors, which the API passes on) are rewritten in the public style: whole sentences that say what happened and what to do, dates as "July 8, 2025" (`api.errors.day_text`, `hour_text`), counts with their plurals (`counted`), and model and layer names rather than ids where the reader sees them. Pydantic's type errors ("Input should be a valid number, unable to parse string as a number") become "The value of lat must be a number." The runner's reason codes stay as they are in `/risk`'s `reason` column, and warnings say them as sentences (`routes.models.reason_text`). `test_errors_name_their_parameter_in_the_envelope` now checks that each message is a capitalized sentence ending in a period.
+- [x] **NetCDF from `/grids` with `stat`** (handoff item 5): one gridded variable a file, as D71 decided for the downloads. The per-cell `estimated_days` and `missing_days` stay in JSON, CSV and GeoTIFF's extra bands. Beside the value they made GDAL open the file as subdatasets, which terra on Windows opens without its projection.
+- [x] **Refactoring:** `envelope.match_unit` and `units_like` replace the unit matching duplicated in `stations`; `degree_days.temperatures` calls `temperatures_of` rather than repeating it; `modelgrid.model_days` uses `_base` like the other model paths; private helpers imported across modules are public now (`runs.option_values`, `models.projection_mode`, `weather.answer_etag`, `discovery.display_units`, `tiles.tile_of`); `/grids` keeps the lat/lng points' mask it computed once; `/maps` looks a region up once.
+- [x] **Dead code:** `series.run_at_point` and `tiles.window_tiles` had no callers.
+
+**Moved to a named later step:**
+
+- [ ] **Response schema field descriptions** (handoff item 4, ~220 fields): to Phase 6's API docs page, where the docs get their reader-facing layout. Until then, `docs/api.md` and the per-endpoint text in `app/api/docs/` describe the columns.
+- [ ] **`modelgrid._first_day_at`** (the season search for a stage biofix, handoff item 6) is only a fallback once every year's ingredients store has `_reached`. Remove it, with `_REACHED` and `_crop_stamped`, after the backfill's years are rebuilt by `ingredients` (TODO.md, "Restart the dev backfill").
+- [ ] **`ingredients --tiers`** (handoff item 7): a year whose only stale variables are the crop tiers rebuilds whole (4–7 min a year against ~1). Add the path when the backfill's years need their tiers; until then the command's help says so.
+- [ ] **Tests** (handoff item 8: `test_tui`'s flake, the suite's 11–14 min): session 2 of this review.
+- [ ] **Documentation** (handoff item 9: PLAN.md's Phase 5 notes, `docs/api.md`, CLAUDE.md, docstrings): session 3.
+
+**Checked and left as they are:**
+
+- The kept maps (`layermaps.cached`), the tiles' prepared-request cache and `modelgrid._REACHED` aren't locked against threads. Django runs sync views on one thread per process under ASGI (`thread_sensitive`), so requests in one process don't run them at once.
+- `pastyears.Reader` reads a copy that's out of date (a later rebuild of the daily store) until the weekly job rebuilds it. It's only used for projections, which are already ranges across years.
+- `/degree-days/table` gives 0 °F·d, not missing, for a point and window with no usable day; `missing_days` says how many, as D56 has it at points.
+- `ops.downloads` imports CF helpers from `api.gridfiles` (`ops` depending on `api`). It's harmless now; move them to `agdata` if a third writer appears.
+- `ops.locks`, `croptiers.update` and `refresh`, `modelmaps`' storage settings, `series.grid_days` and `last_written`, `seasonal`, `tiles` and `pastyears` were read without finding a defect.
 
 ### Phase 6: Web app — sketch (XL; WISP 3's frontend is the source to port)
 

@@ -109,6 +109,11 @@ def test_csv_puts_meta_in_comment_lines_and_names_the_file(client, archive):
         get(client, date="2025-07-08", format="json", http_headers={"Accept": "text/csv"})["Content-Type"]
         == "application/json"
     )
+    # Each format is its own representation, with its own ETag
+    as_json = get(client, date="2025-07-08", http_headers={"Accept": "application/json"})
+    assert as_json["ETag"] != negotiated["ETag"]
+    held = get(client, date="2025-07-08", http_headers={"Accept": "text/csv", "If-None-Match": as_json["ETag"]})
+    assert held.status_code == 200 and held["Content-Type"].startswith("text/csv")
 
 
 def test_a_format_not_offered_is_refused(client, archive):
@@ -164,7 +169,9 @@ def test_errors_name_their_parameter_in_the_envelope(client, archive, params, co
     assert set(body) == {"meta", "errors"} and "detail" not in body
     assert body["meta"]["api_version"] == "2.0" and body["meta"]["request"] == {k: str(v) for k, v in params.items()}
     assert [(e["code"], e["param"]) for e in body["errors"]] == [(code, param)]
-    assert body["errors"][0]["message"]
+    message = body["errors"][0]["message"]
+    # Public text (CLAUDE.md, "Writing for the public"): whole sentences, not fragments
+    assert message[0].isupper() and message.endswith("."), message
     assert response["Cache-Control"] == "no-store"
 
 

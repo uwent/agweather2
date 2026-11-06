@@ -5,6 +5,7 @@ from datetime import date, timedelta
 
 import numpy as np
 import pytest
+import requests
 
 from agdata.grid import NDFD
 from agdata.series import DailySeries, Forecast
@@ -78,6 +79,20 @@ def test_a_point_outside_the_box_reads_open_meteo_and_has_no_etag(client, archiv
     assert body["meta"]["sources"] == ["openmeteo"] and body["meta"]["location"]["in_box"] is False
     assert body["data"]["air_temperature_max"] == [50.0, 50.0]
     assert "ETag" not in response  # computed each time from the cache
+
+
+@pytest.mark.django_db
+def test_open_meteo_unreachable_is_a_503_that_says_so(client, archive, monkeypatch):
+    def down(*args, **kwargs):
+        raise requests.ConnectionError("no route to host")
+
+    monkeypatch.setattr("agdata.sources.openmeteo.fetch", down)
+    response = client.get(
+        "/api/v2/weather/daily", {"lat": DULUTH[0], "lng": DULUTH[1], "start": "2025-07-08", "end": "2025-07-09"}
+    )
+    assert response.status_code == 503 and response["Retry-After"] == "300"
+    error = response.json()["errors"][0]
+    assert error["code"] == "weather_unavailable" and "Open-Meteo" in error["message"]
 
 
 def test_points_outside_the_archive_are_capped(client, archive, monkeypatch):

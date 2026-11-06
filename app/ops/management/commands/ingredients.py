@@ -14,7 +14,8 @@ class Command(ReportingCommand):
         "Build the models' ingredients on the grid (agdata.modelmaps, Phase 5 F, D66): each year with a daily store "
         "whose ingredients aren't built, are stale or are behind it, or one --year (again, whatever its state). "
         "Reads and computes outside the write lock and takes it, politely, to write each band of rows. The hourly "
-        "ingest and forecast keep them current after this; `archive fill` builds each year it fills."
+        "ingest and forecast keep them current after this; `archive fill` builds each year it fills. A year is "
+        "built whole even when only its crop tiers are stale (4-7 minutes a year over Wisconsin)."
     )
     stoppable = True
 

@@ -17,7 +17,7 @@ from agdata.series import FORECAST, PARTIAL
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
 from api import clock, points
 from api.envelope import Column, Result, catalog_column, etag_for, not_modified, respond
-from api.errors import ApiError
+from api.errors import ApiError, counted
 from api.locations import describe
 from api.params import DaysQuery, HoursQuery, OutputQuery, PointsQuery, SeriesQuery, check_vars
 from api.schemas import TableResponse, responses
@@ -47,7 +47,9 @@ def located(where: PointsQuery, first: date, last: date) -> list[dict]:
     if outside > MAX_OUTSIDE:
         raise ApiError(
             "too_many",
-            f"{outside} points are outside the archive (box or years) and read from Open-Meteo; up to {MAX_OUTSIDE}",
+            f"{outside} of these locations are outside our area or before our records begin, so their weather comes "
+            f"from Open-Meteo; a request can include up to {MAX_OUTSIDE} such locations. Split them into several "
+            "requests.",
             "points",
         )
     return found
@@ -55,9 +57,18 @@ def located(where: PointsQuery, first: date, last: date) -> list[dict]:
 
 def check_size(steps: int, n_points: int, limit: int, unit: str, param: str = "start") -> None:
     if steps > limit:
-        raise ApiError("too_large", f"{steps} {unit} asked for; up to {limit} per request", param)
+        raise ApiError(
+            "too_large",
+            f"This request asks for {steps:,} {unit}; a request can include up to {limit:,}. Choose a shorter period.",
+            param,
+        )
     if steps * n_points > MAX_ROWS:
-        raise ApiError("too_large", f"{steps * n_points} rows ({n_points} points); up to {MAX_ROWS}", "points")
+        raise ApiError(
+            "too_large",
+            f"This request would return {steps * n_points:,} rows ({n_points} locations); a request can return up to "
+            f"{MAX_ROWS:,}. Ask for fewer locations or a shorter period.",
+            "points",
+        )
 
 
 def envelope_parts(where: PointsQuery, locations: list[dict]) -> dict:
@@ -77,7 +88,7 @@ def read_days(
         sources += [s for s in days.sources if s not in sources]
         corrections += [c for c in days.corrections if c not in corrections]
         if days.forecast.reason == "stale" and options.forecast:
-            warnings.append("the forecast run is out of date, so the series ends with the archive")
+            warnings.append("The forecast is out of date, so the series ends with the last observed day.")
     return found, sorted(set(warnings)), sources, corrections
 
 
@@ -109,7 +120,7 @@ def daily(
     check_size((last - first).days + 1, len(where.locations()), MAX_DAYS, "days")
     computed = {**where.echo(), "start": first, "end": last, "vars": names, "forecast": options.forecast}
     computed |= {"units": output.units}
-    etag = _etag(request, computed, points.stamp(where.locations(), first, last, now))
+    etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, first, last)
@@ -164,7 +175,7 @@ def hourly(
     check_size(steps, len(where.locations()), MAX_HOURS, "hours")
     computed = {**where.echo(), "start": start, "end": end, "vars": names, "forecast": options.forecast}
     computed |= {"tz": options.tz, "units": output.units}
-    etag = _etag(request, computed, points.hour_stamp(where.locations(), start, end, now))
+    etag = answer_etag(request, computed, points.hour_stamp(where.locations(), start, end, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, start.date(), end.date())
@@ -246,7 +257,7 @@ def totals(
     check_size((last - first).days + 1, len(where.locations()), MAX_DAYS, "days")
     computed = {**where.echo(), "start": first, "end": last, "vars": names, "forecast": options.forecast}
     computed |= {"gaps": options.gaps, "units": output.units}
-    etag = _etag(request, computed, points.stamp(where.locations(), first, last, now))
+    etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, first, last)
@@ -274,7 +285,10 @@ def totals(
         ]
     missing_rain = sum(rows.get("precipitation_sum_missing_days", []))
     if missing_rain:
-        warnings.append(f"{missing_rain} days of precipitation are missing and counted as no rain")
+        warnings.append(
+            f"Precipitation is missing on {counted(missing_rain, 'day')}. We never estimate precipitation, "
+            "so the totals count those days as no rain."
+        )
     if found and trim_end:
         computed["end"] = max((days.dates[n - 1] for days, n in found if n), default=last)
     summary = {"days_requested": (computed["end"] - first).days + 1, **day_counts(found), "corrections": corrections}
@@ -293,6 +307,6 @@ def totals(
     )
 
 
-def _etag(request: HttpRequest, computed: dict, stamp: str | None) -> str | None:
+def answer_etag(request: HttpRequest, computed: dict, stamp: str | None) -> str | None:
     """None for answers read from Open-Meteo (`api.points`): computed each time."""
     return None if stamp is None else etag_for(request, computed, stamp)

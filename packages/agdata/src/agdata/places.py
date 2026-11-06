@@ -46,8 +46,9 @@ def county_ids(latitude, longitude) -> np.ndarray:
     i = np.rint((lon - west) / step).astype(int)
     inside = (j >= 0) & (j < grid.shape[0]) & (i >= 0) & (i < grid.shape[1])
     ids = np.where(inside, grid[np.clip(j, 0, grid.shape[0] - 1), np.clip(i, 0, grid.shape[1] - 1)], 0)
-    for k in np.flatnonzero((ids == 0) & inside):
-        ids.flat[k] = _nearest(grid, j.flat[k], i.flat[k])
+    misses = np.flatnonzero((ids == 0) & inside)
+    if misses.size:
+        ids.flat[misses] = _nearest(grid, j.flat[misses], i.flat[misses])
     return ids
 
 
@@ -55,13 +56,22 @@ def county_at(latitude: float, longitude: float) -> County | None:
     return counties()[int(county_ids(latitude, longitude))]
 
 
-def _nearest(grid: np.ndarray, j: int, i: int) -> int:
+def _nearest(grid: np.ndarray, j: np.ndarray, i: np.ndarray) -> np.ndarray:
+    """The nearest county id within NEAREST_STEPS of each grid index (0 for none): offsets tried nearest first, ties
+    to the lower row then column, all misses at once (a state's shore had thousands, ~0.3 s one by one)."""
     n = NEAREST_STEPS
-    block = grid[max(j - n, 0) : j + n + 1, max(i - n, 0) : i + n + 1]
-    found = np.argwhere(block > 0)
-    if not found.size:
-        return 0
-    offset = np.array([max(j - n, 0), max(i - n, 0)])
-    distance = np.sum((found + offset - [j, i]) ** 2, axis=1)
-    jj, ii = found[np.argmin(distance)]
-    return int(block[jj, ii])
+    offsets = sorted(
+        ((dj, di) for dj in range(-n, n + 1) for di in range(-n, n + 1) if (dj, di) != (0, 0)),
+        key=lambda o: (o[0] ** 2 + o[1] ** 2, o[0], o[1]),
+    )
+    found = np.zeros(j.shape, dtype=grid.dtype)
+    for dj, di in offsets:
+        open_ = found == 0
+        if not open_.any():
+            break
+        jj, ii = j[open_] + dj, i[open_] + di
+        ok = (jj >= 0) & (jj < grid.shape[0]) & (ii >= 0) & (ii < grid.shape[1])
+        value = np.zeros(jj.shape, dtype=grid.dtype)
+        value[ok] = grid[jj[ok], ii[ok]]
+        found[open_] = value
+    return found

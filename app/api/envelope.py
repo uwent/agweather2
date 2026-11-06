@@ -113,20 +113,35 @@ def unit_overrides(request: HttpRequest) -> dict[str, str]:
             v = find_variable(name)
         except KeyError:
             continue
-        dimension = agunits.unit(v.unit).dimension
-        if value in SYSTEMS:
-            found[name] = agunits.display_unit(v.unit, SYSTEMS[value])
-            continue
-        matches = [
+        symbol = match_unit(v.unit, value)
+        if symbol is None:
+            raise ApiError(
+                "bad_unit", f"We can't show {name} in {value!r}. Choose one of these units: {units_like(v.unit)}.", name
+            )
+        found[name] = symbol
+    return found
+
+
+def match_unit(stored: str, given: str) -> str | None:
+    """The unit symbol `given` names for a variable stored in `stored`: a symbol (`mm`, `degF`), its label (`°F`)
+    or a system (`us`, `metric`), of the same dimension; None if it names none."""
+    if given in SYSTEMS:
+        return agunits.display_unit(stored, SYSTEMS[given])
+    dimension = agunits.unit(stored).dimension
+    return next(
+        (
             u.symbol
             for u in agunits.UNITS.values()
-            if u.dimension == dimension and value.lower() in (u.symbol.lower(), u.label.lower())
-        ]
-        if not matches:
-            valid = [u.symbol for u in agunits.UNITS.values() if u.dimension == dimension]
-            raise ApiError("bad_unit", f"{name} can't be shown in {value!r}; use one of {', '.join(valid)}", name)
-        found[name] = matches[0]
-    return found
+            if u.dimension == dimension and given.lower() in (u.symbol.lower(), u.label.lower())
+        ),
+        None,
+    )
+
+
+def units_like(stored: str) -> str:
+    """The unit symbols a variable stored in `stored` can be given or shown in, for a message."""
+    dimension = agunits.unit(stored).dimension
+    return ", ".join(u.symbol for u in agunits.UNITS.values() if u.dimension == dimension)
 
 
 def shown_unit(column: Column, system: agunits.System, overrides: dict[str, str]) -> str:
@@ -259,7 +274,11 @@ def respond(request: HttpRequest, result: Result) -> HttpResponse:
         response["Content-Disposition"] = f'attachment; filename="{_safe(result.filename)}{extension}"'
     elif fmt == "csv":
         if result.columns is None:
-            raise ApiError("format_unavailable", "csv isn't offered here; use json", "format")
+            raise ApiError(
+                "format_unavailable",
+                "This request's answer comes only as JSON. Leave out format=csv, or give format=json.",
+                "format",
+            )
         body = _csv(meta, prepared, with_meta=params.get("headers", "true").lower() not in ("false", "0", "no"))
         response = HttpResponse(body, content_type="text/csv; charset=utf-8")
         response["Content-Disposition"] = f'attachment; filename="{_safe(result.filename)}.csv"'
@@ -306,9 +325,11 @@ def _table(prepared: list[_Prepared], orient: str) -> dict[str, Any]:
 def etag_for(request: HttpRequest, computed: dict[str, Any], data_stamp: str | None) -> str:
     """The answer's ETag, known before computing it: the code's version, the request as sent (output options and unit
     overrides included) and as computed (defaults such as today's date filled), and `data_stamp`, which changes
-    whenever the data read can have (`agdata.series.last_written`)."""
+    whenever the data read can have (`agdata.series.last_written`). Without `format=`, the `Accept` header picks the
+    format, so it's part of the key: a JSON and a CSV answer to the same query are different representations."""
     sent = sorted((key, request.GET.getlist(key)) for key in request.GET)
-    key = json.dumps([CODE_VERSION, request.path, sent, computed, data_stamp], default=str, sort_keys=True)
+    accept = None if request.GET.get("format") else request.headers.get("Accept", "")
+    key = json.dumps([CODE_VERSION, request.path, sent, accept, computed, data_stamp], default=str, sort_keys=True)
     return '"' + hashlib.sha256(key.encode()).hexdigest()[:32] + '"'
 
 
@@ -353,7 +374,9 @@ def _format(request: HttpRequest, offered: tuple[str, ...]) -> str:
         asked = asked.lower()
         if asked not in offered:
             raise ApiError(
-                "format_unavailable", f"format {asked!r} isn't offered here; use {', '.join(offered)}", "format"
+                "format_unavailable",
+                f"This request's answer doesn't come as {asked}. Choose one of these formats: {', '.join(offered)}.",
+                "format",
             )
         return asked
     accept = request.headers.get("Accept", "")

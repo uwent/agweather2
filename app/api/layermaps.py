@@ -40,11 +40,14 @@ from agdata.store import CUMULATIVE, DAILY
 from agmodels import seasons
 from agmodels.seasons import Season
 from agmodels.spec import ModelSpec
-from api.errors import ApiError
+from api.errors import ApiError, day_text, hour_text
 from api.params import degree_day_settings
-from api.runs import _option_values
+from api.runs import option_values
 
+NO_DATA = "The archive has no weather data yet. Please try again later."
 MAX_STALE_DAYS = 7
+MAX_DAYS = 366  # a map's range of days, returned or reduced by `stat`
+MAX_HOURS = 31 * 24
 HOUR = timedelta(hours=1)
 
 
@@ -145,37 +148,69 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
     """A request for a layer's map, checked; ApiError where it doesn't apply."""
     found = LAYERS.get(layer_id)
     if found is None:
-        raise ApiError("unknown_layer", f"no layer {layer_id!r}; GET /layers lists them", "layer", status=404)
+        raise ApiError(
+            "unknown_layer",
+            f"We don't have a map layer named {layer_id!r}. GET /api/v2/layers lists every layer.",
+            "layer",
+            status=404,
+        )
     warnings: list[str] = []
     data_dir = _data_dir()
     observed = series.last_observed(data_dir, now)
     if observed is None:
-        raise ApiError("no_data", "the archive has no data yet", None, status=503)
+        raise ApiError("no_data", NO_DATA, None, status=503)
     first, last = span(found, q, observed)
     stat = q.stat
     if stat is not None and stat not in found.stats:
-        offered = ", ".join(found.stats) if found.stats else "none: each day is already a running total"
-        raise ApiError("invalid", f"{found.id} can't be reduced by {stat}; stats: {offered}", "stat")
+        offered = (
+            f"stat={' or '.join(found.stats)}"
+            if found.stats
+            else "no stat, because each day is already a running total; give one date"
+        )
+        raise ApiError(
+            "invalid", f"{found.name} can't be combined over days by stat={stat}. It takes {offered}.", "stat"
+        )
     model = model_request(request, found, q, warnings) if found.source == "model" else None
     if model is None and (q.output is not None or q.planting is not None):
         param = "output" if q.output is not None else "planting"
-        raise ApiError("invalid", f"{param} applies to model layers", param)
+        raise ApiError(
+            "invalid", f"{param} applies only to a model's map, and {found.name} isn't one. Leave out {param}.", param
+        )
     if model is not None and model.spec.seasonal is not None:
         first, last = season_span(model, q, first, last, series.last_closed_day(observed), now.date(), warnings)
         if model.projected and (first != last or stat is not None):
-            raise ApiError("invalid", f"{model.output.name} is one day's projection: give a date or season", "output")
+            raise ApiError(
+                "invalid",
+                f"{model.output.label} is a projection for one day. Give a date or a season, without stat.",
+                "output",
+            )
         if model.projected and model.season is None:
-            raise ApiError("invalid", f"{model.output.name} projects a season: {first} is between seasons", "output")
+            raise ApiError(
+                "invalid",
+                f"{model.output.label} projects a season, and {day_text(first)} is between seasons. "
+                "Give a date within one.",
+                "output",
+            )
     elif q.season is not None:
-        raise ApiError("not_applicable", f"{found.id} isn't a seasonal product", "season")
+        raise ApiError(
+            "not_applicable",
+            f"{found.name} isn't counted by season, so it takes no season. Give a date instead.",
+            "season",
+        )
     setting = None
     if found.id == DEGREE_DAYS:
         settings_found = degree_day_settings(q.dd, units, warnings)
         if len(settings_found) > 1:
-            raise ApiError("invalid", "one degree-day setting per map", "dd")
+            raise ApiError(
+                "invalid",
+                "A map shows one degree-day setting. Give a single dd value, or one request per setting.",
+                "dd",
+            )
         setting = settings_found[0]
     elif q.dd is not None:
-        raise ApiError("invalid", "dd applies only to the degree_days layer", "dd")
+        raise ApiError(
+            "invalid", "dd applies only to the degree_days layer. Leave it out, or ask for /grids/degree_days.", "dd"
+        )
     cubes = _cubes(found, setting, stat, q.gaps, first, last)
     # Only what the layer reads: an open checks every variable it's given (~3 ms each)
     opened = [*hourly_of(found), *([found.variable] if found.variable else [])]
@@ -281,50 +316,96 @@ def _data_dir():
 
 
 def span(layer: Layer, q: LayerQuery, observed: datetime) -> tuple[Any, Any]:
+    """The layer's first and last step as asked (defaults: the latest), at most MAX_DAYS or MAX_HOURS apart, whether
+    each step is returned or the range is reduced by `stat`: a reduced range reads every step too."""
+    first, last = _span(layer, q, observed)
+    if layer.time_axis == "hour":
+        n, limit, unit = (last - first) // HOUR + 1, MAX_HOURS, "hours"
+    else:
+        n, limit, unit = (last - first).days + 1, MAX_DAYS, "days"
+    if n > limit:
+        raise ApiError(
+            "too_large", f"The range is {n} {unit} long; a map covers up to {limit}. Choose a shorter range.", "start"
+        )
+    return first, last
+
+
+def _span(layer: Layer, q: LayerQuery, observed: datetime) -> tuple[Any, Any]:
     if layer.time_axis == "hour":
         if q.date is not None:
-            raise ApiError("invalid", f"{layer.id} is hourly: give time, or start and end", "date")
+            raise ApiError(
+                "invalid",
+                f"{layer.name} is hourly, so it takes a time rather than a date. Give time, or start and end times.",
+                "date",
+            )
         if q.time is not None and (q.start or q.end):
-            raise ApiError("conflict", "give either time, or start and end, not both", "time")
+            raise ApiError(
+                "conflict", "Give either time for one hour, or start and end for a range, but not both.", "time"
+            )
         if q.time is not None:
             hour = _parse_hour(q.time, "time")
             return hour, hour
         last = _parse_hour(q.end, "end") if q.end else observed
         first = _parse_hour(q.start, "start") if q.start else last
         if first > last:
-            raise ApiError("out_of_order", f"start ({iso_hour(first)}) is after end ({iso_hour(last)})", "start")
+            raise ApiError(
+                "out_of_order",
+                f"The start time ({hour_text(first)}) is after the end time ({hour_text(last)}). "
+                "Choose a start on or before "
+                "the end.",
+                "start",
+            )
         return first, last
     if q.time is not None:
-        raise ApiError("invalid", f"{layer.id} is daily: give date, or start and end", "time")
+        raise ApiError(
+            "invalid",
+            f"{layer.name} is daily, so it takes a date rather than a time. Give date, or start and end dates.",
+            "time",
+        )
     if q.date is not None and (q.start or q.end):
-        raise ApiError("conflict", "give either date, or start and end, not both", "date")
+        raise ApiError(
+            "conflict", "Give either date for one day, or start and end for a range of days, but not both.", "date"
+        )
     if q.date is not None:
-        day = _parse_date(q.date, "date")
+        day = parse_date(q.date, "date")
         return day, day
-    last = _parse_date(q.end, "end") if q.end else series.last_closed_day(observed)
+    last = parse_date(q.end, "end") if q.end else series.last_closed_day(observed)
     if q.start is None:
         return (last, last) if q.end is None else (date(last.year, 1, 1), last)
-    first = _parse_date(q.start, "start")
+    first = parse_date(q.start, "start")
     if first > last:
-        raise ApiError("out_of_order", f"start ({first}) is after end ({last})", "start")
+        raise ApiError(
+            "out_of_order",
+            f"The start date ({day_text(first)}) is after the end date ({day_text(last)}). Choose a start date on or "
+            "before the end date.",
+            "start",
+        )
     return first, last
 
 
-def _parse_date(text: str, param: str) -> date:
+def parse_date(text: str, param: str) -> date:
     try:
         return date.fromisoformat(text)
     except ValueError:
-        raise ApiError("invalid", f"{param} ({text!r}) isn't a date (YYYY-MM-DD)", param) from None
+        raise ApiError(
+            "invalid", f"The {param} date ({text}) isn't a date. Give dates as YYYY-MM-DD, such as 2025-07-08.", param
+        ) from None
 
 
 def _parse_hour(text: str, param: str) -> datetime:
     try:
         value = datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError:
-        raise ApiError("invalid", f"{param} ({text!r}) isn't an ISO time", param) from None
+        raise ApiError(
+            "invalid", f"The {param} time ({text}) isn't a time. Give times as 2025-07-08T15:00Z.", param
+        ) from None
     value = value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
     if value.minute or value.second or value.microsecond:
-        raise ApiError("invalid", f"{param} ({iso_hour(value)}) isn't on the hour", param)
+        raise ApiError(
+            "invalid",
+            f"The {param} time ({iso_hour(value)}) isn't on the hour. Give a whole hour, such as 2025-07-08T15:00Z.",
+            param,
+        )
     return value
 
 
@@ -338,7 +419,7 @@ def archive_window(data_dir, stores: series.Stores) -> Window:
         store = stores.get(data_dir, DAILY, year)
         if store is not None:
             return store.window
-    raise ApiError("no_data", "the archive has no daily stores yet", None, status=503)
+    raise ApiError("no_data", NO_DATA, None, status=503)
 
 
 def _cubes(layer: Layer, setting, stat, gaps: str, first, last) -> tuple[str, str | None] | None:
@@ -382,30 +463,50 @@ def model_request(request: HttpRequest, layer: Layer, query: LayerQuery, warning
     crop = modelgrid.tiered(spec.id)
     if query.planting is not None and crop is None:
         later = planting_crop(spec)
-        message = f"{spec.id} has no crop to plant"
+        message = f"The {spec.name} model has no crop, so its map takes no planting. Leave out planting."
         if later is not None:
-            message = f"{later[0]} isn't on maps yet, so {spec.id}'s map takes no planting tier"
+            message = (
+                f"The crop stages {spec.name} uses aren't mapped yet, so its map takes no planting. Leave out planting."
+            )
         raise ApiError("not_applicable", message, "planting")
     tier = None if crop is None or query.planting == "none" else (query.planting or "mid")
     if tier is None and spec.id in modelmaps.TIER_MODELS and not spec.ingredients:  # soybean, spring wheat
-        raise ApiError("invalid", f"{spec.id} is mapped per planting tier: early, mid or late", "planting")
-    pointed = f"maps use each place's own settings (D66); for yours at a point, GET /api/v2/models/{spec.id}/run"
+        raise ApiError(
+            "invalid",
+            f"{spec.name} is mapped for typical planting dates. Give planting=early, mid or late.",
+            "planting",
+        )
+    pointed = (
+        f"A map uses each location's typical settings. To run {spec.name} with your own at a location, use "
+        f"GET /api/v2/models/{spec.id}/run."
+    )
     for name in (*_POINT_ONLY, *modelgrid.PLACE_OPTIONS):
         if request.GET.get(name):
-            raise ApiError("not_applicable", f"{name} doesn't apply to a map: {pointed}", name)
+            raise ApiError("not_applicable", f"{name} doesn't apply to a map. {pointed}", name)
     chosen = layer.outputs[0] if output is None else next((o for o in layer.outputs if o.name == output), None)
     if chosen is None:
         names = ", ".join(o.name for o in layer.outputs)
-        raise ApiError("invalid", f"{layer.id} has no output {output!r}; outputs: {names}", "output")
+        raise ApiError("invalid", f"{layer.name} has no output named {output!r}. Choose one of: {names}.", "output")
     options = {}
     for o in spec.options:
         if o.name in modelgrid.PLACE_OPTIONS:
             continue
         if request.GET.get(o.name) == "all":
-            raise ApiError("invalid", f"one {o.name} per map; /models/{spec.id}/run runs them all at a point", o.name)
-        options[o.name] = _option_values(o, request.GET.get(o.name), warnings)[0]
+            raise ApiError(
+                "invalid",
+                f"A map shows one {o.name}. Give one value, or use GET /api/v2/models/{spec.id}/run "
+                "to run every choice at "
+                "a location.",
+                o.name,
+            )
+        options[o.name] = option_values(o, request.GET.get(o.name), warnings)[0]
     if chosen.name == SUSCEPTIBILITY and tier is None:
-        raise ApiError("invalid", "susceptibility needs a planting tier (early, mid or late)", "planting")
+        raise ApiError(
+            "invalid",
+            "Susceptibility comes from the crop's stages, so it needs a planting date. Give "
+            "planting=early, mid or late.",
+            "planting",
+        )
     echo = {"model": {"id": spec.id, "version": spec.version}, "output": chosen.name, "options": options}
     if crop is not None:
         echo["planting"] = tier or "none"
@@ -420,14 +521,16 @@ def planting_summary(model: ModelRequest, mask: np.ndarray, warnings: list[str])
     known = dates[np.isfinite(dates)]
     without = int(dates.size - known.size)
     if not known.size:
-        warnings.append(f"no typical {model.crop} planting dates here, so the model's default dates")
+        warnings.append(
+            f"We have no typical {model.crop} planting dates in this area, so the map uses the model's default dates."
+        )
     elif without:
         then = "take the model's default dates"
         if model.spec.id in modelmaps.TIER_MODELS:
             then = "have no stages"
         elif model.spec.susceptible is not None:
             then = "aren't gated by the crop's stages"
-        warnings.append(f"{without:,} cells have no typical {model.crop} planting date, so {then}")
+        warnings.append(f"Some grid cells ({without:,}) have no typical {model.crop} planting date, so they {then}.")
     span = [date.fromordinal(int(v)).isoformat() for v in (known.min(), known.max())] if known.size else None
     return {"crop": model.crop, "tier": model.tier, "dates": span, "cells_without": without}
 
@@ -443,7 +546,7 @@ def _model_compute(layer, model: ModelRequest, first, last, window, stat, data_d
     if found.stale:
         raise ApiError(
             "stale",
-            f"{layer.id}'s ingredients are being rebuilt after an update; try again in a few minutes",
+            f"We're updating the data behind the {layer.name} map. Please try again in a few minutes.",
             None,
             status=503,
         )
@@ -460,13 +563,21 @@ def _model_compute(layer, model: ModelRequest, first, last, window, stat, data_d
     # Land only: a crop's disease or pest over open water (the Great Lakes and their shore cells) means nothing
     values = np.where(regions.land(data_dir, window), values, np.nan)
     if found.in_region is not None and not found.in_region.any():
-        warnings.append(f"{layer.id} is valid only in {', '.join(model.spec.region)}: no cells here")
+        warnings.append(
+            f"{layer.name} was developed for {', '.join(model.spec.region)}, and none of this area "
+            "is in those states, so "
+            "the map is empty."
+        )
     if found.in_season is not None and not any(found.in_season):
         first_md, last_md = model.spec.season or ("", "")
-        warnings.append(f"out of season ({first_md} to {last_md})")
+        warnings.append(
+            f"These dates are outside the model's season ({_month_day(first_md)} to {_month_day(last_md)})."
+        )
     started = [b is not None and d >= b for d, b in zip(found.dates, found.biofix, strict=True)]
     if model.spec.accumulations and not any(started):
-        warnings.append(f"the season starts at the biofix, {found.biofix[-1]}: nothing accumulated yet")
+        warnings.append(
+            f"The season starts at the biofix, {_day_or(found.biofix[-1])}, so nothing has accumulated yet."
+        )
     if stat is not None:
         value, _, missing = reduce(values, stat, None)
         values, extra = value[None], {"missing_days": missing}
@@ -481,14 +592,19 @@ def season_span(
     spec = model.spec
     if query.season is not None:
         if query.date or query.start or query.end:
-            raise ApiError("conflict", "give either season, or a date or range, not both", "season")
+            raise ApiError("conflict", "Give either a season, or a date or range of dates, but not both.", "season")
         try:
             model.season = seasons.season_named(spec, query.season)
         except ValueError as error:
             raise ApiError("invalid", str(error), "season") from None
         day = seasonal.through(model.season, observed_day)
         if day is None:
-            raise ApiError("not_yet", f"the {model.season.label} season hasn't started", "season", status=404)
+            raise ApiError(
+                "not_yet",
+                f"The {model.season.label} season hasn't started yet. Choose an earlier season.",
+                "season",
+                status=404,
+            )
         return day, day
     if not (query.date or query.start or query.end):
         model.season = seasons.current_season(spec, today)
@@ -498,18 +614,30 @@ def season_span(
     if last > observed_day:
         raise ApiError(
             "not_observed",
-            f"{spec.id} counts observed days only; the last is {observed_day}",
+            f"{spec.name} counts observed days only, and the last observed day is {day_text(observed_day)}. Choose a "
+            "date on or before it.",
             "date" if query.date else "end",
         )
     model.season = seasons.season_of(spec, last)
     if model.season is None:
         settled = seasons.current_season(spec, last)
-        warnings.append(f"{last} is between seasons; season={settled.name} gives the last one's count")
+        warnings.append(f"{day_text(last)} is between seasons. season={settled.name} gives the last season's count.")
     elif last < model.season.appears:
         warnings.append(
-            f"the {model.season.label} season is open: its count so far, shown from {model.season.appears} on"
+            f"The {model.season.label} season isn't over: this is its count so far, which we show from "
+            f"{day_text(model.season.appears)} on."
         )
     return first, last
+
+
+def _month_day(text: str) -> str:
+    """ "08-15" → "August 15"."""
+    month, day = (int(p) for p in text.split("-"))
+    return f"{date(2001, month, day):%B} {day}"
+
+
+def _day_or(day: date | None) -> str:
+    return "not set" if day is None else day_text(day)
 
 
 def season_name(spec: ModelSpec, year: int) -> str:
@@ -588,8 +716,8 @@ def _fresh(read: series.GridSteps, layer: Layer, layout, window: Window, data_di
     if layout is not DAILY or stale.size > MAX_STALE_DAYS:
         raise ApiError(
             "stale",
-            f"{layer.id} is being rebuilt after an update ({stale.size} days here); try again in a few minutes, "
-            f"or ask for up to {MAX_STALE_DAYS} days",
+            f"We're updating {layer.name} after a change to how it's computed. Please try again in a few minutes, or "
+            f"ask for up to {MAX_STALE_DAYS} days.",
             None,
             status=503,
         )

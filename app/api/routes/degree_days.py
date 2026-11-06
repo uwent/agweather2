@@ -26,7 +26,7 @@ from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
 from agmodels.scenarios import first_days, reached, spread
 from api import clock, points
 from api.envelope import Column, Result, catalog_column, not_modified, respond
-from api.errors import ApiError
+from api.errors import ApiError, day_text
 from api.params import (
     FREEZE,
     DaysQuery,
@@ -38,11 +38,11 @@ from api.params import (
     setting,
     temperature_threshold,
 )
-from api.routes.models import _projection_mode
+from api.routes.models import NO_PROJECTION, projection_mode
 from api.routes.weather import (
     FORECAST_DAYS,
     MAX_DAYS,
-    _etag,
+    answer_etag,
     check_size,
     day_counts,
     envelope_parts,
@@ -67,7 +67,7 @@ def settings_from(request: HttpRequest, dd: str | None, units: str, warnings: li
     """`dd=` settings, or one from `base` (and `upper`, `method`, default sine)."""
     base = request.GET.get("base")
     if dd is not None and base is not None:
-        raise ApiError("conflict", "give either dd, or base (with upper and method), not both", "dd")
+        raise ApiError("conflict", "Give either dd, or base (with upper and method), but not both.", "dd")
     if base is None:
         return degree_day_settings(dd, units, warnings)
     upper = request.GET.get("upper")
@@ -75,7 +75,7 @@ def settings_from(request: HttpRequest, dd: str | None, units: str, warnings: li
         base_value = float(base)
         upper_value = float(upper) if upper not in (None, "") else None
     except ValueError:
-        raise ApiError("invalid", "base and upper must be numbers", "base") from None
+        raise ApiError("invalid", "base and upper must be numbers, such as base=50&upper=86.", "base") from None
     method = request.GET.get("method", "sine").lower()
     return [setting(method, base_value, upper_value, units, warnings, "base")]
 
@@ -84,13 +84,7 @@ def temperatures(days, n: int, gaps: str) -> tuple[np.ndarray, np.ndarray, np.nd
     """(min °F, max °F, estimated, usable) over a series' first n days, gaps bridged unless `gaps=missing`."""
     tmin = np.asarray(days.values["air_temperature_min"][:n], dtype=float)
     tmax = np.asarray(days.values["air_temperature_max"][:n], dtype=float)
-    known = np.isfinite(tmin) & np.isfinite(tmax)
-    lo, hi = np.where(known, tmin, np.nan), np.where(known, tmax, np.nan)
-    if gaps == "estimate":
-        lo, _ = fill_short_gaps(lo, MAX_GAP_DAYS)
-        hi, _ = fill_short_gaps(hi, MAX_GAP_DAYS)
-    usable = np.isfinite(lo) & np.isfinite(hi)
-    return lo * 1.8 + 32, hi * 1.8 + 32, usable & ~known, usable
+    return temperatures_of(tmin, tmax, gaps)
 
 
 def degree_days(s: DegreeDaySetting, lo_f: np.ndarray, hi_f: np.ndarray) -> np.ndarray:
@@ -141,7 +135,7 @@ def daily(
     warnings: list[str] = []
     found_settings = settings_from(request, dd, output.units, warnings)
     goals = _targets(targets, output.units)
-    mode = _projection_mode(projection)
+    mode = projection_mode(projection)
     read_from, first, last, trim_end = dd_window(when, options, biofix)
     if mode and when.end is None and when.date is None:
         last, trim_end = date(first.year, 12, 31), False
@@ -151,7 +145,7 @@ def daily(
     computed |= {"targets": goals or None, "projection": mode}
     years = archive_years(settings.DATA_DIR) if mode else []
     stamp_from = min([read_from, *(date(y, 1, 1) for y in years if y < read_from.year)])
-    etag = _etag(request, computed, points.stamp(where.locations(), stamp_from, last, now))
+    etag = answer_etag(request, computed, points.stamp(where.locations(), stamp_from, last, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, read_from, last)
@@ -160,7 +154,10 @@ def daily(
     skip = (first - read_from).days
     start_at = max(0, ((biofix or first) - read_from).days)
     if biofix is not None and biofix > last:
-        warnings.append(f"biofix {biofix} is after the last day ({last}): no running totals")
+        warnings.append(
+            f"The biofix ({day_text(biofix)}) is after the last day asked for ({day_text(last)}), so there are no "
+            "running totals."
+        )
     columns: dict[str, list] = {}
     reached_targets: list[dict] = []
     projections: list[dict] = []
@@ -284,9 +281,13 @@ def _targets(raw: str | None, units: str) -> list[tuple[float, float]]:
         try:
             value = float(part)
         except ValueError:
-            raise ApiError("invalid", "targets are degree-day totals separated by commas", "targets") from None
+            raise ApiError(
+                "invalid",
+                "Give targets as degree-day totals separated by commas, such as targets=1400,2000.",
+                "targets",
+            ) from None
         if value <= 0:
-            raise ApiError("out_of_range", f"target {value:g} must be above 0", "targets")
+            raise ApiError("out_of_range", f"The target {value:g} must be above 0.", "targets")
         found.append((value * 1.8 if units == "metric" else value, value))
     return found
 
@@ -304,10 +305,14 @@ def _project(days, n: int, lat: float, lng: float, last: date, years: list[int])
     begins = projection.projection_start(days.dates[:n], kinds)
     plain = (tmin[:, None], tmax[:, None], kinds, [None], n)
     if begins is None or begins > last:
-        return *plain, {"start": None, "years": []}, f"the series has data through {last}: nothing to project"
+        return (
+            *plain,
+            {"start": None, "years": []},
+            f"The weather data runs through {day_text(last)}, the last day asked for, so there's nothing to project.",
+        )
     cell = NDFD.cell_of(lat, lng)
     if cell is None or not points.from_archive(lat, lng, days.dates[0], begins - timedelta(days=1)):
-        return *plain, {"start": None, "years": []}, "no projection outside the service box or before the archive"
+        return *plain, {"start": None, "years": []}, NO_PROJECTION
     cut = (begins - days.dates[0]).days
     found = projection.build(
         begins, last, [y for y in years if y < last.year], TEMPERATURES, past_reader(settings.DATA_DIR, *cell)
@@ -318,7 +323,8 @@ def _project(days, n: int, lat: float, lng: float, last: date, years: list[int])
         {"air_temperature_min": tmin[:cut], "air_temperature_max": tmax[:cut]}, kinds[:cut], found
     )
     note = (
-        f"one earlier year in the archive ({found.years[0]}): the projection is that year, with no band"
+        f"The archive has one earlier year ({found.years[0]}), so the projection follows that year alone, with no "
+        "range."
         if len(found.years) == 1
         else None
     )
@@ -334,7 +340,8 @@ def _project(days, n: int, lat: float, lng: float, last: date, years: list[int])
 
 
 def temperatures_of(tmin: np.ndarray, tmax: np.ndarray, gaps: str):
-    """`temperatures` on (days × scenarios) arrays."""
+    """(min °F, max °F, estimated, usable) from min and max in °C (days, or days × scenarios), each day's pair kept
+    only where both are known, then gaps bridged unless `gaps=missing`."""
     known = np.isfinite(tmin) & np.isfinite(tmax)
     lo, hi = np.where(known, tmin, np.nan), np.where(known, tmax, np.nan)
     if gaps == "estimate":
@@ -366,7 +373,7 @@ def table(
     check_size((last - read_from).days + 1, len(where.locations()), MAX_DAYS, "days")
     now = clock.now()
     computed = _computed(where, first, last, found_settings, biofix or first, options, output)
-    etag = _etag(request, computed, points.stamp(where.locations(), read_from, last, now))
+    etag = answer_etag(request, computed, points.stamp(where.locations(), read_from, last, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, read_from, last)
@@ -432,9 +439,18 @@ def freeze(
         try:
             given = [float(t) for t in thresholds.split(",") if t.strip()]
         except ValueError:
-            raise ApiError("invalid", "thresholds must be numbers separated by commas", "thresholds") from None
+            raise ApiError(
+                "invalid",
+                "Give thresholds as temperatures separated by commas, such as thresholds=32,28,24.",
+                "thresholds",
+            ) from None
         if not given:
-            raise ApiError("missing", "give one or more thresholds, separated by commas", "thresholds")
+            raise ApiError(
+                "missing",
+                "The thresholds list is empty. Give one or more temperatures separated by commas, "
+                "such as thresholds=32,28.",
+                "thresholds",
+            )
     limits_f = [temperature_threshold(t, output.units, FREEZE, "thresholds", warnings) for t in given]
     today = clock.now().date()
     trim_end = when.end is None and when.date is None and options.forecast
@@ -443,7 +459,7 @@ def freeze(
     now = clock.now()
     computed = {**where.echo(), "start": first, "end": last, "thresholds": given, "forecast": options.forecast}
     computed |= {"threshold_units": "°C" if output.units == "metric" else "°F", "units": output.units}
-    etag = _etag(request, computed, points.stamp(where.locations(), first, last, now))
+    etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, first, last)

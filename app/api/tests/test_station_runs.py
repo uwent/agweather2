@@ -56,7 +56,7 @@ def test_rh_without_dew_point_gets_one_and_humid_hours_count_at_90(client, archi
     body = post(client, "models/late-blight-dsv/run", body_for(hourly=hourly, start="2025-07-02", end="2025-07-09"))
     assert body.status_code == 200, body.json()
     meta = body.json()["meta"]
-    assert any("dew_point computed from relative_humidity" in w for w in meta["warnings"])
+    assert any("We computed dew point from the relative humidity" in w for w in meta["warnings"])
     # Every hour at 89% RH: under the station's 90%, though D50 would count it on gridded RH
     times = hourly["time"]
     humid = {"time": times, "air_temperature": [15.0] * len(times), "relative_humidity": [89.0] * len(times)}
@@ -100,7 +100,7 @@ def test_a_gap_the_model_bridges_is_estimated_and_out_of_range_values_are_droppe
         body_for(daily={"date": days, "air_temperature_min": lows, "air_temperature_max": highs}),
     ).json()
     assert body["data"]["kind"][2] == "estimated" and body["data"]["kind"][5] == "estimated"
-    assert any("1 days outside its range" in w for w in body["meta"]["warnings"])
+    assert any(w.startswith("1 day of air_temperature_m") for w in body["meta"]["warnings"])
     assert body["meta"]["summary"]["days_estimated"] == 2
     assert body["data"]["air_temperature_max_estimated"][5] is True  # and its input column says which
     assert body["meta"]["summary"]["estimated_by_input"] == {"air_temperature_max": 1, "air_temperature_min": 1}
@@ -132,7 +132,7 @@ def test_several_models_on_posted_weather(client, archive):
 def test_bad_bodies(client, archive):
     assert post(client, "models/tar-spot/run", {"hourly": {"time": []}}).json()["errors"][0]["param"] == "location"
     naive = body_for(hourly={"time": ["2025-07-02T05:00"], "air_temperature": [10]})
-    assert "Z or an offset" in post(client, "models/tar-spot/run", naive).json()["errors"][0]["message"]
+    assert "needs a time zone" in post(client, "models/tar-spot/run", naive).json()["errors"][0]["message"]
     unknown = body_for(hourly={"time": ["2025-07-02T05:00Z"], "leaf_wetness": [1]})
     assert post(client, "models/tar-spot/run", unknown).json()["errors"][0]["code"] == "unknown_variable"
     uneven = body_for(hourly={"time": ["2025-07-02T05:00Z"], "air_temperature": [1, 2]})

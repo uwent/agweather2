@@ -116,16 +116,7 @@ def model_days(
     opts = {o.name: o.default for o in spec.options} | dict(options or {})
     n = (last - first).days + 1
     dates = [first + timedelta(days=k) for k in range(n)]
-    stores = stores or series.Stores([])
-    stores.names |= {q.name for q in spec.inputs} | set(read_names(model_id))  # named before any store opens
-    base = series.grid_days(data_dir, DAILY, spec.inputs[0].name, first, last, window, now, stores, read=False)
-    reader = _Reader(
-        stores=stores,
-        data_dir=data_dir,
-        run_path=base.forecast.path,
-        cut=first + timedelta(days=base.run_from),
-        window=window,
-    )
+    base, reader = _base(data_dir, spec, first, last, window, now, stores, read_names(model_id))
     biofix = [default_biofix(spec, d) for d in dates]
     cells = np.full((n, *window.shape), np.nan)
     for k, (d, b) in enumerate(zip(dates, biofix, strict=True)):

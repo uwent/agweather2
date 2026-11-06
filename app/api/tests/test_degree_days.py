@@ -103,10 +103,10 @@ def test_impossible_settings_are_refused(client, archive, params, code):
 @pytest.mark.parametrize(
     ("params", "said"),
     [
-        ({"dd": "sine_70"}, "outside the usual 32–60 °F"),
-        ({"dd": "sine_10"}, "if that's °C, add units=metric"),
-        ({"dd": "sine_50", "units": "metric"}, "50 °C is 122 °F; thresholds follow units=metric"),
-        ({"dd": "sine_10_60"}, "a degree-day upper threshold of 60 °F is outside the usual 70–95 °F"),
+        ({"dd": "sine_70"}, "outside the usual range of 32–60 °F"),
+        ({"dd": "sine_10"}, "If you meant °C, add units=metric."),
+        ({"dd": "sine_50", "units": "metric"}, "is read as 50 °C (122 °F)"),
+        ({"dd": "sine_10_60"}, "A degree-day upper threshold of 60 °F is outside the usual range of 70–95 °F"),
     ],
 )
 def test_unusual_settings_run_with_a_warning(client, archive, params, said):

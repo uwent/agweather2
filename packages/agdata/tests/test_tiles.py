@@ -14,7 +14,7 @@ WINDOW = Window(j0=880, j1=920, i0=1380, i1=1440)
 
 def _a_tile(z: int) -> tuple[int, int]:
     lat, lon = NDFD.window_latlon(WINDOW)
-    return tiles._tile_of(float(lon.mean()), float(lat.mean()), z)
+    return tiles.tile_of(float(lon.mean()), float(lat.mean()), z)
 
 
 def test_each_pixel_takes_the_cell_under_it():

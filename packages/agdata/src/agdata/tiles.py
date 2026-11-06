@@ -54,15 +54,8 @@ def tile_bounds(z: int, x: int, y: int) -> tuple[float, float, float, float]:
     return west, south, east, north
 
 
-def window_tiles(window: Window, z: int) -> tuple[int, int, int, int]:
-    """(x0, y0, x1, y1), inclusive: the tiles at zoom `z` that touch the window."""
-    lat, lon = NDFD.window_latlon(window)
-    x0, y0 = _tile_of(float(lon.min()), float(lat.max()), z)
-    x1, y1 = _tile_of(float(lon.max()), float(lat.min()), z)
-    return x0, y0, x1, y1
-
-
-def _tile_of(lon: float, lat: float, z: int) -> tuple[int, int]:
+def tile_of(lon: float, lat: float, z: int) -> tuple[int, int]:
+    """The (x, y) of the tile at zoom `z` holding a point."""
     n = 2**z
     s = math.sin(math.radians(lat))
     y = (0.5 - math.log((1 + s) / (1 - s)) / (4 * math.pi)) * n

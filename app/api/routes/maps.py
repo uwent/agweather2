@@ -34,7 +34,6 @@ from api.params import UnitsQuery
 
 router = Router(tags=["Maps and grids"])
 
-MAX_DAYS = 366
 MARGIN_CELLS = 6  # around a region's cells
 KEEP_DAYS = 14  # an image not drawn or read again in this long is deleted
 # What the job draws ahead of time: v1's map set (degree days, temperatures, a week's rain and ET, sunlight, the
@@ -54,7 +53,7 @@ DEFAULT_MAPS: list[tuple[str, dict[str, str]]] = [
 class MapQuery(LayerQuery):
     """A layer's time and settings (as `/grids`), the area, and a shortcut for the last days."""
 
-    days: int | None = Field(None, ge=1, le=MAX_DAYS)
+    days: int | None = Field(None, ge=1, le=layermaps.MAX_DAYS)
     region: str | None = None
     width: int = Field(800, ge=400, le=2000)
 
@@ -72,7 +71,9 @@ def static_map(request: HttpRequest, layer: str, query: Query[MapQuery], output:
     now = clock.now()
     a = layermaps.ask(request, layer, _layer_query(query, now), output.units, now)
     if a.first != a.last and a.stat is None:
-        raise ApiError("invalid", "a map is one step: give one day or hour, or a range with stat", "stat")
+        raise ApiError(
+            "invalid", "A map image shows one map. Give one day or hour, or a range of days with stat.", "stat"
+        )
     data_stamp = layermaps.stamp(a, now)
     etag = etag_for(request, a.echo(), data_stamp)
     if (unchanged := not_modified(request, etag)) is not None:
@@ -97,16 +98,19 @@ def _layer_query(q: MapQuery, now: datetime) -> LayerQuery:
     if q.days is not None:
         if q.start or q.date or q.time or q.season:
             raise ApiError(
-                "conflict", "days counts back from end (default the latest day): give no other start", "days"
+                "conflict",
+                "days counts back from end (or the latest day), so it takes no start, date, time or "
+                "season. Leave those out.",
+                "days",
             )
         if q.stat is None:
-            raise ApiError("invalid", "days needs stat (sum, mean, min or max)", "stat")
+            raise ApiError("invalid", "days needs stat to combine them: sum, mean, min or max.", "stat")
         if q.end is not None:
-            end = date.fromisoformat(q.end)
+            end = layermaps.parse_date(q.end, "end")
         else:
             observed = series.last_observed(settings.DATA_DIR, now)
             if observed is None:
-                raise ApiError("no_data", "the archive has no data yet", None, status=503)
+                raise ApiError("no_data", layermaps.NO_DATA, None, status=503)
             end = series.last_closed_day(observed)
         fields |= {"start": (end - timedelta(days=q.days - 1)).isoformat(), "end": end.isoformat()}
     return LayerQuery(**fields)
@@ -115,16 +119,22 @@ def _layer_query(q: MapQuery, now: datetime) -> LayerQuery:
 def _draw(request: HttpRequest, a: layermaps.LayerAsk, q: MapQuery, now: datetime, data_stamp: Any) -> bytes:
     archive = layermaps.archive_window(settings.DATA_DIR, a.stores)
     values = layermaps.cached(a, archive, now, data_stamp).values[0]
-    window = archive
+    window, region = archive, None
     if q.region is not None:
         region = regions.find(q.region)
         if region is None:
             raise ApiError(
-                "unknown_region", f"{q.region!r} isn't a state (wisconsin, WI) or a county (55025)", "region"
+                "unknown_region",
+                f"We don't recognize the region {q.region!r}. Give a state's name or postal code "
+                "(wisconsin or WI), or a "
+                "county's five-digit FIPS code (55025).",
+                "region",
             )
         inside = regions.mask(region, archive)
         if not inside.any():
-            raise ApiError("outside_box", f"{region.name} has no cells in the service box", "region")
+            raise ApiError(
+                "outside_box", f"{region.name} is outside the area we cover, so it has no grid cells here.", "region"
+            )
         values = np.where(inside, values, np.nan)
         window, values = _framed(archive, inside, values)
     column = Column(name=a.layer.id, values=[], unit=a.unit, step=a.step, variable=a.layer.variable or a.layer.id)
@@ -135,7 +145,7 @@ def _draw(request: HttpRequest, a: layermaps.LayerAsk, q: MapQuery, now: datetim
         window,
         a.scale.palette,
         a.domain(values),
-        a.label + (f" · {regions.find(q.region).name}" if q.region and regions.find(q.region) else ""),  # type: ignore[union-attr]
+        a.label + (f" · {region.name}" if region is not None else ""),
         _subtitle(a),
         agunits.unit(shown_as).label,
         lambda v: agunits.convert(v, a.unit, shown_as),
