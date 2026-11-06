@@ -73,10 +73,8 @@ def read(path, layout, name: str, day: date) -> np.ndarray:
     return store.read_steps(name, store.index_of(day), store.index_of(day) + 1)[0]
 
 
-def central(monkeypatch: "pytest.MonkeyPatch") -> SimpleNamespace:
-    """Every cell of WINDOW in Central time (no timezone lookup), and the helpers."""
-    index = np.zeros(WINDOW.shape, dtype=np.uint8)
-    monkeypatch.setattr(daily, "window_timezones", lambda window: (["America/Chicago"], index))
+def central(monkeypatch: "pytest.MonkeyPatch | None" = None) -> SimpleNamespace:
+    """WINDOW and the helpers (every cell's days are grid days, CST: D74; `monkeypatch` is no longer needed)."""
     return SimpleNamespace(window=WINDOW, archive=archive, nbm_run=nbm_run, read=read, weather=weather)
 
 

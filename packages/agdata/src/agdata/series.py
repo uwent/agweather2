@@ -7,7 +7,8 @@ later from the run's (`agdata.forecast`), whose stitched hours make today's valu
 archive's through yesterday, the run's from today (they continue the archive's).
 
 The forecast is used only while its run is fresh (`MAX_RUN_AGE`); otherwise the series ends with the archive and
-says why. Kinds are per point, as each cell's day follows its own time zone.
+says why. Map days are grid days (CST, D74); a point's days follow the zone it's given (the grid's by default, or
+its own with `day_basis=local`), and so do their kinds.
 
 A point's forecast soil hours the run lacks (its IFS soil ends some 30 hours before NBM's last hour) can be filled from
 another source (`fill_soil`: the app passes Open-Meteo's ECMWF IFS through its cell cache, D44). Maps keep the gap
@@ -23,13 +24,12 @@ import numpy as np
 
 from agdata import corrections, forecast, pastyears, projection
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, GAP_FILL, VARIABLES, Variable
-from agdata.daily import cell_timezones
 from agdata.grid import NDFD, Window
 from agdata.places import county_at
 from agdata.planting import typical_planting
 from agdata.point import daily_at_point, hourly_sources
 from agdata.store import CUMULATIVE, DAILY, HOURLY, INGREDIENTS, SOURCES, GridStore, StoreLayout
-from agdata.timezones import day_bounds, zone_at
+from agdata.timezones import GRID_ZONE, day_bounds
 from agmodels import runner
 from agmodels.registry import model as find_model
 from agmodels.runner import ModelRun
@@ -147,9 +147,11 @@ def point_days(
     now: datetime | None = None,
     fill_soil: FillSoil | None = None,
     stores: "Stores | None" = None,
+    zone: str = GRID_ZONE,
 ) -> DailySeries:
-    """Local days first..last at a cell, from its stitched hours by the rollup's definitions (`agdata.point`): a
-    day is observed if every hour is, partial with some of each, forecast with only forecast hours.
+    """Days first..last at a cell by `zone`'s clock, from its stitched hours by the rollup's definitions
+    (`agdata.point`): a day is observed if every hour is, partial with some of each, forecast with only forecast
+    hours.
 
     A point's days come from its hours rather than the daily store, whose chunks are a day of a map: a season of
     them is ~300 chunk reads per variable (2.4 s for five), its hours ~11 per variable. Only the hourly variables
@@ -165,11 +167,7 @@ def point_days(
     if stores is not None and not {*hourly, *totals} <= stores.names:
         raise ValueError(f"the shared stores don't open {sorted({*hourly, *totals} - stores.names)}")
     stores = stores or Stores([*hourly, *totals])
-    try:
-        zone = cell_zone(data_dir, j, i, range(first.year, last.year + 1), stores)
-    except FileNotFoundError:  # none of these years is in the archive: every day is missing, in the cell's own zone
-        zone = zone_at(*(float(v) for v in NDFD.latlon(j, i)))
-    start = _midnight(first - timedelta(days=1))  # before the first day's 8 pm-day in any zone
+    start = _midnight(first - timedelta(days=1))  # before the first day's earliest window (from noon) in any zone
     end = _midnight(last + timedelta(days=1)) + timedelta(hours=8)  # past the last day's end in any zone
     wants_soil = any(name in SOIL for name in hourly)
     frame = point_hours(
@@ -294,8 +292,8 @@ def in_box_corrections(kinds: list[str | None], run: Forecast, variables=None) -
 def grid_day(
     data_dir: Path, name: str, day: date, window: Window | None = None, now: datetime | None = None
 ) -> tuple[np.ndarray, str | None]:
-    """A daily variable over the window for one date, and its kind (by the box's latest time zone, so a day is
-    forecast only once it's forecast everywhere it's shown): the archive's if observed, else the run's."""
+    """A daily variable over the window for one grid day (CST), and its kind: the archive's if observed, else the
+    run's."""
     return _grid(data_dir, DAILY, name, day, window, now)
 
 
@@ -340,9 +338,9 @@ def grid_days(
     n = (last - first).days + 1
     dates = [first + timedelta(days=k) for k in range(n)]
     observed_until = _last_observed(data_dir, run, _midnight(last + timedelta(days=2)), now, stores)
-    closed = 0  # observed once the westernmost zone has closed the day (the lower 48 are UTC−4 to −8)
+    closed = 0  # observed once its last hour is (grid days, CST)
     if observed_until is not None:
-        closed = sum(_midnight(d + timedelta(days=1)) + timedelta(hours=8) <= observed_until for d in dates)
+        closed = sum(day_bounds(d, GRID_ZONE)[1] <= observed_until for d in dates)
     cut = closed if run.path is not None else n  # without a run, the archive's values with no kind
     values, stale, archived = read_split(stores, data_dir, run.path, layout, name, dates, cut, window, read=read)
     kinds: list[str | None] = [OBSERVED if archived[k] and k < closed else None for k in range(n)]
@@ -350,7 +348,7 @@ def grid_days(
         for k in range(cut, n):
             if run.last_hour is not None and dates[k] > run.last_hour.date():
                 continue
-            started = _midnight(dates[k]) + timedelta(hours=5) <= observed_until  # the easternmost zone's day began
+            started = day_bounds(dates[k], GRID_ZONE)[0] <= observed_until  # its first hour is observed
             kinds[k] = PARTIAL if started else FORECAST
     if read:  # a day with no value anywhere has nothing to show (the run's last, incomplete day)
         kinds = [None if np.isnan(values[k]).all() else kind for k, kind in enumerate(kinds)]
@@ -411,8 +409,8 @@ def last_observed(data_dir: Path, now: datetime | None = None) -> datetime | Non
 
 
 def last_closed_day(observed_until: datetime) -> date:
-    """The last day observed everywhere in the box (`grid_days`' rule: the westernmost zone has closed it)."""
-    return (observed_until - timedelta(hours=8)).date() - timedelta(days=1)
+    """The last grid day observed through its last hour (CST, `grid_days`' rule)."""
+    return (observed_until - timedelta(hours=6)).date() - timedelta(days=1)
 
 
 def read_split(
@@ -488,17 +486,6 @@ def _grid_sources(
     return source_order(seen)
 
 
-def cell_zone(data_dir: Path, j: int, i: int, years, stores: "Stores | None" = None) -> str:
-    """The time zone a cell's days follow, from the archive's daily store of the latest of `years` that has one."""
-    stores = stores or Stores([])
-    store = next((s for y in sorted(years, reverse=True) if (s := stores.get(data_dir, DAILY, y)) is not None), None)
-    if store is None:
-        raise FileNotFoundError(f"no daily store for {sorted(years)} in {data_dir}")
-    zones, index = cell_timezones(store)
-    y, x = store.window.local(j, i)
-    return zones[int(index[y, x])]
-
-
 def _fill_soil(fill_soil: FillSoil, times, values, sources, names: list[str], cut: int, last_hour) -> None:
     """Fills the forecast's missing soil hours (after the observed `cut`, through the run's last hour) in place."""
     n = len(times)
@@ -548,8 +535,8 @@ def _grid(data_dir, layout, name, day, window, now):
     observed_until = _last_observed(data_dir, run, _midnight(day + timedelta(days=2)), now)
     if observed_until is None:
         return archive, None
-    # The day is observed everywhere once the westernmost zone has closed it (the lower 48 are UTC−4 to −8)
-    if _midnight(day + timedelta(days=1)) + timedelta(hours=8) <= observed_until:
+    # The day is observed once its last hour is (grid days, CST)
+    if day_bounds(day, GRID_ZONE)[1] <= observed_until:
         # ...and only if the archive has its year (a day before the archive began is missing, not observed)
         return archive, OBSERVED if stores.get(data_dir, layout, day.year) is not None else None
     if run.path is None:
@@ -557,7 +544,7 @@ def _grid(data_dir, layout, name, day, window, now):
     values = _read_day(stores, run.path, layout, name, day, window)
     if run.last_hour is not None and day > run.last_hour.date():
         return values, None
-    started = _midnight(day) + timedelta(hours=5) <= observed_until  # the easternmost zone's day has begun
+    started = day_bounds(day, GRID_ZONE)[0] <= observed_until  # its first hour is observed
     return values, PARTIAL if started else FORECAST
 
 
@@ -811,15 +798,16 @@ def models_at_point(
     now: datetime | None = None,
     fill_soil: FillSoil | None = None,
     planting_default: bool = True,
+    zone: str = GRID_ZONE,
 ) -> list[ModelRun]:
     """Models at a point in the box from `start` to `end`, through the forecast (D30), from the archive and the
-    current run (`runs_at_point` with one `point_days`; soil past the run's from `fill_soil`, D44)."""
+    current run (`runs_at_point` with one `point_days` by `zone`'s days; soil past the run's from `fill_soil`, D44)."""
     cell = NDFD.cell_of(latitude, longitude)
     if cell is None:
         raise ValueError(f"({latitude}, {longitude}) is off the grid")
 
     def read_days(first: date, last: date, names: list[str]) -> DailySeries:
-        return point_days(data_dir, *cell, first, last, names, now=now, fill_soil=fill_soil)
+        return point_days(data_dir, *cell, first, last, names, now=now, fill_soil=fill_soil, zone=zone)
 
     return runs_at_point(read_days, latitude, longitude, runs, start, end, planting_default=planting_default)
 

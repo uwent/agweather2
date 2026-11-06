@@ -27,10 +27,10 @@ import h5netcdf
 import numpy as np
 
 from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, FILL
-from agdata.daily import cell_timezones
 from agdata.grid import NDFD
 from agdata.pastyears import years_on_disk
 from agdata.store import DAILY, GridStore
+from agdata.timezones import window_timezones
 from api.envelope import attribution
 from api.gridfiles import axis_attrs, cell_degrees, cf_lambert
 
@@ -172,9 +172,10 @@ def build_wanted(
 
 
 def write_grid(data_dir: Path, store: GridStore, now: datetime) -> Path:
-    """`daily/grid.nc`: each cell's latitude and longitude (its center) and time zone, on the same grid as every
-    year's files, for plotting without a projection library and for knowing each cell's days (D71)."""
-    zones, zone_index = cell_timezones(store)
+    """`daily/grid.nc`: each cell's latitude and longitude (its center) and local time zone, on the same grid as
+    every year's files, for plotting without a projection library (D71). Every file's days are CST (D74); the zone
+    is for showing a cell's hours on its own clock."""
+    zones, zone_index = window_timezones(store.window)
     window = store.window
     jj, ii = np.arange(window.j0, window.j1), np.arange(window.i0, window.i1)
     lat, lon = NDFD.latlon(*np.meshgrid(jj, ii, indexing="ij"))
@@ -194,7 +195,7 @@ def write_grid(data_dir: Path, store: GridStore, now: datetime) -> Path:
         tz = f.create_variable("time_zone", ("y", "x"), np.int8, data=zone_index.astype(np.int8), compression="gzip")
         tz.attrs.update(
             {
-                "long_name": "the cell's time zone, which sets its local calendar days",
+                "long_name": "the cell's local time zone (each day in these files runs midnight to midnight CST)",
                 "flag_values": np.arange(len(zones), dtype=np.int8),
                 "flag_meanings": " ".join(zones),
                 "grid_mapping": "lambert_conformal_conic",
@@ -227,6 +228,7 @@ def _attrs(title: str, now: datetime) -> dict[str, str]:
         "source": "AgWeather's archive of hourly weather on the National Weather Service's 2.5 km grid",
         "attribution": attribution(now.year),
         "history": f"{now.astimezone(UTC):%Y-%m-%dT%H:%MZ} written by AgWeather",
+        "days": "Each day runs midnight to midnight Central Standard Time all year (06:00 to 06:00 UTC).",
     }
 
 

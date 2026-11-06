@@ -89,6 +89,17 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
 ## Phase 5: API v2
 
+- [ ] **Move the dev archive to grid days (D74, 2026-11-06)**, before restarting the backfill so its years roll up once. Stop `bin/dev` and start it again first (its worker runs the hourly rollup, and the old code would write local days). Then:
+
+  ```bash
+  uv run app/manage.py rebuild --check                 # every daily year: "(local days, D74)"
+  uv run app/manage.py rebuild --stale --background    # each year's days on CST, then its running totals and ingredients
+  uv run app/manage.py pastyears                       # the past-years copies (their daily variables changed)
+  uv run app/manage.py downloads                       # the yearly NetCDF files
+  ```
+
+  Roughly 4 minutes a year for the days plus 3 for the ingredients here (2020–2026: under an hour). `rebuild --check` should then print nothing. Then restart the backfill (`f` in `bin/agwx`). Afterwards, today's GDD map (`/api/v2/maps/degree_days.png?dd=modified_50_86&scale=auto`) should have no line down Lake Michigan.
+
 - [-] **Backfill the dev archive to 2016** (Ben, 2026-11-03: more past years for the projection, D63). Running since 2026-11-04 14:26 as `archive fill --from 2016 --to 2025` (each year's hours, December 31, ERA5-Land and past-years copy, newest first; about 11.5 hours a year here). Watch it in `bin/agwx`; if it stops, start it again there with `f` (it resumes). When it's done, `uv run app/manage.py rebuild --check` should print nothing.
 - [x] **Restart the dev backfill** (stopped 2026-11-05 for the latency checks, in 2021): `f` in `bin/agwx` (it resumes), or `uv run app/manage.py archive fill --from 2016 --to 2023 --background`. When it's done: `uv run app/manage.py ingredients --check` then `ingredients` (its years lack the corn and potato tiers, D70), `uv run app/manage.py pastyears`, and `uv run app/manage.py downloads`.
 - [x] **Restart bin/dev's worker** (Phase 5 H, 2026-11-05) for the new jobs `build_downloads` (the yearly NetCDF downloads, Mondays at 05:00) and `prune_api_usage` (daily at 04:10), and for the API's rate limit (`api.ratelimit`; requests from this machine are exempt). The dev database already has the new table (`migrate` ran). Claude built the dev downloads with `manage.py downloads`; the backfill's years get theirs from the weekly job, or run `uv run app/manage.py downloads` once it's done.

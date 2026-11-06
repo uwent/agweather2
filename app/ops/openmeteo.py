@@ -69,10 +69,18 @@ def cell_hours(
 
 
 def point_days(
-    latitude: float, longitude: float, first: date, last: date, names: list[str], now: datetime, session=None
+    latitude: float,
+    longitude: float,
+    first: date,
+    last: date,
+    names: list[str],
+    now: datetime,
+    session=None,
+    zone: str | None = None,
 ) -> DailySeries:
-    """Local days first..last at a point from Open-Meteo, by the rollup's definitions (`daily_at_point`)."""
-    zone = zone_at(latitude, longitude)
+    """Days first..last at a point from Open-Meteo, by the rollup's definitions (`daily_at_point`), on `zone`'s clock
+    (default the point's own)."""
+    zone = zone or zone_at(latitude, longitude)
     start = datetime(first.year, first.month, first.day, tzinfo=UTC) - timedelta(days=1)
     end = datetime(last.year, last.month, last.day, tzinfo=UTC) + timedelta(days=1, hours=8)
     values, kinds, applied = cell_hours(latitude, longitude, start, end, now, session)

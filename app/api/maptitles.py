@@ -62,21 +62,23 @@ _SPECIAL = {
         "Hours with relative humidity of 90% or more, at 70 °F (21 °C) or warmer",
         "count",
     ),
-    "hours_rh_over_80_from_8pm": ("Hours with relative humidity of 80% or more, days from 8 p.m.", "count"),
-    "hours_rh_over_90_from_8pm": ("Hours with relative humidity of 90% or more, days from 8 p.m.", "count"),
-    "hours_rh_over_80_night": ("Night hours with relative humidity of 80% or more, 8 p.m. to 7 a.m.", "count"),
-    "hours_rh_over_90_night": ("Night hours with relative humidity of 90% or more, 8 p.m. to 7 a.m.", "count"),
+    "hours_rh_over_80_from_6pm": ("Hours with relative humidity of 80% or more, days from 6 p.m.", "count"),
+    "hours_rh_over_90_from_6pm": ("Hours with relative humidity of 90% or more, days from 6 p.m.", "count"),
+    "hours_rh_over_80_night": ("Night hours with relative humidity of 80% or more, 6 p.m. to 6 a.m.", "count"),
+    "hours_rh_over_90_night": ("Night hours with relative humidity of 90% or more, 6 p.m. to 6 a.m.", "count"),
+    "hours_rh_over_90_7pm_to_6am": ("Hours with relative humidity of 90% or more, 7 p.m. to 6 a.m.", "count"),
     "hours_soil_4cm_below_27f": ("Hours with soil below 27 °F, 4 cm (1.6 in)", "count"),
     "hours_soil_10cm_below_27f": ("Hours with soil below 27 °F, 10 cm (3.9 in)", "count"),
     "hours_soil_8in_below_27f": ("Hours with soil below 27 °F, 20 cm (8 in)", "count"),
-    "temperature_mean_rh_over_80_from_8pm": (
-        "Temperature in hours with relative humidity of 80% or more, days from 8 p.m.",
+    "temperature_mean_rh_over_80_from_6pm": (
+        "Temperature in hours with relative humidity of 80% or more, days from 6 p.m.",
         "mean",
     ),
-    "temperature_mean_rh_over_90_from_8pm": (
-        "Temperature in hours with relative humidity of 90% or more, days from 8 p.m.",
+    "temperature_mean_rh_over_90_from_6pm": (
+        "Temperature in hours with relative humidity of 90% or more, days from 6 p.m.",
         "mean",
     ),
+    "air_temperature_min_overnight": ("Overnight air temperature (noon to noon)", "minimum"),
 }
 _DAILY = {"min": "minimum", "max": "maximum", "mean": "mean", "sum": "total"}
 _RANGE = {"mean": "mean", "max": "highest", "min": "lowest"}  # a range's statistic of a different daily one

@@ -164,6 +164,7 @@ export interface GridQuery {
   planting?: ('early' | 'mid' | 'late' | 'none') | null
   season?: string | null
   biofix?: string | null
+  day_basis?: ('central' | 'local') | null
   bbox?: string | null
   region?: string | null
   stride?: number
@@ -264,10 +265,12 @@ export interface MapQuery {
   planting?: ('early' | 'mid' | 'late' | 'none') | null
   season?: string | null
   biofix?: string | null
+  day_basis?: ('central' | 'local') | null
   days?: number | null
   region?: string | null
   width?: number
   scale?: string | null
+  palette?: string | null
 }
 export interface ModelDetail {
   id: string
@@ -369,6 +372,7 @@ export interface SeriesQuery {
   forecast?: boolean
   gaps?: 'estimate' | 'missing'
   tz?: 'utc' | 'local'
+  day_basis?: ('central' | 'local') | null
 }
 export interface StatusData {
   service: string
@@ -407,6 +411,8 @@ export interface TileQuery {
   planting?: ('early' | 'mid' | 'late' | 'none') | null
   style?: 'default' | null
   scale?: string | null
+  palette?: string | null
+  day_basis?: ('central' | 'local') | null
 }
 export interface UnitsQuery {
   units?: 'us' | 'metric'

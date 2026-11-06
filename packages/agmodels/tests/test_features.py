@@ -9,15 +9,14 @@ CRT_NAMES = {
     "hours_temperature_over_30c": "hours_temp_over_30",
     "hours_rh_under_70": "hours_rh_under_70",
     "hours_rh_over_80": "hours_rh_over_80",
-    "hours_rh_over_80_night": "hours_rh_over_80_night",
-    "temperature_mean_rh_over_80_from_8pm": "temperature_mean_rh_over_80",
     "hot_past_5_days": "hot_past_5_days",
     "dry": "dry",
     "precipitation_sum": "precipitation_daily",
     "air_temperature_min": "temperature_min",
     "air_temperature_max": "temperature_max",
 }
-# Not compared: the tool's RH ≥ 90% counts, which v2 counts on gridded RH at 88% (D50; tested below)
+# Not compared: the tool's RH ≥ 90% counts, which v2 counts on gridded RH at 88% (D50; tested below), and its days
+# from 8 pm, which v2 starts at 6 pm (D74). Tar spot's night is the tool's (below).
 
 
 @pytest.fixture
@@ -43,8 +42,10 @@ def test_rh_90_features_count_gridded_rh_at_88():
     local = np.datetime64("2025-07-01T00", "h") + np.arange(24)
     _, daily = f.daily_features(local, temperature, rh, np.zeros(24), midnight_ends_day=False)
     assert daily["hours_rh_over_90"][0] == 18  # 88, 89 and 90 count; 87.9 doesn't
-    days = f.from_8pm_features(temperature, rh, np.ones(24, dtype=bool))
-    assert days["hours_rh_over_90_from_8pm"] == 18 and days["hours_rh_over_90_night"] == 18
+    days = f.evening_features(temperature, rh, np.arange(24))
+    assert days["hours_rh_over_90_from_6pm"] == 18
+    # Night is readings 19:00-06:00 (12), tar spot's 20:00-06:00 (11); the hours h with h % 4 == 0 read 87.9
+    assert days["hours_rh_over_90_night"] == 9 and days["hours_rh_over_90_7pm_to_6am"] == 8
     hot = f.hours_humid_and_warm(np.full(24, 25.0), rh, 90, f.SCAB_C)
     assert hot == 6  # pecan scab keeps the Mesonet's 90%
 
@@ -57,7 +58,33 @@ def test_a_missing_hour_makes_counts_missing_but_not_other_days():
     _, daily = f.daily_features(local, temperature, rh, np.zeros(48), midnight_ends_day=False)
     assert daily["hours_rh_over_90"].tolist()[0] == 24
     assert np.isnan(daily["hours_rh_over_90"][1])
-    assert np.isnan(daily["temperature_mean_rh_over_90_from_8pm"][1])
+    assert np.isnan(daily["temperature_mean_rh_over_90_from_6pm"][1])
+
+
+def test_tar_spots_night_matches_the_crop_risk_tool(crt):
+    # The tool's night is the readings 20:00-06:00 of its day from 8 pm, which v2's day from 6 pm holds whole under the
+    # same date; counted at the tool's 90% here (v2 counts gridded RH at 88%, D50)
+    h = crt("hourly_eau_claire_2025")
+    local = h["local_time"].astype("datetime64[h]")
+    evening = (local + np.timedelta64(23 - f.EVENING_HOUR, "h")).astype("datetime64[D]")
+    hour = (local - local.astype("datetime64[D]")).astype(int)
+    theirs = crt("daily_eau_claire_2025")
+    for k, day in enumerate(theirs["date"]):
+        mine = evening == np.datetime64(day)
+        found = f.evening_features(h["temperature"][mine], h["relative_humidity"][mine], hour[mine], rh_90_at=90)
+        expected = theirs["hours_rh_over_90_night"][k]
+        assert found["hours_rh_over_90_7pm_to_6am"] == expected or (np.isnan(expected) and mine.sum() < 24), day
+
+
+def test_windows_hold_the_readings_after_their_start_through_their_end():
+    local = np.datetime64("2025-07-01T01", "h") + np.arange(72)  # hours ending July 1 01:00 .. July 4 00:00
+    temperature = np.arange(72, dtype=float)
+    days, daily = f.daily_features(local, temperature, np.full(72, 95.0), np.zeros(72))
+    k = [str(d) for d in days].index("2025-07-02")
+    # July 2 from 6 pm: readings July 1 19:00 .. July 2 18:00 (24 of them)
+    assert daily["hours_rh_over_90_from_6pm"][k] == 24 and daily["hours_rh_over_90_night"][k] == 12
+    # Noon to noon: readings July 1 13:00 .. July 2 12:00; the coldest is the first (index 12)
+    assert daily["air_temperature_min_overnight"][k] == 12.0
 
 
 def test_no_qualifying_hours_leaves_the_mean_missing_not_zero():

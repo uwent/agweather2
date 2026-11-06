@@ -35,6 +35,27 @@ def test_a_feature_from_older_code_is_found_and_recomputed(tmp_path):
     np.testing.assert_array_equal(daily.read_steps("hours_rh_over_90", t, t + 2), 24)  # RH 94%
 
 
+def test_a_store_on_local_days_moves_to_grid_days(tmp_path):
+    from agdata.daily import cell_timezones, on_grid_days
+
+    hourly = GridStore.create(tmp_path, HOURLY, 2025, WINDOW, VARIABLES.values())
+    hours = np.arange(96, dtype=float)[:, None, None] * 0.1 * np.ones((1, *WINDOW.shape))  # 0.1 °C more each hour
+    hourly.write(datetime(2025, 7, 1, tzinfo=UTC), {"air_temperature": hours}, source="test")
+    rollup_days(tmp_path, WINDOW, date(2025, 7, 2), date(2025, 7, 2))
+    # As a store written before D74 records it: each cell's local zone, and a local day's values (CDT, from 05:00Z)
+    daily = GridStore.open(tmp_path, DAILY, 2025, DAILY_VARIABLES.values())
+    daily.group.attrs["timezones"] = ["America/Chicago"]
+    t = daily.index_of(date(2025, 7, 2))
+    daily.write(date(2025, 7, 2), {"air_temperature_min": np.full((1, *WINDOW.shape), 3.0)}, source="derived")
+    assert find_stale(tmp_path).stale["daily/2025"] == ["(local days, D74)"]
+
+    rebuild_stale(tmp_path, WINDOW, log=lambda line: None)
+    daily = GridStore.open(tmp_path, DAILY, 2025, DAILY_VARIABLES.values())
+    assert on_grid_days(daily) and cell_timezones(daily)[0] == ["Etc/GMT+6"]
+    np.testing.assert_allclose(daily.read_steps("air_temperature_min", t, t + 1), 3.1)  # July 2 07:00Z, CST
+    assert "daily/2025" not in find_stale(tmp_path).stale
+
+
 def test_a_total_from_older_code_is_rebuilt_from_the_daily_store(tmp_path, fx):
     from agdata.catalog import CUMULATIVE_VARIABLES
 

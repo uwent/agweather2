@@ -59,7 +59,7 @@ def test_archive_answers_revalidate_to_a_304(client, archive):
     assert again.status_code == 304
 
 
-def _open_meteo_days(lat, lng, first, last, names, now):
+def _open_meteo_days(lat, lng, first, last, names, now, zone=None):
     n = (last - first).days + 1
     return DailySeries(
         dates=[first + timedelta(days=k) for k in range(n)],
@@ -163,3 +163,34 @@ def test_default_dates_start_on_january_1(client, archive):
     assert body["data"]["kind"][0] == "observed" and body["data"]["air_temperature_max"][0] is None
     assert body["meta"]["summary"]["missing"]["air_temperature_max"] == 181
     assert date.fromisoformat(body["data"]["date"][-1]) == date(2025, 7, 9)
+
+
+def test_day_basis_says_whose_clock_makes_the_days(client, archive):
+    central = get(client, "weather/daily", start="2025-07-08", end="2025-07-09")
+    local = get(client, "weather/daily", start="2025-07-08", end="2025-07-09", day_basis="local")
+    # Inside the box a point takes the grid's days by default, so it agrees with its map (D74)
+    where = central.json()["meta"]["location"]
+    assert where["day_basis"] == "central" and where["days"].startswith("Midnight to midnight CST all year")
+    assert "day_basis" not in central.json()["meta"]["request"]
+    where = local.json()["meta"]["location"]
+    assert where["day_basis"] == "local" and "CDT (05:00 to 05:00 UTC) in daylight time" in where["days"]
+    assert local.json()["meta"]["request"]["day_basis"] == "local" and local["ETag"] != central["ETag"]
+
+    def error(path, **params):
+        return get(client, path, **params).json()["errors"][0]
+
+    assert error("weather/hourly", day_basis="central")["code"] == "not_applicable"  # hours aren't days
+    assert error("weather/daily", day_basis="solar")["param"] == "day_basis"
+    # Maps use grid days everywhere: central is accepted and local refused, saying why
+    tilejson = client.get("/api/v2/tiles/air_temperature_max.json", {"day_basis": "central"})
+    assert tilejson.status_code == 200
+    refused = client.get("/api/v2/tiles/air_temperature_max.json", {"day_basis": "local"}).json()["errors"][0]
+    assert refused["code"] == "not_applicable" and "Central Standard Time" in refused["message"]
+
+
+def test_a_point_outside_the_box_takes_its_own_days(client, archive, monkeypatch):
+    monkeypatch.setattr(points.openmeteo, "point_days", _open_meteo_days)
+    body = client.get("/api/v2/weather/daily", {"lat": DULUTH[0], "lng": DULUTH[1], "start": "2025-07-08"}).json()
+    assert body["meta"]["location"]["day_basis"] == "local" and body["meta"]["location"]["days"].startswith(
+        "Midnight to midnight local time: CST (06:00 to 06:00 UTC)"
+    )

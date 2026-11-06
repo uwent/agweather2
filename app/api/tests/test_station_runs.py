@@ -61,7 +61,7 @@ def test_rh_without_dew_point_gets_one_and_humid_hours_count_at_90(client, archi
     times = hourly["time"]
     humid = {"time": times, "air_temperature": [15.0] * len(times), "relative_humidity": [89.0] * len(times)}
     dsv = post(client, "models/late-blight-dsv/run", body_for(hourly=humid, start="2025-07-02", end="2025-07-09"))
-    assert dsv.json()["data"]["hours_rh_over_90_from_8pm"] == [0] * 8
+    assert dsv.json()["data"]["hours_rh_over_90_from_6pm"] == [0] * 8
 
 
 def test_inputs_that_cannot_be_made_are_named_with_their_hourly_sources(client, archive):
@@ -71,7 +71,7 @@ def test_inputs_that_cannot_be_made_are_named_with_their_hourly_sources(client, 
     error = response.json()["errors"][0]
     assert (
         error["code"] == "missing_inputs"
-        and "hours_rh_over_90_from_8pm (hourly: air_temperature, dew_point)" in error["message"]
+        and "hours_rh_over_90_from_6pm (hourly: air_temperature, dew_point)" in error["message"]
     )
     filled = post(
         client, "models/late-blight-dsv/run", body_for(hourly=hourly, start="2025-07-02", end="2025-07-09", fill="grid")
@@ -145,7 +145,7 @@ def test_several_models_skip_those_the_station_cannot_run(client, archive):
         client, "models/run", body_for(hourly=hourly, start="2025-07-02", end="2025-07-09", models="all")
     ).json()
     assert "early-blight-pdays" in body["data"] and "late-blight-dsv" not in body["data"]
-    assert "hours_rh_over_90_from_8pm" in body["meta"]["summary"]["skipped"]["late-blight-dsv"]
+    assert "hours_rh_over_90_from_6pm" in body["meta"]["summary"]["skipped"]["late-blight-dsv"]
     nothing = post(
         client,
         "models/run",
@@ -163,3 +163,14 @@ def test_a_stations_hours_in_unix_time_give_what_iso_times_give(client, archive)
     for times in (seconds, [s * 1000 for s in seconds], [str(s) for s in seconds]):
         sent = post(client, "models/early-blight-pdays/run", body_for(hourly={**iso, "time": times}, **request)).json()
         assert sent["data"]["pdays_total"] == by_iso["data"]["pdays_total"]
+
+
+def test_posted_hours_roll_up_on_the_days_asked_for(client, archive):
+    hourly = archive_hours(archive, ["air_temperature"])
+    body = body_for(hourly=hourly, start="2025-07-02", end="2025-07-09")
+    central = post(client, "models/early-blight-pdays/run", body).json()["meta"]
+    assert central["location"]["day_basis"] == "central" and "day_basis" not in central["request"]
+    local = post(client, "models/early-blight-pdays/run", body | {"day_basis": "local"}).json()["meta"]
+    assert local["location"]["day_basis"] == "local" and local["request"]["day_basis"] == "local"
+    refused = post(client, "models/early-blight-pdays/run", body | {"day_basis": "solar"}).json()["errors"][0]
+    assert refused["param"] == "day_basis" and refused["code"] == "invalid"

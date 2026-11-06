@@ -151,7 +151,7 @@ def daily(
     etag = answer_etag(request, computed, points.stamp(where.locations(), stamp_from, last, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    locations = located(where, read_from, last)
+    locations = located(where, read_from, last, options)
     found, read_warnings, sources, corrections = read_days(where, read_from, last, TEMPERATURES, options, trim_end, now)
     warnings += read_warnings
     skip = (first - read_from).days
@@ -379,7 +379,7 @@ def table(
     etag = answer_etag(request, computed, points.stamp(where.locations(), read_from, last, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    locations = located(where, read_from, last)
+    locations = located(where, read_from, last, options)
     found, read_warnings, sources, corrections = read_days(where, read_from, last, TEMPERATURES, options, trim_end, now)
     warnings += read_warnings
     begin = ((fixed or first) - read_from).days
@@ -462,10 +462,11 @@ def freeze(
     now = clock.now()
     computed = {**where.echo(), "start": first, "end": last, "thresholds": given, "forecast": options.forecast}
     computed |= {"threshold_units": "°C" if output.units == "metric" else "°F", "units": output.units}
+    computed |= options.echo()
     etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    locations = located(where, first, last)
+    locations = located(where, first, last, options)
     found, read_warnings, sources, corrections = read_days(
         where, first, last, ["air_temperature_min"], options, trim_end, now
     )
@@ -515,4 +516,5 @@ def _computed(where, first, last, found_settings, biofix, options, output) -> di
         "forecast": options.forecast,
         "gaps": options.gaps,
         "units": output.units,
+        **options.echo(),
     }

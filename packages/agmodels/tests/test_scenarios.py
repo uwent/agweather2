@@ -12,7 +12,7 @@ from agmodels.registry import all_models, model
 from agmodels.testing import DATES, LATITUDE, WEATHER
 
 TEMPERATURES = {"air_temperature_min", "air_temperature_max", "air_temperature_mean", "dew_point_min",
-                "temperature_mean_rh_over_90_from_8pm", "soil_temperature_4cm_min", "soil_temperature_10cm_min",
+                "temperature_mean_rh_over_90_from_6pm", "soil_temperature_4cm_min", "soil_temperature_10cm_min",
                 "soil_temperature_30cm_min"}  # fmt: skip
 START = date(2025, 4, 1)
 PLANTING = date(2025, 5, 1)

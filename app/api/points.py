@@ -16,7 +16,7 @@ from agdata import series
 from agdata.grid import NDFD
 from agdata.timezones import zone_at
 from ops import openmeteo
-from ops.points import in_archive
+from ops.points import day_zone, in_archive
 
 HOUR = timedelta(hours=1)
 
@@ -40,14 +40,16 @@ def days(
     names: list[str],
     now: datetime,
     stores: series.Stores | None = None,
+    zone: str | None = None,
 ) -> series.DailySeries:
-    """Local days first..last at a point, each with its kind; sources and corrections on the series. Points read in
-    one request share `stores` (`shared_stores`)."""
+    """Days first..last at a point by `zone`'s clock (default `ops.points.day_zone`'s), each with its kind; sources
+    and corrections on the series. Points read in one request share `stores` (`shared_stores`)."""
+    zone = zone or day_zone(lat, lng)
     if from_archive(lat, lng, first, last):
         cell = NDFD.cell_of(lat, lng)
         assert cell is not None
-        return series.point_days(settings.DATA_DIR, *cell, first, last, names, now=now, stores=stores)
-    found = openmeteo.point_days(lat, lng, first, last, names, now)
+        return series.point_days(settings.DATA_DIR, *cell, first, last, names, now=now, stores=stores, zone=zone)
+    found = openmeteo.point_days(lat, lng, first, last, names, now, zone=zone)
     found.sources = ("openmeteo",)
     return found
 
@@ -86,7 +88,7 @@ def hours(
             times=frame.times,
             values=frame.values,
             kinds=frame.kinds,
-            zone=series.cell_zone(settings.DATA_DIR, *cell, range(start.year, end.year + 1), stores),
+            zone=zone_at(lat, lng),
             sources=series.source_order(seen),
             corrections=series.in_box_corrections(frame.kinds, frame.forecast, names),
         )

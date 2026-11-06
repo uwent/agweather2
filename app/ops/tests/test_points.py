@@ -69,14 +69,15 @@ def test_a_point_before_the_archive_runs_wholly_on_open_meteo(archive, monkeypat
 
     def runs_at_point(read_days, lat, lon, runs, start, end, **kwargs):
         seen.update(lat=lat, runs=runs)
-        monkeypatch.setattr(points.openmeteo, "point_days", lambda *args: ("days", args))
+        monkeypatch.setattr(points.openmeteo, "point_days", lambda *args, **kwargs: ("days", args, kwargs))
         return [read_days(date(2024, 5, 1), date(2024, 5, 3), ["air_temperature_max"])]
 
     monkeypatch.setattr(points.series, "runs_at_point", runs_at_point)
     days = points.model_at_point(
         *MADISON, "degree-days", date(2024, 5, 1), date(2024, 6, 1), NOW, biofix=date(2024, 5, 1)
     )
-    assert days == ("days", (*MADISON, date(2024, 5, 1), date(2024, 5, 3), ["air_temperature_max"], NOW))
+    asked = (*MADISON, date(2024, 5, 1), date(2024, 5, 3), ["air_temperature_max"], NOW)
+    assert days == ("days", asked, {"zone": "Etc/GMT+6"})  # in the box, Open-Meteo's days are grid days too (D74)
     assert [(run.model_id, run.biofix) for run in seen["runs"]] == [("degree-days", date(2024, 5, 1))]
 
 

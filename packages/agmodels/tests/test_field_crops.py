@@ -32,7 +32,7 @@ def inputs(crt):
         "wind_speed_max": more["wind_speed_max"] / 3.6,  # the tool's km/h to v2's m/s
         "hours_rh_over_80": daily["hours_rh_over_80"],
         "hours_rh_over_90": daily["hours_rh_over_90"],
-        "hours_rh_over_90_night": daily["hours_rh_over_90_night"],
+        "hours_rh_over_90_7pm_to_6am": daily["hours_rh_over_90_night"],
         "precipitation_sum": daily["precipitation_daily"],
     }
 

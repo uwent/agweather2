@@ -32,7 +32,7 @@ from ninja import Schema
 
 from agdata import modelgrid, modelmaps, palettes, regions, seasonal, series
 from agdata import units as agunits
-from agdata.daily import cell_timezones, days_from_hours
+from agdata.daily import days_from_hours
 from agdata.grid import Window
 from agdata.grids import cube_terms, degree_days, reduce
 from agdata.layers import DEGREE_DAYS, LAYERS, SUSCEPTIBILITY, Layer, LayerOutput
@@ -67,6 +67,7 @@ class LayerQuery(Schema):
     planting: Literal["early", "mid", "late", "none"] | None = None
     season: str | None = None
     biofix: str | None = None  # degree days only: the start of a sum (a date, or MM-DD)
+    day_basis: Literal["central", "local"] | None = None  # maps' days are grid days (CST, D74); `local` is refused
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -216,6 +217,14 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
             f"We don't have a map layer named {layer_id!r}. GET /api/v2/layers lists every layer.",
             "layer",
             status=404,
+        )
+    if q.day_basis == "local":
+        raise ApiError(
+            "not_applicable",
+            "Maps and grids use the same days everywhere, midnight to midnight Central Standard Time, so that "
+            "neighboring cells cover the same hours. For a location's own days, ask for its weather or model at the "
+            "point with day_basis=local.",
+            "day_basis",
         )
     warnings: list[str] = []
     data_dir = _data_dir()
@@ -865,10 +874,7 @@ def _fresh(read: series.GridSteps, layer: Layer, layout, window: Window, data_di
         assert path is not None and layer.variable is not None
         store = stores.get(path, DAILY, day.year)
         assert store is not None
-        zones, index = cell_timezones(store)
-        y0, x0 = store.window.local(window.j0, window.i0)
-        local = index[y0 : y0 + window.shape[0], x0 : x0 + window.shape[1]]
-        read.values[k] = days_from_hours(path, window, day, day, zones, local)[layer.variable][0]
+        read.values[k] = days_from_hours(path, window, day, day)[layer.variable][0]
 
 
 # A running total's hourly variables: degree days from temperature; precipitation and ET0 from their own hours

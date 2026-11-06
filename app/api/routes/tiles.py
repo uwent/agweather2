@@ -45,6 +45,7 @@ class TileQuery(Schema):
     style: Literal["default"] | None = None
     scale: str | None = None  # colored tiles and legends: default, auto or low,high (`layermaps.parse_scale`)
     palette: str | None = None  # colored tiles and legends: any of `/palettes`, `_r` reversed
+    day_basis: Literal["central", "local"] | None = None  # maps' days are grid days (CST); `local` is refused
 
 
 def _layer_query(when: str, q: TileQuery) -> LayerQuery:

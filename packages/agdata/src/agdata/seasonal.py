@@ -33,9 +33,9 @@ from agmodels.registry import model as find_model
 from agmodels.seasons import Season, season_of, season_starting
 from agmodels.spec import ModelSpec
 
-# The hours behind a day in every zone of the lower 48: its local midnight-to-midnight, UTC−5 to UTC−8, and the
-# 8 pm day from the evening before
-DAY_HOURS_BEFORE, DAY_HOURS_AFTER = 4, 8
+# The hours behind a day in every zone of the lower 48 (UTC−5 to UTC−8): its midnight to midnight, and its windows
+# back to noon the day before (`agdata.timezones`)
+DAY_HOURS_BEFORE, DAY_HOURS_AFTER = 6, 8
 PROJECTED, CHANCE = "projected_", "chance_"
 
 

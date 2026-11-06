@@ -13,7 +13,7 @@ import itertools
 import json
 from dataclasses import dataclass, replace
 from datetime import date, timedelta
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 from django.conf import settings
@@ -25,7 +25,6 @@ from agdata import units as agunits
 from agdata.point import hourly_sources
 from agdata.projection import PROJECTION
 from agdata.series import FORECAST, PARTIAL, DailySeries, Forecast, archive_years, days_needed, runs_at_point, sliced
-from agdata.timezones import zone_at
 from agmodels import seasons
 from agmodels.crops import MARGIN, NOT_SUSCEPTIBLE, SUSCEPTIBLE
 from agmodels.registry import all_models
@@ -36,11 +35,11 @@ from agmodels.spec import Model
 from api import clock, points, runs, stations
 from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_modified, respond, table
 from api.errors import ApiError, day_text
-from api.locations import describe
+from api.locations import describe, describe_days
 from api.params import DaysQuery, OutputQuery, PointsQuery, SeriesQuery, resolve_biofix
 from api.routes.weather import FORECAST_DAYS, MAX_DAYS, check_size, located
 from api.schemas import TableResponse, responses
-from ops.points import models_at_point, projected_at_point
+from ops.points import day_zone, models_at_point, projected_at_point
 
 router = Router(tags=["Models"])
 
@@ -146,14 +145,16 @@ def run(
         "projection": mode,
         "units": output.units,
         **({"season": the_season.name} if the_season is not None else {}),
+        **options.echo(),
     }
     etag, unchanged, needed = _revalidate(
         request, [the_plan], computed, lat, lng, first, last, now, projecting=bool(mode)
     )
     if unchanged is not None:
         return unchanged
-    location = located(where, needed, last)[0]
-    found, notes = _projected([the_plan], lat, lng, first, last, now, mode) if mode else (None, [])
+    location = located(where, needed, last, options)[0]
+    zone = day_zone(lat, lng, options.day_basis)
+    found, notes = _projected([the_plan], lat, lng, first, last, now, mode, zone) if mode else (None, [])
     if found is not None:
         results = found[0].results
         table, summary, warnings = _table(
@@ -161,7 +162,7 @@ def run(
         )
         summary["projection"] = found[0].summary
     else:
-        results = _execute([the_plan], lat, lng, first, last, now)[0]
+        results = _execute([the_plan], lat, lng, first, last, now, zone)[0]
         kept = max(points.keep(r.kinds, options.forecast, trim_end) for r in results)
         table, summary, warnings = _table(m, results, kept, labels=_labels(results))
     warnings = [*notes, *warnings]
@@ -234,17 +235,19 @@ def run_several(
         "forecast": options.forecast,
         "projection": mode,
         "units": output.units,
+        **options.echo(),
     }
     etag, unchanged, needed = _revalidate(request, plans, computed, lat, lng, first, last, now, projecting=bool(mode))
     if unchanged is not None:
         return unchanged
-    location = located(where, needed, last)[0]
-    found, notes = _projected(plans, lat, lng, first, last, now, mode) if mode else (None, [])
+    location = located(where, needed, last, options)[0]
+    zone = day_zone(lat, lng, options.day_basis)
+    found, notes = _projected(plans, lat, lng, first, last, now, mode, zone) if mode else (None, [])
     if found is not None:
         grouped = [f.results for f in found]
         answers = _nested(request, plans, grouped, max(len(r.dates) for rs in grouped for r in rs), projected=found)
     else:
-        grouped = _execute(plans, lat, lng, first, last, now)
+        grouped = _execute(plans, lat, lng, first, last, now, zone)
         kept = max(points.keep(r.kinds, options.forecast, trim_end) for results in grouped for r in results)
         if trim_end and kept:
             computed["end"] = grouped[0][0].dates[kept - 1]
@@ -273,6 +276,7 @@ def risk(
     models: str | None = None,
     planting_date: str | None = None,
     projection: str | None = None,
+    day_basis: Literal["central", "local"] | None = None,
 ) -> HttpResponse:
     """One row per model with a risk layer: `model`, `name`, `group`, `version`, the day's `kind`, `risk_level`,
     `risk_label`, `risk_value` (continuous risk), `susceptibility` (with a planting date), `in_season` and `reason`
@@ -293,17 +297,20 @@ def risk(
     computed = {**where.echo(), "date": day, "models": [m.SPEC.id for m in chosen] if asked else "in season"}
     mode = projection_mode(projection)
     computed |= {"planting_date": planting_date, "units": output.units, "projection": mode and "band"}
+    days_on = SeriesQuery(day_basis=day_basis)
+    computed |= days_on.echo()
     etag, unchanged, needed = _revalidate(request, plans, computed, lat, lng, day, day, now, projecting=bool(mode))
     if unchanged is not None:
         return unchanged
-    location = located(where, needed, day)[0]
-    found, notes = _projected(plans, lat, lng, day, day, now, "band") if mode else (None, [])
+    location = located(where, needed, day, days_on)[0]
+    zone = day_zone(lat, lng, day_basis)
+    found, notes = _projected(plans, lat, lng, day, day, now, "band", zone) if mode else (None, [])
     projected_years = [None] * len(plans)
     if found is not None:
         grouped = [f.results for f in found]
         projected_years = [f.bands for f in found]
     else:
-        grouped = _execute(plans, lat, lng, day, day, now)
+        grouped = _execute(plans, lat, lng, day, day, now, zone)
     rows: dict[str, list[Any]] = {
         name: []
         for name in (
@@ -445,7 +452,19 @@ def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Qu
 
 # --- Runs on your own weather (D58) -----------------------------------------------------------------------------
 
-POST_FIELDS = ("lat", "lng", "units", "start", "end", "fill", "extend", "models", "biofix", "planting_date")
+POST_FIELDS = (
+    "lat",
+    "lng",
+    "units",
+    "start",
+    "end",
+    "fill",
+    "extend",
+    "models",
+    "biofix",
+    "planting_date",
+    "day_basis",
+)
 
 
 @router.post("/models/{model_id}/run", response=responses(TableResponse), summary="A model on your weather")
@@ -530,7 +549,14 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
     overrides = {str(k): str(v) for k, v in (body.get("input_units") or {}).items()}
     overrides |= {k: request.GET[k] for k in request.GET if k in stations.HOURLY or k in stations.DAILY}
     station = stations.parse(body, units, overrides)
-    zone = zone_at(lat, lng)
+    basis = body.get("day_basis") or None
+    if basis not in (None, "central", "local"):
+        raise ApiError(
+            "invalid",
+            "Give day_basis as central (midnight to midnight CST, our maps' days) or local (the location's own clock).",
+            "day_basis",
+        )
+    zone = day_zone(lat, lng, basis)
     sent = station.local_days(zone)
     if sent is None:
         raise ApiError(
@@ -623,6 +649,7 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
         "end": results[0].dates[kept - 1] if kept else last,
         "fill": fill,
         "extend": extend,
+        **({"day_basis": basis} if basis else {}),
         "sent": {
             "first_day": sent[0],
             "last_day": sent[1],
@@ -644,7 +671,7 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
             Result(
                 request=computed,
                 columns=columns,
-                location=describe(lat, lng),
+                location=describe(lat, lng) | describe_days(lat, lng, last.year, basis),
                 summary=summary,
                 sources=sources,
                 warnings=[*warnings, *the_plan.warnings, *table_warnings],
@@ -658,7 +685,7 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
         Result(
             request=computed,
             data=_nested(request, plans, grouped, kept, units=units),
-            location=describe(lat, lng),
+            location=describe(lat, lng) | describe_days(lat, lng, last.year, basis),
             summary={**counts, **({"skipped": skipped} if skipped else {})},
             sources=sources,
             warnings=warnings,
@@ -689,7 +716,7 @@ def _station_days(
     ]
     sources = ["provided"]
     if fill == "grid" or extend == "forecast":
-        ours = points.days(lat, lng, first, last, names, now)
+        ours = points.days(lat, lng, first, last, names, now, zone=zone)
         used = False
         for k, day in enumerate(dates):
             theirs = ours.kinds[k]
@@ -787,10 +814,12 @@ def _revalidate(request, plans, computed, lat, lng, first, last, now, projecting
     return etag, unchanged, needed
 
 
-def _execute(plans: list[runs.Plan], lat: float, lng: float, first: date, last: date, now) -> list[list[ModelRun]]:
-    """Every plan's runs on one read of the weather, split back per plan."""
+def _execute(
+    plans: list[runs.Plan], lat: float, lng: float, first: date, last: date, now, zone: str
+) -> list[list[ModelRun]]:
+    """Every plan's runs on one read of the weather (days on `zone`'s clock), split back per plan."""
     every = [r for p in plans for r in p.runs]
-    results = models_at_point(lat, lng, every, first, last, now, planting_default=False)
+    results = models_at_point(lat, lng, every, first, last, now, planting_default=False, zone=zone)
     grouped, k = [], 0
     for p in plans:
         grouped.append(results[k : k + len(p.runs)])
@@ -1039,11 +1068,11 @@ def _season_end(spec, first: date) -> date:
 
 
 def _projected(
-    plans: list[runs.Plan], lat: float, lng: float, first: date, last: date, now, mode: str
+    plans: list[runs.Plan], lat: float, lng: float, first: date, last: date, now, mode: str, zone: str
 ) -> tuple[list[Projected] | None, list[str]]:
     """Each plan's runs carried past the forecast on the archive's earlier years, or None outside the archive."""
     every = [r for p in plans for r in p.runs]
-    found = projected_at_point(lat, lng, every, first, last, now)
+    found = projected_at_point(lat, lng, every, first, last, now, zone=zone)
     if found is None:
         return None, [NO_PROJECTION]
     warnings = []

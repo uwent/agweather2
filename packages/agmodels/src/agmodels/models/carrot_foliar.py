@@ -8,7 +8,7 @@ here as [13, 18), [18, 21), [21, 26) and from 26 up (TOMCAST keeps the last row 
 nothing.
 
 Ported from the Crop Risk Tool (`calc_alternaria_dsv`, `risk_for_alternaria`) with parity tests. Intended
-differences: humid hours and their temperature both come from the day from 8 pm, as for late blight (the tool
+differences: humid hours and their temperature both come from the day from 6 pm, as for late blight (the tool
 counts the hours over the calendar day); and the table follows FAST where the tool's is off by one, its first step
 at 13–17 °C (from 8 h; FAST 7) and 18–20 °C (from 5 h; FAST 4) and its band edges (18, 21 and 26 °C in the band
 below).
@@ -38,7 +38,7 @@ SPEC = ModelSpec(
     id="carrot-foliar-dsv",
     name="Carrot foliar blight disease severity values (TOMCAST)",
     group="disease",
-    version="0.3",
+    version="0.4",
     status="stable",
     summary="Daily disease severity values (0–4) from hours of leaf wetness and their temperature; the last "
     "7 days' total times fungicide sprays for Alternaria and Cercospora leaf blights of carrot.",
@@ -63,12 +63,12 @@ SPEC = ModelSpec(
     ),
     inputs=(
         Input(
-            name="hours_rh_over_90_from_8pm",
+            name="hours_rh_over_90_from_6pm",
             label="Hours with RH ≥ 90%",
             unit="hour",
-            description="Day from 8 pm the evening before",
+            description="Day from 6 pm the evening before",
         ),
-        Input(name="temperature_mean_rh_over_90_from_8pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
+        Input(name="temperature_mean_rh_over_90_from_6pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
     ),
     outputs=(
         Quantity(name="dsv", label="Disease severity values", unit="index"),
@@ -121,6 +121,12 @@ SPEC = ModelSpec(
             note="DSV totals (season and 7-day) count from the biofix, as the risk does "
             "(were from the first day read).",
         ),
+        Change(
+            version="0.4",
+            date="2026-11-06",
+            note="Humid hours and their temperature from the day from 6 pm CST (was 8 pm local, the Crop Risk "
+            "Tool's), and days on CST all year (D74).",
+        ),
     ),
 )
 
@@ -138,7 +144,7 @@ def dsv(temperature_c, hours) -> np.ndarray:
 
 
 def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
-    return {"dsv": dsv(inputs["temperature_mean_rh_over_90_from_8pm"], inputs["hours_rh_over_90_from_8pm"])}
+    return {"dsv": dsv(inputs["temperature_mean_rh_over_90_from_6pm"], inputs["hours_rh_over_90_from_6pm"])}
 
 
 def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:

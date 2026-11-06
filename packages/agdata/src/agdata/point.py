@@ -1,7 +1,8 @@
 """Daily values at one point from its hourly series, by the same definitions as the grid rollup (`agdata.daily`).
 
 A point outside the box (Open-Meteo) or a point read from the hourly store goes through here, so its days match
-the daily store's cell for cell: the same local-day and 8 pm-day bounds, the same statistics and completeness
+the daily store's cell for cell when given the grid's zone (and a point's own days with its zone, `day_basis=local`):
+the same windows (`agdata.timezones`), the same statistics and completeness
 rule (D25), the same features. The ET0 estimate across gaps is left out; it belongs to the running totals.
 """
 
@@ -14,7 +15,7 @@ import numpy as np
 
 from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES
 from agdata.daily import daily_statistic
-from agdata.timezones import day_bounds, from_8pm_bounds
+from agdata.timezones import day_bounds, evening_bounds, overnight_bounds
 from agmodels import features
 from agmodels.weather import relative_humidity_percent
 
@@ -28,7 +29,8 @@ def _feature_groups() -> dict[str, str]:
     made = {
         "calendar": features.calendar_features(t, rh, td),
         "soil": features.soil_features(soil, soil, soil),
-        "from_8pm": features.from_8pm_features(t, rh, features.is_night(np.arange(24))),
+        "evening": features.evening_features(t, rh, np.arange(24)),
+        "overnight": features.overnight_features(t),
     }
     return {name: group for group, values in made.items() for name in values}
 
@@ -45,9 +47,9 @@ def daily_at_point(
     names: Collection[str] | None = None,
     rh_90_at: float | None = None,
 ) -> dict[str, np.ndarray]:
-    """Every daily variable (or those in `names`, and any others computed with them) for local days first..last
-    (inclusive) at a point in `zone`. `rh_90_at`: the RH that "≥ 90%" hours are counted at (default D50's gridded
-    88%; a station's own hours, 90).
+    """Every daily variable (or those in `names`, and any others computed with them) for days first..last
+    (inclusive) at a point, by `zone`'s clock (the grid's, `timezones.GRID_ZONE`, or the point's own). `rh_90_at`: the
+    RH that "≥ 90%" hours are counted at (default D50's gridded 88%; a station's own hours, 90).
 
     `hours` holds hourly catalog variables, each a series of hours ending at `first_hour`, `first_hour` + 1 h, …
     in stored units. Hours outside a series, and variables not given, count as missing. A series may carry more
@@ -99,13 +101,13 @@ def daily_at_point(
                 segment("soil_temperature_10cm", begin, end),
                 segment("soil_temperature_30cm", begin, end),
             )
-        if "from_8pm" in groups:
-            begin, end = from_8pm_bounds(day, zone)
+        if "evening" in groups:
+            begin, end = evening_bounds(day, zone)
             h = humid(begin, end)
             local_hour = np.array([(begin + n * HOUR).astimezone(tz).hour for n in range(len(h["rh"]))])
-            values |= features.from_8pm_features(
-                h["temperature"], h["rh"], features.is_night(local_hour), rh_90_at=rh_90_at
-            )
+            values |= features.evening_features(h["temperature"], h["rh"], local_hour, rh_90_at=rh_90_at)
+        if "overnight" in groups:
+            values |= features.overnight_features(segment("air_temperature", *overnight_bounds(day, zone)))
         for name, value in values.items():
             out.setdefault(name, []).append(np.broadcast_to(np.asarray(value, dtype=float), rest))
     return {name: np.array(series) for name, series in out.items()}

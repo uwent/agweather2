@@ -1,25 +1,15 @@
 from datetime import UTC, date, datetime, timedelta
 
 import numpy as np
-import pytest
 
-from agdata import daily
 from agdata.catalog import VARIABLES
-from agdata.daily import cell_timezones, open_or_create_daily, rollup_days
+from agdata.daily import cell_timezones, on_grid_days, open_or_create_daily, rollup_days
 from agdata.grid import Window
 from agdata.store import HOURLY, GridStore
-from agdata.timezones import day_bounds
+from agdata.timezones import GRID_ZONE, day_bounds, evening_bounds, overnight_bounds
 
 WINDOW = Window(j0=900, j1=902, i0=1400, i1=1403)  # 2 x 3 cells near Madison
 HOUR = timedelta(hours=1)
-
-
-@pytest.fixture(autouse=True)
-def two_zones(monkeypatch):
-    """Column 0 is Eastern time, the rest Central."""
-    index = np.ones(WINDOW.shape, dtype=np.uint8)
-    index[:, 0] = 0
-    monkeypatch.setattr(daily, "window_timezones", lambda window: (["America/Detroit", "America/Chicago"], index))
 
 
 def hourly_store(tmp_path, year, start, hours, temperature=None, precip=1.0):
@@ -37,12 +27,20 @@ def read(tmp_path, name, day):
     return store.read_block(name, store.index_of(day))
 
 
-def test_day_bounds_follow_daylight_saving():
+def test_day_bounds_follow_the_zones_clock():
+    # Grid days are CST all year: readings 07:00Z .. 06:00Z (06:00 to 06:00 UTC), 24 of them on every day
+    assert day_bounds(date(2025, 7, 1), GRID_ZONE) == (
+        datetime(2025, 7, 1, 7, tzinfo=UTC),
+        datetime(2025, 7, 2, 6, tzinfo=UTC),
+    )
+    # A point's local days follow daylight saving (`day_basis=local`)
     assert day_bounds(date(2025, 7, 1), "America/Chicago") == (
         datetime(2025, 7, 1, 6, tzinfo=UTC),
         datetime(2025, 7, 2, 5, tzinfo=UTC),
     )
     for day, zone, hours in [
+        (date(2025, 3, 9), GRID_ZONE, 24),
+        (date(2025, 11, 2), GRID_ZONE, 24),
         (date(2025, 3, 9), "America/Chicago", 23),
         (date(2025, 11, 2), "America/Chicago", 25),
         (date(2025, 1, 15), "America/Detroit", 24),
@@ -51,44 +49,52 @@ def test_day_bounds_follow_daylight_saving():
         assert (end - begin) // HOUR + 1 == hours
 
 
-def test_each_cell_uses_its_own_local_day(tmp_path):
+def test_windows_hold_the_readings_after_their_start_through_their_end():
+    day = date(2025, 7, 2)
+    # 6 pm CST the evening before to 6 pm: readings 19:00 .. 18:00 CST (01:00Z .. 00:00Z)
+    assert evening_bounds(day, GRID_ZONE) == (datetime(2025, 7, 2, 1, tzinfo=UTC), datetime(2025, 7, 3, 0, tzinfo=UTC))
+    # Noon to noon: readings 13:00 .. 12:00 CST (19:00Z .. 18:00Z)
+    assert overnight_bounds(day, GRID_ZONE) == (
+        datetime(2025, 7, 1, 19, tzinfo=UTC),
+        datetime(2025, 7, 2, 18, tzinfo=UTC),
+    )
+
+
+def test_every_cell_shares_the_grid_day(tmp_path):
     start = datetime(2025, 7, 1, tzinfo=UTC)
     hourly_store(tmp_path, 2025, start, 72)
     rollup_days(tmp_path, WINDOW, date(2025, 7, 1), date(2025, 7, 1))
-    low = read(tmp_path, "air_temperature_min", date(2025, 7, 1))
-    high = read(tmp_path, "air_temperature_max", date(2025, 7, 1))
-    # Eastern (UTC-4) hours end 05:00Z .. 04:00Z; Central (UTC-5) 06:00Z .. 05:00Z
-    np.testing.assert_allclose(low[:, 0], 0.5)
-    np.testing.assert_allclose(high[:, 0], 2.8)
-    np.testing.assert_allclose(low[:, 1:], 0.6)
-    np.testing.assert_allclose(high[:, 1:], 2.9)
+    # Readings 07:00Z .. 06:00Z the next day, in every cell (the window reaches into Eastern time nowhere here, but
+    # the rule is the same for cells that do)
+    np.testing.assert_allclose(read(tmp_path, "air_temperature_min", date(2025, 7, 1)), 0.7)
+    np.testing.assert_allclose(read(tmp_path, "air_temperature_max", date(2025, 7, 1)), 3.0)
     np.testing.assert_allclose(read(tmp_path, "precipitation_sum", date(2025, 7, 1)), 24)
 
 
-def test_daylight_saving_days_sum_23_and_25_hours(tmp_path):
+def test_grid_days_have_24_hours_across_daylight_saving(tmp_path):
     hourly_store(tmp_path, 2025, datetime(2025, 1, 1, tzinfo=UTC), 8760, temperature=5.0)
     rollup_days(tmp_path, WINDOW, date(2025, 3, 9), date(2025, 3, 9))
     rollup_days(tmp_path, WINDOW, date(2025, 11, 2), date(2025, 11, 2))
-    np.testing.assert_allclose(read(tmp_path, "precipitation_sum", date(2025, 3, 9)), 23)
-    np.testing.assert_allclose(read(tmp_path, "precipitation_sum", date(2025, 11, 2)), 25)
+    np.testing.assert_allclose(read(tmp_path, "precipitation_sum", date(2025, 3, 9)), 24)
+    np.testing.assert_allclose(read(tmp_path, "precipitation_sum", date(2025, 11, 2)), 24)
 
 
 def test_incomplete_days_are_missing(tmp_path):
-    start = datetime(2025, 7, 1, 6, tzinfo=UTC)  # the Central day's first hour
+    start = datetime(2025, 7, 1, 7, tzinfo=UTC)  # the grid day's first reading
     store = hourly_store(tmp_path, 2025, start - timedelta(days=1), 96, temperature=20.0)
     store.write(start, {"air_temperature": np.full((4, *WINDOW.shape), np.nan)}, source="test")  # 20 hours left
     store.write(start + 10 * HOUR, {"precipitation": np.full((1, *WINDOW.shape), np.nan)}, source="test")
     rollup_days(tmp_path, WINDOW, date(2025, 7, 1), date(2025, 7, 2))
-    np.testing.assert_allclose(read(tmp_path, "air_temperature_mean", date(2025, 7, 1))[:, 1:], 20)
+    np.testing.assert_allclose(read(tmp_path, "air_temperature_mean", date(2025, 7, 1)), 20)
     assert np.isnan(read(tmp_path, "precipitation_sum", date(2025, 7, 1))).all()  # one hour short
     store.write(start + 4 * HOUR, {"air_temperature": np.full((1, *WINDOW.shape), np.nan)}, source="test")
     rollup_days(tmp_path, WINDOW, date(2025, 7, 1), date(2025, 7, 1))
-    assert np.isnan(read(tmp_path, "air_temperature_mean", date(2025, 7, 1))[:, 1:]).all()  # 19 hours
+    assert np.isnan(read(tmp_path, "air_temperature_mean", date(2025, 7, 1))).all()  # 19 hours
     np.testing.assert_allclose(read(tmp_path, "precipitation_sum", date(2025, 7, 2)), 24)
 
 
 def test_a_day_without_values_isnt_marked_rolled_up(tmp_path):
-    start = datetime(2025, 7, 1, 6, tzinfo=UTC)
+    start = datetime(2025, 7, 1, 7, tzinfo=UTC)
     hourly_store(tmp_path, 2025, start, 30, temperature=20.0)  # July 1 and 6 hours of July 2
     rollup_days(tmp_path, WINDOW, date(2025, 7, 1), date(2025, 7, 3))
     store = open_or_create_daily(tmp_path, 2025, WINDOW)
@@ -97,7 +103,7 @@ def test_a_day_without_values_isnt_marked_rolled_up(tmp_path):
     assert store.sources("precipitation_sum")[t : t + 3] == ["derived", None, None]
 
 
-def test_local_new_years_eve_reads_the_next_years_hours(tmp_path):
+def test_new_years_eve_reads_the_next_years_hours(tmp_path):
     hourly_store(tmp_path, 2025, datetime(2025, 12, 31, tzinfo=UTC), 24)
     rollup_days(tmp_path, WINDOW, date(2025, 12, 31), date(2025, 12, 31))
     assert np.isnan(read(tmp_path, "precipitation_sum", date(2025, 12, 31))).all()  # 2026's hours missing
@@ -107,10 +113,10 @@ def test_local_new_years_eve_reads_the_next_years_hours(tmp_path):
     assert read(tmp_path, "precipitation_sum", date(2026, 1, 1)).shape == WINDOW.shape
 
 
-def test_the_store_keeps_the_time_zones(tmp_path):
-    zones, index = cell_timezones(open_or_create_daily(tmp_path, 2025, WINDOW))
-    assert zones == ["America/Detroit", "America/Chicago"]
-    assert index[:, 0].tolist() == [0, 0]
+def test_a_new_store_is_on_grid_days(tmp_path):
+    store = open_or_create_daily(tmp_path, 2025, WINDOW)
+    zones, index = cell_timezones(store)
+    assert zones == [GRID_ZONE] and (index == 0).all() and on_grid_days(store)
 
 
 def test_a_day_missing_et0_hours_gets_an_estimate_beside_the_raw_total(tmp_path):
@@ -128,12 +134,12 @@ def test_a_day_missing_et0_hours_gets_an_estimate_beside_the_raw_total(tmp_path)
         },
         source="test",
     )
-    store.write(start + 30 * HOUR, {"et0": np.full((1, *WINDOW.shape), np.nan)}, source="test")
+    store.write(start + 31 * HOUR, {"et0": np.full((1, *WINDOW.shape), np.nan)}, source="test")
     rollup_days(tmp_path, WINDOW, date(2025, 7, 1), date(2025, 7, 2))
-    assert np.isnan(read(tmp_path, "et0_sum", date(2025, 7, 2))[:, 1:]).all()  # the hour is in Central Jul 2
-    estimate = read(tmp_path, "et0_sum_estimate", date(2025, 7, 2))[:, 1:]
+    assert np.isnan(read(tmp_path, "et0_sum", date(2025, 7, 2))).all()  # 07:00Z, July 2's first reading
+    estimate = read(tmp_path, "et0_sum_estimate", date(2025, 7, 2))
     assert np.all((estimate > 2.3) & (estimate < 2.6))  # 23 × 0.1 plus the estimated hour
-    np.testing.assert_allclose(read(tmp_path, "et0_sum", date(2025, 7, 1))[:, 1:], 2.4)
+    np.testing.assert_allclose(read(tmp_path, "et0_sum", date(2025, 7, 1)), 2.4)
     assert np.isnan(read(tmp_path, "et0_sum_estimate", date(2025, 7, 1))).all()  # only where the raw is missing
 
 
@@ -160,9 +166,9 @@ def test_grid_features_match_the_point_path(tmp_path):
     store.write(start, {k: np.broadcast_to(v[:, None, None], grid) for k, v in soil.items()}, source="test")
     rollup_days(tmp_path, WINDOW, date(2025, 7, 2), date(2025, 7, 3))
 
-    # The point path over the same hours, as a Central cell sees them
+    # The point path over the same hours, on the grid's clock (CST)
     local = np.array(
-        [(start + k * HOUR).astimezone(ZoneInfo("America/Chicago")).replace(tzinfo=None) for k in range(n)],
+        [(start + k * HOUR).astimezone(ZoneInfo(GRID_ZONE)).replace(tzinfo=None) for k in range(n)],
         dtype="datetime64[h]",
     )
     rh = relative_humidity_percent(temperature, dew_point)
@@ -180,16 +186,18 @@ def test_grid_features_match_the_point_path(tmp_path):
         for name in (
             "hours_rh_over_90",
             "hours_temperature_over_20c",
-            "hours_rh_over_80_from_8pm",
+            "hours_rh_over_80_from_6pm",
             "hours_rh_over_90_night",
-            "temperature_mean_rh_over_80_from_8pm",
+            "hours_rh_over_90_7pm_to_6am",
+            "temperature_mean_rh_over_80_from_6pm",
+            "air_temperature_min_overnight",
             "hours_soil_4cm_below_27f",
             "hours_soil_10cm_below_27f",
             "hours_soil_8in_below_27f",
         ):
-            grid_value = read(tmp_path, name, day)[:, 1:]  # Central columns
+            grid_value = read(tmp_path, name, day)
             np.testing.assert_allclose(grid_value, point[name][k], atol=0.05, err_msg=f"{name} {day}")
-    assert read(tmp_path, "hours_rh_over_80_from_8pm", date(2025, 7, 2))[0, 1] > 0  # the test has humid hours
+    assert read(tmp_path, "hours_rh_over_80_from_6pm", date(2025, 7, 2))[0, 1] > 0  # the test has humid hours
     assert 0 < read(tmp_path, "hours_soil_4cm_below_27f", date(2025, 7, 2))[0, 1] < 24
     assert read(tmp_path, "hours_soil_10cm_below_27f", date(2025, 7, 2))[0, 1] == 0
     assert read(tmp_path, "hours_soil_8in_below_27f", date(2025, 7, 2))[0, 1] == 24

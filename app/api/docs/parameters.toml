@@ -30,7 +30,8 @@ start = "The first day, as YYYY-MM-DD. The default is January 1 of the year of `
 end = "The last day, as YYYY-MM-DD, included in the results. The default runs through the forecast, or through today with `forecast=false`."
 forecast = "Whether to continue past the last observed day into the forecast (`true`, the default) or stop there (`false`). The `kind` column marks forecast days."
 gaps = "How a running total handles missing days. With `estimate` (the default), short gaps are filled with an estimate and the days are marked as estimated; with `missing`, they add nothing and are counted as missing."
-tz = "The time zone of hourly times. Times are always given in UTC; `local` adds a `local_time` column in the location's own time zone. Daily results use the location's calendar days either way."
+tz = "The time zone of hourly times. Times are always given in UTC; `local` adds a `local_time` column in the location's own time zone. Daily results follow `day_basis` either way."
+day_basis = "Whose clock decides which hours make up a day. With `central`, each day runs from midnight to midnight Central Standard Time all year (06:00 to 06:00 UTC), the same days our maps use. With `local`, each day runs from midnight to midnight on the location's own clock, with daylight saving time. Leaving it out uses `central` inside the area we cover and `local` outside it. `meta.location.days` says which hours each day covers."
 units = "The unit system: `us` (°F, inches, mph; the default) or `metric` (°C, millimeters, km/h). To set one variable's unit, add its name as a parameter, as `precipitation=mm`."
 format = "The format of the response: `json` (the default) or `csv`. Without it, the `Accept` header is used."
 orient = "The layout of JSON data: `columns` (the default), an object with one list per column, or `records`, a list of rows. Spreadsheet and table tools often prefer `records`."
@@ -61,6 +62,7 @@ vars = "The variables to return, separated by commas, by their names in `/variab
 start = "The first hour, as an ISO date and time (`2026-06-01T05:00Z`, `2026-06-01T05` or with an offset such as `-05:00`; without one, UTC) or as Unix time in seconds or milliseconds (`1780290000`). Each hour is labeled by its end. The default is seven days before the current hour."
 end = "The last hour, as an ISO date and time (`2026-06-01T05:00Z`, `2026-06-01T05` or with an offset such as `-05:00`; without one, UTC) or as Unix time in seconds or milliseconds (`1780290000`), included in the results. The default runs through the forecast, or through the last observed hour with `forecast=false`."
 vars = "The variables to return, separated by commas, by their names in `/variables` (hourly variables). The default is air temperature, dew point, relative humidity, precipitation and wind speed."
+day_basis = "Not used here: hourly values aren't grouped into days. Use `tz=local` to see each hour on the location's own clock."
 
 [weather_totals]
 start = "The first day of the period, as YYYY-MM-DD. The default is January 1 of the year of `end`."
@@ -103,6 +105,7 @@ projection = "With `true`, a `date` past the forecast reports each model's media
 units = "The unit system of the input values you send and of the results: `us` (the default) or `metric`."
 
 [grids_grid]
+day_basis = "Maps and grids use the same days everywhere: midnight to midnight Central Standard Time all year (06:00 to 06:00 UTC), so neighboring cells cover the same hours. `central` is accepted; `local` is refused. For a location's own days, ask for its weather or model at the point."
 biofix = "For degree days: the first day of the total, as a date (YYYY-MM-DD) or a month and day (MM-DD, the latest on or before the end date). The days are added up unless you choose another `stat`. Other layers take `start` instead."
 date = "A single day for a daily layer, as YYYY-MM-DD. The default is the last day observed across the whole map."
 time = "A single hour for an hourly layer, as an ISO date and time (`2026-06-01T05:00Z`, `2026-06-01T05` or with an offset such as `-05:00`; without one, UTC) or as Unix time in seconds or milliseconds (`1780290000`). The default is the last observed hour."
@@ -118,6 +121,7 @@ cells = "For JSON and CSV: add each cell's row and column on the native grid (`j
 format = "The format of the response: `json` (the default), `csv`, `netcdf` or `geotiff`. JSON and CSV hold up to 2 million values; larger maps are available as NetCDF or GeoTIFF files. Without it, the `Accept` header is used."
 
 [tiles_tile]
+day_basis = "Maps and grids use the same days everywhere: midnight to midnight Central Standard Time all year (06:00 to 06:00 UTC), so neighboring cells cover the same hours. `central` is accepted; `local` is refused. For a location's own days, ask for its weather or model at the point."
 when = "The time to show: `latest`, a day (`2025-07-08`), an hour (`2025-07-08T15` in UTC, or Unix time in seconds), a range of days with `stat` (`2025-07-01..2025-07-07`), or a season (`2025-26`)."
 z = "The zoom level, from 0 to 8."
 x = "The tile's column at this zoom level."
@@ -125,9 +129,11 @@ y = "The tile's row at this zoom level."
 units = "Tiles look the same in either unit system, and data tiles always hold values in the layer's stored unit, given by the TileJSON. The parameter is accepted so that a tile, its TileJSON and its legend can share the same settings."
 
 [tiles_legend]
+day_basis = "Maps and grids use the same days everywhere: midnight to midnight Central Standard Time all year (06:00 to 06:00 UTC), so neighboring cells cover the same hours. `central` is accepted; `local` is refused. For a location's own days, ask for its weather or model at the point."
 units = "The unit system of the legend's labels: `us` (the default) or `metric`."
 
 [maps_static_map]
+day_basis = "Maps and grids use the same days everywhere: midnight to midnight Central Standard Time all year (06:00 to 06:00 UTC), so neighboring cells cover the same hours. `central` is accepted; `local` is refused. For a location's own days, ask for its weather or model at the point."
 biofix = "For degree days: the first day of the total, as a date (YYYY-MM-DD) or a month and day (MM-DD, the latest on or before the end date). The days are added up unless you choose another `stat`. Other layers take `start` instead."
 date = "A single day for a daily layer, as YYYY-MM-DD. The default is the latest day, so a link to the map always shows the current one."
 time = "A single hour for an hourly layer, as an ISO date and time (`2026-06-01T05:00Z`, `2026-06-01T05` or with an offset such as `-05:00`; without one, UTC) or as Unix time in seconds or milliseconds (`1780290000`)."
@@ -137,3 +143,6 @@ days = "A shortcut for a range: the number of days ending on `end` or the latest
 region = "Show only a state (by name or postal code, as `wisconsin` or `WI`) or a county (by its five-digit FIPS code, as `55025`), framed on the map."
 width = "The image's width in pixels, from 400 to 2000. The default is 800."
 gaps = "With `stat=sum`: `estimate` (the default) fills gaps of up to seven days with an estimate; `missing` leaves them out."
+
+[tiles_tilejson]
+day_basis = "Maps and grids use the same days everywhere: midnight to midnight Central Standard Time all year (06:00 to 06:00 UTC), so neighboring cells cover the same hours. `central` is accepted; `local` is refused. For a location's own days, ask for its weather or model at the point."

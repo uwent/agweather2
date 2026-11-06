@@ -7,8 +7,9 @@ import pytest
 from agdata import forecast, series
 from agdata.catalog import DAILY_VARIABLES, VARIABLES
 from agdata.cumulative import update_days
-from agdata.daily import cell_timezones, days_from_hours
+from agdata.daily import days_from_hours
 from agdata.store import CUMULATIVE, DAILY, HOURLY, GridStore
+from agdata.timezones import GRID_ZONE
 
 HOUR = timedelta(hours=1)
 CYCLE = datetime(2025, 7, 10, 13, tzinfo=UTC)
@@ -41,7 +42,7 @@ def test_days_observed_partial_forecast(world):
     days = series.point_days(
         world, *CELL, date(2025, 7, 8), date(2025, 7, 23), ["air_temperature_max"], totals=["dd_sine_50"], now=NOW
     )
-    assert days.zone == "America/Chicago"
+    assert days.zone == GRID_ZONE  # the grid's days by default (D74)
     assert days.kinds[:2] == ["observed", "observed"]
     assert days.kinds[2] == "partial"  # July 10: observed to 10 am, then forecast
     assert days.kinds[3:13] == ["forecast"] * 10
@@ -198,11 +199,9 @@ def test_days_in_a_year_without_stores_are_missing(world, tmp_path):
     days = series.point_days(
         world, *CELL, date(2024, 7, 9), date(2024, 7, 10), ["air_temperature_max"], totals=["dd_sine_50"], now=NOW
     )
-    assert days.zone == "America/Chicago"  # the cell's own zone, without a daily store to read it from
+    assert days.zone == GRID_ZONE
     assert days.kinds == [None, None]
     assert np.isnan(days.values["air_temperature_max"]).all() and np.isnan(days.totals["dd_sine_50"]).all()
-    with pytest.raises(FileNotFoundError, match="no daily store"):
-        series.cell_zone(tmp_path, *CELL, years=[2024])
 
 
 def test_a_day_on_the_map_in_a_year_without_stores_is_missing_not_observed(world, fx_module):
@@ -288,8 +287,7 @@ def test_a_stale_daily_variable_is_flagged(world, fx_module, monkeypatch):
 
 def test_days_from_hours_are_the_rollups_days(world, fx_module):
     store = GridStore.open(world, DAILY, 2025, DAILY_VARIABLES.values())
-    zones, index = cell_timezones(store)
-    computed = days_from_hours(world, fx_module.window, date(2025, 7, 5), date(2025, 7, 6), zones, index)
+    computed = days_from_hours(world, fx_module.window, date(2025, 7, 5), date(2025, 7, 6))
     for name in ("air_temperature_max", "precipitation_sum", "hours_rh_over_90"):
         t = store.index_of(date(2025, 7, 5))
         np.testing.assert_allclose(computed[name], store.read_steps(name, t, t + 2), atol=store_step(name))
@@ -310,6 +308,6 @@ def test_the_stamp_takes_a_range_from_january_first(tmp_path, fx):
     assert not daily.startswith("None") and daily != stamp
 
 
-def test_the_last_closed_day_is_closed_in_the_westernmost_zone():
-    assert series.last_closed_day(datetime(2026, 7, 2, 8, tzinfo=UTC)) == date(2026, 7, 1)
-    assert series.last_closed_day(datetime(2026, 7, 2, 7, tzinfo=UTC)) == date(2026, 6, 30)
+def test_a_grid_day_closes_with_its_last_reading_at_06z():
+    assert series.last_closed_day(datetime(2026, 7, 2, 6, tzinfo=UTC)) == date(2026, 7, 1)
+    assert series.last_closed_day(datetime(2026, 7, 2, 5, tzinfo=UTC)) == date(2026, 6, 30)

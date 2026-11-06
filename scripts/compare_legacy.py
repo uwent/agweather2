@@ -23,10 +23,10 @@ from agdata.catalog import VARIABLES
 from agdata.clients.acis import Acis
 from agdata.clients.agweather_v1 import AgWeatherV1, Bounds
 from agdata.clients.openmeteo_points import OpenMeteoPoints
-from agdata.daily import cell_timezones, open_or_create_daily
 from agdata.grid import NDFD, service_window
 from agdata.progress import Reporter
 from agdata.store import HOURLY, GridStore
+from agdata.timezones import window_timezones
 from agmodels.degree_days import degree_days_sine
 
 CENTRAL = ZoneInfo("America/Chicago")
@@ -102,7 +102,7 @@ def main():
 
 def central_points(data_dir: Path, window) -> tuple[list[str], np.ndarray]:
     """The old API's 0.1° points whose cells are all Central time, and each cell's point index (-1: none)."""
-    zones, zone_index = cell_timezones(open_or_create_daily(data_dir, 2025, window))
+    zones, zone_index = window_timezones(window)
     central = np.isin(zone_index, [k for k, z in enumerate(zones) if z in ("America/Chicago", "America/Menominee")])
     lat, lon = NDFD.window_latlon(window)
     keys = np.array(

@@ -1,4 +1,4 @@
-{"version": "0.1", "rows": [
+{"version": "0.2", "rows": [
 {"inputs":{"temperature_mean_30day":15.0,"rh_max_30day":70.0,"night_hours_rh_90_14day":0.0},"outputs":{"probability":0.999289427}},
 {"inputs":{"temperature_mean_30day":15.0,"rh_max_30day":70.0,"night_hours_rh_90_14day":4.0},"outputs":{"probability":0.997923719}},
 {"inputs":{"temperature_mean_30day":15.0,"rh_max_30day":70.0,"night_hours_rh_90_14day":8.0},"outputs":{"probability":0.993575508}},

@@ -36,6 +36,7 @@ from agdata.qc import check_range
 from agdata.sources import nbm
 from agdata.sources.nbm import HourlyRun
 from agdata.store import CUMULATIVE, DAILY, HOURLY, GridStore
+from agdata.timezones import GRID_ZONE, first_reading
 from agmodels.weather import et0_hourly_series, relative_humidity_percent
 
 HOUR = timedelta(hours=1)
@@ -51,7 +52,7 @@ SOURCE_OF = {
     "relative_humidity": "derived",
     "et0": "derived",
 }
-STITCH_HOURS_BEFORE = 48  # archive hours copied before the first forecast hour: the run's first day and its 8 pm
+STITCH_HOURS_BEFORE = 48  # archive hours copied before the first forecast hour: the run's first day and its windows
 CALIBRATION = calibration.fitted()  # read when adjust_hours runs, so tests can swap it
 
 
@@ -340,9 +341,11 @@ def stitch(data_dir: Path, path: Path, window: Window) -> datetime | None:
     copy_from = first_forecast - STITCH_HOURS_BEFORE * HOUR
     if observed is not None and observed >= copy_from:
         _copy_archive_hours(data_dir, path, window, copy_from, observed)
-    # The day after the first copied hour's: its hours, and its 8 pm-day from the evening before, are all copied in
-    # every lower-48 zone. The last day may be partial (the rollup leaves its incomplete statistics missing).
-    first_day = (copy_from + timedelta(hours=24)).date()
+    # The first grid day whose every window (back to noon the day before) is copied in. The last day may be partial
+    # (the rollup leaves its incomplete statistics missing).
+    first_day = copy_from.date()
+    while first_reading(first_day, GRID_ZONE) < copy_from:
+        first_day += timedelta(days=1)
     last_day = last_forecast.date()
     rollup_days(path, window, first_day, last_day)
     _continue_totals(data_dir, path, window, first_day, last_day)

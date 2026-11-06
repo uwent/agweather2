@@ -5,7 +5,7 @@ Each day earns 0–7 DIV from the hours with RH ≥ 90% and their mean temperatu
 mean DIV.
 
 Ported from the Crop Risk Tool (`calc_cercospora_div`, `risk_for_cercospora`) with parity tests. Intended
-difference, as for late blight: humid hours and their temperature both come from the day from 8 pm.
+difference, as for late blight: humid hours and their temperature both come from the day from 6 pm.
 
 Gridded RH ≥ 90% is counted at 88%, a station's 90% (D50, `features.STATION_RH_90_AS_GRIDDED`).
 """
@@ -32,7 +32,7 @@ SPEC = ModelSpec(
     id="cercospora-beet-div",
     name="Cercospora leaf spot daily infection values",
     group="disease",
-    version="0.2",
+    version="0.3",
     status="stable",
     summary="Daily infection values (0–7) from hours of high humidity and their temperature; their 2- and "
     "7-day means time fungicide sprays for Cercospora leaf spot of table and sugar beet.",
@@ -51,12 +51,12 @@ SPEC = ModelSpec(
     ),
     inputs=(
         Input(
-            name="hours_rh_over_90_from_8pm",
+            name="hours_rh_over_90_from_6pm",
             label="Hours with RH ≥ 90%",
             unit="hour",
-            description="Day from 8 pm the evening before",
+            description="Day from 6 pm the evening before",
         ),
-        Input(name="temperature_mean_rh_over_90_from_8pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
+        Input(name="temperature_mean_rh_over_90_from_6pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
     ),
     outputs=(
         Quantity(name="div", label="Daily infection value", unit="index"),
@@ -104,6 +104,12 @@ SPEC = ModelSpec(
             date="2026-11-03",
             note="DIV totals count from the biofix, as the risk does (were from the first day read).",
         ),
+        Change(
+            version="0.3",
+            date="2026-11-06",
+            note="Humid hours and their temperature from the day from 6 pm CST (was 8 pm local, the Crop Risk "
+            "Tool's), and days on CST all year (D74).",
+        ),
     ),
 )
 
@@ -143,7 +149,7 @@ def div(temperature_c, hours) -> np.ndarray:
 
 
 def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
-    return {"div": div(inputs["temperature_mean_rh_over_90_from_8pm"], inputs["hours_rh_over_90_from_8pm"])}
+    return {"div": div(inputs["temperature_mean_rh_over_90_from_6pm"], inputs["hours_rh_over_90_from_6pm"])}
 
 
 def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:

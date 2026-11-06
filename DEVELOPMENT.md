@@ -143,10 +143,10 @@ Only one process writes to the archive at a time (`data/write.lock`). Commands d
 
 ### Other data commands
 
-`rollup` redoes the daily stores and running totals for a range of local days from the hourly archive, e.g. after changing a daily statistic:
+`rollup` redoes the daily stores and running totals for a range of grid days (CST) from the hourly archive, e.g. after changing a daily statistic:
 
 ```bash
-uv run app/manage.py rollup --start 2025-01-01 --end 2025-01-30    # local days, inclusive; about 17 s a month here
+uv run app/manage.py rollup --start 2025-01-01 --end 2025-01-30    # grid days, inclusive; about 17 s a month here
 ```
 
 `rebuild --check` lists derived variables written by an older version of their code, and `rebuild --stale` recomputes them (run it after a deploy, like `migrate`). `pastyears --check` lists the years whose past-years copy (`data/daily-by-point/<year>.zarr`, ~0.3 GB a year, read by the projection past the forecast, D63) is missing or out of date; a weekly job keeps them current.

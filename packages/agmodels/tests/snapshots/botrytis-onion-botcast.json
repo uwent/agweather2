@@ -1,4 +1,4 @@
-{"version": "0.2", "rows": [
+{"version": "0.3", "rows": [
 {"inputs":{"temperature":0.0,"hours":0.0,"hot":0.0,"dry_yesterday":0.0},"outputs":{"dsi":0.0,"inoculum":0.0,"infection":0.0}},
 {"inputs":{"temperature":0.0,"hours":0.0,"hot":0.0,"dry_yesterday":1.0},"outputs":{"dsi":0.0,"inoculum":0.0,"infection":0.0}},
 {"inputs":{"temperature":0.0,"hours":0.0,"hot":1.0,"dry_yesterday":0.0},"outputs":{"dsi":0.0,"inoculum":0.0,"infection":0.0}},

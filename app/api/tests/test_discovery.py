@@ -89,7 +89,7 @@ def test_a_model_spec_names_its_inputs_and_the_hourly_variables_that_make_them(c
     assert [i["name"] for i in data["inputs"]] == [
         "air_temperature_mean",
         "relative_humidity_max",
-        "hours_rh_over_90_night",
+        "hours_rh_over_90_7pm_to_6am",
         "air_temperature_min",
         "air_temperature_max",  # corn stages', which gate it
     ]
@@ -98,7 +98,7 @@ def test_a_model_spec_names_its_inputs_and_the_hourly_variables_that_make_them(c
     assert data["derivable_from_hourly"] == {
         "air_temperature_mean": ["air_temperature"],
         "relative_humidity_max": ["relative_humidity"],
-        "hours_rh_over_90_night": ["air_temperature", "dew_point"],
+        "hours_rh_over_90_7pm_to_6am": ["air_temperature", "dew_point"],
         "air_temperature_min": ["air_temperature"],
         "air_temperature_max": ["air_temperature"],
     }

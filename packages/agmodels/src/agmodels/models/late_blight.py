@@ -5,9 +5,10 @@ Each day earns 0–4 DSV from how long the air stayed humid (RH ≥ 90%) and how
 threshold, and the last 14 days' DSVs say how fast it's building.
 
 Ported from the Crop Risk Tool (`calc_late_blight_dsv`, `risk_for_late_blight`), with parity tests. One intended
-difference: the tool counts humid hours over the calendar day but averages their temperature over the day from
-8 pm; Wallin pairs the hours with their own temperature, so both come from the day from 8 pm here (an overnight
-wet period counts whole). A day without its inputs has no DSV rather than 0.
+difference: the tool counts humid hours over the calendar day but averages their temperature over the day from 8 pm;
+Wallin pairs the hours with their own temperature, so both come from the day from 6 pm here (an overnight wet period
+counts whole; v2 starts every overnight window at 6 pm, D74, where the tool's starts at 8 pm). A day without its inputs
+has no DSV rather than 0.
 
 Gridded RH ≥ 90% is counted at 88%, a station's 90% (D50, `features.STATION_RH_90_AS_GRIDDED`).
 """
@@ -34,7 +35,7 @@ SPEC = ModelSpec(
     id="late-blight-dsv",
     name="Late blight disease severity values",
     group="disease",
-    version="0.2",
+    version="0.3",
     status="stable",
     summary="Daily disease severity values (0–4) from hours of high humidity and their temperature, "
     "accumulated from crop emergence to time fungicide sprays for potato and tomato late blight.",
@@ -60,12 +61,12 @@ SPEC = ModelSpec(
     ),
     inputs=(
         Input(
-            name="hours_rh_over_90_from_8pm",
+            name="hours_rh_over_90_from_6pm",
             label="Hours with RH ≥ 90%",
             unit="hour",
-            description="Day from 8 pm the evening before",
+            description="Day from 6 pm the evening before",
         ),
-        Input(name="temperature_mean_rh_over_90_from_8pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
+        Input(name="temperature_mean_rh_over_90_from_6pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
     ),
     outputs=(
         Quantity(name="dsv", label="Disease severity values", unit="index"),
@@ -115,6 +116,12 @@ SPEC = ModelSpec(
             note="DSV totals (season and 14-day) count from the biofix, as the risk does "
             "(were from the first day read).",
         ),
+        Change(
+            version="0.3",
+            date="2026-11-06",
+            note="Humid hours and their temperature from the day from 6 pm CST (was 8 pm local, the Crop Risk "
+            "Tool's), and days on CST all year (D74).",
+        ),
     ),
 )
 
@@ -133,7 +140,7 @@ def dsv(temperature_c, hours) -> np.ndarray:
 
 
 def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
-    return {"dsv": dsv(inputs["temperature_mean_rh_over_90_from_8pm"], inputs["hours_rh_over_90_from_8pm"])}
+    return {"dsv": dsv(inputs["temperature_mean_rh_over_90_from_6pm"], inputs["hours_rh_over_90_from_6pm"])}
 
 
 def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:

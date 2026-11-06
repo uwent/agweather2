@@ -6,7 +6,7 @@ Each entry gives the variable (as named in `/variables`), the year, the file's a
 
 **What a file holds.** Each yearly file holds one variable, one layer per day, on the National Weather Service's 2.5 km grid in its native Lambert conformal projection. GIS software, R's terra and Python's xarray read the projection and place the data correctly. Values are in metric units (°C, mm and so on). They are stored as whole numbers with a scale factor, which these programs apply automatically when they read the file. Missing values are left missing, never set to zero.
 
-**The grid file.** `grid` is the address of one small file, `grid.nc`, that goes with every yearly file. It gives each grid cell's latitude and longitude (its center) and its time zone. You need it only to plot the data on latitude and longitude without a projection library, or to know which time zone a cell's days follow, since each day in the files is the cell's local calendar day. It is kept apart from the yearly files because each yearly file opens more reliably in GIS software when it holds only one variable.
+**The grid file.** `grid` is the address of one small file, `grid.nc`, that goes with every yearly file. It gives each grid cell's latitude and longitude (its center) and its local time zone. You need it only to plot the data on latitude and longitude without a projection library, or to show a cell's hours on its own clock. Every day in the files runs from midnight to midnight Central Standard Time all year (06:00 to 06:00 UTC), in every cell. It is kept apart from the yearly files because each yearly file opens more reliably in GIS software when it holds only one variable.
 
 In R, terra reads the projection from the yearly file itself:
 

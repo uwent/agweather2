@@ -24,7 +24,7 @@ pytestmark = pytest.mark.django_db  # points read the Open-Meteo cell cache
 def no_open_meteo(monkeypatch):
     """Open-Meteo with nothing to give: models reaching before the fixture archive's July 1 read it (ops.points)."""
 
-    def point_days(lat, lng, first, last, names, now):
+    def point_days(lat, lng, first, last, names, now, zone=None):
         n = (last - first).days + 1
         dates = [first + timedelta(days=k) for k in range(n)]
         values = {name: np.full(n, np.nan) for name in names}

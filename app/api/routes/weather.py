@@ -18,9 +18,10 @@ from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
 from api import clock, points
 from api.envelope import Column, Result, catalog_column, etag_for, not_modified, respond
 from api.errors import ApiError, counted
-from api.locations import describe
+from api.locations import describe, describe_days
 from api.params import DaysQuery, HoursQuery, OutputQuery, PointsQuery, SeriesQuery, check_vars
 from api.schemas import TableResponse, responses
+from ops.points import day_zone
 
 router = Router(tags=["Weather"])
 
@@ -40,9 +41,13 @@ TOTALLED = {
 TOTALS_DEFAULT = ["precipitation_sum", "et0_sum", "shortwave_radiation_sum"]
 
 
-def located(where: PointsQuery, first: date, last: date) -> list[dict]:
-    """`meta.location(s)` for the points, refusing more outside the archive than MAX_OUTSIDE."""
-    found = [describe(lat, lng) for lat, lng in where.locations()]
+def located(where: PointsQuery, first: date, last: date, options: SeriesQuery | None = None) -> list[dict]:
+    """`meta.location(s)` for the points, refusing more outside the archive than MAX_OUTSIDE; for days (`options`
+    given), whose clock sets them (`day_basis`, `days`)."""
+    found = [
+        describe(lat, lng) | ({} if options is None else describe_days(lat, lng, last.year, options.day_basis))
+        for lat, lng in where.locations()
+    ]
     outside = sum(not points.from_archive(lat, lng, first, last) for lat, lng in where.locations())
     if outside > MAX_OUTSIDE:
         raise ApiError(
@@ -82,7 +87,8 @@ def read_days(
     found, warnings, sources, corrections = [], [], [], []
     stores = points.shared_stores(names)
     for lat, lng in where.locations():
-        days = points.days(lat, lng, first, last, names, now, stores=stores)
+        zone = day_zone(lat, lng, options.day_basis)
+        days = points.days(lat, lng, first, last, names, now, stores=stores, zone=zone)
         n = points.keep(days.kinds, options.forecast, trim_end)
         found.append((days, n))
         sources += [s for s in days.sources if s not in sources]
@@ -119,11 +125,11 @@ def daily(
     first, last = when.span(default_end=today + timedelta(days=FORECAST_DAYS) if options.forecast else today)
     check_size((last - first).days + 1, len(where.locations()), MAX_DAYS, "days")
     computed = {**where.echo(), "start": first, "end": last, "vars": names, "forecast": options.forecast}
-    computed |= {"units": output.units}
+    computed |= {"units": output.units, **options.echo()}
     etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    locations = located(where, first, last)
+    locations = located(where, first, last, options)
     found, warnings, sources, corrections = read_days(where, first, last, names, options, trim_end, now)
     columns: dict[str, list] = {"point": [], "date": [], "kind": [], **{name: [] for name in names}}
     for k, (days, n) in enumerate(found):
@@ -166,6 +172,13 @@ def hourly(
     """One row per point and hour: `time` (the hour's end, UTC), `kind`, each variable in `vars` (hourly catalog
     names), and `local_time` in the point's zone with `tz=local`. Defaults: the last 7 days through the forecast."""
     names = check_vars(vars, VARIABLES, HOURLY_DEFAULT)
+    if options.day_basis is not None:
+        raise ApiError(
+            "not_applicable",
+            "Hourly values aren't grouped into days, so day_basis doesn't apply. Leave it out, and use tz=local to "
+            "see each hour on the location's clock.",
+            "day_basis",
+        )
     now = clock.now()
     hour = now.replace(minute=0, second=0, microsecond=0)
     trim_end = when.end is None
@@ -256,11 +269,11 @@ def totals(
     first, last = when.span(default_end=today + timedelta(days=FORECAST_DAYS) if trim_end else today)
     check_size((last - first).days + 1, len(where.locations()), MAX_DAYS, "days")
     computed = {**where.echo(), "start": first, "end": last, "vars": names, "forecast": options.forecast}
-    computed |= {"gaps": options.gaps, "units": output.units}
+    computed |= {"gaps": options.gaps, "units": output.units, **options.echo()}
     etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    locations = located(where, first, last)
+    locations = located(where, first, last, options)
     found, warnings, sources, corrections = read_days(where, first, last, names, options, trim_end, now)
     rows: dict[str, list] = {"point": list(range(len(found))), "days": [], "forecast_days": []}
     for name in names:

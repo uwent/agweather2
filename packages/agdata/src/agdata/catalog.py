@@ -347,9 +347,10 @@ DAILY_VARIABLES["et0_sum_estimate"] = Variable(
 )
 
 
-# Daily features the models read (`agmodels.features`, PLAN.md Phase 3 B): counts of hours over the calendar day
-# and over the day from 8 pm (20:00 the evening before through 19:59), night hours (20:00-06:59), and the mean
-# temperature during humid hours. Features that look across days (hot past 5 days, dry) and moving averages are
+# Daily features the models read (`agmodels.features`, PLAN.md Phase 3 B; windows D74): counts of hours over the
+# calendar day and over the day from 6 pm (readings 19:00 the evening before through 18:00), night hours (6 pm to
+# 6 am, readings 19:00-06:00; tar spot's 7 pm to 6 am, 20:00-06:00), the mean temperature during humid hours, and the
+# overnight minimum (noon to noon). Features that look across days (hot past 5 days, dry) and moving averages are
 # computed on read. Bump a feature's version when `agmodels.features` changes what it computes (D29).
 # Version 2 counts gridded RH at 88%, a station's 90% (D50, `agmodels.features.STATION_RH_90_AS_GRIDDED`)
 _RH90 = "{} with RH at or above 90% as a station counts it (gridded RH ≥ 88%)"
@@ -376,15 +377,22 @@ DAILY_FEATURES: dict[str, Variable] = {
             long_name="Hours with RH at or above 90% and at least 70 °F",
             **_HOURS,
         ),
-        Variable(name="hours_rh_over_80_from_8pm", long_name="Hours with RH at or above 80%, day from 8 pm", **_HOURS),
+        Variable(name="hours_rh_over_80_from_6pm", long_name="Hours with RH at or above 80%, day from 6 pm", **_HOURS),
+        Variable(name="hours_rh_over_90_from_6pm", long_name=_RH90.format("Hours") + ", day from 6 pm", **_HOURS),
+        # 2: 6 pm to 6 am (was 8 pm to 7 am, D74); 3 for RH ≥ 90%, after D50's 2
         Variable(
-            name="hours_rh_over_90_from_8pm", long_name=_RH90.format("Hours") + ", day from 8 pm", version=2, **_HOURS
+            name="hours_rh_over_80_night",
+            long_name="Night hours (6 pm to 6 am) with RH at or above 80%",
+            version=2,
+            **_HOURS,
         ),
         Variable(
-            name="hours_rh_over_80_night", long_name="Night hours (8 pm to 7 am) with RH at or above 80%", **_HOURS
+            name="hours_rh_over_90_night", long_name=_RH90.format("Night hours (6 pm to 6 am)"), version=3, **_HOURS
         ),
         Variable(
-            name="hours_rh_over_90_night", long_name=_RH90.format("Night hours (8 pm to 7 am)"), version=2, **_HOURS
+            name="hours_rh_over_90_7pm_to_6am",
+            long_name=_RH90.format("Hours from 7 pm to 6 am (tar spot's night)"),
+            **_HOURS,
         ),
         Variable(
             name="hours_soil_4cm_below_27f",
@@ -408,14 +416,18 @@ DAILY_FEATURES: dict[str, Variable] = {
         Variable(name="dew_point_depression_mean", long_name="Dew point depression, daily mean", **_DEPRESSION),
         Variable(name="dew_point_depression_max", long_name="Dew point depression, daily max", **_DEPRESSION),
         Variable(
-            name="temperature_mean_rh_over_80_from_8pm",
-            long_name="Mean temperature, RH ≥ 80%, day from 8 pm",
+            name="temperature_mean_rh_over_80_from_6pm",
+            long_name="Mean temperature, RH ≥ 80%, day from 6 pm",
             **_TEMPERATURE,
         ),
         Variable(
-            name="temperature_mean_rh_over_90_from_8pm",
-            long_name="Mean temperature, RH ≥ 90% as a station counts it (gridded RH ≥ 88%), day from 8 pm",
-            version=2,
+            name="temperature_mean_rh_over_90_from_6pm",
+            long_name="Mean temperature, RH ≥ 90% as a station counts it (gridded RH ≥ 88%), day from 6 pm",
+            **_TEMPERATURE,
+        ),
+        Variable(
+            name="air_temperature_min_overnight",
+            long_name="Air temperature, overnight minimum (noon to noon)",
             **_TEMPERATURE,
         ),
     ]

@@ -168,11 +168,17 @@ class DaysQuery(Schema):
 
 
 class SeriesQuery(Schema):
-    """How a series runs: through the forecast or not, gaps in running totals, and times' zone."""
+    """How a series runs: through the forecast or not, gaps in running totals, times' zone, and whose clock sets the
+    days (`day_basis`, D74: default the grid's CST inside the box and the point's own outside it)."""
 
     forecast: bool = True
     gaps: Literal["estimate", "missing"] = "estimate"
     tz: Literal["utc", "local"] = "utc"
+    day_basis: Literal["central", "local"] | None = None
+
+    def echo(self) -> dict[str, Any]:
+        """`day_basis` for `meta.request` (and the ETag) when it was given."""
+        return {"day_basis": self.day_basis} if self.day_basis is not None else {}
 
 
 class UnitsQuery(Schema):

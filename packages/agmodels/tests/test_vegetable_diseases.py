@@ -12,8 +12,8 @@ def crt_inputs(daily):
     return {
         "air_temperature_min": daily["temperature_min"],
         "air_temperature_max": daily["temperature_max"],
-        "hours_rh_over_90_from_8pm": daily["hours_rh_over_90"],
-        "temperature_mean_rh_over_90_from_8pm": daily["temperature_mean_rh_over_90"],
+        "hours_rh_over_90_from_6pm": daily["hours_rh_over_90"],
+        "temperature_mean_rh_over_90_from_6pm": daily["temperature_mean_rh_over_90"],
         "hours_temperature_over_30c": daily["hours_temp_over_30"],
         "hours_rh_under_70": daily["hours_rh_under_70"],
         "precipitation_sum": daily["precipitation_daily"],
@@ -102,9 +102,9 @@ def test_early_blight_season(crt):
 
 def test_carrot_foliar_season(crt):
     daily, theirs = crt_inputs(crt("daily_eau_claire_2025")), crt("alternaria_eau_claire_2025")
-    daily["temperature_mean_rh_over_90_from_8pm"] = np.nan_to_num(daily["temperature_mean_rh_over_90_from_8pm"])
+    daily["temperature_mean_rh_over_90_from_6pm"] = np.nan_to_num(daily["temperature_mean_rh_over_90_from_6pm"])
     out = carrot_foliar.outputs(daily)
-    t, h = daily["temperature_mean_rh_over_90_from_8pm"], daily["hours_rh_over_90_from_8pm"]
+    t, h = daily["temperature_mean_rh_over_90_from_6pm"], daily["hours_rh_over_90_from_6pm"]
     differs = fast_differs(t, h)
     np.testing.assert_array_equal(out["dsv"][~differs], theirs["dsv"][~differs])
     # Given the tool's daily values, the totals and risk are the tool's
@@ -115,7 +115,7 @@ def test_carrot_foliar_season(crt):
 def test_cercospora_season(crt):
     daily, theirs = crt_inputs(crt("daily_eau_claire_2025")), crt("cercospora_eau_claire_2025")
     # A day with calendar humid hours but none from 8 pm has no temperature: the tool scores 0, as 0 °C does here
-    daily["temperature_mean_rh_over_90_from_8pm"] = np.nan_to_num(daily["temperature_mean_rh_over_90_from_8pm"])
+    daily["temperature_mean_rh_over_90_from_6pm"] = np.nan_to_num(daily["temperature_mean_rh_over_90_from_6pm"])
     out = cercospora_beet.outputs(daily)
     np.testing.assert_array_equal(out["div"], theirs["div"])
     np.testing.assert_allclose(out["div_7_day_mean"], theirs["avg7"], atol=1e-9)
@@ -129,12 +129,12 @@ def test_botcast_season(crt):
     # those are the only days v2 leaves missing
     unknown = np.isnan(out["dsi"])
     assert unknown.sum() == np.sum(
-        np.isnan(daily["temperature_mean_rh_over_90_from_8pm"]) & (daily["hours_rh_over_90_from_8pm"] > 6)
+        np.isnan(daily["temperature_mean_rh_over_90_from_6pm"]) & (daily["hours_rh_over_90_from_6pm"] > 6)
     )
     np.testing.assert_array_equal(out["dsi"][~unknown], theirs["dsi"][~unknown])
 
 
-# The window change (humid hours and their temperature from the same day from 8 pm), measured
+# The window change (humid hours and their temperature from the same day from 6 pm), measured
 
 
 @pytest.mark.parametrize(

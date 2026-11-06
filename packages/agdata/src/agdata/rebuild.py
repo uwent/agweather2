@@ -1,8 +1,9 @@
 """Recomputing derived data written by an older version of its code (D29).
 
 A derived variable is stale when the store records another version than the catalog's (its code changed), or when the
-catalog added it after the store was written. Daily variables are rolled up again from the hourly store over each year's
-days with data, and the year's running totals rebuilt; running totals are rebuilt from the daily store; the models'
+catalog added it after the store was written. A daily store written on each cell's local days is stale throughout until
+it's rolled up again on grid days (D74). Daily variables are rolled up again from the hourly store over each year's days
+with data, and the year's running totals rebuilt; running totals are rebuilt from the daily store; the models'
 ingredients (`agdata.modelmaps`) built again from January 1. The corrected shortwave and ET0 are re-derived from the
 stored raw HRRR (`agdata.shortwave`); other stale hourly variables are only reported: they're derived at ingest, so a
 refetch would be needed.
@@ -17,6 +18,7 @@ import numpy as np
 from agdata import modelmaps, shortwave
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
 from agdata.cumulative import rebuild_year, update_days
+from agdata.daily import move_to_grid_days, on_grid_days, year_on_grid_days
 from agdata.grid import Window
 from agdata.modelmaps import INGREDIENTS
 from agdata.store import CUMULATIVE, DAILY, HOURLY, GridStore, StoreLayout
@@ -39,6 +41,8 @@ def find_stale(data_dir: Path) -> StaleReport:
     for layout, variables in KINDS:
         for year in _years(data_dir, layout):
             stale = GridStore.stale_variables(data_dir, layout, year, variables.values())
+            if layout == DAILY and not year_on_grid_days(data_dir, year):
+                stale = {"(local days, D74)"}
             if stale:
                 report.stale[f"{layout.kind}/{year}"] = sorted(stale)
     for year in _years(data_dir, DAILY):  # the models' ingredients (D66): a year not built counts too
@@ -57,6 +61,9 @@ def rebuild_stale(data_dir: Path, window: Window, log=print) -> StaleReport:
     corrected = set(shortwave.correct_archive(data_dir, window, log=log))
     for year in _years(data_dir, DAILY):
         store = GridStore.open(data_dir, DAILY, year, DAILY_VARIABLES.values(), add_missing=True)
+        if not on_grid_days(store):
+            log(f"daily/{year}: moving to grid days (CST, D74)")
+            move_to_grid_days(store)
         if not store.stale and year not in corrected:
             continue
         days = _days_with_data(store)

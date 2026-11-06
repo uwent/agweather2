@@ -6,7 +6,7 @@ was for infection (0–2 from its length and temperature). Their product is the 
 season total.
 
 Ported from the Crop Risk Tool (`botcast_dinov`, `botcast_dinfv`, `calc_botrytis_dsi`, `risk_for_botrytis`)
-with parity tests. Intended differences: humid hours and their temperature both come from the day from 8 pm (as
+with parity tests. Intended differences: humid hours and their temperature both come from the day from 6 pm (as
 for late blight), and a day whose deciding inputs are missing has no DSI (R's `case_when` treats a missing
 condition as false, so the tool can score such a day 1). Leaf wetness is taken as RH ≥ 90%.
 
@@ -36,7 +36,7 @@ SPEC = ModelSpec(
     id="botrytis-onion-botcast",
     name="Botrytis leaf blight (BOTCAST)",
     group="disease",
-    version="0.2",
+    version="0.3",
     status="stable",
     summary="BOTCAST's daily disease severity index from inoculum and infection conditions, accumulated from "
     "emergence to time fungicide sprays for Botrytis leaf blight of onion.",
@@ -56,12 +56,12 @@ SPEC = ModelSpec(
     ),
     inputs=(
         Input(
-            name="hours_rh_over_90_from_8pm",
+            name="hours_rh_over_90_from_6pm",
             label="Hours with RH ≥ 90%",
             unit="hour",
-            description="Day from 8 pm the evening before",
+            description="Day from 6 pm the evening before",
         ),
-        Input(name="temperature_mean_rh_over_90_from_8pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
+        Input(name="temperature_mean_rh_over_90_from_6pm", label="Mean temperature during RH ≥ 90%", unit="degC"),
         Input(
             name="hours_temperature_over_30c",
             label="Hours at or above 30 °C",
@@ -145,6 +145,12 @@ SPEC = ModelSpec(
             date="2026-11-03",
             note="DSI total count from the biofix, as the risk does (were from the first day read).",
         ),
+        Change(
+            version="0.3",
+            date="2026-11-06",
+            note="Humid hours and their temperature from the day from 6 pm CST (was 8 pm local, the Crop Risk "
+            "Tool's), and days on CST all year (D74).",
+        ),
     ),
 )
 
@@ -186,9 +192,9 @@ def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
     days = across_days(inputs)
     dry = np.asarray(days["dry"], dtype=float)
     dry_yesterday = np.concatenate([np.zeros((1, *dry.shape[1:])), dry[:-1]])  # before the first day: not dry
-    hours = inputs["hours_rh_over_90_from_8pm"]
+    hours = inputs["hours_rh_over_90_from_6pm"]
     inoc = inoculum(days["hot_past_5_days"], dry_yesterday, hours)
-    infect = infection(inputs["temperature_mean_rh_over_90_from_8pm"], hours)
+    infect = infection(inputs["temperature_mean_rh_over_90_from_6pm"], hours)
     dsi = inoc * infect
     return {"dsi": dsi, "inoculum": inoc, "infection": infect}
 

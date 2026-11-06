@@ -1,16 +1,24 @@
 """Daily features: what the models read beyond daily min, mean and max, computed from hours (PLAN.md Phase 3 B).
 
-Hourly-native, following the Crop Risk Tool's `build_daily` (its fits used these windows):
+Hourly-native, after the Crop Risk Tool's `build_daily`, with v2's windows (D74). An hourly value is stamped at the
+end of its hour (precipitation is what fell in that hour; temperature and humidity are the reading at that time), and
+a window from A to B holds the readings stamped after A through B, so a window's precipitation is exactly what fell
+between A and B. Clock hours are the day basis's: CST all year on the grid, a point's own zone with `day_basis=local`.
 
-- the calendar day (local);
-- night: the hours 20:00–06:59 local by the clock (the tar spot coefficients were fitted on it);
-- the day from 8 pm: 20:00 the evening before through 19:59 (so an overnight wet period isn't split at
-  midnight). Features over it end in `_from_8pm`.
+- the calendar day: midnight to midnight (readings 01:00–24:00);
+- the day from 6 pm (`_from_6pm`): 6 pm the evening before to 6 pm (readings 19:00–18:00), so an overnight wet
+  period isn't split at midnight; the disease-severity models read it (the Crop Risk Tool's was from 8 pm);
+- night (`_night`): 6 pm to 6 am (readings 19:00–06:00, 12 hours), within the day from 6 pm;
+- tar spot's night (`_7pm_to_6am`): 7 pm to 6 am (readings 20:00–06:00, 11 hours), the window Webster et al.'s
+  coefficients were fitted on as the Crop Risk Tool counts it;
+- overnight (`_overnight`): noon the day before to noon (readings 13:00–12:00), for the night's minimum, which on a
+  winter morning can come after 7 am.
 
-The reducers take one window's hours on axis 0 (a point (hours,) or the grid (hours, y, x)). A count with any
-hour missing is missing (D25), and so is a mean over hours none of which qualify (there's nothing to average).
-`daily_features` groups a point's hourly series into those windows; the grid rollup (`agdata.daily`) groups by
-each cell's zone and calls the same reducers. Humidity thresholds use RH from temperature and dew point.
+The reducers take one window's hours on axis 0 (a point (hours,) or the grid (hours, y, x)). A count with any hour
+missing is missing (D25), and so is a mean over hours none of which qualify (there's nothing to average).
+`daily_features` groups a point's hourly series into those windows; the grid rollup (`agdata.daily`) and a point's
+rollup (`agdata.point`) cut the windows with `agdata.timezones` and call the same reducers. Humidity thresholds use RH
+from temperature and dew point.
 """
 
 import warnings
@@ -18,7 +26,11 @@ from collections.abc import Mapping
 
 import numpy as np
 
-NIGHT_FIRST_HOUR, NIGHT_LAST_HOUR = 20, 6  # local clock hours, inclusive
+# Windows within a day, by the clock hour each ends at (readings stamped after the hour the day before, through it)
+EVENING_HOUR = 18  # the day from 6 pm
+OVERNIGHT_HOUR = 12  # noon to noon
+NIGHT = (18, 6)  # night: readings after 18:00 through 06:00
+TAR_SPOT_NIGHT = (19, 6)  # tar spot's: after 19:00 through 06:00
 MIN_HOURS = 20  # a day's min, mean or max needs this many of its hours (D25); counts and sums need them all
 
 
@@ -62,9 +74,10 @@ def hours_humid_and_warm(temperature_c, rh_percent, rh_from: float, temperature_
     return np.where(missing, np.nan, ((rh >= rh_from) & (t >= temperature_from_c)).sum(axis=0))
 
 
-def is_night(local_hour: np.ndarray) -> np.ndarray:
+def in_hours(local_hour: np.ndarray, after: int, through: int) -> np.ndarray:
+    """Readings stamped after clock hour `after` through `through`, across midnight (`(18, 6)`: 19:00–06:00)."""
     hour = np.asarray(local_hour)
-    return (hour >= NIGHT_FIRST_HOUR) | (hour <= NIGHT_LAST_HOUR)
+    return (hour > after) | (hour <= through)
 
 
 def calendar_features(
@@ -112,22 +125,31 @@ def soil_features(soil_4cm_c: np.ndarray, soil_10cm_c: np.ndarray, soil_30cm_c: 
     }
 
 
-def from_8pm_features(
-    temperature_c: np.ndarray, rh_percent: np.ndarray, night: np.ndarray, rh_90_at: float | None = None
+def evening_features(
+    temperature_c: np.ndarray, rh_percent: np.ndarray, local_hour: np.ndarray, rh_90_at: float | None = None
 ) -> dict[str, np.ndarray]:
-    """Features over a day from 8 pm (20:00 the evening before through 19:59); `night` marks its night hours
-    (bool, broadcast against the hours axis). `rh_90_at` as in `calendar_features`."""
+    """Features over a day from 6 pm (readings 19:00 the evening before through 18:00), with its night's and tar
+    spot's night's hours; `local_hour` is each reading's clock hour. `rh_90_at` as in `calendar_features`."""
     rh = np.asarray(rh_percent, dtype=float)
-    night = np.asarray(night, dtype=bool).reshape(-1, *([1] * (rh.ndim - 1)))
+    shape = (-1, *([1] * (rh.ndim - 1)))
+    night = in_hours(local_hour, *NIGHT).reshape(shape)
+    tar_spot_night = in_hours(local_hour, *TAR_SPOT_NIGHT).reshape(shape)
+    missing = np.isnan(rh).any(axis=0)
+    rh_90 = STATION_RH_90_AS_GRIDDED if rh_90_at is None else rh_90_at
     out = {}
-    for threshold, counted_at in ((80, 80.0), (90, STATION_RH_90_AS_GRIDDED if rh_90_at is None else rh_90_at)):
+    for threshold, counted_at in ((80, 80.0), (90, rh_90)):
         wet = np.where(np.isnan(rh), np.nan, rh >= counted_at)
-        out[f"hours_rh_over_{threshold}_from_8pm"] = hours_at_or_above(rh, counted_at)
-        out[f"hours_rh_over_{threshold}_night"] = np.where(
-            np.isnan(rh).any(axis=0), np.nan, ((rh >= counted_at) & night).sum(axis=0)
-        )
-        out[f"temperature_mean_rh_over_{threshold}_from_8pm"] = mean_where(temperature_c, wet)
+        out[f"hours_rh_over_{threshold}_from_6pm"] = hours_at_or_above(rh, counted_at)
+        out[f"hours_rh_over_{threshold}_night"] = np.where(missing, np.nan, ((rh >= counted_at) & night).sum(axis=0))
+        out[f"temperature_mean_rh_over_{threshold}_from_6pm"] = mean_where(temperature_c, wet)
+    out["hours_rh_over_90_7pm_to_6am"] = np.where(missing, np.nan, ((rh >= rh_90) & tar_spot_night).sum(axis=0))
     return out
+
+
+def overnight_features(temperature_c: np.ndarray) -> dict[str, np.ndarray]:
+    """The overnight minimum, over noon the day before to noon (readings 13:00–12:00); missing with fewer than
+    MIN_HOURS of them (D25)."""
+    return {"air_temperature_min_overnight": daily_statistics("air_temperature", temperature_c)["air_temperature_min"]}
 
 
 def across_days(daily: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
@@ -163,10 +185,12 @@ def daily_features(
     v2's calendar day is the hours ending 01:00–24:00 (`midnight_ends_day`), as in the stores: the reading at
     midnight closes the day, and an hour's precip, stamped at its end, falls in the day it fell. The Crop Risk
     Tool counts the instants 00:00–23:00 (pass False to match it), which puts each day's precip an hour early.
+    The day from 6 pm and the overnight window follow the module's rule whatever `midnight_ends_day` is.
     """
     t = np.asarray(local_time, dtype="datetime64[h]")
     dates = (t - np.timedelta64(1 if midnight_ends_day else 0, "h")).astype("datetime64[D]")
-    from_8pm = (t + np.timedelta64(4, "h")).astype("datetime64[D]")
+    from_6pm = (t + np.timedelta64(23 - EVENING_HOUR, "h")).astype("datetime64[D]")
+    overnight = (t + np.timedelta64(23 - OVERNIGHT_HOUR, "h")).astype("datetime64[D]")
     hour = (t - t.astype("datetime64[D]")).astype(int)
     days = np.unique(dates)
     out: dict[str, list] = {}
@@ -178,8 +202,9 @@ def daily_features(
         features |= daily_statistics("air_temperature", temperature_c[today])
         if soil_4cm_c is not None and soil_10cm_c is not None and soil_30cm_c is not None:
             features |= soil_features(soil_4cm_c[today], soil_10cm_c[today], soil_30cm_c[today])
-        evening = from_8pm == day
-        features |= from_8pm_features(temperature_c[evening], rh_percent[evening], is_night(hour[evening]))
+        evening = from_6pm == day
+        features |= evening_features(temperature_c[evening], rh_percent[evening], hour[evening])
+        features |= overnight_features(temperature_c[overnight == day])
         for name, value in features.items():
             out.setdefault(name, []).append(value)
     daily = {name: np.array(values, dtype=float) for name, values in out.items()}
@@ -189,6 +214,8 @@ def daily_features(
 def daily_statistics(name: str, hours: np.ndarray) -> dict[str, np.ndarray]:
     """`{name}_min`, `_mean`, `_max` over a day's hours, NaN with fewer than MIN_HOURS of them (D25)."""
     hours = np.asarray(hours, dtype=float)
+    if hours.shape[0] == 0:  # a window the series doesn't reach (a point's first or last day)
+        return {f"{name}_{stat}": np.full(hours.shape[1:], np.nan) for stat in ("min", "mean", "max")}
     enough = np.isfinite(hours).sum(axis=0) >= MIN_HOURS
     with np.errstate(invalid="ignore"), warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)  # all-NaN cells

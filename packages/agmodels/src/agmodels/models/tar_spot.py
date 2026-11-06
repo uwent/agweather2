@@ -1,8 +1,9 @@
 """Tar spot of corn: the probability of Phyllachora maydis spores being present.
 
 Two logistic models (Webster et al. 2023) from 30-day mean temperature, 30-day mean daily maximum RH and 14-day
-mean night hours with RH ≥ 90%, averaged, then scaled down as the 21-day mean minimum falls below 10 °C (the
-Crop Risk Tool's attenuation). Corn is susceptible from V10 to R3.
+mean night hours with RH ≥ 90% (7 pm to 6 am, the readings 20:00–06:00 its coefficients were fitted on as the
+Crop Risk Tool counts them; on CST all year, D74), averaged, then scaled down as the 21-day mean minimum falls
+below 10 °C (the Crop Risk Tool's attenuation). Corn is susceptible from V10 to R3.
 
 Ported from the Crop Risk Tool (`predict_tarspot`, `build_tar_spot`) with parity tests.
 
@@ -31,7 +32,7 @@ SPEC = ModelSpec(
     id="tar-spot",
     name="Tar spot spore probability",
     group="disease",
-    version="0.1",
+    version="0.2",
     status="stable",
     summary="The probability of tar spot spores being present, from a month of temperature and humidity; corn "
     "is susceptible from V10 (10th leaf) to R3 (milk).",
@@ -53,10 +54,10 @@ SPEC = ModelSpec(
         Input(name="air_temperature_mean", label="Mean temperature", unit="degC", description="30-day moving average"),
         Input(name="relative_humidity_max", label="Maximum RH", unit="percent", description="30-day moving average"),
         Input(
-            name="hours_rh_over_90_night",
+            name="hours_rh_over_90_7pm_to_6am",
             label="Night hours with RH ≥ 90%",
             unit="hour",
-            description="14-day moving average",
+            description="7 pm to 6 am, 14-day moving average",
         ),
         Input(
             name="air_temperature_min",
@@ -115,7 +116,15 @@ SPEC = ModelSpec(
         Ingredient(name="hours_rh_over_90_night_14_day", unit="hour"),
         Ingredient(name="air_temperature_min_21_day", unit="degC", shared="air_temperature_min_21_day"),
     ),
-    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    changelog=(
+        Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),
+        Change(
+            version="0.2",
+            date="2026-11-06",
+            note="The same night hours (readings 20:00–06:00, 7 pm to 6 am) on CST all year, an hour later by the "
+            "clock in summer (D74).",
+        ),
+    ),
 )
 
 
@@ -128,7 +137,7 @@ def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
     return {
         "air_temperature_mean_30_day": moving_mean(inputs["air_temperature_mean"], 30),
         "relative_humidity_max_30_day": moving_mean(inputs["relative_humidity_max"], 30),
-        "hours_rh_over_90_night_14_day": moving_mean(inputs["hours_rh_over_90_night"], 14),
+        "hours_rh_over_90_night_14_day": moving_mean(inputs["hours_rh_over_90_7pm_to_6am"], 14),
         "air_temperature_min_21_day": moving_mean(inputs["air_temperature_min"], 21),
     }
 

@@ -184,7 +184,7 @@ def no_open_meteo(monkeypatch):
     """Open-Meteo with nothing to give: potato volunteer's season begins October 1, before the fixture archive, so
     it alone reads Open-Meteo (ops.points), and gets missing days."""
 
-    def point_days(lat, lng, first, last, names, now):
+    def point_days(lat, lng, first, last, names, now, zone=None):
         n = (last - first).days + 1
         dates = [first + timedelta(days=k) for k in range(n)]
         values = {name: np.full(n, np.nan) for name in names}

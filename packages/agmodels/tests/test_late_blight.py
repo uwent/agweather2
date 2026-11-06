@@ -17,7 +17,7 @@ def test_a_season_matches_the_crop_risk_tool_from_its_inputs(crt):
     # temperature below the table's first band gives the same here
     temperature = np.where(np.isnan(daily["temperature_mean_rh_over_90"]), 0.0, daily["temperature_mean_rh_over_90"])
     out = lb.outputs(
-        {"temperature_mean_rh_over_90_from_8pm": temperature, "hours_rh_over_90_from_8pm": daily["hours_rh_over_90"]}
+        {"temperature_mean_rh_over_90_from_6pm": temperature, "hours_rh_over_90_from_6pm": daily["hours_rh_over_90"]}
     )
     np.testing.assert_array_equal(out["dsv"], theirs["dsv"])
     np.testing.assert_array_equal(out["dsv_total"], theirs["total"])
@@ -37,11 +37,11 @@ def test_pairing_hours_with_their_own_window_changes_few_days(crt, monkeypatch):
     )
     ours = lb.outputs(daily)["dsv"]
     theirs = crt("late_blight_eau_claire_2025")["dsv"]
-    # 2025 at Eau Claire (PLAN.md Phase 3 D): 27 days differ, the May 15-Sep 30 total is 53 against 47, and both
-    # reach the 18-DSV spray threshold on July 16
-    assert int((ours != theirs).sum()) == 27
+    # 2025 at Eau Claire (PLAN.md Phase 3 D; D74): with the day from 6 pm, 31 days differ (27 from 8 pm), the
+    # May 15-Sep 30 total is 55 against 47 (53 from 8 pm), and both reach the 18-DSV spray threshold on July 16
+    assert int((ours != theirs).sum()) == 31
     season = slice(134, 273)
-    assert (np.sum(ours[season]), np.sum(theirs[season])) == (53, 47)
+    assert (np.sum(ours[season]), np.sum(theirs[season])) == (55, 47)
 
 
 def test_missing_inputs_give_no_dsv_and_no_humid_hours_give_zero():
@@ -60,8 +60,8 @@ def test_the_grid_shape_works():
     shape = (30, 3, 4)
     out = lb.outputs(
         {
-            "temperature_mean_rh_over_90_from_8pm": np.full(shape, 16.0),
-            "hours_rh_over_90_from_8pm": np.full(shape, 20.0),
+            "temperature_mean_rh_over_90_from_6pm": np.full(shape, 16.0),
+            "hours_rh_over_90_from_6pm": np.full(shape, 20.0),
         }
     )
     assert out["dsv"].shape == shape and (out["dsv"] == 4).all()  # 20 h at 16 °C exceeds all four steps

@@ -1,13 +1,43 @@
 """What `meta.location` says about a point (docs/api.md): the cell read, whether the archive covers it, and its time
-zone, county and state. `/locate` (Phase 5 B) adds the cell's corners and typical planting dates."""
+zone, county and state; for daily answers, whose clock sets the days (D74). `/locate` (Phase 5 B) adds the cell's
+corners and typical planting dates."""
 
+from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 
 from agdata.grid import NDFD, service_window
 from agdata.places import county_at
-from agdata.timezones import zone_at
+from agdata.timezones import GRID_ZONE, DayBasis, basis_zone, zone_at
+from ops.points import day_basis
+
+
+def days_text(zone: str, year: int) -> str:
+    """What a day is on `zone`'s clock, with its hours in UTC, for `meta.location.days`."""
+    if zone == GRID_ZONE:
+        return "Midnight to midnight CST all year (06:00 to 06:00 UTC)."
+    tz = ZoneInfo(zone)
+    winter, summer = (datetime(year, month, 15, tzinfo=tz) for month in (1, 7))
+
+    def utc(when: datetime) -> str:
+        offset = when.utcoffset()
+        hour = 0 if offset is None else int(-offset.total_seconds() // 3600) % 24
+        return f"{hour:02d}:00 to {hour:02d}:00 UTC"
+
+    if winter.utcoffset() == summer.utcoffset():
+        return f"Midnight to midnight {winter.tzname()} ({utc(winter)})."
+    return (
+        f"Midnight to midnight local time: {winter.tzname()} ({utc(winter)}) in standard time and "
+        f"{summer.tzname()} ({utc(summer)}) in daylight time."
+    )
+
+
+def describe_days(lat: float, lng: float, year: int, basis: DayBasis | None = None) -> dict[str, Any]:
+    """`day_basis` (as resolved: `ops.points.day_basis`) and `days`, what a day is there."""
+    found = day_basis(lat, lng, basis)
+    return {"day_basis": found, "days": days_text(basis_zone(found, lat, lng), year)}
 
 
 def describe(lat: float, lng: float) -> dict[str, Any]:

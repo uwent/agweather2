@@ -6,16 +6,15 @@ from datetime import UTC, date, datetime, timedelta
 import numpy as np
 import pytest
 
-from agdata import daily
 from agdata.catalog import DAILY_VARIABLES, VARIABLES
 from agdata.daily import open_or_create_daily, rollup_days
 from agdata.grid import NDFD, Window
 from agdata.point import daily_at_point
 from agdata.store import HOURLY, GridStore
+from agdata.timezones import GRID_ZONE
 from agmodels.registry import all_models
 
 WINDOW = Window(j0=900, j1=902, i0=1400, i1=1403)  # 2 x 3 cells near Madison
-ZONES = ["America/Detroit", "America/Chicago"]
 START = datetime(2025, 5, 1, tzinfo=UTC)
 HOURS = 62 * 24
 FIRST, LAST = date(2025, 5, 2), date(2025, 6, 30)
@@ -57,22 +56,18 @@ def weather(rng: np.random.Generator) -> dict[str, np.ndarray]:
 
 @pytest.fixture(scope="module")
 def stores(tmp_path_factory):
-    """Two months of hours and their rollup, built once for the module (the tests only read); column 0 is Eastern
-    time, the rest Central."""
-    index = np.ones(WINDOW.shape, dtype=np.uint8)
-    index[:, 0] = 0
+    """Two months of hours and their rollup on grid days, built once for the module (the tests only read)."""
     path = tmp_path_factory.mktemp("point")
-    with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(daily, "window_timezones", lambda window: (ZONES, index))
-        hourly = GridStore.create(path, HOURLY, 2025, WINDOW, VARIABLES.values())
-        hourly.write(START, weather(np.random.default_rng(1)), source="test")
-        rollup_days(path, WINDOW, FIRST, LAST)
+    hourly = GridStore.create(path, HOURLY, 2025, WINDOW, VARIABLES.values())
+    hourly.write(START, weather(np.random.default_rng(1)), source="test")
+    rollup_days(path, WINDOW, FIRST, LAST)
     return hourly, open_or_create_daily(path, 2025, WINDOW)
 
 
 def cells():
+    """Each cell, with the zone a point there takes by default (the grid's, D74)."""
     for y, x in np.ndindex(WINDOW.shape):
-        yield y, x, ZONES[0 if x == 0 else 1]
+        yield y, x, GRID_ZONE
 
 
 def test_point_days_match_the_rollup(stores):
@@ -101,10 +96,10 @@ def test_rolling_up_only_some_names_gives_the_same_values_from_only_their_hours(
     hourly, _ = stores
     t0 = hourly.index_of(START)
     all_hours = {name: hourly.read_steps(name, t0, t0 + HOURS)[:, 0, 0] for name in VARIABLES}
-    whole = daily_at_point(START, all_hours, ZONES[0], FIRST, LAST)
+    whole = daily_at_point(START, all_hours, GRID_ZONE, FIRST, LAST)
     for names in (["air_temperature_min", "air_temperature_max"], ["hours_rh_over_90_night", "precipitation_sum"]):
         needed = hourly_needed(names)
-        some = daily_at_point(START, {n: all_hours[n] for n in needed}, ZONES[0], FIRST, LAST, names=names)
+        some = daily_at_point(START, {n: all_hours[n] for n in needed}, GRID_ZONE, FIRST, LAST, names=names)
         for name in names:
             np.testing.assert_array_equal(some[name], whole[name], err_msg=name)
     assert hourly_needed(["air_temperature_min", "air_temperature_max"]) == ["air_temperature"]
@@ -178,8 +173,9 @@ def test_each_daily_variable_names_the_hourly_variables_it_is_made_from():
     assert table["air_temperature_max"] == ("air_temperature",)
     assert table["precipitation_sum"] == ("precipitation",)
     # Humid hours count RH computed from the temperature and dew point, not the hourly RH
-    assert table["hours_rh_over_90_from_8pm"] == ("air_temperature", "dew_point")
-    assert table["temperature_mean_rh_over_80_from_8pm"] == ("air_temperature", "dew_point")
+    assert table["hours_rh_over_90_from_6pm"] == ("air_temperature", "dew_point")
+    assert table["temperature_mean_rh_over_80_from_6pm"] == ("air_temperature", "dew_point")
+    assert table["air_temperature_min_overnight"] == ("air_temperature",)
     assert table["hours_soil_8in_below_27f"] == ("soil_temperature_10cm", "soil_temperature_30cm")
     assert all(table.values())  # every daily value comes from some hour
     inputs = {name for m in all_models().values() for name in required_inputs(m)}
