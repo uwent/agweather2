@@ -13,11 +13,10 @@ or any scale. Before that (2026-11-04) they were plain variables rather than CF 
 reproject the file. Readers place the grid by its `grid_mapping`; to plot on latitude and longitude without a
 projection library, the downloads' `daily/grid.nc` has every cell's (`ops.downloads`), or JSON gives each cell's.
 
-Compression: each data variable is chunked a whole map per step and deflated at level 6 (a week over Wisconsin:
-1.64 MB raw, 0.36 MB).
 A regular lat/lng grid (`grid=latlon`) is plain CF latitude/longitude, or EPSG:4326 in GeoTIFF.
 
-NetCDF is NetCDF-4 (HDF5, through h5netcdf), zlib-compressed. GeoTIFF has one band per step, top row north,
+NetCDF is NetCDF-4 (HDF5, through h5netcdf): each data variable chunked a whole map per step and deflated at level 6 (a
+week over Wisconsin: 1.64 MB raw, 0.36 MB), one gridded variable a file. GeoTIFF has one band per step, top row north,
 missing as NaN (`GDAL_NODATA`), and each band's date in GDAL's metadata tag, which QGIS and rasterio show.
 """
 

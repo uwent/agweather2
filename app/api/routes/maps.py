@@ -1,4 +1,4 @@
-"""Static map images (docs/api.md, "Maps"; PLAN.md Phase 5 G3, D60): any layer as a finished PNG to embed by URL.
+"""Static map images (docs/api.md, "Static maps"; PLAN.md Phase 5 G3, D60): any layer as a finished PNG to embed by URL.
 
 `/maps/{layer}.png` takes the layer's time and settings as `/grids` does, plus `days=N` (the N days ending on `end`
 or the latest day, reduced by `stat`), `region` (a state or county: its cells, framed) and `units`. Without a time

@@ -6,8 +6,9 @@ A year's fill is the TODO recipe it replaces, in one process:
 1. its URMA/RTMA/HRRR hours (`ops.backfill`: the next block downloads while this one is written);
 2. its December 31, which needs the next year's first UTC hours (in already, going backwards);
 3. its ERA5-Land soil and snow, a month per CDS request (`ops.era5land.backfill_era5land`);
-4. its copy laid out for points (`agdata.pastyears`, the projection's);
-5. the models' ingredients (`agdata.modelmaps`, Phase 5 F).
+4. the models' ingredients (`agdata.modelmaps`, Phase 5 F);
+5. its copy laid out for points (`agdata.pastyears`, the projection's), and the next year's again if rolling up
+   December 31 left it out of date.
 
 Steps 3 to 5 run in a second thread while the main thread starts the next year's hours, so the CDS's queue (about
 an hour a year) overlaps the downloads rather than adding to them. The two threads share the write lock like any
@@ -213,7 +214,7 @@ def fill(
                 finish_year(plan)
             except BaseException as error:  # reported; the main thread carries on with the next year's hours
                 errors.append(error)
-                report.fail(f"{plan.year} soil and past years", error)
+                report.fail(f"{plan.year} soil, ingredients and past years", error)
 
     def finish_year(plan: YearPlan) -> None:
         if soil and plan.era5land_days:
@@ -293,7 +294,9 @@ def fill(
                 with lock(polite=True):  # December 31 runs into the next year's first UTC hours
                     update_days(data_dir, window, date(plan.year, 12, 31), date(plan.year, 12, 31), ingredients=False)
                 report.detail(f"{plan.year}: rolled up December 31")
-            report.step(f"{plan.year}: hours in" + (" (soil and past years next, alongside)" if overlap else ""))
+            report.step(
+                f"{plan.year}: hours in" + (" (soil, ingredients and past years next, alongside)" if overlap else "")
+            )
             later.put(plan)
             if not overlap:
                 _drain(later, helper)

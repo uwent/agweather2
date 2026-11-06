@@ -100,8 +100,9 @@ Tab moves between the sections; click a run (or ↑/↓) to pick it. Keys:
 | `e` | ERA5-Land soil and snow for a range (`era5land`)                          |
 | `r` | recompute stale derived variables (`rebuild --stale`)                     |
 | `p` | build the past-years copies that are missing or out of date (`pastyears`) |
+| `i` | build the models' ingredients that are missing or stale (`ingredients`)   |
 | `s` | stop the picked run after its current block (press again to interrupt)    |
-| `c` | clear finished runs and their logs                                        |
+| `c` | clear finished runs and their logs, and stop counting failed jobs so far  |
 | `q` | quit; runs carry on, and reopening the dashboard picks them up            |
 
 Commands started here run detached, with their output in `data/runs/<started>-<command>.log`.
@@ -118,7 +119,7 @@ bin/agwx archive clear                             # forget finished runs and th
 bin/agwx jobs                                      # the worker's jobs, the archive's and forecast's health
 ```
 
-Every data command (`backfill`, `era5land`, `rollup`, `rebuild`, `pastyears`, `refetch_precip`, `forecast`, `archive fill`) takes `--background`, and `--quiet` to print only warnings, failures and the summary. On a terminal it draws its progress in place; in a log it writes timestamped lines. Each exits nonzero if anything failed.
+Every data command (`backfill`, `era5land`, `rollup`, `rebuild`, `pastyears`, `ingredients`, `downloads`, `refetch_precip`, `forecast`, `archive fill`) takes `--background`, and `--quiet` to print only warnings, failures and the summary. On a terminal it draws its progress in place; in a log it writes timestamped lines. Each exits nonzero if anything failed.
 
 ### Filling years
 
@@ -127,7 +128,8 @@ Every data command (`backfill`, `era5land`, `rollup`, `rebuild`, `pastyears`, `r
 1. Its hours from NOAA's AWS buckets (URMA, RTMA, HRRR) for the `SERVICE_BOX` window (`backfill`).
 2. Its December 31, which needs the next year's first UTC hours.
 3. Its ERA5-Land soil temperature and snow depth from the Copernicus CDS (`era5land`; needs `COPERNICUS_API_KEY` in `.env`, or `--no-soil`). This runs alongside the next year's hours, since CDS requests sit in a queue for 10–20 minutes each.
-4. Its past-years copy for the projection (`pastyears`).
+4. Its models' ingredients, from which model maps are finished (`ingredients`).
+5. Its past-years copy for the projection (`pastyears`).
 
 Everything resumes: a rerun skips hours, days and copies that are already there, so stopping and restarting (or a WSL restart) loses at most the block in hand.
 
@@ -149,6 +151,12 @@ uv run app/manage.py rollup --start 2025-01-01 --end 2025-01-30    # local days,
 
 `rebuild --check` lists derived variables written by an older version of their code, and `rebuild --stale` recomputes them (run it after a deploy, like `migrate`). `pastyears --check` lists the years whose past-years copy (`data/daily-by-point/<year>.zarr`, ~0.3 GB a year, read by the projection past the forecast, D63) is missing or out of date; a weekly job keeps them current.
 
+`ingredients --check` lists the years whose models' ingredients (`data/ingredients/<year>.zarr`, ~0.5 GB a year over Wisconsin: what model maps are finished from, and each crop's stages per planting tier) are missing, stale or behind the daily store, and `ingredients` builds them (`--year` for one, whatever its state). The hourly jobs keep the current year's after that.
+
+`downloads --check` lists the yearly NetCDF downloads (`data/downloads/daily/<year>/`) that are missing or older than their daily store, and `downloads` builds them (`--variables` for some). A weekly job keeps them current, but a new server's first build is long, so run the command once.
+
+`latency` times the requests PLAN.md §3 sets targets for (a map's first tile and a kept one, a point's hourly season, every model at a point) on this archive, and says which are over (`--lat --lng --day` to choose the place and day).
+
 When a variable's stored scale changes in the catalog, stores written before refuse to open until they're repacked (`GridStore.rescale`). For precip, `refetch_precip --start --end --rescale` repacks and fetches the hours again at the new precision (precip files are small: about 2 minutes a month).
 
 Stored hours and days are raw: a missing hour or an incomplete day stays missing. Only the running totals estimate across gaps (up to 7 days), and they count the estimated and missing days (PLAN.md D25).
@@ -157,13 +165,17 @@ Stored hours and days are raw: a missing hour or an incomplete day stays missing
 
 The worker in `bin/dev` keeps the archive current:
 
-| Job                | When           | What it does                                                 |
-| ------------------ | -------------- | ------------------------------------------------------------ |
-| `ingest_recent`    | hourly, at :40 | the last week's missing and RTMA-only hours, then their days |
-| `ingest_forecast`  | :15 and :45    | the newest NBM run                                           |
-| `ingest_ifs`       | hourly, at :50 | the provisional soil and snow                                |
-| `ingest_era5land`  | every 6 hours  | ERA5-Land, about 5 days behind                               |
-| `build_past_years` | Mondays        | the past-years copies                                        |
+| Job                   | When           | What it does                                                 |
+| --------------------- | -------------- | ------------------------------------------------------------ |
+| `ingest_recent`       | hourly, at :40 | the last week's missing and RTMA-only hours, then their days |
+| `ingest_forecast`     | :15 and :45    | the newest NBM run                                           |
+| `ingest_ifs`          | hourly, at :50 | the provisional soil and snow                                |
+| `ingest_era5land`     | every 6 hours  | ERA5-Land, about 5 days behind                               |
+| `render_default_maps` | hourly, at :52 | the default static maps (`/maps/…png`)                       |
+| `update_crop_tiers`   | hourly, at :55 | each crop's stages per planting tier, while in season        |
+| `build_past_years`    | Mondays        | the past-years copies                                        |
+| `build_downloads`     | Mondays        | the yearly NetCDF downloads                                  |
+| `prune_api_usage`     | daily          | drops API rate-limit counts older than a week                |
 
 `bin/agwx jobs` lists them and their last runs, and `jobs run NAME` runs one now. Each ingest run and backfill block is listed in Django admin under Operations → Ingest records, and `/up` shows how far behind the archive is:
 

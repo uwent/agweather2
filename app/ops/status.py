@@ -2,8 +2,9 @@
 sees them, who holds the write lock, and each job's last run, next run and queue. v1's `DataImport.check_statuses`
 in one screen. `day_lines` is `jobs days`: a line per UTC day of what the hourly store holds.
 
-Everything reads; nothing here writes the archive or takes the lock (the lock is probed with a shared lock released
-at once)."""
+Nothing here writes the archive or takes the lock (the lock is probed with a shared lock released at once).
+`refresh_dataset_status` writes the `DatasetStatus` rows `/status` serves, from the stores, whenever the write lock
+is released and at `jobs start`."""
 
 import fcntl
 from dataclasses import dataclass, field

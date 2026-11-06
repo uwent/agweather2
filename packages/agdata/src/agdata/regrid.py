@@ -4,6 +4,10 @@ the NDFD grid.
 Bilinear interpolation at each NDFD cell center, with weights computed once per (source grid, window) and
 cached. A cell whose four source neighbors include a missing value, or that falls outside the source grid,
 is NaN.
+
+The other way, `latlon_index` maps a regular lat/lng grid's points to NDFD cells (`/grids`' `grid=latlon`, D57):
+the cell under each point (`nearest`) or the cells whose centers fall within ±res/2 of it (`mean`), cached per
+window, box, step and method.
 """
 
 from dataclasses import dataclass

@@ -9,8 +9,9 @@ archive's through yesterday, the run's from today (they continue the archive's).
 The forecast is used only while its run is fresh (`MAX_RUN_AGE`); otherwise the series ends with the archive and
 says why. Kinds are per point, as each cell's day follows its own time zone.
 
-A point's forecast soil hours past HRRR's 48 can be filled from another source (`fill_soil`: the app passes
-Open-Meteo's ECMWF IFS through its cell cache, D44). Maps keep the gap rather than mixing sources.
+A point's forecast soil hours the run lacks (its IFS soil ends some 30 hours before NBM's last hour) can be filled from
+another source (`fill_soil`: the app passes Open-Meteo's ECMWF IFS through its cell cache, D44). Maps keep the gap
+rather than mixing sources.
 """
 
 from collections.abc import Callable, Mapping, Sequence

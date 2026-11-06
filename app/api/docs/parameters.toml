@@ -56,7 +56,7 @@ time = "The time to show: `latest` (the default), a day (`2025-07-08`), an hour 
 vars = "The variables to return, separated by commas, by their names in `/variables` (daily variables). The default is the minimum and maximum air temperature and precipitation."
 
 [weather_hourly]
-start = "The first hour, as an ISO date and time (`2026-06-01T05:00Z`). Times without a time zone are taken as UTC, and each hour is labeled by its end. The default is seven days before the last hour."
+start = "The first hour, as an ISO date and time (`2026-06-01T05:00Z`). Times without a time zone are taken as UTC, and each hour is labeled by its end. The default is seven days before the current hour."
 end = "The last hour, as an ISO date and time, included in the results. The default runs through the forecast, or through the last observed hour with `forecast=false`."
 vars = "The variables to return, separated by commas, by their names in `/variables` (hourly variables). The default is air temperature, dew point, relative humidity, precipitation and wind speed."
 

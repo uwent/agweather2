@@ -13,8 +13,9 @@ the crop model's margin, 2 susceptible), from each place's typical planting.
 
 `stats` are the statistics a range of steps can be reduced to: mean, min and max for any level, and sum where the
 values add up (precipitation, ET0, shortwave, hour counts, degree days). A running total has none: each day is
-already a total. `palette` names a color scale the frontend owns (Phase 6); layers of one kind share it, so a
-legend means the same thing on every map that uses it.
+already a total. `palette` names one of `agdata.palettes` (served by `/palettes`, used by colored tiles, legends,
+static maps and the frontend); layers of one kind share it, so a legend means the same thing on every map that
+uses it.
 """
 
 from dataclasses import dataclass

@@ -12,12 +12,16 @@ degree days and rain):
 - the context (`day_of_year`, `year`, `latitude`, `biofix_day_of_year`), then the model's `finish` and `risk`,
   exactly as `runner.run` calls them at a point.
 
-The biofix is the spec's default for the season each day falls in (D66: maps take each place's settings, never a
-user's dates); a day before it is missing, as a point returns nothing before its biofix. Without a planting tier
-yet, a stage-gated disease isn't gated and a stage-anchored biofix (the blights' potato emergence) is the spec's
-date, as at a point given no planting date (`api.runs`). Cells outside a model's states are missing. The forecast's
-days come from the current run's own stores, which continue the archive's totals, as `series.grid_days` splits
-them.
+`model_days` takes the spec's default biofix for the season each day falls in, or one per cell (`cell_biofix`); a
+day before it is missing, as a point returns nothing before its biofix. Maps take each place's settings, never a
+user's dates (D66). `model_map` adds the planting tier (early, mid, late; `/grids`' `planting=`): a crop model
+starts at each cell's typical planting date, a stage-anchored biofix (the blights' potato emergence) is each cell's
+first day at that stage, read from what `agdata.croptiers` stored (`_reached`; `_first_day_at` searches the season
+only for stores built before), and a stage-gated disease gets `susceptibility`. Soybean, spring wheat, corn and
+potato stages are read as stored per tier (D70); red crown rot is computed on request from each cell's R1
+(`ON_REQUEST`). With `tier=None` nothing is gated and a stage-anchored biofix is the spec's date, as at a point
+given no planting date (`api.runs`). Cells outside a model's states are missing. The forecast's days come from the
+current run's own stores, which continue the archive's totals, as `series.grid_days` splits them.
 """
 
 from collections.abc import Callable, Iterable, Mapping

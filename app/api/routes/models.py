@@ -1,11 +1,11 @@
 """Models at points (docs/api.md, "Models"; PLAN.md Phase 5 D, D64): a model's three layers at a point through the
 forecast, from our weather.
 
-One row per day (and option set, with `option_set` indexing `meta.option_sets`): `date`, `kind`, the model's inputs
-as read (missing where missing, D45) with `<input>_estimated` where its gaps were filled, the outputs, and the risk as
-`risk_level` (an index into the spec's levels), `risk_label` and, for a continuous risk (insects, D36),
-`risk_value`. A disease gated by crop stage (D33) adds `susceptibility` only when a planting date is given; a model
-with a season adds `in_season`. Insects' action windows go in `meta.summary.windows`.
+One row per day (and option set, with `option_set` indexing `meta.summary.option_sets`): `date`, `kind`, the model's
+inputs as read (missing where missing, D45) with `<input>_estimated` where its gaps were filled, the outputs, and the
+risk as `risk_level` (an index into the spec's levels), `risk_label` and, for a continuous risk (insects, D36),
+`risk_value`. A disease gated by crop stage (D33) adds `susceptibility` only when a planting date is given; a model with
+a season adds `in_season`. Insects' action windows go in `meta.summary.windows`.
 
 Response shapes for model runs stay provisional until Phase 6's frontend uses them (D64)."""
 

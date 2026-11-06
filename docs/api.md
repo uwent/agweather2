@@ -11,7 +11,7 @@ Agreed 2026-11-02 (D57, D58). The contract for `/api/v2`: what each endpoint tak
 
 ## Principles
 
-- **GET with query parameters** for every read, so a URL can be shared, bookmarked, cached and read with `read.csv(url)`. POST only where the input won't fit in a URL (model evaluation, very many points).
+- **GET with query parameters** for every read, so a URL can be shared, bookmarked, cached and read with `read.csv(url)`. POST only where the input won't fit in a URL (model evaluation, a station's weather).
 - **The same parameter means the same thing everywhere** (`lat`, `lng`, `start`, `end`, `vars`, `units`, `format`), and every default applied is echoed back in `meta.request`.
 - **Explicit units.** Every value's unit is in `meta.units`. Storage is SI (D18); conversion happens here, at the edge.
 - **Every value says where it came from.** Each day or hour carries its kind (observed, forecast, estimated). Models carry their version and their estimated and missing days (D45, D56).
@@ -28,57 +28,64 @@ Every JSON response except tiles and binary grids:
     "request": {
       "lat": 43.073,
       "lng": -89.401,
-      "start": "2026-05-01",
-      "end": "2026-05-07",
-      "vars": ["air_temperature_min", "air_temperature_max", "precipitation"],
-      "units": "us",
-      "forecast": true
+      "start": "2026-10-28",
+      "end": "2026-11-08",
+      "vars": ["air_temperature_min", "air_temperature_max", "precipitation_sum"],
+      "forecast": true,
+      "units": "us"
     },
     "location": {
       "lat": 43.073,
       "lng": -89.401,
-      "cell": { "j": 112, "i": 140, "lat": 43.071, "lng": -89.398 },
+      "cell": { "j": 913, "i": 1477, "lat": 43.0706, "lng": -89.3973 },
       "in_box": true,
       "timezone": "America/Chicago",
-      "county": "Dane",
+      "county": "Dane County",
       "state": "WI"
     },
-    "units": { "air_temperature_min": "°F", "air_temperature_max": "°F", "precipitation": "in" },
+    "units": { "air_temperature_min": "°F", "air_temperature_max": "°F", "precipitation_sum": "in" },
     "summary": {
-      "days_requested": 7,
-      "days_returned": 7,
-      "days_forecast": 2,
-      "missing": { "precipitation": 0 },
-      "estimated": {},
-      "stats": { "air_temperature_max": { "min": 61.2, "max": 78.4, "mean": 70.1 }, "precipitation": { "total": 0.42 } }
+      "days_requested": 12,
+      "days_returned": 12,
+      "days_forecast": 3,
+      "days_missing": 0,
+      "corrections": ["nbm-max v1", "nbm-night-min v1"],
+      "missing": { "air_temperature_min": 0, "air_temperature_max": 0, "precipitation_sum": 1 },
+      "stats": {
+        "air_temperature_max": { "min": 45.0, "max": 69.4, "mean": 58.4 },
+        "precipitation_sum": { "min": 0.0, "max": 0.4898, "mean": 0.09084, "total": 0.9992 }
+      }
     },
-    "sources": ["urma", "nbm"],
+    "sources": ["urma", "rtma", "nbm"],
     "warnings": [],
-    "attribution": "…",
+    "attribution": "AgWeather, University of Wisconsin–Madison. Weather from NOAA (URMA, RTMA, HRRR, NBM), …",
     "api_version": "2.0",
-    "generated_at": "2026-05-06T14:02:11Z",
+    "generated_at": "2026-11-06T13:56:08Z",
     "compute_ms": 38
   },
   "data": {
-    "date": ["2026-05-01", "2026-05-02", "…"],
-    "kind": ["observed", "observed", "…", "forecast"],
-    "air_temperature_min": [44.1, 47.9, "…"],
+    "date": ["2026-10-28", "2026-10-29", "…", "2026-11-06", "2026-11-07", "2026-11-08"],
+    "kind": ["observed", "observed", "…", "partial", "forecast", "forecast"],
+    "air_temperature_min": [51.6, 51.3, "…"],
     "air_temperature_max": [61.2, 70.4, "…"],
-    "precipitation": [0.0, 0.31, "…"]
+    "precipitation_sum": [0.0, 0.31, "…"]
   }
 }
 ```
 
-(Values are illustrative.)
+(`/weather/daily` at Madison on 2026-11-06, cut short; `stats` lists every column.)
 
 - `meta.request` is the request **after** defaults and normalization: what was actually computed, not just what was sent.
 - `meta.location` reports the cell actually read. A point snaps to the cell center, which can differ from the point asked for, so a user can see the snap.
-- `meta.summary` holds what v1's `info` had (days requested and returned, min, max, total) per variable, plus the D45/D56 counts.
-- `meta.warnings` is for non-fatal notes in plain language ("2 days of precipitation missing and counted as no rain", "forecast past day 7 is NBM's", "model status beta").
-- Errors return 4xx with the same envelope and `errors` in place of `data`: `{"meta": {…}, "errors": [{"code": "out_of_range", "param": "start", "message": "…"}]}`. This replaces Ninja's default `{"detail": …}`.
+- `meta.summary` holds what v1's `info` had (days requested and returned, min, max, total) per variable, plus the D45/D56 counts and the corrections applied to what was read (`corrections`: the forecast's calibration, D49, and HRRR's shortwave, D48, each with its version).
+- `meta.warnings` is for non-fatal notes, each a sentence in the public style (CLAUDE.md): "Precipitation is missing on 2 days. We never estimate precipitation, so the totals count those days as no rain." or "The forecast is out of date, so the series ends with the last observed day."
+- Errors return 4xx or 5xx with the same envelope and `errors` in place of `data`: `{"meta": {…}, "errors": [{"code": "out_of_order", "param": "end", "message": "The end date is before the start date. …"}]}`. Each message says what happened and what to change. This replaces Ninja's default `{"detail": …}`.
 - Timing also goes in a `Server-Timing` header, so latency checks against §3 don't need to parse the body.
 - **Rounding:** each value to its stored precision (the catalog's scale) in the unit shown, rounded up to a whole decimal: 0.1 °C is 0.18 °F, so 1 decimal; 0.02 mm is 0.0008 in, so 4. The summary's statistics use the same digits (a mean one more).
-- **Error codes** (`errors[].code`): `missing`, `conflict`, `invalid`, `out_of_range`, `out_of_order`, `too_many`, `unknown_variable`, `bad_unit`, `format_unavailable`, `not_found`, `internal_error`, and Pydantic's own type names for a value of the wrong type (`float_parsing`, `date_from_datetime_parsing`, `literal_error`). `param` names the query parameter at fault, or is `null`.
+- **Error codes** (`errors[].code`; `param` names the query parameter at fault, or is `null`):
+  - the request (422): `missing`, `invalid`, `conflict` (parameters that can't go together), `out_of_range`, `out_of_order`, `too_many`, `too_large`, `unknown_variable`, `unknown_input`, `unknown_layer`, `unknown_region`, `bad_unit`, `format_unavailable`, `not_applicable` (an option the model or layer doesn't take), `no_estimate` (no typical planting date here), `missing_inputs` (weather sent can't feed the model), `outside_box`, `not_observed` (a season's day not yet observed), `not_yet`, `no_data`; and Pydantic's type names for a value of the wrong type (`float_parsing`, `date_parsing`, `literal_error`, …);
+  - `not_found` (404), `rate_limited` (429, with `Retry-After`);
+  - the service (5xx): `stale` (503, a variable waiting for its rebuild), `weather_unavailable` (503 with `Retry-After`, Open-Meteo unreachable), `internal_error` (500).
 - **Caching:** every answer carries an ETag and `Cache-Control: public, no-cache`: clients and caches keep it but check before reusing it, and a request with `If-None-Match` gets a bodiless 304 while the answer stands. The ETag changes when the data the answer reads is rewritten (an ingest, a rebuild), when the service is updated, or when the request does (including a default such as today's date). API responses set no cookies.
 
 **Name:** `meta`, not v1's `info`. `meta` is the common convention (JSON:API and most data APIs), and `info` would collide with discovery endpoints. v1's URLs keep working by redirecting to the old server until it's retired (Phase 8), so v2 doesn't need v1's names.
@@ -109,10 +116,12 @@ Both read into a data frame in one line in R and pandas. Table tools that want r
 | ---------------- | ----------------------------------------- | ---------------------------------------- |
 | `json` (default) | apps, scripts                             | everything                               |
 | `csv`            | spreadsheets, R, agencies                 | points, tables, grids (one row per cell) |
-| `netcdf`         | xarray, R (`terra`, `ncdf4`), researchers | grids, and point series on request       |
+| `netcdf`         | xarray, R (`terra`, `ncdf4`), researchers | grids and the yearly downloads           |
 | `geotiff`        | ArcGIS, QGIS                              | grids (one band per day)                 |
-| `png` / `webp`   | maps                                      | tiles                                    |
+| `png`            | maps                                      | tiles, legends, static maps              |
 | `xml`            | not offered (below)                       | —                                        |
+
+An endpoint asked for a format it doesn't offer answers 422 `format_unavailable`, naming the ones it does (`/models/run` is JSON only, holding a table per model).
 
 - **CSV** puts `meta` as `# key: value` comment lines above the header (as v1 did; `headers=false` drops them), one per top-level key, its value as compact JSON (`# units: {"air_temperature_max":"°F"}`). `read.csv(url, comment.char = "#")` and `pd.read_csv(url, comment="#")` skip them. A `Content-Disposition` filename describes the query.
 - **NetCDF** keeps the native grid with its CRS (CF `grid_mapping`, Lambert conformal), so xarray (with pyproj or cartopy), terra and GIS software put it on a map correctly; it holds no 2-D `lat`/`lon` (D71). Attributes carry `meta`. This is what "xarray format" means over HTTP. Zarr stays internal; a remote Zarr endpoint isn't worth exposing.
@@ -121,11 +130,11 @@ Both read into a data frame in one line in R and pandas. Table tools that want r
 
 ## Locations, times, units
 
-- **Points:** `lat`, `lng` (decimal degrees; v1's names). `latitude`, `lon`, `long` and `longitude` are accepted as aliases (v1 took `long` and `longitude`, and DATCP sends `long`), and `meta.request` echoes the canonical name. Several points: `points=43.07,-89.40;44.52,-89.57` (up to 50; more via POST with the same body as JSON). Inside the box they read our grid. Outside it, or before the archive's window, they go through Open-Meteo's per-cell cache, and `meta.sources` says so.
-- **Dates:** `date` (one day) or `start`/`end` (inclusive, ISO). Daily dates are the location's local calendar days (PLAN.md §5.4). Defaults: from January 1 to today.
-- **Hours:** `start`/`end` as ISO datetimes. Times come back in UTC (`2026-05-01T05:00Z`), and `tz=local` adds a `local_time` column in the location's zone.
+- **Points:** `lat`, `lng` (decimal degrees; v1's names). `latitude`, `lon`, `long` and `longitude` are accepted as aliases (v1 took `long` and `longitude`, and DATCP sends `long`), and `meta.request` echoes the canonical name. Several points: `points=43.07,-89.40;44.52,-89.57` (up to 50) on the weather and degree-day endpoints; models, `/risk` and `/locate` take one. Inside the box they read our grid. Outside it, or before the archive's window, they go through Open-Meteo's per-cell cache, and `meta.sources` says so.
+- **Dates:** `date` (one day) or `start`/`end` (inclusive, ISO). Daily dates are the location's local calendar days (PLAN.md §5.4). Defaults: from January 1 of `end`'s year through the forecast (up to 16 days ahead, trimmed to the last day with data), or to today with `forecast=false`.
+- **Hours:** `start`/`end` as ISO datetimes. Times come back in UTC (`2026-05-01T05:00Z`), each hour labeled by its end, and `tz=local` adds a `local_time` column in the location's zone. Default: the 7 days before the current hour through the forecast.
 - **Forecast:** `forecast=true` (default) runs through the forecast, with `kind` marking it; `false` stops at the last observed day.
-- **Units:** `units=us|metric`, plus per-variable overrides (`units=metric&precipitation=in`; the value is a unit symbol, its label, or `us`/`metric`, and a variable's name covers its daily statistics, so `precipitation` sets `precipitation_sum` too), **`us` by default**: that's v1's audience, and Wisconsin growers, DATCP and the site all think in °F and inches. `meta.units` always states the units in force, so nothing is ambiguous. Degree days stay in each model's own unit (D18).
+- **Units:** `units=us|metric`, plus per-variable overrides (`units=metric&precipitation=in`; the value is a unit symbol, its label, or `us`/`metric`, and a variable's name covers its daily statistics, so `precipitation` sets `precipitation_sum` too), **`us` by default**: that's v1's audience, and Wisconsin growers, DATCP and the site all think in °F and inches. `meta.units` always states the units in force, so nothing is ambiguous. Degree days follow the system too (°F·d or °C·d; models compute them in their own unit, D18, and the edge converts), and temperature thresholds are read in the request's units (below).
 - **Gaps:** `gaps=estimate|missing` on cumulative variables (D25).
 
 ## Endpoints
@@ -136,7 +145,7 @@ All under `/api/v2`. ✓ marks what exists today.
 
 | endpoint                | returns                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /status` ✓         | service version; the archive's first hour, each source's newest hour, the last day rolled up and stale stores; the forecast run (cycle, last hour, in use or why not); the model count. Data facts only: jobs, the write lock and failures stay on `/up`                                                                                                                                                                                                                                                |
+| `GET /status` ✓         | service version and box; the archive's first hour, each source's newest hour, the last day rolled up and stale stores; the forecast run (cycle, last hour, in use or why not); the model count; the downloads' file count and newest build. Data facts only: jobs, the write lock and failures stay on `/up`                                                                                                                                                                                            |
 | `GET /variables` ✓      | the catalog: name, long name, kind (hourly, daily, cumulative), unit (stored, and `us`/`metric` labels), precision, valid range; a daily variable's statistic and the hourly variables it comes from. Date ranges are `/status`'s                                                                                                                                                                                                                                                                       |
 | `GET /models` ✓         | every model: id, name, group, crops, topics, status, version, summary, region, season, citations (with DOIs)                                                                                                                                                                                                                                                                                                                                                                                            |
 | `GET /models/{id}` ✓    | one model's spec: required daily inputs and the hourly variables that derive them, outputs (name, unit), options (biofix, planting, maturity group: type, range, default), risk levels and criteria, changelog, and `crop`: the crop model a `planting_date` runs, whether typical dates exist, and its options (see Models below)                                                                                                                                                                      |
@@ -371,7 +380,7 @@ A weather network (Wisconet, a farm's own station, a vendor's sensors) sends its
 
 The native grid is Lambert conformal, not a lat/lng raster, so:
 
-- NetCDF and GeoTIFF carry the true projection (exact; GIS reprojects). NetCDF-4: CF `grid_mapping` (`lambert_conformal_conic`, one standard parallel at 25° N, central meridian 95° W, on NDFD's 6,371,200 m sphere, with the same projection as `crs_wkt`), projected `x`/`y` in metres, `time` (or none for a stat, with the counts as variables beside it), `cell_methods` (`time: maximum`, then the stat), `meta` as global attributes. No 2-D `lat`/`lon` (D71): beside the data they made GDAL open the file as subdatasets, and terra on Windows given an absolute path (`D:/…`) fell back to the HDF5 driver, losing the CRS (before that, as CF auxiliary coordinates, GDAL took them as geolocation arrays and terra couldn't reproject). To plot on latitude and longitude without a projection library, take them from the downloads' `daily/grid.nc` (`ds.assign_coords(lat=grid.lat, lon=grid.lon)` for a whole-box file), or use JSON or CSV, which give each cell's. A file with a `stat=sum` holds the counts (`estimated_days`, `missing_days`) beside the value, so GDAL still sees subdatasets there. Data deflated at level 6, a whole map per chunk. GeoTIFF: one band per step (then the counts), north up, Lambert 1SP GeoKeys, NaN as no data, each band's date as its description.
+- NetCDF and GeoTIFF carry the true projection (exact; GIS reprojects). NetCDF-4: CF `grid_mapping` (`lambert_conformal_conic`, one standard parallel at 25° N, central meridian 95° W, on NDFD's 6,371,200 m sphere, with the same projection as `crs_wkt`), projected `x`/`y` in metres, `time` (none for a stat), `cell_methods` (`time: maximum`, then the stat), `meta` as global attributes. No 2-D `lat`/`lon` (D71): beside the data they made GDAL open the file as subdatasets, and terra on Windows given an absolute path (`D:/…`) fell back to the HDF5 driver, losing the CRS (before that, as CF auxiliary coordinates, GDAL took them as geolocation arrays and terra couldn't reproject). To plot on latitude and longitude without a projection library, take them from the downloads' `daily/grid.nc` (`ds.assign_coords(lat=grid.lat, lon=grid.lon)` for a whole-box file), or use JSON or CSV, which give each cell's. A file holds the one gridded variable asked for: with `stat=sum`, the per-cell counts (`estimated_days`, `missing_days`) come only in JSON, CSV and GeoTIFF, since a second variable makes GDAL see subdatasets again. Data deflated at level 6, a whole map per chunk. GeoTIFF: one band per step (then the counts), north up, Lambert 1SP GeoKeys, NaN as no data, each band's date as its description.
 - JSON and CSV are long form, one row per cell and step: `date` (or `time`) and `kind` without a stat, `lat`, `lng` (the cell center), `j`, `i` with `cells=true`, the value under the layer's id (so a unit override such as `precipitation=mm` applies), and with a stat the counts.
 - `stride=n` takes every nth cell in each direction for coarse overviews.
 - **Regular lat/lng grids:** v1's grid was regular 0.1° lat/lng. `grid=latlon&res=0.1` (any step from 0.025° to 5°; points on multiples of it, 42.4, 42.5, …) with `method=nearest` (the cell under each point) or `mean` (the cells whose centers fall within ±res/2 of the point; the default from 0.05°, since a 0.1° box holds ~15 cells). The lat/lng → cell index is cached per area and step: ~1 ms to build at 0.1° (nearest) over Wisconsin, ~20 ms for mean, ~1 ms a day after. v1's `/api/weather/grid?date=` is one such request per variable (`docs/validation-v1-grid.md`).
@@ -426,7 +435,7 @@ Yearly NetCDF per daily variable for bulk users ✓ (D69, D71, Phase 5 H2), as s
 - **Anonymous reads** with per-IP rate limits ✓ (PLAN.md D69, `api.ratelimit`): a budget of 200 units a minute per IPv4 address or IPv6 /64 (`API_RATE_LIMIT`), a request costing 1 unit plus 1 per 100 ms of server time, so a kept tile or a 304 costs 1 and a map computed afresh several. Every API response carries `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` (seconds to the minute's end); a client over its budget gets a 429 (`rate_limited`) with `Retry-After`. Optional free API keys (`X-API-Key`) for higher limits, and so we know who to tell before a change, are added when someone needs more.
 - **Stability:** `/api/v2` changes only by addition (new endpoints, parameters, columns, `meta` keys). Anything breaking is announced on the changelog page and in `meta.warnings` well ahead. Clients should ignore keys they don't know.
 - **Types:** the frontend's TypeScript types are generated from the OpenAPI schema, as `bin/types` does for props (`@/types/api`), so CI fails when the frontend and API disagree.
-- **Docs:** OpenAPI at `/api/v2/docs`, with an R, Python and curl example per endpoint, D53's attribution, and the changelog.
+- **Docs:** OpenAPI at `/api/v2/docs`, its public text kept in `app/api/docs/` (an intro, a page per endpoint, `parameters.toml`; `test_docs` checks each endpoint and parameter has text in the public style), with D53's attribution and links to the changelog and feedback pages (Phase 6). R, Python and curl examples per endpoint come in Phase 8, after the frontend; the downloads page has R and Python examples now.
 
 ## Examples (target)
 
@@ -468,6 +477,6 @@ v1 took one location and one setting per request. Its biggest outside caller, DA
 
 or `/degree-days` with the same parameters for the daily series. `units=us` is the default, as in v1.
 
-## Not decided here
+## Implementation choices
 
-How model maps are precomputed (D47, PLAN.md Phase 5), tile encoding details, and whether tiles move to a Starlette mount (§9) are implementation choices, made as the work lands.
+Made as the work landed, and recorded in PLAN.md Phase 5: model maps are finished on request from stored ingredients (D66, F), with crop stages stored per planting tier (D70); tiles pack values as Terrain-RGB with each layer's step (G1); tiles stay in Django, with no Starlette mount (§9; G4 measured Django's share as small).

@@ -14,6 +14,10 @@ by planting day and each group runs once from it, over bands of the daily store'
 runs it in its own job after the ingest, outside the ingest's write lock (computing outside, writing inside), only
 while a crop is in season; the forecast run gets its own from its first day, continuing from the archive's days
 before. `modelmaps.build` builds a past year's with the rest of its ingredients.
+
+Each update also keeps every cell's first day at each stage (`_reached/{crop}.{tier}`: (stages, y, x) date
+ordinals, inf if not reached by the update's last day, NaN unplanted; `reached`), so a map whose biofix is a stage
+(the blights' potato emergence) reads it rather than searching the season (`agdata.modelgrid`).
 """
 
 from collections.abc import Callable
