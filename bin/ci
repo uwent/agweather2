@@ -26,7 +26,8 @@ step "Types: Svelte/TypeScript" pnpm check
 step "Generated types are current" bash -c "bin/types && git diff --exit-code frontend/types/generated packages/agmodels/src/agmodels/names.py"
 step "Migrations are current" uv run app/manage.py makemigrations --check --dry-run
 
-step "Tests: Python" uv run pytest
+# A worker per core, each test file on one worker (its module fixtures are built once): ~2.5 min against ~10
+step "Tests: Python" uv run pytest -n auto --dist loadfile
 step "Tests: frontend" pnpm test
 step "Tests: browser" bin/e2e
 

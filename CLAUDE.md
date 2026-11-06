@@ -20,6 +20,7 @@ AgWeather v2: one Django app replacing the AgWeather API (`../ag-weather`), the 
 bin/dev                          # Django (uvicorn :8000) + Vite (:5173) + Procrastinate worker, via honcho
 bin/ci                           # full CI: ruff, prettier/eslint, pyright, svelte-check, generated types, migrations, pytest, vitest, Playwright
 uv run pytest packages/agmodels  # one package's tests
+uv run pytest -n auto --dist loadfile  # the whole suite in parallel, as bin/ci runs it (~2.5 min; ~10 serial)
 uv run ruff format . && uv run ruff check --fix .
 pnpm typecheck:py                # pyright
 pnpm check                       # svelte-check + tsc
@@ -109,6 +110,8 @@ Django and tests:
 - **honcho sets `PORT`** (5000, 5100, …) for every process, so `Procfile.dev` uses `DJANGO_PORT`.
 - **Ninja drops query parameters it doesn't declare** before Pydantic sees them, and leaves out a whole `Query[Schema]` group when none of its fields was sent: aliases go through `api.params.QueryParser`, and anything undeclared is read from `request.GET`.
 - **inertia-django's middleware sets a CSRF cookie and `Vary: Cookie` on every response**; `web.middleware.InertiaMiddleware` skips `/api/` so shared caches can store API answers.
+- **pytest-django runs every database test first**, so a module mixing `django_db` tests with others is split in two and its module-scoped fixtures are built twice. Build an expensive archive at session scope (`app/conftest.py`'s `_built_archive`, the root conftest's `winters_dir`) and give a test that changes it a copy, or link the stores it only reads.
+- **Test archives cost per chunk, not per cell:** a daily store is a chunk a day per variable whatever the window, and zarr spends ~1 ms on each, so a test's archive costs its days × variables. Write only the variables and days a test reads. The root conftest keeps zarr to one thread under pytest (its pool burned ~1.7 cores of system time per worker for no gain).
 - **pytest-socket** blocks the network; only localhost (Postgres) is allowed. Tests run in importlib mode with `app/` on the path. A test that must read a real service is marked `@pytest.mark.network` and `@pytest.mark.enable_socket`, and runs only with `uv run pytest --network` (not in CI).
 
 Data (`agdata`):

@@ -34,10 +34,9 @@ PAST_YEARS = (2023, 2024)
 HOLE_2023 = (datetime(2023, 7, 28, tzinfo=UTC), datetime(2023, 8, 7, 23, tzinfo=UTC))  # 11 days: not bridged
 
 
-def build_with_past_years(path: Path) -> Path:
-    """The archive as `build` makes it, with July and August of two earlier years for the projection (D63): 2023 at
-    12 °C ± 6 with an 11-day hole, 2024 at 18 °C ± 6."""
-    build(path)
+def add_past_years(path: Path) -> Path:
+    """To an archive `build` made, July and August of two earlier years for the projection (D63): 2023 at 12 °C ± 6
+    with an 11-day hole, 2024 at 18 °C ± 6."""
     with pytest.MonkeyPatch.context() as monkeypatch:
         fx = testing.central(monkeypatch)
         fx.archive(

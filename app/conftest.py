@@ -1,5 +1,7 @@
 """Fixtures shared across the app's tests."""
 
+import shutil
+
 import pytest
 
 from api.tests import fixture_archive
@@ -13,9 +15,16 @@ def _own_data_dir(settings, tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def archive_dir(tmp_path_factory):
-    """The fixture archive (`api.tests.fixture_archive`), built once per session."""
-    return fixture_archive.build(tmp_path_factory.mktemp("api-archive"))
+def _built_archive(tmp_path_factory):
+    """The fixture archive (`api.tests.fixture_archive`), built once per session (~13 s) and never handed to a test:
+    `archive_dir` and `projection_archive_dir` are copies, so maps and run records one test leaves don't reach the
+    other."""
+    return fixture_archive.build(tmp_path_factory.mktemp("built-archive"))
+
+
+@pytest.fixture(scope="session")
+def archive_dir(_built_archive, tmp_path_factory):
+    return shutil.copytree(_built_archive, tmp_path_factory.mktemp("api") / "archive")
 
 
 @pytest.fixture
@@ -28,9 +37,10 @@ def archive(archive_dir, settings, monkeypatch):
 
 
 @pytest.fixture(scope="session")
-def projection_archive_dir(tmp_path_factory):
-    """The fixture archive with two earlier years (`fixture_archive.build_with_past_years`), built once."""
-    return fixture_archive.build_with_past_years(tmp_path_factory.mktemp("projection-archive"))
+def projection_archive_dir(_built_archive, tmp_path_factory):
+    """The fixture archive with two earlier years (`fixture_archive.add_past_years`), built once."""
+    path = shutil.copytree(_built_archive, tmp_path_factory.mktemp("projection") / "archive")
+    return fixture_archive.add_past_years(path)
 
 
 @pytest.fixture

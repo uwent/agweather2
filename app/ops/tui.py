@@ -209,18 +209,32 @@ class Dashboard(App):
         self.find_workers()
         self.load_status()
         self.poll_runs()
-        self.set_interval(YEARS_S, self.load_years)
-        self.set_interval(STATUS_S, self.load_status)
-        self.set_interval(EVENTS_S, self.poll_runs)
-        self.set_interval(1 / 8, self.draw_detail)  # the spinners
-        self.set_interval(USAGE_S, self.sample_usage)
+        for seconds, callback in (
+            (YEARS_S, self.load_years),
+            (STATUS_S, self.load_status),
+            (EVENTS_S, self.poll_runs),
+            (1 / 8, self.draw_detail),  # the spinners
+            (USAGE_S, self.sample_usage),
+        ):
+            self.set_interval(seconds, self._while_running(callback))
+
+    def _while_running(self, callback):
+        """`callback`, skipped once the app stops running. Textual checks only `exit()`'s flag before a timer's
+        tick, and a shutdown that doesn't go through `exit()` (`run_test`'s) removes the widgets while the timers
+        still fire, so a tick's `query_one("#log")` found nothing (test_tui's flake)."""
+
+        def guarded(*args):
+            if self.is_running:
+                callback(*args)
+
+        return guarded
 
     # Years
 
     @work(thread=True, exclusive=True, group="years")
     def load_years(self) -> None:
         states = archive.year_states(self.data_dir)
-        self.call_from_thread(self.show_years, states)
+        self.call_from_thread(self._while_running(self.show_years), states)
 
     def show_years(self, states: list[archive.YearState]) -> None:
         table = self.query_one("#years", DataTable)
@@ -284,7 +298,7 @@ class Dashboard(App):
                 lines.append("problems: ", style="bold red")
                 lines.append("; ".join(status.problems), style="red")
         self.health_text = lines
-        self.call_from_thread(self.draw_status)
+        self.call_from_thread(self._while_running(self.draw_status))
 
     def draw_status(self) -> None:
         holder = None

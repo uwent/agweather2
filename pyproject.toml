@@ -18,6 +18,7 @@ dev = [
     "pytest-cov>=7.1.0",
     "pytest-django>=4.14.0",
     "pytest-socket",
+    "pytest-xdist>=3.8.0",
     "ruff",
 ]
 

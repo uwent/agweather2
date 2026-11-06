@@ -12,11 +12,6 @@ from agdata import testing
 NOW = datetime(2025, 12, 17, 12, tzinfo=UTC)
 
 
-@pytest.fixture(scope="module")
-def winters_dir(tmp_path_factory):
-    return testing.winters(tmp_path_factory.mktemp("winters"))
-
-
 @pytest.fixture
 def winters(winters_dir, settings, monkeypatch):
     settings.DATA_DIR = winters_dir

@@ -61,6 +61,13 @@ def _variables():
     return [v for k in KEYS for v in modelmaps.stored()[k].variables()]
 
 
+def _inputs(weather) -> dict[str, np.ndarray]:
+    """The days of weather KEYS' models read (6 of WEATHER's 24 variables): each is a chunk a day to write."""
+    models = all_models()
+    names = {q.name for k in KEYS for q in models[modelmaps.stored()[k].model_id].SPEC.inputs}
+    return {name: v for name, v in weather.items() if name in names}
+
+
 def _series(root, name: str, first: date, last: date) -> np.ndarray:
     """Days first..last of a stored variable, one read per year."""
     parts = []
@@ -133,6 +140,7 @@ def test_an_update_from_a_day_gives_what_building_from_january_gives(tmp_path, b
     """Totals and the freeze factor's running minimum continue from the stored day before; cotton's days ahead are
     rewritten. Built to mid-November, then updated through the end: the same as building it all at once."""
     full, weather = built
+    weather = _inputs(weather)
     root = tmp_path / "incremental"
     _archive(root, weather, last=date(2025, 11, 15))
     modelmaps.update(root, WINDOW, FIRST, date(2025, 11, 15), keys=KEYS)
@@ -148,7 +156,7 @@ def test_an_update_from_a_day_gives_what_building_from_january_gives(tmp_path, b
 
 
 def test_a_changed_day_is_recomputed_as_far_as_it_reaches(tmp_path, built):
-    _, weather = built
+    weather = _inputs(built[1])
     root = tmp_path / "changed"
     _archive(root, weather)
     modelmaps.update(root, WINDOW, FIRST, LAST, keys=KEYS)
@@ -174,6 +182,7 @@ def test_a_run_continues_the_archive(tmp_path, built):
     """A run's ingredients from its first day, with the archive's weather and totals before it: the same as an
     archive holding the run's days."""
     full, weather = built
+    weather = _inputs(weather)
     run_first = date(2025, 12, 20)
     archive = tmp_path / "archive"
     _archive(archive, weather, last=run_first - timedelta(days=1))
@@ -192,3 +201,29 @@ def test_a_run_continues_the_archive(tmp_path, built):
         np.testing.assert_allclose(
             a, b, atol=v.scale + 1e-9, equal_nan=True, err_msg=v.name
         )  # a step either way: float order
+
+
+def test_a_years_build_runs_from_january_and_its_status_says_what_it_needs(tmp_path, monkeypatch):
+    """`build` (manage.py ingredients) on five days of January: built and marked current, then a day missing; a year
+    whose only stale variables are the crops' tiers rebuilds just the tiers."""
+    from agdata import croptiers
+
+    weather = _weather()
+    k = SPAN.index(date(2026, 1, 1))
+    store = GridStore.create(tmp_path, DAILY, 2026, WINDOW, DAILY_VARIABLES.values())
+    store.write(date(2026, 1, 1), {name: v[k : k + 5] for name, v in weather.items()}, source="test")
+    assert modelmaps.status(tmp_path, 2025) is None  # no daily store: nothing to build from
+    assert modelmaps.status(tmp_path, 2026) == "not built"
+    assert modelmaps.build(tmp_path, WINDOW, 2026) == (date(2026, 1, 1), date(2026, 1, 5))
+    assert modelmaps.status(tmp_path, 2026) is None
+    store.write(date(2026, 1, 6), {name: v[k + 5 : k + 6] for name, v in weather.items()}, source="test")
+    assert modelmaps.status(tmp_path, 2026) == "1 days missing (from 2026-01-06)"
+
+    tiers = {v.name for v in modelmaps.tier_variables()}
+    monkeypatch.setattr(GridStore, "stale_variables", classmethod(lambda cls, *args: tiers))
+    monkeypatch.setattr(modelmaps, "build_year", lambda *args, **kwargs: pytest.fail("rebuilt the whole year"))
+    updated = []
+    monkeypatch.setattr(croptiers, "update", lambda data_dir, window, year, last, lock: updated.append((year, last)))
+    assert modelmaps.status(tmp_path, 2026) == f"{len(tiers)} stale variables"
+    assert modelmaps.build(tmp_path, WINDOW, 2026) == (date(2026, 1, 1), date(2026, 1, 6))
+    assert updated == [(2026, date(2026, 1, 6))]

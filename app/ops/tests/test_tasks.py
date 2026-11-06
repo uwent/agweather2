@@ -130,3 +130,77 @@ def test_the_forecast_job_builds_with_the_service_box_and_the_job_time(lock_call
     assert seen == [(settings.DATA_DIR, settings.SERVICE_BOX, datetime.fromtimestamp(NOW, UTC))]
     # the hourly and forecast jobs wait less: a backfill lets them in between its blocks
     assert lock_calls == [{"wait": tasks.JOB_LOCK_WAIT_S, "label": "job ingest_forecast"}]
+
+
+# --- the maintenance jobs (Phase 5) ------------------------------------------------------------------------------
+
+
+def test_the_past_years_job_builds_each_stale_year_and_warns_about_one_it_cant(lock_calls, monkeypatch, caplog):
+    built = []
+
+    def build(data_dir, year):
+        if year == 2023:
+            raise ValueError("2023 has no complete daily store")
+        built.append(year)
+
+    monkeypatch.setattr(tasks.pastyears, "stale_years", lambda data_dir, before: {2023: "missing", 2024: "stale"})
+    monkeypatch.setattr(tasks.pastyears, "build", build)
+    with caplog.at_level(logging.WARNING, logger=tasks.__name__):
+        tasks.build_past_years(NOW)
+    assert built == [2024]
+    assert warnings(caplog) == ["past-years copy of 2023 not built: 2023 has no complete daily store"]
+    assert lock_calls == []  # it only reads the daily stores
+
+
+@pytest.fixture
+def daily_store(settings, tmp_path):
+    """An archive of one daily store over the test window: what the crop tiers job reads its window from."""
+    from agdata.catalog import DAILY_VARIABLES
+    from agdata.store import DAILY, GridStore
+    from agdata.testing import WINDOW
+
+    settings.DATA_DIR = tmp_path
+    GridStore.create(tmp_path, DAILY, 2025, WINDOW, [DAILY_VARIABLES["air_temperature_min"]])
+    return WINDOW
+
+
+def test_the_crop_tiers_job_refreshes_the_archives_window_through_the_jobs_day(daily_store, monkeypatch):
+    seen = []
+
+    def refresh(data_dir, window, today, lock):
+        seen.append((window, today))
+        return {"archive": ["corn-stages.mid"]}
+
+    monkeypatch.setattr(tasks.croptiers, "refresh", refresh)
+    tasks.update_crop_tiers(NOW)
+    assert seen == [(daily_store, datetime.fromtimestamp(NOW, UTC).date())]
+
+
+def test_the_crop_tiers_job_skips_an_empty_archive_and_a_held_lock(daily_store, monkeypatch, caplog):
+    def refresh(*args, **kwargs):
+        raise WriteLocked("another job or command is writing (pid 7)", holder="7")
+
+    monkeypatch.setattr(tasks.croptiers, "refresh", refresh)
+    with caplog.at_level(logging.WARNING, logger=tasks.__name__):
+        tasks.update_crop_tiers(NOW)
+    assert "update_crop_tiers skipped" in warnings(caplog)[0]
+    caplog.clear()
+    monkeypatch.setattr(tasks.series, "archive_years", lambda data_dir: [])
+    tasks.update_crop_tiers(NOW)  # nothing to do, and no warning
+    assert warnings(caplog) == []
+
+
+def test_the_maps_and_downloads_jobs_log_what_they_made(monkeypatch, caplog, settings, tmp_path):
+    from types import SimpleNamespace
+
+    from api.routes import maps
+    from ops import downloads
+
+    settings.DATA_DIR = tmp_path
+    monkeypatch.setattr(maps, "render_default_maps", lambda: {"degree_days": 812.0, "tar-spot": 0})
+    monkeypatch.setattr(downloads, "build_wanted", lambda data_dir, now: [SimpleNamespace(bytes=3e6)] * 2)
+    with caplog.at_level(logging.INFO, logger=tasks.__name__):
+        tasks.render_default_maps(NOW)
+        tasks.build_downloads(NOW)
+    logged = [r.getMessage() for r in caplog.records if r.name == tasks.__name__]
+    assert logged == ["maps drawn: {'degree_days': '812 ms'}", "downloads: 2 files built (6 MB)"]

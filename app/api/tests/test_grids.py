@@ -246,6 +246,17 @@ def test_a_stale_variable_is_computed_from_the_hours(client, archive, monkeypatc
         ("alfalfa-weevil", {"planting": "mid"}, 422, "planting"),
         ("soybean-stages", {"planting": "none"}, 422, "planting"),
         ("air_temperature_max", {"planting": "mid"}, 422, "planting"),
+        ("air_temperature_max", {"time": "2025-07-08T12:00Z"}, 422, "time"),
+        ("air_temperature_hourly", {"date": "2025-07-08"}, 422, "date"),
+        ("air_temperature_hourly", {"time": "2025-07-08T12:00Z", "start": "2025-07-08T10:00Z"}, 422, "time"),
+        ("air_temperature_hourly", {"time": "noon"}, 422, "time"),
+        ("air_temperature_hourly", {"time": "2025-07-08T12:30Z"}, 422, "time"),
+        (
+            "air_temperature_hourly",
+            {"start": "2025-06-01T00:00Z", "end": "2025-07-08T00:00Z", "stat": "mean"},
+            422,
+            "start",
+        ),  # 889 hours: a map covers up to 744
     ],
 )
 def test_requests_that_cant_be_answered(client, archive, layer, params, status, param):
@@ -398,3 +409,42 @@ def test_a_range_reduced_by_a_stat_is_limited_too(client, archive):
     years = get(client, "air_temperature_max", start="2016-01-01", end="2025-07-08", stat="mean")
     assert years.status_code == 422 and years.json()["errors"][0]["code"] == "too_large"
     assert get(client, "air_temperature_max", start="2024-07-09", end="2025-07-08", stat="mean").status_code == 200
+
+
+def test_an_hourly_layer_is_a_map_an_hour(client, archive):
+    """15 °C ± 6 peaking at 15Z: 10.76 °C at 12Z, and 9.92 °C over 10–12Z."""
+    data = get(client, "air_temperature_hourly", time="2025-07-10T12:00Z").json()["data"]
+    assert set(data["time"]) == {"2025-07-10T12:00Z"} and set(data["kind"]) == {"observed"}
+    assert set(data["air_temperature_hourly"]) == {51.4}
+    reduced = get(client, "air_temperature_hourly", start="2025-07-10T10:00Z", end="2025-07-10T12:00Z", stat="mean")
+    data = reduced.json()["data"]
+    assert set(data["air_temperature_hourly"]) == {49.9} and set(data["missing_hours"]) == {0}
+
+
+def test_an_hourly_range_out_of_order_says_both_times(client, archive):
+    error = get(client, "air_temperature_hourly", start="2025-07-08T12:00Z", end="2025-07-08T10:00Z").json()["errors"]
+    assert error[0]["message"] == (
+        "The start time (noon UTC, July 8, 2025) is after the end time (10 a.m. UTC, July 8, 2025). Choose a start on "
+        "or before the end."
+    )
+
+
+def test_a_model_map_says_when_its_out_of_season_or_before_its_biofix(client, archive):
+    cotton = get(client, "cotton-planting", date="2025-07-05").json()["meta"]["warnings"]
+    assert "These dates are outside the model's season (March 15 to June 30)." in cotton
+    earworm = get(client, "corn-earworm", date="2025-07-08").json()["meta"]["warnings"]
+    assert "The season starts at the biofix, August 1, 2025, so nothing has accumulated yet." in earworm
+
+
+def test_a_mean_of_degree_days_is_the_days_sum_over_their_number(client, archive):
+    days = get(client, "degree_days", dd="sine_50", start="2025-07-02", end="2025-07-05").json()["data"]
+    mean = get(client, "degree_days", dd="sine_50", start="2025-07-02", end="2025-07-05", stat="mean").json()["data"]
+    first_cell = days["degree_days"][:: WINDOW.size]  # rows day by day, each day's cells in the same order
+    assert len(first_cell) == 4
+    assert mean["degree_days"][0] == pytest.approx(sum(first_cell) / 4, abs=0.05)
+
+
+def test_an_archive_with_no_data_is_a_503(client, settings):
+    settings.SERVICE_BOX = "42.84,-91.69,42.866,-91.627"  # DATA_DIR is an empty folder (app/conftest.py)
+    response = get(client, "air_temperature_max")
+    assert response.status_code == 503 and response.json()["errors"][0]["code"] == "no_data"

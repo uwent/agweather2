@@ -1,5 +1,6 @@
 """Past years laid out for points (agdata.pastyears; D63's projection)."""
 
+import shutil
 from datetime import UTC, date, datetime
 
 import numpy as np
@@ -13,13 +14,17 @@ from agdata.testing import WINDOW
 NAMES = ["air_temperature_min", "air_temperature_max", "precipitation_sum", "hours_rh_over_90"]
 
 
-@pytest.fixture
-def two_years(tmp_path, monkeypatch):
-    from agdata import testing
+@pytest.fixture(scope="module")
+def built(tmp_path_factory, fx_module):
+    root = tmp_path_factory.mktemp("two-years")
+    fx_module.archive(root, datetime(2023, 12, 20, tzinfo=UTC), datetime(2024, 1, 15, tzinfo=UTC), warm=10)
+    return root
 
-    fx = testing.central(monkeypatch)
-    fx.archive(tmp_path, datetime(2023, 12, 20, tzinfo=UTC), datetime(2024, 1, 15, tzinfo=UTC), warm=10)
-    return tmp_path
+
+@pytest.fixture
+def two_years(built, tmp_path):
+    """The archive's hours Dec 20, 2023 to Jan 15, 2024, rolled up: a copy each test may change (~10 s to build)."""
+    return shutil.copytree(built, tmp_path / "archive")
 
 
 def daily_values(data_dir, j, i, first: date, last: date, name: str) -> np.ndarray:

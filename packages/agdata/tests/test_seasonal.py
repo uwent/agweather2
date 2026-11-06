@@ -16,9 +16,9 @@ POTATO = model("potato-volunteer").SPEC
 LAST = testing.WINTER_LAST  # 2025-26 is open; 2023-24 at 1 hour a day below 27 °F, 2024-25 at 2, 2025-26 at 3
 
 
-@pytest.fixture(scope="module")
-def built(tmp_path_factory):
-    return testing.winters(tmp_path_factory.mktemp("seasons"))
+@pytest.fixture
+def built(winters_dir):
+    return winters_dir  # the root conftest's, shared with the app's seasonal tests
 
 
 def _at(root, day: date) -> modelgrid.ModelDays:
@@ -100,7 +100,13 @@ def test_a_season_missing_a_day_isnt_projected_on(built, tmp_path):
     from agdata.catalog import DAILY_VARIABLES
     from agdata.store import DAILY
 
-    root = shutil.copytree(built, tmp_path / "archive")
+    root = tmp_path / "archive"
+    for store in built.glob("*/*.zarr"):  # 2025's daily store is changed: copy it, and link the rest (14,000 files)
+        (root / store.parent.name).mkdir(parents=True, exist_ok=True)
+        if store.relative_to(built).as_posix() == "daily/2025.zarr":
+            shutil.copytree(store, root / "daily" / store.name)
+        else:
+            (root / store.parent.name / store.name).symlink_to(store)
     name = "hours_soil_4cm_below_27f"
     GridStore.open(root, DAILY, 2025, [DAILY_VARIABLES[name]]).set_sources(name, date(2025, 2, 10), [None])
     found = _at(root, LAST)

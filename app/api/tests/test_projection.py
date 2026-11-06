@@ -138,13 +138,13 @@ def test_risk_past_the_forecast(client, projection_archive):
 
 
 def test_the_copies_laid_out_for_points_give_the_same_projection(client, projection_archive, tmp_path):
-    import shutil
-
     from agdata import pastyears
 
     before = get(client, "early-blight-pdays", **BLIGHT, projection="years").json()["data"]
-    copy_dir = tmp_path / "with-copies"
-    shutil.copytree(projection_archive, copy_dir)
+    copy_dir = tmp_path / "with-copies"  # the archive (read only, so linked: 20,000 files) and the copies
+    copy_dir.mkdir()
+    for entry in projection_archive.iterdir():
+        (copy_dir / entry.name).symlink_to(entry)
     for year in (2023, 2024):
         pastyears.build(copy_dir, year)
     from django.conf import settings

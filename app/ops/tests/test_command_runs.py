@@ -566,3 +566,74 @@ def test_era5land_says_so_while_requests_sit_in_the_queue(cds, monkeypatch):
     out, _ = run("era5land", "--start", "2025-06-01", "--end", "2025-06-03", "--box", BOX)
     assert "1 requests still queued or downloading at the CDS" in out
     assert original == set() and "1 of 1 requests written" in out
+
+
+# --- downloads and pastyears -------------------------------------------------------------------------------------
+
+
+def test_downloads_check_lists_the_files_and_a_run_reports_each_one(data_dir, monkeypatch):
+    from ops import downloads
+
+    todo = [("air_temperature_max", 2024, "missing"), ("precipitation_sum", 2025, "older than its store")]
+    asked = []
+    monkeypatch.setattr(downloads, "wanted", lambda data, now, names: asked.append(names) or todo)
+
+    def build_wanted(data, now, names, progress):
+        for k, (name, year, _) in enumerate(todo):
+            progress(k + 1, len(todo), f"{name}_{year}.nc")
+        return [SimpleNamespace(bytes=4e6), SimpleNamespace(bytes=2e6)]
+
+    monkeypatch.setattr(downloads, "build_wanted", build_wanted)
+    out, _ = run("downloads", "--check", "--variables", "air_temperature_max, precipitation_sum")
+    assert "air_temperature_max 2024: missing" in out and "2 files to build" in out
+    assert asked == [["air_temperature_max", "precipitation_sum"]]
+    out, _ = run("downloads")
+    assert "air_temperature_max_2024.nc" in out and "2 files built (6 MB)" in out
+
+
+def test_downloads_refuses_a_variable_that_isnt_daily(data_dir):
+    with pytest.raises(CommandError, match="not daily variables: air_temperature"):
+        call_command("downloads", "--variables", "air_temperature", stdout=StringIO(), stderr=StringIO())
+
+
+def test_downloads_stops_between_files_when_asked(data_dir, monkeypatch):
+    from ops import downloads
+    from ops.management.base import ReportingCommand
+
+    def build_wanted(data, now, names, progress):
+        progress(1, 3, "first.nc")  # the stop is seen at the first file's progress
+        pytest.fail("kept building after a stop")
+
+    monkeypatch.setattr(downloads, "build_wanted", build_wanted)
+    monkeypatch.setattr(ReportingCommand, "_install_signals", lambda self: self.stopping.set())
+    out, _ = run("downloads")
+    assert "0 files built" in out and "stopped early" in out
+
+
+def test_pastyears_builds_the_stale_years_and_fails_on_one_it_cant(data_dir, monkeypatch):
+    from agdata import pastyears
+
+    def build(data, year, progress):
+        if year == 2023:
+            raise ValueError("2023 has no complete daily store")
+        progress(1, 1)
+
+    monkeypatch.setattr(pastyears, "stale_years", lambda data, before: {2023: "missing", 2024: "out of date"})
+    monkeypatch.setattr(pastyears, "build", build)
+    out, _ = run("pastyears", "--check")
+    assert "2023: missing" in out and "2 years to build" in out
+    error, out, err = run_failing("pastyears")
+    assert "2024 built" in out
+    assert "failed: 2023: ValueError('2023 has no complete daily store')" in err and "1 years built; 1 failed" in err
+    assert "1 failed" in str(error)
+
+
+def test_pastyears_year_must_have_a_daily_store(data_dir, monkeypatch):
+    from agdata import pastyears
+
+    monkeypatch.setattr(pastyears, "years_on_disk", lambda data, layout: [2024])
+    with pytest.raises(CommandError, match="--year 2019: the archive has no daily store"):
+        call_command("pastyears", "--year", "2019", stdout=StringIO(), stderr=StringIO())
+    monkeypatch.setattr(pastyears, "build", lambda data, year, progress: None)
+    out, _ = run("pastyears", "--year", "2024")
+    assert "2024 (asked for)" in out and "1 years built" in out

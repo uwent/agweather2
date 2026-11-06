@@ -265,3 +265,24 @@ def test_crop_options_without_a_planting_date_run_once(client, archive):
     body = get(client, "frogeye-leaf-spot", start="2025-07-01", end="2025-07-03", maturity_group="all").json()
     assert "option_sets" not in body["meta"]["summary"] and "option_set" not in body["data"]
     assert any("maturity_group" in w for w in body["meta"]["warnings"])
+
+
+def test_a_biofix_for_a_model_without_one_and_too_many_option_sets_are_refused(client, archive):
+    biofix = get(client, "cotton-planting", biofix="2025-05-01").json()["errors"][0]
+    assert (biofix["code"], biofix["param"]) == ("not_applicable", "biofix")
+    assert biofix["message"] == "The Cotton planting stand risk model doesn't take a biofix date. Leave out biofix."
+    many = get(client, "soybean-stages", planting_date="2025-05-01", maturity_group="all", seeding_depth_in="all")
+    error = many.json()["errors"][0]  # 9 maturity groups x 3 depths
+    assert many.status_code == 422 and (error["code"], error["param"]) == ("too_many", "all")
+    assert "27 combinations of options" in error["message"]
+
+
+def test_all_needs_an_option_with_choices():
+    from agmodels.spec import Option
+    from api.errors import ApiError
+    from api.runs import option_values
+
+    typed = Option(name="threshold", label="Threshold", choices=(), default="10")
+    assert option_values(typed, None, []) == ["10"] and option_values(typed, "12", []) == ["12"]
+    with pytest.raises(ApiError, match="threshold has no list of choices, so it can't be set to all"):
+        option_values(typed, "all", [])
