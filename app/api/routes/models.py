@@ -7,7 +7,7 @@ risk as `risk_level` (an index into the spec's levels), `risk_label` and, for a 
 `risk_value`. A disease gated by crop stage (D33) adds `susceptibility` only when a planting date is given; a model with
 a season adds `in_season`. Insects' action windows go in `meta.summary.windows`.
 
-Response shapes for model runs stay provisional until Phase 6's frontend uses them (D64)."""
+Response shapes for model runs stay provisional until Phase 7's frontend uses them (D64)."""
 
 import itertools
 import json

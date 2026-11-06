@@ -1,6 +1,6 @@
 # API v2 design
 
-Agreed 2026-11-02 (D57, D58). The contract for `/api/v2`: what each endpoint takes and returns, in which formats, and why. PLAN.md Phase 5 holds the work list and the decisions (D57 the contract, D58 models on your own weather); this file is the spec they refer to, and the source for the public API docs page in Phase 6. Details below are refined as the endpoints are built, and recorded here.
+Agreed 2026-11-02 (D57, D58). The contract for `/api/v2`: what each endpoint takes and returns, in which formats, and why. PLAN.md Phase 5 holds the work list and the decisions (D57 the contract, D58 models on your own weather); this file is the spec they refer to, and the source for the public API docs page in Phase 7. Details below are refined as the endpoints are built, and recorded here.
 
 ## Who it serves
 
@@ -439,7 +439,7 @@ Yearly NetCDF per daily variable for bulk users ✓ (D69, D71, Phase 5 H2), as s
 - **Anonymous reads** with per-IP rate limits ✓ (PLAN.md D69, `api.ratelimit`): a budget of 200 units a minute per IPv4 address or IPv6 /64 (`API_RATE_LIMIT`), a request costing 1 unit plus 1 per 100 ms of server time, so a kept tile or a 304 costs 1 and a map computed afresh several. Every API response carries `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` (seconds to the minute's end); a client over its budget gets a 429 (`rate_limited`) with `Retry-After`. Optional free API keys (`X-API-Key`) for higher limits, and so we know who to tell before a change, are added when someone needs more.
 - **Stability:** `/api/v2` changes only by addition (new endpoints, parameters, columns, `meta` keys). Anything breaking is announced on the changelog page and in `meta.warnings` well ahead. Clients should ignore keys they don't know.
 - **Types:** the frontend's TypeScript types are generated from the OpenAPI schema, as `bin/types` does for props (`@/types/api`), so CI fails when the frontend and API disagree.
-- **Docs:** OpenAPI at `/api/v2/docs`, its public text kept in `app/api/docs/` (an intro, a page per endpoint, `parameters.toml`; `test_docs` checks each endpoint and parameter has text in the public style), with D53's attribution and links to the changelog and feedback pages (Phase 6). R, Python and curl examples per endpoint come in Phase 8, after the frontend; the downloads page has R and Python examples now.
+- **Docs:** OpenAPI at `/api/v2/docs`, its public text kept in `app/api/docs/` (an intro, a page per endpoint, `parameters.toml`; `test_docs` checks each endpoint and parameter has text in the public style), with D53's attribution and links to the changelog and feedback pages (Phase 7). R, Python and curl examples per endpoint come in Phase 8, after the frontend; the downloads page has R and Python examples now.
 
 ## Examples (target)
 
