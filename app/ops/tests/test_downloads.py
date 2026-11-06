@@ -38,16 +38,26 @@ def test_a_file_holds_the_stores_values_through_the_last_day_rolled_up(data_dir)
     assert entry.last == (date(2025, 1, 1) + timedelta(days=n - 1)).isoformat()
     with xr.open_dataset(data_dir / "downloads" / entry.path) as ds:
         found = ds["air_temperature_max"]
-        assert found.dtype == np.float32  # unpacked from int16 by its float32 scale_factor
+        assert found.dtype == np.float32
         assert found.attrs["units"] == "degC"
         assert found.attrs["cell_methods"] == "time: maximum"
-        assert found.encoding["dtype"] == np.int16
+        assert found.encoding["dtype"] == np.float32  # plain values: no scale_factor for a viewer to miss
+        assert "scale_factor" not in found.encoding
         assert ds.sizes["time"] == n
         expected = store.read_steps("air_temperature_max", 0, n)
         np.testing.assert_allclose(found.values, expected, atol=1e-4)
         assert np.isnan(found.values).sum() == np.isnan(expected).sum()  # missing stays missing
         assert "time_zones.nc" in ds.attrs["comment"]
         assert "lambert_conformal_conic" in ds
+
+
+def test_a_file_from_an_older_format_is_rebuilt(data_dir):
+    downloads.build_wanted(data_dir, NOW, NAMES)
+    entries = downloads.read_index(data_dir)
+    for e in entries:
+        e.format = 1
+    downloads.write_index(data_dir, entries)
+    assert {why for _, _, why in downloads.wanted(data_dir, NOW, NAMES)} == {"built in format 1, now 2"}
 
 
 def test_hour_counts_have_no_cell_method(data_dir):

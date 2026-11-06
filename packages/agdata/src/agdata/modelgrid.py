@@ -253,9 +253,11 @@ def model_map(
     crop = tiered(model_id)
     sown = None if tier is None or crop is None else _Planting(crop_id=crop[0], crop=crop[1], tier=tier, window=window)
     if model_id in modelmaps.TIER_MODELS:
-        if sown is None:
+        if sown is not None:
+            return _stored_days(data_dir, sown, first, last, now, stores)
+        if not spec.ingredients:
             raise ValueError(f"{model_id} is stored per planting tier: give one")
-        return _stored_days(data_dir, sown, first, last, now, stores)
+        # corn and potato without a tier: the spec's dates, finished from their ingredients as any model
     cell_biofix = None
     if sown is not None and sown.crop_id == model_id:
         cell_biofix = sown
@@ -310,14 +312,16 @@ def _finished(spec, base, dates, outputs, risk, level, reader, cells=None) -> Mo
     )
 
 
-def _stored_days(data_dir, sown: _Planting, first: date, last: date, now, stores) -> ModelDays:
-    """A tier-stored crop model's outputs (`agdata.croptiers`) on days first..last."""
+def _stored_days(data_dir, sown: _Planting, first: date, last: date, now, stores, only=None) -> ModelDays:
+    """A tier-stored crop model's outputs (`agdata.croptiers`) on days first..last: all of them, or those named in
+    `only` (a crop's stages for gating need `stage` alone; each output is a read of every day)."""
     spec = find_model(sown.crop_id).SPEC
-    names = [modelmaps.tier_key(spec.id, q.name, sown.tier) for q in spec.outputs]
+    wanted = [q for q in spec.outputs if only is None or q.name in only]
+    names = [modelmaps.tier_key(spec.id, q.name, sown.tier) for q in wanted]
     base, reader = _base(data_dir, spec, first, last, sown.window, now, stores, names)
     dates = [first + timedelta(days=k) for k in range(len(base.steps))]
     outputs = {}
-    for q, name in zip(spec.outputs, names, strict=True):
+    for q, name in zip(wanted, names, strict=True):
         found = reader.days(INGREDIENTS, name, dates)
         outputs[q.name] = np.stack([found[d] for d in dates])
     planted = np.stack([sown(d) for d in dates])  # the biofix is the planting
@@ -376,7 +380,7 @@ def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Win
 def _crop_stages(data_dir, sown: _Planting, first: date, last: date, now) -> np.ndarray:
     """The crop's `stage` (days × cells) from each cell's planting at the tier (NaN before it, or without one)."""
     if sown.crop_id in modelmaps.TIER_MODELS:
-        return _stored_days(data_dir, sown, first, last, now, None).outputs["stage"]
+        return _stored_days(data_dir, sown, first, last, now, None, only=("stage",)).outputs["stage"]
 
     def only_planted(day: date) -> np.ndarray:
         p = sown(day)

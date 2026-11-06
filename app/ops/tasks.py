@@ -111,7 +111,7 @@ def build_past_years(timestamp: int) -> None:
 @app.periodic(cron="55 * * * *")  # after the hour's ingest (:40) and the forecast's (:45)
 @app.task(queue="maintenance", queueing_lock="update_crop_tiers", task_middleware=JOB_MIDDLEWARE)
 def update_crop_tiers(timestamp: int) -> None:
-    """Soybean and spring wheat stages per planting tier (`agdata.croptiers`, D66) through the archive's last day
+    """Crop stages per planting tier (`agdata.croptiers`, D66, D70) through the archive's last day
     and the forecast run's, while a crop is in season. Its own job (~15 s over Wisconsin, ~10× on the launch box),
     so the ingest's lock isn't held for it: computed outside the lock, written inside."""
     try:

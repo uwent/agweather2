@@ -1,8 +1,10 @@
-"""Soybean and spring wheat stages per planting tier on the grid (PLAN.md Phase 5 F3 step 2b, D66).
+"""Crop stages per planting tier on the grid (PLAN.md Phase 5 F3 step 2b, D66; corn and potato D70).
 
-These crop models are day-by-day state machines (soybean's photothermal development, spring wheat's GDD whose cap
-switches at Haun 2.0), so a map can't finish one day from a few stored ingredients the way `agdata.modelgrid` does
-for the rest: a season over Wisconsin takes 4.65 s for soybean and 1.5 s for spring wheat. Instead each tier's
+Soybean and spring wheat are day-by-day state machines (soybean's photothermal development, spring wheat's GDD whose
+cap switches at Haun 2.0), so a map can't finish one day from a few stored ingredients the way `agdata.modelgrid`
+does for the rest: a season over Wisconsin takes 4.65 s for soybean and 1.5 s for spring wheat. Corn and potato can
+be finished from ingredients, but every map of a disease gated by their stages (tar spot, the blights) computed them
+over every cell (0.2-0.3 s a map, early blight's emergence a season), so they're stored too. Instead each tier's
 outputs are kept for every day of the season in the ingredients store (`modelmaps.tier_key`), computed from each
 cell's typical planting date for the tier (`agdata.planting.planting_map`; NaN where there's none) with the model's
 default options (soybean MG 2.0 until location-adjusted maturity, D66).
@@ -28,7 +30,12 @@ from agmodels.registry import model as find_model
 
 # The days an hourly update rewrites: the ingest's own reach back (`ops.ingest`, the last week) and a margin
 REWRITE_DAYS = 10
-CROPS = {"soybean-stages": "soybean", "spring-wheat-stages": "spring-wheat"}  # model → `agdata.planting` crop
+CROPS = {  # model → `agdata.planting` crop
+    "soybean-stages": "soybean",
+    "spring-wheat-stages": "spring-wheat",
+    "corn-stages": "corn",
+    "potato-stages": "potato",
+}
 RUN_STAMP = "croptiers.first_day"  # in a forecast run: the first day its tiers were computed from
 
 

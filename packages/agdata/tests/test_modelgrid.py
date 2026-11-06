@@ -51,8 +51,31 @@ def built(tmp_path_factory):
     store.write(FIRST, weather, source="test")
     cumulative.rebuild_year(root, WINDOW, 2025)
     modelmaps.update(root, WINDOW, FIRST, LAST)
-    croptiers.update(root, WINDOW, 2025, LAST)  # soybean's tiers (spring wheat has no dates in Fayette County)
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        _potato_place(monkeypatch)
+        # soybean's, corn's and potato's tiers (spring wheat has no dates in Fayette County)
+        croptiers.update(root, WINDOW, 2025, LAST)
+    planting_tiers_cleared()
     return root, weather
+
+
+def planting_tiers_cleared() -> None:
+    from agdata import planting
+
+    planting._tier_days.cache_clear()
+
+
+def _potato_place(monkeypatch) -> None:
+    """A Veg Path potato place at the test window (there's none in Fayette County, Iowa), planted Apr 28 / May 5 /
+    May 12."""
+    from agdata import planting
+
+    lat, lng = NDFD.latlon(WINDOW.j0, WINDOW.i0)
+    row = planting.PlantingDate(
+        crop="potato", early="04-28", typical="05-05", late="05-12", level="location", area="Here"
+    )
+    planting._tier_days.cache_clear()
+    monkeypatch.setattr(planting, "_potato_table", lambda: ((float(lat), float(lng), row),))
 
 
 def _at_point(
@@ -186,18 +209,10 @@ def test_a_sum_and_mean_over_days_start_at_the_biofix():
 
 @pytest.fixture
 def potato_here(monkeypatch):
-    """A Veg Path potato place at the test window (there's none in Fayette County, Iowa), planted Apr 28 / May 5 /
-    May 12."""
-    from agdata import planting
-
-    lat, lng = NDFD.latlon(WINDOW.j0, WINDOW.i0)
-    row = planting.PlantingDate(
-        crop="potato", early="04-28", typical="05-05", late="05-12", level="location", area="Here"
-    )
-    planting._tier_days.cache_clear()
-    monkeypatch.setattr(planting, "_potato_table", lambda: ((float(lat), float(lng), row),))
+    """The potato place `built` stored the tiers with (`_potato_place`)."""
+    _potato_place(monkeypatch)
     yield
-    planting._tier_days.cache_clear()
+    planting_tiers_cleared()
 
 
 def test_a_planting_map_is_each_cells_typical_date():

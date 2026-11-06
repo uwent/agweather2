@@ -387,7 +387,7 @@ def model_request(request: HttpRequest, layer: Layer, query: LayerQuery, warning
             message = f"{later[0]} isn't on maps yet, so {spec.id}'s map takes no planting tier"
         raise ApiError("not_applicable", message, "planting")
     tier = None if crop is None or query.planting == "none" else (query.planting or "mid")
-    if tier is None and spec.id in modelmaps.TIER_MODELS:
+    if tier is None and spec.id in modelmaps.TIER_MODELS and not spec.ingredients:  # soybean, spring wheat
         raise ApiError("invalid", f"{spec.id} is mapped per planting tier: early, mid or late", "planting")
     pointed = f"maps use each place's own settings (D66); for yours at a point, GET /api/v2/models/{spec.id}/run"
     for name in (*_POINT_ONLY, *modelgrid.PLACE_OPTIONS):

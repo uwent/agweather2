@@ -152,15 +152,18 @@ def stored() -> dict[str, Stored]:
     return out
 
 
-# Crop models without ingredients (day-by-day state machines), stored instead as their outputs per planting tier
-# (`agdata.croptiers`, D66): each output's storage (scale, valid_min, valid_max)
-TIER_MODELS = ("soybean-stages", "spring-wheat-stages")
+# Crop models stored as their outputs per planting tier (`agdata.croptiers`, D66): soybean and spring wheat have no
+# ingredients (day-by-day state machines); corn and potato do, but a map gated by their stages computed them over
+# every cell each time (0.2-0.3 s, Phase 5 H4, D70). Each output's storage (scale, valid_min, valid_max)
+TIER_MODELS = ("soybean-stages", "spring-wheat-stages", "corn-stages", "potato-stages")
 TIERS = ("early", "mid", "late")
 _TIER_OUTPUTS: dict[str, tuple[float, float, float]] = {
     "stage": (1, -1, 100),
     "nodes": (0.01, 0, 60),
     "gdd_total": (0.5, 0, 16000),
     "gdd": (0.1, 0, 100),
+    "dd_total": (0.5, 0, 16000),
+    "dd": (0.1, 0, 100),
 }
 
 

@@ -311,11 +311,6 @@ class GridStore:
         packed = self._array(name)[start:stop, rows, cols]
         return self._variable(name).decode(np.asarray(packed))
 
-    def read_packed(self, name: str, start: int, stop: int) -> np.ndarray:
-        """Steps start..stop-1 over the whole store as stored: int16, packed by the variable's scale and offset,
-        `FILL` where missing (for copying into a file that packs the same way, such as the yearly downloads)."""
-        return np.asarray(self._array(name)[start:stop])
-
     def _local_slices(self, window: Window | None) -> tuple[slice, slice]:
         window = window or self.window
         y0, x0 = self.window.local(window.j0, window.i0)

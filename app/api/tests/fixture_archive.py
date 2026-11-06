@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from agdata import forecast, testing
+from agdata import croptiers, forecast, testing
 from agdata.grid import NDFD
 
 CYCLE = datetime(2025, 7, 10, 13, tzinfo=UTC)
@@ -26,6 +26,7 @@ def build(path: Path) -> Path:
         fx.archive(path, FIRST_HOUR, OBSERVED_UNTIL)
         run = forecast.write_run(path, fx.window, fx.nbm_run(CYCLE), pressure_kpa=98.0)
         forecast.publish(path, run)
+        croptiers.refresh(path, fx.window, NOW.date())  # the crops' stages per planting tier, as the hourly job
     return path
 
 

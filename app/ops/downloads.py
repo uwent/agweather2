@@ -1,11 +1,12 @@
 """Yearly NetCDF downloads of the daily variables (PLAN.md Phase 5 H2, D69), served as static files.
 
 One file per daily variable and year, `DATA_DIR/downloads/daily/{year}/{name}_{year}.nc`, with the year's days
-through the last one rolled up: a past year whole, the current year to date. The values are copied from the daily
-store as stored (int16 with the catalog's scale and offset, which the file declares as CF `scale_factor`,
-`add_offset` and `_FillValue`, so readers unpack them), so nothing is lost and a file is written a month at a time
-whatever the box's size. The grid and its projection are `api.gridfiles`' (the same as `/grids` in NetCDF), with
-each cell's time zone beside the data, since a day is the cell's local calendar day.
+through the last one rolled up: a past year whole, the current year to date. The values are plain float32 in the
+stored unit, NaN where missing, written a month at a time whatever the box's size. They were first the store's int16
+with CF `scale_factor` (lossless and 20-35% smaller), but a viewer Ben opened them in showed the packed integers
+(temperatures ×10): not every GIS tool applies `scale_factor`, so a public file mustn't need it (FORMAT 2).
+The grid and its projection are `api.gridfiles`' (the same as `/grids` in NetCDF); each cell's time zone, which
+sets its days, is in `daily/time_zones.nc`.
 
 `index.json` beside them lists each file with the store's write stamp it was built from (`GridStore.written`). A file
 is rebuilt when its store has been written since, and the current year's at most weekly (`CURRENT_EVERY`), by
@@ -23,7 +24,7 @@ from pathlib import Path
 import h5netcdf
 import numpy as np
 
-from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, FILL
+from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES
 from agdata.daily import cell_timezones
 from agdata.grid import NDFD
 from agdata.pastyears import years_on_disk
@@ -32,6 +33,7 @@ from api.envelope import attribution
 from api.gridfiles import axis_attrs, cell_degrees, cf_lambert
 
 FOLDER = "downloads"
+FORMAT = 2  # the files' layout: a file built in another is rebuilt (1: int16 with scale_factor; 2: float32)
 CURRENT_EVERY = timedelta(days=7)  # the current year's files: rebuilt at most this often
 BLOCK_DAYS = 31  # days read and written at a time
 CF_STATS = {"min": "minimum", "max": "maximum", "mean": "mean", "sum": "sum"}
@@ -55,6 +57,7 @@ class Entry:
     complete: bool  # holds every day of the year
     written: float  # the store's write stamp it was built from (epoch seconds)
     built_at: str  # ISO, UTC
+    format: int = 1  # FORMAT when built (entries from before it existed are 1)
 
 
 def folder(data_dir: Path) -> Path:
@@ -92,6 +95,8 @@ def wanted(data_dir: Path, now: datetime, variables: list[str] | None = None) ->
             entry = known.get((name, year))
             if entry is None:
                 found.append((name, year, "missing"))
+            elif entry.format != FORMAT:
+                found.append((name, year, f"built in format {entry.format}, now {FORMAT}"))
             elif entry.written != written:
                 built = datetime.fromisoformat(entry.built_at)
                 if year < now.year or now - built >= CURRENT_EVERY:
@@ -127,6 +132,7 @@ def build(data_dir: Path, name: str, year: int, now: datetime) -> Entry | None:
         complete=n == days_in_year,
         written=written,
         built_at=now.astimezone(UTC).isoformat(timespec="seconds"),
+        format=FORMAT,
     )
 
 
@@ -233,21 +239,18 @@ def _write(path: Path, store: GridStore, name: str, n: int, first: date, now: da
         data = f.create_variable(
             name,
             ("time", "y", "x"),
-            np.int16,
-            fillvalue=np.int16(FILL),
+            np.float32,
+            fillvalue=np.float32(np.nan),
             chunks=(1, ny, nx),
             compression="gzip",
             compression_opts=6,
-            shuffle=True,
         )
         data.attrs.update(
             {
                 "long_name": v.long_name,
                 "units": v.unit,
-                "scale_factor": np.float32(v.scale),  # readers unpack to its type: float32 halves a year in memory
-                "add_offset": np.float32(v.offset),
-                "valid_min": _packed(v.valid_min, v.scale, v.offset),
-                "valid_max": _packed(v.valid_max, v.scale, v.offset),
+                "valid_min": np.float32(v.valid_min),
+                "valid_max": np.float32(v.valid_max),
                 "grid_mapping": "lambert_conformal_conic",
             }
         )
@@ -255,12 +258,7 @@ def _write(path: Path, store: GridStore, name: str, n: int, first: date, now: da
             data.attrs["cell_methods"] = f"time: {CF_STATS[statistic]}"
         for start in range(0, n, BLOCK_DAYS):
             stop = min(start + BLOCK_DAYS, n)
-            data[start:stop] = store.read_packed(name, start, stop)
-
-
-def _packed(value: float, scale: float, offset: float) -> np.int16:
-    """A value in the stored unit as the file packs it, within int16's range (FILL itself means missing)."""
-    return np.int16(np.clip(round((value - offset) / scale), int(FILL) + 1, np.iinfo(np.int16).max))
+            data[start:stop] = store.read_steps(name, start, stop).astype(np.float32)
 
 
 def _days(day: date) -> int:
