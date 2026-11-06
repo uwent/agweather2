@@ -267,6 +267,7 @@ export interface MapQuery {
   days?: number | null
   region?: string | null
   width?: number
+  scale?: string | null
 }
 export interface ModelDetail {
   id: string
@@ -356,6 +357,8 @@ export interface PaletteInfo {
   kind: 'sequential' | 'diverging' | 'categorical' | 'cyclic'
   colors: string[]
   description: string
+  source: string
+  colorblind_safe: boolean
 }
 export interface PointsQuery {
   lat?: number | null
@@ -403,6 +406,7 @@ export interface TileQuery {
   output?: string | null
   planting?: ('early' | 'mid' | 'late' | 'none') | null
   style?: 'default' | null
+  scale?: string | null
 }
 export interface UnitsQuery {
   units?: 'us' | 'metric'

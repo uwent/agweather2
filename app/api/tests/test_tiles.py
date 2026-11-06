@@ -94,7 +94,7 @@ def test_a_styled_tile_colors_the_values_with_the_palette(client, archive):
     styled = _pixels(_tile(client, "air_temperature_max", "2025-07-08", style="default"))
     cells = tiles.index(WINDOW, Z, X, Y)
     assert cells is not None
-    p = palettes.PALETTES["temperature"]
+    p = palettes.PALETTES["BuYlRd"]
     for k, cell in enumerate(cells):
         if cell >= 0:
             expected = palettes.colorize(np.array([data[int(cell)]]), p, (-30, 40))[0]
@@ -102,7 +102,7 @@ def test_a_styled_tile_colors_the_values_with_the_palette(client, archive):
             break
     risk = _pixels(_tile(client, "late-blight-dsv", "2025-07-08", style="default"))
     colors = {tuple(c[:3]) for c in risk.reshape(-1, 4) if c[3]}
-    assert colors <= {palettes.rgb(c) for c in palettes.PALETTES["risk_5"].colors}
+    assert colors <= {palettes.rgb(c) for c in palettes.PALETTES["BuYlRd_5"].colors}
 
 
 @pytest.mark.django_db
@@ -114,7 +114,8 @@ def test_legends_palettes_and_domains(client, archive):
     total = client.get("/api/v2/tiles/dd_modified_50_86/legend.png", {"time": "2025-07-08"})
     assert total.status_code == 200  # its domain from the map
     found = {p["id"]: p for p in client.get("/api/v2/palettes").json()}
-    assert found["temperature"]["kind"] == "diverging" and found["risk_4"]["colors"][0] == "#4575b4"
+    assert found["BuYlRd"]["kind"] == "diverging" and found["BuYlRd_4"]["colors"][0] == "#4575b4"
+    assert not found["rainbow"]["colorblind_safe"] and found["BuYlRd"]["source"] == "ColorBrewer RdYlBu, reversed"
     layers = {layer["id"]: layer for layer in client.get("/api/v2/layers").json()["data"]}
     assert layers["air_temperature_max"]["domain"] == [-30, 40]
     assert layers["dd_modified_50_86"]["domain"] is None and layers["late-blight-dsv"]["domain"] == [0, 4]
@@ -132,3 +133,34 @@ def test_recent_and_latest_tiles_expire_soon_and_settled_ones_later(client, arch
 def test_a_tile_of_a_range_is_limited_as_a_grid_is(client, archive):
     response = _tile(client, "air_temperature_max", "2016-01-01..2025-07-08", stat="mean")
     assert response.status_code == 422 and response.json()["errors"][0]["code"] == "too_large"
+
+
+@pytest.mark.django_db
+def test_scale_sets_what_the_colors_span(client, archive):
+    from agdata import palettes
+
+    data = _cells_seen(_pixels(_tile(client, "air_temperature_max", "2025-07-08")), step=0.1)
+    styled = _pixels(_tile(client, "air_temperature_max", "2025-07-08", style="default", scale="60,90"))  # °F
+    cells = tiles.index(WINDOW, Z, X, Y)
+    assert cells is not None
+    k, cell = next((k, int(c)) for k, c in enumerate(cells) if c >= 0)
+    stored = ((60 - 32) / 1.8, (90 - 32) / 1.8)  # the same range in °C, as the values are stored
+    expected = palettes.colorize(np.array([data[cell]]), palettes.PALETTES["BuYlRd"], stored)[0]
+    assert tuple(styled.reshape(-1, 4)[k]) == tuple(expected)
+
+    described = client.get("/api/v2/tiles/air_temperature_max.json", {"style": "default", "scale": "60,90"}).json()
+    assert described["palette"] == "BuYlRd" and described["domain"] == [60.0, 90.0] and described["domain_unit"] == "°F"
+    metric = client.get("/api/v2/tiles/air_temperature_max.json", {"style": "default", "units": "metric"}).json()
+    assert metric["domain"] == [-30.0, 40.0] and metric["domain_unit"] == "°C"  # the use's default
+    open_end = client.get("/api/v2/tiles/air_temperature_max.json", {"style": "default", "scale": "60,"}).json()
+    assert open_end["domain"][0] == 60.0 and open_end["domain"][1] > 60.0  # the high end from the map
+
+    def error(**params):
+        return client.get("/api/v2/maps/air_temperature_max.png", params).json()["errors"][0]
+
+    assert error(scale="90,60")["code"] == "out_of_order"
+    assert error(scale="warm")["code"] == "invalid" and error(scale=",")["code"] == "invalid"
+    risk = client.get("/api/v2/maps/late-blight-dsv.png", {"date": "2025-07-08", "scale": "auto"}).json()["errors"][0]
+    assert risk["code"] == "not_applicable"
+    tags = {client.get("/api/v2/maps/air_temperature_max.png", {"scale": s})["ETag"] for s in ("auto", "60,90", "")}
+    assert len(tags) == 3  # each scale is its own image

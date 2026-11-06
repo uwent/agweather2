@@ -31,6 +31,7 @@ from django.http import HttpRequest
 from ninja import Schema
 
 from agdata import modelgrid, modelmaps, palettes, regions, seasonal, series
+from agdata import units as agunits
 from agdata.daily import cell_timezones, days_from_hours
 from agdata.grid import Window
 from agdata.grids import cube_terms, degree_days, reduce
@@ -68,6 +69,45 @@ class LayerQuery(Schema):
     biofix: str | None = None  # degree days only: the start of a sum (a date, or MM-DD)
 
 
+@dataclass(frozen=True, kw_only=True)
+class ScaleAsked:
+    """`scale=` as a request gives it: `default`, `auto`, or a range whose ends (None: from the data) are in the
+    stored unit."""
+
+    mode: Literal["default", "auto", "range"]
+    low: float | None = None
+    high: float | None = None
+    text: str = ""  # as sent, for the ETag
+
+
+def parse_scale(text: str | None, stored: str, shown: str) -> ScaleAsked | None:
+    """`scale=default`, `auto`, `low,high`, `low,` or `,high` (in `shown`, the request's unit for the map) → the
+    stored unit; None when not given."""
+    if text is None or not text.strip():
+        return None
+    given = text.strip().lower()
+    if given in ("default", "auto"):
+        return ScaleAsked(mode=given, text=given)  # type: ignore[arg-type]
+    parts = given.split(",")
+    hint = (
+        "Give scale=default, scale=auto, or the colors' range as low,high, such as scale=40,90 (one end may be blank)."
+    )
+    if len(parts) != 2:
+        raise ApiError("invalid", f"We can't read scale={text}. {hint}", "scale")
+    try:
+        ends = [None if not part.strip() else float(part) for part in parts]
+    except ValueError:
+        raise ApiError("invalid", f"We can't read scale={text}. {hint}", "scale") from None
+    if ends[0] is None and ends[1] is None:
+        raise ApiError("invalid", f"scale needs at least one end. {hint}", "scale")
+    if ends[0] is not None and ends[1] is not None and ends[0] >= ends[1]:
+        raise ApiError(
+            "out_of_order", f"The scale's low end ({parts[0]}) must be below its high end ({parts[1]}).", "scale"
+        )
+    low, high = (None if e is None else float(agunits.convert(np.float64(e), shown, stored)) for e in ends)
+    return ScaleAsked(mode="range", low=low, high=high, text=given)
+
+
 @dataclass(kw_only=True)
 class LayerAsk:
     """A layer's map as asked for, checked: its steps, statistic and settings, and the stores it reads."""
@@ -84,6 +124,7 @@ class LayerAsk:
     observed: datetime  # the archive's last observed hour
     warnings: list[str] = field(default_factory=list)
     units: str = "us"  # the request's system, for a title's degree-day thresholds
+    scale_asked: "ScaleAsked | None" = None  # `scale=`, in the stored unit (`parse_scale`)
 
     @property
     def unit(self) -> str:
@@ -97,9 +138,9 @@ class LayerAsk:
     def scale(self) -> palettes.Scale:
         """The map's palette and its fixed domain (None: from the map's values, `auto_domain`)."""
         if self.model is not None:
-            return palettes.scale_for(self.model.output.palette, "day", running=True)
+            return palettes.scale_for(self.model.output.use, "day", running=True)
         running = self.layer.source == "cumulative" or self.stat is not None
-        return palettes.scale_for(self.layer.palette, self.layer.time_axis, running)
+        return palettes.scale_for(self.layer.use, self.layer.time_axis, running)
 
     @property
     def categories(self) -> list[str] | None:
@@ -114,9 +155,22 @@ class LayerAsk:
         return None
 
     def domain(self, values: np.ndarray) -> tuple[float, float]:
-        """The scale's domain, or one from `values` (the whole map's, so every tile of it colors alike)."""
+        """What the palette's ends stand for, in the stored unit, from `values` (the whole map's, so every tile of it
+        colors alike) where the request or the map's use leaves it open: `scale=` as asked (`auto` from the data, an
+        end left blank from the data), else the use's default domain, else the data's."""
         found = self.scale
-        return found.domain or palettes.auto_domain(values, diverging=found.palette.kind == "diverging")
+        asked = self.scale_asked
+        if found.palette.kind == "categorical" or ((asked is None or asked.mode == "default") and found.domain):
+            return found.domain  # type: ignore[return-value]
+        auto = palettes.auto_domain(values, centered=found.centered)
+        if asked is None or asked.mode != "range":
+            return auto
+        lo = asked.low if asked.low is not None else auto[0]
+        hi = asked.high if asked.high is not None else auto[1]
+        if lo >= hi:  # an end from the data on the wrong side of the one given: keep the data's span
+            span = auto[1] - auto[0] or 1.0
+            lo, hi = (lo, lo + span) if asked.low is not None else (hi - span, hi)
+        return (lo, hi)
 
     @property
     def label(self) -> str:
@@ -144,6 +198,7 @@ class LayerAsk:
             **({"season": model.season.name} if model is not None and model.season is not None else {}),
             "dd": self.setting.name if self.setting else None,
             "gaps": self.gaps,
+            **({"scale": self.scale_asked.text} if self.scale_asked is not None else {}),
         }
 
 
@@ -225,7 +280,7 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         opened += [c for c in cubes if c] + ["temperature_estimated_days", "temperature_missing_days"]
     if model is not None:
         opened += [q.name for q in model.spec.inputs] + modelgrid.read_names(found.id)
-    return LayerAsk(
+    a = LayerAsk(
         layer=found,
         first=first,
         last=last,
@@ -239,6 +294,27 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         warnings=warnings,
         units=units,
     )
+    a.scale_asked = _scale_asked(request, a)
+    return a
+
+
+def _scale_asked(request: HttpRequest, a: "LayerAsk") -> ScaleAsked | None:
+    """`scale=` (only the endpoints that color a map declare it), in the stored unit."""
+    text = request.GET.get("scale")
+    if not text:
+        return None
+    if a.scale.palette.kind == "categorical":
+        raise ApiError(
+            "not_applicable",
+            f"{a.label} has a color for each level, so it takes no scale. Leave out scale.",
+            "scale",
+        )
+    from api.envelope import Column, output_units, shown_unit
+
+    variable = a.layer.variable or a.layer.id if a.model is None else a.model.output.name
+    column = Column(name=a.layer.id, values=[], unit=a.unit, step=a.step, variable=variable)
+    system, overrides = output_units(request)
+    return parse_scale(text, a.unit, shown_unit(column, system, overrides))
 
 
 def stamp(a: LayerAsk, now: datetime) -> Any:

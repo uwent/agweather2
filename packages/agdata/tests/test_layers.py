@@ -12,7 +12,7 @@ def test_every_variable_is_a_layer_but_the_internal_ones():
 
 def test_layers_name_their_palette_axis_and_unit():
     for layer in LAYERS.values():
-        assert layer.palette != "default", layer.id
+        assert layer.use != "default", layer.id
         assert layer.time_axis in ("day", "hour")
         if layer.variable is not None:
             catalog = {"daily": DAILY_VARIABLES, "hourly": VARIABLES, "cumulative": CUMULATIVE_VARIABLES}[layer.source]

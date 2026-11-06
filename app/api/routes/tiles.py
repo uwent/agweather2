@@ -15,6 +15,7 @@ import threading
 import time
 from typing import Any, Literal
 
+import numpy as np
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from ninja import Query, Router, Schema
 
@@ -42,11 +43,12 @@ class TileQuery(Schema):
     output: str | None = None
     planting: Literal["early", "mid", "late", "none"] | None = None
     style: Literal["default"] | None = None
+    scale: str | None = None  # colored tiles and legends: default, auto or low,high (`layermaps.parse_scale`)
 
 
 def _layer_query(when: str, q: TileQuery) -> LayerQuery:
     """`{time}` and the settings as `/grids` takes them."""
-    fields: dict[str, Any] = q.model_dump(exclude={"style"})
+    fields: dict[str, Any] = q.model_dump(exclude={"style", "scale"})
     if when == "latest":
         pass
     elif (span := RANGE.match(when)) is not None:
@@ -161,6 +163,15 @@ def tilejson(
     unit)."""
     a, _ = _ask(request, layer, time, query, output.units)
     window = layermaps.archive_window(_data_dir(), a.stores)
+    colored = {}
+    if query.style == "default":  # what the colors stand for, for a client's own legend
+        _, now, kept_window, data_stamp = _prepared(request, layer, time, query, output.units)
+        stored = a.domain(layermaps.cached(a, kept_window, now, data_stamp).values[0])
+        column = Column(name=a.layer.id, values=[], unit=a.unit, step=a.step, variable=a.layer.variable or a.layer.id)
+        system, overrides = output_units(request)
+        shown_as = shown_unit(column, system, overrides)
+        shown = [round(float(agunits.convert(np.float64(v), a.unit, shown_as)), 4) for v in stored]
+        colored = {"palette": a.scale.palette.id, "domain": shown, "domain_unit": agunits.unit(shown_as).label}
     lat, lon = NDFD.window_latlon(window)
     params = request.GET.copy()
     params.pop("time", None)
@@ -178,6 +189,7 @@ def tilejson(
             "maxzoom": tiles.MAX_ZOOM,
             "bounds": [float(lon.min()), float(lat.min()), float(lon.max()), float(lat.max())],
             "request": a.echo(),
+            **colored,
             "encoding": {
                 "scheme": "rgb24",
                 "unit": a.unit,
@@ -218,7 +230,7 @@ def legend(
         return unchanged
     scale = a.scale
     domain = scale.domain
-    if domain is None:
+    if domain is None or a.scale_asked is not None:  # from the map's values, or as the request's scale says
         domain = a.domain(layermaps.cached(a, window, now, data_stamp).values[0])
     column = Column(name=a.layer.id, values=[], unit=a.unit, step=a.step, variable=a.layer.variable or a.layer.id)
     system, overrides = output_units(request)
@@ -242,13 +254,23 @@ class PaletteInfo(Schema):
     kind: Literal["sequential", "diverging", "categorical", "cyclic"]
     colors: list[str]  # low to high, hex
     description: str
+    source: str  # where the colors come from (ColorBrewer, matplotlib, AgWeather v1, VDIFN)
+    colorblind_safe: bool  # False: offered to readers who want it, never a layer's default
 
 
 @router.get("/palettes", response=list[PaletteInfo], summary="Map palettes")
 def palette_list(request: HttpRequest) -> list[PaletteInfo]:
-    """Every palette a layer's `palette` names (`/layers`): its kind and colors, low to high. The frontend colors
-    data tiles with them over each layer's `domain`, as `?style=default` tiles and static maps do."""
+    """Every palette, named by its colors from low to high: those a layer's `palette` names (`/layers`) and others the
+    frontend can offer a reader (`colorblind_safe` false). The frontend colors data tiles with them over each
+    layer's `domain`, as `?style=default` tiles and static maps do."""
     return [
-        PaletteInfo(id=p.id, kind=p.kind, colors=list(p.colors), description=p.description)
+        PaletteInfo(
+            id=p.id,
+            kind=p.kind,
+            colors=list(p.colors),
+            description=p.description,
+            source=p.source,
+            colorblind_safe=p.colorblind_safe,
+        )
         for p in palettes.PALETTES.values()
     ]

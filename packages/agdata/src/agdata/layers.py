@@ -13,9 +13,9 @@ the crop model's margin, 2 susceptible), from each place's typical planting.
 
 `stats` are the statistics a range of steps can be reduced to: mean, min and max for any level, and sum where the
 values add up (precipitation, ET0, shortwave, hour counts, degree days). A running total has none: each day is
-already a total. `palette` names one of `agdata.palettes` (served by `/palettes`, used by colored tiles, legends,
-static maps and the frontend); layers of one kind share it, so a legend means the same thing on every map that
-uses it.
+already a total. `use` names what a layer's map looks like (`agdata.palettes.USES`: a palette and default
+domains, served by `/layers` and `/palettes`); layers of one kind share it, so a legend means the same thing on
+every map that uses it.
 """
 
 from dataclasses import dataclass
@@ -40,7 +40,7 @@ class LayerOutput:
     label: str
     unit: str
     step: float
-    palette: str
+    use: str  # the colors its map uses (`agdata.palettes.USES`)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -53,7 +53,7 @@ class Layer:
     variable: str | None  # the catalog variable read; None for degree days (computed from min and max)
     unit: str
     step: float  # the stored precision, in `unit`
-    palette: str
+    use: str  # the colors its map uses (`agdata.palettes.USES`): a palette and default domains
     stats: tuple[Stat, ...]
     description: str = ""
     outputs: tuple[LayerOutput, ...] = ()  # a model layer's, the default first
@@ -64,8 +64,8 @@ class Layer:
         return "sum" in self.stats
 
 
-# Palettes by name: the first prefix that matches wins
-_PALETTES = (
+# The colors each variable's map uses (`agdata.palettes.USES`), by name: the first prefix that matches wins
+_USES = (
     ("dd_", "degree_days"),
     ("dew_point_depression", "dew_point_depression"),
     ("soil_temperature", "soil_temperature"),
@@ -88,8 +88,9 @@ _PALETTES = (
 _LEFT_OUT = {"shortwave_radiation_hrrr", "et0_sum_estimate"}
 
 
-def palette_for(name: str) -> str:
-    return next((palette for prefix, palette in _PALETTES if name.startswith(prefix)), "default")
+def use_for(name: str) -> str:
+    """The palette use (`agdata.palettes.USES`) of a variable's or model output's map."""
+    return next((use for prefix, use in _USES if name.startswith(prefix)), "default")
 
 
 def _daily_stats(v: Variable) -> tuple[Stat, ...]:
@@ -114,7 +115,7 @@ def _layers() -> list[Layer]:
             variable=v.name,
             unit=v.unit,
             step=v.scale,
-            palette=palette_for(v.name),
+            use=use_for(v.name),
             stats=_daily_stats(v),
         )
         for v in DAILY_VARIABLES.values()
@@ -130,7 +131,7 @@ def _layers() -> list[Layer]:
             variable=v.name,
             unit=v.unit,
             step=v.scale,
-            palette=palette_for(v.name),
+            use=use_for(v.name),
             stats=_hourly_stats(v),
         )
         for v in VARIABLES.values()
@@ -146,7 +147,7 @@ def _layers() -> list[Layer]:
             variable=v.name,
             unit=v.unit,
             step=v.scale,
-            palette=palette_for(v.name),
+            use=use_for(v.name),
             stats=(),
         )
         for v in CUMULATIVE_VARIABLES.values()
@@ -162,7 +163,7 @@ def _layers() -> list[Layer]:
             variable=None,
             unit="degF_day",
             step=DD_STEP,
-            palette="degree_days",
+            use="degree_days",
             stats=SUM_STATS,
             description="Each day's degree days for `dd=method_base[_upper]` (sine, average or modified), from the "
             "day's minimum and maximum temperature; `stat=sum` over start..end is the running total from start",
@@ -187,20 +188,20 @@ def _model_layers() -> list[Layer]:
                 label=q.label,
                 unit=q.unit,
                 step=1 if q.name == "stage" else OUTPUT_STEPS[q.unit],
-                palette="crop_stage" if q.name == "stage" else palette_for(q.name),
+                use="crop_stage" if q.name == "stage" else use_for(q.name),
             )
             for q in spec.outputs
         ]
         if spec.risk is not None:
-            palette = f"risk_{len(spec.risk.levels)}"
-            risk = [LayerOutput(name=RISK_LEVEL, label="Risk level", unit="index", step=1, palette=palette)]
+            levels = f"risk_{len(spec.risk.levels)}"
+            risk = [LayerOutput(name=RISK_LEVEL, label="Risk level", unit="index", step=1, use=levels)]
             if spec.risk.thresholds:
-                risk.append(LayerOutput(name=RISK_VALUE, label="Risk", unit="index", step=0.001, palette="risk_value"))
+                risk.append(LayerOutput(name=RISK_VALUE, label="Risk", unit="index", step=0.001, use="risk_value"))
             outputs = [*risk, *outputs]
         if spec.susceptible is not None and spec.susceptible.crop in models:
             outputs.append(
                 LayerOutput(
-                    name=SUSCEPTIBILITY, label="Crop susceptibility", unit="index", step=1, palette="susceptibility"
+                    name=SUSCEPTIBILITY, label="Crop susceptibility", unit="index", step=1, use="susceptibility"
                 )
             )
         default = outputs[0] if spec.risk is not None else next((o for o in outputs if o.name == "stage"), outputs[0])
@@ -217,7 +218,7 @@ def _model_layers() -> list[Layer]:
                 variable=None,
                 unit=default.unit,
                 step=default.step,
-                palette=default.palette,
+                use=default.use,
                 stats=LEVEL_STATS,
                 description=spec.summary,
                 outputs=tuple(outputs),
@@ -238,7 +239,7 @@ def _projected_outputs(outputs: list[LayerOutput], levels: tuple[str, ...]) -> l
             label=f"{o.label}, projected to the season's end (median)",
             unit=o.unit,
             step=o.step,
-            palette=o.palette,
+            use=o.use,
         )
         for o in outputs
         if o.name not in (RISK_VALUE, SUSCEPTIBILITY)
@@ -249,7 +250,7 @@ def _projected_outputs(outputs: list[LayerOutput], levels: tuple[str, ...]) -> l
             label=f"Chance the season ends at {level} risk",
             unit="percent",
             step=1,
-            palette="chance",
+            use="chance",
         )
         for level in levels
     ]

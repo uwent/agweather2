@@ -186,7 +186,7 @@ def map_png(
     inches = width / DPI
     map_w = inches - 0.4
     map_h = map_w * rows / cols
-    title_lines = textwrap.wrap(title, width=int(inches * 9.5)) or [""]
+    title_lines = textwrap.wrap(title, width=int(inches * 8.3)) or [""]
     subtitle_lines = textwrap.wrap(subtitle, width=int(inches * 14))
     caption_lines = [line for part in caption for line in textwrap.wrap(part, width=int(inches * 15.5))]
     TITLE, SUB, CAPTION = 0.25, 0.19, 0.16  # line heights, inches

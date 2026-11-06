@@ -133,7 +133,7 @@ def layers(request: HttpRequest) -> HttpResponse:
             unit=layer.unit,
             units=display_units(layer.unit),
             precision=layer.step,
-            palette=layer.palette,
+            palette=palettes.USES[layer.use].palette,
             domain=_layer_domain(layer),
             stats=list(layer.stats),
             parameters=["dd"] if layer.id == DEGREE_DAYS else [],
@@ -152,19 +152,19 @@ def layers(request: HttpRequest) -> HttpResponse:
 def _layer_domain(layer: Layer) -> list[float] | None:
     if layer.outputs:  # a model's: its default output's
         return _output_info(layer.outputs[0]).domain
-    found = palettes.scale_for(layer.palette, layer.time_axis, running=layer.source == "cumulative").domain
+    found = palettes.scale_for(layer.use, layer.time_axis, running=layer.source == "cumulative").domain
     return list(found) if found else None
 
 
 def _output_info(o: LayerOutput) -> LayerOutputInfo:
-    domain = palettes.scale_for(o.palette, "day", running=True).domain
+    domain = palettes.scale_for(o.use, "day", running=True).domain
     return LayerOutputInfo(
         name=o.name,
         label=o.label,
         unit=o.unit,
         units=display_units(o.unit),
         precision=o.step,
-        palette=o.palette,
+        palette=palettes.USES[o.use].palette,
         domain=list(domain) if domain else None,
     )
 
