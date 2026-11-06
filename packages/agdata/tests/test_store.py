@@ -161,3 +161,25 @@ def test_reopening_a_stores_year_checks_the_window(tmp_path, fx, layout):
     assert opener(tmp_path, 2025, fx.window).window == fx.window
     with pytest.raises(ValueError, match="widening the box needs a rebuild"):
         opener(tmp_path, 2025, Window(j0=fx.window.j0, j1=fx.window.j1 + 1, i0=fx.window.i0, i1=fx.window.i1))
+
+
+def test_an_open_store_sees_another_writers_values_and_attributes(tmp_path, hourly):
+    """Arrays are kept per process (`store._ARRAYS`) while their zarr.json is unchanged: values written by another
+    handle show at once, and a metadata change (a rebuild's version, a store made again) opens the array afresh."""
+    derived = variable("relative_humidity")
+    reader = GridStore.open(tmp_path, HOURLY, 2025, [TEMP, derived], add_missing=True)
+    assert reader.stale == {"relative_humidity"}
+    start = datetime(2025, 3, 1, tzinfo=UTC)
+    hourly.write(start, {"air_temperature": np.full((1, *WINDOW.shape), 7.0)}, source="urma")
+    assert GridStore.open(tmp_path, HOURLY, 2025, [TEMP]).read_point("air_temperature", 900, 1400, 1416, 1417)[0] == 7.0
+    writer = GridStore.open(tmp_path, HOURLY, 2025, [TEMP, derived])
+    writer.mark_current(["relative_humidity"])
+    assert GridStore.open(tmp_path, HOURLY, 2025, [TEMP, derived]).stale == set()
+    # The store made again under the same path: its new arrays, not the kept ones
+    import shutil
+
+    shutil.rmtree(tmp_path / "hourly" / "2025.zarr")
+    again = GridStore.create(tmp_path, HOURLY, 2025, WINDOW, [TEMP], chunks=(48, 16, 16))
+    again.write(start, {"air_temperature": np.full((1, *WINDOW.shape), -3.0)}, source="urma")
+    found = GridStore.open(tmp_path, HOURLY, 2025, [TEMP]).read_point("air_temperature", 900, 1400, 1416, 1417)
+    assert found[0] == -3.0

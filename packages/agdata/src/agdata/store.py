@@ -348,9 +348,24 @@ class GridStore:
         return [lookup[code] for code in codes.tolist()]
 
     def _array(self, path: str) -> zarr.Array:
+        """An array of the store, kept per process (`_ARRAYS`) while its `zarr.json` is unchanged."""
+        meta = self.path / path / "zarr.json"
+        try:
+            stat = meta.stat()
+        except OSError:
+            stat = None
+        key = str(meta)
+        if stat is not None:
+            kept = _ARRAYS.get(key)
+            if kept is not None and kept[0] == (stat.st_mtime_ns, stat.st_size):
+                return kept[1]
         array = self.group[path]
         if not isinstance(array, zarr.Array):
             raise KeyError(f"{path} isn't an array in {self.path}")
+        if stat is not None:
+            while len(_ARRAYS) >= _ARRAYS_KEEP:
+                _ARRAYS.pop(next(iter(_ARRAYS)))
+            _ARRAYS[key] = ((stat.st_mtime_ns, stat.st_size), array)
         return array
 
     def _variable(self, name: str) -> Variable:
@@ -358,6 +373,15 @@ class GridStore:
             return self.variables[name]
         except KeyError:
             raise KeyError(f"{name} isn't open in this store") from None
+
+
+# Opened arrays, by their zarr.json path, with that file's mtime and size when opened. Looking an array up in its group
+# reads and parses its zarr.json (~1.5 ms), and a map or point request opens a dozen stores for several variables
+# each: 0.2-0.3 s of a crop-gated risk map's first tile (Phase 5 H4). Any change to an array's metadata (its
+# attributes on a rebuild or `mark_current`, or the store made again) rewrites zarr.json, so the array is opened
+# afresh; its values are read from disk on every read, so new data shows at once.
+_ARRAYS: dict[str, tuple[tuple[int, int], zarr.Array]] = {}
+_ARRAYS_KEEP = 8192
 
 
 def _clamp(chunks: tuple[int, int, int], steps: int, window: Window) -> tuple[int, int, int]:
