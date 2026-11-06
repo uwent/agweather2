@@ -237,7 +237,9 @@ class Dashboard(App):
                 _frac(y.era5land_days, y.days),
                 _frac(y.rolled_up, y.days),
                 Text(
-                    y.past_years + (f"  stale: {', '.join(y.stale)}" if y.stale else ""),
+                    y.past_years
+                    + ("  (p rebuilds it)" if y.past_years not in ("current", "–") and y.rolled_up == y.days else "")
+                    + (f"  stale: {', '.join(y.stale)}  (r rebuilds them)" if y.stale else ""),
                     style="green" if y.past_years in ("current", "–") and not y.stale else "yellow",
                 ),
             )

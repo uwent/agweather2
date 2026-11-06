@@ -10,7 +10,8 @@ from ops.management.base import ReportingCommand
 class Command(ReportingCommand):
     help = (
         "Build the copies of past years' daily values laid out for reading a point over time (agdata.pastyears; "
-        "the projection's, D63): every year before this one whose copy is missing or older than its daily store, "
+        "the projection's, D63): every year before this one whose copy is missing or out of date (its daily store was "
+        "written since, or its daily variables' code changed), "
         "or one --year. About 1.5 minutes and 0.3 GB a year. Reads the daily stores only, so it doesn't take the "
         "write lock: a write during a build leaves that year stale for the next run."
     )

@@ -48,21 +48,27 @@ def _daily_written(store: GridStore) -> float | None:
     return max(stamps) if stamps else None
 
 
+OUT_OF_DATE_DATA = "out of date: the daily data changed"
+OUT_OF_DATE_CODE = "out of date: the daily variables' code changed"
+
+
 def status(data_dir: Path, year: int) -> str | None:
-    """Why a year's copy needs building ("missing", "incomplete", "older than the daily store", "versions"), or None
-    if it's current."""
+    """Why a year's copy needs building, in words for the archive table and the dashboard, or None if it's current:
+    "missing", "incomplete" (a build stopped partway), "out of date: the daily data changed" (the daily store was
+    written since the copy was built, by an ingest, a rebuild or `archive fill`'s December 31), or "out of date: the
+    daily variables' code changed"."""
     path = PAST.path(data_dir, year)
     if not path.exists():
         return "missing"
     attrs: dict[str, Any] = dict(zarr.open_group(path, mode="r").attrs)
     if not attrs.get("complete"):
-        return "incomplete"
+        return "incomplete"  # a build stopped partway
     daily = GridStore.open(data_dir, DAILY, year, _present(data_dir, year))
     written = _daily_written(daily)
     if written is not None and written > float(attrs.get("daily_written") or 0):
-        return "older than the daily store"
+        return OUT_OF_DATE_DATA
     if attrs.get("versions") != {v.name: int(v.version) for v in daily.variables.values()}:
-        return "versions"
+        return OUT_OF_DATE_CODE
     return None
 
 

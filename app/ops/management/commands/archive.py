@@ -85,6 +85,7 @@ class Command(ReportingCommand):
                 f"{mark} {y.year:<5} {_frac(y.analysis, y.hours):>13} {y.urma:>6,} {y.rtma:>6,} "
                 f"{_pct(y.precip, y.hours):>7} {_pct(y.shortwave, y.hours):>9} {_frac(y.era5land_days, y.days):>11} "
                 f"{_frac(y.rolled_up, y.days):>11}  {y.past_years}"
+                + ("  (manage.py pastyears rebuilds it)" if _rebuildable(y) else "")
                 + (f"  stale: {', '.join(y.stale)}" if y.stale else "")
             )
         holder = lock_holder(data_dir)
@@ -216,3 +217,9 @@ def _duration(seconds: float) -> str:
     if seconds < 48 * 3600:
         return f"{seconds / 3600:.1f} h"
     return f"{seconds / 86400:.1f} days"
+
+
+def _rebuildable(y) -> bool:
+    """A year whose past-years copy `pastyears` can build now: rolled up whole, and the copy missing or out of date
+    (a year still being filled gets its copy from `archive fill` when it's done)."""
+    return y.past_years not in ("current", "–") and y.rolled_up == y.days

@@ -51,7 +51,7 @@ def test_a_copy_goes_stale_when_its_daily_store_is_written(two_years):
     pastyears.build(two_years, 2024)
     store = GridStore.open(two_years, DAILY, 2024, [DAILY_VARIABLES["air_temperature_min"]])
     store.write(date(2024, 1, 5), {"air_temperature_min": np.full((1, *WINDOW.shape), 3.0)}, source="derived")
-    assert pastyears.status(two_years, 2024) == "older than the daily store"
+    assert pastyears.status(two_years, 2024) == pastyears.OUT_OF_DATE_DATA
 
 
 def test_years_without_a_complete_copy_or_cells_outside_it_read_nothing(two_years):

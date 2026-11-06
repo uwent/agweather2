@@ -263,3 +263,18 @@ def test_the_ingredients_command_builds_what_isnt_current(settings, tmp_path, mo
     assert built == [2025]
     call_command("ingredients", "--year", "2024", stdout=StringIO())
     assert built == [2025, 2024]
+
+
+def test_the_archive_table_says_how_to_rebuild_a_past_years_copy_only_for_a_whole_year():
+    from types import SimpleNamespace
+
+    from agdata import pastyears
+    from ops.management.commands.archive import _rebuildable
+
+    def year(past, rolled):
+        return SimpleNamespace(past_years=past, rolled_up=rolled, days=365)
+
+    assert _rebuildable(year(pastyears.OUT_OF_DATE_DATA, 365))
+    assert _rebuildable(year("missing", 365))
+    assert not _rebuildable(year("missing", 190))  # still being filled: `archive fill` builds it when done
+    assert not _rebuildable(year("current", 365))
