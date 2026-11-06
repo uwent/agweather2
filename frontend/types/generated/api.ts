@@ -66,7 +66,7 @@ export interface DownloadFile {
   built_at: string
 }
 export interface DownloadsData {
-  time_zones: string | null
+  grid: string | null
   files: DownloadFile[]
 }
 /**

@@ -1,17 +1,19 @@
-"""Yearly NetCDF downloads of the daily variables (PLAN.md Phase 5 H2, D69), served as static files.
+"""Yearly NetCDF downloads of the daily variables (PLAN.md Phase 5 H2, D69, D71), served as static files.
 
 One file per daily variable and year, `DATA_DIR/downloads/daily/{year}/{name}_{year}.nc`, with the year's days
-through the last one rolled up: a past year whole, the current year to date. The values are plain float32 in the
-stored unit, NaN where missing, written a month at a time whatever the box's size. They were first the store's int16
-with CF `scale_factor` (lossless and 20-35% smaller), but a viewer Ben opened them in showed the packed integers
-(temperatures ×10): not every GIS tool applies `scale_factor`, so a public file mustn't need it (FORMAT 2).
-The grid and its projection are `api.gridfiles`' (the same as `/grids` in NetCDF); each cell's time zone, which
-sets its days, is in `daily/time_zones.nc`.
+through the last one rolled up: a past year whole, the current year to date. The values are the daily store's int16
+copied as stored, declared as CF `scale_factor`, `add_offset` and `_FillValue` (lossless, 20-35% smaller than
+float32; terra, xarray, GDAL and Panoply unpack them), written a month at a time whatever the box's size. Each file
+holds one gridded variable on the native grid (`x`, `y` and the CF `grid_mapping`, as `api.gridfiles` writes it), so
+GDAL opens it as one raster. The cells' latitude and longitude and their time zones (which set their days) are in
+one `daily/grid.nc` beside the years (D71): with 2-D `lat` and `lon` in each file, GDAL saw three subdatasets, and
+terra on Windows opened a file given by an absolute path (`D:/…`, the drive's colon in the subdataset name) with
+the HDF5 driver, so without its CRS or its scale (Ben, 2026-11-05).
 
 `index.json` beside them lists each file with the store's write stamp it was built from (`GridStore.written`). A file
-is rebuilt when its store has been written since, and the current year's at most weekly (`CURRENT_EVERY`), by
-`manage.py downloads` and the weekly `build_downloads` job. Reads only the daily stores, so it takes no write lock:
-a store written during a build has a new stamp and is rebuilt next time.
+is rebuilt when its store has been written since, the current year's at most weekly (`CURRENT_EVERY`), and any built
+in another layout (`FORMAT`), by `manage.py downloads` and the weekly `build_downloads` job. Reads only the daily
+stores, so it takes no write lock: a store written during a build has a new stamp and is rebuilt next time.
 """
 
 import json
@@ -24,7 +26,7 @@ from pathlib import Path
 import h5netcdf
 import numpy as np
 
-from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES
+from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, FILL
 from agdata.daily import cell_timezones
 from agdata.grid import NDFD
 from agdata.pastyears import years_on_disk
@@ -33,7 +35,10 @@ from api.envelope import attribution
 from api.gridfiles import axis_attrs, cell_degrees, cf_lambert
 
 FOLDER = "downloads"
-FORMAT = 2  # the files' layout: a file built in another is rebuilt (1: int16 with scale_factor; 2: float32)
+# The files' layout; a file built in another is rebuilt. 1: int16 with lat/lon; 2: float32 with lat/lon; 3: int16,
+# one variable, lat/lon in grid.nc (D71)
+FORMAT = 3
+GRID_FILE = "daily/grid.nc"
 CURRENT_EVERY = timedelta(days=7)  # the current year's files: rebuilt at most this often
 BLOCK_DAYS = 31  # days read and written at a time
 CF_STATS = {"min": "minimum", "max": "maximum", "mean": "mean", "sum": "sum"}
@@ -156,27 +161,40 @@ def build_wanted(
         built.append(entry)
         write_index(data_dir, list(entries.values()))
     years = years_on_disk(data_dir, DAILY)
-    if years and (built or not (folder(data_dir) / "daily" / "time_zones.nc").exists()):
-        write_time_zones(data_dir, GridStore.open(data_dir, DAILY, years[-1], []), now)
+    if years and (built or not (folder(data_dir) / GRID_FILE).exists()):
+        write_grid(data_dir, GridStore.open(data_dir, DAILY, years[-1], []), now)
+        (folder(data_dir) / "daily" / "time_zones.nc").unlink(
+            missing_ok=True
+        )  # its predecessor (time zones only), before D71
     if progress is not None:
         progress(len(todo), len(todo), "")
     return built
 
 
-def write_time_zones(data_dir: Path, store: GridStore, now: datetime) -> Path:
-    """`daily/time_zones.nc`: each cell's time zone, which sets its days, for every year's files (kept apart from
-    them: a second gridded variable in a file makes R's terra read it as one more layer)."""
+def write_grid(data_dir: Path, store: GridStore, now: datetime) -> Path:
+    """`daily/grid.nc`: each cell's latitude and longitude (its center) and time zone, on the same grid as every
+    year's files, for plotting without a projection library and for knowing each cell's days (D71)."""
     zones, zone_index = cell_timezones(store)
-    path = folder(data_dir) / "daily" / "time_zones.nc"
+    window = store.window
+    jj, ii = np.arange(window.j0, window.j1), np.arange(window.i0, window.i1)
+    lat, lon = NDFD.latlon(*np.meshgrid(jj, ii, indexing="ij"))
+    path = folder(data_dir) / GRID_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".nc.tmp")
     with h5netcdf.File(temporary, "w") as f:
         _grid(f, store)
-        f.attrs.update(_attrs("Time zones of the cells, which set their local calendar days", now))
+        f.attrs.update(
+            _attrs("The grid of AgWeather's yearly files: each cell's latitude, longitude and time zone", now)
+        )
+        for key, values in (("lat", lat), ("lon", lon)):
+            var = f.create_variable(
+                key, ("y", "x"), np.float32, data=values.astype(np.float32), compression="gzip", shuffle=True
+            )
+            var.attrs.update(cell_degrees("latitude" if key == "lat" else "longitude"))
         tz = f.create_variable("time_zone", ("y", "x"), np.int8, data=zone_index.astype(np.int8), compression="gzip")
         tz.attrs.update(
             {
-                "long_name": "the cell's time zone",
+                "long_name": "the cell's time zone, which sets its local calendar days",
                 "flag_values": np.arange(len(zones), dtype=np.int8),
                 "flag_meanings": " ".join(zones),
                 "grid_mapping": "lambert_conformal_conic",
@@ -187,22 +205,16 @@ def write_time_zones(data_dir: Path, store: GridStore, now: datetime) -> Path:
 
 
 def _grid(f: h5netcdf.File, store: GridStore) -> None:
-    """The native grid's coordinates, the cells' latitude and longitude, and the projection (`api.gridfiles`)."""
+    """The native grid's projected coordinates and its projection (`api.gridfiles`)."""
     window = store.window
     ny, nx = window.shape
     jj, ii = np.arange(window.j0, window.j1), np.arange(window.i0, window.i1)
     x0, y0 = NDFD.origin
-    lat, lon = NDFD.latlon(*np.meshgrid(jj, ii, indexing="ij"))
     f.dimensions.update({"y": ny, "x": nx})
     x = f.create_variable("x", ("x",), np.float64, data=x0 + ii * NDFD.dx)
     x.attrs.update(axis_attrs("X", "projection_x_coordinate", "x on the Lambert grid", "m"))
     y = f.create_variable("y", ("y",), np.float64, data=y0 + jj * NDFD.dx)
     y.attrs.update(axis_attrs("Y", "projection_y_coordinate", "y on the Lambert grid", "m"))
-    for key, values in (("lat", lat), ("lon", lon)):
-        var = f.create_variable(
-            key, ("y", "x"), np.float32, data=values.astype(np.float32), compression="gzip", shuffle=True
-        )
-        var.attrs.update(cell_degrees("latitude" if key == "lat" else "longitude"))
     mapping = f.create_variable("lambert_conformal_conic", (), np.int32, data=np.int32(0))
     mapping.attrs.update(cf_lambert())
 
@@ -228,8 +240,9 @@ def _write(path: Path, store: GridStore, name: str, n: int, first: date, now: da
         f.attrs.update(
             {
                 **_attrs(f"{v.long_name}, {first.year}", now),
-                "comment": "Each day is the local calendar day in the cell's time zone (time_zones.nc beside the "
-                "yearly folders). Missing values are left missing, never set to zero.",
+                "comment": "Each day is the local calendar day in the cell's time zone. Each cell's latitude, "
+                "longitude and time zone are in grid.nc beside the yearly folders. Missing values are left missing, "
+                "never set to zero.",
             }
         )
         time = f.create_variable("time", ("time",), np.int32, data=np.arange(n, dtype=np.int32) + _days(first))
@@ -239,18 +252,21 @@ def _write(path: Path, store: GridStore, name: str, n: int, first: date, now: da
         data = f.create_variable(
             name,
             ("time", "y", "x"),
-            np.float32,
-            fillvalue=np.float32(np.nan),
+            np.int16,
+            fillvalue=np.int16(FILL),
             chunks=(1, ny, nx),
             compression="gzip",
             compression_opts=6,
+            shuffle=True,
         )
         data.attrs.update(
             {
                 "long_name": v.long_name,
                 "units": v.unit,
-                "valid_min": np.float32(v.valid_min),
-                "valid_max": np.float32(v.valid_max),
+                "scale_factor": np.float32(v.scale),  # readers unpack to its type: float32 halves a year in memory
+                "add_offset": np.float32(v.offset),
+                "valid_min": _packed(v.valid_min, v.scale, v.offset),
+                "valid_max": _packed(v.valid_max, v.scale, v.offset),
                 "grid_mapping": "lambert_conformal_conic",
             }
         )
@@ -258,7 +274,12 @@ def _write(path: Path, store: GridStore, name: str, n: int, first: date, now: da
             data.attrs["cell_methods"] = f"time: {CF_STATS[statistic]}"
         for start in range(0, n, BLOCK_DAYS):
             stop = min(start + BLOCK_DAYS, n)
-            data[start:stop] = store.read_steps(name, start, stop).astype(np.float32)
+            data[start:stop] = store.read_packed(name, start, stop)
+
+
+def _packed(value: float, scale: float, offset: float) -> np.int16:
+    """A value in the stored unit as the file packs it, within int16's range (FILL itself means missing)."""
+    return np.int16(np.clip(round((value - offset) / scale), int(FILL) + 1, np.iinfo(np.int16).max))
 
 
 def _days(day: date) -> int:

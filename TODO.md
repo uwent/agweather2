@@ -1,6 +1,6 @@
 # TODO (Ben)
 
-Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
+Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress marked [-], completed marked [x].
 
 ## Phase 1: Foundations
 
@@ -84,14 +84,14 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md).
 - [x] (Nothing to clear: no archive-endpoint entries were cached, checked 2026-11-02.) Optional, dev only: clear the Open-Meteo archive-endpoint cache so old entries' ERA5 soil gives way to ERA5-Land's: `uv run app/manage.py shell -c "from ops.models import WeatherCellCache; WeatherCellCache.objects.filter(endpoint='archive').delete()"`.
 - [x] Copernicus CDS key in `.env` as `COPERNICUS_API_KEY`, ERA5-Land licence accepted (2026-10-31). The server's `infra/.env` needs the same key before the ERA5-Land job runs there.
 - [x] Q22 decided: Open-Meteo's 9 km IFS, `omfiles` optional (D53).
-- [ ] Optional, in the Crop Risk Tool (`tmp/shiny/`'s source repo): don't show model outputs until the on-demand weather has loaded; today they flash on incomplete data first (Ben, 2026-11-01). v2 doesn't need this: jobs fetch weather before a page asks.
+- [x] Optional, in the Crop Risk Tool (`tmp/shiny/`'s source repo): don't show model outputs until the on-demand weather has loaded; today they flash on incomplete data first (Ben, 2026-11-01). v2 doesn't need this: jobs fetch weather before a page asks.
 - [ ] Optional: tell your department (or WARF) that AgWeather v2 and WISP 3 are public under AGPL-3.0, since the Regents hold the copyright.
 
 ## Phase 5: API v2
 
-- [ ] **Backfill the dev archive to 2016** (Ben, 2026-11-03: more past years for the projection, D63). Running since 2026-11-04 14:26 as `archive fill --from 2016 --to 2025` (each year's hours, December 31, ERA5-Land and past-years copy, newest first; about 11.5 hours a year here). Watch it in `bin/agwx`; if it stops, start it again there with `f` (it resumes). When it's done, `uv run app/manage.py rebuild --check` should print nothing.
-- [ ] **Restart bin/dev's worker** (Phase 5 H, 2026-11-05) for the new jobs `build_downloads` (the yearly NetCDF downloads, Mondays at 05:00) and `prune_api_usage` (daily at 04:10), and for the API's rate limit (`api.ratelimit`; requests from this machine are exempt). The dev database already has the new table (`migrate` ran). Claude built the dev downloads with `manage.py downloads`; the backfill's years get theirs from the weekly job, or run `uv run app/manage.py downloads` once it's done.
-- [ ] **Open a yearly download in R** (Phase 5 H2, 2026-11-05) as you did `tmax.nc`: `terra::rast("data/downloads/daily/2025/air_temperature_max_2025.nc")` should have 365 layers in °C and a Lambert CRS, and `scripts/check_grid_files.R` passes on it here. Tell Claude if anything looks off in your own scripts.
+- [-] **Backfill the dev archive to 2016** (Ben, 2026-11-03: more past years for the projection, D63). Running since 2026-11-04 14:26 as `archive fill --from 2016 --to 2025` (each year's hours, December 31, ERA5-Land and past-years copy, newest first; about 11.5 hours a year here). Watch it in `bin/agwx`; if it stops, start it again there with `f` (it resumes). When it's done, `uv run app/manage.py rebuild --check` should print nothing.
+- [x] **Restart bin/dev's worker** (Phase 5 H, 2026-11-05) for the new jobs `build_downloads` (the yearly NetCDF downloads, Mondays at 05:00) and `prune_api_usage` (daily at 04:10), and for the API's rate limit (`api.ratelimit`; requests from this machine are exempt). The dev database already has the new table (`migrate` ran). Claude built the dev downloads with `manage.py downloads`; the backfill's years get theirs from the weekly job, or run `uv run app/manage.py downloads` once it's done.
+- [x] **Open a yearly download in R** (Phase 5 H2, 2026-11-05): Ben found terra on Windows lost the CRS and scale with an absolute path; fixed by D71 (one variable a file, the grid in `daily/grid.nc`). Ben's no-lat/lon copy opened correctly both ways; the rebuilt files have that layout.
 - [ ] **Restart bin/dev's worker** (Phase 5 G3, 2026-11-05) for the new `render_default_maps` job (the default static maps, hourly at :52).
 - [ ] **Ask the UW Insect Diagnostic Lab to switch their "Today's Growing Degree Day Map" link** from v1's `/api/degree_days/map.png` to `/api/v2/maps/dd_modified_50_86.png` once v2 is live (Phase 8; v1's path redirects to the legacy host for a year, D62).
 - [ ] **Rebuild potato volunteer's ingredients** (Phase 4 H, 2026-11-05): version 0.2 marks them stale, so its map is a 503 until then. `uv run app/manage.py ingredients --check`, then `uv run app/manage.py ingredients` (or `i` in `bin/agwx`); it rebuilds each stale year whole, about 3 minutes a year over Wisconsin.

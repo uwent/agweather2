@@ -8,7 +8,9 @@ import pytest
 import xarray as xr
 
 from agdata.catalog import DAILY_VARIABLES
+from agdata.grid import NDFD
 from agdata.store import DAILY, GridStore
+from agdata.testing import WINDOW
 from api.tests import fixture_archive
 from ops import downloads
 
@@ -38,17 +40,19 @@ def test_a_file_holds_the_stores_values_through_the_last_day_rolled_up(data_dir)
     assert entry.last == (date(2025, 1, 1) + timedelta(days=n - 1)).isoformat()
     with xr.open_dataset(data_dir / "downloads" / entry.path) as ds:
         found = ds["air_temperature_max"]
-        assert found.dtype == np.float32
+        assert found.dtype == np.float32  # unpacked from int16 by its float32 scale_factor
         assert found.attrs["units"] == "degC"
         assert found.attrs["cell_methods"] == "time: maximum"
-        assert found.encoding["dtype"] == np.float32  # plain values: no scale_factor for a viewer to miss
-        assert "scale_factor" not in found.encoding
+        assert found.encoding["dtype"] == np.int16
+        assert found.encoding["scale_factor"] == np.float32(0.1)
         assert ds.sizes["time"] == n
         expected = store.read_steps("air_temperature_max", 0, n)
         np.testing.assert_allclose(found.values, expected, atol=1e-4)
         assert np.isnan(found.values).sum() == np.isnan(expected).sum()  # missing stays missing
-        assert "time_zones.nc" in ds.attrs["comment"]
+        assert "grid.nc" in ds.attrs["comment"]
         assert "lambert_conformal_conic" in ds
+        # one gridded variable, so GDAL opens the file as one raster rather than subdatasets (D71)
+        assert [k for k, v in ds.data_vars.items() if v.ndim >= 2] == ["air_temperature_max"]
 
 
 def test_a_file_from_an_older_format_is_rebuilt(data_dir):
@@ -57,7 +61,7 @@ def test_a_file_from_an_older_format_is_rebuilt(data_dir):
     for e in entries:
         e.format = 1
     downloads.write_index(data_dir, entries)
-    assert {why for _, _, why in downloads.wanted(data_dir, NOW, NAMES)} == {"built in format 1, now 2"}
+    assert {why for _, _, why in downloads.wanted(data_dir, NOW, NAMES)} == {"built in format 1, now 3"}
 
 
 def test_hour_counts_have_no_cell_method(data_dir):
@@ -67,11 +71,17 @@ def test_hour_counts_have_no_cell_method(data_dir):
         assert "cell_methods" not in ds["hours_rh_over_90"].attrs
 
 
-def test_the_index_lists_the_files_and_the_time_zones_are_beside_them(data_dir):
+def test_the_index_lists_the_files_and_the_grid_is_beside_them(data_dir):
+    (data_dir / "downloads" / "daily").mkdir(parents=True)
+    (data_dir / "downloads" / "daily" / "time_zones.nc").write_bytes(b"")  # the file before D71
     downloads.build_wanted(data_dir, NOW, NAMES)
     assert {e.variable for e in downloads.read_index(data_dir)} == set(NAMES)
-    with xr.open_dataset(data_dir / "downloads" / "daily" / "time_zones.nc") as ds:
+    with xr.open_dataset(data_dir / "downloads" / "daily" / "grid.nc") as ds:
         assert ds["time_zone"].attrs["flag_meanings"] == "America/Chicago"
+        assert ds["lat"].shape == ds["lon"].shape == (ds.sizes["y"], ds.sizes["x"])
+        lat, lon = NDFD.latlon(WINDOW.j0, WINDOW.i0)
+        assert abs(float(ds["lat"][0, 0]) - lat) < 1e-4 and abs(float(ds["lon"][0, 0]) - lon) < 1e-4
+    assert not (data_dir / "downloads" / "daily" / "time_zones.nc").exists()
 
 
 def test_a_file_is_rebuilt_when_its_store_is_written_and_this_years_at_most_weekly(data_dir):
@@ -101,7 +111,7 @@ def test_a_progress_callback_can_stop_between_files(data_dir):
 def test_the_api_lists_and_serves_them(data_dir, client):
     downloads.build_wanted(data_dir, NOW, NAMES)
     body = client.get("/api/v2/downloads").json()["data"]
-    assert body["time_zones"] == "http://testserver/downloads/daily/time_zones.nc"
+    assert body["grid"] == "http://testserver/downloads/daily/grid.nc"
     first = next(f for f in body["files"] if f["variable"] == "precipitation_sum")
     assert first["url"] == "http://testserver/downloads/daily/2025/precipitation_sum_2025.nc"
     response = client.get("/downloads/daily/2025/precipitation_sum_2025.nc")

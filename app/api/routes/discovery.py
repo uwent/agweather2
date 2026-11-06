@@ -149,7 +149,7 @@ class DownloadFile(Schema):
 
 
 class DownloadsData(Schema):
-    time_zones: str | None  # each cell's time zone, which sets its days, for every file
+    grid: str | None  # daily/grid.nc: each cell's latitude, longitude and time zone (which sets its days)
     files: list[DownloadFile]
 
 
@@ -178,9 +178,9 @@ def download_list(request: HttpRequest) -> HttpResponse:
         )
         for e in downloads.read_index(settings.DATA_DIR)
     ]
-    zones = downloads.folder(settings.DATA_DIR) / "daily" / "time_zones.nc"
+    grid = downloads.folder(settings.DATA_DIR) / downloads.GRID_FILE
     data = DownloadsData(
-        time_zones=request.build_absolute_uri(f"/{downloads.FOLDER}/daily/time_zones.nc") if zones.exists() else None,
+        grid=request.build_absolute_uri(f"/{downloads.FOLDER}/{downloads.GRID_FILE}") if grid.exists() else None,
         files=files,
     )
     return respond(request, Result(request={}, data=data.model_dump(), etag=etag))
