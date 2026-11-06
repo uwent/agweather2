@@ -448,3 +448,39 @@ def test_an_archive_with_no_data_is_a_503(client, settings):
     settings.SERVICE_BOX = "42.84,-91.69,42.866,-91.627"  # DATA_DIR is an empty folder (app/conftest.py)
     response = get(client, "air_temperature_max")
     assert response.status_code == 503 and response.json()["errors"][0]["code"] == "no_data"
+
+
+def test_a_stat_without_a_start_runs_from_january_1(client, archive):
+    # As at points: a total with no start is the season to date, not the last day alone
+    request = get(client, "precipitation_sum", stat="sum").json()["meta"]["request"]
+    assert (request["start"], request["end"], request["stat"]) == ("2025-01-01", "2025-07-09", "sum")
+    assert get(client, "air_temperature_max").json()["meta"]["request"]["date"] == "2025-07-09"  # no stat: one day
+
+
+def test_an_hourly_stat_needs_a_start(client, archive):
+    error = get(client, "air_temperature_hourly", stat="max").json()["errors"][0]
+    assert (error["code"], error["param"]) == ("missing", "start")
+
+
+@pytest.mark.parametrize("biofix", ["2025-07-03", "07-03"])
+def test_a_degree_day_maps_biofix_starts_its_total(client, archive, biofix):
+    by_start = get(client, "degree_days", dd="sine_50", start="2025-07-03", stat="sum", gaps="missing").json()
+    by_biofix = get(client, "degree_days", dd="sine_50", biofix=biofix, gaps="missing").json()  # sum implied
+    assert by_biofix["meta"]["request"]["start"] == "2025-07-03" and by_biofix["meta"]["request"]["stat"] == "sum"
+    assert by_biofix["data"]["degree_days"] == by_start["data"]["degree_days"]
+
+
+@pytest.mark.parametrize(
+    ("layer", "params", "code"),
+    [
+        ("precipitation_sum", {"biofix": "07-03"}, "not_applicable"),  # a degree-day total's start only
+        ("degree_days", {"dd": "sine_50", "biofix": "07-03", "start": "2025-07-03"}, "conflict"),
+        ("degree_days", {"dd": "sine_50", "biofix": "07-03", "date": "2025-07-05"}, "conflict"),
+        ("degree_days", {"dd": "sine_50", "biofix": "2025-07-08", "end": "2025-07-05"}, "out_of_order"),
+        ("degree_days", {"dd": "sine_50", "biofix": "13-40"}, "invalid"),
+        ("degree_days", {"dd": "sine_50", "biofix": "02-29"}, "invalid"),
+    ],
+)
+def test_biofix_on_maps_that_cant_take_it(client, archive, layer, params, code):
+    error = get(client, layer, **params).json()["errors"][0]
+    assert error["code"] == code

@@ -5,7 +5,7 @@ from typing import Any
 from ninja import NinjaAPI
 from ninja.operation import Operation
 
-from api import docs, errors
+from api import docs, errors, strict
 from api.params import QueryParser
 from api.routes import degree_days, discovery, grids, maps, models, tiles, weather
 
@@ -38,3 +38,4 @@ api.add_router("/", degree_days.router)
 api.add_router("/", grids.router)
 api.add_router("/", tiles.router)
 api.add_router("/", maps.router)
+strict.install(api)  # after the routers: every operation's query is checked

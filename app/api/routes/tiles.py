@@ -25,7 +25,7 @@ from api import clock, layermaps
 from api.envelope import Column, etag_for, not_modified, output_units, shown_unit
 from api.errors import ApiError
 from api.layermaps import LayerQuery
-from api.params import UnitsQuery
+from api.params import EPOCH_DIGITS, UnitsQuery
 
 router = Router(tags=["Maps and grids"])
 
@@ -59,8 +59,8 @@ def _layer_query(when: str, q: TileQuery) -> LayerQuery:
         fields |= {"start": span.group(1), "end": span.group(2)}
     elif SEASON.match(when):
         fields["season"] = when
-    elif "T" in when:
-        fields["time"] = when if len(when) > 13 else f"{when}:00"
+    elif "T" in when or (when.isdigit() and len(when) >= EPOCH_DIGITS):  # an hour, ISO or Unix time
+        fields["time"] = when
     else:
         fields["date"] = when
     if q.stat is not None and RANGE.match(when) is None:
@@ -107,7 +107,7 @@ def _prepared(request: HttpRequest, layer: str, when: str, q: TileQuery, units: 
     "/tiles/{layer}/{when}/{z}/{x}/{y}.png",
     summary="A data tile",
     response={200: None},
-    openapi_extra={"responses": {"200": {"content": {"image/png": {}}}}},
+    openapi_extra={"responses": {200: {"content": {"image/png": {}}}}},
 )
 def tile(
     request: HttpRequest,
@@ -200,7 +200,7 @@ def _data_dir():
     "/tiles/{layer}/legend.png",
     summary="A layer's legend",
     response={200: None},
-    openapi_extra={"responses": {"200": {"content": {"image/png": {}}}}},
+    openapi_extra={"responses": {200: {"content": {"image/png": {}}}}},
 )
 def legend(
     request: HttpRequest,

@@ -146,3 +146,10 @@ def test_freezes_at_thresholds(client, archive):
     assert any("outside the usual" in w for w in body["meta"]["warnings"])
     metric = get(client, "freeze", date="2025-07-08", units="metric").json()["meta"]["request"]
     assert metric["thresholds"] == [0.0, -2.2, -4.4] and metric["threshold_units"] == "°C"
+
+
+def test_a_biofix_given_as_month_and_day_takes_the_requests_year(client, archive):
+    by_date = get(client, dd="sine_50", start="2025-07-07", end="2025-07-10", biofix="2025-07-09").json()
+    by_day = get(client, dd="sine_50", start="2025-07-07", end="2025-07-10", biofix="07-09").json()
+    assert by_day["meta"]["request"]["biofix"] == "2025-07-09"
+    assert by_day["data"]["dd_sine_50_cum"] == by_date["data"]["dd_sine_50_cum"]

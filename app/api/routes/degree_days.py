@@ -35,6 +35,7 @@ from api.params import (
     PointsQuery,
     SeriesQuery,
     degree_day_settings,
+    resolve_biofix,
     setting,
     temperature_threshold,
 )
@@ -100,13 +101,15 @@ def running(daily: np.ndarray, usable: np.ndarray, start: int) -> np.ndarray:
     return total
 
 
-def dd_window(when: DaysQuery, options: SeriesQuery, biofix: date | None):
-    """(first day read, first day shown, last day, trim the end?) for a degree-day request."""
+def dd_window(when: DaysQuery, options: SeriesQuery, sent_biofix: str | None):
+    """(first day read, first day shown, last day, trim the end?, the biofix) for a degree-day request; a biofix sent
+    as a month and day is the latest on or before the last day (`params.resolve_biofix`)."""
     today = clock.now().date()
     trim_end = when.end is None and when.date is None and options.forecast
     first, last = when.span(default_end=today + timedelta(days=FORECAST_DAYS) if trim_end else today)
+    biofix = resolve_biofix(sent_biofix, last if not trim_end else today)
     read_from = min(first, biofix) if biofix is not None else first
-    return read_from, first, last, trim_end
+    return read_from, first, last, trim_end, biofix
 
 
 @router.get("/degree-days", response=responses(TableResponse), summary="Daily and running degree days at points")
@@ -120,7 +123,7 @@ def daily(
     base: float | None = None,
     upper: float | None = None,
     method: str | None = None,
-    biofix: date | None = None,
+    biofix: str | None = None,
     targets: str | None = None,
     projection: str | None = None,
 ) -> HttpResponse:
@@ -136,12 +139,12 @@ def daily(
     found_settings = settings_from(request, dd, output.units, warnings)
     goals = _targets(targets, output.units)
     mode = projection_mode(projection)
-    read_from, first, last, trim_end = dd_window(when, options, biofix)
+    read_from, first, last, trim_end, fixed = dd_window(when, options, biofix)
     if mode and when.end is None and when.date is None:
         last, trim_end = date(first.year, 12, 31), False
     check_size((last - read_from).days + 1, len(where.locations()), MAX_DAYS, "days")
     now = clock.now()
-    computed = _computed(where, first, last, found_settings, biofix or first, options, output)
+    computed = _computed(where, first, last, found_settings, fixed or first, options, output)
     computed |= {"targets": goals or None, "projection": mode}
     years = archive_years(settings.DATA_DIR) if mode else []
     stamp_from = min([read_from, *(date(y, 1, 1) for y in years if y < read_from.year)])
@@ -152,10 +155,10 @@ def daily(
     found, read_warnings, sources, corrections = read_days(where, read_from, last, TEMPERATURES, options, trim_end, now)
     warnings += read_warnings
     skip = (first - read_from).days
-    start_at = max(0, ((biofix or first) - read_from).days)
-    if biofix is not None and biofix > last:
+    start_at = max(0, ((fixed or first) - read_from).days)
+    if fixed is not None and fixed > last:
         warnings.append(
-            f"The biofix ({day_text(biofix)}) is after the last day asked for ({day_text(last)}), so there are no "
+            f"The biofix ({day_text(fixed)}) is after the last day asked for ({day_text(last)}), so there are no "
             "running totals."
         )
     columns: dict[str, list] = {}
@@ -362,24 +365,24 @@ def table(
     base: float | None = None,
     upper: float | None = None,
     method: str | None = None,
-    biofix: date | None = None,
+    biofix: str | None = None,
 ) -> HttpResponse:
     """One row per point and setting: the total from `biofix` (default `start`) to `end`, and its estimated,
     missing and forecast days. What a daily report across many places and settings needs in one request
     (`points=` up to 50, `dd=` several). Defaults: January 1 through the forecast (to today with `forecast=false`)."""
     warnings: list[str] = []
     found_settings = settings_from(request, dd, output.units, warnings)
-    read_from, first, last, trim_end = dd_window(when, options, biofix)
+    read_from, first, last, trim_end, fixed = dd_window(when, options, biofix)
     check_size((last - read_from).days + 1, len(where.locations()), MAX_DAYS, "days")
     now = clock.now()
-    computed = _computed(where, first, last, found_settings, biofix or first, options, output)
+    computed = _computed(where, first, last, found_settings, fixed or first, options, output)
     etag = answer_etag(request, computed, points.stamp(where.locations(), read_from, last, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, read_from, last)
     found, read_warnings, sources, corrections = read_days(where, read_from, last, TEMPERATURES, options, trim_end, now)
     warnings += read_warnings
-    begin = ((biofix or first) - read_from).days
+    begin = ((fixed or first) - read_from).days
     rows: dict[str, list] = {key: [] for key in ("point", "setting", "dd", "estimated_days", "missing_days")}
     rows["forecast_days"] = []
     for k, (days, n) in enumerate(found):

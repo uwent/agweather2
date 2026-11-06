@@ -13,7 +13,7 @@ once per change of its data; `render_default_maps` (after each hourly ingest) dr
 import hashlib
 import os
 import time
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -26,7 +26,7 @@ from ninja import Field, Query, Router
 from agdata import mapimage, regions, series
 from agdata import units as agunits
 from agdata.grid import Window
-from api import clock, layermaps
+from api import clock, layermaps, maptitles
 from api.envelope import Column, etag_for, not_modified, output_units, shown_unit
 from api.errors import ApiError
 from api.layermaps import LayerQuery
@@ -62,7 +62,7 @@ class MapQuery(LayerQuery):
     "/maps/{layer}.png",
     summary="A static map image",
     response={200: None},
-    openapi_extra={"responses": {"200": {"content": {"image/png": {}}}}},
+    openapi_extra={"responses": {200: {"content": {"image/png": {}}}}},
 )
 def static_map(request: HttpRequest, layer: str, query: Query[MapQuery], output: Query[UnitsQuery]) -> HttpResponse:
     """A finished map of a layer on one day (default the latest), an hour, a season, or a range with `stat` (`days=7`
@@ -96,10 +96,10 @@ def static_map(request: HttpRequest, layer: str, query: Query[MapQuery], output:
 def _layer_query(q: MapQuery, now: datetime) -> LayerQuery:
     fields: dict[str, Any] = q.model_dump(exclude={"days", "region", "width"})
     if q.days is not None:
-        if q.start or q.date or q.time or q.season:
+        if q.start or q.date or q.time or q.season or q.biofix:
             raise ApiError(
                 "conflict",
-                "days counts back from end (or the latest day), so it takes no start, date, time or "
+                "days counts back from end (or the latest day), so it takes no start, biofix, date, time or "
                 "season. Leave those out.",
                 "days",
             )
@@ -118,7 +118,8 @@ def _layer_query(q: MapQuery, now: datetime) -> LayerQuery:
 
 def _draw(request: HttpRequest, a: layermaps.LayerAsk, q: MapQuery, now: datetime, data_stamp: Any) -> bytes:
     archive = layermaps.archive_window(settings.DATA_DIR, a.stores)
-    values = layermaps.cached(a, archive, now, data_stamp).values[0]
+    computed = layermaps.cached(a, archive, now, data_stamp)
+    values = computed.values[0]
     window, region = archive, None
     if q.region is not None:
         region = regions.find(q.region)
@@ -145,11 +146,12 @@ def _draw(request: HttpRequest, a: layermaps.LayerAsk, q: MapQuery, now: datetim
         window,
         a.scale.palette,
         a.domain(values),
-        a.label + (f" · {region.name}" if region is not None else ""),
-        _subtitle(a),
+        a.label,
+        maptitles.subtitle(a, region.name if region is not None else None),
         agunits.unit(shown_as).label,
         lambda v: agunits.convert(v, a.unit, shown_as),
         categories=a.categories,
+        caption=maptitles.caption(a, computed),
         width=q.width,
     )
 
@@ -161,32 +163,6 @@ def _framed(archive: Window, inside: np.ndarray, values: np.ndarray) -> tuple[Wi
     x0, x1 = max(0, cols[0] - MARGIN_CELLS), min(archive.shape[1], cols[-1] + 1 + MARGIN_CELLS)
     window = Window(j0=archive.j0 + y0, j1=archive.j0 + y1, i0=archive.i0 + x0, i1=archive.i0 + x1)
     return window, values[y0:y1, x0:x1]
-
-
-def _subtitle(a: layermaps.LayerAsk) -> str:
-    """When the map shows, as a reader says it."""
-    model = a.model
-    if model is not None and model.season is not None and a.first == a.last:
-        return f"{model.season.label} season, through {_day(a.last)}"
-    if isinstance(a.first, datetime):
-        when = f"{a.first:%B} {a.first.day}, {a.first:%Y %H:%M} UTC"
-    elif a.first == a.last:
-        when = _day(a.first)
-    else:
-        first, last = a.first, a.last
-        span = (
-            f"{first:%B} {first.day}–{last.day}"
-            if first.month == last.month
-            else f"{_day(first, year=False)} to {_day(last, year=False)}"
-        )
-        when = f"{span}, {last.year} ({a.stat})"
-    if a.layer.source == "cumulative":
-        when = f"January 1 to {_day(a.last)}"
-    return when
-
-
-def _day(d: date, year: bool = True) -> str:
-    return f"{d:%B} {d.day}" + (f", {d.year}" if year else "")
 
 
 def _maps_dir() -> Path:

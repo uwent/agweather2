@@ -24,7 +24,7 @@ from agdata.catalog import DAILY_STATISTICS
 from agdata.grid import NDFD, Box, Window
 from agdata.layers import DEGREE_DAYS, LAYERS, Layer, LayerOutput
 from agdata.regrid import MIN_LATLON_RES, LatLonIndex, latlon_index
-from api import clock, layermaps
+from api import clock, layermaps, maptitles
 from api.envelope import (
     Column,
     Result,
@@ -75,6 +75,7 @@ class LayerOutputInfo(Schema):
 class LayerInfo(Schema):
     id: str
     name: str
+    title: str  # its name as a map's title gives it ("Air temperature, daily maximum")
     group: Literal["weather", "running_total", "degree_days", "model"]
     time_axis: Literal["day", "hour", "day_of_year"]
     variable: str | None  # the catalog variable (`/variables`); None where the layer is computed (degree days)
@@ -125,6 +126,7 @@ def layers(request: HttpRequest) -> HttpResponse:
         LayerInfo(
             id=layer.id,
             name=layer.name,
+            title=maptitles.layer_title(layer),
             group=layer.group,
             time_axis=layer.time_axis,
             variable=layer.variable,

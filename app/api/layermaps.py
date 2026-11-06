@@ -41,7 +41,8 @@ from agmodels import seasons
 from agmodels.seasons import Season
 from agmodels.spec import ModelSpec
 from api.errors import ApiError, day_text, hour_text
-from api.params import degree_day_settings
+from api.maptitles import layer_title
+from api.params import degree_day_settings, parse_hour, resolve_biofix
 from api.runs import option_values
 
 NO_DATA = "The archive has no weather data yet. Please try again later."
@@ -64,6 +65,7 @@ class LayerQuery(Schema):
     output: str | None = None
     planting: Literal["early", "mid", "late", "none"] | None = None
     season: str | None = None
+    biofix: str | None = None  # degree days only: the start of a sum (a date, or MM-DD)
 
 
 @dataclass(kw_only=True)
@@ -81,6 +83,7 @@ class LayerAsk:
     stores: series.Stores
     observed: datetime  # the archive's last observed hour
     warnings: list[str] = field(default_factory=list)
+    units: str = "us"  # the request's system, for a title's degree-day thresholds
 
     @property
     def unit(self) -> str:
@@ -117,10 +120,10 @@ class LayerAsk:
 
     @property
     def label(self) -> str:
-        """The map's title: the layer's name, with its setting or model output."""
-        if self.model is not None:
-            return f"{self.layer.name}: {self.model.output.label}"
-        return self.layer.name + (f" ({self.setting.name})" if self.setting else "")
+        """The map's title as the public reads it (`api.maptitles`): "Air temperature, daily maximum"."""
+        from api import maptitles
+
+        return maptitles.title(self, self.units)
 
     def echo(self) -> dict[str, Any]:
         """The request as resolved, for `meta.request` and the ETag."""
@@ -160,7 +163,7 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
     if observed is None:
         raise ApiError("no_data", NO_DATA, None, status=503)
     first, last = span(found, q, observed)
-    stat = q.stat
+    stat = q.stat or ("sum" if q.biofix is not None else None)  # a biofix starts a total
     if stat is not None and stat not in found.stats:
         offered = (
             f"stat={' or '.join(found.stats)}"
@@ -168,13 +171,15 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
             else "no stat, because each day is already a running total; give one date"
         )
         raise ApiError(
-            "invalid", f"{found.name} can't be combined over days by stat={stat}. It takes {offered}.", "stat"
+            "invalid", f"{layer_title(found)} can't be combined over days by stat={stat}. It takes {offered}.", "stat"
         )
     model = model_request(request, found, q, warnings) if found.source == "model" else None
     if model is None and (q.output is not None or q.planting is not None):
         param = "output" if q.output is not None else "planting"
         raise ApiError(
-            "invalid", f"{param} applies only to a model's map, and {found.name} isn't one. Leave out {param}.", param
+            "invalid",
+            f"{param} applies only to a model's map, and {layer_title(found)} isn't one. Leave out {param}.",
+            param,
         )
     if model is not None and model.spec.seasonal is not None:
         first, last = season_span(model, q, first, last, series.last_closed_day(observed), now.date(), warnings)
@@ -194,7 +199,7 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
     elif q.season is not None:
         raise ApiError(
             "not_applicable",
-            f"{found.name} isn't counted by season, so it takes no season. Give a date instead.",
+            f"{layer_title(found)} isn't counted by season, so it takes no season. Give a date instead.",
             "season",
         )
     setting = None
@@ -232,6 +237,7 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         stores=series.Stores(opened),
         observed=observed,
         warnings=warnings,
+        units=units,
     )
 
 
@@ -335,7 +341,8 @@ def _span(layer: Layer, q: LayerQuery, observed: datetime) -> tuple[Any, Any]:
         if q.date is not None:
             raise ApiError(
                 "invalid",
-                f"{layer.name} is hourly, so it takes a time rather than a date. Give time, or start and end times.",
+                f"{layer_title(layer)} is hourly, so it takes a time rather than a date. Give time, or start and "
+                "end times.",
                 "date",
             )
         if q.time is not None and (q.start or q.end):
@@ -343,10 +350,17 @@ def _span(layer: Layer, q: LayerQuery, observed: datetime) -> tuple[Any, Any]:
                 "conflict", "Give either time for one hour, or start and end for a range, but not both.", "time"
             )
         if q.time is not None:
-            hour = _parse_hour(q.time, "time")
+            hour = parse_hour(q.time, "time")
             return hour, hour
-        last = _parse_hour(q.end, "end") if q.end else observed
-        first = _parse_hour(q.start, "start") if q.start else last
+        last = parse_hour(q.end, "end") if q.end else observed
+        if q.stat is not None and q.start is None:
+            raise ApiError(
+                "missing",
+                f"{layer_title(layer)} is hourly, so stat needs a start time for the hours it combines, such as "
+                "start=2025-07-08T00:00Z.",
+                "start",
+            )
+        first = parse_hour(q.start, "start") if q.start else last
         if first > last:
             raise ApiError(
                 "out_of_order",
@@ -359,19 +373,41 @@ def _span(layer: Layer, q: LayerQuery, observed: datetime) -> tuple[Any, Any]:
     if q.time is not None:
         raise ApiError(
             "invalid",
-            f"{layer.name} is daily, so it takes a date rather than a time. Give date, or start and end dates.",
+            f"{layer_title(layer)} is daily, so it takes a date rather than a time. Give date, or start and end dates.",
             "time",
         )
-    if q.date is not None and (q.start or q.end):
+    if q.date is not None and (q.start or q.end or q.biofix):
         raise ApiError(
-            "conflict", "Give either date for one day, or start and end for a range of days, but not both.", "date"
+            "conflict",
+            "Give either date for one day, or a range of days (start or biofix, and end), but not both.",
+            "date",
         )
     if q.date is not None:
         day = parse_date(q.date, "date")
         return day, day
     last = parse_date(q.end, "end") if q.end else series.last_closed_day(observed)
+    if q.biofix is not None:
+        if layer.id != DEGREE_DAYS:
+            raise ApiError(
+                "not_applicable",
+                f"biofix starts a degree-day total, and {layer_title(layer)} isn't one. Give start for the first day.",
+                "biofix",
+            )
+        if q.start is not None:
+            raise ApiError("conflict", "Give either biofix or start for the first day, but not both.", "biofix")
+        first = resolve_biofix(q.biofix, last)
+        assert first is not None
+        if first > last:
+            raise ApiError(
+                "out_of_order",
+                f"The biofix ({day_text(first)}) is after the end date ({day_text(last)}). Choose an end on or after "
+                "it.",
+                "biofix",
+            )
+        return first, last
     if q.start is None:
-        return (last, last) if q.end is None else (date(last.year, 1, 1), last)
+        # A range to combine (stat) or one with only its end: the season to date, as at points
+        return (last, last) if q.end is None and q.stat is None else (date(last.year, 1, 1), last)
     first = parse_date(q.start, "start")
     if first > last:
         raise ApiError(
@@ -390,23 +426,6 @@ def parse_date(text: str, param: str) -> date:
         raise ApiError(
             "invalid", f"The {param} date ({text}) isn't a date. Give dates as YYYY-MM-DD, such as 2025-07-08.", param
         ) from None
-
-
-def _parse_hour(text: str, param: str) -> datetime:
-    try:
-        value = datetime.fromisoformat(text.replace("Z", "+00:00"))
-    except ValueError:
-        raise ApiError(
-            "invalid", f"The {param} time ({text}) isn't a time. Give times as 2025-07-08T15:00Z.", param
-        ) from None
-    value = value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
-    if value.minute or value.second or value.microsecond:
-        raise ApiError(
-            "invalid",
-            f"The {param} time ({iso_hour(value)}) isn't on the hour. Give a whole hour, such as 2025-07-08T15:00Z.",
-            param,
-        )
-    return value
 
 
 def iso_hour(when: datetime) -> str:
@@ -434,7 +453,7 @@ def _cubes(layer: Layer, setting, stat, gaps: str, first, last) -> tuple[str, st
 # --- Model layers --------------------------------------------------------------------------------------------------
 
 # A user's own dates and settings apply at points, not on maps (D66)
-_POINT_ONLY = ("biofix", "planting_date")
+POINT_ONLY = ("biofix", "planting_date")
 
 
 @dataclass(kw_only=True)
@@ -480,13 +499,15 @@ def model_request(request: HttpRequest, layer: Layer, query: LayerQuery, warning
         f"A map uses each location's typical settings. To run {spec.name} with your own at a location, use "
         f"GET /api/v2/models/{spec.id}/run."
     )
-    for name in (*_POINT_ONLY, *modelgrid.PLACE_OPTIONS):
+    for name in (*POINT_ONLY, *modelgrid.PLACE_OPTIONS):
         if request.GET.get(name):
             raise ApiError("not_applicable", f"{name} doesn't apply to a map. {pointed}", name)
     chosen = layer.outputs[0] if output is None else next((o for o in layer.outputs if o.name == output), None)
     if chosen is None:
         names = ", ".join(o.name for o in layer.outputs)
-        raise ApiError("invalid", f"{layer.name} has no output named {output!r}. Choose one of: {names}.", "output")
+        raise ApiError(
+            "invalid", f"{layer_title(layer)} has no output named {output!r}. Choose one of: {names}.", "output"
+        )
     options = {}
     for o in spec.options:
         if o.name in modelgrid.PLACE_OPTIONS:
@@ -546,7 +567,7 @@ def _model_compute(layer, model: ModelRequest, first, last, window, stat, data_d
     if found.stale:
         raise ApiError(
             "stale",
-            f"We're updating the data behind the {layer.name} map. Please try again in a few minutes.",
+            f"We're updating the data behind the {layer_title(layer)} map. Please try again in a few minutes.",
             None,
             status=503,
         )
@@ -564,7 +585,7 @@ def _model_compute(layer, model: ModelRequest, first, last, window, stat, data_d
     values = np.where(regions.land(data_dir, window), values, np.nan)
     if found.in_region is not None and not found.in_region.any():
         warnings.append(
-            f"{layer.name} was developed for {', '.join(model.spec.region)}, and none of this area "
+            f"{layer_title(layer)} was developed for {', '.join(model.spec.region)}, and none of this area "
             "is in those states, so "
             "the map is empty."
         )
@@ -716,7 +737,8 @@ def _fresh(read: series.GridSteps, layer: Layer, layout, window: Window, data_di
     if layout is not DAILY or stale.size > MAX_STALE_DAYS:
         raise ApiError(
             "stale",
-            f"We're updating {layer.name} after a change to how it's computed. Please try again in a few minutes, or "
+            f"We're updating {layer_title(layer)} after a change to how it's computed. Please try again in a few "
+            "minutes, or "
             f"ask for up to {MAX_STALE_DAYS} days.",
             None,
             status=503,

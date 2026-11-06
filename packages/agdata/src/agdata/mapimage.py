@@ -175,18 +175,27 @@ def map_png(
     unit_label: str,
     shown: Callable[[np.ndarray], np.ndarray],
     categories: Sequence[str] | None = None,
+    caption: Sequence[str] = (),
     credit: str = "AgWeather, UW–Madison · agweather.cals.wisc.edu",
     width: int = 800,
 ) -> bytes:
     """A map of `values` (y, x) over `window` (south row first; NaN blank), with county and state outlines, a
-    title, a subtitle (the date), a legend and a credit line."""
+    title and a subtitle (what and when; each wraps), a legend, a caption (the data sources, the days combined) and
+    a credit line."""
     rows, cols = window.shape
-    map_w = width / DPI - 0.4
+    inches = width / DPI
+    map_w = inches - 0.4
     map_h = map_w * rows / cols
-    head, foot = 0.75, 0.95
+    title_lines = textwrap.wrap(title, width=int(inches * 9.5)) or [""]
+    subtitle_lines = textwrap.wrap(subtitle, width=int(inches * 14))
+    caption_lines = [line for part in caption for line in textwrap.wrap(part, width=int(inches * 15.5))]
+    TITLE, SUB, CAPTION = 0.25, 0.19, 0.16  # line heights, inches
+    head = 0.18 + TITLE * len(title_lines) + SUB * len(subtitle_lines) + 0.08
+    legend = 0.6
+    foot = legend + CAPTION * len(caption_lines) + 0.3
     height = head + map_h + foot
-    fig = Figure(figsize=(width / DPI, height), dpi=DPI)
-    ax = fig.add_axes((0.2 / (width / DPI), foot / height, map_w / (width / DPI), map_h / height))
+    fig = Figure(figsize=(inches, height), dpi=DPI)
+    ax = fig.add_axes((0.2 / inches, foot / height, map_w / inches, map_h / height))
     extent = (window.i0 - 0.5, window.i1 - 0.5, window.j0 - 0.5, window.j1 - 0.5)
     lo, hi = domain
     shown_values = np.ma.masked_invalid(values)
@@ -209,20 +218,23 @@ def map_png(
     ax.set_xlim(extent[0], extent[1])
     ax.set_ylim(extent[2], extent[3])
     ax.set_axis_off()
-    fig.text(
-        0.025,
-        1 - 0.3 / height,
-        textwrap.shorten(title, width=width // 9),
-        fontsize=13,
-        family=FONT,
-        weight="bold",
-        va="center",
-    )
-    fig.text(0.025, 1 - 0.58 / height, subtitle, fontsize=9.5, family=FONT, va="center", color="#444444")
+    y = 0.18 + TITLE / 2
+    for line in title_lines:
+        fig.text(0.025, 1 - y / height, line, fontsize=13, family=FONT, weight="bold", va="center")
+        y += TITLE
+    y += (SUB - TITLE) / 2
+    for line in subtitle_lines:
+        fig.text(0.025, 1 - y / height, line, fontsize=9.5, family=FONT, va="center", color="#444444")
+        y += SUB
+    top = foot - 0.1  # the legend's band, under the map
     if categories is not None:
-        _swatches(fig, p, categories, (0.025, 0.42 / height, 0.95, 0.2 / height))
+        _swatches(fig, p, categories, (0.025, (top - 0.33) / height, 0.95, 0.2 / height))
     else:
-        _colorbar(fig.add_axes((0.025, 0.5 / height, 0.5, 0.17 / height)), p, domain, shown)
-        fig.text(0.54, 0.585 / height, unit_label, fontsize=8.5, family=FONT, va="center")
+        _colorbar(fig.add_axes((0.025, (top - 0.25) / height, 0.5, 0.17 / height)), p, domain, shown)
+        fig.text(0.54, (top - 0.165) / height, unit_label, fontsize=8.5, family=FONT, va="center")
+    y = top - legend
+    for line in caption_lines:
+        fig.text(0.025, (y - CAPTION / 2 + 0.06) / height, line, fontsize=8, family=FONT, va="center", color="#444444")
+        y -= CAPTION
     fig.text(0.975, 0.14 / height, credit, fontsize=7.5, family=FONT, ha="right", color="#666666")
     return _png(fig)

@@ -16,7 +16,7 @@ from django.http import HttpRequest
 from django.utils.datastructures import MultiValueDict
 from ninja import Schema
 from ninja.parser import Parser
-from pydantic import PrivateAttr, model_validator
+from pydantic import PrivateAttr, ValidationInfo, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 
 from api.errors import ApiError, day_text, hour_text
@@ -205,28 +205,103 @@ def check_vars(raw: str | None, valid: Mapping[str, Any], default: list[str], pa
     return list(dict.fromkeys(names))
 
 
+def resolve_biofix(text: str | dt.date | None, reference: dt.date, param: str = "biofix") -> dt.date | None:
+    """A biofix as sent: a date (`2026-04-15`), or a month and day (`04-15`) taken in the latest year that puts it on
+    or before `reference` (the request's last day), so `11-01` in February is last November's."""
+    if text is None or text == "":
+        return None
+    if isinstance(text, dt.date):
+        return text
+    text = text.strip()
+    try:
+        return dt.date.fromisoformat(text)
+    except ValueError:
+        pass
+    parts = text.split("-")
+    if len(parts) == 2 and all(part.isdigit() and len(part) <= 2 for part in parts):
+        month, day = int(parts[0]), int(parts[1])
+        if (month, day) == (2, 29):
+            raise ApiError(
+                "invalid",
+                "February 29 isn't in every year, so give the biofix as a full date, such as 2024-02-29.",
+                param,
+            )
+        try:
+            found = dt.date(reference.year, month, day)
+        except ValueError:
+            pass
+        else:
+            return found if found <= reference else found.replace(year=reference.year - 1)
+    raise ApiError(
+        "invalid",
+        f"The {param} ({text}) isn't a date. Give a date as YYYY-MM-DD (2026-04-15), or a month and day as MM-DD "
+        "(04-15) for the latest one on or before the end date.",
+        param,
+    )
+
+
+EPOCH_DIGITS = 9  # a bare number this long or longer is Unix time; 8 digits is a compact date (20261105)
+EPOCH_MS = 10**11  # from here a Unix time is in milliseconds (in seconds it would be the year 5138)
+TIME_FORMS = "as 2025-07-08T15:00Z, or as Unix time in seconds (1751986800)"
+
+
+def parse_time(value: str | int | float) -> dt.datetime:
+    """A time as any endpoint takes it (ValueError if it isn't one): ISO 8601 with or without minutes, a zone (`Z`,
+    `-05:00`), the `T` (a space works too) or the dashes (`20250708T15`); a bare date for its midnight; or Unix time
+    (Wisconet's), in seconds or milliseconds, as text or a JSON number, always UTC. A time without a zone is returned
+    naive: each caller decides what that means."""
+    if isinstance(value, bool):
+        raise ValueError(value)
+    number: float | None = None
+    if isinstance(value, int | float):
+        number = value
+    else:
+        text = str(value).strip()
+        if text.isdigit() and len(text) >= EPOCH_DIGITS:
+            number = int(text)
+    if number is not None:
+        return dt.datetime.fromtimestamp(number / 1000 if abs(number) >= EPOCH_MS else number, dt.UTC)
+    return dt.datetime.fromisoformat(text.replace("Z", "+00:00").replace("z", "+00:00"))
+
+
+def parse_hour(value: str | int | float, param: str) -> dt.datetime:
+    """`parse_time` for a query parameter: in UTC (a time without a zone is UTC), on the hour, else ApiError."""
+    try:
+        found = parse_time(value)
+    except (ValueError, OverflowError, OSError):
+        raise ApiError(
+            "invalid", f"The value of {param} ({value}) isn't a time. Give a time {TIME_FORMS}.", param
+        ) from None
+    found = found.replace(tzinfo=dt.UTC) if found.tzinfo is None else found.astimezone(dt.UTC)
+    if found.minute or found.second or found.microsecond:
+        raise ApiError(
+            "invalid",
+            f"The value of {param} ({found:%Y-%m-%dT%H:%M:%S}Z) isn't on the hour. Give a whole hour, such as "
+            "2025-07-08T15:00Z.",
+            param,
+        )
+    return found
+
+
 class HoursQuery(Schema):
-    """Hours by their UTC end, `start` to `end` inclusive: ISO times on the hour, with a zone (`Z`, `-05:00`) or
-    taken as UTC; a bare date means its 00Z. Defaults are the endpoint's (`span`)."""
+    """Hours by their UTC end, `start` to `end` inclusive, in any form `parse_hour` takes (an ISO time or Unix
+    time, on the hour; without a zone, UTC). Defaults are the endpoint's (`span`)."""
 
     start: dt.datetime | None = None
     end: dt.datetime | None = None
 
+    @field_validator("start", "end", mode="before")
+    @classmethod
+    def _parse(cls, value: Any, info: ValidationInfo) -> dt.datetime | None:
+        if value is None or value == "":
+            return None
+        try:
+            return parse_hour(value, str(info.field_name))
+        except ApiError as error:
+            raise fail("invalid", error.param, error.message) from None
+
     @model_validator(mode="after")
     def _check(self) -> "HoursQuery":
-        for name in ("start", "end"):
-            value = getattr(self, name)
-            if value is None:
-                continue
-            value = value.replace(tzinfo=dt.UTC) if value.tzinfo is None else value.astimezone(dt.UTC)
-            if value.minute or value.second or value.microsecond:
-                raise fail(
-                    "invalid",
-                    name,
-                    f"The {name} time ({value:%Y-%m-%dT%H:%M}Z) isn't on the hour. Give a whole "
-                    "hour, such as 2025-07-08T15:00Z.",
-                )
-            setattr(self, name, value)
         if self.start is not None and self.end is not None and self.start > self.end:
             raise fail(
                 "out_of_order",

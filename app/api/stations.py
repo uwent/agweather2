@@ -32,6 +32,7 @@ from agdata.qc import check_range, run_qc
 from agmodels.weather import dew_point_from_rh_c, relative_humidity_percent
 from api.envelope import SYSTEMS, match_unit, units_like
 from api.errors import ApiError, counted
+from api.params import TIME_FORMS, parse_time
 
 HOUR = timedelta(hours=1)
 MAX_HOURS = 2 * 8784  # about two years of hours per request
@@ -177,11 +178,11 @@ def _hourly(station: Station, block: dict[str, list[Any]], system, overrides: di
     times = []
     for k, text in enumerate(block["time"]):
         try:
-            when = datetime.fromisoformat(str(text).replace("Z", "+00:00"))
-        except ValueError:
+            when = parse_time(text)
+        except (ValueError, OverflowError, OSError):
             raise ApiError(
                 "invalid",
-                f"Entry {k} of hourly.time ({text}) isn't a time. Give times as 2025-07-08T15:00Z.",
+                f"Entry {k} of hourly.time ({text}) isn't a time. Give times {TIME_FORMS}.",
                 "hourly.time",
             ) from None
         if when.tzinfo is None:

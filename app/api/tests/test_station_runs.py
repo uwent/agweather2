@@ -152,3 +152,14 @@ def test_several_models_skip_those_the_station_cannot_run(client, archive):
         body_for(hourly={"time": hourly["time"], "precipitation": [0.0] * len(hourly["time"])}, models=["tar-spot"]),
     )
     assert nothing.status_code == 422 and nothing.json()["errors"][0]["code"] == "missing_inputs"
+
+
+def test_a_stations_hours_in_unix_time_give_what_iso_times_give(client, archive):
+    # Wisconet sends Unix time: seconds as JSON numbers, and milliseconds should read the same
+    iso = archive_hours(archive, ["air_temperature"])
+    seconds = [int(datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp()) for t in iso["time"]]
+    request = {"start": "2025-07-02", "end": "2025-07-09", "options": {"biofix": "2025-07-02"}}
+    by_iso = post(client, "models/early-blight-pdays/run", body_for(hourly=iso, **request)).json()
+    for times in (seconds, [s * 1000 for s in seconds], [str(s) for s in seconds]):
+        sent = post(client, "models/early-blight-pdays/run", body_for(hourly={**iso, "time": times}, **request)).json()
+        assert sent["data"]["pdays_total"] == by_iso["data"]["pdays_total"]

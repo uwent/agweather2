@@ -18,7 +18,7 @@ Send hourly data, daily data, or both, as JSON:
 }
 ```
 
-Columns are named as in `/variables`. Each hourly value is for the hour ending at its `time`. Hourly data are combined into days in the location's time zone, as our own data are. The location is required: it sets the time zone, day length and region. You can also send a CSV file (`Content-Type: text/csv`) with the other settings as query parameters.
+Columns are named as in `/variables`. Each hourly value is for the hour ending at its `time`, given as an ISO date and time with its time zone (`2026-06-01T05:00Z`) or as Unix time in seconds or milliseconds, as Wisconet sends it. Hourly data are combined into days in the location's time zone, as our own data are. The location is required: it sets the time zone, day length and region. You can also send a CSV file (`Content-Type: text/csv`) with the other settings as query parameters.
 
 Values outside the range a station could plausibly record are treated as missing, with a warning. With `"fill": "grid"`, gaps in your data are filled from our archive for the location's grid cell. With `"extend": "forecast"`, the model continues past your last day using our forecast. By default, the answer depends only on the data you send.
 

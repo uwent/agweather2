@@ -37,7 +37,7 @@ from api import clock, points, runs, stations
 from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_modified, respond, table
 from api.errors import ApiError, day_text
 from api.locations import describe
-from api.params import DaysQuery, OutputQuery, PointsQuery, SeriesQuery
+from api.params import DaysQuery, OutputQuery, PointsQuery, SeriesQuery, resolve_biofix
 from api.routes.weather import FORECAST_DAYS, MAX_DAYS, check_size, located
 from api.schemas import TableResponse, responses
 from ops.points import models_at_point, projected_at_point
@@ -100,7 +100,7 @@ def run(
     when: Query[DaysQuery],
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
-    biofix: date | None = None,
+    biofix: str | None = None,
     planting_date: str | None = None,
     projection: str | None = None,
     season: str | None = None,
@@ -119,7 +119,8 @@ def run(
     now = clock.now()
     today = now.date()
     planting_season = (when.date or when.start or when.end or today).year
-    the_plan = runs.plan(m, request.GET, lat, lng, planting_season, biofix=biofix, planting=planting_date)
+    the_biofix = resolve_biofix(biofix, when.end or when.date or today)
+    the_plan = runs.plan(m, request.GET, lat, lng, planting_season, biofix=the_biofix, planting=planting_date)
     mode = projection_mode(projection)
     trim_end = when.end is None and when.date is None
     default_end = today + timedelta(days=FORECAST_DAYS) if options.forecast else today
@@ -548,7 +549,8 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
             "the end date.",
             "start",
         )
-    biofix = _date_field({"biofix": options.pop("biofix", None)}, "biofix")
+    sent_biofix = options.pop("biofix", None)
+    biofix = resolve_biofix(None if sent_biofix is None else str(sent_biofix), last if end else now.date())
     planting = options.pop("planting_date", None)
     plans = [
         runs.plan(m, options, lat, lng, first.year, biofix=biofix, planting=planting, lenient=not single)

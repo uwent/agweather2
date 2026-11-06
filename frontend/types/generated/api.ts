@@ -163,6 +163,7 @@ export interface GridQuery {
   output?: string | null
   planting?: ('early' | 'mid' | 'late' | 'none') | null
   season?: string | null
+  biofix?: string | null
   bbox?: string | null
   region?: string | null
   stride?: number
@@ -186,6 +187,7 @@ export interface InputInfo {
 export interface LayerInfo {
   id: string
   name: string
+  title: string
   group: 'weather' | 'running_total' | 'degree_days' | 'model'
   time_axis: 'day' | 'hour' | 'day_of_year'
   variable: string | null
@@ -261,6 +263,7 @@ export interface MapQuery {
   output?: string | null
   planting?: ('early' | 'mid' | 'late' | 'none') | null
   season?: string | null
+  biofix?: string | null
   days?: number | null
   region?: string | null
   width?: number

@@ -112,3 +112,22 @@ def test_the_style_check_catches_what_it_should():
     assert BANNED.search("as decided in D63")
     assert BANNED.search("A powerful way to leverage weather insights")
     assert not BANNED.search("Daily weather at one or more locations, through the forecast.")
+
+
+def test_the_schema_has_no_repeated_keys_so_swagger_can_parse_it():
+    # Swagger UI parses the schema as YAML, which refuses a key twice in one object; JSON doesn't. A response keyed
+    # by the integer 200 and another by the string "200" (an `openapi_extra`) both serialize as "200".
+    import json
+
+    from django.core.serializers.json import DjangoJSONEncoder
+
+    repeated: list[list[str]] = []
+
+    def unique(pairs: list[tuple[str, object]]) -> dict:
+        keys = [k for k, _ in pairs]
+        if len(keys) != len(set(keys)):
+            repeated.append(keys)
+        return dict(pairs)
+
+    json.loads(json.dumps(api.get_openapi_schema(), cls=DjangoJSONEncoder), object_pairs_hook=unique)
+    assert repeated == []

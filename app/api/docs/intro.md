@@ -21,7 +21,7 @@ A JSON response has two parts. `meta` describes the request as it was computed, 
 
 Each day or hour says where its values came from in a `kind` column: `observed`, `partial` (today: the hours observed so far, then the forecast), `forecast`, or `projection` (past the forecast, from earlier years' weather, where you ask for it). **Missing data is always `null` (an empty cell in CSV), never zero.** A running total such as degree days bridges a short gap with an estimate and marks those days in a column of its own, so you can see how much of a total was estimated. Precipitation is never estimated: a total counts only the days that have data and reports how many were missing.
 
-If a request can't be answered, the response has a status code of 400 or higher and an `errors` list in place of `data`. Each error names the parameter at fault and says how to correct the request.
+If a request can't be answered, the response has a status code of 400 or higher and an `errors` list in place of `data`. Each error names the parameter at fault and says how to correct the request. A parameter the endpoint doesn't take is an error too (`unknown_parameter`), rather than being ignored, so a misspelled name can't change your results without your knowing.
 
 ## Models
 

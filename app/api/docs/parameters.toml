@@ -41,23 +41,23 @@ dd = "The degree-day settings, required unless `base` is given. Each is a method
 base = "The base temperature of a single degree-day setting, in the request's units, in place of `dd`."
 upper = "The upper threshold of a single degree-day setting given with `base`. Leave it out for no upper threshold."
 method = "The method of a single degree-day setting given with `base`: `sine` (the default), `modified` or `average`."
-biofix = "The day from which running totals start, as YYYY-MM-DD. The default is `start`."
+biofix = "The day from which running totals start: a date (YYYY-MM-DD), or a month and day (MM-DD) for the latest one on or before the end date, so `04-15` is this year's April 15 and, in February, `11-01` is last November 1. The default is `start`."
 projection = "Continue past the forecast to `end` using the weather of each earlier year in the archive. With `true`, each value is the median across those years, with the 10th and 90th percentiles in columns ending `_p10` and `_p90`. With `years`, each year's path is returned separately, with a `year` column. Off by default."
 planting_date = "The crop's planting date, which sets the crop's growth stages and the period when it is susceptible: a date (YYYY-MM-DD), or `early`, `mid` or `late` for the typical planting dates at the location, or `all` for all three. Without it, no susceptible period is applied."
-stat = "Combine a range of days into one map: `sum`, `mean`, `min` or `max`. Only values that add up over days (precipitation, evapotranspiration, sunlight, hour counts and degree days) can be summed."
+stat = "Combine a range of days into one map: `sum`, `mean`, `min` or `max`. Only values that add up over days (precipitation, evapotranspiration, sunlight, hour counts and degree days) can be summed. Without `start`, the range runs from January 1 of the end date's year."
 output = "For a model layer, which of the model's results to show (`/layers` lists them). The default is the model's risk level, or the growth stage for a crop model."
 planting = "For a model layer that depends on a crop: use each location's typical `early`, `mid` (the default) or `late` planting date, or `none` for the model's own default dates without regard to the crop's growth stage."
 season = "For a seasonal layer such as potato volunteer survival: the season, as `2025-26`. The default is the current season. The map shows the season through its last day, or through the last observed day if the season isn't over."
 region = "Limit the map to a state (by name or postal code, as `wisconsin` or `WI`) or a county (by its five-digit FIPS code, as `55025`)."
 style = "Leave this out for data tiles, whose colors encode values for map software to read. Use `default` for tiles colored with the layer's palette, ready to display in ArcGIS, QGIS or a web map."
-time = "The time to show: `latest` (the default), a day (`2025-07-08`), an hour in UTC (`2025-07-08T15`), a range of days with `stat` (`2025-07-01..2025-07-07`), or a season (`2025-26`)."
+time = "The time to show: `latest` (the default), a day (`2025-07-08`), an hour (`2025-07-08T15` in UTC, or Unix time in seconds), a range of days with `stat` (`2025-07-01..2025-07-07`), or a season (`2025-26`)."
 
 [weather_daily]
 vars = "The variables to return, separated by commas, by their names in `/variables` (daily variables). The default is the minimum and maximum air temperature and precipitation."
 
 [weather_hourly]
-start = "The first hour, as an ISO date and time (`2026-06-01T05:00Z`). Times without a time zone are taken as UTC, and each hour is labeled by its end. The default is seven days before the current hour."
-end = "The last hour, as an ISO date and time, included in the results. The default runs through the forecast, or through the last observed hour with `forecast=false`."
+start = "The first hour, as an ISO date and time (`2026-06-01T05:00Z`, `2026-06-01T05` or with an offset such as `-05:00`; without one, UTC) or as Unix time in seconds or milliseconds (`1780290000`). Each hour is labeled by its end. The default is seven days before the current hour."
+end = "The last hour, as an ISO date and time (`2026-06-01T05:00Z`, `2026-06-01T05` or with an offset such as `-05:00`; without one, UTC) or as Unix time in seconds or milliseconds (`1780290000`), included in the results. The default runs through the forecast, or through the last observed hour with `forecast=false`."
 vars = "The variables to return, separated by commas, by their names in `/variables` (hourly variables). The default is air temperature, dew point, relative humidity, precipitation and wind speed."
 
 [weather_totals]
@@ -81,7 +81,7 @@ thresholds = "The temperatures to count as a freeze, in the request's units, sep
 points = "Not used: a model runs at one location, given by `lat` and `lng`."
 start = "The first day. The default is the model's start for the season: the biofix or planting date where the model has one, otherwise January 1."
 end = "The last day. The default runs through the forecast; with `projection`, it is the end of the model's season."
-biofix = "The day the model starts counting, as YYYY-MM-DD, where the model uses one (`/models/{model_id}` says whether it does and what its default is)."
+biofix = "The day the model starts counting, where the model uses one (`/models/{model_id}` says whether it does and what its default is): a date (YYYY-MM-DD), or a month and day (MM-DD) for the latest one on or before the end date."
 season = "For a seasonal model such as potato volunteer survival: the season, as `2025-26`, in place of `start` and `end`. The default is the current season."
 
 [models_run_several]
@@ -101,9 +101,10 @@ projection = "With `true`, a `date` past the forecast reports each model's media
 units = "The unit system of the input values you send and of the results: `us` (the default) or `metric`."
 
 [grids_grid]
+biofix = "For degree days: the first day of the total, as a date (YYYY-MM-DD) or a month and day (MM-DD, the latest on or before the end date). The days are added up unless you choose another `stat`. Other layers take `start` instead."
 date = "A single day for a daily layer, as YYYY-MM-DD. The default is the last day observed across the whole map."
-time = "A single hour for an hourly layer, as an ISO date and time (UTC unless a time zone is given). The default is the last observed hour."
-start = "The first day (or hour) of a range. Each step of the range is returned, unless `stat` combines them into one map. A range can cover up to 366 days or 31 days of hours."
+time = "A single hour for an hourly layer, as an ISO date and time (`2026-06-01T05:00Z`, `2026-06-01T05` or with an offset such as `-05:00`; without one, UTC) or as Unix time in seconds or milliseconds (`1780290000`). The default is the last observed hour."
+start = "The first day (or hour) of a range. Each step of the range is returned, unless `stat` combines them into one map. With `stat` and no `start`, a daily range runs from January 1; an hourly one needs a start. A range can cover up to 366 days or 31 days of hours."
 end = "The last day (or hour) of a range, included in the results. The default is the last observed day."
 gaps = "With `stat=sum` and degree days: `estimate` (the default) fills gaps of up to seven days with an estimate and counts them in `estimated_days`; `missing` leaves them out and counts them in `missing_days`. Precipitation is never estimated."
 bbox = "Limit the map to a box: its south, west, north and east edges in decimal degrees, separated by commas. The default is the whole area the service covers."
@@ -115,7 +116,7 @@ cells = "For JSON and CSV: add each cell's row and column on the native grid (`j
 format = "The format of the response: `json` (the default), `csv`, `netcdf` or `geotiff`. JSON and CSV hold up to 2 million values; larger maps are available as NetCDF or GeoTIFF files. Without it, the `Accept` header is used."
 
 [tiles_tile]
-when = "The time to show: `latest`, a day (`2025-07-08`), an hour in UTC (`2025-07-08T15`), a range of days with `stat` (`2025-07-01..2025-07-07`), or a season (`2025-26`)."
+when = "The time to show: `latest`, a day (`2025-07-08`), an hour (`2025-07-08T15` in UTC, or Unix time in seconds), a range of days with `stat` (`2025-07-01..2025-07-07`), or a season (`2025-26`)."
 z = "The zoom level, from 0 to 8."
 x = "The tile's column at this zoom level."
 y = "The tile's row at this zoom level."
@@ -125,9 +126,10 @@ units = "Tiles look the same in either unit system, and data tiles always hold v
 units = "The unit system of the legend's labels: `us` (the default) or `metric`."
 
 [maps_static_map]
+biofix = "For degree days: the first day of the total, as a date (YYYY-MM-DD) or a month and day (MM-DD, the latest on or before the end date). The days are added up unless you choose another `stat`. Other layers take `start` instead."
 date = "A single day for a daily layer, as YYYY-MM-DD. The default is the latest day, so a link to the map always shows the current one."
-time = "A single hour for an hourly layer, as an ISO date and time (UTC unless a time zone is given)."
-start = "The first day of a range, which `stat` combines into one map."
+time = "A single hour for an hourly layer, as an ISO date and time (`2026-06-01T05:00Z`, `2026-06-01T05` or with an offset such as `-05:00`; without one, UTC) or as Unix time in seconds or milliseconds (`1780290000`)."
+start = "The first day of a range, which `stat` combines into one map. With `stat` and no `start`, the range runs from January 1."
 end = "The last day of a range. The default is the latest day."
 days = "A shortcut for a range: the number of days ending on `end` or the latest day. For example, `days=7&stat=sum` shows the past week's total."
 region = "Show only a state (by name or postal code, as `wisconsin` or `WI`) or a county (by its five-digit FIPS code, as `55025`), framed on the map."
