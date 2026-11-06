@@ -20,9 +20,9 @@ MIN_CATEGORY_DELTA = 15.0  # CIE76 ΔE between any two levels, for every vision
 MIN_STEP, MAX_STEP_RATIO = 7.5, 2.5
 CONTRAST_EXCEPTIONS = {"PuBu": "snow reads as white to blue", "Greys": "cloud cover reads as clear to gray"}
 # Palettes some use assigns (the rest are choices a reader can pick, `colorblind_safe` False)
-ASSIGNED = sorted({use.palette for use in palettes.USES.values()})
+ASSIGNED = sorted({palettes.use_palette(u).id for u in palettes.USES})
 ASSIGNED_OF = {
-    kind: [palettes.PALETTES[i] for i in ASSIGNED if palettes.PALETTES[i].kind == kind]
+    kind: [palettes.palette(i) for i in ASSIGNED if palettes.palette(i).kind == kind]
     for kind in ("sequential", "diverging", "categorical")
 }
 
@@ -73,15 +73,35 @@ def test_levels_stay_distinct_under_color_vision_deficiencies(p):
 def test_every_layer_and_output_has_a_use_whose_palette_exists():
     for layer in LAYERS.values():
         for name in [layer.use, *(o.use for o in layer.outputs)]:
-            assert palettes.USES[name].palette in palettes.PALETTES, (layer.id, name)
+            assert palettes.use_palette(name).id, (layer.id, name)
 
 
 def test_palettes_assigned_are_colorblind_safe_and_named_low_to_high():
-    assert all(palettes.PALETTES[i].colorblind_safe for i in ASSIGNED)
+    assert all(palettes.palette(i).colorblind_safe for i in ASSIGNED)
     offered = [p.id for p in palettes.PALETTES.values() if not p.colorblind_safe]
     assert offered == ["rainbow", "GnYlRd"] and not set(offered) & set(ASSIGNED)
     # A name lists its colors low to high: blue first for temperature, as ColorBrewer's RdYlBu reversed
     assert palettes.PALETTES["BuYlRd"].colors[0] == "#313695" and "reversed" in palettes.PALETTES["BuYlRd"].source
+
+
+def test_ramps_are_colorbrewers_published_colors():
+    # Sampled from matplotlib at ColorBrewer's classes, they come back as ColorBrewer publishes them
+    assert palettes.PALETTES["BuYlRd"].colors == (
+        "#313695", "#4575b4", "#74add1", "#abd9e9", "#e0f3f8", "#ffffbf", "#fee090", "#fdae61",
+        "#f46d43", "#d73027", "#a50026",
+    )  # fmt: skip
+    assert palettes.PALETTES["Greens"].colors[0] == "#f7fcf5" and palettes.PALETTES["Greens"].colors[-1] == "#00441b"
+    assert palettes.PALETTES["YlGnBu"].source == "ColorBrewer YlGnBu, from 0.2"
+    assert palettes.PALETTES["Greys"].source == "ColorBrewer Greys, from 0.1 to 0.85"
+
+
+def test_any_palette_reverses_and_its_id_says_so():
+    p = palettes.palette("BrBG", reverse=True)
+    assert p.id == "BrBG_r" and p.colors == palettes.PALETTES["BrBG"].colors[::-1]
+    assert palettes.palette("BrBG_r") == p and palettes.palette("BrBG_r", reverse=True) == palettes.PALETTES["BrBG"]
+    assert p.reversed() == palettes.PALETTES["BrBG"]
+    assert palettes.use_palette("dew_point_depression") == p
+    assert palettes.scale_for("dew_point_depression", "day", running=False).palette.id == "BrBG_r"
 
 
 def _de2000(lab1: np.ndarray, lab2: np.ndarray) -> float:

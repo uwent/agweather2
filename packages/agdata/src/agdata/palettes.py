@@ -3,12 +3,16 @@
 Two tables, kept apart so a palette can be reused, changed or offered to a reader on its own (Ben, 2026-11-06):
 
 - `PALETTES`: each palette by the name of its colors **from low to high** (`BuYlRd`: blue, yellow, red), with where
-  it comes from (`source`: ColorBrewer's schemes, designed for maps, Harrower and Brewer 2003, or matplotlib's
-  perceptual ones, sampled once into hex here). ColorBrewer publishes some schemes the other way round (RdYlBu starts
-  at red), so a name here can be a ColorBrewer scheme reversed, and the source says so.
+  it comes from (`source`). Ramps are sampled at import from matplotlib's colormaps: ColorBrewer's schemes (designed
+  for maps, Harrower and Brewer 2003; matplotlib carries their published colors, which come back exactly) and
+  matplotlib's perceptual ones. Only colors chosen one by one are written as hex: categorical levels and other
+  services' palettes. ColorBrewer publishes some schemes the other way round (RdYlBu starts at red), so a name here can
+  be a ColorBrewer scheme sampled in reverse, and the source says so.
+- Any palette runs high to low with `palette(id, reverse=True)`, whose id ends `_r` (matplotlib's convention), and
+  `palette("BrBG_r")` gives it back. `/palettes` lists the palettes low to high; the reversed ones aren't listed.
 - `USES`: what each kind of map uses (`temperature`, `precipitation`, `degree_days`, …): its palette, its default
-  domain for a day and an hour, and whether its values are bounded (a percentage) or centered on zero (an anomaly).
-  Layers and model outputs name a use (`agdata.layers`), never a palette.
+  domain for a day and an hour, whether it's reversed, and whether its values are bounded (a percentage) or centered
+  on zero (an anomaly). Layers and model outputs name a use (`agdata.layers`), never a palette.
 
 Kinds: `sequential` (low to high, lightness changing steadily, so a reader with any color vision can order them),
 `diverging` (two halves around a light middle), `categorical` (one color per level, each pair distinct under the
@@ -25,12 +29,18 @@ values (`auto_domain`): running totals, ranges reduced by `stat`, and model outp
 can choose (`scale=`, `api.layermaps`).
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 import numpy as np
+from matplotlib import colormaps
+from matplotlib.colors import to_hex
 
 Kind = Literal["sequential", "diverging", "categorical", "cyclic"]
+
+
+REVERSED = "_r"  # a palette's id with this suffix is the palette reversed (matplotlib's convention)
+_REVERSED_TEXT = ", reversed"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -42,147 +52,159 @@ class Palette:
     source: str  # where the colors come from
     colorblind_safe: bool = True
 
+    def reversed(self) -> "Palette":
+        """The palette high to low, its id with `_r` added (or taken off: reversing twice gives it back)."""
+        if self.id.endswith(REVERSED):
+            id, description = self.id.removesuffix(REVERSED), self.description.removesuffix(_REVERSED_TEXT)
+        else:
+            id, description = self.id + REVERSED, self.description + _REVERSED_TEXT
+        return replace(self, id=id, colors=self.colors[::-1], description=description)
 
-def _p(id: str, kind: Kind, colors: list[str], description: str, source: str, safe: bool = True) -> Palette:
+
+def _sampled(
+    *,
+    id: str,
+    kind: Kind,
+    scheme: str,
+    description: str,
+    n: int = 9,
+    start: float = 0.0,
+    stop: float = 1.0,
+    reverse: bool = False,
+) -> Palette:
+    """`n` colors of one of matplotlib's colormaps (its ColorBrewer schemes are ColorBrewer's published colors) from
+    `start` to `stop` of the way along it, reversed where ColorBrewer's order runs high to low."""
+    cmap = colormaps[scheme].resampled(10001)  # fine enough that ColorBrewer's classes come back exactly
+    at = np.linspace(0, 1, n, endpoint=False) if kind == "cyclic" else np.linspace(start, stop, n)
+    colors = tuple(to_hex(cmap(float(x))) for x in at)
+    by = "ColorBrewer" if scheme in _COLORBREWER else "matplotlib"
+    part = f", from {start:g}" if start else ""
+    part += f" to {stop:g}" if stop != 1 else ""
+    p = Palette(id=id, kind=kind, colors=colors, description=description, source=f"{by} {scheme}{part}")
+    if reverse:  # sampled high to low, named and kept low to high
+        p = replace(p, colors=p.colors[::-1], source=f"{p.source}, reversed")
+    return p
+
+
+def _listed(*, id: str, kind: Kind, colors: list[str], description: str, source: str, safe: bool = True) -> Palette:
+    """Colors chosen one by one rather than sampled: categorical levels, and other services' palettes."""
     return Palette(id=id, kind=kind, colors=tuple(colors), description=description, source=source, colorblind_safe=safe)
 
 
-_RDYLBU = [
-    "#313695",
-    "#4574b3",
-    "#74add1",
-    "#aad8e9",
-    "#e0f3f8",
-    "#feffc0",
-    "#fee090",
-    "#fdad60",
-    "#f46d43",
-    "#d62f27",
-    "#a50026",
-]
-_BRBG = ["#543005", "#995d13", "#cfa256", "#f1dfb3", "#f4f5f5", "#b4e2db", "#58b0a7", "#0c7169", "#003c30"]
-_VIRIDIS = ["#440154", "#472d7b", "#3b528b", "#2c728e", "#21918c", "#28ae80", "#5ec962", "#addc30", "#fde725"]
+_COLORBREWER = {"RdYlBu", "BrBG", "YlGnBu", "YlOrBr", "PuBu", "Greys", "Greens", "RdPu"}
 
 _ALL = [
-    _p("BuYlRd", "diverging", _RDYLBU, "Blue through pale yellow to red", "ColorBrewer RdYlBu, reversed"),
-    _p("BrBG", "diverging", _BRBG, "Brown through white to blue-green", "ColorBrewer BrBG"),
-    _p("BGBr", "diverging", _BRBG[::-1], "Blue-green through white to brown", "ColorBrewer BrBG, reversed"),
-    _p(
-        "YlGnBu",
-        "sequential",
-        ["#d6efb3", "#abdeb7", "#73c8bd", "#40b5c4", "#2498c1", "#2072b1", "#234da0", "#1f2f87", "#081d58"],
-        "Light yellow-green to deep blue",
-        "ColorBrewer YlGnBu, from 0.2",
+    _sampled(
+        id="BuYlRd",
+        kind="diverging",
+        scheme="RdYlBu",
+        n=11,
+        reverse=True,
+        description="Blue through pale yellow to red",
     ),
-    _p(
-        "YlOrBr",
-        "sequential",
-        ["#fee390", "#fecb5f", "#feae3b", "#f98e23", "#eb6f14", "#d35406", "#b13f03", "#8b3005", "#662506"],
-        "Pale yellow through orange to brown",
-        "ColorBrewer YlOrBr, from 0.25",
+    _sampled(id="BrBG", kind="diverging", scheme="BrBG", description="Brown through white to blue-green"),
+    _sampled(id="YlGnBu", kind="sequential", scheme="YlGnBu", start=0.2, description="Light yellow-green to deep blue"),
+    _sampled(
+        id="YlOrBr",
+        kind="sequential",
+        scheme="YlOrBr",
+        start=0.25,
+        description="Pale yellow through orange to brown",
     ),
-    _p(
-        "PuBu",
-        "sequential",
-        ["#d0d1e6", "#b0c2de", "#8cb3d5", "#63a2cb", "#358fc0", "#1077b4", "#04649e", "#03517e", "#023858"],
-        "Pale lavender to deep blue",
-        "ColorBrewer PuBu, from 0.25",
+    _sampled(id="PuBu", kind="sequential", scheme="PuBu", start=0.25, description="Pale lavender to deep blue"),
+    _sampled(id="Greys", kind="sequential", scheme="Greys", start=0.1, stop=0.85, description="Light to dark gray"),
+    _sampled(id="Greens", kind="sequential", scheme="Greens", description="Pale to deep green"),
+    _sampled(id="RdPu", kind="sequential", scheme="RdPu", description="Pale pink to deep purple"),
+    _sampled(id="viridis", kind="sequential", scheme="viridis", description="Dark purple through teal to yellow"),
+    _sampled(
+        id="inferno",
+        kind="sequential",
+        scheme="inferno",
+        start=0.15,
+        description="Dark purple through red and orange to pale yellow",
     ),
-    _p(
-        "Greys",
-        "sequential",
-        ["#f3f3f3", "#e4e4e4", "#d1d1d1", "#bbbbbb", "#9e9e9e", "#838383", "#696969", "#505050", "#2e2e2e"],
-        "Light to dark gray",
-        "ColorBrewer Greys",
+    _sampled(
+        id="magma",
+        kind="sequential",
+        scheme="magma",
+        start=0.15,
+        description="Dark purple through pink to pale yellow",
     ),
-    _p(
-        "Greens",
-        "sequential",
-        ["#f7fcf5", "#e5f5e0", "#c7e9c0", "#a0d99b", "#73c476", "#40aa5d", "#228a44", "#006c2c", "#00441b"],
-        "Pale to deep green",
-        "ColorBrewer Greens",
+    _sampled(
+        id="twilight",
+        kind="cyclic",
+        scheme="twilight",
+        n=12,
+        description="Around the compass, back to where it started",
     ),
-    _p(
-        "RdPu",
-        "sequential",
-        ["#fff7f3", "#fde0dd", "#fcc5c0", "#fa9eb5", "#f767a1", "#dc3397", "#ad017e", "#790177", "#49006a"],
-        "Pale pink to deep purple",
-        "ColorBrewer RdPu",
+    # Levels picked from ColorBrewer RdYlBu's 11 classes for distinct lightness under color-vision deficiencies
+    _listed(
+        id="BuYlRd_3",
+        kind="categorical",
+        colors=["#4575b4", "#fee090", "#d73027"],
+        description="Blue, yellow, red",
+        source="ColorBrewer RdYlBu, 3 of its 11 classes",
     ),
-    _p("viridis", "sequential", _VIRIDIS, "Dark purple through teal to yellow", "matplotlib viridis"),
-    _p(
-        "inferno",
-        "sequential",
-        ["#2b0b57", "#59106e", "#84206b", "#b0315b", "#d54a41", "#f06f20", "#fc9f07", "#f7d340", "#fcffa4"],
-        "Dark purple through red and orange to pale yellow",
-        "matplotlib inferno, from 0.15",
+    _listed(
+        id="BuYlRd_4",
+        kind="categorical",
+        colors=["#4575b4", "#fee090", "#f46d43", "#a50026"],
+        description="Blue, yellow, orange, dark red",
+        source="ColorBrewer RdYlBu, 4 of its 11 classes",
     ),
-    _p(
-        "magma",
-        "sequential",
-        ["#251255", "#52137c", "#7c2382", "#aa337d", "#d5446d", "#f4675c", "#fd9a6a", "#fecc8f", "#fcfdbf"],
-        "Dark purple through pink to pale yellow",
-        "matplotlib magma, from 0.15",
+    _listed(
+        id="BuYlRd_5",
+        kind="categorical",
+        colors=["#4575b4", "#abd9e9", "#fee090", "#f46d43", "#a50026"],
+        description="Blue, light blue, yellow, orange, dark red",
+        source="ColorBrewer RdYlBu, 5 of its 11 classes",
     ),
-    _p(
-        "twilight",
-        "cyclic",
-        [
-            "#e2d9e2",
-            "#b3c6ce",
-            "#7ba1c2",
-            "#6276ba",
-            "#5e43a5",
-            "#4e186f",
-            "#2f1436",
-            "#581647",
-            "#8e2c50",
-            "#b25652",
-            "#c6896c",
-            "#d4bcac",
-        ],
-        "Around the compass, back to where it started",
-        "matplotlib twilight",
+    _listed(
+        id="GyOrRd_3",
+        kind="categorical",
+        colors=["#d9d9d9", "#fdae61", "#d73027"],
+        description="Gray, orange, red",
+        source="ColorBrewer Greys and RdYlBu",
     ),
-    _p("BuYlRd_3", "categorical", ["#4575b4", "#fee090", "#d73027"], "Blue, yellow, red", "ColorBrewer RdYlBu, 3"),
-    _p(
-        "BuYlRd_4",
-        "categorical",
-        ["#4575b4", "#fee090", "#f46d43", "#a50026"],
-        "Blue, yellow, orange, dark red",
-        "ColorBrewer RdYlBu",
-    ),
-    _p(
-        "BuYlRd_5",
-        "categorical",
-        ["#4575b4", "#abd9e9", "#fee090", "#f46d43", "#a50026"],
-        "Blue, light blue, yellow, orange, dark red",
-        "ColorBrewer RdYlBu",
-    ),
-    _p("GyOrRd_3", "categorical", ["#d9d9d9", "#fdae61", "#d73027"], "Gray, orange, red", "ColorBrewer RdYlBu's"),
     # Offered to readers, assigned to nothing: neither is ordered by lightness, so neither is color-blind safe
-    _p(
-        "rainbow",
-        "sequential",
-        ["#a100c7", "#6e00dc", "#1f3dfa", "#00c7c7", "#00d18c", "#a1e633", "#e6dc33", "#f08229", "#f00000", "#dc0063"],
-        "Violet through blue, green, yellow and orange to crimson",
-        "AgWeather v1's maps (gnuplot)",
+    _listed(
+        id="rainbow",
+        kind="sequential",
+        colors=[
+            "#a100c7",
+            "#6e00dc",
+            "#1f3dfa",
+            "#00c7c7",
+            "#00d18c",
+            "#a1e633",
+            "#e6dc33",
+            "#f08229",
+            "#f00000",
+            "#dc0063",
+        ],
+        description="Violet through blue, green, yellow and orange to crimson",
+        source="AgWeather v1's maps (gnuplot)",
         safe=False,
     ),
-    _p(
-        "GnYlRd",
-        "sequential",
-        ["#00cc00", "#ffd700", "#cc0000"],
-        "Green through gold to red",
-        "VDIFN's spectral maps",
+    _listed(
+        id="GnYlRd",
+        kind="sequential",
+        colors=["#00cc00", "#ffd700", "#cc0000"],
+        description="Green through gold to red",
+        source="VDIFN's spectral maps",
         safe=False,
     ),
 ]
 PALETTES: dict[str, Palette] = {p.id: p for p in _ALL}
 
 
-def palette(id: str) -> Palette:
-    return PALETTES[id]
+def palette(id: str, reverse: bool = False) -> Palette:
+    """A palette by id, high to low with `reverse` (an id ending `_r` is reversed too, so a reversed palette's id
+    comes back to it)."""
+    if id not in PALETTES and id.endswith(REVERSED):
+        id, reverse = id.removesuffix(REVERSED), not reverse
+    p = PALETTES[id]
+    return p.reversed() if reverse else p
 
 
 Domain = tuple[float, float]
@@ -193,6 +215,7 @@ class Use:
     """What a kind of map uses: its palette and default domains in the stored unit (None: from the data)."""
 
     palette: str
+    reverse: bool = False  # the palette high to low (its id `_r`)
     day: Domain | None = None  # a day's value
     hour: Domain | None = None  # an hour's (default: the day's)
     bounded: bool = False  # values have the same range whatever the layer (percentages, compass degrees)
@@ -202,7 +225,7 @@ class Use:
 USES: dict[str, Use] = {
     "temperature": Use(palette="BuYlRd", day=(-30, 40)),
     "soil_temperature": Use(palette="BuYlRd", day=(-15, 35)),
-    "dew_point_depression": Use(palette="BGBr", day=(0, 20)),
+    "dew_point_depression": Use(palette="BrBG", reverse=True, day=(0, 20)),
     "humidity": Use(palette="BrBG", day=(0, 100), bounded=True),
     "precipitation": Use(palette="YlGnBu", day=(0, 50), hour=(0, 25)),
     "snow": Use(palette="PuBu", day=(0, 100)),
@@ -225,6 +248,12 @@ USES: dict[str, Use] = {
 }
 
 
+def use_palette(use_id: str) -> Palette:
+    """The palette a use's maps take, reversed if the use says so."""
+    use = USES[use_id]
+    return palette(use.palette, reverse=use.reverse)
+
+
 @dataclass(frozen=True, kw_only=True)
 class Scale:
     """A map's colors: its palette and the domain its ends stand for, in the stored unit (None: from the data)."""
@@ -238,7 +267,7 @@ def scale_for(use_id: str, time_axis: str, running: bool) -> Scale:
     """A layer's (or a model output's) scale: `running` is a running total, a reduced range or a model output that
     grows through its season, whose domain comes from the data unless the use's values are bounded."""
     use = USES[use_id]
-    p = PALETTES[use.palette]
+    p = use_palette(use_id)
     if p.kind == "categorical":
         return Scale(palette=p, domain=(0, len(p.colors) - 1))
     if running and not use.bounded:

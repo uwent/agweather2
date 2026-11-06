@@ -44,11 +44,12 @@ class TileQuery(Schema):
     planting: Literal["early", "mid", "late", "none"] | None = None
     style: Literal["default"] | None = None
     scale: str | None = None  # colored tiles and legends: default, auto or low,high (`layermaps.parse_scale`)
+    palette: str | None = None  # colored tiles and legends: any of `/palettes`, `_r` reversed
 
 
 def _layer_query(when: str, q: TileQuery) -> LayerQuery:
     """`{time}` and the settings as `/grids` takes them."""
-    fields: dict[str, Any] = q.model_dump(exclude={"style", "scale"})
+    fields: dict[str, Any] = q.model_dump(exclude={"style", "scale", "palette"})
     if when == "latest":
         pass
     elif (span := RANGE.match(when)) is not None:

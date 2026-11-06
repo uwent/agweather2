@@ -164,3 +164,37 @@ def test_scale_sets_what_the_colors_span(client, archive):
     assert risk["code"] == "not_applicable"
     tags = {client.get("/api/v2/maps/air_temperature_max.png", {"scale": s})["ETag"] for s in ("auto", "60,90", "")}
     assert len(tags) == 3  # each scale is its own image
+
+
+def test_palette_chooses_the_colors(client, archive):
+    from agdata import palettes
+
+    data = _cells_seen(_pixels(_tile(client, "air_temperature_max", "2025-07-08")), step=0.1)
+    styled = _pixels(_tile(client, "air_temperature_max", "2025-07-08", style="default", palette="viridis_r"))
+    cells = tiles.index(WINDOW, Z, X, Y)
+    assert cells is not None
+    k, cell = next((k, int(c)) for k, c in enumerate(cells) if c >= 0)
+    expected = palettes.colorize(np.array([data[cell]]), palettes.palette("viridis", reverse=True), (-30, 40))[0]
+    assert tuple(styled.reshape(-1, 4)[k]) == tuple(expected)
+
+    described = client.get("/api/v2/tiles/air_temperature_max.json", {"style": "default", "palette": "viridis_r"})
+    assert described.json()["palette"] == "viridis_r" and described.json()["request"]["palette"] == "viridis_r"
+    legend = client.get("/api/v2/tiles/air_temperature_max/legend.png", {"palette": "magma"})
+    assert legend.status_code == 200 and legend["Content-Type"] == "image/png"
+    tags = {
+        client.get("/api/v2/maps/air_temperature_max.png", {"palette": p})["ETag"] for p in ("viridis", "", "BuYlRd")
+    }
+    assert len(tags) == 3  # each palette is its own image (BuYlRd, the default, asked by name, too)
+
+    # A categorical map takes a categorical palette with as many levels, reversed or not
+    risk = client.get("/api/v2/tiles/late-blight-dsv.json", {"style": "default", "time": "2025-07-08"}).json()
+    levels = palettes.palette(risk["palette"])
+    flipped = client.get("/api/v2/maps/late-blight-dsv.png", {"date": "2025-07-08", "palette": f"{levels.id}_r"})
+    assert flipped.status_code == 200
+
+    def error(layer="air_temperature_max", **params):
+        return client.get(f"/api/v2/maps/{layer}.png", params).json()["errors"][0]
+
+    assert error(palette="plaid")["code"] == "unknown_palette"
+    assert error(palette="BuYlRd_3")["code"] == "not_applicable"  # categorical on a range of values
+    assert error(layer="late-blight-dsv", date="2025-07-08", palette="viridis")["code"] == "not_applicable"

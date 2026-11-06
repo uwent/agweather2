@@ -57,6 +57,7 @@ class MapQuery(LayerQuery):
     region: str | None = None
     width: int = Field(800, ge=400, le=2000)
     scale: str | None = None  # the colors' range: default, auto or low,high (`layermaps.parse_scale`)
+    palette: str | None = None  # the colors: any of `/palettes`, `_r` reversed (`layermaps._palette_asked`)
 
 
 @router.get(
@@ -95,7 +96,7 @@ def static_map(request: HttpRequest, layer: str, query: Query[MapQuery], output:
 
 
 def _layer_query(q: MapQuery, now: datetime) -> LayerQuery:
-    fields: dict[str, Any] = q.model_dump(exclude={"days", "region", "width", "scale"})
+    fields: dict[str, Any] = q.model_dump(exclude={"days", "region", "width", "scale", "palette"})
     if q.days is not None:
         if q.start or q.date or q.time or q.season or q.biofix:
             raise ApiError(

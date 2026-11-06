@@ -68,7 +68,7 @@ class LayerOutputInfo(Schema):
     unit: str
     units: DisplayUnits
     precision: float
-    palette: str  # `/palettes`
+    palette: str  # `/palettes`; an id ending `_r` is that palette reversed
     domain: list[float] | None  # what the palette's ends stand for, in the stored unit; None: from the map's values
 
 
@@ -82,7 +82,7 @@ class LayerInfo(Schema):
     unit: str  # stored unit symbol
     units: DisplayUnits
     precision: float  # the stored step, in `unit`
-    palette: str  # `/palettes`: a color scale, the same for layers of one kind
+    palette: str  # `/palettes` (`_r`: reversed): a color scale, the same for layers of one kind
     domain: list[float] | None  # what the palette's ends stand for, in the stored unit; None: from the map's values
     stats: list[str]  # what a range can be reduced to (`stat=`); empty for running totals
     parameters: list[str]  # required beyond the time and area (`dd` for degree days)
@@ -133,7 +133,7 @@ def layers(request: HttpRequest) -> HttpResponse:
             unit=layer.unit,
             units=display_units(layer.unit),
             precision=layer.step,
-            palette=palettes.USES[layer.use].palette,
+            palette=palettes.use_palette(layer.use).id,
             domain=_layer_domain(layer),
             stats=list(layer.stats),
             parameters=["dd"] if layer.id == DEGREE_DAYS else [],
@@ -164,7 +164,7 @@ def _output_info(o: LayerOutput) -> LayerOutputInfo:
         unit=o.unit,
         units=display_units(o.unit),
         precision=o.step,
-        palette=palettes.USES[o.use].palette,
+        palette=palettes.use_palette(o.use).id,
         domain=list(domain) if domain else None,
     )
 

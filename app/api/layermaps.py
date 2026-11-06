@@ -22,7 +22,7 @@ import json
 import threading
 import time
 from collections import OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, Literal
 
@@ -125,6 +125,7 @@ class LayerAsk:
     warnings: list[str] = field(default_factory=list)
     units: str = "us"  # the request's system, for a title's degree-day thresholds
     scale_asked: "ScaleAsked | None" = None  # `scale=`, in the stored unit (`parse_scale`)
+    palette_asked: "palettes.Palette | None" = None  # `palette=` (`_palette_asked`)
 
     @property
     def unit(self) -> str:
@@ -136,11 +137,14 @@ class LayerAsk:
 
     @property
     def scale(self) -> palettes.Scale:
-        """The map's palette and its fixed domain (None: from the map's values, `auto_domain`)."""
+        """The map's palette (`palette=` if asked, else its use's) and its fixed domain (None: from the map's values,
+        `auto_domain`)."""
         if self.model is not None:
-            return palettes.scale_for(self.model.output.use, "day", running=True)
-        running = self.layer.source == "cumulative" or self.stat is not None
-        return palettes.scale_for(self.layer.use, self.layer.time_axis, running)
+            found = palettes.scale_for(self.model.output.use, "day", running=True)
+        else:
+            running = self.layer.source == "cumulative" or self.stat is not None
+            found = palettes.scale_for(self.layer.use, self.layer.time_axis, running)
+        return found if self.palette_asked is None else replace(found, palette=self.palette_asked)
 
     @property
     def categories(self) -> list[str] | None:
@@ -199,6 +203,7 @@ class LayerAsk:
             "dd": self.setting.name if self.setting else None,
             "gaps": self.gaps,
             **({"scale": self.scale_asked.text} if self.scale_asked is not None else {}),
+            **({"palette": self.palette_asked.id} if self.palette_asked is not None else {}),
         }
 
 
@@ -295,7 +300,42 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         units=units,
     )
     a.scale_asked = _scale_asked(request, a)
+    a.palette_asked = _palette_asked(request, a)
     return a
+
+
+def _palette_asked(request: HttpRequest, a: "LayerAsk") -> palettes.Palette | None:
+    """`palette=` (only the endpoints that color a map declare it): any of `/palettes`, reversed with `_r`. A map
+    with a color per level takes a categorical palette with as many levels; any other map, any other palette."""
+    text = (request.GET.get("palette") or "").strip()
+    if not text:
+        return None
+    try:
+        chosen = palettes.palette(text)
+    except KeyError:
+        raise ApiError(
+            "unknown_palette",
+            f"We don't have a palette named {text!r}. GET /api/v2/palettes lists them; add _r to any name to "
+            "reverse it.",
+            "palette",
+        ) from None
+    default = a.scale.palette
+    if default.kind == "categorical":
+        if chosen.kind != "categorical" or len(chosen.colors) != len(default.colors):
+            raise ApiError(
+                "not_applicable",
+                f"{a.label} has a color for each of its {len(default.colors)} levels, so it needs a categorical "
+                f"palette with {len(default.colors)} colors, such as {default.id}.",
+                "palette",
+            )
+    elif chosen.kind == "categorical":
+        raise ApiError(
+            "not_applicable",
+            f"{text} has a color for each level of a category, and {a.label} is a range of values. Choose a "
+            "sequential, diverging or cyclic palette from GET /api/v2/palettes.",
+            "palette",
+        )
+    return chosen
 
 
 def _scale_asked(request: HttpRequest, a: "LayerAsk") -> ScaleAsked | None:
