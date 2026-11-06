@@ -141,14 +141,10 @@ def test_netcdf_keeps_the_lambert_grid(client, archive):
     assert tmax.shape == (2, *WINDOW.shape) and float(tmax[0, 0, 0]) == pytest.approx(21.0)
     assert tmax.attrs["units"] == "degC" and tmax.attrs["cell_methods"] == "time: maximum"
     assert "request" in ds.attrs
-    # Lat/lon as plain variables, not CF auxiliary coordinates: GDAL would take those as geolocation arrays, and
-    # terra couldn't reproject the file
-    assert "lat" in ds.data_vars and "lon" in ds.data_vars and "coordinates" not in tmax.attrs
-    assert "coordinates" not in tmax.encoding and "standard_name" not in ds["lat"].attrs
-    assert ds["lat"].attrs["units"] == "degree" and ds["lat"].dtype == np.float32
-    expected_lat, expected_lon = NDFD.window_latlon(WINDOW)
-    np.testing.assert_allclose(ds["lat"], expected_lat, atol=1e-5)
-    np.testing.assert_allclose(ds["lon"], expected_lon, atol=1e-5)
+    # One gridded variable, no 2-D lat/lon: GDAL opens the file as one raster rather than subdatasets, whose names
+    # terra on Windows breaks on a drive letter's colon (D71)
+    assert [k for k, v in ds.data_vars.items() if v.ndim >= 2] == ["air_temperature_max"]
+    assert "lat" not in ds and "lon" not in ds and "coordinates" not in tmax.attrs
     assert ds["x"].attrs["axis"] == "X" and ds["y"].attrs["axis"] == "Y"
     assert "_FillValue" not in ds["x"].encoding or ds["x"].encoding["_FillValue"] is None
     # The CF attributes and the WKT name one projection, the grid's own

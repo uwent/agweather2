@@ -6,15 +6,15 @@ user-defined Lambert GeoKeys (no GDAL here; the keys follow the GeoTIFF 1.1 spec
 the CRS `CRS_NAME` and describe it the same way: Lambert conformal, one standard parallel at 25° N, central meridian
 95° W, scale 1, on NDFD's sphere.
 
-A native-grid NetCDF carries each cell's latitude and longitude as plain 2-D variables `lat` and `lon` (float32,
-units `degree`), for plotting without a projection library (`plt.pcolormesh(ds.lon, ds.lat, ds[name][0])`). They
-are deliberately not CF auxiliary coordinates: with a `coordinates = "lat lon"` attribute, or CF's `standard_name`
-and `degrees_north`/`degrees_east`, GDAL takes them as geolocation arrays in place of the projection, and R's terra
-then can't reproject the file (its extent collapses to the projection's origin; terra 1.9.50, GDAL 3.13,
-2026-11-04). xarray users who want them as coordinates call `ds.set_coords(["lat", "lon"])` after opening.
+A native-grid NetCDF holds no 2-D latitude and longitude (D71): beside the data they made GDAL open the file as
+subdatasets, and terra on Windows given an absolute path (`D:/…`) then fell back to the HDF5 driver, without the CRS
+or any scale. Before that (2026-11-04) they were plain variables rather than CF auxiliary coordinates, since with a
+`coordinates` attribute or CF's latitude/longitude names GDAL took them as geolocation arrays and terra couldn't
+reproject the file. Readers place the grid by its `grid_mapping`; to plot on latitude and longitude without a
+projection library, the downloads' `daily/grid.nc` has every cell's (`ops.downloads`), or JSON gives each cell's.
 
 Compression: each data variable is chunked a whole map per step and deflated at level 6 (a week over Wisconsin:
-1.64 MB raw, 0.36 MB); the lat/lon arrays are shuffled too, which helps their smooth values and not the data's.
+1.64 MB raw, 0.36 MB).
 A regular lat/lng grid (`grid=latlon`) is plain CF latitude/longitude, or EPSG:4326 in GeoTIFF.
 
 NetCDF is NetCDF-4 (HDF5, through h5netcdf), zlib-compressed. GeoTIFF has one band per step, top row north,
@@ -68,9 +68,6 @@ def netcdf(grid: GridFile) -> bytes:
         x0, y0 = NDFD.origin
         coords["x"] = ("x", x0 + ii * NDFD.dx, axis_attrs("X", "projection_x_coordinate", "x on the Lambert grid", "m"))
         coords["y"] = ("y", y0 + jj * NDFD.dx, axis_attrs("Y", "projection_y_coordinate", "y on the Lambert grid", "m"))
-        lat, lon = NDFD.latlon(*np.meshgrid(jj, ii, indexing="ij"))
-        data_vars["lat"] = (("y", "x"), lat.astype(np.float32), cell_degrees("latitude"))
-        data_vars["lon"] = (("y", "x"), lon.astype(np.float32), cell_degrees("longitude"))
         data_vars["lambert_conformal_conic"] = ((), np.int32(0), cf_lambert())
         dims: tuple[str, ...] = ("y", "x")
         mapping = {"grid_mapping": "lambert_conformal_conic"}
@@ -99,16 +96,14 @@ def netcdf(grid: GridFile) -> bytes:
     for name in [grid.name, *grid.extra]:
         chunks = (1, *shape) if name == grid.name and grid.steps is not None else shape
         encoding[name] = {"zlib": True, "complevel": 6, "chunksizes": chunks, "_FillValue": np.float32(np.nan)}
-    if grid.window is not None:
-        for name in ("lat", "lon"):
-            encoding[name] = {"zlib": True, "complevel": 6, "shuffle": True, "_FillValue": None}
     ds = xr.Dataset(data_vars=data_vars, coords=coords)
     ds.attrs = {"Conventions": "CF-1.8", **{k: _attr(v) for k, v in grid.attrs.items()}}
     return bytes(ds.to_netcdf(engine="h5netcdf", encoding=encoding))
 
 
 def cell_degrees(what: str) -> dict[str, str]:
-    """A plain lat/lon variable's attributes: no `standard_name` or CF units, so GDAL doesn't take it as geolocation."""
+    """A plain lat/lon variable's attributes (the downloads' `grid.nc`): no `standard_name` or CF units, so GDAL
+    doesn't take it as geolocation."""
     return {
         "long_name": f"{what} of the cell center",
         "units": "degree",
