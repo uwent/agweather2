@@ -148,7 +148,7 @@ def daily(
     computed |= {"targets": goals or None, "projection": mode}
     years = archive_years(settings.DATA_DIR) if mode else []
     stamp_from = min([read_from, *(date(y, 1, 1) for y in years if y < read_from.year)])
-    etag = answer_etag(request, computed, points.stamp(where.locations(), stamp_from, last, now))
+    etag = answer_etag(request, computed, points.stamp(where.locations(), stamp_from, last, now, names=TEMPERATURES))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, read_from, last, options)
@@ -376,7 +376,7 @@ def table(
     check_size((last - read_from).days + 1, len(where.locations()), MAX_DAYS, "days")
     now = clock.now()
     computed = _computed(where, first, last, found_settings, fixed or first, options, output)
-    etag = answer_etag(request, computed, points.stamp(where.locations(), read_from, last, now))
+    etag = answer_etag(request, computed, points.stamp(where.locations(), read_from, last, now, names=TEMPERATURES))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, read_from, last, options)
@@ -463,7 +463,9 @@ def freeze(
     computed = {**where.echo(), "start": first, "end": last, "thresholds": given, "forecast": options.forecast}
     computed |= {"threshold_units": "°C" if output.units == "metric" else "°F", "units": output.units}
     computed |= options.echo()
-    etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now))
+    etag = answer_etag(
+        request, computed, points.stamp(where.locations(), first, last, now, names=["air_temperature_min"])
+    )
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, first, last, options)

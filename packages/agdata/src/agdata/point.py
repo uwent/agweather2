@@ -74,43 +74,77 @@ def daily_at_point(
             out[lo - k0 : hi - k0] = np.asarray(values[lo:hi], dtype=float)
         return out
 
-    def humid(begin: datetime, end: datetime) -> dict[str, np.ndarray]:
-        temperature = segment("air_temperature", begin, end)
-        dew_point = segment("dew_point", begin, end)
+    wanted = set(DAILY_VARIABLES) if names is None else set(names)
+    statistics = [s for s in DAILY_STATISTICS.values() if s.variable.name in wanted]
+    groups = {group for name in wanted if (group := _FEATURE_GROUP.get(name)) is not None}
+    out: dict[str, np.ndarray] = {}
+
+    def put(k0: int, k1: int, values: Mapping[str, np.ndarray]) -> None:
+        for name, value in values.items():
+            if name not in out:
+                out[name] = np.full((len(days), *rest), np.nan)
+            out[name][k0:k1] = np.broadcast_to(np.asarray(value, dtype=float), (k1 - k0, *rest))
+
+    def stacked(name: str, begin: datetime, length: int, count: int) -> np.ndarray:
+        """`count` windows of `length` hours from `begin`, one after another, as (hours, windows, *rest)."""
+        hours_read = segment(name, begin, begin + (length * count - 1) * HOUR)
+        return np.swapaxes(hours_read.reshape(count, length, *rest), 0, 1)
+
+    def runs(bounds) -> list[tuple[int, int, datetime, int]]:
+        """The days as runs (first, past the last, first window's start, hours a window) whose windows (`bounds(day)`)
+        follow each other with the same length and clock offset, so each run's hours reshape to (hours, days): every
+        grid day is one run; a point's own days break at the changes to and from daylight saving."""
+        spans = [bounds(day) for day in days]
+        offsets = [begin.astimezone(tz).utcoffset() for begin, _ in spans]
+        found, k0 = [], 0
+        while k0 < len(days):
+            begin, end = spans[k0]
+            length = (end - begin) // HOUR + 1
+            k1 = k0 + 1
+            while (
+                k1 < len(days)
+                and spans[k1][0] == spans[k1 - 1][1] + HOUR
+                and (spans[k1][1] - spans[k1][0]) // HOUR + 1 == length
+                and offsets[k1] == offsets[k0]
+            ):
+                k1 += 1
+            found.append((k0, k1, begin, length))
+            k0 = k1
+        return found
+
+    def humid(begin: datetime, length: int, count: int) -> dict[str, np.ndarray]:
+        temperature = stacked("air_temperature", begin, length, count)
+        dew_point = stacked("dew_point", begin, length, count)
         return {
             "temperature": temperature,
             "dew_point": dew_point,
             "rh": relative_humidity_percent(temperature, dew_point),
         }
 
-    wanted = set(DAILY_VARIABLES) if names is None else set(names)
-    statistics = [s for s in DAILY_STATISTICS.values() if s.variable.name in wanted]
-    groups = {group for name in wanted if (group := _FEATURE_GROUP.get(name)) is not None}
-    out: dict[str, list[np.ndarray]] = {}
-    for day in days:
-        begin, end = day_bounds(day, zone)
+    for k0, k1, begin, length in runs(lambda day: day_bounds(day, zone)):
+        count = k1 - k0
         values: dict[str, np.ndarray] = {
-            s.variable.name: daily_statistic(segment(s.hourly, begin, end), s) for s in statistics
+            s.variable.name: daily_statistic(stacked(s.hourly, begin, length, count), s) for s in statistics
         }
         if "calendar" in groups:
-            h = humid(begin, end)
+            h = humid(begin, length, count)
             values |= features.calendar_features(h["temperature"], h["rh"], h["dew_point"], rh_90_at=rh_90_at)
         if "soil" in groups:
             values |= features.soil_features(
-                segment("soil_temperature_4cm", begin, end),
-                segment("soil_temperature_10cm", begin, end),
-                segment("soil_temperature_30cm", begin, end),
+                stacked("soil_temperature_4cm", begin, length, count),
+                stacked("soil_temperature_10cm", begin, length, count),
+                stacked("soil_temperature_30cm", begin, length, count),
             )
-        if "evening" in groups:
-            begin, end = evening_bounds(day, zone)
-            h = humid(begin, end)
-            local_hour = np.array([(begin + n * HOUR).astimezone(tz).hour for n in range(len(h["rh"]))])
-            values |= features.evening_features(h["temperature"], h["rh"], local_hour, rh_90_at=rh_90_at)
-        if "overnight" in groups:
-            values |= features.overnight_features(segment("air_temperature", *overnight_bounds(day, zone)))
-        for name, value in values.items():
-            out.setdefault(name, []).append(np.broadcast_to(np.asarray(value, dtype=float), rest))
-    return {name: np.array(series) for name, series in out.items()}
+        put(k0, k1, values)
+    if "evening" in groups:
+        for k0, k1, begin, length in runs(lambda day: evening_bounds(day, zone)):
+            h = humid(begin, length, k1 - k0)
+            local_hour = np.array([(begin + n * HOUR).astimezone(tz).hour for n in range(length)])
+            put(k0, k1, features.evening_features(h["temperature"], h["rh"], local_hour, rh_90_at=rh_90_at))
+    if "overnight" in groups:
+        for k0, k1, begin, length in runs(lambda day: overnight_bounds(day, zone)):
+            put(k0, k1, features.overnight_features(stacked("air_temperature", begin, length, k1 - k0)))
+    return out
 
 
 # A day's hours that give every daily variable a value: humid (RH ≈ 97%, so the humid-hour means exist) and frozen

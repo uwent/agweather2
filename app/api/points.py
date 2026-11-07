@@ -25,11 +25,16 @@ def from_archive(lat: float, lng: float, first: date, last: date) -> bool:
     return in_archive(lat, lng, first, last)
 
 
-def stamp(points: list[tuple[float, float]], first: date, last: date, now: datetime) -> str | None:
-    """The data stamp for reading days first..last at these points, or None if any comes from Open-Meteo."""
+def stamp(
+    points: list[tuple[float, float]], first: date, last: date, now: datetime, names: list[str] | None = None
+) -> str | None:
+    """The data stamp for reading days first..last at these points, or None if any comes from Open-Meteo. With
+    `names` (the daily variables read), only the hours they're made from are stamped: opening a store for all 16
+    hourly variables was half a point's stamp."""
     if not all(from_archive(lat, lng, first, last) for lat, lng in points):
         return None
-    return series.last_written(settings.DATA_DIR, first, last, now=now)
+    hourly = None if names is None else series.hourly_needed(names)
+    return series.last_written(settings.DATA_DIR, first, last, now=now, hourly=hourly)
 
 
 def days(

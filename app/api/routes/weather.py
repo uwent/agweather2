@@ -124,7 +124,7 @@ def daily(
     check_size((last - first).days + 1, len(where.locations()), MAX_DAYS, "days")
     computed = {**where.echo(), "start": first, "end": last, "vars": names, "forecast": options.forecast}
     computed |= {"units": output.units, **options.echo()}
-    etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now))
+    etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now, names=names))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, first, last, options)
@@ -266,7 +266,7 @@ def totals(
     check_size((last - first).days + 1, len(where.locations()), MAX_DAYS, "days")
     computed = {**where.echo(), "start": first, "end": last, "vars": names, "forecast": options.forecast}
     computed |= {"gaps": options.gaps, "units": output.units, **options.echo()}
-    etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now))
+    etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now, names=names))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, first, last, options)
