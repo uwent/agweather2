@@ -9,8 +9,9 @@ rebuild, the stores and the downloads go through), and every reader computes the
 - a map's steps (`agdata.series.combine`, called by `api.layermaps` on each input's read);
 - `/variables`, `/layers`, the weather endpoints' `vars` and the API's units, which list them beside the stored ones.
 
-A computed value is missing wherever any input is (D45: a raw value shows as missing). How a range of them is
-totalled is the variable's own rule, given where it's used (water balance's, D75, at Phase 6 C step 3).
+A computed value is missing wherever any input is (D45: a raw value shows as missing). One that `adds_up` can be
+summed over a range like any stored total, without estimates: the days with a value are summed and the others
+counted missing (D75, revised 2026-11-07).
 
 A formula takes its inputs as keyword arrays in their stored units, of any shape, and returns the value in the
 variable's unit. A computed variable's `version` is its formula's: an ETag already carries the code's version, so
@@ -34,6 +35,7 @@ class Computed:
     axis: Axis
     inputs: tuple[str, ...]  # stored variables on the same axis: daily catalog names for "day", hourly for "hour"
     formula: Callable[..., np.ndarray]  # inputs by name (stored units) → the value
+    adds_up: bool = False  # a range of it can be summed (a depth such as water balance; not a level)
 
     def __post_init__(self):
         stored = DAILY_VARIABLES if self.axis == "day" else VARIABLES
@@ -80,6 +82,7 @@ _ALL = [
         axis="day",
         inputs=("precipitation_sum", "et0_sum"),
         formula=_water_balance,
+        adds_up=True,
     ),
 ]
 

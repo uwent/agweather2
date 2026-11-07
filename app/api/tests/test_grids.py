@@ -495,6 +495,11 @@ def test_water_balance_is_a_map_of_rain_less_et0(client, archive):
     np.testing.assert_allclose(found["water_balance"], found["precipitation_sum"] - found["et0_sum"], atol=0.02)
     assert body["data"]["kind"] == ["observed"] * 6 + ["partial"] * 6 + ["forecast"] * 6
     layers = {layer["id"]: layer for layer in client.get("/api/v2/layers").json()["data"]}
-    assert layers["water_balance"]["palette"] == "BrBG" and "sum" not in layers["water_balance"]["stats"]
-    refused = get(client, "water_balance", start="2025-07-09", end="2025-07-11", stat="sum")
-    assert refused.status_code == 422 and refused.json()["errors"][0]["param"] == "stat"
+    assert layers["water_balance"]["palette"] == "BrBG" and "sum" in layers["water_balance"]["stats"]
+    total = get(client, "water_balance", start="2025-07-09", end="2025-07-23", stat="sum", units="metric").json()
+    steps = get(client, "water_balance", start="2025-07-09", end="2025-07-23", units="metric").json()["data"]
+    each = np.array(steps["water_balance"], dtype=float).reshape(15, -1)  # days × cells
+    np.testing.assert_allclose(total["data"]["water_balance"], np.nansum(each, axis=0), atol=0.1)
+    assert total["data"]["missing_days"] == list(np.isnan(each).sum(axis=0)) and set(
+        total["data"]["estimated_days"]
+    ) == {0}

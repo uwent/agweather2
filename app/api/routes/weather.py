@@ -35,11 +35,12 @@ DAILY |= {name: c.variable for name, c in DAILY_COMPUTED.items()}  # computed wh
 HOURLY = {**VARIABLES, **{name: c.variable for name, c in HOURLY_COMPUTED.items()}}
 DAILY_DEFAULT = ["air_temperature_min", "air_temperature_max", "precipitation_sum"]
 HOURLY_DEFAULT = ["air_temperature", "dew_point", "relative_humidity", "precipitation", "wind_speed"]
-TOTALLED = {  # a computed one's total has its own rules (water balance's, D75: Phase 6 C step 3)
+TOTALLED = {  # a computed one only if it adds up, summed without estimates (D75)
     name: v
     for name, v in DAILY.items()
-    if name not in DAILY_COMPUTED
-    and ((name in DAILY_STATISTICS and DAILY_STATISTICS[name].stat == "sum") or v.unit == "hour")
+    if (name in DAILY_COMPUTED and DAILY_COMPUTED[name].adds_up)
+    or (name in DAILY_STATISTICS and DAILY_STATISTICS[name].stat == "sum")
+    or v.unit == "hour"
 }
 TOTALS_DEFAULT = ["precipitation_sum", "et0_sum", "shortwave_radiation_sum"]
 
@@ -301,6 +302,12 @@ def totals(
         warnings.append(
             f"Precipitation is missing on {counted(missing_rain, 'day')}. We never estimate precipitation, "
             "so the totals count those days as no rain."
+        )
+    missing_balance = sum(rows.get("water_balance_missing_days", []))
+    if missing_balance:
+        warnings.append(
+            f"Water balance is missing on {counted(missing_balance, 'day')}, where precipitation or "
+            "evapotranspiration is missing. The totals leave those days out."
         )
     if found and trim_end:
         computed["end"] = max((days.dates[n - 1] for days, n in found if n), default=last)

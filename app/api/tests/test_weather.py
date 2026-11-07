@@ -219,6 +219,13 @@ def test_water_balance_is_rain_less_et0_on_each_day(client, archive):
     assert list(alone["data"]) == ["date", "kind", "water_balance"] and alone["meta"]["units"]["water_balance"] == "in"
 
 
-def test_water_balance_has_no_window_total_until_its_rules_land(client, archive):
-    response = get(client, "weather/totals", start="2025-07-08", end="2025-07-09", vars="water_balance")
-    assert response.status_code == 422 and response.json()["errors"][0]["code"] == "unknown_variable"
+def test_a_water_balance_total_sums_the_days_it_has_and_counts_the_rest(client, archive):
+    window = {"start": "2025-07-08", "end": "2025-07-23", "units": "metric"}  # the run's hours end July 21 13Z
+    daily = get(client, "weather/daily", vars="water_balance", **window).json()["data"]["water_balance"]
+    body = get(client, "weather/totals", vars="water_balance", **window).json()
+    known = [v for v in daily if v is not None]
+    missing = 16 - len(known)
+    assert missing > 0 and body["data"]["water_balance"] == [pytest.approx(sum(known), abs=0.05)]
+    assert body["data"]["water_balance_missing_days"] == [missing]
+    assert body["data"]["water_balance_estimated_days"] == [0]  # never estimated (D75)
+    assert any(w.startswith(f"Water balance is missing on {missing} days") for w in body["meta"]["warnings"])

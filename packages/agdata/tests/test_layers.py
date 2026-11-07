@@ -30,4 +30,4 @@ def test_only_quantities_that_add_up_are_summed():
     assert not {"air_temperature_max", "snow_depth_max", "relative_humidity_mean", "air_temperature_hourly"} & summed
     assert LAYERS["dd_modified_50_86"].stats == () and LAYERS["precipitation_total"].stats == ()
     assert LAYERS["wind_direction_hourly"].stats == ()
-    assert "sum" not in LAYERS["water_balance"].stats  # its total follows D75's rules (Phase 6 C step 3)
+    assert "sum" in LAYERS["water_balance"].stats and "sum" not in LAYERS["relative_humidity_mean"].stats
