@@ -483,7 +483,7 @@ def _cell_methods(layer: Layer, stat: str | None) -> str | None:
         method = f"time: {_CF_STATS[DAILY_STATISTICS[layer.variable].stat]}"
     elif layer.source == "cumulative" or (layer.source == "hourly" and layer.summable):
         method = "time: sum"
-    if stat is not None:
+    if stat is not None and stat in _CF_STATS:  # a count has no CF method; the file's long_name says what it counts
         method = f"{method} " if method else ""
         method += f"time: {_CF_STATS[stat]}"
     return method

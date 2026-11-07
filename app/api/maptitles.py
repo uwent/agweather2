@@ -8,7 +8,8 @@ when goes in the subtitle, and the caption says where the data come from and how
     Data sources: Air temperature (2 m) from          Data sources: Precipitation from URMA/RTMA hourly grids.
     URMA/RTMA hourly grids.                           309 days combined.
 
-- **Title:** the layer's subject (`subject`), then its statistic: `daily maximum` for one day; over a range,
+- **Title:** the layer's subject (`subject`), then its statistic (a count adds what it counts, "days at or above
+  86 °F"): `daily maximum` for one day; over a range,
   `cumulative total` for a sum, `cumulative maximum` where the range's statistic is the day's own (the highest daily
   maximum), else `mean daily maximum`, `lowest daily maximum`. Degree days name their method and thresholds in the
   request's units ("Growing degree days, single sine 50–86 °F, cumulative total"); a model is "[model]: [result]".
@@ -150,9 +151,16 @@ def layer_title(layer: Layer) -> str:
 
 
 def title(a: Any, units: str) -> str:
-    """The map's title for a `layermaps.LayerAsk` (`units`: the request's system, for degree-day thresholds)."""
+    """The map's title for a `layermaps.LayerAsk` (`units`: the request's system, for degree-day thresholds); a count
+    is the one-day title and what it counts: "Air temperature, daily maximum, days at or above 86 °F"."""
+    text = _title(a, units)
+    count = getattr(a, "count", None)
+    return text if count is None else f"{text}, {count.words(a.count_shown)}"
+
+
+def _title(a: Any, units: str) -> str:
     layer: Layer = a.layer
-    ranged = a.first != a.last and a.stat is not None
+    ranged = a.first != a.last and a.stat not in (None, "count")
     if a.model is not None:
         result = _lower_first(a.model.output.label)
         text = f"{a.model.spec.name}: {result}"

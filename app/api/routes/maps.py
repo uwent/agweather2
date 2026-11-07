@@ -105,8 +105,10 @@ def _layer_query(q: MapQuery, now: datetime) -> LayerQuery:
                 "season. Leave those out.",
                 "days",
             )
-        if q.stat is None:
-            raise ApiError("invalid", "days needs stat to combine them: sum, mean, min or max.", "stat")
+        if q.stat is None and q.count is None:
+            raise ApiError(
+                "invalid", "days needs stat to combine them (sum, mean, min or max), or count to count them.", "stat"
+            )
         if q.end is not None:
             end = layermaps.parse_date(q.end, "end")
         else:

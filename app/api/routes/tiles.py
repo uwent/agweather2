@@ -37,7 +37,8 @@ RANGE = re.compile(r"^(\d{4}-\d{2}-\d{2})\.\.(\d{4}-\d{2}-\d{2})$")
 class TileQuery(Schema):
     """A layer's settings, as on `/grids`."""
 
-    stat: Literal["sum", "mean", "min", "max"] | None = None
+    stat: Literal["sum", "mean", "min", "max", "count"] | None = None
+    count: str | None = None  # `days_above_86`, implying stat=count (`api.counts`)
     dd: str | None = None
     gaps: Literal["estimate", "missing"] = "estimate"
     output: str | None = None
@@ -54,10 +55,11 @@ def _layer_query(when: str, q: TileQuery) -> LayerQuery:
     if when == "latest":
         pass
     elif (span := RANGE.match(when)) is not None:
-        if q.stat is None:
+        if q.stat is None and q.count is None:
             raise ApiError(
                 "invalid",
-                "A tile shows one map, so a range of days needs stat to combine them (sum, mean, min or max).",
+                "A tile shows one map, so a range of days needs stat to combine them (sum, mean, min or max), or "
+                "count to count days.",
                 "stat",
             )
         fields |= {"start": span.group(1), "end": span.group(2)}
@@ -67,11 +69,12 @@ def _layer_query(when: str, q: TileQuery) -> LayerQuery:
         fields["time"] = when
     else:
         fields["date"] = when
-    if q.stat is not None and RANGE.match(when) is None:
+    if (q.stat is not None or q.count is not None) and RANGE.match(when) is None:
+        param = "stat" if q.stat is not None else "count"
         raise ApiError(
             "invalid",
-            "stat combines a range of days. Give the time as START..END, such as 2025-07-01..2025-07-07.",
-            "stat",
+            f"{param} combines a range of days. Give the time as START..END, such as 2025-07-01..2025-07-07.",
+            param,
         )
     return LayerQuery(**fields)
 

@@ -157,7 +157,8 @@ export interface GridQuery {
   time?: string | null
   start?: string | null
   end?: string | null
-  stat?: ('sum' | 'mean' | 'min' | 'max') | null
+  stat?: ('sum' | 'mean' | 'min' | 'max' | 'count') | null
+  count?: string | null
   dd?: string | null
   gaps?: 'estimate' | 'missing'
   output?: string | null
@@ -258,7 +259,8 @@ export interface MapQuery {
   time?: string | null
   start?: string | null
   end?: string | null
-  stat?: ('sum' | 'mean' | 'min' | 'max') | null
+  stat?: ('sum' | 'mean' | 'min' | 'max' | 'count') | null
+  count?: string | null
   dd?: string | null
   gaps?: 'estimate' | 'missing'
   output?: string | null
@@ -404,7 +406,8 @@ export interface TableResponse {
       }[]
 }
 export interface TileQuery {
-  stat?: ('sum' | 'mean' | 'min' | 'max') | null
+  stat?: ('sum' | 'mean' | 'min' | 'max' | 'count') | null
+  count?: string | null
   dd?: string | null
   gaps?: 'estimate' | 'missing'
   output?: string | null

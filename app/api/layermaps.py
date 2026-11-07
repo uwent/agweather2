@@ -5,9 +5,11 @@ stores; `stamp` is the data stamp for its ETag (the stores' write times, the for
 computes its values over a window, in the layer's stored unit (a model output's for a model layer).
 
 A range with `stat` becomes one map, reduced by `agdata.grids` with the points' gap rules (D45, D56), and each
-cell's estimated and missing days beside it. Degree days for any setting are computed from each day's minimum and
-maximum; a setting the archive keeps as a running total (`agdata.cumulative`) is read from it for `stat=sum`
-when every day in the range has data, which is the same sum (to its stored 0.5 °F·d) in a fraction of the time.
+cell's estimated and missing days beside it. `count=days_above_86` (`api.counts`, D75) is `stat=count`: each cell's
+days or hours within the bounds, with its missing ones beside it, nothing estimated. Degree days for any setting are
+computed from each day's minimum and maximum; a setting the archive keeps as a running total (`agdata.cumulative`)
+is read from it for `stat=sum` when every day in the range has data, which is the same sum (to its stored
+0.5 °F·d) in a fraction of the time.
 
 A model's layer (its id is the model's) is finished per cell from its stored ingredients (`agdata.modelgrid`): one
 output (`output=`, default the risk level or a crop's stage) with the model's scenario options. Maps take each
@@ -41,6 +43,8 @@ from agdata.store import CUMULATIVE, DAILY
 from agmodels import seasons
 from agmodels.seasons import Season
 from agmodels.spec import ModelSpec
+from api import counts
+from api.envelope import SYSTEMS, Column, shown_unit, unit_overrides
 from api.errors import ApiError, day_text, hour_text
 from api.maptitles import layer_title
 from api.params import degree_day_settings, parse_hour, resolve_biofix
@@ -60,7 +64,8 @@ class LayerQuery(Schema):
     time: str | None = None
     start: str | None = None
     end: str | None = None
-    stat: Literal["sum", "mean", "min", "max"] | None = None
+    stat: Literal["sum", "mean", "min", "max", "count"] | None = None
+    count: str | None = None  # `days_above_86`, implying stat=count (`api.counts`)
     dd: str | None = None
     gaps: Literal["estimate", "missing"] = "estimate"
     output: str | None = None
@@ -127,20 +132,41 @@ class LayerAsk:
     units: str = "us"  # the request's system, for a title's degree-day thresholds
     scale_asked: "ScaleAsked | None" = None  # `scale=`, in the stored unit (`parse_scale`)
     palette_asked: "palettes.Palette | None" = None  # `palette=` (`_palette_asked`)
+    count: "counts.Count | None" = None  # with stat=count: what's counted (`api.counts`)
+    count_bounds: tuple[float | None, float | None] = (None, None)  # its bounds in the values' stored unit
+    count_shown: str = ""  # the unit its bounds were given in, for the title
 
     @property
-    def unit(self) -> str:
+    def value_unit(self) -> str:
+        """The unit of the values a step has (a model output's for a model layer), before any count."""
         return self.model.output.unit if self.model is not None else self.layer.unit
 
     @property
+    def unit(self) -> str:
+        if self.count is not None:
+            return "hour" if self.count.axis == "hours" else "day"
+        return self.value_unit
+
+    @property
     def step(self) -> float:
+        if self.count is not None:
+            return 1
         return self.model.output.step if self.model is not None else self.layer.step
+
+    @property
+    def steps(self) -> int:
+        """The steps in the range."""
+        if isinstance(self.first, datetime):
+            return (self.last - self.first) // HOUR + 1
+        return (self.last - self.first).days + 1
 
     @property
     def scale(self) -> palettes.Scale:
         """The map's palette (`palette=` if asked, else its use's) and its fixed domain (None: from the map's values,
         `auto_domain`)."""
-        if self.model is not None:
+        if self.count is not None:
+            found = palettes.scale_for("count", "day", running=True)
+        elif self.model is not None:
             found = palettes.scale_for(self.model.output.use, "day", running=True)
         else:
             running = self.layer.source == "cumulative" or self.stat is not None
@@ -150,7 +176,7 @@ class LayerAsk:
     @property
     def categories(self) -> list[str] | None:
         """A categorical map's level names, in order."""
-        if self.model is None:
+        if self.model is None or self.count is not None:
             return None
         name = self.model.output.name
         if name in ("risk_level", f"{seasonal.PROJECTED}risk_level") and self.model.spec.risk is not None:
@@ -165,6 +191,9 @@ class LayerAsk:
         end left blank from the data), else the use's default domain, else the data's."""
         found = self.scale
         asked = self.scale_asked
+        if self.count is not None and (asked is None or asked.mode == "default"):
+            # From none to the data's high end (rare days would be dark on 0 to every day), at most every step
+            return (0.0, min(float(self.steps), max(1.0, palettes.auto_domain(values)[1])))
         if found.palette.kind == "categorical" or ((asked is None or asked.mode == "default") and found.domain):
             return found.domain  # type: ignore[return-value]
         auto = palettes.auto_domain(values, centered=found.centered)
@@ -199,6 +228,7 @@ class LayerAsk:
             "layer": self.layer.id,
             **when,
             "stat": self.stat,
+            **({"count": self.count.name} if self.count is not None else {}),
             **(model.echo if model is not None else {}),
             **({"season": model.season.name} if model is not None and model.season is not None else {}),
             "dd": self.setting.name if self.setting else None,
@@ -231,9 +261,19 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
     observed = series.last_observed(data_dir, now)
     if observed is None:
         raise ApiError("no_data", NO_DATA, None, status=503)
+    if q.count is not None and q.stat is None:
+        q = q.model_copy(update={"stat": "count"})  # a count is a statistic of the range
     first, last = span(found, q, observed)
     stat = q.stat or ("sum" if q.biofix is not None else None)  # a biofix starts a total
-    if stat is not None and stat not in found.stats:
+    if stat == "count":
+        _check_count(found, q)
+    elif q.count is not None:
+        raise ApiError(
+            "conflict",
+            f"count counts days or hours, so it can't go with stat={stat}. Leave out stat, or count.",
+            "count",
+        )
+    elif stat is not None and stat not in found.stats:
         offered = (
             f"stat={' or '.join(found.stats)}"
             if found.stats
@@ -286,6 +326,16 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
             "invalid", "dd applies only to the degree_days layer. Leave it out, or ask for /grids/degree_days.", "dd"
         )
     cubes = _cubes(found, setting, stat, q.gaps, first, last)
+    count, bounds, shown = None, (None, None), ""
+    if stat == "count":
+        assert q.count is not None
+        count = counts.parse(q.count)
+        counts.check_axis(count, found.time_axis, layer_title(found))
+        base_unit = model.output.unit if model is not None else found.unit
+        base_step = model.output.step if model is not None else found.step
+        column = Column(name=found.id, values=[], unit=base_unit, step=base_step, variable=found.variable or found.id)
+        shown = shown_unit(column, SYSTEMS.get(units, "imperial"), unit_overrides(request))
+        bounds = count.bounds(shown, base_unit, base_step)
     # Only what the layer reads: an open checks every variable it's given (~3 ms each)
     opened = [*hourly_of(found), *stored_names(found)]
     if found.id == DEGREE_DAYS:
@@ -307,10 +357,24 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         observed=observed,
         warnings=warnings,
         units=units,
+        count=count,
+        count_bounds=bounds,
+        count_shown=shown,
     )
     a.scale_asked = _scale_asked(request, a)
     a.palette_asked = _palette_asked(request, a)
     return a
+
+
+def _check_count(layer: Layer, q: LayerQuery) -> None:
+    """stat=count needs count=, and a layer whose values can be counted: any with a statistic, or a model's."""
+    if q.count is None:
+        raise ApiError("missing", f"stat=count needs count= to say what to count, such as {counts.EXAMPLES}.", "count")
+    if layer.source == "cumulative" or (not layer.stats and layer.source != "model"):
+        why = "each day is already a running total" if layer.source == "cumulative" else "its values can't be compared"
+        raise ApiError(
+            "invalid", f"{layer_title(layer)} can't be counted over a range, because {why}. Give one date.", "count"
+        )
 
 
 def _palette_asked(request: HttpRequest, a: "LayerAsk") -> palettes.Palette | None:
@@ -421,9 +485,24 @@ def compute(a: LayerAsk, window: Window, now: datetime) -> Computed:
     started = time.perf_counter()
     data_dir = _data_dir()
     if a.model is not None:
-        found = _model_compute(a.layer, a.model, a.first, a.last, window, a.stat, data_dir, now, a.stores, a.warnings)
+        found = _model_compute(
+            a.layer, a.model, a.first, a.last, window, a.stat, data_dir, now, a.stores, a.warnings, a.count_bounds
+        )
     else:
-        found = _compute(a.layer, a.first, a.last, window, a.stat, a.setting, a.gaps, a.cubes, data_dir, now, a.stores)
+        found = _compute(
+            a.layer,
+            a.first,
+            a.last,
+            window,
+            a.stat,
+            a.setting,
+            a.gaps,
+            a.cubes,
+            data_dir,
+            now,
+            a.stores,
+            a.count_bounds,
+        )
     values, kinds, extra, sources, run, steps, from_cubes = found
     return Computed(
         values=values,
@@ -681,7 +760,9 @@ def planting_summary(model: ModelRequest, mask: np.ndarray, warnings: list[str])
     return {"crop": model.crop, "tier": model.tier, "dates": span, "cells_without": without}
 
 
-def _model_compute(layer, model: ModelRequest, first, last, window, stat, data_dir, now, stores, warnings):
+def _model_compute(
+    layer, model: ModelRequest, first, last, window, stat, data_dir, now, stores, warnings, bounds=(None, None)
+):
     """A model layer's output over days first..last, as `_compute` returns a layer's."""
     found = modelgrid.model_map(
         data_dir, layer.id, first, last, window, model.options, tier=model.tier, now=now, stores=stores
@@ -724,7 +805,9 @@ def _model_compute(layer, model: ModelRequest, first, last, window, stat, data_d
         warnings.append(
             f"The season starts at the biofix, {_day_or(found.biofix[-1])}, so nothing has accumulated yet."
         )
-    if stat is not None:
+    if stat == "count":
+        values, extra = _counted(values, bounds, "day")
+    elif stat is not None:
         value, _, missing = reduce(values, stat, None)
         values, extra = value[None], {"missing_days": missing}
     return values, found.kinds, extra, found.sources, found.forecast, found.dates, False
@@ -803,7 +886,13 @@ def warm_kernels() -> None:
     degree_days_grid.warm()
 
 
-def _compute(layer, first, last, window, stat, setting, gaps, cubes, data_dir, now, stores):
+def _counted(values: np.ndarray, bounds, time_axis: str) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+    """A range's count within the bounds (`api.counts`), as one map, and its missing steps."""
+    value, missing = counts.count_within(values, *bounds)
+    return value[None], {"missing_hours" if time_axis == "hour" else "missing_days": missing}
+
+
+def _compute(layer, first, last, window, stat, setting, gaps, cubes, data_dir, now, stores, bounds=(None, None)):
     """(values (steps out, y, x) in the layer's stored unit, kinds per step read, extra per-cell counts, sources,
     the forecast run, the steps' labels, whether the running totals were read)."""
     extra: dict[str, np.ndarray] = {}
@@ -816,9 +905,11 @@ def _compute(layer, first, last, window, stat, setting, gaps, cubes, data_dir, n
         read = series.grid_days(data_dir, layout, layer.variable, first, last, window, now, stores)
         _fresh(read, layer, layout, window, data_dir, stores)
     else:
-        return _degree_days(first, last, window, stat, setting, gaps, cubes, data_dir, now, stores)
+        return _degree_days(first, last, window, stat, setting, gaps, cubes, data_dir, now, stores, bounds)
     values = read.values
-    if stat is not None:
+    if stat == "count":
+        values, extra = _counted(values, bounds, layer.time_axis)
+    elif stat is not None:
         value, estimated, missing = reduce(values, stat, layer.variable, gaps)
         values = value[None]
         extra = {"estimated_days": estimated, "missing_days": missing}
@@ -839,7 +930,7 @@ def _computed_steps(c: computed.Computed, layer: Layer, first, last, window, dat
     return series.combine(c, reads)
 
 
-def _degree_days(first, last, window, stat, setting, gaps, cubes, data_dir, now, stores):
+def _degree_days(first, last, window, stat, setting, gaps, cubes, data_dir, now, stores, bounds=(None, None)):
     lo = series.grid_days(data_dir, DAILY, "air_temperature_min", first, last, window, now, stores, read=not cubes)
     if cubes and all(k is not None for k in lo.kinds):
         cube, minus = cubes
@@ -860,6 +951,10 @@ def _degree_days(first, last, window, stat, setting, gaps, cubes, data_dir, now,
     dd, estimated, usable = degree_days(lo.values, hi.values, setting.method, setting.base_f, setting.upper_f, gaps)
     if stat is None:
         return dd, lo.kinds, {}, lo.sources, lo.forecast, lo.steps, False
+    if stat == "count":  # bridged days count as the days they stand for; unusable ones are missing
+        value, extra = _counted(dd, bounds, "day")
+        extra["estimated_days"] = estimated.sum(axis=0)
+        return value, lo.kinds, extra, lo.sources, lo.forecast, lo.steps, False
     if stat == "sum":  # unusable days add nothing; a cell with none usable is missing
         value = np.where(usable.any(axis=0), np.where(usable, dd, 0.0).sum(axis=0, dtype=np.float64), np.nan)
     else:

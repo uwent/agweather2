@@ -5,7 +5,10 @@ Raw values show missing where they're missing (D45). Totals bridge gaps by each 
 GAP_FILL: interpolated up to 7 days), counting estimated and missing days; precipitation is never estimated: its
 total sums the known days and counts the rest as missing (no rain)."""
 
-from datetime import date, datetime, timedelta
+from dataclasses import dataclass
+from datetime import UTC, date, datetime, timedelta
+from typing import Literal
+from zoneinfo import ZoneInfo
 
 import numpy as np
 from django.http import HttpRequest, HttpResponse
@@ -15,8 +18,18 @@ from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, GAP_FILL, VARIABLE
 from agdata.computed import DAILY_COMPUTED, HOURLY_COMPUTED
 from agdata.series import FORECAST, PARTIAL
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
-from api import clock, points
-from api.envelope import Column, Result, catalog_column, etag_for, not_modified, respond
+from api import clock, counts, points
+from api.envelope import (
+    SYSTEMS,
+    Column,
+    Result,
+    catalog_column,
+    etag_for,
+    not_modified,
+    respond,
+    shown_unit,
+    unit_overrides,
+)
 from api.errors import ApiError, counted
 from api.locations import describe, describe_days
 from api.params import DaysQuery, HoursQuery, OutputQuery, PointsQuery, SeriesQuery, check_vars
@@ -29,6 +42,7 @@ FORECAST_DAYS = 16  # a default end this far ahead reaches past every forecast; 
 MAX_DAYS = 3660  # per point and request: ten years of days
 MAX_HOURS = 2 * 8784  # two years of hours
 MAX_ROWS = 100_000  # points × steps
+HOUR = timedelta(hours=1)
 MAX_OUTSIDE = 10  # points outside the box (or before the archive) per request: each may fetch from Open-Meteo
 DAILY = {name: v for name, v in DAILY_VARIABLES.items() if name != "et0_sum_estimate"}  # that one's for totals
 DAILY |= {name: c.variable for name, c in DAILY_COMPUTED.items()}  # computed when read (`agdata.computed`)
@@ -250,6 +264,76 @@ def window_total(values: np.ndarray, name: str, gaps: str) -> tuple[float, int, 
     return total, int(estimated.sum()), int((~known).sum())
 
 
+@dataclass(frozen=True, kw_only=True)
+class CountColumn:
+    """One `count=var:days_above_86` at points (`api.counts`, D75): the variable, what's counted, the column's name,
+    and the bounds in the variable's stored unit."""
+
+    variable: str
+    count: counts.Count
+    name: str  # `air_temperature_max_days_above_86`
+    hourly: bool
+    bounds: tuple[float | None, float | None]
+
+    @property
+    def missing(self) -> str:
+        return f"{self.name}_missing_{self.count.axis}"
+
+
+def count_columns(request: HttpRequest, units: str) -> list[CountColumn]:
+    """Every `count=` (repeated, or separated by commas) as `variable:days_above_86`, checked."""
+    given = [part.strip() for raw in request.GET.getlist("count") for part in raw.split(",") if part.strip()]
+    system, overrides = SYSTEMS.get(units, "imperial"), unit_overrides(request)
+    found: dict[str, CountColumn] = {}
+    for text in given:
+        variable, _, spec = text.partition(":")
+        variable = variable.strip()
+        if not spec:
+            raise ApiError(
+                "invalid",
+                f"We can't read count={text}. Name the variable and what to count, such as "
+                "count=air_temperature_max:days_above_86 or count=air_temperature:hours_above_86.",
+                "count",
+            )
+        if variable in DAILY:
+            v, axis = DAILY[variable], "day"
+        elif variable in HOURLY:
+            v, axis = HOURLY[variable], "hour"
+        else:
+            raise ApiError(
+                "unknown_variable",
+                f"We don't have a variable named {variable} to count. GET /api/v2/variables lists them.",
+                "count",
+            )
+        count = counts.parse(spec)
+        counts.check_axis(count, axis, variable, prefix=f"{variable}:")
+        name = f"{variable}_{count.name}"
+        shown = shown_unit(
+            Column(name=name, values=[], unit=v.unit, step=v.scale, variable=variable), system, overrides
+        )
+        bounds = count.bounds(shown, v.unit, v.scale)
+        found[name] = CountColumn(variable=variable, count=count, name=name, hourly=axis == "hour", bounds=bounds)
+    return list(found.values())
+
+
+def _months(dates: list[date]) -> list[tuple[str, int, int]]:
+    """(YYYY-MM, k0, k1): the dates' runs within each calendar month."""
+    found: list[tuple[str, int, int]] = []
+    for k, day in enumerate(dates):
+        label = f"{day:%Y-%m}"
+        if found and found[-1][0] == label:
+            found[-1] = (label, found[-1][1], k + 1)
+        else:
+            found.append((label, k, k + 1))
+    return found
+
+
+def _hour_days(times: list[datetime], zone: str) -> list[date]:
+    """The day each hour belongs to (an hour ending at midnight is the day before's, as the rollup counts it)."""
+    tz = ZoneInfo(zone)
+    return [(t - HOUR).astimezone(tz).date() for t in times]
+
+
 @router.get("/weather/totals", response=responses(TableResponse), summary="Totals over a window at points")
 def totals(
     request: HttpRequest,
@@ -258,36 +342,77 @@ def totals(
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
     vars: str | None = None,
+    count: str | None = None,
+    interval: Literal["month"] | None = None,
 ) -> HttpResponse:
-    """One row per point: each variable's total from `start` to `end` (sums and hour counts: precipitation, ET0,
-    shortwave, hours with RH ≥ 90%, …), with `<var>_estimated_days` and `<var>_missing_days`. Precipitation's
-    missing days count as no rain and are never estimated. Defaults: January 1 through the forecast (to today with
-    `forecast=false`)."""
-    names = check_vars(vars, TOTALLED, TOTALS_DEFAULT)
+    """One row per point (or point and month, `interval=month`): each variable's total from `start` to `end` (sums
+    and hour counts: precipitation, ET0, shortwave, hours with RH ≥ 90%, …), with `<var>_estimated_days` and
+    `<var>_missing_days`, and each `count` (`air_temperature_max:days_above_86`, repeatable) with its missing days or
+    hours. Precipitation's missing days count as no rain and are never estimated; counts never estimate. Defaults:
+    January 1 through the forecast (to today with `forecast=false`); only the counts when `count` is given alone."""
+    wanted = count_columns(request, output.units)
+    names = check_vars(vars, TOTALLED, [] if wanted and vars is None else TOTALS_DEFAULT)
+    daily_counted = [c.variable for c in wanted if not c.hourly]
+    hourly_counted = list(dict.fromkeys(c.variable for c in wanted if c.hourly))
+    read = list(dict.fromkeys([*names, *daily_counted])) or ["air_temperature_min"]  # every day's kind, at least
     now = clock.now()
     today = now.date()
     trim_end = when.end is None and when.date is None and options.forecast
     first, last = when.span(default_end=today + timedelta(days=FORECAST_DAYS) if trim_end else today)
     check_size((last - first).days + 1, len(where.locations()), MAX_DAYS, "days")
+    if hourly_counted:
+        check_size(((last - first).days + 1) * 24, len(where.locations()), MAX_HOURS, "hours")
     computed = {**where.echo(), "start": first, "end": last, "vars": names, "forecast": options.forecast}
     computed |= {"gaps": options.gaps, "units": output.units, **options.echo()}
-    etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now, names=names))
+    if wanted:
+        computed["count"] = [f"{c.variable}:{c.count.name}" for c in wanted]
+    if interval is not None:
+        computed["interval"] = interval
+    stamped = [*read, *hourly_counted]
+    etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now, names=stamped))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, first, last, options)
-    found, warnings, sources, corrections = read_days(where, first, last, names, options, trim_end, now)
-    rows: dict[str, list] = {"point": list(range(len(found))), "days": [], "forecast_days": []}
+    found, warnings, sources, corrections = read_days(where, first, last, read, options, trim_end, now)
+    hours: list[points.Hours] = []
+    if hourly_counted:
+        start, end = _midnight(first - timedelta(days=1)), _midnight(last + timedelta(days=2))
+        hours = points.many_hours(where.locations(), start, end, hourly_counted, now)
+        for h in hours:
+            sources += [s for s in h.sources if s not in sources]
+
+    keys = ["point", "month", "days", "forecast_days"]
+    rows: dict[str, list] = {key: [] for key in keys}
     for name in names:
         rows[name], rows[f"{name}_estimated_days"], rows[f"{name}_missing_days"] = [], [], []
-    for days, n in found:
-        rows["days"].append(n)
-        rows["forecast_days"].append(sum(k in (FORECAST, PARTIAL) for k in days.kinds[:n]))
-        for name in names:
-            total, estimated, missing = window_total(days.values[name][:n], name, options.gaps)
-            rows[name].append(total)
-            rows[f"{name}_estimated_days"].append(estimated)
-            rows[f"{name}_missing_days"].append(missing)
+    for c in wanted:
+        rows[c.name], rows[c.missing] = [], []
+    for k, (days, n) in enumerate(found):
+        spans = _months(days.dates[:n]) if interval == "month" else [("", 0, n)]
+        hour_days = _hour_days(hours[k].times, days.zone) if hours else []
+        for label, k0, k1 in spans:
+            rows["point"].append(k)
+            rows["month"].append(label)
+            rows["days"].append(k1 - k0)
+            rows["forecast_days"].append(sum(kind in (FORECAST, PARTIAL) for kind in days.kinds[k0:k1]))
+            for name in names:
+                total, estimated, missing = window_total(days.values[name][k0:k1], name, options.gaps)
+                rows[name].append(total)
+                rows[f"{name}_estimated_days"].append(estimated)
+                rows[f"{name}_missing_days"].append(missing)
+            for c in wanted:
+                if c.hourly:
+                    inside = set(days.dates[k0:k1])
+                    keep = np.array([day in inside for day in hour_days], dtype=bool)
+                    values = np.asarray(hours[k].values[c.variable], dtype=float)[keep]
+                else:
+                    values = np.asarray(days.values[c.variable][k0:k1], dtype=float)
+                hit, missing = counts.count_within(values[:, None], *c.bounds)
+                rows[c.name].append(None if np.isnan(hit[0]) else int(hit[0]))
+                rows[c.missing].append(int(missing[0]))
     table = [Column(name="point", values=rows["point"])] if where.points is not None else []
+    if interval == "month":
+        table.append(Column(name="month", values=rows["month"]))
     table += [Column(name="days", values=rows["days"]), Column(name="forecast_days", values=rows["forecast_days"])]
     for name in names:
         total = catalog_column(name, rows[name])
@@ -297,6 +422,8 @@ def totals(
             Column(name=f"{name}_estimated_days", values=rows[f"{name}_estimated_days"]),
             Column(name=f"{name}_missing_days", values=rows[f"{name}_missing_days"]),
         ]
+    for c in wanted:
+        table += [Column(name=c.name, values=rows[c.name]), Column(name=c.missing, values=rows[c.missing])]
     missing_rain = sum(rows.get("precipitation_sum_missing_days", []))
     if missing_rain:
         warnings.append(
@@ -308,6 +435,12 @@ def totals(
         warnings.append(
             f"Water balance is missing on {counted(missing_balance, 'day')}, where precipitation or "
             "evapotranspiration is missing. The totals leave those days out."
+        )
+    uncounted = [c.name for c in wanted if sum(rows[c.missing])]
+    if uncounted:
+        warnings.append(
+            f"Some days or hours have no data for {', '.join(uncounted)}. The counts leave them out, and "
+            "each count's _missing column says how many."
         )
     if found and trim_end:
         computed["end"] = max((days.dates[n - 1] for days, n in found if n), default=last)
@@ -325,6 +458,10 @@ def totals(
             etag=etag,
         ),
     )
+
+
+def _midnight(day: date) -> datetime:
+    return datetime(day.year, day.month, day.day, tzinfo=UTC)
 
 
 def answer_etag(request: HttpRequest, computed: dict, stamp: str | None) -> str | None:
