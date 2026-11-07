@@ -6,11 +6,14 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from agdata.grid import NDFD
 from agdata.series import DailySeries, Forecast
 from agmodels.models.early_blight import pdays
+from api.routes import models
 from api.tests.fixture_archive import POINT
 
 LAT, LNG = POINT
+OTHER = tuple(round(float(v), 4) for v in NDFD.latlon(901, 1402))
 OBSERVED_PDAYS = float(pdays(9.0, 21.0))  # the fixture's observed days run 9–21 °C
 
 
@@ -125,11 +128,86 @@ def test_a_stage_biofix_not_reached_is_a_warning(client, archive):
     assert all(v is None for v in body["data"]["pdays_total"])
 
 
-def test_unknown_models_and_several_points(client, archive):
+def test_unknown_models(client, archive):
     missing = client.get("/api/v2/models/no-such-model/run", {"lat": LAT, "lng": LNG})
     assert missing.status_code == 404 and missing.json()["errors"][0]["code"] == "not_found"
-    two = client.get("/api/v2/models/tar-spot/run", {"points": f"{LAT},{LNG};{LAT},{LNG}"})
-    assert two.status_code == 422 and two.json()["errors"][0]["param"] == "points"
+
+
+# --- Several points ------------------------------------------------------------------------------------------------
+
+
+def at_points(client, model_id, **params):
+    return client.get(f"/api/v2/models/{model_id}/run", {"points": f"{LAT},{LNG};{OTHER[0]},{OTHER[1]}", **params})
+
+
+def test_several_points_are_one_long_table_matching_each_points_own_run(client, archive):
+    days = {"start": "2025-07-05", "end": "2025-07-12"}
+    body = at_points(client, "early-blight-pdays", biofix="2025-07-02", **days).json()
+    data, meta = body["data"], body["meta"]
+    assert list(data)[:3] == ["point", "date", "kind"] and "location" not in meta and len(meta["locations"]) == 2
+    assert data["point"] == [0] * 8 + [1] * 8
+    for k, (lat, lng) in enumerate([(LAT, LNG), OTHER]):
+        alone = client.get(
+            "/api/v2/models/early-blight-pdays/run", {"lat": lat, "lng": lng, "biofix": "2025-07-02", **days}
+        ).json()
+        rows = [n for n, p in enumerate(data["point"]) if p == k]
+        for name, values in alone["data"].items():
+            assert [data[name][n] for n in rows] == values, name
+        assert meta["summary"]["points"][k] == {"biofix": "2025-07-02"}
+    assert meta["request"]["points"] == [[LAT, LNG], list(OTHER)] and "biofix" in meta["request"]
+    assert meta["summary"]["days_returned"] == 16
+
+
+def test_several_points_revalidate_and_take_csv(client, archive):
+    first = at_points(client, "tar-spot", start="2025-07-05", end="2025-07-06")
+    again = client.get(
+        "/api/v2/models/tar-spot/run",
+        {"points": f"{LAT},{LNG};{OTHER[0]},{OTHER[1]}", "start": "2025-07-05", "end": "2025-07-06"},
+        HTTP_IF_NONE_MATCH=first["ETag"],
+    )
+    assert again.status_code == 304
+    csv = at_points(client, "tar-spot", start="2025-07-05", end="2025-07-06", format="csv", headers="false")
+    lines = csv.content.decode().splitlines()
+    assert lines[0].startswith("point,date,kind") and len(lines) == 5 and lines[3].startswith("1,2025-07-05,")
+
+
+def test_typical_planting_dates_are_resolved_at_each_point(client, archive):
+    body = at_points(client, "tar-spot", planting_date="all", start="2025-07-05", end="2025-07-06").json()
+    meta = body["meta"]
+    assert body["data"]["option_set"] == [0, 0, 1, 1, 2, 2] * 2
+    for k, (lat, lng) in enumerate([(LAT, LNG), OTHER]):
+        alone = client.get(
+            "/api/v2/models/tar-spot/run",
+            {"lat": lat, "lng": lng, "planting_date": "all", "start": "2025-07-05", "end": "2025-07-06"},
+        ).json()["meta"]
+        assert meta["summary"]["points"][k]["planting_date"] == alone["request"]["planting_date"]
+    sets = meta["summary"].get("option_sets") or meta["summary"]["points"][0]["option_sets"]
+    assert [s["planting_date"] for s in sets] == meta["summary"]["points"][0]["planting_date"]["date"]
+
+
+def test_an_error_at_one_of_several_points_names_it(client, archive):
+    response = at_points(client, "late-blight-dsv", planting_date="early")  # no typical potato dates here
+    error = response.json()["errors"][0]
+    assert response.status_code == 422 and error["code"] == "no_estimate"
+    assert error["message"].startswith(f"For the location at {LAT}, {LNG}: we have no typical potato")
+
+
+def test_a_projection_takes_up_to_ten_points(client, archive):
+    many = ";".join(f"{LAT},{LNG}" for _ in range(models.MAX_PROJECTED_POINTS + 1))
+    response = client.get("/api/v2/models/tar-spot/run", {"points": many, "projection": "true"})
+    assert response.status_code == 422 and response.json()["errors"][0]["param"] == "points"
+
+
+def test_warnings_name_the_runs_they_are_about():
+    text = "The model has no output."
+    assert models._grouped([({}, text)], 1) == [text]
+    assert models._grouped([({"point": 0}, text), ({"point": 1}, text)], 2) == [text]
+    assert models._grouped([({"point": 0}, text), ({"point": 2}, text)], 3) == [
+        "For points 0 and 2: the model has no output."
+    ]
+    assert models._grouped([({"point": 1, "option_set": 0}, text)], 4) == [
+        "For point 1, option_set 0: the model has no output."
+    ]
 
 
 # --- Several models ------------------------------------------------------------------------------------------------

@@ -11,7 +11,7 @@ Response shapes for model runs stay provisional until Phase 7's frontend uses th
 
 import itertools
 import json
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 from typing import Any, Literal
 
@@ -37,7 +37,7 @@ from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_
 from api.errors import ApiError, day_text
 from api.locations import describe, describe_days
 from api.params import DaysQuery, OutputQuery, PointsQuery, SeriesQuery, resolve_biofix
-from api.routes.weather import FORECAST_DAYS, MAX_DAYS, check_size, located
+from api.routes.weather import FORECAST_DAYS, MAX_DAYS, check_size, envelope_parts, located
 from api.schemas import TableResponse, responses
 from ops.points import day_zone, models_at_point, projected_at_point
 
@@ -54,6 +54,7 @@ class EvaluateBody(Schema):
 
 
 MAX_RUNS = 200  # model runs (models × option sets) per request
+MAX_PROJECTED_POINTS = 10  # points per projected run: each reads every earlier year (~0.2–1.2 s a point)
 MAX_EVALUATIONS = 10_000  # rows of POST /models/{id}/evaluate
 
 NO_PROJECTION = (
@@ -91,7 +92,7 @@ def too_many_runs(count: int) -> str:
 SUSCEPTIBILITY = {NOT_SUSCEPTIBLE: "not susceptible", MARGIN: "margin", SUSCEPTIBLE: "susceptible"}
 
 
-@router.get("/models/{model_id}/run", response=responses(TableResponse), summary="A model at a point")
+@router.get("/models/{model_id}/run", response=responses(TableResponse), summary="A model at points")
 def run(
     request: HttpRequest,
     model_id: str,
@@ -104,26 +105,47 @@ def run(
     projection: str | None = None,
     season: str | None = None,
 ) -> HttpResponse:
-    """The model at one point from `start` to `end` (default: from its biofix, or January 1, through the forecast;
-    a seasonal product's current season, or `season=2025-26`, D68).
+    """The model at one point, or at several (`points=`, up to 50; up to 10 with `projection`) as one long table with
+    a `point` column indexing `meta.locations`, from `start` to `end` (default: from its biofix, or January 1, through
+    the forecast; a seasonal product's current season, or `season=2025-26`, D68).
     `projection=true` carries it past the forecast to `end` (default: the season's end) once per earlier archive year
     (D63): projected days have kind `projection`, each number column their P50, with `<name>_p10` and `<name>_p90`
     beside it and `projection_years`; `projection=years` gives each year's path instead (a `year` column). When
     stages, risk levels and action windows come is in `meta.summary.projection.milestones`.
     `planting_date` (YYYY-MM-DD, or `early`, `mid`, `late` for the point's typical dates, or `all`) runs the crop's
     stages for a disease's susceptible window and a stage biofix; without it there's no window. The model's options
-    and its crop model's are plain parameters (`GET /models/{id}` lists them); `all` runs every choice."""
+    and its crop model's are plain parameters (`GET /models/{id}` lists them); `all` runs every choice. With several
+    points, what's resolved at each (its biofix, typical planting dates, projection) is in `meta.summary.points`."""
     m = runs.model_or_404(model_id)
-    lat, lng = _one_point(where)
+    sites = where.locations()
+    several = where.points is not None
+    mode = projection_mode(projection)
+    if mode and len(sites) > MAX_PROJECTED_POINTS:
+        raise ApiError(
+            "too_many",
+            f"A projection can include up to {MAX_PROJECTED_POINTS} locations, and this request has {len(sites)}. "
+            "Split them into several requests.",
+            "points",
+        )
     now = clock.now()
     today = now.date()
     planting_season = (when.date or when.start or when.end or today).year
     the_biofix = resolve_biofix(biofix, when.end or when.date or today)
-    the_plan = runs.plan(m, request.GET, lat, lng, planting_season, biofix=the_biofix, planting=planting_date)
-    mode = projection_mode(projection)
+    plans = [
+        _at_site(
+            lambda lat=lat, lng=lng: runs.plan(
+                m, request.GET, lat, lng, planting_season, biofix=the_biofix, planting=planting_date
+            ),
+            lat,
+            lng,
+            several,
+        )
+        for lat, lng in sites
+    ]
+    the_plan = plans[0]
     trim_end = when.end is None and when.date is None
     default_end = today + timedelta(days=FORECAST_DAYS) if options.forecast else today
-    first, last = _span(when, m, the_plan, default_end, today)
+    first, last = _span(when, m, replace(the_plan, runs=[r for p in plans for r in p.runs]), default_end, today)
     the_season = None
     if m.SPEC.seasonal is not None:
         first, last, the_season = _season_days(m.SPEC, when, season, first, last, default_end, today)
@@ -135,10 +157,13 @@ def run(
         )
     if mode and trim_end:
         last, trim_end = _season_end(m.SPEC, first), False
-    check_size((last - first).days + 1, len(the_plan.runs), MAX_DAYS, "days")
+    check_size((last - first).days + 1, len(the_plan.runs) * len(sites), MAX_DAYS, "days")
+    request_echo = dict(the_plan.request)
+    if any(p.request["planting_date"] != request_echo["planting_date"] for p in plans):
+        request_echo["planting_date"] = {"tier": planting_date}  # each point's dates are in meta.summary.points
     computed = {
         **where.echo(),
-        **the_plan.request,
+        **request_echo,
         "start": first,
         "end": last,
         "forecast": options.forecast,
@@ -147,32 +172,49 @@ def run(
         **({"season": the_season.name} if the_season is not None else {}),
         **options.echo(),
     }
-    etag, unchanged, needed = _revalidate(
-        request, [the_plan], computed, lat, lng, first, last, now, projecting=bool(mode)
-    )
+    etag, unchanged, needed = _revalidate(request, plans, computed, sites, first, last, now, projecting=bool(mode))
     if unchanged is not None:
         return unchanged
-    location = located(where, needed, last, options)[0]
-    zone = day_zone(lat, lng, options.day_basis)
-    found, notes = _projected([the_plan], lat, lng, first, last, now, mode, zone) if mode else (None, [])
-    if found is not None:
-        results = found[0].results
-        table, summary, warnings = _table(
-            m, results, len(results[0].dates), labels=found[0].labels, bands=found[0].bands
+    locations = located(where, needed, last, options)
+    found = [
+        _run_site(
+            p, lat, lng, first, last, now, mode, day_zone(lat, lng, options.day_basis), options.forecast, trim_end
         )
-        summary["projection"] = found[0].summary
+        for p, (lat, lng) in zip(plans, sites, strict=True)
+    ]
+    if several:
+        results = [r for f in found for r in f.results]
+        labels = [{"point": k, **label} for k, f in enumerate(found) for label in f.row_labels()]
+        projected = any(f.bands is not None for f in found)
+        bands = [b for f in found for b in f.all_bands()] if projected else None
+        table, summary, warnings = _table(m, results, [f.kept for f in found for _ in f.results], labels, bands)
+        notes = _grouped([({"point": k}, note) for k, f in enumerate(found) for note in f.notes], len(sites))
+        plan_warnings = _grouped([({"point": k}, w) for k, p in enumerate(plans) for w in p.warnings], len(sites))
     else:
-        results = _execute([the_plan], lat, lng, first, last, now, zone)[0]
-        kept = max(points.keep(r.kinds, options.forecast, trim_end) for r in results)
-        table, summary, warnings = _table(m, results, kept, labels=_labels(results))
+        f = found[0]
+        table, summary, warnings = _table(m, f.results, f.kept, labels=f.labels, bands=f.bands)
+        notes, plan_warnings = f.notes, the_plan.warnings
+        if f.projection is not None:
+            summary["projection"] = f.projection
     warnings = [*notes, *warnings]
-    if trim_end and found is None and results and kept:
-        computed["end"] = results[0].dates[kept - 1]
-    if results[0].biofix is not None and len(results) == 1:
-        computed["biofix"] = results[0].biofix
-    if the_plan.option_sets:
+    if trim_end and any(f.projection is None for f in found):
+        ends = [f.results[0].dates[f.kept - 1] for f in found if f.projection is None and f.results and f.kept]
+        if ends:
+            computed["end"] = max(ends)
+    single_run = len(the_plan.runs) == 1
+    if not several and single_run and found[0].results[0].biofix is not None:
+        computed["biofix"] = found[0].results[0].biofix
+    if several:
+        same_sets = all(p.option_sets == the_plan.option_sets for p in plans)
+        if the_plan.option_sets and same_sets:
+            summary["option_sets"] = the_plan.option_sets
+        summary["points"] = [
+            _site_summary(p, f, single_run, with_sets=not same_sets, with_planting=planting_date is not None)
+            for p, f in zip(plans, found, strict=True)
+        ]
+    elif the_plan.option_sets:
         summary["option_sets"] = the_plan.option_sets
-    summary["corrections"] = list(results[0].corrections)
+    summary["corrections"] = _union(c for f in found for c in f.results[0].corrections)
     if the_season is not None:
         observed = series.last_observed(settings.DATA_DIR, now)
         observed_day = series.last_closed_day(observed) if observed is not None else first
@@ -182,10 +224,10 @@ def run(
         Result(
             request=computed,
             columns=table,
-            location=location,
+            **envelope_parts(where, locations),
             summary=summary,
-            sources=list(results[0].sources),
-            warnings=[*the_plan.warnings, *warnings],
+            sources=_union(s for f in found for s in f.results[0].sources),
+            warnings=[*plan_warnings, *warnings],
             filename=f"agweather-{m.SPEC.id}-{first}-{computed['end']}",
             etag=etag,
         ),
@@ -237,7 +279,9 @@ def run_several(
         "units": output.units,
         **options.echo(),
     }
-    etag, unchanged, needed = _revalidate(request, plans, computed, lat, lng, first, last, now, projecting=bool(mode))
+    etag, unchanged, needed = _revalidate(
+        request, plans, computed, [(lat, lng)], first, last, now, projecting=bool(mode)
+    )
     if unchanged is not None:
         return unchanged
     location = located(where, needed, last, options)[0]
@@ -299,7 +343,7 @@ def risk(
     computed |= {"planting_date": planting_date, "units": output.units, "projection": mode and "band"}
     days_on = SeriesQuery(day_basis=day_basis)
     computed |= days_on.echo()
-    etag, unchanged, needed = _revalidate(request, plans, computed, lat, lng, day, day, now, projecting=bool(mode))
+    etag, unchanged, needed = _revalidate(request, plans, computed, [(lat, lng)], day, day, now, projecting=bool(mode))
     if unchanged is not None:
         return unchanged
     location = located(where, needed, day, days_on)[0]
@@ -803,12 +847,12 @@ def _one_point(where: PointsQuery) -> tuple[float, float]:
     return where.locations()[0]
 
 
-def _revalidate(request, plans, computed, lat, lng, first, last, now, projecting: bool = False):
-    """(ETag, a 304 if the client holds it, the first day read): before any read or run. A projection reads the
-    archive's earlier years too, so their writes count."""
+def _revalidate(request, plans, computed, sites, first, last, now, projecting: bool = False):
+    """(ETag, a 304 if the client holds it, the first day read) for the points `sites`: before any read or run. A
+    projection reads the archive's earlier years too, so their writes count."""
     needed, _ = days_needed([r for p in plans for r in p.runs], first)
     years = archive_years(settings.DATA_DIR) if projecting else []
-    stamp = points.stamp([(lat, lng)], min([needed, *(date(y, 1, 1) for y in years if y < needed.year)]), last, now)
+    stamp = points.stamp(sites, min([needed, *(date(y, 1, 1) for y in years if y < needed.year)]), last, now)
     etag = None if stamp is None else etag_for(request, computed, stamp)
     unchanged = None if etag is None else not_modified(request, etag)
     return etag, unchanged, needed
@@ -880,14 +924,16 @@ def _labels(results: list[ModelRun]) -> list[dict[str, Any]] | None:
 def _table(
     m: Model,
     results: list[ModelRun],
-    n: int,
+    n: int | list[int],
     labels: list[dict[str, Any]] | None = None,
     bands: list[Band] | None = None,
 ) -> tuple[list[Column], dict, list[str]]:
-    """One row per day of each run, in order: `labels[k]` adds columns naming run k (`option_set`, `year`), and
-    `bands[k]` its P10 and P90 beside each number column (`projection=true`)."""
+    """One row per day of each run, in order, the first `n` days (or `n[k]` of run k): `labels[k]` adds columns
+    naming run k (`point`, `option_set`, `year`), and `bands[k]` its P10 and P90 beside each number column
+    (`projection=true`)."""
     spec = m.SPEC
-    warnings: list[str] = []
+    keep = [n] * len(results) if isinstance(n, int) else n
+    reasons: list[tuple[dict[str, Any], str]] = []
     columns: dict[str, list[Any]] = {}
 
     def add(name: str, values) -> None:
@@ -905,6 +951,7 @@ def _table(
     stages = [s.code for s in m.stages()] if is_crop else []  # type: ignore[attr-defined]
     windows: list[dict[str, Any]] = []
     for k, r in enumerate(results):
+        n = keep[k]
         rows = r.dates[:n]
         count = len(rows)
         label = labels[k] if labels else {}
@@ -936,9 +983,7 @@ def _table(
         if bands is not None:
             add("projection_years", [int(v) if v > 0 else None for v in _values(bands[k].years, count)])
         if r.reason:
-            named = ", ".join(f"{key} {value}" for key, value in label.items())
-            text = reason_text(r.reason)
-            warnings.append(f"For {named}: {text[0].lower()}{text[1:]}" if named else text)
+            reasons.append((label, reason_text(r.reason)))
         if r.windows:
             windows.append(
                 {
@@ -967,20 +1012,23 @@ def _table(
             table.append(Column(name=name, values=values, unit="index"))
         else:
             table.append(Column(name=name, values=values))
-    kinds = [kind for r in results for kind in r.kinds[:n]]
+    kinds = [kind for r, n in zip(results, keep, strict=True) for kind in r.kinds[:n]]
     summary: dict[str, Any] = {
         "days_returned": len(kinds),
         "days_forecast": sum(kind in (FORECAST, PARTIAL) for kind in kinds),
         "days_missing": sum(kind is None for kind in kinds),
         "estimated_by_input": {
-            name: sum(int(np.sum(r.estimated[name][:n])) for r in results if name in r.estimated) for name in estimated
+            name: sum(
+                int(np.sum(r.estimated[name][:n])) for r, n in zip(results, keep, strict=True) if name in r.estimated
+            )
+            for name in estimated
         },
     }
     if bands is not None:
         summary["days_projected"] = sum(kind == PROJECTION for kind in kinds)
     if windows:
         summary["windows"] = windows
-    return table, summary, warnings
+    return table, summary, _grouped(reasons, len(results))
 
 
 def _median(m: Model, runs: list[ModelRun], begins: date) -> tuple[ModelRun, Band]:
@@ -1028,6 +1076,111 @@ def _median(m: Model, runs: list[ModelRun], begins: date) -> tuple[ModelRun, Ban
     )
     counts = np.where(np.arange(len(first.dates)) >= k, years.count, 0)
     return merged, Band(low=low, high=high, years=counts)
+
+
+# --- Several points ---------------------------------------------------------------------------------------------
+
+
+@dataclass(kw_only=True)
+class SiteRun:
+    """One point's runs of a plan, ready for `_table`: the results with their labels and bands (with a projection),
+    how many rows of each to keep, notes for `meta.warnings`, and `meta.summary.projection`."""
+
+    results: list[ModelRun]
+    kept: int
+    labels: list[dict[str, Any]] | None = None
+    bands: list[Band] | None = None
+    projection: dict[str, Any] | None = None
+    notes: list[str] = field(default_factory=list)
+
+    def row_labels(self) -> list[dict[str, Any]]:
+        return self.labels or [{} for _ in self.results]
+
+    def all_bands(self) -> list[Band]:
+        """Each result's band; a point without a projection (outside the archive) has none on any day."""
+        if self.bands is not None:
+            return self.bands
+        return [Band(low={}, high={}, years=np.zeros(len(r.dates))) for r in self.results]
+
+
+def _run_site(
+    the_plan: runs.Plan,
+    lat: float,
+    lng: float,
+    first: date,
+    last: date,
+    now,
+    mode: str | None,
+    zone: str,
+    forecast: bool,
+    trim_end: bool,
+) -> SiteRun:
+    found, notes = _projected([the_plan], lat, lng, first, last, now, mode, zone) if mode else (None, [])
+    if found is not None:
+        results = found[0].results
+        return SiteRun(
+            results=results,
+            kept=len(results[0].dates),
+            labels=found[0].labels,
+            bands=found[0].bands,
+            projection=found[0].summary,
+            notes=notes,
+        )
+    results = _execute([the_plan], lat, lng, first, last, now, zone)[0]
+    kept = max(points.keep(r.kinds, forecast, trim_end) for r in results)
+    return SiteRun(results=results, kept=kept, labels=_labels(results), notes=notes)
+
+
+def _site_summary(
+    the_plan: runs.Plan, found: SiteRun, single_run: bool, with_sets: bool, with_planting: bool
+) -> dict[str, Any]:
+    """`meta.summary.points[k]`: what was resolved at the point."""
+    out: dict[str, Any] = {}
+    if single_run and found.results[0].biofix is not None:
+        out["biofix"] = found.results[0].biofix
+    if with_planting:
+        out["planting_date"] = the_plan.request["planting_date"]
+    if with_sets and the_plan.option_sets:
+        out["option_sets"] = the_plan.option_sets
+    if found.projection is not None:
+        out["projection"] = found.projection
+    return out
+
+
+def _at_site(make, lat: float, lng: float, several: bool):
+    """`make()`, with an error naming the point when there are several."""
+    try:
+        return make()
+    except ApiError as error:
+        if several:
+            error.message = f"For the location at {lat}, {lng}: {error.message[0].lower()}{error.message[1:]}"
+        raise
+
+
+def _union(items) -> list:
+    return list(dict.fromkeys(items))
+
+
+def _grouped(items: list[tuple[dict[str, Any], str]], total: int) -> list[str]:
+    """Warnings that name the runs they're about (`items`: each run's label and text), each text once: unnamed when
+    every one of the `total` runs has it, otherwise naming them (`For points 0 and 2: …`)."""
+    by_text: dict[str, list[dict[str, Any]]] = {}
+    for label, text in items:
+        by_text.setdefault(text, []).append(label)
+    out = []
+    for text, labels in by_text.items():
+        everyone = len(labels) == total or not any(labels)
+        out.append(text if everyone else f"For {_name_runs(labels)}: {text[0].lower()}{text[1:]}")
+    return out
+
+
+def _name_runs(labels: list[dict[str, Any]]) -> str:
+    """`point 2`, `points 0, 3 and 7`, or `point 0, option_set 1; point 2, option_set 1`."""
+    if all(list(label) == ["point"] for label in labels):
+        numbers = [str(label["point"]) for label in labels]
+        listed = numbers[0] if len(numbers) == 1 else f"{', '.join(numbers[:-1])} and {numbers[-1]}"
+        return f"point{'s' if len(numbers) > 1 else ''} {listed}"
+    return "; ".join(", ".join(f"{key} {value}" for key, value in label.items()) for label in labels)
 
 
 # --- Projection (D63) ---------------------------------------------------------------------------------------------

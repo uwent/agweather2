@@ -82,7 +82,7 @@ forecast = "Whether to include forecast days in the totals (`true`, the default)
 thresholds = "The temperatures to count as a freeze, in the request's units, separated by commas. The default is 32, 28 and 24 °F."
 
 [models_run]
-points = "Not used: a model runs at one location, given by `lat` and `lng`."
+points = "Several locations in one request, in place of `lat` and `lng`: latitude and longitude pairs separated by semicolons, as `43.07,-89.40;44.52,-89.57`. Up to 50 locations, or 10 with `projection`. Each row of the response has a `point` column giving its location's position in `meta.locations`, and `meta.summary.points` gives what was worked out at each location, such as its biofix or typical planting dates."
 start = "The first day. The default is the model's start for the season: the biofix or planting date where the model has one, otherwise January 1."
 end = "The last day. The default runs through the forecast; with `projection`, it is the end of the model's season."
 biofix = "The day the model starts counting, where the model uses one (`/models/{model_id}` says whether it does and what its default is): a date (YYYY-MM-DD), or a month and day (MM-DD) for the latest one on or before the end date."

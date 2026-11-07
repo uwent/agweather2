@@ -154,3 +154,18 @@ def test_the_copies_laid_out_for_points_give_the_same_projection(client, project
     # The copies hold the daily store's packed values: the same days, to the stored precision
     assert after["year"] == before["year"] and after["kind"] == before["kind"]
     assert after["pdays_total"] == pytest.approx(before["pdays_total"], abs=0.5, nan_ok=True)
+
+
+def test_a_projection_at_several_points_has_each_points_summary(client, projection_archive):
+    from agdata.grid import NDFD
+
+    other = tuple(round(float(v), 4) for v in NDFD.latlon(901, 1402))
+    params = {k: v for k, v in BLIGHT.items() if k not in ("lat", "lng")}
+    body = get(client, "early-blight-pdays", points=f"{LAT},{LNG};{other[0]},{other[1]}", **params, projection="true")
+    data, meta = body.json()["data"], body.json()["meta"]
+    alone = get(client, "early-blight-pdays", **BLIGHT, projection="true").json()
+    rows = [n for n, p in enumerate(data["point"]) if p == 0]
+    assert [data["pdays_p90"][n] for n in rows] == alone["data"]["pdays_p90"]
+    assert set(data["point"]) == {0, 1} and "projection" not in meta["summary"]
+    for point in meta["summary"]["points"]:
+        assert point["projection"]["years"] == [2023, 2024] and point["projection"]["milestones"]
