@@ -23,7 +23,7 @@ bin/ci                           # full CI: ruff, prettier/eslint, pyright, svel
 uv run pytest packages/agmodels  # one package's tests
 uv run pytest -n auto --dist loadfile  # the whole suite in parallel, as bin/ci runs it (~2.5 min; ~10 serial)
 uv run ruff format . && uv run ruff check --fix .
-pnpm typecheck:py                # pyright
+pnpm typecheck:py                # pyright (installed from npm, not a uv dev dependency: there's no `uv run pyright`)
 pnpm check                       # svelte-check + tsc
 pnpm test                        # vitest
 bin/e2e                          # Playwright on a production build and its own database (args go to playwright test)
