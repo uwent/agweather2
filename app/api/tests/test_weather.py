@@ -81,6 +81,17 @@ def test_a_point_outside_the_box_reads_open_meteo_and_has_no_etag(client, archiv
     assert "ETag" not in response  # computed each time from the cache
 
 
+def test_points_inside_and_outside_the_box_keep_their_order(client, archive, monkeypatch):
+    monkeypatch.setattr(points.openmeteo, "point_days", _open_meteo_days)
+    asked = f"{LAT},{LNG};{DULUTH[0]},{DULUTH[1]};{OTHER[0]},{OTHER[1]}"
+    body = client.get("/api/v2/weather/daily", {"points": asked, "start": "2025-07-08", "end": "2025-07-09"}).json()
+    data = body["data"]
+    assert data["point"] == [0, 0, 1, 1, 2, 2]
+    assert data["air_temperature_max"][2:4] == [50.0, 50.0]  # Open-Meteo's, in its place
+    assert data["air_temperature_max"][:2] == data["air_temperature_max"][4:] == [69.8, 69.8]  # the archive's
+    assert [loc["in_box"] for loc in body["meta"]["locations"]] == [True, False, True]
+
+
 @pytest.mark.django_db
 def test_open_meteo_unreachable_is_a_503_that_says_so(client, archive, monkeypatch):
     def down(*args, **kwargs):

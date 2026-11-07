@@ -19,6 +19,8 @@ from urllib.parse import urlencode
 from django.test import Client
 
 TILE_ZOOM = 6  # a state fills a screen of zoom 6 tiles
+SITE_STEPS = tuple(round(-0.9 + 0.2 * k, 2) for k in range(10))  # degrees of longitude either side of the point
+SITES = 5 * len(SITE_STEPS)  # a grid of sites around the point, as many as `points=` takes (a feed's worst case)
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -55,10 +57,18 @@ def tile_of(lat: float, lng: float, zoom: int = TILE_ZOOM) -> tuple[int, int, in
 
 
 def cases(
-    *, lat: float, lng: float, map_day: date, season_start: date, last_day: date, models: tuple[str, ...]
+    *,
+    lat: float,
+    lng: float,
+    map_day: date,
+    season_start: date,
+    last_day: date,
+    models: tuple[str, ...],
+    spread: float = 1.0,
 ) -> list[Case]:
     """§3's paths: a risk map (a day and a week's maximum) per model, a custom degree-day map from `season_start`,
-    a point's hourly season, and every model at a point through the forecast."""
+    a point's hourly season, and every model at a point through the forecast; and one model at 50 sites around the
+    point, `spread` times ±0.4° by ±0.9° (the sites' feed, Phase 6 B; 2 s is its own target, not §3's)."""
     z, x, y = tile_of(lat, lng)
     tile = f"{z}/{x}/{y}.png"
     week = date.fromordinal(map_day.toordinal() - 6)
@@ -94,6 +104,16 @@ def cases(
             name="point, every model through the forecast",
             target_ms=1000,
             path=f"/models/run?{point}&models=all",
+            judged_on="repeat",
+        )
+    )
+    rows = (-0.4, -0.2, 0.0, 0.2, 0.4)  # within the box around Madison (outside, Open-Meteo: ~1.7 s each)
+    sites = ";".join(f"{lat + spread * dy:.4f},{lng + spread * dx:.4f}" for dy in rows for dx in SITE_STEPS)
+    found.append(
+        Case(
+            name=f"{SITES} sites, one model through the forecast",
+            target_ms=2000,
+            path=f"/models/{models[0]}/run?{urlencode({'points': sites, 'start': season_start})}",
             judged_on="repeat",
         )
     )

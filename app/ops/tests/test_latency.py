@@ -35,7 +35,13 @@ def no_open_meteo(monkeypatch):
 
 def _cases():
     return latency.cases(
-        lat=LAT, lng=LNG, map_day=DAY, season_start=date(2025, 7, 1), last_day=DAY, models=("tar-spot",)
+        lat=LAT,
+        lng=LNG,
+        map_day=DAY,
+        season_start=date(2025, 7, 1),
+        last_day=DAY,
+        models=("tar-spot",),
+        spread=0.0005,  # the sites within the fixture's cells
     )
 
 

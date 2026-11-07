@@ -3,6 +3,7 @@ soil hours the run lacks from Open-Meteo (D44); outside it, or before the archiv
 cache."""
 
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import date, datetime
 
 import numpy as np
@@ -76,11 +77,80 @@ def models_at_point(
     return [r for r in results if r is not None]
 
 
-def _archive_runs(latitude, longitude, runs, start, end, now, zone: str) -> list[ModelRun]:
+def models_at_points(
+    sites: Sequence[tuple[float, float]],
+    runs: Sequence[Sequence[series.RunSpec]],
+    start: date,
+    end: date,
+    now: datetime,
+    zones: Sequence[str],
+) -> list[list[ModelRun]]:
+    """`models_at_point` (without typical planting dates) at each point, with its own runs (`runs[k]`) on its own
+    zone's days (`zones[k]`): the runs the archive covers, at every point, on one read of their cells
+    (`series.cells_days`); the rest from Open-Meteo a point at a time. Each point's results are the same as its own
+    request's, but for the order of a mean's sums (~1e-16) and `sources`, which name the sources of the hours read
+    for every point's runs (from the earliest day any of them needs)."""
+    results: list[list[ModelRun | None]] = [[None] * len(own) for own in runs]
+    archived = {
+        (k, m)
+        for k, (lat, lng) in enumerate(sites)
+        for m, run in enumerate(runs[k])
+        if in_archive(lat, lng, series.days_needed([run], start)[0], end)
+    }
+    batched = sorted({k for k, _ in archived})
+    if batched:
+        chosen = {k: [m for m in range(len(runs[k])) if (k, m) in archived] for k in batched}
+        first, names = series.days_needed([runs[k][m] for k in batched for m in chosen[k]], start)
+        cells = [cell for k in batched if (cell := NDFD.cell_of(*sites[k])) is not None]
+        found = series.cells_days(
+            settings.DATA_DIR,
+            cells,
+            first,
+            end,
+            names,
+            now=now,
+            fill_soil=[_soil_filler(*sites[k], now) for k in batched],
+            zones=[zones[k] for k in batched],
+        )
+        for k, days in zip(batched, found, strict=True):
+            own = series.runs_at_point(
+                _slicer(days), *sites[k], [runs[k][m] for m in chosen[k]], start, end, planting_default=False
+            )
+            for m, result in zip(chosen[k], own, strict=True):
+                results[k][m] = result
+    for k, (lat, lng) in enumerate(sites):
+        rest = [m for m in range(len(runs[k])) if results[k][m] is None]
+        if rest:
+            own = _openmeteo_runs(lat, lng, [runs[k][m] for m in rest], start, end, now, zones[k])
+            for m, result in zip(rest, own, strict=True):
+                results[k][m] = result
+    return [[r for r in own if r is not None] for own in results]
+
+
+def _slicer(days: series.DailySeries):
+    """`runs_at_point`'s `read_days` from days already read (from as early as any point needed): the days it asks
+    for, with the corrections those days went through, as a read of just them would give."""
+
+    def read_days(first: date, last: date, names: list[str]) -> series.DailySeries:
+        own = series.sliced(days, first, names)
+        corrections = series.in_box_corrections(own.kinds, days.forecast, series.hourly_needed(names))
+        return replace(own, corrections=corrections)
+
+    return read_days
+
+
+def _soil_filler(latitude: float, longitude: float, now: datetime):
+    """Forecast soil hours the run lacks, from Open-Meteo's ECMWF IFS through the cell cache (D44)."""
+
     def fill_soil(first_hour: datetime, last_hour: datetime, names: list[str]) -> dict[str, np.ndarray]:
         values, _, _ = openmeteo.cell_hours(latitude, longitude, first_hour, last_hour, now)  # soil only
         return {name: values[name] for name in names if name in values}
 
+    return fill_soil
+
+
+def _archive_runs(latitude, longitude, runs, start, end, now, zone: str) -> list[ModelRun]:
+    fill_soil = _soil_filler(latitude, longitude, now)
     return series.models_at_point(
         settings.DATA_DIR,
         latitude,
@@ -122,9 +192,7 @@ def projected_at_point(
     assert cell is not None
     stores = series.Stores(series.hourly_needed(names))
 
-    def fill_soil(first_hour: datetime, last_hour: datetime, wanted: list[str]) -> dict[str, np.ndarray]:
-        values, _, _ = openmeteo.cell_hours(latitude, longitude, first_hour, last_hour, now)  # soil only
-        return {name: values[name] for name in wanted if name in values}
+    fill_soil = _soil_filler(latitude, longitude, now)
 
     def read_days(a: date, b: date, wanted: list[str]) -> series.DailySeries:
         return series.point_days(

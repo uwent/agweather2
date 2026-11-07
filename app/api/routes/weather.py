@@ -11,7 +11,6 @@ import numpy as np
 from django.http import HttpRequest, HttpResponse
 from ninja import Query, Router
 
-from agdata import series
 from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, GAP_FILL, VARIABLES
 from agdata.series import FORECAST, PARTIAL
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
@@ -85,10 +84,9 @@ def read_days(
 ):
     """Each point's days, trimmed (`points.keep`), with the warnings, sources and corrections they bring."""
     found, warnings, sources, corrections = [], [], [], []
-    stores = points.shared_stores(names)
-    for lat, lng in where.locations():
-        zone = day_zone(lat, lng, options.day_basis)
-        days = points.days(lat, lng, first, last, names, now, stores=stores, zone=zone)
+    sites = where.locations()
+    zones = [day_zone(lat, lng, options.day_basis) for lat, lng in sites]
+    for days in points.many_days(sites, first, last, names, now, zones, stores=points.shared_stores(names)):
         n = points.keep(days.kinds, options.forecast, trim_end)
         found.append((days, n))
         sources += [s for s in days.sources if s not in sources]
@@ -194,9 +192,7 @@ def hourly(
     locations = located(where, start.date(), end.date())
     columns: dict[str, list] = {"point": [], "time": [], "local_time": [], "kind": [], **{name: [] for name in names}}
     sources: list[str] = []
-    stores = series.Stores(names)
-    for k, (lat, lng) in enumerate(where.locations()):
-        found = points.hours(lat, lng, start, end, names, now, stores=stores)
+    for k, found in enumerate(points.many_hours(where.locations(), start, end, names, now)):
         n = points.keep(found.kinds, options.forecast, trim_end)
         columns["point"] += [k] * n
         columns["time"] += found.times[:n]

@@ -54,6 +54,39 @@ def days(
     return found
 
 
+def many_days(
+    sites: list[tuple[float, float]],
+    first: date,
+    last: date,
+    names: list[str],
+    now: datetime,
+    zones: list[str],
+    stores: series.Stores | None = None,
+) -> list[series.DailySeries]:
+    """`days` at each point (each by its zone in `zones`): those the archive covers on one read of their cells
+    (`series.cells_days`), the rest from Open-Meteo one by one."""
+    found: list[series.DailySeries | None] = [None] * len(sites)
+    inside = [k for k, (lat, lng) in enumerate(sites) if from_archive(lat, lng, first, last)]
+    if inside:
+        cells = [NDFD.cell_of(*sites[k]) for k in inside]
+        batch = series.cells_days(
+            settings.DATA_DIR,
+            [c for c in cells if c is not None],
+            first,
+            last,
+            names,
+            now=now,
+            stores=stores,
+            zones=[zones[k] for k in inside],
+        )
+        for k, series_k in zip(inside, batch, strict=True):
+            found[k] = series_k
+    for k, (lat, lng) in enumerate(sites):
+        if found[k] is None:
+            found[k] = days(lat, lng, first, last, names, now, zone=zones[k])
+    return [d for d in found if d is not None]
+
+
 def shared_stores(names: list[str]) -> series.Stores:
     """One request's store opens, shared by its points."""
     return series.Stores(series.hourly_needed(names))
@@ -83,15 +116,7 @@ def hours(
         cell = NDFD.cell_of(lat, lng)
         assert cell is not None
         frame = series.point_hours(settings.DATA_DIR, *cell, start, end, names, now=now, stores=stores)
-        seen = {s for sources in frame.sources.values() for s in sources if s is not None}
-        return Hours(
-            times=frame.times,
-            values=frame.values,
-            kinds=frame.kinds,
-            zone=zone_at(lat, lng),
-            sources=series.source_order(seen),
-            corrections=series.in_box_corrections(frame.kinds, frame.forecast, names),
-        )
+        return _archive_hours(frame, (lat, lng), names)
     values, kinds, applied = openmeteo.cell_hours(lat, lng, start, end, now)
     n = (end - start) // HOUR + 1
     return Hours(
@@ -101,6 +126,35 @@ def hours(
         zone=zone_at(lat, lng),
         sources=("openmeteo",),
         corrections=applied,
+    )
+
+
+def many_hours(
+    sites: list[tuple[float, float]], start: datetime, end: datetime, names: list[str], now: datetime
+) -> list[Hours]:
+    """`hours` at each point: those the archive covers on one read of their cells (`series.cells_hours`)."""
+    found: list[Hours | None] = [None] * len(sites)
+    inside = [k for k, (lat, lng) in enumerate(sites) if from_archive(lat, lng, start.date(), end.date())]
+    if inside:
+        cells = [c for k in inside if (c := NDFD.cell_of(*sites[k])) is not None]
+        frames = series.cells_hours(settings.DATA_DIR, cells, start, end, names, now=now)
+        for k, frame in zip(inside, frames, strict=True):
+            found[k] = _archive_hours(frame, sites[k], names)
+    for k, (lat, lng) in enumerate(sites):
+        if found[k] is None:
+            found[k] = hours(lat, lng, start, end, names, now)
+    return [h for h in found if h is not None]
+
+
+def _archive_hours(frame: series.HourlyFrame, site: tuple[float, float], names: list[str]) -> Hours:
+    seen = {s for sources in frame.sources.values() for s in sources if s is not None}
+    return Hours(
+        times=frame.times,
+        values=frame.values,
+        kinds=frame.kinds,
+        zone=zone_at(*site),
+        sources=series.source_order(seen),
+        corrections=series.in_box_corrections(frame.kinds, frame.forecast, names),
     )
 
 

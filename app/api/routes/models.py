@@ -39,7 +39,7 @@ from api.locations import describe, describe_days
 from api.params import DaysQuery, OutputQuery, PointsQuery, SeriesQuery, resolve_biofix
 from api.routes.weather import FORECAST_DAYS, MAX_DAYS, check_size, envelope_parts, located
 from api.schemas import TableResponse, responses
-from ops.points import day_zone, models_at_point, projected_at_point
+from ops.points import day_zone, models_at_point, models_at_points, projected_at_point
 
 router = Router(tags=["Models"])
 
@@ -176,12 +176,22 @@ def run(
     if unchanged is not None:
         return unchanged
     locations = located(where, needed, last, options)
-    found = [
-        _run_site(
-            p, lat, lng, first, last, now, mode, day_zone(lat, lng, options.day_basis), options.forecast, trim_end
-        )
-        for p, (lat, lng) in zip(plans, sites, strict=True)
-    ]
+    zones = [day_zone(lat, lng, options.day_basis) for lat, lng in sites]
+    if mode:
+        found = [
+            _run_site(p, lat, lng, first, last, now, mode, zone, options.forecast, trim_end)
+            for p, (lat, lng), zone in zip(plans, sites, zones, strict=True)
+        ]
+    else:  # every point's weather on one read (`ops.points.models_at_points`)
+        every = models_at_points(sites, [p.runs for p in plans], first, last, now, zones)
+        found = [
+            SiteRun(
+                results=results,
+                kept=max(points.keep(r.kinds, options.forecast, trim_end) for r in results),
+                labels=_labels(results),
+            )
+            for results in every
+        ]
     if several:
         results = [r for f in found for r in f.results]
         labels = [{"point": k, **label} for k, f in enumerate(found) for label in f.row_labels()]

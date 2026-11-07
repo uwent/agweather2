@@ -158,6 +158,29 @@ def test_several_points_are_one_long_table_matching_each_points_own_run(client, 
     assert meta["summary"]["days_returned"] == 16
 
 
+def test_a_point_outside_the_box_runs_on_open_meteo_in_its_place(client, archive, monkeypatch):
+    from ops import points as ops_points
+
+    def open_meteo_days(lat, lng, first, last, names, now, zone=None):
+        n = (last - first).days + 1
+        return DailySeries(
+            dates=[first + timedelta(days=k) for k in range(n)],
+            values={name: np.full(n, 10.0) for name in names},
+            kinds=["observed"] * n,
+            forecast=Forecast(path=None, reason="openmeteo"),
+            zone="America/Chicago",
+        )
+
+    monkeypatch.setattr(ops_points.openmeteo, "point_days", open_meteo_days)
+    asked = f"46.79,-92.1;{LAT},{LNG}"
+    params = {"points": asked, "biofix": "2025-07-02", "start": "2025-07-05", "end": "2025-07-06"}
+    data = client.get("/api/v2/models/early-blight-pdays/run", params).json()["data"]
+    alone = get(client, "early-blight-pdays", biofix="2025-07-02", start="2025-07-05", end="2025-07-06").json()
+    assert data["point"] == [0, 0, 1, 1]
+    assert data["air_temperature_max"][:2] == [50.0, 50.0]
+    assert data["pdays_total"][2:] == alone["data"]["pdays_total"]
+
+
 def test_several_points_revalidate_and_take_csv(client, archive):
     first = at_points(client, "tar-spot", start="2025-07-05", end="2025-07-06")
     again = client.get(

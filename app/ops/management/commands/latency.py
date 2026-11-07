@@ -15,9 +15,9 @@ MODELS = ("tar-spot", "early-blight-pdays")  # a plain disease, and one with a c
 class Command(ReportingCommand):
     help = (
         "Time the requests that must be fast (PLAN.md §3) on this archive, in process: a risk map's first tile for "
-        "a day and a week, a custom degree-day map from March 1, a point's hourly season, and every model at a "
-        "point. Each is timed first (a map's compute) and then repeated. Reads only; run it with the worker quiet "
-        "for numbers that mean something."
+        "a day and a week, a custom degree-day map from March 1, a point's hourly season, every model at a point, "
+        "and the first model at 50 sites around it. Each is timed first (a map's compute) and then repeated. Reads "
+        "only; run it with the worker quiet for numbers that mean something."
     )
     tracked = False
 

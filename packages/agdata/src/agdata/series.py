@@ -107,6 +107,21 @@ def point_hours(
 ) -> HourlyFrame:
     """Hours ending start..end (inclusive, UTC) at a cell: the archive's through its last observed hour, then the
     current run's, with forecast soil hours the run lacks from `fill_soil` (sourced `openmeteo`)."""
+    return cells_hours(data_dir, [(j, i)], start, end, names, now=now, stores=stores, fill_soil=[fill_soil])[0]
+
+
+def cells_hours(
+    data_dir: Path,
+    cells: Sequence[tuple[int, int]],
+    start: datetime,
+    end: datetime,
+    names,
+    now: datetime | None = None,
+    stores: "Stores | None" = None,
+    fill_soil: Sequence[FillSoil | None] | None = None,
+) -> list[HourlyFrame]:
+    """`point_hours` at each of several cells, on one read per variable and store (`GridStore.read_cells`: a chunk
+    holding several of the cells is read once). `fill_soil`, if given, has one entry per cell."""
     run = current_forecast(data_dir, now)
     times = [start + k * HOUR for k in range((end - start) // HOUR + 1)]
     n = len(times)
@@ -116,16 +131,14 @@ def point_hours(
     values: dict[str, np.ndarray] = {}
     sources: dict[str, list[str | None]] = {}
     for name in names:
-        values[name] = np.full(n, np.nan)
+        values[name] = np.full((n, len(cells)), np.nan)
         sources[name] = [None] * n
         if cut:
-            values[name][:cut], sources[name][:cut] = _point_steps(stores, data_dir, HOURLY, name, j, i, start, cut)
+            values[name][:cut], sources[name][:cut] = _cells_steps(stores, data_dir, HOURLY, name, cells, start, cut)
         if run.path is not None and cut < n:
-            fc_values, fc_sources = _point_steps(stores, run.path, HOURLY, name, j, i, times[cut], n - cut)
+            fc_values, fc_sources = _cells_steps(stores, run.path, HOURLY, name, cells, times[cut], n - cut)
             values[name][cut:], sources[name][cut:] = fc_values, fc_sources
     beyond = run.last_hour if run.path is not None else observed_until
-    if fill_soil is not None and run.path is not None:
-        _fill_soil(fill_soil, times, values, sources, [n for n in names if n in SOIL], cut, run.last_hour)
     archived = {year: stores.get(data_dir, HOURLY, year) is not None for year in {t.year for t in times[:cut]}}
     kinds: list[str | None] = [
         (OBSERVED if archived[times[k].year] else None)  # an hour before the archive began is missing
@@ -133,7 +146,16 @@ def point_hours(
         else (FORECAST if beyond is not None and times[k] <= beyond else None)
         for k in range(n)
     ]
-    return HourlyFrame(times=times, values=values, sources=sources, kinds=kinds, forecast=run)
+    frames = []
+    for c in range(len(cells)):
+        own = {name: np.ascontiguousarray(values[name][:, c]) for name in names}
+        own_sources = sources
+        fill = fill_soil[c] if fill_soil is not None else None
+        if fill is not None and run.path is not None:
+            own_sources = {name: list(s) for name, s in sources.items()}  # this cell's fills are its own
+            _fill_soil(fill, times, own, own_sources, [n for n in names if n in SOIL], cut, run.last_hour)
+        frames.append(HourlyFrame(times=times, values=own, sources=own_sources, kinds=kinds, forecast=run))
+    return frames
 
 
 def point_days(
@@ -160,6 +182,27 @@ def point_days(
     observed, the run's from it. `fill_soil` is used only when one of `names` is a soil variable. Days in a year
     the archive doesn't have are missing. `stores`, shared by a caller reading many points, must open at least
     `hourly_needed(names)` and `totals`."""
+    found = cells_days(
+        data_dir, [(j, i)], first, last, names, totals, now=now, fill_soil=[fill_soil], stores=stores, zones=[zone]
+    )
+    return found[0]
+
+
+def cells_days(
+    data_dir: Path,
+    cells: Sequence[tuple[int, int]],
+    first: date,
+    last: date,
+    names,
+    totals=(),
+    now: datetime | None = None,
+    fill_soil: Sequence[FillSoil | None] | None = None,
+    stores: "Stores | None" = None,
+    zones: Sequence[str] | None = None,
+) -> list[DailySeries]:
+    """`point_days` at each of several cells (each by its own zone in `zones`, default the grid's), on one read of
+    each variable's hours (`cells_hours`) and one rollup per zone, the cells as a trailing axis: a request for 50
+    points costs a few times one, not 50 (the rollup's per-day work is the same for one cell or many)."""
     run = current_forecast(data_dir, now)
     n = (last - first).days + 1
     dates = [first + timedelta(days=k) for k in range(n)]
@@ -167,34 +210,54 @@ def point_days(
     if stores is not None and not {*hourly, *totals} <= stores.names:
         raise ValueError(f"the shared stores don't open {sorted({*hourly, *totals} - stores.names)}")
     stores = stores or Stores([*hourly, *totals])
+    zones = list(zones) if zones is not None else [GRID_ZONE] * len(cells)
     start = _midnight(first - timedelta(days=1))  # before the first day's earliest window (from noon) in any zone
     end = _midnight(last + timedelta(days=1)) + timedelta(hours=8)  # past the last day's end in any zone
     wants_soil = any(name in SOIL for name in hourly)
-    frame = point_hours(
-        data_dir, j, i, start, end, hourly, now=now, stores=stores, fill_soil=fill_soil if wants_soil else None
+    frames = cells_hours(
+        data_dir, cells, start, end, hourly, now=now, stores=stores, fill_soil=fill_soil if wants_soil else None
     )
-    days = daily_at_point(start, frame.values, zone, first, last, names=names)
-    kinds = day_kinds(frame.times, frame.kinds, zone, dates)
-    split = next((k for k, kind in enumerate(kinds) if kind != OBSERVED), n)
-    out_totals: dict[str, np.ndarray] = {}
+    rolled: list[dict[str, np.ndarray]] = [{} for _ in cells]
+    kinds_in: dict[str, list[str | None]] = {}
+    for zone in dict.fromkeys(zones):
+        group = [c for c, z in enumerate(zones) if z == zone]
+        if len(group) == 1:  # one cell's hours as they are
+            hours = frames[group[0]].values
+        else:
+            hours = {name: np.stack([frames[c].values[name] for c in group], axis=1) for name in hourly}
+        days = daily_at_point(start, hours, zone, first, last, names=names)
+        for k, c in enumerate(group):
+            rolled[c] = {name: days[name] if len(group) == 1 else days[name][:, k] for name in names}
+        kinds_in[zone] = day_kinds(frames[group[0]].times, frames[group[0]].kinds, zone, dates)
+    out_totals: list[dict[str, np.ndarray]] = [{} for _ in cells]
     for name in totals:
-        series = _point_steps(stores, data_dir, CUMULATIVE, name, j, i, first, n)[0]
-        if split < n:
-            series[split:] = np.nan
-            if run.path is not None:
-                series[split:] = _point_steps(stores, run.path, CUMULATIVE, name, j, i, dates[split], n - split)[0]
-        out_totals[name] = series
-    values = {name: days[name] for name in names}
-    return DailySeries(
-        dates=dates,
-        values=values,
-        kinds=kinds,
-        forecast=run,
-        zone=zone,
-        totals=out_totals,
-        corrections=in_box_corrections(kinds, run, hourly),
-        sources=_sources_seen(frame),
-    )
+        archive = _cells_steps(stores, data_dir, CUMULATIVE, name, cells, first, n)[0]
+        for zone, kinds in kinds_in.items():
+            split = next((k for k, kind in enumerate(kinds) if kind != OBSERVED), n)
+            group = [c for c, z in enumerate(zones) if z == zone]
+            ahead = None
+            if split < n and run.path is not None:
+                ahead = _cells_steps(
+                    stores, run.path, CUMULATIVE, name, [cells[c] for c in group], dates[split], n - split
+                )[0]
+            for k, c in enumerate(group):
+                series = archive[:, c].copy()
+                if split < n:
+                    series[split:] = np.nan if ahead is None else ahead[:, k]
+                out_totals[c][name] = series
+    return [
+        DailySeries(
+            dates=dates,
+            values=rolled[c],
+            kinds=kinds_in[zones[c]],
+            forecast=run,
+            zone=zones[c],
+            totals=out_totals[c],
+            corrections=in_box_corrections(kinds_in[zones[c]], run, hourly),
+            sources=_sources_seen(frames[c]),
+        )
+        for c in range(len(cells))
+    ]
 
 
 def hourly_needed(names) -> list[str]:
@@ -589,13 +652,14 @@ def _read_day(
     return store.read_steps(name, t, t + 1, window)[0]
 
 
-def _point_steps(
-    stores: Stores, path: Path, layout: StoreLayout, name: str, j: int, i: int, first, n: int
+def _cells_steps(
+    stores: Stores, path: Path, layout: StoreLayout, name: str, cells: Sequence[tuple[int, int]], first, n: int
 ) -> tuple[np.ndarray, list[str | None]]:
-    """n steps from `first` (a UTC hour or a date) at a cell, across years; NaN and None where nothing's stored."""
+    """n steps from `first` (a UTC hour or a date) at each cell, (steps, cells), across years; NaN and None where
+    nothing's stored. The sources are per step (a write covers the whole window)."""
     hourly = layout.step == "hour"
     step = HOUR if hourly else timedelta(days=1)
-    values = np.full(n, np.nan)
+    values = np.full((n, len(cells)), np.nan)
     sources: list[str | None] = [None] * n
     k = 0
     while k < n:
@@ -606,7 +670,7 @@ def _point_steps(
         count = min(n - k, int((start_of_next - when) / step))
         if store is not None:
             t = store.index_of(when)
-            values[k : k + count] = store.read_point(name, j, i, t, t + count)
+            values[k : k + count] = store.read_cells(name, cells, t, t + count)
             if hourly:
                 sources[k : k + count] = store.sources(name, t, t + count)
         k += count

@@ -11,7 +11,7 @@ measures what hourly ingest costs (docs/pilot.md).
 """
 
 import shutil
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -299,6 +299,18 @@ class GridStore:
         """One cell's series (grid indices j, i) over steps start..stop-1, in the stored unit; NaN where missing."""
         y, x = self.window.local(j, i)
         packed = self._array(name)[start:stop, y, x]
+        return self._variable(name).decode(np.asarray(packed))
+
+    def read_cells(
+        self, name: str, cells: Sequence[tuple[int, int]], start: int = 0, stop: int | None = None
+    ) -> np.ndarray:
+        """Several cells' series (grid indices) over steps start..stop-1, (steps, cells) in the stored unit: one
+        coordinate selection, so each chunk is read once however many of the cells it holds."""
+        if len(cells) == 1:
+            return self.read_point(name, *cells[0], start, stop)[:, None]
+        local = np.array([self.window.local(j, i) for j, i in cells])
+        steps = np.arange(start, self._array(name).shape[0] if stop is None else stop)[:, None]
+        packed = self._array(name).vindex[steps, local[None, :, 0], local[None, :, 1]]
         return self._variable(name).decode(np.asarray(packed))
 
     def read_block(self, name: str, index: int, window: Window | None = None) -> np.ndarray:
