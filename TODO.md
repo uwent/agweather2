@@ -142,7 +142,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
 ## Phase 6: Frontend plan and the data behind it
 
-- [ ] **ERA5-Land kept as received, and the coast of soil and snow** (D79, 2026-11-07). Claude started the download of 2016 through October 2026 into `data/era5land/` (`era5land --start 2016-01-01 --end 2026-11-03`, about 5 days at the CDS; it resumes where it stopped if run again, since a day counts as missing until it's kept). It writes each month's soil and snow by the new coast rule as it arrives.
+- [ ] **ERA5-Land kept as received, and the coast of soil and snow** (D79, 2026-11-07). Claude started the download of 2016 through October 2026 into `data/era5land/` (`era5land --start 2016-01-01 --end 2026-11-03`, 130 monthly requests, 3 at a time: likely a day or two at the CDS; it resumes where it stopped if run again, since a day counts as missing until it's kept). It writes each month's soil and snow by the new coast rule as it arrives.
 
   1. Restart `bin/dev` now, so the worker's daily ERA5-Land and hourly IFS jobs keep files and use the new coast (Ctrl-C, then `bin/dev`).
   2. The `archive fill` running since this morning has the old code, and its ERA5-Land step for each year writes soil the old way. Stop and resume it at a convenient point (`uv run app/manage.py archive stop`, wait until `archive` no longer lists it, then `f` in `bin/agwx`).
