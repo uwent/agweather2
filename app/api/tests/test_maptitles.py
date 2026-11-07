@@ -91,11 +91,23 @@ def test_dates_use_three_letter_months_and_hours_central_time_with_utc():
     assert maptitles.hour_text(datetime(2026, 11, 6, 13, tzinfo=UTC)) == "Nov 6, 2026, 7 a.m. CST (13:00 UTC)"
     assert maptitles.hour_text(datetime(2026, 7, 6, 17, tzinfo=UTC)) == "Jul 6, 2026, noon CDT (17:00 UTC)"
     assert maptitles.subtitle(ask("precipitation_total", date(2026, 11, 5)), "Wisconsin") == (
-        "Wisconsin · Jan 1 – Nov 5, 2026"
+        "Wisconsin · Jan 1 – Nov 5, 2026 (309 days)"
     )
 
 
-def test_the_caption_gives_sources_the_forecast_and_the_days_combined():
+def test_the_subtitle_gives_the_days_or_hours_a_map_combines():
+    assert maptitles.subtitle(ask("air_temperature_max", date(2026, 6, 1), date(2026, 8, 31), "count")) == (
+        "Jun 1 – Aug 31, 2026 (92 days)"
+    )
+    assert maptitles.subtitle(ask("precipitation_total", NOV5)) == "Jan 1 – Nov 5, 2026 (309 days)"
+    hours = ask("air_temperature_hourly", datetime(2026, 11, 6, 13, tzinfo=UTC), datetime(2026, 11, 7, 12, tzinfo=UTC))
+    hours.stat = "max"
+    assert maptitles.subtitle(hours).endswith("6 a.m. CST (12:00 UTC) (24 hours)")
+    assert maptitles.subtitle(ask("air_temperature_max", NOV1, NOV5)) == "Nov 1 – Nov 5, 2026"  # each day, no stat
+    assert maptitles.subtitle(ask("air_temperature_max", NOV5)) == "Nov 5, 2026"
+
+
+def test_the_caption_gives_sources_the_forecast_and_the_days_estimated_or_missing():
     a = ask("precipitation_sum", date(2026, 11, 1), date(2026, 11, 7), "sum")
     computed = SimpleNamespace(
         values=np.array([[[1.0, 2.0, np.nan]]]),  # the last cell has no data at all (open water): not counted
@@ -106,8 +118,15 @@ def test_the_caption_gives_sources_the_forecast_and_the_days_combined():
     assert maptitles.caption(a, computed) == [
         "Data sources: Precipitation from URMA/RTMA hourly grids; the National Blend of Models (NBM) forecast from "
         "Nov 6, 2026.",
-        "7 days combined; up to 1 day missing at some locations.",
+        "At some locations, up to 1 day was missing.",
     ]
+    computed.extra["estimated_days"] = np.array([[3.0, 0.0, 0.0]])
+    assert (
+        maptitles.caption(a, computed)[1]
+        == "At some locations, up to 3 days were estimated and up to 1 day was missing."
+    )
+    computed.extra = {"missing_days": np.zeros((1, 3)), "estimated_days": np.zeros((1, 3))}
+    assert len(maptitles.caption(a, computed)) == 1  # none: the sources alone
 
 
 def test_a_static_map_is_drawn_with_its_title_subtitle_and_caption(client, archive):
@@ -115,6 +134,6 @@ def test_a_static_map_is_drawn_with_its_title_subtitle_and_caption(client, archi
         response = client.get("/api/v2/maps/precipitation_sum.png", {"stat": "sum", "end": "2025-07-08"})
     assert response.status_code == 200
     args, kwargs = drawn.call_args
-    assert args[4:6] == ("Precipitation, cumulative total", "Jan 1 – Jul 8, 2025")
+    assert args[4:6] == ("Precipitation, cumulative total", "Jan 1 – Jul 8, 2025 (189 days)")
     assert kwargs["caption"][0] == "Data sources: Precipitation from URMA/RTMA hourly grids."
-    assert kwargs["caption"][1].startswith("189 days combined")
+    assert all("combined" not in line for line in kwargs["caption"])

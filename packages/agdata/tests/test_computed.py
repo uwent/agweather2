@@ -122,3 +122,15 @@ def test_a_maps_steps_combine_each_inputs_read(archive):
     assert np.isnan(found.values[2]).all()  # June 4: no rain total anywhere
     assert found.kinds == [series.OBSERVED, series.OBSERVED, None, series.OBSERVED]
     assert found.sources == ("urma",)
+
+
+def test_water_balance_totals_take_missing_rain_as_none_and_bridge_et0():
+    rain = np.array([2.0, np.nan, np.nan, 1.0, 0.0, np.nan])  # the last day is past the data: not a gap
+    et0 = np.array([3.0, 3.0, np.nan, 5.0, np.nan, 4.0])
+    each, estimated = WATER.for_total({"precipitation_sum": rain, "et0_sum": et0})
+    np.testing.assert_allclose(each[:5], [-1.0, -3.0, -4.0, -4.0, -4.5])  # ET0 bridged 3→5 and 5→4
+    assert np.isnan(each[5]) and list(estimated) == [False, True, True, False, True, False]
+    raw, none = WATER.for_total({"precipitation_sum": rain, "et0_sum": et0}, gaps="missing")
+    assert np.isfinite(raw).sum() == 2 and not none.any()  # nothing filled: a day missing either input is missing
+    grid, _ = WATER.for_total({"precipitation_sum": rain[:, None, None], "et0_sum": et0[:, None, None]})
+    np.testing.assert_allclose(grid[:, 0, 0], each)  # the same along axis 0 on a map

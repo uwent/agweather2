@@ -153,6 +153,23 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
   Then tell Claude, who removes the old season search (`_first_day_at`) and times the ten-year projection. Monday's job builds the downloads if you don't run them.
 
+- [ ] **Restart `bin/dev` and the backfill for water balance's running total** (2026-11-07). The worker (running since 00:30) and `archive fill` (writing 2019) run code from before `water_balance_total` existed, so the days they roll up get no water balance running total. Claude rebuilt every year's at about 10:00. Restart both soon: within a week of new days, the next rollups fill the gap themselves (each rewrites from 7 days back).
+
+  ```bash
+  # in bin/dev's terminal: Ctrl-C, then
+  bin/dev
+  # the backfill: ask it to stop after its current block, wait until `archive` no longer lists it, then resume (or f in bin/agwx)
+  uv run app/manage.py archive stop
+  uv run app/manage.py archive fill --from 2016 --to 2025 --background
+  ```
+
+  If the backfill had already moved past 2019 by the restart, mark 2019's three arrays stale and rebuild them (about 4 minutes):
+
+  ```bash
+  uv run python -c "import zarr; g = zarr.open_group('data/cumulative/2019.zarr', mode='r+'); [g[n].attrs.update(version=0) for n in ('water_balance', 'water_balance_estimated_days', 'water_balance_missing_days')]"
+  uv run app/manage.py rebuild --stale
+  ```
+
 - [ ] **Restart `bin/dev` and the dashboard** (2026-11-06) so they load the day's changes: the worker's rollups then keep the season-read copy of daily min and max (`agdata.timecopy`) current, and the dashboard uses about a third of the CPU it did. Until then nothing is wrong: maps read any day the copy lacks from the daily store.
 
   ```bash

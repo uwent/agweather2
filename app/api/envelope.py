@@ -42,7 +42,8 @@ API_VERSION = "2.0"
 CODE_VERSION = settings.APP_VERSION if settings.APP_VERSION != "dev" else f"dev-{time.time()}"
 SYSTEMS: dict[str, agunits.System] = {"us": "imperial", "metric": "metric"}
 _COMPUTED = {c.name: c.variable for c in [*DAILY_COMPUTED.values(), *HOURLY_COMPUTED.values()]}  # `agdata.computed`
-CATALOGS = (DAILY_VARIABLES, VARIABLES, CUMULATIVE_VARIABLES, _COMPUTED)
+# A name in two is the first's: water balance is daily (computed) before it's a running total
+CATALOGS = (DAILY_VARIABLES, VARIABLES, _COMPUTED, CUMULATIVE_VARIABLES)
 TOTALLED = ("depth", "radiant_exposure", "duration")  # dimensions whose values add up over days (a total is shown)
 
 
@@ -69,7 +70,7 @@ class Column:
 
 
 def catalog_column(name: str, values: Sequence[Any] | np.ndarray, *, variable: str | None = None) -> Column:
-    """A column of a catalog variable (daily, hourly or cumulative, in that order), summarized."""
+    """A column of a catalog variable (daily, hourly, computed or cumulative, in that order), summarized."""
     v = find_variable(variable or name)
     return Column(name=name, values=values, unit=v.unit, step=v.scale, variable=v.name, summarize=True)
 

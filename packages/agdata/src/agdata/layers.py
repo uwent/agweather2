@@ -97,7 +97,7 @@ def use_for(name: str) -> str:
 
 
 def _daily_stats(v: Variable) -> tuple[Stat, ...]:
-    if v.name in DAILY_COMPUTED:  # summed without estimates: missing days are counted (D75)
+    if v.name in DAILY_COMPUTED:  # summed with each input's gaps filled its own way (D75)
         return SUM_STATS if DAILY_COMPUTED[v.name].adds_up else LEVEL_STATS
     s = DAILY_STATISTICS.get(v.name)
     return SUM_STATS if (s is not None and s.stat == "sum") or v.unit == "hour" else LEVEL_STATS

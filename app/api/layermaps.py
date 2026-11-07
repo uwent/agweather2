@@ -896,8 +896,15 @@ def _compute(layer, first, last, window, stat, setting, gaps, cubes, data_dir, n
     """(values (steps out, y, x) in the layer's stored unit, kinds per step read, extra per-cell counts, sources,
     the forecast run, the steps' labels, whether the running totals were read)."""
     extra: dict[str, np.ndarray] = {}
-    if (c := computed.computed(layer.variable or "")) is not None:
-        read = _computed_steps(c, layer, first, last, window, data_dir, now, stores)
+    if (c := _computed_of(layer)) is not None:
+        reads = _computed_reads(c, layer, first, last, window, data_dir, now, stores)
+        read = series.combine(c, reads)
+        if stat == "sum" and c.adds_up:  # each input's gaps filled its own way (D75)
+            each, estimated = c.for_total({name: reads[name].values for name in c.inputs}, gaps)
+            known = np.isfinite(each)
+            value = np.where(known.any(axis=0), np.where(known, each, 0.0).sum(axis=0), np.nan)
+            extra = {"estimated_days": estimated.sum(axis=0), "missing_days": (~known).sum(axis=0)}
+            return value[None], read.kinds, extra, read.sources, read.forecast, read.steps, False
     elif layer.source == "hourly":
         read = series.grid_hours(data_dir, layer.variable, first, last, window, now, stores)
     elif layer.source in ("daily", "cumulative"):
@@ -918,16 +925,24 @@ def _compute(layer, first, last, window, stat, setting, gaps, cubes, data_dir, n
     return values, read.kinds, extra, read.sources, read.forecast, read.steps, False
 
 
-def _computed_steps(c: computed.Computed, layer: Layer, first, last, window, data_dir, now, stores) -> series.GridSteps:
-    """A computed variable's steps (`agdata.computed`) from each input's, every input's stale days made fresh first."""
-    reads = {}
+def _computed_of(layer: Layer) -> computed.Computed | None:
+    """The computed variable a daily or hourly layer shows (`agdata.computed`); a running total of the same name
+    (water balance's) is stored."""
+    if layer.source not in ("daily", "hourly") or layer.variable is None:
+        return None
+    return computed.computed(layer.variable)
+
+
+def _computed_reads(c: computed.Computed, layer: Layer, first, last, window, data_dir, now, stores):
+    """A computed variable's inputs' steps (`agdata.computed`), every input's stale days made fresh first."""
+    reads: dict[str, series.GridSteps] = {}
     for name in c.inputs:
         if layer.source == "hourly":
             reads[name] = series.grid_hours(data_dir, name, first, last, window, now, stores)
         else:
             reads[name] = series.grid_days(data_dir, DAILY, name, first, last, window, now, stores)
             _fresh(reads[name], LAYERS[name], DAILY, window, data_dir, stores)
-    return series.combine(c, reads)
+    return reads
 
 
 def _degree_days(first, last, window, stat, setting, gaps, cubes, data_dir, now, stores, bounds=(None, None)):
@@ -997,20 +1012,20 @@ def _fresh(read: series.GridSteps, layer: Layer, layout, window: Window, data_di
 
 
 # A running total's hourly variables: degree days from temperature; precipitation and ET0 from their own hours
-_TOTALS_FROM = {"precipitation": ["precipitation"], "et0": ["et0"]}
+_TOTALS_FROM = {"precipitation": ["precipitation"], "et0": ["et0"], "water_balance": ["precipitation", "et0"]}
 
 
 def stored_names(layer: Layer) -> list[str]:
     """The stored variables a weather layer reads: a computed one's inputs (`agdata.computed`), else its own."""
     if layer.variable is None:
         return []
-    c = computed.computed(layer.variable)
+    c = _computed_of(layer)
     return list(c.inputs) if c is not None else [layer.variable]
 
 
 def hourly_of(layer: Layer) -> list[str]:
     """The hourly variables a layer is made from, for the corrections it lists."""
-    if (c := computed.computed(layer.variable or "")) is not None and layer.source == "hourly":
+    if (c := _computed_of(layer)) is not None and layer.source == "hourly":
         return list(c.inputs)
     if layer.source == "model":
         return series.hourly_needed([q.name for q in modelgrid.mapped()[layer.id].SPEC.inputs])

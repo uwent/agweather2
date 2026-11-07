@@ -520,6 +520,18 @@ def _cumulative() -> list[Variable]:
             valid_max=3000,
             derived=True,
         ),
+        Variable(
+            name="water_balance",
+            long_name="Water balance (precipitation minus FAO-56 grass reference ET) since Jan 1",
+            unit="mm",
+            scale=0.2,
+            offset=1500,  # int16 at 0.2 holds −5050 to 8050 mm about this offset
+            valid_min=-3000,
+            valid_max=6000,
+            derived=True,
+            notes="A day without precipitation data counts as no rain, and ET0 is bridged as in its own total; "
+            "both count as estimated days (D75)",
+        ),
     ]
     # Running counts of days in the totals that were estimated across a gap or left out (D25). Every DD cube
     # comes from the daily min and max temperature, so they share the temperature counts
@@ -537,6 +549,7 @@ def _cumulative() -> list[Variable]:
             ("temperature", ("estimated", "missing")),
             ("precipitation", ("missing",)),
             ("et0", ("estimated", "missing")),
+            ("water_balance", ("estimated", "missing")),
         )
         for kind in kinds
     ]

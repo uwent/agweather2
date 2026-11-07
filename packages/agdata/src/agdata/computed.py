@@ -10,8 +10,9 @@ rebuild, the stores and the downloads go through), and every reader computes the
 - `/variables`, `/layers`, the weather endpoints' `vars` and the API's units, which list them beside the stored ones.
 
 A computed value is missing wherever any input is (D45: a raw value shows as missing). One that `adds_up` can be
-summed over a range like any stored total, without estimates: the days with a value are summed and the others
-counted missing (D75, revised 2026-11-07).
+summed over a range, and its total bridges gaps as each input's own does (`for_total`): water balance takes a day
+without rain data as no rain and bridges ET0 across short gaps, each such day counted as estimated (D75). Its
+running total from January 1 is stored with the others (`agdata.cumulative`).
 
 A formula takes its inputs as keyword arrays in their stored units, of any shape, and returns the value in the
 variable's unit. A computed variable's `version` is its formula's: an ETag already carries the code's version, so
@@ -24,7 +25,7 @@ from typing import Literal
 
 import numpy as np
 
-from agdata.catalog import DAILY_VARIABLES, VARIABLES, Variable
+from agdata.catalog import DAILY_VARIABLES, GAP_FILL, VARIABLES, Variable
 
 Axis = Literal["day", "hour"]
 
@@ -59,6 +60,27 @@ class Computed:
             missing |= ~np.isfinite(values)
         value[missing] = np.nan
         return value
+
+    def for_total(self, inputs: Mapping[str, np.ndarray], gaps: str = "estimate") -> tuple[np.ndarray, np.ndarray]:
+        """Each step's value as a total adds it (steps on axis 0), and the steps estimated: each input's gaps
+        filled by its own method (`agdata.catalog.GAP_FILL`: precipitation as none, the others bridged across up to
+        `MAX_GAP_DAYS`), unless `gaps="missing"`. A step still missing an input is missing."""
+        from agdata.grids import fill_cells  # Numba's kernels load with it: only when a total is asked
+
+        filled: dict[str, np.ndarray] = {}
+        estimated: np.ndarray | None = None
+        for name in self.inputs:
+            values = np.asarray(inputs[name], dtype=np.float64)
+            method = GAP_FILL.get(name)
+            if gaps == "estimate" and method is not None:
+                values, mask = fill_cells(values, method=method)
+            else:
+                mask = np.zeros(values.shape, dtype=bool)
+            filled[name] = values
+            estimated = mask if estimated is None else estimated | mask
+        value = self.compute(filled)
+        assert estimated is not None
+        return value, estimated & np.isfinite(value)
 
 
 def _water_balance(precipitation_sum: np.ndarray, et0_sum: np.ndarray) -> np.ndarray:

@@ -82,6 +82,9 @@ CumulativeName = Literal[
     "precipitation_missing_days",
     "temperature_estimated_days",
     "temperature_missing_days",
+    "water_balance",
+    "water_balance_estimated_days",
+    "water_balance_missing_days",
 ]
 
 # Units (`agdata.units.UNITS`)

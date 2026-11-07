@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 import requests
 
+from agdata.computed import DAILY_COMPUTED
 from agdata.grid import NDFD
 from agdata.series import DailySeries, Forecast
 from api import points
@@ -219,13 +220,15 @@ def test_water_balance_is_rain_less_et0_on_each_day(client, archive):
     assert list(alone["data"]) == ["date", "kind", "water_balance"] and alone["meta"]["units"]["water_balance"] == "in"
 
 
-def test_a_water_balance_total_sums_the_days_it_has_and_counts_the_rest(client, archive):
+def test_a_water_balance_total_takes_missing_rain_as_none_and_bridges_et0(client, archive):
     window = {"start": "2025-07-08", "end": "2025-07-23", "units": "metric"}  # the run's hours end July 21 13Z
-    daily = get(client, "weather/daily", vars="water_balance", **window).json()["data"]["water_balance"]
-    body = get(client, "weather/totals", vars="water_balance", **window).json()
-    known = [v for v in daily if v is not None]
-    missing = 16 - len(known)
-    assert missing > 0 and body["data"]["water_balance"] == [pytest.approx(sum(known), abs=0.05)]
-    assert body["data"]["water_balance_missing_days"] == [missing]
-    assert body["data"]["water_balance_estimated_days"] == [0]  # never estimated (D75)
-    assert any(w.startswith(f"Water balance is missing on {missing} days") for w in body["meta"]["warnings"])
+    names = "water_balance,precipitation_sum,et0_sum"
+    daily = get(client, "weather/daily", vars=names, **window).json()["data"]
+    body = get(client, "weather/totals", vars=names, **window).json()["data"]
+    rain = np.array([np.nan if v is None else v for v in daily["precipitation_sum"]])
+    et0 = np.array([np.nan if v is None else v for v in daily["et0_sum"]])
+    each, estimated = DAILY_COMPUTED["water_balance"].for_total({"precipitation_sum": rain, "et0_sum": et0})
+    assert body["water_balance"] == [pytest.approx(np.nansum(each), abs=0.05)]
+    assert body["water_balance_estimated_days"] == [int(estimated.sum())]
+    assert body["water_balance_missing_days"] == [int(np.isnan(each).sum())] and np.isnan(each).sum() > 0
+    assert body["water_balance"] == [pytest.approx(body["precipitation_sum"][0] - body["et0_sum"][0], abs=0.05)]

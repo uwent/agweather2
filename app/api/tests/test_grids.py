@@ -14,6 +14,7 @@ from pyproj import CRS, Transformer
 
 from agdata import series
 from agdata.catalog import DAILY_VARIABLES
+from agdata.computed import DAILY_COMPUTED
 from agdata.grid import NDFD
 from agdata.store import DAILY
 from agdata.testing import WINDOW
@@ -496,10 +497,15 @@ def test_water_balance_is_a_map_of_rain_less_et0(client, archive):
     assert body["data"]["kind"] == ["observed"] * 6 + ["partial"] * 6 + ["forecast"] * 6
     layers = {layer["id"]: layer for layer in client.get("/api/v2/layers").json()["data"]}
     assert layers["water_balance"]["palette"] == "BrBG" and "sum" in layers["water_balance"]["stats"]
-    total = get(client, "water_balance", start="2025-07-09", end="2025-07-23", stat="sum", units="metric").json()
-    steps = get(client, "water_balance", start="2025-07-09", end="2025-07-23", units="metric").json()["data"]
-    each = np.array(steps["water_balance"], dtype=float).reshape(15, -1)  # days × cells
-    np.testing.assert_allclose(total["data"]["water_balance"], np.nansum(each, axis=0), atol=0.1)
-    assert total["data"]["missing_days"] == list(np.isnan(each).sum(axis=0)) and set(
-        total["data"]["estimated_days"]
-    ) == {0}
+    window = {"start": "2025-07-09", "end": "2025-07-23", "units": "metric"}
+    total = get(client, "water_balance", stat="sum", **window).json()["data"]
+    inputs = {}
+    for name in ("precipitation_sum", "et0_sum"):  # days × cells
+        steps = get(client, name, **window).json()["data"][name]
+        inputs[name] = np.array([np.nan if v is None else v for v in steps], dtype=float).reshape(15, -1)
+    each, estimated = DAILY_COMPUTED["water_balance"].for_total(inputs)
+    known = np.isfinite(each)
+    assert (~known).any()  # the days past the forecast's end
+    np.testing.assert_allclose(total["water_balance"], np.where(known, each, 0).sum(axis=0), atol=0.1)
+    assert total["missing_days"] == list((~known).sum(axis=0))
+    assert total["estimated_days"] == list(estimated.sum(axis=0))

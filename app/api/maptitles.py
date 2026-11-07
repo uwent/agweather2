@@ -1,23 +1,25 @@
 """Map titles, subtitles and captions as the public reads them (Ben, 2026-11-06; after v1's `image_title`).
 
 v1 built "[statistic] [what] ([units]) for [dates]". Here a title goes from broad to specific with commas, the
-when goes in the subtitle, and the caption says where the data come from and how many days or hours a map combines:
+when (with how many days or hours a map combines) goes in the subtitle, and the caption says where the data come
+from and how many days were estimated or missing (Ben, 2026-11-07):
 
     Air temperature, daily maximum                    Precipitation, cumulative total
-    Nov 5, 2026                                       Jan 1 – Nov 5, 2026
+    Nov 5, 2026                                       Jan 1 – Nov 5, 2026 (309 days)
     Data sources: Air temperature (2 m) from          Data sources: Precipitation from URMA/RTMA hourly grids.
-    URMA/RTMA hourly grids.                           309 days combined.
+    URMA/RTMA hourly grids.                           At some locations, up to 2 days were missing.
 
 - **Title:** the layer's subject (`subject`), then its statistic (a count adds what it counts, "days at or above
   86 °F"): `daily maximum` for one day; over a range,
   `cumulative total` for a sum, `cumulative maximum` where the range's statistic is the day's own (the highest daily
   maximum), else `mean daily maximum`, `lowest daily maximum`. Degree days name their method and thresholds in the
   request's units ("Growing degree days, single sine 50–86 °F, cumulative total"); a model is "[model]: [result]".
-- **Subtitle:** the region, the dates with three-letter months, an hour in Central time with UTC beside it, and for a
-  model its planting tier and scenario options.
+- **Subtitle:** the region, the dates with three-letter months and, for a range combined or a running total, how many
+  days or hours it combines; an hour in Central time with UTC beside it; for a model its planting tier and scenario
+  options.
 - **Caption:** the data sources by family (static: what each variable comes from, as `agdata.catalog` sources it),
-  and the forecast where the map includes forecast days; then the days or hours combined, with the most estimated
-  or missing at any location.
+  and the forecast where the map includes forecast days; then the most days or hours estimated or missing at any
+  location, where there are any.
 
 `layer_title` (the subject and its daily statistic, without dates) also names a layer in error messages.
 """
@@ -51,6 +53,7 @@ _SUBJECTS = {
     "soil_temperature_30cm": "Soil temperature, 30 cm (11.8 in)",
     "snow_depth": "Snow depth",
     "et0": "Reference evapotranspiration (ET0)",
+    "water_balance": "Water balance (precipitation minus reference evapotranspiration)",
 }
 # Variables whose name doesn't follow `<base>_<statistic>`: (subject, the day's statistic)
 _SPECIAL = {
@@ -185,11 +188,13 @@ def subtitle(a: Any, region: str | None = None) -> str:
     if model is not None and model.season is not None and a.first == a.last:
         parts.append(f"{model.season.label} season, through {day_text(a.last)}")
     elif isinstance(a.first, datetime):
-        parts.append(hour_text(a.first) if a.first == a.last else f"{hour_text(a.first)} to {hour_text(a.last)}")
+        parts.append(
+            hour_text(a.first) if a.first == a.last else f"{hour_text(a.first)} to {hour_text(a.last)}{_span(a)}"
+        )
     elif a.layer.source == "cumulative":
-        parts.append(range_text(date(a.last.year, 1, 1), a.last))
+        parts.append(f"{range_text(date(a.last.year, 1, 1), a.last)}{_span(a)}")
     else:
-        parts.append(day_text(a.first) if a.first == a.last else range_text(a.first, a.last))
+        parts.append(day_text(a.first) if a.first == a.last else f"{range_text(a.first, a.last)}{_span(a)}")
     if model is not None:
         if model.tier is not None and model.crop is not None:
             crop = _CROPS.get(model.crop, model.crop.replace("-", " ").capitalize())
@@ -203,11 +208,12 @@ def subtitle(a: Any, region: str | None = None) -> str:
 
 
 def caption(a: Any, computed: Any) -> list[str]:
-    """The data sources, then the days or hours combined: one string a line (`mapimage.map_png` wraps them)."""
+    """The data sources, then the days or hours estimated or missing: one string a line (`mapimage.map_png` wraps
+    them)."""
     lines = [f"Data sources: {_sources(a)}{_forecast(a, computed)}."]
-    combined = _combined(a, computed)
-    if combined:
-        lines.append(combined)
+    gaps = _gaps(a, computed)
+    if gaps:
+        lines.append(gaps)
     return lines
 
 
@@ -303,17 +309,23 @@ def _forecast(a: Any, computed: Any) -> str:
     return f"; {source} from {when}"
 
 
-def _combined(a: Any, computed: Any) -> str:
-    """ "309 days combined." with the most estimated or missing at any location, for a range or a running total."""
+def _span(a: Any) -> str:
+    """ " (309 days)" for a running total or a range combined into one map; "" for a single day or each step."""
     if a.layer.source == "cumulative":
-        days = (a.last - date(a.last.year, 1, 1)).days + 1
-        return f"{_counted(days, 'day')} combined, from January 1."
+        return f" ({_counted((a.last - date(a.last.year, 1, 1)).days + 1, 'day')})"
     if a.first == a.last or a.stat is None:
         return ""
-    hourly = isinstance(a.first, datetime)
-    n = (a.last - a.first) // timedelta(hours=1) + 1 if hourly else (a.last - a.first).days + 1
-    unit = "hour" if hourly else "day"
-    text = f"{_counted(n, unit)} combined"
+    if isinstance(a.first, datetime):
+        return f" ({_counted((a.last - a.first) // timedelta(hours=1) + 1, 'hour')})"
+    return f" ({_counted((a.last - a.first).days + 1, 'day')})"
+
+
+def _gaps(a: Any, computed: Any) -> str:
+    """ "At some locations, up to 3 days were estimated and up to 1 day was missing." for a range combined, from
+    the most at any location with a value; "" where there were none."""
+    if a.first == a.last or a.stat is None:
+        return ""
+    unit = "hour" if isinstance(a.first, datetime) else "day"
     notes = []
     mapped = np.isfinite(computed.values[0])  # cells with a value: open water and cells outside a model don't count
     for key, word in (("estimated_days", "estimated"), ("missing_days", "missing"), ("missing_hours", "missing")):
@@ -323,8 +335,8 @@ def _combined(a: Any, computed: Any) -> str:
         counts = np.asarray(values, dtype=float)[mapped]
         most = int(np.nanmax(counts)) if np.isfinite(counts).any() else 0
         if most:
-            notes.append(f"up to {_counted(most, unit)} {word} at some locations")
-    return text + (f"; {', '.join(notes)}." if notes else ".")
+            notes.append(f"up to {_counted(most, unit)} {'was' if most == 1 else 'were'} {word}")
+    return f"At some locations, {' and '.join(notes)}." if notes else ""
 
 
 def _counted(n: int, noun: str) -> str:

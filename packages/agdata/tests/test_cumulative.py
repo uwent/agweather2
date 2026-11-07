@@ -116,6 +116,24 @@ def test_a_year_without_daily_data_is_skipped(tmp_path):
     assert rebuild_year(tmp_path, WINDOW, 2025) is None
 
 
+def test_water_balance_takes_missing_rain_as_none_and_bridges_et0():
+    tmin, tmax, et0, precip = series()
+    complete = running_totals(tmin, tmax, et0, precip)
+    np.testing.assert_allclose(complete["water_balance"], complete["precipitation"] - complete["et0"])
+    estimate = np.full_like(et0, np.nan)
+    precip[PAD + 5 : PAD + 15] = np.nan  # ten days without rain data: none
+    et0[PAD + 20 : PAD + 22] = np.nan  # bridged
+    et0[PAD + 30], estimate[PAD + 30] = np.nan, 2.5  # from part of the day's hours
+    et0[PAD + 25] = precip[PAD + 25] = np.nan  # both: one estimated day
+    out = running_totals(tmin, tmax, et0, precip, estimate)
+    np.testing.assert_allclose(out["water_balance"][-1], (DAYS - 11) - (3 * (DAYS - 1) + 2.5), rtol=1e-6)
+    assert out["water_balance_estimated_days"][-1] == 10 + 2 + 1 + 1
+    assert out["water_balance_missing_days"][-1] == 0
+    et0[PAD + 10 : PAD + 10 + MAX_BRIDGE_DAYS + 1] = np.nan  # too long to bridge: those days add nothing
+    out = running_totals(tmin, tmax, et0, precip, estimate)
+    assert out["water_balance_missing_days"][-1] == MAX_BRIDGE_DAYS + 1
+
+
 @pytest.mark.parametrize("name", list(CUMULATIVE_VARIABLES))
 def test_every_cumulative_variable_is_built(name):
     assert name in running_totals(*series())

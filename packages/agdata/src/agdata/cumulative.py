@@ -7,9 +7,11 @@ corn's modified 50/86 and two simple averages; a sine pair is the difference of 
 Gaps (D25): a day without a daily min or max temperature is estimated by linear interpolation of both across
 gaps of up to `MAX_BRIDGE_DAYS` days, with the year's neighbours on either side (the previous year's last days
 and the next year's first days count). ET0 takes the daily rollup's estimate for a day missing some hours
-(`agdata.gaps`), and is bridged the same way across whole missing days. Precip is never estimated. A day that can't
-be estimated adds nothing and counts as missing. Running counts of estimated and missing days let a range report
-"N days estimated" with the same subtraction. Days after the last day with data are left empty.
+(`agdata.gaps`), and is bridged the same way across whole missing days. Precip is never estimated. Water balance
+(precipitation − ET0, `agdata.computed`) takes that ET0 and a day without rain data as no rain, both counted as
+estimated (D75). A day that can't be estimated adds nothing and counts as missing. Running counts of estimated and
+missing days let a range report "N days estimated" with the same subtraction. Days after the last day with data are
+left empty.
 """
 
 from datetime import date, timedelta
@@ -26,6 +28,7 @@ from agdata.catalog import (
     DD_SINE_THRESHOLDS_F,
     dd_name,
 )
+from agdata.computed import DAILY_COMPUTED
 from agdata.daily import rollup_days
 from agdata.grid import Window
 from agdata.qc import fill_short_gaps
@@ -33,6 +36,7 @@ from agdata.store import CUMULATIVE, DAILY, GridStore, steps_in_year
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 
 MAX_BRIDGE_DAYS = 7
+WATER_BALANCE = DAILY_COMPUTED["water_balance"]
 BAND_CELL_DAYS = 3_000_000  # cells × days per band: about 300 bytes each at peak, so about 1 GB
 
 
@@ -114,6 +118,14 @@ def running_totals(
     precip = precip_mm[year]
     out["precipitation"] = _cumsum(precip, np.isfinite(precip))
     out["precipitation_missing_days"] = np.cumsum(~np.isfinite(precip), axis=0, dtype=np.int16)
+
+    # Over the padded days, so a gap in rain at the year's edge is filled as within it
+    balance, filled = WATER_BALANCE.for_total({"precipitation_sum": precip_mm, "et0_sum": et0_mm_or_estimate})
+    balance, usable = balance[year], np.isfinite(balance[year])
+    estimated = usable & (filled[year] | ~np.isfinite(et0_mm[year]))  # an ET0 from part of a day's hours too
+    out["water_balance"] = _cumsum(balance, usable)
+    out["water_balance_estimated_days"] = np.cumsum(estimated, axis=0, dtype=np.int16)
+    out["water_balance_missing_days"] = np.cumsum(~usable, axis=0, dtype=np.int16)
     return out
 
 

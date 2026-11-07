@@ -49,7 +49,7 @@ DAILY |= {name: c.variable for name, c in DAILY_COMPUTED.items()}  # computed wh
 HOURLY = {**VARIABLES, **{name: c.variable for name, c in HOURLY_COMPUTED.items()}}
 DAILY_DEFAULT = ["air_temperature_min", "air_temperature_max", "precipitation_sum"]
 HOURLY_DEFAULT = ["air_temperature", "dew_point", "relative_humidity", "precipitation", "wind_speed"]
-TOTALLED = {  # a computed one only if it adds up, summed without estimates (D75)
+TOTALLED = {  # a computed one only if it adds up, each input's gaps filled its own way (D75)
     name: v
     for name, v in DAILY.items()
     if (name in DAILY_COMPUTED and DAILY_COMPUTED[name].adds_up)
@@ -264,6 +264,15 @@ def window_total(values: np.ndarray, name: str, gaps: str) -> tuple[float, int, 
     return total, int(estimated.sum()), int((~known).sum())
 
 
+def computed_total(name: str, inputs: dict[str, np.ndarray], gaps: str) -> tuple[float, int, int]:
+    """A computed variable's total over a window from its inputs' days (`agdata.computed`), and its estimated and
+    missing days: each input's gaps filled its own way (water balance: no rain where it's missing, ET0 bridged)."""
+    each, estimated = DAILY_COMPUTED[name].for_total(inputs, gaps)
+    known = np.isfinite(each)
+    total = float(each[known].sum()) if known.any() else float("nan")
+    return total, int(estimated.sum()), int((~known).sum())
+
+
 @dataclass(frozen=True, kw_only=True)
 class CountColumn:
     """One `count=var:days_above_86` at points (`api.counts`, D75): the variable, what's counted, the column's name,
@@ -348,13 +357,15 @@ def totals(
     """One row per point (or point and month, `interval=month`): each variable's total from `start` to `end` (sums
     and hour counts: precipitation, ET0, shortwave, hours with RH ≥ 90%, …), with `<var>_estimated_days` and
     `<var>_missing_days`, and each `count` (`air_temperature_max:days_above_86`, repeatable) with its missing days or
-    hours. Precipitation's missing days count as no rain and are never estimated; counts never estimate. Defaults:
+    hours. Precipitation's missing days count as no rain and are never estimated; water balance's count as no rain
+    and are estimated (D75); counts never estimate. Defaults:
     January 1 through the forecast (to today with `forecast=false`); only the counts when `count` is given alone."""
     wanted = count_columns(request, output.units)
     names = check_vars(vars, TOTALLED, [] if wanted and vars is None else TOTALS_DEFAULT)
     daily_counted = [c.variable for c in wanted if not c.hourly]
     hourly_counted = list(dict.fromkeys(c.variable for c in wanted if c.hourly))
-    read = list(dict.fromkeys([*names, *daily_counted])) or ["air_temperature_min"]  # every day's kind, at least
+    inputs = [i for name in names if name in DAILY_COMPUTED for i in DAILY_COMPUTED[name].inputs]  # for its total
+    read = list(dict.fromkeys([*names, *inputs, *daily_counted])) or ["air_temperature_min"]  # every day's kind
     now = clock.now()
     today = now.date()
     trim_end = when.end is None and when.date is None and options.forecast
@@ -396,7 +407,11 @@ def totals(
             rows["days"].append(k1 - k0)
             rows["forecast_days"].append(sum(kind in (FORECAST, PARTIAL) for kind in days.kinds[k0:k1]))
             for name in names:
-                total, estimated, missing = window_total(days.values[name][k0:k1], name, options.gaps)
+                if name in DAILY_COMPUTED:
+                    own = {i: np.asarray(days.values[i][k0:k1], dtype=float) for i in DAILY_COMPUTED[name].inputs}
+                    total, estimated, missing = computed_total(name, own, options.gaps)
+                else:
+                    total, estimated, missing = window_total(days.values[name][k0:k1], name, options.gaps)
                 rows[name].append(total)
                 rows[f"{name}_estimated_days"].append(estimated)
                 rows[f"{name}_missing_days"].append(missing)
@@ -429,12 +444,6 @@ def totals(
         warnings.append(
             f"Precipitation is missing on {counted(missing_rain, 'day')}. We never estimate precipitation, "
             "so the totals count those days as no rain."
-        )
-    missing_balance = sum(rows.get("water_balance_missing_days", []))
-    if missing_balance:
-        warnings.append(
-            f"Water balance is missing on {counted(missing_balance, 'day')}, where precipitation or "
-            "evapotranspiration is missing. The totals leave those days out."
         )
     uncounted = [c.name for c in wanted if sum(rows[c.missing])]
     if uncounted:

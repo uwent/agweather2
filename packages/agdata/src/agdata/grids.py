@@ -21,7 +21,7 @@ import numpy as np
 from agdata.catalog import DD_AVERAGE_SETTINGS_F, DD_MODIFIED_PAIRS_F, DD_SINE_THRESHOLDS_F, GAP_FILL, dd_name
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 from agmodels.degree_days_grid import degree_days_c
-from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
+from agmodels.gaps import MAX_GAP_DAYS, GapFill, fill_short_gaps, fill_zero
 
 Stat = Literal["sum", "mean", "min", "max"]
 Gaps = Literal["estimate", "missing"]
@@ -34,13 +34,20 @@ METHODS: dict[str, Callable] = {
 BAND_CELL_DAYS = 2_000_000  # degree days are computed in bands of rows this size (~0.5 GB at peak)
 
 
-def fill_cells(values: np.ndarray, max_gap: int = MAX_GAP_DAYS) -> tuple[np.ndarray, np.ndarray]:
-    """`agmodels.gaps.fill_short_gaps` along axis 0, run only on the cells that have a missing step."""
-    flat = np.asarray(values, dtype=np.float64).reshape(values.shape[0], -1)
+def fill_cells(
+    values: np.ndarray, max_gap: int = MAX_GAP_DAYS, method: GapFill = "interpolate"
+) -> tuple[np.ndarray, np.ndarray]:
+    """`agmodels.gaps.fill_short_gaps` (or `fill_zero`, `method="zero"`) along axis 0, run only on the cells that
+    have a missing step."""
+    values = np.asarray(values, dtype=np.float64)
+    flat = values.reshape(values.shape[0], -1)
     out, filled = flat.copy(), np.zeros(flat.shape, dtype=bool)
     gappy = np.flatnonzero(np.isnan(flat).any(axis=0))
     if gappy.size:
-        out[:, gappy], filled[:, gappy] = fill_short_gaps(flat[:, gappy], max_gap)
+        if method == "zero":
+            out[:, gappy], filled[:, gappy] = fill_zero(flat[:, gappy])
+        else:
+            out[:, gappy], filled[:, gappy] = fill_short_gaps(flat[:, gappy], max_gap)
     return out.reshape(values.shape), filled.reshape(values.shape)
 
 
