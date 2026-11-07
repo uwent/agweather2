@@ -33,7 +33,7 @@ test('theme toggle switches and is remembered', async ({ page }) => {
 
 test('API docs', async ({ page }) => {
   await page.goto('/api/v2/docs')
-  await expect(page.getByText('AgWeather API')).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: /^AgWeather API/ })).toBeVisible()
 })
 
 test('health check', async ({ request }) => {
