@@ -148,6 +148,9 @@ def warm_up(*, lat: float, lng: float, day: date) -> float:
     z, x, y = tile_of(lat, lng)
     client = Client(HTTP_HOST="localhost")
     started = time.perf_counter()
+    from api.layermaps import warm_kernels  # as a server process does at start (`config.asgi`)
+
+    warm_kernels()
     client.get(f"/api/v2/tiles/air_temperature_max/{day}/{z}/{x}/{y}.png")
     client.get(f"/api/v2/tiles/corn-stages/{day}/{z}/{x}/{y}.png")
     client.get(f"/api/v2/weather/daily?lat={lat}&lng={lng}&date={day}")

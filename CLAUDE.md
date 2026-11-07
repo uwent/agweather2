@@ -33,6 +33,7 @@ bin/agwx                         # the data dashboard (= `uv run app/manage.py` 
 bin/agwx archive                 # each year of the archive, the lock and the runs, as text; `archive fill --from 2016`
 uv run app/manage.py ingredients # build the models' ingredients (agdata.modelmaps) for years missing or stale; --check
 uv run app/manage.py downloads   # build the yearly NetCDF downloads that are missing or out of date; --check, --background
+uv run app/manage.py timecopy    # fill the season-read copy of daily min/max (agdata.timecopy) for years rolled up before it; --check
 uv run app/manage.py latency     # time §3's fast paths on this archive (maps' first tiles, points), against their targets
 ```
 
@@ -123,6 +124,8 @@ Data (`agdata`):
 - **NBM scans alternate rows in opposite directions** (GRIB2 scanning mode 80; URMA, RTMA and HRRR use 64), and eccodes returns `values` as stored: `grib.decode` turns odd rows back. Before trusting a new GRIB source, compare its first field with the archive over the box (a correlation of ~0.3 where 0.95 is expected found this).
 - **Grid files are written without GDAL** (`api/gridfiles.py`, D65): NetCDF through xarray's h5netcdf engine (h5netcdf ≥ 1.8 needs `h5py` listed itself), GeoTIFF through tifffile with hand-written Lambert GeoKeys. After changing either, read a file back with GDAL in a throwaway environment (`uv run --isolated --no-project --with rasterio python -I check.py`) and compare pixel coordinates: tifffile writes a malformed GeoKey directory without complaint, and GDAL then reports no CRS. Check NetCDF in R too (`Rscript scripts/check_grid_files.R FILE`). Keep one gridded variable per file where you can (D71): 2-D `lat`/`lon` beside the data make GDAL open it as subdatasets, and terra on Windows given an absolute path (`D:/…`) then falls back to the HDF5 driver (no CRS, no `scale_factor`); as CF auxiliary coordinates GDAL takes them as geolocation arrays and terra's extent collapses. The cells' lat/lon are in the downloads' `daily/grid.nc`.
 - **Use eccodes' typed getters** (`codes_get_long`, `codes_get_double`, `codes_get_string`); plain `codes_get` returns a union pyright rejects.
+- **Numba kernels** (`agdata.fastdecode`, `agmodels.degree_days_grid`) are `cache=True`, compiled once into `__pycache__`, but loading them still costs ~0.5–0.8 s in a new process: the web process warms them at start (`config.asgi`, `api.layermaps.warm_kernels`), and `manage.py latency` does too. A kernel repeats a NumPy reference function term for term, with a parity test against it; keep the NumPy one as the reference (points use it).
+- **A season over the map reads `agdata.timecopy`**, the daily min and max chunked 32 days × 256 × 256, not the daily store (a chunk a day). It's a cache kept by `cumulative.update_days`: a day is read from it only if it was copied after the daily store last wrote it, so a copy that's behind is slower, never wrong. A new writer of the daily store must go through `update_days` (or call `timecopy.update`).
 
 Deploy:
 

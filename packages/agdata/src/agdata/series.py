@@ -22,7 +22,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata import corrections, forecast, pastyears, projection
+from agdata import corrections, forecast, pastyears, projection, timecopy
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, GAP_FILL, VARIABLES, Variable
 from agdata.grid import NDFD, Window
 from agdata.places import county_at
@@ -491,9 +491,9 @@ def read_split(
     whether the archive held the day), as `grid_days` reads them. One read per year and store; `read=False` leaves the
     values missing."""
     n = len(dates)
-    values = np.full((n, *window.shape), np.nan, dtype=np.float32)
     stale = np.zeros(n, dtype=bool)
     archived = np.zeros(n, dtype=bool)
+    pieces: list[tuple[int, int, np.ndarray]] = []
     for path, k0, k1 in ((data_dir, 0, cut), (run_path, cut, n)):
         if path is None or k0 >= k1:
             continue
@@ -503,10 +503,40 @@ def read_split(
                 continue
             if read:
                 t0 = store.index_of(dates[a])
-                values[a:b] = store.read_steps(name, t0, t0 + b - a, window)
+                pieces.append((a, b, _read_days(stores, data_dir, path, layout, store, name, t0, t0 + b - a, window)))
             stale[a:b] = name in store.stale
             archived[a:b] = path == data_dir
+    if len(pieces) == 1 and pieces[0][:2] == (0, n):  # one store's read is the whole range: no copy (a season is
+        return pieces[0][2], stale, archived  # ~60 MB over Wisconsin, and filling a NaN array first cost 70 ms)
+    values = np.full((n, *window.shape), np.nan, dtype=np.float32)
+    for a, b, piece in pieces:
+        values[a:b] = piece
     return values, stale, archived
+
+
+def _read_days(
+    stores: "Stores",
+    data_dir: Path,
+    path: Path,
+    layout: StoreLayout,
+    store: GridStore,
+    name: str,
+    t0: int,
+    t1: int,
+    window: Window,
+) -> np.ndarray:
+    """Steps t0..t1-1 of a store: a season of the archive's daily min or max from its copy laid out by time
+    (`agdata.timecopy`), with any day the copy is behind on, or all of them if the daily store holds the variable
+    as stale, from the daily store."""
+    if not (path == data_dir and layout is DAILY and name in timecopy.NAMES and t1 - t0 >= timecopy.MIN_DAYS):
+        return store.read_steps(name, t0, t1, window, dtype=np.float32)
+    copy = stores.get(data_dir, timecopy.COPY, store.year)
+    if copy is None or name in store.stale:  # the copy's days are as current as the stamps say (D29: the daily's)
+        return store.read_steps(name, t0, t1, window, dtype=np.float32)
+    values, current = timecopy.read(copy, store, name, t0, t1, window)
+    for k0, k1 in timecopy.runs_of(~current):
+        values[k0:k1] = store.read_steps(name, t0 + k0, t0 + k1, window, dtype=np.float32)
+    return values
 
 
 def _year_runs(steps: list, k0: int, k1: int):
@@ -638,7 +668,12 @@ def _catalog(kind: str) -> Mapping[str, Variable]:
         from agdata import modelmaps  # imports every model: only when a model map is read
 
         return {v.name: v for v in modelmaps.variables()}
-    return {"hourly": VARIABLES, "daily": DAILY_VARIABLES, "cumulative": CUMULATIVE_VARIABLES}[kind]
+    return {
+        "hourly": VARIABLES,
+        "daily": DAILY_VARIABLES,
+        "cumulative": CUMULATIVE_VARIABLES,
+        timecopy.COPY.kind: {v.name: v for v in timecopy.variables()},
+    }[kind]
 
 
 def _read_day(

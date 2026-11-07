@@ -5,6 +5,7 @@ description = "Degree-day, disease and insect models: pure functions on hourly a
 requires-python = ">=3.13,<3.14"
 license = "AGPL-3.0-or-later"
 dependencies = [
+    "numba>=0.68.1",
     "numpy",
     "pandas",
     "pyyaml>=6.0.3",

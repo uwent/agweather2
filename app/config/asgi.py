@@ -7,6 +7,11 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 application = get_asgi_application()
 
+if not settings.TESTING:  # the maps' Numba kernels loaded at start, not on a visitor's first map
+    from api.layermaps import warm_kernels
+
+    warm_kernels()
+
 if settings.SERVE_STATIC:
     from django.contrib.staticfiles.handlers import ASGIStaticFilesHandler  # pyright: ignore[reportAttributeAccessIssue]
 

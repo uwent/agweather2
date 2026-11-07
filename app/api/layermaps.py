@@ -793,6 +793,16 @@ def season_name(spec: ModelSpec, year: int) -> str:
 # --- Reading and computing -----------------------------------------------------------------------------------------
 
 
+def warm_kernels() -> None:
+    """Load the Numba kernels a map of many days runs (decoding a season, `agdata.fastdecode`; degree days,
+    `agmodels.degree_days_grid`): ~0.5–0.8 s the first time in a process, so the web process does it at start."""
+    from agdata import fastdecode
+    from agmodels import degree_days_grid
+
+    fastdecode.warm()
+    degree_days_grid.warm()
+
+
 def _compute(layer, first, last, window, stat, setting, gaps, cubes, data_dir, now, stores):
     """(values (steps out, y, x) in the layer's stored unit, kinds per step read, extra per-cell counts, sources,
     the forecast run, the steps' labels, whether the running totals were read)."""

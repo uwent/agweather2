@@ -49,17 +49,19 @@ def test_grid_degree_days_are_the_models_and_bands_dont_matter(monkeypatch):
     dd, estimated, usable = degree_days(tmin, tmax, "sine", 50, 86, "estimate")
     assert estimated[5, 2, 3] and usable.all()
     # A day missing either temperature is bridged in both, as at points (`/degree-days`)
-    lo, hi = tmin.copy(), tmax.copy()
-    lo[5, 2, 3] = (tmin[4, 2, 3] + tmin[6, 2, 3]) / 2
-    hi[5, 2, 3] = (tmax[4, 2, 3] + tmax[6, 2, 3]) / 2
-    np.testing.assert_allclose(dd, degree_days_sine(lo * 1.8 + 32, hi * 1.8 + 32, 50, 86), rtol=1e-5)
+    # (the grid's temperatures are float32, as the stores give them)
+    f32 = {"lo": tmin.astype(np.float32).astype(np.float64), "hi": tmax.astype(np.float32).astype(np.float64)}
+    lo, hi = f32["lo"].copy(), f32["hi"].copy()
+    lo[5, 2, 3] = np.float32((f32["lo"][4, 2, 3] + f32["lo"][6, 2, 3]) / 2)
+    hi[5, 2, 3] = np.float32((f32["hi"][4, 2, 3] + f32["hi"][6, 2, 3]) / 2)
+    np.testing.assert_allclose(dd, degree_days_sine(lo * 1.8 + 32, hi * 1.8 + 32, 50, 86), rtol=1e-5, atol=1e-6)
     monkeypatch.setattr(grids, "BAND_CELL_DAYS", 40 * 9)  # a row at a time
     banded, _, _ = degree_days(tmin, tmax, "sine", 50, 86, "estimate")
     np.testing.assert_array_equal(banded, dd)
     dd, _, usable = degree_days(tmin, tmax, "modified", 50, 86, "missing")
     assert not usable[5, 2, 3] and np.isnan(dd[5, 2, 3])
-    expected = degree_days_modified(tmin * 1.8 + 32, tmax * 1.8 + 32, 50, 86)
-    np.testing.assert_allclose(dd, expected, rtol=1e-5)
+    expected = degree_days_modified(f32["lo"] * 1.8 + 32, f32["hi"] * 1.8 + 32, 50, 86)
+    np.testing.assert_allclose(dd, expected, rtol=1e-5, atol=1e-6)
 
 
 def test_settings_kept_as_running_totals():

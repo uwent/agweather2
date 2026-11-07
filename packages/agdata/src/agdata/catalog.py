@@ -20,6 +20,7 @@ from agmodels.gaps import GapFill
 DailyStat = Literal["min", "max", "mean", "sum"]
 
 FILL = np.int16(np.iinfo(np.int16).min)  # missing
+DECODE_PARALLEL = 100_000  # float32 decodes of more values than this go through Numba
 _INT16_MAX = np.iinfo(np.int16).max
 
 
@@ -59,12 +60,19 @@ class Variable:
         packed[missing] = FILL
         return packed.astype(np.int16)
 
-    def decode(self, packed: np.ndarray) -> np.ndarray:
-        """int16 → float64 in the stored unit; FILL becomes NaN."""
+    def decode(self, packed: np.ndarray, dtype: type = np.float64) -> np.ndarray:
+        """int16 → `dtype` (float64, or float32 for a map's many days) in the stored unit; FILL becomes NaN. float32
+        is float64's values rounded, decoded in one parallel pass (`agdata.fastdecode`) when there are many."""
         packed = np.asarray(packed)
-        values = packed.astype(np.float64) * self.scale + self.offset
+        if dtype is np.float32 and packed.size > DECODE_PARALLEL:
+            from agdata.fastdecode import decode_float32  # Numba: loaded only when a map needs it
+
+            return decode_float32(packed, self.scale, self.offset)
+        values = packed.astype(np.float64)
+        values *= self.scale
+        values += self.offset
         values[packed == FILL] = np.nan
-        return values
+        return values.astype(dtype, copy=False)
 
 
 VARIABLES: dict[str, Variable] = {

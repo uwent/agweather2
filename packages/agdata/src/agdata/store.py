@@ -321,11 +321,14 @@ class GridStore:
         """One step over a window (grid indices; default the whole store), in the stored unit."""
         return self.read_steps(name, index, index + 1, window)[0]
 
-    def read_steps(self, name: str, start: int, stop: int, window: Window | None = None) -> np.ndarray:
-        """Steps start..stop-1 over a window (default the whole store), (steps, y, x) in the stored unit."""
+    def read_steps(
+        self, name: str, start: int, stop: int, window: Window | None = None, dtype: type = np.float64
+    ) -> np.ndarray:
+        """Steps start..stop-1 over a window (default the whole store), (steps, y, x) in the stored unit, as `dtype`
+        (float32 for a map's many days: `Variable.decode`)."""
         rows, cols = self._local_slices(window)
         packed = self._array(name)[start:stop, rows, cols]
-        return self._variable(name).decode(np.asarray(packed))
+        return self._variable(name).decode(np.asarray(packed), dtype=dtype)
 
     def read_packed(self, name: str, start: int, stop: int) -> np.ndarray:
         """Steps start..stop-1 over the whole store as stored: int16, packed by the variable's scale and offset,

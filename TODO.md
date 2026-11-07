@@ -152,3 +152,15 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
   ```
 
   Then tell Claude, who removes the old season search (`_first_day_at`) and times the ten-year projection. Monday's job builds the downloads if you don't run them.
+
+- [ ] **Restart `bin/dev` and the dashboard** (2026-11-06) so they load the day's changes: the worker's rollups then keep the season-read copy of daily min and max (`agdata.timecopy`) current, and the dashboard uses about a third of the CPU it did. Until then nothing is wrong: maps read any day the copy lacks from the daily store.
+
+  ```bash
+  # in bin/dev's terminal: Ctrl-C, then
+  bin/dev
+  # in the dashboard's: q, then
+  bin/agwx
+  uv run app/manage.py timecopy --check   # should say every year's copy is current; if not, run it without --check
+  ```
+
+  After `archive fill` resumes and finishes, the new years' copies are made as they roll up; `timecopy --check` confirms it. On the server (Phase 8), run `uv run app/manage.py timecopy` once after the archive is copied there.

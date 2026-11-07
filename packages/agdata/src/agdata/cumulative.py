@@ -17,6 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
+from agdata import timecopy
 from agdata.catalog import (
     CUMULATIVE_VARIABLES,
     DAILY_VARIABLES,
@@ -166,6 +167,7 @@ def update_days(data_dir: Path, window: Window, first: date, last: date, ingredi
     from agdata import modelmaps  # it reads the model registry: import only when used
 
     rollup_days(data_dir, window, first, last)
+    timecopy.update(data_dir, first, last)  # the season-read copy of min and max (`agdata.timecopy`)
     reach = timedelta(days=MAX_BRIDGE_DAYS)
     years = list(range((first - reach).year, (last + reach).year + 1))
     rebuilt = [year for year in years if rebuild_year(data_dir, window, year, changed_from=first) is not None]

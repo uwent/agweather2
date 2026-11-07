@@ -20,6 +20,7 @@ import numpy as np
 
 from agdata.catalog import DD_AVERAGE_SETTINGS_F, DD_MODIFIED_PAIRS_F, DD_SINE_THRESHOLDS_F, GAP_FILL, dd_name
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
+from agmodels.degree_days_grid import degree_days_c
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
 
 Stat = Literal["sum", "mean", "min", "max"]
@@ -70,26 +71,26 @@ def degree_days(
     tmin_c: np.ndarray, tmax_c: np.ndarray, method: DDMethod, base_f: float, upper_f: float | None, gaps: Gaps
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """(each day's degree days in °F·d, estimated, usable), each (days, y, x), from daily min and max in °C. A day
-    is estimated where either temperature was bridged; unusable days are NaN."""
-    n, ny, nx = tmin_c.shape
-    dd = np.full(tmin_c.shape, np.nan, dtype=np.float32)
-    estimated = np.zeros(tmin_c.shape, dtype=bool)
-    usable = np.zeros(tmin_c.shape, dtype=bool)
-    rows = max(1, BAND_CELL_DAYS // max(1, n * nx))
-    for y0 in range(0, ny, rows):
-        band = slice(y0, min(y0 + rows, ny))
-        lo, hi = np.asarray(tmin_c[:, band], dtype=np.float64), np.asarray(tmax_c[:, band], dtype=np.float64)
-        known = np.isfinite(lo) & np.isfinite(hi)
-        lo, hi = np.where(known, lo, np.nan), np.where(known, hi, np.nan)
-        if gaps == "estimate":
-            lo, _ = fill_cells(lo)
-            hi, _ = fill_cells(hi)
-        ok = np.isfinite(lo) & np.isfinite(hi)
-        values = METHODS[method](lo * 1.8 + 32, hi * 1.8 + 32, base_f, upper_f)
-        dd[:, band] = np.where(ok, values, np.nan)
-        estimated[:, band] = ok & ~known
-        usable[:, band] = ok
-    return dd, estimated, usable
+    is estimated where either temperature was bridged; unusable days are NaN. The degree days are one parallel pass
+    (`agmodels.degree_days_grid`, the NumPy methods' formulas); gaps are bridged a band of rows at a time."""
+    lo = np.asarray(tmin_c, dtype=np.float32)
+    hi = np.asarray(tmax_c, dtype=np.float32)
+    known = np.isfinite(lo) & np.isfinite(hi)
+    usable = known
+    gappy = np.flatnonzero(~known.all(axis=0).ravel()) if gaps == "estimate" else np.zeros(0, dtype=int)
+    if gappy.size:  # bridge only the cells with a missing day, a block of them at a time (D45's fill)
+        n = lo.shape[0]
+        lo, hi = lo.reshape(n, -1).copy(), hi.reshape(n, -1).copy()  # a day missing either is missing both
+        for k in range(0, gappy.size, max(1, BAND_CELL_DAYS // max(1, n))):
+            cells = gappy[k : k + BAND_CELL_DAYS // max(1, n)]
+            both = known.reshape(n, -1)[:, cells]
+            lo[:, cells] = fill_cells(np.where(both, lo[:, cells], np.nan))[0]
+            hi[:, cells] = fill_cells(np.where(both, hi[:, cells], np.nan))[0]
+        lo, hi = lo.reshape(known.shape), hi.reshape(known.shape)
+        usable = np.isfinite(lo) & np.isfinite(hi)
+    dd = degree_days_c(lo, hi, method, base_f, upper_f)
+    dd[~usable] = np.nan
+    return dd, usable & ~known, usable
 
 
 def cube_terms(method: DDMethod, base_f: float, upper_f: float | None) -> tuple[str, str | None] | None:
