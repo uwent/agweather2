@@ -7,10 +7,11 @@ import numpy as np
 import pytest
 import zarr
 
-from agdata import soil_seam
+from agdata import era5store, soil_seam
 from agdata.grid import service_window
 from agdata.ingest import open_or_create_hourly
-from ops.era5land import missing_days, refresh_era5land, spans
+from agdata.progress import Reporter
+from ops.era5land import missing_days, rederive_era5land, refresh_era5land, spans
 
 FIXTURES = Path(__file__).parents[3] / "packages" / "agdata" / "tests" / "fixtures"
 BOX = "43.0,-88.1,43.05,-88.05"  # inland Milwaukee, inside the fixture's area
@@ -72,6 +73,36 @@ def test_a_day_is_missing_until_every_variable_is_era5lands(data_dir):
     store = open_or_create_hourly(data_dir, 2025, window)
     store.set_sources("snow_depth", datetime(2025, 12, 16, tzinfo=UTC), [None] * 24)  # soil written, snow not
     assert missing_days(data_dir, window, day, day) == [day]
+
+
+def test_a_day_ingested_before_it_was_kept_as_received_is_missing(data_dir):
+    refresh_era5land(data_dir, BOX, NOW, "key", retrieve=fixture_retrieve([]), lock=nullcontext)
+    window = service_window(BOX)
+    day = date(2025, 12, 16)
+    assert era5store.written_hours(data_dir, 2025)[(day - date(2025, 1, 1)).days * 24 :][:24].all()
+    shutil.rmtree(era5store.path(data_dir, 2025))  # as before D79: in the hourly store only
+    assert missing_days(data_dir, window, day, day) == [day]
+
+
+def test_soil_is_derived_again_from_what_was_kept(data_dir):
+    refresh_era5land(data_dir, BOX, NOW, "key", retrieve=fixture_retrieve([]), lock=nullcontext)
+    window = service_window(BOX)
+    store = open_or_create_hourly(data_dir, 2025, window)
+    t0 = store.index_of(datetime(2025, 12, 16, tzinfo=UTC))
+    before = store.read_steps("soil_temperature_10cm", t0, t0 + 24)
+    store.write(datetime(2025, 12, 16, tzinfo=UTC), {"soil_temperature_10cm": np.full_like(before, 20.0)}, source=None)
+    hours = rederive_era5land(
+        data_dir=data_dir,
+        window=window,
+        first=date(2025, 12, 1),
+        end=date(2026, 1, 1),
+        key="key",
+        report=Reporter(quiet=True),
+        lock=lambda polite=False: nullcontext(),
+    )
+    assert hours == 24  # only the kept hours: December's others are left as they are
+    after = open_or_create_hourly(data_dir, 2025, window).read_steps("soil_temperature_10cm", t0, t0 + 24)
+    np.testing.assert_array_equal(after, before)
 
 
 def test_spans_split_at_gaps_and_months():

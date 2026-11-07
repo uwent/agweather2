@@ -3,7 +3,7 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management.base import CommandError
 
-from ops.era5land import backfill_era5land
+from ops.era5land import backfill_era5land, rederive_era5land
 from ops.management.base import ReportingCommand, check_range, parse_day, positive
 
 
@@ -23,6 +23,11 @@ class Command(ReportingCommand):
         parser.add_argument("--concurrent", type=int, default=3, help="CDS requests in flight")
         parser.add_argument("--redo", action="store_true", help="fetch days ERA5-Land already filled")
         parser.add_argument(
+            "--rederive",
+            action="store_true",
+            help="derive the hourly soil and snow again from ERA5-Land as kept (D79), without downloading",
+        )
+        parser.add_argument(
             "--downloads",
             default=None,
             help="keep the GRIB here (default: data/tmp/era5land, each file deleted once written)",
@@ -34,6 +39,19 @@ class Command(ReportingCommand):
             raise CommandError("COPERNICUS_API_KEY isn't set")
         first, end = parse_day(options["start"], "--start"), parse_day(options["end"], "--end")
         check_range(first, end)
+        if options["rederive"]:
+            hours = rederive_era5land(
+                data_dir=settings.DATA_DIR,
+                window=self.window(options["box"]),
+                first=first,
+                end=end,
+                key=key,
+                report=self.report,
+                lock=self.lock,
+                stopping=self.stopping,
+            )
+            self.finish(f"{hours} hours derived again")
+            return
         written, total = backfill_era5land(
             data_dir=settings.DATA_DIR,
             window=self.window(options["box"]),

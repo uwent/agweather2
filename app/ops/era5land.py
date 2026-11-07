@@ -1,9 +1,11 @@
 """ERA5-Land into the archive (D52, PLAN.md Phase 4 I): soil temperature and snow depth over the HRRR stand-in hours.
 
 ERA5-Land reaches about 5 days behind real time. The daily job asks the CDS for the days of the last month that
-don't have it yet, up to `LAG_DAYS` ago, then writes them and rolls up their local days. Requests queue at the
-CDS for minutes, so downloads run outside the write lock; only writing and rolling up take it. The backfill
-(`manage.py era5land`) uses the same pieces, several months in flight at once.
+don't have it yet, up to `LAG_DAYS` ago, then writes them as received (`agdata.era5store`), derives the hourly
+store's soil and snow from them (`era5land.derive`, D79) and rolls up their local days. Requests queue at the CDS
+for minutes, so downloads run outside the write lock; only writing and rolling up take it. The backfill
+(`manage.py era5land`) uses the same pieces, several months in flight at once; `rederive` derives the hourly store
+again from what's kept, without a download.
 """
 
 import contextlib
@@ -19,6 +21,7 @@ from pathlib import Path
 
 import numpy as np
 
+from agdata import era5store
 from agdata.cumulative import update_days
 from agdata.grid import Window, service_window
 from agdata.ingest import SOIL, open_or_create_hourly, write_soil
@@ -56,15 +59,21 @@ def land_mask(data_dir: Path, window: Window, key: str, retrieve: RetrieveMask =
 
 def missing_days(data_dir: Path, window: Window, first: date, last: date) -> list[date]:
     """UTC days first..last whose 24 hours aren't all ERA5-Land's yet, in every variable it fills (a day written
-    before snow depth was added has ERA5-Land's soil but not its snow)."""
+    before snow depth was added has ERA5-Land's soil but not its snow), or aren't kept as received (D79: days
+    ingested before the native store are fetched again)."""
     out = []
     stores: dict[int, list[list[str | None]]] = {}
+    kept: dict[int, np.ndarray] = {}
     for day in _days(first, last):
         if day.year not in stores:
             store = open_or_create_hourly(data_dir, day.year, window)
             stores[day.year] = [store.sources(name) for name in SOIL]
+            kept[day.year] = era5store.written_hours(data_dir, day.year)
         n = (day - date(day.year, 1, 1)).days * 24
-        if any(s != "era5land" for sources in stores[day.year] for s in sources[n : n + 24]):
+        if (
+            any(s != "era5land" for sources in stores[day.year] for s in sources[n : n + 24])
+            or not kept[day.year][n : n + 24].all()
+        ):
             out.append(day)
     return out
 
@@ -83,11 +92,22 @@ def spans(days: list[date]) -> list[tuple[date, date]]:
 
 
 def write_file(data_dir: Path, window: Window, path: Path, land: era5land.LandMask) -> tuple[date, date] | None:
-    """Writes a downloaded file's hours into the hourly stores of their years; returns its first and last UTC
-    days (None if it held nothing). The caller holds the write lock."""
-    hours = era5land.read(path, window, land)
-    if not hours.times:
+    """Keeps a downloaded file's hours as received (`agdata.era5store`) and writes the soil and snow derived from
+    them into the hourly stores of their years; returns its first and last UTC days (None if it held nothing). The
+    caller holds the write lock."""
+    native = era5land.read_native(path)
+    if native is None or not native.times:
         return None
+    era5store.write(data_dir, native)
+    return write_derived(data_dir, window, native, land)
+
+
+def write_derived(
+    data_dir: Path, window: Window, native: era5land.Native, land: era5land.LandMask
+) -> tuple[date, date] | None:
+    """The hourly store's soil and snow from consecutive hours as received (D79); their first and last UTC days
+    with values (None without any)."""
+    hours = era5land.derive(native, window, land)
     for year in sorted({t.year for t in hours.times}):
         store = open_or_create_hourly(data_dir, year, window)
         written = write_soil(store, hours, "era5land")
@@ -247,3 +267,56 @@ def backfill_era5land(
     finally:
         pool.shutdown(wait=False, cancel_futures=True)  # on a stop or Ctrl-C, don't wait for queued requests
     return written, len(todo)
+
+
+def rederive_era5land(
+    *,
+    data_dir: Path,
+    window: Window,
+    first: date,
+    end: date,
+    key: str,
+    report: Reporter,
+    lock: Callable[..., AbstractContextManager[None]],
+    stopping: threading.Event | None = None,
+) -> int:
+    """Derives the hourly store's soil and snow again for UTC days first..end (exclusive) from ERA5-Land as kept
+    (`agdata.era5store`; D79), a month at a time under the write lock (`polite`), and rolls up the days. Hours not
+    kept are left as they are. Returns the hours written."""
+    land = land_mask(data_dir, window, key)
+    months = spans(list(_days(first, end - timedelta(days=1))))
+    report.step(f"ERA5-Land {first} to {end - timedelta(days=1)}: deriving soil and snow again, {len(months)} months")
+    total = 0
+    for done, (a, b) in enumerate(months, start=1):
+        if stopping is not None and stopping.is_set():
+            report.step("ERA5-Land: stopping after this month")
+            break
+        start = datetime(a.year, a.month, a.day, tzinfo=UTC)
+        native = era5store.read(data_dir, start, datetime(b.year, b.month, b.day, 23, tzinfo=UTC))
+        if native is None:
+            report.progress("months", done, len(months))
+            continue
+        kept = np.isfinite(native.values["stl1"]).reshape(len(native.times), -1).any(axis=1)
+        runs = _runs(kept)
+        began = time.time()
+        with lock(polite=True):
+            for k0, k1 in runs:
+                part = era5land.Native(
+                    times=native.times[k0:k1],
+                    grid=native.grid,
+                    values={name: v[k0:k1] for name, v in native.values.items()},
+                )
+                covered = write_derived(data_dir, window, part, land)
+                if covered is not None:
+                    roll_up(data_dir, window, *covered)
+                total += k1 - k0
+        hours = sum(k1 - k0 for k0, k1 in runs)
+        report.detail(f"{a:%Y-%m}: {hours} hours derived and rolled up in {time.time() - began:.0f} s")
+        report.progress("months", done, len(months))
+    return total
+
+
+def _runs(kept: np.ndarray) -> list[tuple[int, int]]:
+    """(start, stop) of each run of True."""
+    edges = np.diff(np.concatenate([[0], kept.astype(np.int8), [0]]))
+    return list(zip(np.flatnonzero(edges == 1).tolist(), np.flatnonzero(edges == -1).tolist(), strict=True))

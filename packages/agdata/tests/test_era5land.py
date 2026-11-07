@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from agdata import coast
 from agdata.grid import NDFD, LatLonGrid, Window
 from agdata.sources import era5land
 from agdata.sources.grib import eccodes
@@ -36,13 +37,24 @@ def test_values_are_in_stored_units(hours):
     assert 5 < np.nanmax(snow) < 50  # cm of snow (a 10-20 cm cover that week), not metres
 
 
-def test_open_water_is_missing_and_the_shore_is_land(hours):
+def test_our_water_is_missing_and_every_land_cell_has_a_value(hours):
     soil = hours.values["soil_temperature_4cm"][0]
-    _, lon = NDFD.window_latlon(MILWAUKEE)
-    assert np.isfinite(soil[lon < -87.95]).all()  # the city, up to the shore
-    assert np.isnan(soil[lon > -87.6]).all()  # Lake Michigan, 25 km out
-    # Lake cells carry the lake's temperature at every depth; none of it reaches a land cell
+    on_water = coast.water(MILWAUKEE)
+    assert on_water.any() and (~on_water).any()
+    assert np.isfinite(soil[~on_water]).all()  # the city up to the shore, by the coast rule (D79)
+    assert np.isnan(soil[on_water]).all()  # Lake Michigan by our own 2.5 km mask
+    # Lake points carry the lake's temperature at every depth; none of it reaches a land cell
     assert np.nanmax(soil) < 3
+
+
+def test_a_file_reads_as_received_then_derives(hours):
+    native = era5land.read_native(FIXTURES / "era5land_milwaukee.grib")
+    assert native is not None and native.times == hours.times
+    assert set(native.values) == {"stl1", "stl2", "stl3", "sde"} and native.values["stl1"].dtype == np.float32
+    assert np.isfinite(native.values["stl1"]).all()  # water included, as received
+    land = era5land.LandMask.load(FIXTURES / "era5land_milwaukee_lsm.npz")
+    derived = era5land.derive(native, MILWAUKEE, land)
+    np.testing.assert_array_equal(derived.values["snow_depth"], hours.values["snow_depth"])
 
 
 def test_depths_come_from_the_layers_as_ifs_does():
@@ -51,13 +63,6 @@ def test_depths_come_from_the_layers_as_ifs_does():
     at = {name: value[0] for name, (value, _) in soil_at_depths(layers).items()}
     assert at["soil_temperature_4cm"] == pytest.approx(0.5 / 14)
     assert at["soil_temperature_30cm"] == pytest.approx(1 + 12.5 / 46.5)
-
-
-def test_fill_coast_reaches_one_cell_from_land():
-    values = np.array([[1.0, 3.0, np.nan, np.nan]] * 3)
-    out = era5land.fill_coast(values, passes=1)
-    np.testing.assert_allclose(out[:, 2], 3.0)
-    assert np.isnan(out[:, 3]).all()
 
 
 def test_the_land_mask_crops_and_matches_the_data_grid():

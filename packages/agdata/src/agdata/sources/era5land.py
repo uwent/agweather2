@@ -9,11 +9,12 @@ of snow, not water). Against 80 Wisconet stations it matched their soil best of 
 Checked 2026-10-31 (`reanalysis-era5-land`, GRIB, `download_format: unarchived`):
 - Soil comes as GRIB1 and snow depth as GRIB2, both `regular_ll` scanning north to south; snow depth's longitudes
   are 0–360 and it's stamped as the previous day's 00Z plus a step, so hours are keyed by validity time.
-- Water has values, not gaps: over Lake Michigan the three layers carry one temperature (the lake's). ERA5-Land's
-  land-sea mask (`land_sea_mask`, a land fraction, lakes 0; time-invariant, and the CDS returns it for the whole
-  globe whatever the area) marks land at 0.5 or more. Before regridding, water is set missing and then each missing
-  cell beside land takes the mean of its land neighbours (`COAST_PASSES` cells out), so NDFD's shore cells get land
-  values and open water stays missing.
+- Water has values, not gaps: over Lake Michigan the three layers carry one temperature (the lake's), and a cell
+  partly water is a blend of soil and lake by its land fraction (D79). ERA5-Land's land-sea mask (`land_sea_mask`,
+  a land fraction, lakes 0; time-invariant, and the CDS returns it for the whole globe whatever the area) marks land
+  at 0.5 or more. Files are kept as received (`read_native`, `agdata.era5store`), and the 2.5 km hours derived from
+  them (`derive`) by the coast rule (`agdata.coast`): land points only, the nearest within 40 km at the coast, our
+  own water missing.
 - Requests queue at the CDS; a few hours over a small box came back in 24 s, a month over a state takes longer.
   The API is `https://cds.climate.copernicus.eu/api` with the account's key (`COPERNICUS_API_KEY`).
 """
@@ -26,8 +27,8 @@ from pathlib import Path
 
 import numpy as np
 
+from agdata.coast import Weights, finish, land_only
 from agdata.grid import NDFD, LatLonGrid, Window
-from agdata.regrid import regrid
 from agdata.sources.grib import eccodes
 from agdata.sources.openmeteo import soil_at_depths
 from agdata.units import convert
@@ -36,7 +37,6 @@ API = "https://cds.climate.copernicus.eu/api"
 DATASET = "reanalysis-era5-land"
 STEP = 0.1  # degrees
 AREA_MARGIN = 0.2  # degrees requested beyond the window, so every cell has four neighbours
-COAST_PASSES = 1
 LAYERS = {  # GRIB short name → Open-Meteo's layer name (the same layers as IFS)
     "stl1": "soil_temperature_0_to_7cm",
     "stl2": "soil_temperature_7_to_28cm",
@@ -182,9 +182,18 @@ def read_land_mask(path: Path) -> LandMask:
     return LandMask(grid=grid, fraction=values)
 
 
-def read(path: Path, window: Window, land: LandMask) -> Hours:
-    """A downloaded file's hours on the window: the catalog's soil depths (°C) and `snow_depth` (cm), each only
-    from ERA5-Land's land cells."""
+@dataclass(kw_only=True)
+class Native:
+    """ERA5-Land as received: hours at `times` on its 0.1° grid (south to north), by GRIB short name (`stl1`..`stl3`
+    in K, `sde` in m), water included (D79)."""
+
+    times: list[datetime]
+    grid: LatLonGrid
+    values: dict[str, np.ndarray]  # (hours, ny, nx), float32
+
+
+def read_native(path: Path) -> Native | None:
+    """A downloaded file's hours as received (None if it holds none)."""
     fields: dict[datetime, dict[str, np.ndarray]] = defaultdict(dict)
     grid: LatLonGrid | None = None
     with open(path, "rb") as f:
@@ -203,22 +212,65 @@ def read(path: Path, window: Window, land: LandMask) -> Hours:
             fields[when][name] = values
     times = sorted(fields)
     if grid is None:
-        return Hours(times=[], values={})
+        return None
     missing = {when: set(REQUEST_VARIABLES) - set(fields[when]) for when in times if len(fields[when]) < 4}
     if missing:
         raise ValueError(f"{path}: hours missing variables: {missing}")
-    is_land = land.on(grid)
-    out: dict[str, list[np.ndarray]] = defaultdict(list)
-    for when in times:
-        on_window = {
-            name: regrid(fill_coast(np.where(is_land, values, np.nan)), grid, window)
-            for name, values in fields[when].items()
-        }
-        layers = {LAYERS[name]: convert(on_window[name], "K", "degC") for name in LAYERS}
-        for catalog_name, (value, _) in soil_at_depths(layers).items():
-            out[catalog_name].append(value)
-        out["snow_depth"].append(no_negative_snow(on_window["sde"]) * 100)  # m → cm
-    return Hours(times=times, values={name: np.stack(v) for name, v in out.items()})
+    values = {name: np.stack([fields[t][name] for t in times]).astype(np.float32) for name in REQUEST_VARIABLES}
+    return Native(times=times, grid=grid, values=values)
+
+
+def read(path: Path, window: Window, land: LandMask) -> Hours:
+    """A downloaded file's hours on the window (`derive` of `read_native`)."""
+    native = read_native(path)
+    return Hours(times=[], values={}) if native is None else derive(native, window, land)
+
+
+def derive(native: Native, window: Window, land: LandMask) -> Hours:
+    """ERA5-Land's hours on the window by the coast rule (`agdata.coast`, D79): the catalog's soil depths (°C) and
+    `snow_depth` (cm), each from ERA5-Land's land points only, the nearest within 40 km at the coast, missing on
+    water."""
+    weights = coast_weights(native.grid, window, land)
+    needed = weights.needed
+    out: dict[str, np.ndarray] = {}
+    on_window: dict[str, np.ndarray] = {}
+    for name, values in native.values.items():
+        flat = values.reshape(values.shape[0], -1)[:, needed].T  # (points, hours)
+        on_window[name] = weights.apply(np.asarray(flat, dtype=np.float64), needed).astype(np.float64)
+    layers = {LAYERS[name]: convert(on_window[name], "K", "degC") for name in LAYERS}
+    for catalog_name, (value, _) in soil_at_depths(layers).items():
+        out[catalog_name] = value
+    out["snow_depth"] = no_negative_snow(on_window["sde"]) * 100  # m → cm
+    return Hours(times=list(native.times), values=out)
+
+
+_coast: dict[tuple, Weights] = {}
+
+
+def coast_weights(grid: LatLonGrid, window: Window, land: LandMask) -> Weights:
+    """Each window cell's bilinear neighbours on `grid` (flat indices), by the coast rule; kept per grid, window
+    and mask."""
+    key = (grid, window, land.grid, hash(land.fraction.tobytes()))
+    if key in _coast:
+        return _coast[key]
+    is_land = land.on(grid).ravel()
+    lat, lon = NDFD.window_latlon(window)
+    fj, fi = grid.fractional_index(lat, lon)
+    j0, i0 = np.floor(fj).astype(np.int64), np.floor(fi).astype(np.int64)
+    if j0.min() < 0 or i0.min() < 0 or j0.max() + 1 >= grid.ny or i0.max() + 1 >= grid.nx:
+        raise ValueError(f"{grid} doesn't surround {window}")
+    wy, wx = fj - j0, fi - i0
+    cells, weights = [], []
+    for dj, di, w in ((0, 0, (1 - wy) * (1 - wx)), (0, 1, (1 - wy) * wx), (1, 0, wy * (1 - wx)), (1, 1, wy * wx)):
+        cells.append((j0 + dj) * grid.nx + (i0 + di))
+        weights.append(w)
+    bilinear = Weights(cells=np.stack(cells), weights=np.stack(weights))
+    land_points = np.flatnonzero(is_land)
+    point_lat = grid.first_lat + (land_points // grid.nx) * grid.step
+    point_lon = grid.first_lon + (land_points % grid.nx) * grid.step
+    found, _ = finish(land_only(bilinear, is_land[bilinear.cells]), window, land_points, point_lat, point_lon)
+    _coast[key] = found
+    return found
 
 
 def valid_time(handle) -> datetime:
@@ -250,29 +302,6 @@ def _values(handle) -> tuple[np.ndarray, LatLonGrid]:
         nx=int(nx),
     )
     return values, grid
-
-
-def fill_coast(values: np.ndarray, passes: int = COAST_PASSES) -> np.ndarray:
-    """Missing (sea) cells beside land take the mean of their land neighbours, `passes` cells out from shore."""
-    out = values.copy()
-    for _ in range(passes):
-        missing = np.isnan(out)
-        if not missing.any():
-            break
-        padded = np.pad(out, 1, constant_values=np.nan)
-        neighbours = np.stack(
-            [
-                padded[1 + dj : 1 + dj + out.shape[0], 1 + di : 1 + di + out.shape[1]]
-                for dj in (-1, 0, 1)
-                for di in (-1, 0, 1)
-                if dj or di
-            ]
-        )
-        count = np.isfinite(neighbours).sum(axis=0)
-        with np.errstate(invalid="ignore"):
-            mean = np.nansum(neighbours, axis=0) / count
-        out = np.where(missing & (count > 0), mean, out)
-    return out
 
 
 def days_of(first: date, last: date) -> list[tuple[date, date]]:

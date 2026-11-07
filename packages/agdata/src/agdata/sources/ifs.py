@@ -13,8 +13,9 @@ newest run's end (older runs' long leads and stale values), so reads stop at `ru
 hours past the newer one (`static/meta.json` gives the newest run).
 
 Cells: ring k from the nearer pole holds 20 + 4(k − 1) points from longitude 0 (`openmeteo.cell_for`). Each NDFD
-cell interpolates linearly along the two rings around it, then between them; neighbours over water (ERA5-Land's
-land mask, `era5land.LandMask`) get no weight, as IFS's lake points carry the lake's temperature.
+cell interpolates linearly along the two rings around it, then between them, by the coast rule (`agdata.coast`,
+D79): neighbours over water (ERA5-Land's land mask, `era5land.LandMask`) get no weight, as IFS's lake points carry
+the lake's temperature; a cell with none on land takes the nearest land point within 40 km; our water is missing.
 """
 
 import json
@@ -22,7 +23,6 @@ import logging
 import shutil
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from functools import cache
 from pathlib import Path
@@ -32,6 +32,7 @@ import numpy as np
 import zarr
 
 from agdata import soil_seam
+from agdata.coast import Weights, finish, land_only
 from agdata.grid import NDFD, Window
 from agdata.ingest import SOIL
 from agdata.sources import era5land
@@ -61,27 +62,6 @@ def ring_offsets() -> np.ndarray:
     """The flat index of each ring's first point, by ring (index 0 unused)."""
     counts = np.array([0] + [ring_points(j) for j in range(1, RINGS + 1)], dtype=np.int64)
     return np.cumsum(counts) - counts
-
-
-@dataclass(frozen=True, kw_only=True)
-class Weights:
-    """Each NDFD cell's four O1280 neighbours (flat indices) and their weights: (4, ny, nx)."""
-
-    cells: np.ndarray
-    weights: np.ndarray
-
-    def apply(self, values: np.ndarray, needed: np.ndarray, hours_per_pass: int = 24) -> np.ndarray:
-        """Values at the `needed` flat cells, (cells, hours) → (hours, ny, nx); NaN where no neighbour has one."""
-        rows = np.searchsorted(needed, self.cells)  # (4, ny, nx)
-        out = np.full((values.shape[1], *self.cells.shape[1:]), np.nan, dtype=np.float32)
-        for h in range(0, values.shape[1], hours_per_pass):
-            v = np.moveaxis(values[rows, h : h + hours_per_pass], -1, 1)  # (4, hours, ny, nx)
-            w = np.where(np.isfinite(v), self.weights[:, None], 0.0)
-            total = w.sum(axis=0)
-            with np.errstate(invalid="ignore", divide="ignore"):
-                mean = (np.where(w > 0, v, 0.0) * w).sum(axis=0) / total
-            out[h : h + hours_per_pass] = np.where(total > 0, mean, np.nan)
-        return out
 
 
 @cache
@@ -124,12 +104,31 @@ def cell_latlon(cells: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
 def land_weights(weights: Weights, land: era5land.LandMask) -> Weights:
     """Zero weight for neighbours whose nearest ERA5-Land cell is water."""
-    lat, lon = cell_latlon(weights.cells)
+    return land_only(weights, _is_land(weights.cells, land))
+
+
+def _is_land(cells: np.ndarray, land: era5land.LandMask) -> np.ndarray:
+    lat, lon = cell_latlon(cells)
     g = land.grid
     j = np.clip(np.round((lat - g.first_lat) / g.step).astype(int), 0, g.ny - 1)
     i = np.clip(np.round((lon - g.first_lon) / g.step).astype(int), 0, g.nx - 1)
-    is_land = land.fraction[j, i] >= 0.5
-    return Weights(cells=weights.cells, weights=np.where(is_land, weights.weights, 0.0))
+    return land.fraction[j, i] >= 0.5
+
+
+_coast: dict[tuple, Weights] = {}
+
+
+def coast_weights(window: Window, land: era5land.LandMask) -> Weights:
+    """The window's weights by the coast rule (`agdata.coast`, D79): land neighbours only, the nearest land point
+    within 40 km where none is, nothing on water. Kept per window and mask."""
+    key = (window, land.grid, hash(land.fraction.tobytes()))
+    if key not in _coast:
+        bilinear = weights_for(window)
+        points = np.unique(bilinear.cells)
+        land_points = points[_is_land(points, land)]
+        lat, lon = cell_latlon(land_points)
+        _coast[key] = finish(land_weights(bilinear, land), window, land_points, lat, lon)[0]
+    return _coast[key]
 
 
 def chunk_span(first: datetime, last: datetime) -> list[tuple[int, int, int, int]]:
@@ -176,8 +175,8 @@ def read(
 
     Open-Meteo rewrites a chunk's file in place as runs come in, so a read that finds its file replaced (or can't
     decode it) opens the chunk again and rereads it, `retry_wait` seconds later, up to READ_ATTEMPTS times."""
-    weights = land_weights(weights_for(window), land)
-    needed = np.unique(weights.cells)
+    weights = coast_weights(window, land)
+    needed = weights.needed
     offsets = ring_offsets()
     rings = np.searchsorted(offsets, needed, side="right") - 1
     n = int((last - first) / HOUR) + 1
