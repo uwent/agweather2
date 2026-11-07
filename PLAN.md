@@ -992,11 +992,13 @@ Ben, 2026-11-06: the frontend's planning and the data and API work its pages nee
 
 > **Handoff (2026-11-06, at Phase 5's close; the session log is `tmp/session-log.md`, newest entry first).** Phase 5 is done (its closing note says how the exit gate was met). `docs/frontend.md` is the spec; F1–F13 are answered. Ben works one session at a time, backend first: the whole of B–G lands before Phase 7 builds pages.
 >
-> **Running:** the dev backfill (`archive fill --from 2016 --to 2020`, restarted 2026-11-06 18:23 after the move to grid days; its years roll up on CST). Watch it in `bin/agwx`; `f` resumes it.
+> **Running:** nothing. Ben stopped the dev backfill (`archive fill --from 2016 --to 2020`) on 2026-11-06 at ~20:30; resume it with `f` in `bin/agwx`. Restart `bin/dev` and the dashboard first (TODO.md Phase 6): the worker's rollups then keep `agdata.timecopy` current.
+>
+> **Done 2026-11-06 (B, from the top):** `points=` on `GET /models/{id}/run`; batched point reads; single-site speed (`/risk` 0.18 s, Open-Meteo sites 0.17 s); the custom degree-day map's copy and Numba kernels (0.73 s over Wisconsin); the dashboard's idle CPU. Each item's numbers are under B.
 >
 > **Next:**
 >
-> 1. **B, the launch pages' API** (P0), from the top: several sites per request on `/risk` and `/models/{id}/run` first. A's remaining items (site groups' data model, the architecture decisions) can be settled alongside or just before Phase 7.
+> 1. **B, continued:** the changelog and announcements with the "Tell us how you use the API" form, then methods data, degree-day presets, response field descriptions, model page content. The degree-day map's remaining launch-box step (fuse the season's statistic into the kernel) is S and can go any time before Phase 8.
 > 2. **After the backfill** (below A): its follow-ups, then D's climatology, which reads the archive's last 5 and 10 years.
 >
 > **Next ideas, not scheduled:** diagnostic maps (gradient, hour of the day's max and min; Phase 9's wish list); solar days for a national grid (D74).
