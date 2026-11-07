@@ -108,11 +108,20 @@ def main() -> int:
             v1_days.setdefault(k, answer["data"])
             report.progress("v1 degree days", k * len(DATCP_SETTINGS) + n + 1, total)
 
-    daily = v2.get(
-        "/api/v2/weather/daily",
-        {"points": points, "start": first, "end": last, "vars": "air_temperature_min,air_temperature_max"},
-    ).json()["data"]
-    temperature = _temperature_differences(daily, v1_days)
+    # v2's days on the grid's basis (CST all year, D74) and on local days (Central with daylight saving, as v1's)
+    temperature = {}
+    for basis in ("central", "local"):
+        daily = v2.get(
+            "/api/v2/weather/daily",
+            {
+                "points": points,
+                "start": first,
+                "end": last,
+                "vars": "air_temperature_min,air_temperature_max",
+                "day_basis": basis,
+            },
+        ).json()["data"]
+        temperature[basis] = _temperature_differences(daily, v1_days)
 
     # ET and precip totals
     totals = v2.get(
@@ -182,15 +191,23 @@ def _report(first, last, v1_dd, v2_dd, temperature, totals, v1_et, v1_et_adjuste
         )
     lines += [
         "",
-        "Daily temperatures behind them, v2 − v1 (°F), every point and day:",
+        "Daily temperatures behind them, v2 − v1 (°F), every point and day. v1's day is midnight to midnight Central",
+        "time, following daylight saving; v2's grid days are midnight to midnight CST all year (D74), so from March",
+        "to November they end an hour later than v1's. The second pair of rows asks v2 for v1's days",
+        "(`day_basis=local`), which leaves the differences that come from the data rather than the day:",
         "",
-        "| | mean | MAE | 5th–95th percentile |",
-        "| --- | --- | --- | --- |",
+        "| | v2's days | mean | MAE | 5th–95th percentile |",
+        "| --- | --- | --- | --- | --- |",
     ]
-    for label, values in (("minimum", temperature["min"]), ("maximum", temperature["max"])):
-        if values.size:
-            lo, hi = np.percentile(values, [5, 95])
-            lines.append(f"| {label} | {values.mean():+.2f} | {np.abs(values).mean():.2f} | {lo:+.1f} to {hi:+.1f} |")
+    for basis, days in (("central", "CST (default)"), ("local", "local (v1's)")):
+        for label, key in (("minimum", "min"), ("maximum", "max")):
+            values = temperature[basis][key]
+            if values.size:
+                lo, hi = np.percentile(values, [5, 95])
+                lines.append(
+                    f"| {label} | {days} | {values.mean():+.2f} | {np.abs(values).mean():.2f} | "
+                    f"{lo:+.1f} to {hi:+.1f} |"
+                )
     lines += [
         "",
         "## ET and precipitation",

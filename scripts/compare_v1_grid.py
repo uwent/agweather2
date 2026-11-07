@@ -9,7 +9,8 @@ v2 answers the same question with one general request per variable: `/grids/{var
 method=mean`, the mean of the 2.5 km cells within ±0.05° of each point (v1 averaged the cells whose lat/lon rounds
 to the point, the same boxes). This checks that the request serves the caller and records how the values differ, for
 the migration guide (Phase 8). v1 is a reference, not the truth (D54). Differences expected: v1 reads RTMA, v2 URMA;
-v1's day is the Central-time hours 00–23, v2's the local hours ending 01–24; v2 counts RH ≥ 88% as "over 90" (D50).
+v1's day is the Central-time hours 00–23 (with daylight saving), v2's midnight to midnight CST all year (D74);
+v2 counts RH ≥ 88% as "over 90" (D50).
 
 v2 is called in process on the archive in `DATA_DIR`; v1's grids come from tmp/legacy-cache (fetched once, one at a
 time, if missing: it's a production server). `--quiet` prints only warnings, failures and the summary.
@@ -131,11 +132,13 @@ def _report(first: date, last: date, every: int, differences: dict, points: list
             "| --- | --- | ---: | ---: | ---: | ---: | ---: |",
             *rows,
             "",
-            "Expected sources of difference: v1 reads RTMA, v2 URMA; v1's day is the Central-time hours 00–23, v2's "
-            "each cell's local hours ending 01–24; v2's hours over 90% count RH ≥ 88% (D50), the threshold that "
-            "matches in-field sensors. v1's `avg_temp_rh_over_90`, `vapor_pressure`, `frost` and `freezing` have no "
-            "v2 layer: the first is the disease models' (v2 keeps it from 8 pm), the others follow from the "
-            "temperatures and dew point.",
+            "Expected sources of difference: v1 reads RTMA, v2 URMA; v1's day is the Central-time hours 00–23, "
+            "following daylight saving, v2's midnight to midnight CST all year (D74), so from March to November "
+            "v2's day ends an hour later (maps have no `day_basis=local`; at DATCP's points, asking v2 for v1's "
+            "days brings the minimum's MAE back to about 0.5 °F, `validation-v1.md`); v2's hours over 90% count "
+            "RH ≥ 88% (D50), the threshold that matches in-field sensors. v1's `avg_temp_rh_over_90`, "
+            "`vapor_pressure`, `frost` and `freezing` have no v2 layer: the first is the disease models' (v2 keeps "
+            "it for the day from 6 pm), the others follow from the temperatures and dew point.",
             "",
         ]
     )

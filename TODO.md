@@ -89,7 +89,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
 ## Phase 5: API v2
 
-- [ ] **Move the dev archive to grid days (D74, 2026-11-06)**, before restarting the backfill so its years roll up once. Stop `bin/dev` and start it again first (its worker runs the hourly rollup, and the old code would write local days). Then:
+- [x] **Move the dev archive to grid days (D74, 2026-11-06)** (done 2026-11-06 except `downloads`, which is best run once after the backfill), before restarting the backfill so its years roll up once. Stop `bin/dev` and start it again first (its worker runs the hourly rollup, and the old code would write local days). Then:
 
   ```bash
   uv run app/manage.py rebuild --check                 # every daily year: "(local days, D74)"
@@ -100,7 +100,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
   Roughly 4 minutes a year for the days plus 3 for the ingredients here (2020–2026: under an hour). `rebuild --check` should then print nothing. Then restart the backfill (`f` in `bin/agwx`). Afterwards, today's GDD map (`/api/v2/maps/degree_days.png?dd=modified_50_86&scale=auto`) should have no line down Lake Michigan.
 
-- [-] **Backfill the dev archive to 2016** (Ben, 2026-11-03: more past years for the projection, D63). Running since 2026-11-04 14:26 as `archive fill --from 2016 --to 2025` (each year's hours, December 31, ERA5-Land and past-years copy, newest first; about 11.5 hours a year here). Watch it in `bin/agwx`; if it stops, start it again there with `f` (it resumes). When it's done, `uv run app/manage.py rebuild --check` should print nothing.
+- [-] **Backfill the dev archive to 2016** (its follow-ups are under Phase 6) (Ben, 2026-11-03: more past years for the projection, D63). Running since 2026-11-04 14:26 as `archive fill --from 2016 --to 2025` (each year's hours, December 31, ERA5-Land and past-years copy, newest first; about 11.5 hours a year here). Watch it in `bin/agwx`; if it stops, start it again there with `f` (it resumes). When it's done, `uv run app/manage.py rebuild --check` should print nothing.
 - [x] **Restart the dev backfill** (stopped 2026-11-05 for the latency checks, in 2021): `f` in `bin/agwx` (it resumes), or `uv run app/manage.py archive fill --from 2016 --to 2023 --background`. When it's done: `uv run app/manage.py ingredients --check` then `ingredients` (its years lack the corn and potato tiers, D70), `uv run app/manage.py pastyears`, and `uv run app/manage.py downloads`.
 - [x] **Restart bin/dev's worker** (Phase 5 H, 2026-11-05) for the new jobs `build_downloads` (the yearly NetCDF downloads, Mondays at 05:00) and `prune_api_usage` (daily at 04:10), and for the API's rate limit (`api.ratelimit`; requests from this machine are exempt). The dev database already has the new table (`migrate` ran). Claude built the dev downloads with `manage.py downloads`; the backfill's years get theirs from the weekly job, or run `uv run app/manage.py downloads` once it's done.
 - [x] **Open a yearly download in R** (Phase 5 H2, 2026-11-05): Ben found terra on Windows lost the CRS and scale with an absolute path; fixed by D71 (one variable a file, the grid in `daily/grid.nc`). Ben's no-lat/lon copy opened correctly both ways; the rebuilt files have that layout.
@@ -108,7 +108,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 - [ ] **Ask the UW Insect Diagnostic Lab to switch their "Today's Growing Degree Day Map" link** from v1's `/api/degree_days/map.png` to `/api/v2/maps/dd_modified_50_86.png` once v2 is live (Phase 8; v1's path redirects to the legacy host for a year, D62).
 - [x] **Rebuild potato volunteer's ingredients** (Phase 4 H, 2026-11-05): version 0.2 marks them stale, so its map is a 503 until then. `uv run app/manage.py ingredients --check`, then `uv run app/manage.py ingredients` (or `i` in `bin/agwx`); it rebuilds each stale year whole, about 3 minutes a year over Wisconsin.
 - [x] **Restart bin/dev's worker** (Phase 5 F3, 2026-11-05) so it picks up the new `update_crop_tiers` job (soybean and spring wheat stages per planting tier, hourly at :55): stop `bin/dev` and start it again. `uv run app/manage.py jobs` should then list it.
-- [ ] **Build the models' ingredients for the past years** (Phase 5 F2): 2023–2026 are built (2022 through Oct 9, 2026-11-05); the running backfill started before F2, so it won't build the years it fills. When it's done (or sooner, if you don't mind them sharing the disk): `uv run app/manage.py ingredients --check`, then `uv run app/manage.py ingredients` (about 3 minutes a year over Wisconsin; or `i` in `bin/agwx`). It takes the write lock politely, a block at a time.
+- [ ] ~~**Build the models' ingredients for the past years**~~ moved to Phase 6's "After the backfill" below (2026-11-06). (Phase 5 F2): 2023–2026 are built (2022 through Oct 9, 2026-11-05); the running backfill started before F2, so it won't build the years it fills. When it's done (or sooner, if you don't mind them sharing the disk): `uv run app/manage.py ingredients --check`, then `uv run app/manage.py ingredients` (about 3 minutes a year over Wisconsin; or `i` in `bin/agwx`). It takes the write lock politely, a block at a time.
 - [x] Compile the Veg Path newsletters' potato tables (early/mid/late planting and 50% emergence by location, every season on vegpath.plantpath.wisc.edu, as in 2026-08-23's) into a spreadsheet in `tmp/`, for a GDD-based planting and emergence model (PLAN.md Phase 5 D, D64). Done 2026-11-03 (2020–2026); `potato-stages` is fitted to it.
 - [x] **Open a v2 grid in the tools agencies use** (GeoTIFF in QGIS: fine, 2026-11-04. NetCDF in R: failed to reproject, fixed the same day; rerun your main.R on a fresh `tmax.nc` to confirm) (Phase 5 E, 2026-11-04): Claude checked the GeoTIFF with GDAL (rasterio) and the NetCDF with xarray, but not in QGIS or R. With `bin/dev` running:
 
@@ -139,3 +139,16 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
   - The rest is scanners (`/api/.env`, `/api/mcp`) and a few one-off browsers.
 
 - [x] Optional, to see v1's use until the switch: keep more nginx history on the old server. `/etc/logrotate.d/nginx` rotates daily and keeps 14 (Ubuntu's default); `sudo sed -i 's/rotate 14/rotate 400/' /etc/logrotate.d/nginx` keeps about 13 months (~2 MB a day before compression, ~120 KB after).
+
+## Phase 6: Frontend plan and the data behind it
+
+- [ ] **After the backfill** (PLAN.md Phase 6, "After the backfill"; moved from Phase 5, 2026-11-06). When `archive fill` finishes in `bin/agwx`:
+
+  ```bash
+  uv run app/manage.py rebuild --check       # should print nothing
+  uv run app/manage.py ingredients --check   # the backfill's years: missing or lacking the crop tiers (D70)
+  uv run app/manage.py ingredients           # about 3–7 minutes a year over Wisconsin; or i in bin/agwx
+  uv run app/manage.py downloads             # the yearly NetCDF files (300 stale after D74's rebuild, plus the new years)
+  ```
+
+  Then tell Claude, who removes the old season search (`_first_day_at`) and times the ten-year projection. Monday's job builds the downloads if you don't run them.

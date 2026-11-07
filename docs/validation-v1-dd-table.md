@@ -26,15 +26,18 @@ Running totals from January 1, °F·d, on the last day both have, and each day's
 
 | setting               | v1 total | v2 total | difference | difference, % | daily mean difference | daily MAE |
 | --------------------- | -------- | -------- | ---------- | ------------- | --------------------- | --------- |
-| dd_50_86 → sine_50_86 | 3203     | 3208     | +5         | +0.2          | +0.02                 | 0.21      |
-| dd_32 → sine_32       | 7203     | 7202     | -2         | -0.0          | -0.00                 | 0.29      |
+| dd_50_86 → sine_50_86 | 3203     | 3184     | -20        | -0.6          | -0.06                 | 0.29      |
+| dd_32 → sine_32       | 7203     | 7167     | -36        | -0.5          | -0.12                 | 0.40      |
 
-Daily temperatures behind them, v2 − v1 (°F):
+Daily temperatures behind them, v2 − v1 (°F). v1's day is midnight to midnight Central time, following
+daylight saving; v2's is midnight to midnight CST all year (D74), an hour later from March to November,
+which accounts for most of the minimum's spread (`validation-v1.md` compares both day bases;
+`day_basis=local` gives v1's days):
 
 |         | mean  | MAE  | 5th–95th percentile |
 | ------- | ----- | ---- | ------------------- |
-| minimum | -0.12 | 0.55 | -1.6 to +0.7        |
-| maximum | +0.12 | 0.37 | -0.5 to +0.7        |
+| minimum | -0.35 | 0.80 | -2.9 to +0.9        |
+| maximum | +0.11 | 0.37 | -0.5 to +0.7        |
 
 Days: 304 in both; v1 without temperatures on 0 (its running total counts such a day
 as 0, unflagged); v2 missing 0 and estimated 0 (flagged in `temperature_estimated`).
@@ -44,7 +47,7 @@ as 0, unflagged); v2 missing 0 and estimated 0 (flagged in `temperature_estimate
 |                     | v1   | v2   |
 | ------------------- | ---- | ---- |
 | total, mm           | 28.9 | 27.0 |
-| days with ≥ 0.25 mm | 8    | 6    |
+| days with ≥ 0.25 mm | 8    | 7    |
 | days compared       | 30   | 30   |
 
 v2 missing precipitation days: 0.

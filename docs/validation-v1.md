@@ -10,21 +10,26 @@ Totals from the start of the window, °F·d. v2 − v1 over the 23 points:
 
 | setting        | v1 mean | v2 mean | mean difference | range of differences | mean difference, % |
 | -------------- | ------- | ------- | --------------- | -------------------- | ------------------ |
-| average_43     | 4288    | 4266    | -22             | -85 to +93           | -0.5               |
-| average_50     | 2896    | 2879    | -17             | -73 to +88           | -0.6               |
-| average_52     | 2528    | 2512    | -16             | -69 to +86           | -0.6               |
-| modified_38_75 | 5201    | 5176    | -24             | -68 to +54           | -0.5               |
-| modified_40    | 5117    | 5097    | -19             | -93 to +94           | -0.4               |
-| modified_50_86 | 3127    | 3114    | -13             | -74 to +69           | -0.4               |
-| sine_39_84     | 5221    | 5199    | -23             | -89 to +85           | -0.4               |
-| sine_48_86     | 3383    | 3366    | -17             | -78 to +80           | -0.5               |
+| average_43     | 4288    | 4238    | -50             | -111 to +65          | -1.2               |
+| average_50     | 2896    | 2856    | -40             | -94 to +64           | -1.4               |
+| average_52     | 2528    | 2490    | -38             | -89 to +63           | -1.5               |
+| modified_38_75 | 5201    | 5149    | -52             | -96 to +24           | -1.0               |
+| modified_40    | 5117    | 5071    | -46             | -117 to +65          | -0.9               |
+| modified_50_86 | 3127    | 3095    | -32             | -90 to +50           | -1.0               |
+| sine_39_84     | 5221    | 5170    | -51             | -114 to +55          | -1.0               |
+| sine_48_86     | 3383    | 3344    | -39             | -98 to +57           | -1.2               |
 
-Daily temperatures behind them, v2 − v1 (°F), every point and day:
+Daily temperatures behind them, v2 − v1 (°F), every point and day. v1's day is midnight to midnight Central
+time, following daylight saving; v2's grid days are midnight to midnight CST all year (D74), so from March
+to November they end an hour later than v1's. The second pair of rows asks v2 for v1's days
+(`day_basis=local`), which leaves the differences that come from the data rather than the day:
 
-|         | mean  | MAE  | 5th–95th percentile |
-| ------- | ----- | ---- | ------------------- |
-| minimum | -0.21 | 0.53 | -1.8 to +0.8        |
-| maximum | -0.03 | 0.36 | -0.9 to +0.7        |
+|         | v2's days     | mean  | MAE  | 5th–95th percentile |
+| ------- | ------------- | ----- | ---- | ------------------- |
+| minimum | CST (default) | -0.41 | 0.76 | -3.0 to +0.9        |
+| maximum | CST (default) | -0.07 | 0.40 | -1.0 to +0.7        |
+| minimum | local (v1's)  | -0.21 | 0.53 | -1.8 to +0.8        |
+| maximum | local (v1's)  | -0.03 | 0.36 | -0.9 to +0.7        |
 
 ## ET and precipitation
 

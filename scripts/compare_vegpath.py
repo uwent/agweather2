@@ -8,7 +8,8 @@ RH, precipitation (in), insolation (kWh/m²), ET (in), and each day's late bligh
 totals from the window's first day. v2 is called in process on the archive in `DATA_DIR`, and its models twice: as
 they run (gridded RH ≥ 88% counted as a station's 90%, D50) and with the threshold put back at 90%, so the report
 shows how much of the DSV difference D50 accounts for. Other known differences: v1's day is the calendar day's
-hours, v2's late blight day runs from 8 pm (the Crop Risk Tool's window); v1 reads RTMA, v2 URMA.
+hours in Central time with daylight saving, v2's midnight to midnight CST (D74), and v2's late blight day runs from
+6 pm CST (D74); v1 reads RTMA, v2 URMA.
 
 v1 is a reference, not the truth (D54). Its responses are cached in tmp/v1-cache (one request at a time: it's a
 production server).

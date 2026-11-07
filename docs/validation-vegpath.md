@@ -8,13 +8,13 @@ From the window's first day, as v1's running totals count.
 
 | Place        | DSV v1 | DSV v2 | DSV v2 at 90% | P-days v1 | P-days v2 |
 | ------------ | -----: | -----: | ------------: | --------: | --------: |
-| Spring Green |     88 |    121 |            99 |      1189 |      1158 |
-| Arlington    |     60 |     80 |            63 |      1189 |      1177 |
-| Grand Marsh  |     76 |     99 |            81 |      1143 |      1140 |
-| Hancock      |     59 |     85 |            65 |      1139 |      1137 |
-| Plover       |     55 |     80 |            66 |      1128 |      1129 |
-| Antigo       |     64 |     88 |            70 |      1065 |      1099 |
-| Rhinelander  |     53 |     73 |            63 |      1008 |      1051 |
+| Spring Green |     88 |    121 |            99 |      1189 |      1156 |
+| Arlington    |     60 |     80 |            63 |      1189 |      1173 |
+| Grand Marsh  |     76 |     99 |            81 |      1143 |      1136 |
+| Hancock      |     59 |     85 |            65 |      1139 |      1132 |
+| Plover       |     55 |     80 |            66 |      1128 |      1124 |
+| Antigo       |     64 |     88 |            70 |      1065 |      1092 |
+| Rhinelander  |     53 |     73 |            63 |      1008 |      1044 |
 
 ## Daily DSVs
 
@@ -29,12 +29,12 @@ v2 − v1 over every point and day with both (v2 in us units).
 
 | v1 field             | v2 variable               | days | mean difference | mean absolute difference |
 | -------------------- | ------------------------- | ---: | --------------: | -----------------------: |
-| MinTempF             | `air_temperature_min`     | 1071 |          -0.215 |                    0.475 |
-| MaxTempF             | `air_temperature_max`     | 1071 |          +0.031 |                    0.257 |
-| AvgTempF             | `air_temperature_mean`    | 1071 |          +0.050 |                    0.267 |
-| MinRH                | `relative_humidity_min`   | 1071 |          +0.297 |                    0.945 |
-| MaxRH                | `relative_humidity_max`   | 1071 |          +0.335 |                    0.978 |
-| AvgRH                | `relative_humidity_mean`  | 1071 |          +0.138 |                    0.648 |
-| PrecipIn             | `precipitation_sum`       | 1071 |          -0.004 |                    0.028 |
+| MinTempF             | `air_temperature_min`     | 1071 |          -0.463 |                    0.765 |
+| MaxTempF             | `air_temperature_max`     | 1071 |          +0.022 |                    0.264 |
+| AvgTempF             | `air_temperature_mean`    | 1071 |          +0.058 |                    0.483 |
+| MinRH                | `relative_humidity_min`   | 1071 |          +0.369 |                    1.008 |
+| MaxRH                | `relative_humidity_max`   | 1071 |          +0.514 |                    1.227 |
+| AvgRH                | `relative_humidity_mean`  | 1071 |          +0.143 |                    0.933 |
+| PrecipIn             | `precipitation_sum`       | 1071 |          -0.004 |                    0.041 |
 | EvapotranspirationIn | `et0_sum`                 | 1050 |          -0.016 |                    0.029 |
 | InsolationKWh        | `shortwave_radiation_sum` | 1050 |          -0.010 |                    0.614 |
