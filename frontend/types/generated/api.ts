@@ -136,6 +136,11 @@ export interface EvaluateBody {
     [k: string]: number | number[]
   }
 }
+export interface EventsQuery {
+  first?: string | null
+  last?: string | null
+  since?: string | null
+}
 export interface ExplorerInputInfo {
   name: string
   label: string
@@ -157,8 +162,11 @@ export interface GridQuery {
   time?: string | null
   start?: string | null
   end?: string | null
-  stat?: ('sum' | 'mean' | 'min' | 'max' | 'count') | null
+  stat?: ('sum' | 'mean' | 'min' | 'max' | 'count' | 'first' | 'last' | 'since') | null
   count?: string | null
+  first?: string | null
+  last?: string | null
+  since?: string | null
   dd?: string | null
   gaps?: 'estimate' | 'missing'
   output?: string | null
@@ -259,8 +267,11 @@ export interface MapQuery {
   time?: string | null
   start?: string | null
   end?: string | null
-  stat?: ('sum' | 'mean' | 'min' | 'max' | 'count') | null
+  stat?: ('sum' | 'mean' | 'min' | 'max' | 'count' | 'first' | 'last' | 'since') | null
   count?: string | null
+  first?: string | null
+  last?: string | null
+  since?: string | null
   dd?: string | null
   gaps?: 'estimate' | 'missing'
   output?: string | null
@@ -406,8 +417,11 @@ export interface TableResponse {
       }[]
 }
 export interface TileQuery {
-  stat?: ('sum' | 'mean' | 'min' | 'max' | 'count') | null
+  stat?: ('sum' | 'mean' | 'min' | 'max' | 'count' | 'first' | 'last' | 'since') | null
   count?: string | null
+  first?: string | null
+  last?: string | null
+  since?: string | null
   dd?: string | null
   gaps?: 'estimate' | 'missing'
   output?: string | null

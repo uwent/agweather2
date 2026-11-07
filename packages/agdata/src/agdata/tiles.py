@@ -6,7 +6,8 @@ average, D66's note on maps). `index` is that cell per pixel, cached per tile an
 
 A value is a 24-bit count of the layer's steps, with zero at the middle of the range: `value = (R·65536 + G·256 + B)
 × step − 2²³ × step`, so any value within ±8,388,608 steps fits (±838,860.8 °F·d at 0.1, ±8,388.608 at an index's
-0.001). Code 0 (black, alpha 0) is missing. It's Mapbox's Terrain-RGB scheme with the layer's own step, which
+0.001). Code 0 (black, alpha 0) is missing; code 1 (`NONE`) is "none", where a first or last day within bounds
+(D78) has values but no such day. It's Mapbox's Terrain-RGB scheme with the layer's own step, which
 MapLibre reads as a `raster-dem` source with `encoding: "custom"` (`ENCODING`'s factors, in the layer's stored unit)
 for a `color-relief` layer to color on the GPU, or a client decodes from the pixels.
 """
@@ -25,6 +26,7 @@ SIZE = 256
 MIN_ZOOM, MAX_ZOOM = 3, 8  # past 8 a pixel is finer than a cell's 2.5 km: a client enlarges zoom 8's tiles
 ZERO = 2**23  # the code of a value of zero
 TOP = 2**24 - 1
+NONE = 1  # a first or last day's "none" (no day within bounds); real values clip to 2 and up
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -87,13 +89,13 @@ def codes(values: np.ndarray, step: float) -> np.ndarray:
     """Values (any shape) as 24-bit codes: 0 where missing, clipped to the range otherwise."""
     with np.errstate(invalid="ignore"):
         scaled = np.rint(values / step) + ZERO
-    return np.where(np.isfinite(values), np.clip(scaled, 1, TOP), 0).astype(np.uint32)
+    return np.where(np.isfinite(values), np.clip(scaled, NONE + 1, TOP), 0).astype(np.uint32)
 
 
 def decode(rgba: np.ndarray, step: float) -> np.ndarray:
     """A tile's pixels (…, 4) back to values (NaN where missing), as a client reads them."""
     code = rgba[..., 0].astype(np.int64) * 65536 + rgba[..., 1].astype(np.int64) * 256 + rgba[..., 2]
-    return np.where((rgba[..., 3] > 0) & (code > 0), (code - ZERO) * step, np.nan)
+    return np.where((rgba[..., 3] > 0) & (code > NONE), (code - ZERO) * step, np.nan)
 
 
 def pick(values: np.ndarray, cells: np.ndarray) -> np.ndarray:
@@ -102,9 +104,12 @@ def pick(values: np.ndarray, cells: np.ndarray) -> np.ndarray:
     return picked.reshape(SIZE, SIZE)
 
 
-def data_tile(values: np.ndarray, cells: np.ndarray, step: float) -> np.ndarray:
-    """A tile's RGBA pixels (SIZE, SIZE, 4) from a map over the window (y, x) and the tile's `index`."""
+def data_tile(values: np.ndarray, cells: np.ndarray, step: float, states: np.ndarray | None = None) -> np.ndarray:
+    """A tile's RGBA pixels (SIZE, SIZE, 4) from a map over the window (y, x) and the tile's `index`; `states`
+    (y, x; `mapimage.map_png`'s) marks "none" cells with code NONE."""
     code = codes(pick(values, cells).ravel(), step)
+    if states is not None:
+        code = np.where(pick(states, cells).ravel() == 0, NONE, code).astype(np.uint32)
     rgba = np.empty((cells.size, 4), dtype=np.uint8)
     rgba[:, 0] = code >> 16
     rgba[:, 1] = (code >> 8) & 0xFF

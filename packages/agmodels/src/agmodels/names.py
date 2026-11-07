@@ -94,6 +94,7 @@ UnitSymbol = Literal[
     "Pa",
     "W_m2",
     "cm",
+    "date",
     "day",
     "deg",
     "degC",

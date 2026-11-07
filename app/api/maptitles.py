@@ -158,12 +158,15 @@ def title(a: Any, units: str) -> str:
     is the one-day title and what it counts: "Air temperature, daily maximum, days at or above 86 °F"."""
     text = _title(a, units)
     count = getattr(a, "count", None)
+    event = getattr(a, "event", None)
+    if event is not None:
+        return f"{text}, {event.words(a.count_shown)}"
     return text if count is None else f"{text}, {count.words(a.count_shown)}"
 
 
 def _title(a: Any, units: str) -> str:
     layer: Layer = a.layer
-    ranged = a.first != a.last and a.stat not in (None, "count")
+    ranged = a.first != a.last and a.stat not in (None, "count", "first", "last", "since")
     if a.model is not None:
         result = _lower_first(a.model.output.label)
         text = f"{a.model.spec.name}: {result}"

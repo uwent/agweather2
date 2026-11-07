@@ -37,8 +37,11 @@ RANGE = re.compile(r"^(\d{4}-\d{2}-\d{2})\.\.(\d{4}-\d{2}-\d{2})$")
 class TileQuery(Schema):
     """A layer's settings, as on `/grids`."""
 
-    stat: Literal["sum", "mean", "min", "max", "count"] | None = None
+    stat: Literal["sum", "mean", "min", "max", "count", "first", "last", "since"] | None = None
     count: str | None = None  # `days_above_86`, implying stat=count (`api.counts`)
+    first: str | None = None  # `frost`, `above_50`: the first day within (`api.events`)
+    last: str | None = None
+    since: str | None = None
     dd: str | None = None
     gaps: Literal["estimate", "missing"] = "estimate"
     output: str | None = None
@@ -52,10 +55,13 @@ class TileQuery(Schema):
 def _layer_query(when: str, q: TileQuery) -> LayerQuery:
     """`{time}` and the settings as `/grids` takes them."""
     fields: dict[str, Any] = q.model_dump(exclude={"style", "scale", "palette"})
+    event = q.first is not None or q.last is not None or q.since is not None
     if when == "latest":
         pass
+    elif event and RANGE.match(when) is None and SEASON.match(when) is None and "T" not in when:
+        fields["end"] = when  # a first or last day as of `when`, over its default window (`api.events`)
     elif (span := RANGE.match(when)) is not None:
-        if q.stat is None and q.count is None:
+        if q.stat is None and q.count is None and not event:
             raise ApiError(
                 "invalid",
                 "A tile shows one map, so a range of days needs stat to combine them (sum, mean, min or max), or "
@@ -142,11 +148,16 @@ def tile(
         body = tiles.empty_png()
     else:
         found = layermaps.cached(a, window, now, data_stamp)
+        states = layermaps.event_states(found)  # a first or last day's none and no data (D78)
         if query.style is None:
-            body = tiles.png(tiles.data_tile(found.values[0], cells, a.step))
+            body = tiles.png(tiles.data_tile(found.values[0], cells, a.step, states))
         else:
             scale = a.scale
             colors = palettes.colorize(tiles.pick(found.values[0], cells), scale.palette, a.domain(found.values[0]))
+            if states is not None:
+                picked = tiles.pick(states, cells)
+                for state, color, _ in mapimage.EMPTY:
+                    colors[picked == state] = (*palettes.rgb(color), 255)
             body = tiles.png(colors)
     response = HttpResponse(body, content_type="image/png")
     response["ETag"] = etag
@@ -200,6 +211,8 @@ def tilejson(
                 "unit": a.unit,
                 "step": a.step,
                 "missing": "alpha 0",
+                **({"none": "code 1 (R 0, G 0, B 1)"} if a.event is not None else {}),
+                **({"dates": "days since 1970-01-01"} if a.unit == "date" else {}),
                 **encoding.factors,
             },
         },
@@ -235,8 +248,11 @@ def legend(
         return unchanged
     scale = a.scale
     domain = scale.domain
-    if domain is None or a.scale_asked is not None:  # from the map's values, or as the request's scale says
-        domain = a.domain(layermaps.cached(a, window, now, data_stamp).values[0])
+    found = layermaps.cached(a, window, now, data_stamp) if domain is None or a.scale_asked or a.event else None
+    if found is not None and (domain is None or a.scale_asked is not None):  # from the values, or `scale=`
+        domain = a.domain(found.values[0])
+    states = layermaps.event_states(found) if found is not None else None
+    assert domain is not None
     column = Column(name=a.layer.id, values=[], unit=a.unit, step=a.step, variable=a.layer.variable or a.layer.id)
     system, overrides = output_units(request)
     shown_as = shown_unit(column, system, overrides)
@@ -247,6 +263,8 @@ def legend(
         agunits.unit(shown_as).label,
         lambda v: agunits.convert(v, a.unit, shown_as),
         categories=a.categories,
+        dates=a.unit == "date",
+        empties=[s for s, _, _ in mapimage.EMPTY if states is not None and (states == s).any()],
     )
     response = HttpResponse(body, content_type="image/png")
     response["ETag"] = etag

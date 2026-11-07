@@ -21,8 +21,8 @@ from agdata import units as agunits
 from api.errors import ApiError
 
 _NUMBER = r"(-?\d+(?:[.p]\d+)?)"
-_ONE = re.compile(rf"^(days|hours)_(above|below)_{_NUMBER}$")
-_BETWEEN = re.compile(rf"^(days|hours)_between_{_NUMBER}_{_NUMBER}$")
+_ONE = re.compile(rf"^(above|below)_{_NUMBER}$")
+_BETWEEN = re.compile(rf"^between_{_NUMBER}_{_NUMBER}$")
 EXAMPLES = "days_above_86, days_below_32 or days_between_50_86 (hours_above_86 for hourly values)"
 
 Axis = Literal["days", "hours"]
@@ -39,46 +39,74 @@ class Count:
 
     def bounds(self, shown: str, stored: str, step: float) -> tuple[float | None, float | None]:
         """The bounds in the stored unit, each widened by a quarter of the stored step (inclusive with float noise)."""
-        slack = step / 4
-        low = None if self.low is None else agunits.convert(self.low, shown, stored) - slack
-        high = None if self.high is None else agunits.convert(self.high, shown, stored) + slack
-        return low, high
+        return stored_bounds(self.low, self.high, shown, stored, step)
 
     def words(self, shown: str) -> str:
         """`days at or above 86 °F`, `hours between 50 and 86 °F`, in the unit the values are shown in."""
-        label = agunits.unit(shown).label
-        unit = label if label == "%" else f" {label}" if label else ""
-        if self.low is not None and self.high is not None:
-            return f"{self.axis} between {_number(self.low)} and {_number(self.high)}{unit}"
-        if self.low is not None:
-            return f"{self.axis} at or above {_number(self.low)}{unit}"
-        assert self.high is not None
-        return f"{self.axis} at or below {_number(self.high)}{unit}"
+        return f"{self.axis} {bounds_words(self.low, self.high, shown)}"
+
+
+def stored_bounds(
+    low: float | None, high: float | None, shown: str, stored: str, step: float
+) -> tuple[float | None, float | None]:
+    """Bounds given in `shown` → the stored unit, each widened by a quarter of the stored step."""
+    slack = step / 4
+    low_stored = None if low is None else float(agunits.convert(low, shown, stored)) - slack
+    high_stored = None if high is None else float(agunits.convert(high, shown, stored)) + slack
+    return low_stored, high_stored
+
+
+def bounds_words(low: float | None, high: float | None, shown: str) -> str:
+    """`at or above 86 °F`, `between 50 and 86 °F`, `at or below 32 °F`, in the unit `shown`."""
+    label = agunits.unit(shown).label
+    unit = label if label == "%" else f" {label}" if label else ""
+    if low is not None and high is not None:
+        return f"between {_number(low)} and {_number(high)}{unit}"
+    if low is not None:
+        return f"at or above {_number(low)}{unit}"
+    assert high is not None
+    return f"at or below {_number(high)}{unit}"
 
 
 def parse(text: str, param: str = "count") -> Count:
     """`days_above_86` → a Count; ApiError naming the forms otherwise."""
     given = text.strip().lower()
-    if m := _ONE.match(given):
-        axis, side, value = m.group(1), m.group(2), _value(m.group(3))
-        low, high = (value, None) if side == "above" else (None, value)
-    elif m := _BETWEEN.match(given):
-        axis, low, high = m.group(1), _value(m.group(2)), _value(m.group(3))
-        if low > high:
-            raise ApiError(
-                "out_of_order",
-                f"In {param}={text}, the lower bound ({_number(low)}) is above the upper one ({_number(high)}). "
-                f"Give the lower bound first, such as {axis}_between_{_number(high)}_{_number(low)}.",
-                param,
-            )
-    else:
+    m = re.match(r"^(days|hours)_(.*)$", given)
+    if m is None:
         raise ApiError(
             "invalid",
             f"We can't read {param}={text}. Give a count as {EXAMPLES}; a decimal as 93.2 or 93p2.",
             param,
         )
+    axis = m.group(1)
+    low, high = parse_bounds(m.group(2), text, param, EXAMPLES, prefix=f"{axis}_")
     name = given.replace(".", "p")
     return Count(axis=axis, low=low, high=high, name=name)  # type: ignore[arg-type]
+
+
+def parse_bounds(
+    given: str, text: str, param: str, examples: str, prefix: str = ""
+) -> tuple[float | None, float | None]:
+    """`above_86`, `below_32` or `between_50_86` (lowercase, without an axis) → (low, high), None where open; `text`
+    is what was sent and `examples` the forms to offer, for the messages."""
+    if m := _ONE.match(given):
+        value = _value(m.group(2))
+        return (value, None) if m.group(1) == "above" else (None, value)
+    if m := _BETWEEN.match(given):
+        low, high = _value(m.group(1)), _value(m.group(2))
+        if low > high:
+            raise ApiError(
+                "out_of_order",
+                f"In {param}={text}, the lower bound ({_number(low)}) is above the upper one ({_number(high)}). "
+                f"Give the lower bound first, such as {prefix}between_{_number(high)}_{_number(low)}.",
+                param,
+            )
+        return low, high
+    raise ApiError(
+        "invalid",
+        f"We can't read {param}={text}. Give it as {examples}; a decimal as 93.2 or 93p2.",
+        param,
+    )
 
 
 def check_axis(found: Count, time_axis: str, what: str, param: str = "count", prefix: str = "") -> None:

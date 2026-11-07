@@ -238,6 +238,7 @@ USES: dict[str, Use] = {
     "cloud": Use(palette="Greys", day=(0, 100), bounded=True),
     "hours": Use(palette="Greens", day=(0, 24)),
     "count": Use(palette="viridis"),  # days or hours within bounds (`count=`); from 0 to the data's high end
+    "date": Use(palette="viridis"),  # a first or last day within bounds (`first=`, `last=`); from the data
     "degree_days": Use(palette="BuYlRd", day=(0, 40)),
     "risk_value": Use(palette="viridis"),  # insects' activity (Ben, 2026-11-06)
     "chance": Use(palette="magma", day=(0, 100), bounded=True),

@@ -9,6 +9,7 @@ import io
 import textwrap
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from datetime import date, timedelta
 from functools import cache
 from pathlib import Path
 
@@ -27,6 +28,11 @@ from agdata.palettes import Palette
 
 DPI = 100
 FONT = "DejaVu Sans"
+# A first or last day within bounds (D78): cells where the window has values but no such day, and where it has none.
+# Both gray, a light and a darker shade, so neither reads as a color of the scale
+NONE_COLOR, NO_DATA_COLOR = "#dedede", "#a3a3a3"
+EMPTY = ((0, NONE_COLOR, "None"), (-1, NO_DATA_COLOR, "No data"))  # (state, color, label)
+EPOCH = date(1970, 1, 1)
 
 
 def colormap(p: Palette) -> LinearSegmentedColormap | ListedColormap:
@@ -43,30 +49,83 @@ def legend_png(
     shown: Callable[[np.ndarray], np.ndarray],
     categories: Sequence[str] | None = None,
     width: int = 320,
+    dates: bool = False,
+    empties: Sequence[int] = (),
 ) -> bytes:
     """A legend: a color bar over the domain with round ticks in the shown unit (a conversion that's linear, as
-    every unit's is), or one swatch per category. A long title wraps."""
+    every unit's is) or dates (`dates`: values are days since 1970-01-01), or one swatch per category; then a
+    swatch for each empty state on the map (`empties`: 0 none, −1 no data). A long title wraps."""
     if categories is not None:
         return _categories_png(p, categories, title, width)
     lines = textwrap.wrap(f"{title} ({unit_label})" if unit_label else title, width=width // 7)
-    height = 0.62 + 0.15 * len(lines)
+    extra = 0.22 if empties else 0.0
+    height = 0.62 + 0.15 * len(lines) + extra
     fig = Figure(figsize=(width / DPI, height), dpi=DPI)
-    _colorbar(fig.add_axes((0.04, 0.32 / height, 0.92, 0.18 / height)), p, domain, shown)
+    _colorbar(fig.add_axes((0.04, (0.32 + extra) / height, 0.92, 0.18 / height)), p, domain, shown, dates)
+    if empties:
+        _empty_swatches(fig, empties, 0.04, 0.12 / height, 0.13 / height)
     fig.text(0.04, 1 - 0.08 / height, "\n".join(lines), fontsize=8.5, family=FONT, va="top", linespacing=1.3)
     return _png(fig)
 
 
-def _colorbar(ax, p: Palette, domain: tuple[float, float], shown: Callable[[np.ndarray], np.ndarray]) -> None:
-    """A horizontal color bar over the domain, ticked at round numbers of the shown unit."""
+def _empty_swatches(fig: Figure, empties: Sequence[int], left: float, bottom: float, height: float) -> None:
+    """A gray swatch and its label for each empty state shown (`EMPTY`), side by side from `left`."""
+    width = height * fig.get_figheight() / fig.get_figwidth() * 1.6
+    x = left
+    for state, color, label in EMPTY:
+        if state not in empties:
+            continue
+        ax = fig.add_axes((x, bottom, width, height))
+        ax.set_facecolor(color)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        for side in ax.spines.values():
+            side.set_linewidth(0.5)
+        fig.text(x + width * 1.3, bottom + height / 2, label, fontsize=8, family=FONT, va="center")
+        x += width * 1.3 + 0.012 * len(label) + 0.04
+
+
+def date_ticks(lo: float, hi: float) -> list[float]:
+    """Round dates between `lo` and `hi` (days since 1970-01-01): month starts, with the 15ths over a short range,
+    or every few days over a few weeks; about three to seven of them."""
+    first, last = EPOCH + timedelta(days=int(np.ceil(lo))), EPOCH + timedelta(days=int(np.floor(hi)))
+    if last < first:
+        return [float(lo)]
+    days = [first + timedelta(days=k) for k in range((last - first).days + 1)]
+    for keep in (lambda d: d.day == 1, lambda d: d.day in (1, 15)):
+        found = [d for d in days if keep(d)]
+        if len(found) >= 3:
+            while len(found) > 7:
+                found = found[::2]
+            return [float((d - EPOCH).days) for d in found]
+    every = max(1, len(days) // 5)
+    return [float((d - EPOCH).days) for d in days[::every]]
+
+
+def date_label(value: float) -> str:
+    """Days since 1970-01-01 as "Oct 1"."""
+    day = EPOCH + timedelta(days=round(value))
+    return f"{day:%b} {day.day}"
+
+
+def _colorbar(
+    ax, p: Palette, domain: tuple[float, float], shown: Callable[[np.ndarray], np.ndarray], dates: bool = False
+) -> None:
+    """A horizontal color bar over the domain, ticked at round numbers of the shown unit, or at round dates."""
     lo, hi = domain
     ax.imshow(np.linspace(lo, hi, 256)[None], aspect="auto", cmap=colormap(p), extent=(lo, hi, 0, 1), vmin=lo, vmax=hi)
     ax.set_yticks([])
+    for side in ax.spines.values():
+        side.set_linewidth(0.5)
+    if dates:
+        ticks = date_ticks(lo, hi)
+        ax.set_xticks(ticks)
+        ax.set_xticklabels([date_label(t) for t in ticks], fontsize=8, family=FONT)
+        return
     a, b = (float(v) for v in shown(np.array([lo, hi])))
     ticks = [t for t in MaxNLocator(nbins=5).tick_values(min(a, b), max(a, b)) if min(a, b) <= t <= max(a, b)]
     ax.set_xticks([lo + (t - a) / (b - a) * (hi - lo) for t in ticks] if b != a else [lo])
     ax.set_xticklabels([_number(t) for t in ticks] if b != a else [_number(a)], fontsize=8, family=FONT)
-    for side in ax.spines.values():
-        side.set_linewidth(0.5)
 
 
 def _swatches(fig: Figure, p: Palette, categories: Sequence[str], box: tuple[float, float, float, float]) -> None:
@@ -178,10 +237,13 @@ def map_png(
     caption: Sequence[str] = (),
     credit: str = "AgWeather, UW–Madison · agweather.cals.wisc.edu",
     width: int = 800,
+    dates: bool = False,
+    states: np.ndarray | None = None,
 ) -> bytes:
     """A map of `values` (y, x) over `window` (south row first; NaN blank), with county and state outlines, a
-    title and a subtitle (what and when; each wraps), a legend, a caption (the data sources, the days combined) and
-    a credit line."""
+    title and a subtitle (what and when; each wraps), a legend, a caption (the data sources, the days estimated or
+    missing) and a credit line. `dates`: values are days since 1970-01-01, ticked as dates. `states` (y, x): 1
+    where a value was found, 0 none (light gray), −1 no data (darker gray), NaN blank (`EMPTY`)."""
     rows, cols = window.shape
     inches = width / DPI
     map_w = inches - 0.4
@@ -213,6 +275,19 @@ def map_png(
         ax.imshow(
             shown_values, origin="lower", extent=extent, cmap=colormap(p), vmin=lo, vmax=hi, interpolation="nearest"
         )
+    empties: list[int] = []
+    if states is not None:
+        for state, color, _ in EMPTY:
+            where = states == state
+            if where.any():
+                empties.append(state)
+                ax.imshow(
+                    np.ma.masked_where(~where, np.zeros(where.shape)),
+                    origin="lower",
+                    extent=extent,
+                    cmap=ListedColormap([color]),
+                    interpolation="nearest",
+                )
     _draw_outlines(ax, "counties", window, 0.25, "#9a9a9a")
     _draw_outlines(ax, "states", window, 0.8, "#333333")
     ax.set_xlim(extent[0], extent[1])
@@ -230,8 +305,10 @@ def map_png(
     if categories is not None:
         _swatches(fig, p, categories, (0.025, (top - 0.33) / height, 0.95, 0.2 / height))
     else:
-        _colorbar(fig.add_axes((0.025, (top - 0.25) / height, 0.5, 0.17 / height)), p, domain, shown)
+        _colorbar(fig.add_axes((0.025, (top - 0.25) / height, 0.5, 0.17 / height)), p, domain, shown, dates)
         fig.text(0.54, (top - 0.165) / height, unit_label, fontsize=8.5, family=FONT, va="center")
+        if empties:
+            _empty_swatches(fig, empties, 0.6 if unit_label else 0.56, (top - 0.25) / height, 0.17 / height)
     y = top - legend
     for line in caption_lines:
         fig.text(0.025, (y - CAPTION / 2 + 0.06) / height, line, fontsize=8, family=FONT, va="center", color="#444444")

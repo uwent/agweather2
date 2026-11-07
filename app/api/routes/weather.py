@@ -7,18 +7,18 @@ total sums the known days and counts the rest as missing (no rain)."""
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from typing import Literal
+from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
 import numpy as np
 from django.http import HttpRequest, HttpResponse
-from ninja import Query, Router
+from ninja import Query, Router, Schema
 
 from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, GAP_FILL, VARIABLES
 from agdata.computed import DAILY_COMPUTED, HOURLY_COMPUTED
 from agdata.series import FORECAST, PARTIAL
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
-from api import clock, counts, points
+from api import clock, counts, events, points
 from api.envelope import (
     SYSTEMS,
     Column,
@@ -325,6 +325,87 @@ def count_columns(request: HttpRequest, units: str) -> list[CountColumn]:
     return list(found.values())
 
 
+class EventsQuery(Schema):
+    """`first=`, `last=` and `since=` at points (`variable:frost`), each repeatable: read from `request.GET` by
+    `event_columns`, declared here so they're documented and accepted."""
+
+    first: str | None = None
+    last: str | None = None
+    since: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class EventColumn:
+    """One `first=`, `last=` or `since=` at points (`api.events`, D78): the daily variable, the event, the column's
+    name, and the bounds in the variable's stored unit."""
+
+    variable: str
+    event: events.Event
+    name: str  # `air_temperature_min_first_frost`
+    bounds: tuple[float | None, float | None]
+
+    @property
+    def missing(self) -> str:
+        return f"{self.name}_missing_days"
+
+
+def event_columns(request: HttpRequest, units: str) -> list[EventColumn]:
+    """Every `first=`, `last=` and `since=` (repeated, or separated by commas) as `variable:frost`, checked."""
+    system, overrides = SYSTEMS.get(units, "imperial"), unit_overrides(request)
+    found: dict[str, EventColumn] = {}
+    for kind in events.KINDS:
+        given = [part.strip() for raw in request.GET.getlist(kind) for part in raw.split(",") if part.strip()]
+        for text in given:
+            variable, _, spec = text.partition(":")
+            variable = variable.strip()
+            if not spec:
+                raise ApiError(
+                    "invalid",
+                    f"We can't read {kind}={text}. Name the daily variable and the days to find, such as "
+                    f"{kind}=air_temperature_min:frost or {kind}=soil_temperature_10cm_mean:above_50.",
+                    kind,
+                )
+            if variable not in DAILY:
+                hourly = " It's hourly: name a daily variable." if variable in HOURLY else ""
+                raise ApiError(
+                    "unknown_variable",
+                    f"We don't have a daily variable named {variable}.{hourly} GET /api/v2/variables lists them.",
+                    kind,
+                )
+            v = DAILY[variable]
+            event = events.parse(kind=kind, text=spec)
+            if event.named is not None and v.unit != "degC":
+                raise ApiError(
+                    "invalid",
+                    f"{event.name.replace('_', ' ')} is a temperature, and {variable} isn't one. Give bounds such as "
+                    f"{kind}={variable}:below_10.",
+                    kind,
+                )
+            name = f"{variable}_{kind}_{event.name}"
+            shown = shown_unit(
+                Column(name=name, values=[], unit=v.unit, step=v.scale, variable=variable), system, overrides
+            )
+            found[name] = EventColumn(
+                variable=variable, event=event, name=name, bounds=event.bounds(shown, v.unit, v.scale)
+            )
+    return list(found.values())
+
+
+def _event_value(c: EventColumn, values: np.ndarray, first_day: date) -> tuple[Any, int]:
+    """A point's first or last day (ISO) or days since the last, None if none or no data, and its missing days."""
+    value, _, missing = events.find(
+        np.asarray(values, dtype=float)[:, None],
+        low=c.bounds[0],
+        high=c.bounds[1],
+        kind=c.event.kind,
+        first_day=first_day,
+    )
+    found = value[0]
+    if np.isnan(found):
+        return None, int(missing[0])
+    return (int(found) if c.event.kind == "since" else events.to_date(found).isoformat()), int(missing[0])
+
+
 def _months(dates: list[date]) -> list[tuple[str, int, int]]:
     """(YYYY-MM, k0, k1): the dates' runs within each calendar month."""
     found: list[tuple[str, int, int]] = []
@@ -350,6 +431,7 @@ def totals(
     when: Query[DaysQuery],
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
+    found_days: Query[EventsQuery],
     vars: str | None = None,
     count: str | None = None,
     interval: Literal["month"] | None = None,
@@ -361,30 +443,47 @@ def totals(
     and are estimated (D75); counts never estimate. Defaults:
     January 1 through the forecast (to today with `forecast=false`); only the counts when `count` is given alone."""
     wanted = count_columns(request, output.units)
-    names = check_vars(vars, TOTALLED, [] if wanted and vars is None else TOTALS_DEFAULT)
+    found_events = event_columns(request, output.units)
+    alone = (wanted or found_events) and vars is None
+    names = check_vars(vars, TOTALLED, [] if alone else TOTALS_DEFAULT)
     daily_counted = [c.variable for c in wanted if not c.hourly]
     hourly_counted = list(dict.fromkeys(c.variable for c in wanted if c.hourly))
     inputs = [i for name in names if name in DAILY_COMPUTED for i in DAILY_COMPUTED[name].inputs]  # for its total
-    read = list(dict.fromkeys([*names, *inputs, *daily_counted])) or ["air_temperature_min"]  # every day's kind
+    read = list(dict.fromkeys([*names, *inputs, *daily_counted, *(c.variable for c in found_events)]))
+    read = read or ["air_temperature_min"]  # every day's kind
     now = clock.now()
     today = now.date()
     trim_end = when.end is None and when.date is None and options.forecast
     first, last = when.span(default_end=today + timedelta(days=FORECAST_DAYS) if trim_end else today)
-    check_size((last - first).days + 1, len(where.locations()), MAX_DAYS, "days")
+    # An event without start looks back to its own default (a `below` one to the previous July 1), from the end
+    # asked, or today when the end is the forecast's (`api.events`); with interval=month, over each month
+    given_start = when.start is not None or when.date is not None
+    event_first = {
+        c.name: first if given_start or interval == "month" else c.event.default_start(today if trim_end else last)
+        for c in found_events
+    }
+    read_from = min([first, *event_first.values()])
+    check_size((last - read_from).days + 1, len(where.locations()), MAX_DAYS, "days")
     if hourly_counted:
         check_size(((last - first).days + 1) * 24, len(where.locations()), MAX_HOURS, "hours")
     computed = {**where.echo(), "start": first, "end": last, "vars": names, "forecast": options.forecast}
     computed |= {"gaps": options.gaps, "units": output.units, **options.echo()}
     if wanted:
         computed["count"] = [f"{c.variable}:{c.count.name}" for c in wanted]
+    for kind in events.KINDS:
+        asked_kind = [f"{c.variable}:{c.event.name}" for c in found_events if c.event.kind == kind]
+        if asked_kind:
+            computed[kind] = asked_kind
+    if any(event_first[c.name] != first for c in found_events):
+        computed["event_start"] = {c.name: event_first[c.name] for c in found_events}
     if interval is not None:
         computed["interval"] = interval
     stamped = [*read, *hourly_counted]
-    etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now, names=stamped))
+    etag = answer_etag(request, computed, points.stamp(where.locations(), read_from, last, now, names=stamped))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, first, last, options)
-    found, warnings, sources, corrections = read_days(where, first, last, read, options, trim_end, now)
+    found, warnings, sources, corrections = read_days(where, read_from, last, read, options, trim_end, now)
     hours: list[points.Hours] = []
     if hourly_counted:
         start, end = _midnight(first - timedelta(days=1)), _midnight(last + timedelta(days=2))
@@ -398,8 +497,12 @@ def totals(
         rows[name], rows[f"{name}_estimated_days"], rows[f"{name}_missing_days"] = [], [], []
     for c in wanted:
         rows[c.name], rows[c.missing] = [], []
+    for c in found_events:
+        rows[c.name], rows[c.missing] = [], []
     for k, (days, n) in enumerate(found):
-        spans = _months(days.dates[:n]) if interval == "month" else [("", 0, n)]
+        skip = (first - read_from).days  # days read for an event's earlier start, before the totals' window
+        spans = _months(days.dates[skip:n]) if interval == "month" else [("", 0, max(0, n - skip))]
+        spans = [(label, k0 + skip, k1 + skip) for label, k0, k1 in spans]
         hour_days = _hour_days(hours[k].times, days.zone) if hours else []
         for label, k0, k1 in spans:
             rows["point"].append(k)
@@ -425,6 +528,15 @@ def totals(
                 hit, missing = counts.count_within(values[:, None], *c.bounds)
                 rows[c.name].append(None if np.isnan(hit[0]) else int(hit[0]))
                 rows[c.missing].append(int(missing[0]))
+            for c in found_events:
+                e0 = k0 if interval == "month" else (event_first[c.name] - read_from).days
+                e1 = k1
+                if c.event.kind == "since" and trim_end:  # days since, to today rather than the forecast's end
+                    e1 = min(k1, (today - read_from).days + 1)
+                values = np.asarray(days.values[c.variable][e0:e1], dtype=float)
+                value, missing_days = _event_value(c, values=values, first_day=days.dates[e0] if e0 < k1 else first)
+                rows[c.name].append(value)
+                rows[c.missing].append(missing_days)
     table = [Column(name="point", values=rows["point"])] if where.points is not None else []
     if interval == "month":
         table.append(Column(name="month", values=rows["month"]))
@@ -438,6 +550,8 @@ def totals(
             Column(name=f"{name}_missing_days", values=rows[f"{name}_missing_days"]),
         ]
     for c in wanted:
+        table += [Column(name=c.name, values=rows[c.name]), Column(name=c.missing, values=rows[c.missing])]
+    for c in found_events:
         table += [Column(name=c.name, values=rows[c.name]), Column(name=c.missing, values=rows[c.missing])]
     missing_rain = sum(rows.get("precipitation_sum_missing_days", []))
     if missing_rain:

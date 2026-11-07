@@ -124,6 +124,7 @@ def _draw(request: HttpRequest, a: layermaps.LayerAsk, q: MapQuery, now: datetim
     archive = layermaps.archive_window(settings.DATA_DIR, a.stores)
     computed = layermaps.cached(a, archive, now, data_stamp)
     values = computed.values[0]
+    states = layermaps.event_states(computed)  # a first or last day's none and no data (D78)
     window, region = archive, None
     if q.region is not None:
         region = regions.find(q.region)
@@ -141,6 +142,8 @@ def _draw(request: HttpRequest, a: layermaps.LayerAsk, q: MapQuery, now: datetim
                 "outside_box", f"{region.name} is outside the area we cover, so it has no grid cells here.", "region"
             )
         values = np.where(inside, values, np.nan)
+        if states is not None:
+            states = _framed(archive, inside, np.where(inside, states, np.nan))[1]
         window, values = _framed(archive, inside, values)
     column = Column(name=a.layer.id, values=[], unit=a.unit, step=a.step, variable=a.layer.variable or a.layer.id)
     system, overrides = output_units(request)
@@ -157,6 +160,8 @@ def _draw(request: HttpRequest, a: layermaps.LayerAsk, q: MapQuery, now: datetim
         categories=a.categories,
         caption=maptitles.caption(a, computed),
         width=q.width,
+        dates=a.unit == "date",
+        states=states,
     )
 
 

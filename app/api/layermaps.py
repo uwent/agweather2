@@ -43,7 +43,7 @@ from agdata.store import CUMULATIVE, DAILY
 from agmodels import seasons
 from agmodels.seasons import Season
 from agmodels.spec import ModelSpec
-from api import counts
+from api import counts, events
 from api.envelope import SYSTEMS, Column, shown_unit, unit_overrides
 from api.errors import ApiError, day_text, hour_text
 from api.maptitles import layer_title
@@ -64,8 +64,11 @@ class LayerQuery(Schema):
     time: str | None = None
     start: str | None = None
     end: str | None = None
-    stat: Literal["sum", "mean", "min", "max", "count"] | None = None
+    stat: Literal["sum", "mean", "min", "max", "count", "first", "last", "since"] | None = None
     count: str | None = None  # `days_above_86`, implying stat=count (`api.counts`)
+    first: str | None = None  # `above_50`, `frost`: the first day within, implying stat=first (`api.events`)
+    last: str | None = None  # the last day within (stat=last)
+    since: str | None = None  # the days since the last day within (stat=since)
     dd: str | None = None
     gaps: Literal["estimate", "missing"] = "estimate"
     output: str | None = None
@@ -114,6 +117,9 @@ def parse_scale(text: str | None, stored: str, shown: str) -> ScaleAsked | None:
     return ScaleAsked(mode="range", low=low, high=high, text=given)
 
 
+MIN_DATE_SPAN = 14  # days: a date map's narrowest scale
+
+
 @dataclass(kw_only=True)
 class LayerAsk:
     """A layer's map as asked for, checked: its steps, statistic and settings, and the stores it reads."""
@@ -133,8 +139,9 @@ class LayerAsk:
     scale_asked: "ScaleAsked | None" = None  # `scale=`, in the stored unit (`parse_scale`)
     palette_asked: "palettes.Palette | None" = None  # `palette=` (`_palette_asked`)
     count: "counts.Count | None" = None  # with stat=count: what's counted (`api.counts`)
-    count_bounds: tuple[float | None, float | None] = (None, None)  # its bounds in the values' stored unit
+    count_bounds: tuple[float | None, float | None] = (None, None)  # its bounds (or an event's) in the stored unit
     count_shown: str = ""  # the unit its bounds were given in, for the title
+    event: "events.Event | None" = None  # with stat=first, last or since: what's found (`api.events`)
 
     @property
     def value_unit(self) -> str:
@@ -145,11 +152,13 @@ class LayerAsk:
     def unit(self) -> str:
         if self.count is not None:
             return "hour" if self.count.axis == "hours" else "day"
+        if self.event is not None:
+            return self.event.unit_out
         return self.value_unit
 
     @property
     def step(self) -> float:
-        if self.count is not None:
+        if self.count is not None or self.event is not None:
             return 1
         return self.model.output.step if self.model is not None else self.layer.step
 
@@ -164,8 +173,10 @@ class LayerAsk:
     def scale(self) -> palettes.Scale:
         """The map's palette (`palette=` if asked, else its use's) and its fixed domain (None: from the map's values,
         `auto_domain`)."""
-        if self.count is not None:
+        if self.count is not None or (self.event is not None and self.event.kind == "since"):
             found = palettes.scale_for("count", "day", running=True)
+        elif self.event is not None:
+            found = palettes.scale_for("date", "day", running=True)
         elif self.model is not None:
             found = palettes.scale_for(self.model.output.use, "day", running=True)
         else:
@@ -191,12 +202,15 @@ class LayerAsk:
         end left blank from the data), else the use's default domain, else the data's."""
         found = self.scale
         asked = self.scale_asked
-        if self.count is not None and (asked is None or asked.mode == "default"):
+        counted = self.count is not None or (self.event is not None and self.event.kind == "since")
+        if counted and (asked is None or asked.mode == "default"):
             # From none to the data's high end (rare days would be dark on 0 to every day), at most every step
             return (0.0, min(float(self.steps), max(1.0, palettes.auto_domain(values)[1])))
         if found.palette.kind == "categorical" or ((asked is None or asked.mode == "default") and found.domain):
             return found.domain  # type: ignore[return-value]
         auto = palettes.auto_domain(values, centered=found.centered)
+        if self.unit == "date":
+            auto = self._date_domain(auto)
         if asked is None or asked.mode != "range":
             return auto
         lo = asked.low if asked.low is not None else auto[0]
@@ -205,6 +219,18 @@ class LayerAsk:
             span = auto[1] - auto[0] or 1.0
             lo, hi = (lo, lo + span) if asked.low is not None else (hi - span, hi)
         return (lo, hi)
+
+    def _date_domain(self, auto: tuple[float, float]) -> tuple[float, float]:
+        """A date map's domain from its values, at least MIN_DATE_SPAN days wide and inside the window (one day's
+        freeze everywhere would otherwise color the map with a one-day scale)."""
+        lo, hi = auto
+        start, end = float((self.first - events.EPOCH).days), float((self.last - events.EPOCH).days)
+        if hi - lo < MIN_DATE_SPAN:
+            middle = (lo + hi) / 2
+            lo, hi = middle - MIN_DATE_SPAN / 2, middle + MIN_DATE_SPAN / 2
+            shift = max(0.0, start - lo) - max(0.0, hi - end)
+            lo, hi = lo + shift, hi + shift
+        return (max(lo, start), min(hi, end) if min(hi, end) > max(lo, start) else max(lo, start) + 1)
 
     @property
     def label(self) -> str:
@@ -229,6 +255,7 @@ class LayerAsk:
             **when,
             "stat": self.stat,
             **({"count": self.count.name} if self.count is not None else {}),
+            **({self.event.kind: self.event.name} if self.event is not None else {}),
             **(model.echo if model is not None else {}),
             **({"season": model.season.name} if model is not None and model.season is not None else {}),
             "dd": self.setting.name if self.setting else None,
@@ -263,10 +290,24 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         raise ApiError("no_data", NO_DATA, None, status=503)
     if q.count is not None and q.stat is None:
         q = q.model_copy(update={"stat": "count"})  # a count is a statistic of the range
+    event = events.asked(q.first, q.last, q.since)
+    if event is not None:
+        _check_event(found, q, event)
+        q = q.model_copy(update={"stat": event.kind})  # as a count: a statistic of the range
+    elif q.stat in events.KINDS:
+        raise ApiError(
+            "missing",
+            f"stat={q.stat} needs {q.stat}= to say which days to find, such as {q.stat}=frost or {q.stat}=above_50.",
+            q.stat,
+        )
     first, last = span(found, q, observed)
+    if event is not None and q.start is None:
+        first = event.default_start(last)  # a `below` event's season from July 1, else the year
     stat = q.stat or ("sum" if q.biofix is not None else None)  # a biofix starts a total
     if stat == "count":
         _check_count(found, q)
+    elif stat in events.KINDS:
+        pass  # checked above
     elif q.count is not None:
         raise ApiError(
             "conflict",
@@ -336,6 +377,10 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         column = Column(name=found.id, values=[], unit=base_unit, step=base_step, variable=found.variable or found.id)
         shown = shown_unit(column, SYSTEMS.get(units, "imperial"), unit_overrides(request))
         bounds = count.bounds(shown, base_unit, base_step)
+    if event is not None:
+        column = Column(name=found.id, values=[], unit=found.unit, step=found.step, variable=found.variable or found.id)
+        shown = shown_unit(column, SYSTEMS.get(units, "imperial"), unit_overrides(request))
+        bounds = event.bounds(shown, found.unit, found.step)
     # Only what the layer reads: an open checks every variable it's given (~3 ms each)
     opened = [*hourly_of(found), *stored_names(found)]
     if found.id == DEGREE_DAYS:
@@ -360,10 +405,46 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         count=count,
         count_bounds=bounds,
         count_shown=shown,
+        event=event,
     )
     a.scale_asked = _scale_asked(request, a)
     a.palette_asked = _palette_asked(request, a)
     return a
+
+
+def _check_event(layer: Layer, q: LayerQuery, event: "events.Event") -> None:
+    """first=, last= and since= take a daily weather layer whose values can be compared, a window (not one date),
+    and a named threshold only on a temperature."""
+    kind = event.kind
+    if q.stat is not None and q.stat != kind:
+        raise ApiError(
+            "conflict", f"{kind} finds a day, so it can't go with stat={q.stat}. Leave out stat, or {kind}.", kind
+        )
+    if q.count is not None:
+        raise ApiError("conflict", f"Give count or {kind}, not both: one map shows one of them.", kind)
+    if layer.source != "daily" or not layer.stats:
+        why = (
+            "it's hourly; ask for the daily layer"
+            if layer.time_axis == "hour"
+            else "each day is already a running total"
+            if layer.source == "cumulative"
+            else "it takes daily weather layers only"
+        )
+        raise ApiError("invalid", f"{layer_title(layer)} can't take {kind}=, because {why}.", kind)
+    if q.date is not None:
+        raise ApiError(
+            "invalid",
+            f"{kind} looks over a range of days. Give end for the last day (default the latest), and start if the "
+            "range should begin elsewhere than its default.",
+            "date",
+        )
+    if event.named is not None and layer.unit != "degC":
+        raise ApiError(
+            "invalid",
+            f"{event.name.replace('_', ' ')} is a temperature, and {layer_title(layer)} isn't one. Give bounds such as "
+            f"{kind}=below_10.",
+            kind,
+        )
 
 
 def _check_count(layer: Layer, q: LayerQuery) -> None:
@@ -914,6 +995,17 @@ def _compute(layer, first, last, window, stat, setting, gaps, cubes, data_dir, n
     else:
         return _degree_days(first, last, window, stat, setting, gaps, cubes, data_dir, now, stores, bounds)
     values = read.values
+    if stat in events.KINDS:
+        value, found, missing = events.find(values, low=bounds[0], high=bounds[1], kind=stat, first_day=first)
+        return (
+            value[None],
+            read.kinds,
+            {"found": found, "missing_days": missing},
+            read.sources,
+            read.forecast,
+            (read.steps),
+            False,
+        )
     if stat == "count":
         values, extra = _counted(values, bounds, layer.time_axis)
     elif stat is not None:
@@ -1038,6 +1130,15 @@ def hourly_of(layer: Layer) -> list[str]:
     return series.hourly_needed([layer.variable])
 
 
+def event_states(c: "Computed") -> np.ndarray | None:
+    """A first or last day's map (`api.events`): 1 where a day was found, 0 none, −1 no data (`mapimage.EMPTY`);
+    None for any other map."""
+    found = c.extra.get("found")
+    if found is None:
+        return None
+    return np.where(np.isfinite(found), found, -1.0)
+
+
 # --- Computed maps, kept -------------------------------------------------------------------------------------------
 
 # Maps computed for tiles and images, by what was asked and the data stamp: a screen of tiles is one map read
@@ -1049,7 +1150,8 @@ _maps_lock = threading.Lock()
 
 def cached(a: LayerAsk, window: Window, now: datetime, data_stamp: Any) -> Computed:
     """`compute` over `window`, kept for the next request asking the same of the same data."""
-    key = json.dumps([a.echo(), data_stamp, [window.j0, window.j1, window.i0, window.i1]], default=str)
+    # The bounds as resolved: `days_above_86` or `below_10` mean another bound in another `units`
+    key = json.dumps([a.echo(), a.count_bounds, data_stamp, [window.j0, window.j1, window.i0, window.i1]], default=str)
     with _maps_lock:
         found = _maps.get(key)
         if found is not None:

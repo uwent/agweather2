@@ -37,6 +37,7 @@ from api.envelope import (
     shown_unit,
 )
 from api.errors import ApiError, counted
+from api.events import to_date
 from api.gridfiles import GridFile, geotiff, netcdf
 from api.layermaps import LayerQuery
 from api.params import OutputQuery
@@ -303,7 +304,7 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
         file = GridFile(
             name=found.id,
             long_name=long_name,
-            unit=shown_as,
+            unit="days since 1970-01-01" if shown_as == "date" else shown_as,  # CF's form of a date (D78)
             values=shown if index is None else index.resample(shown),
             steps=None if stat is not None else step_labels,
             window=window if index is None else None,
@@ -519,8 +520,13 @@ def _long_form(layer, column, values, kinds, extra, steps, stat, window, mask, q
         columns.append(Column(name="j", values=np.tile(jj, repeat).tolist()))
         columns.append(Column(name="i", values=np.tile(ii, repeat).tolist()))
     column.values = flat.ravel()
+    if column.unit == "date":  # a first or last day (D78): ISO dates
+        column = Column(name=column.name, values=[None if x != x else to_date(x).isoformat() for x in flat.ravel()])
     columns.append(column)
     for name, v in counts.items():
+        if name == "found":  # a first or last day's: true, false (none), or missing (no data)
+            columns.append(Column(name=name, values=[None if x != x else bool(round(x)) for x in v.tolist()]))
+            continue
         # A lat/lng mean of cells' counts is the mean count; rounded, it stays a count of days
         columns.append(Column(name=name, values=[None if x != x else round(x) for x in v.tolist()]))
     return columns

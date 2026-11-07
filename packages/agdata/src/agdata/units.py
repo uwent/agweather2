@@ -70,6 +70,7 @@ UNITS: dict[str, Unit] = {
         Unit(symbol="day", label="d", dimension="duration", digits=0),
         Unit(symbol="hour", label="h", dimension="duration", factor=1 / 24, digits=0),
         Unit(symbol="index", label="", dimension="index", digits=1),  # model indices (DSVs, P-days): no conversion
+        Unit(symbol="date", label="", dimension="date", digits=0),  # days since 1970-01-01 (a map's first frost)
     ]
 }
 
