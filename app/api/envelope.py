@@ -33,6 +33,7 @@ from django.utils.cache import patch_vary_headers
 
 from agdata import units as agunits
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES, Variable
+from agdata.computed import DAILY_COMPUTED, HOURLY_COMPUTED
 from api.errors import ApiError
 
 API_VERSION = "2.0"
@@ -40,7 +41,8 @@ API_VERSION = "2.0"
 # code change), so a change to how answers are computed is a change of answer even where the data isn't
 CODE_VERSION = settings.APP_VERSION if settings.APP_VERSION != "dev" else f"dev-{time.time()}"
 SYSTEMS: dict[str, agunits.System] = {"us": "imperial", "metric": "metric"}
-CATALOGS = (DAILY_VARIABLES, VARIABLES, CUMULATIVE_VARIABLES)
+_COMPUTED = {c.name: c.variable for c in [*DAILY_COMPUTED.values(), *HOURLY_COMPUTED.values()]}  # `agdata.computed`
+CATALOGS = (DAILY_VARIABLES, VARIABLES, CUMULATIVE_VARIABLES, _COMPUTED)
 TOTALLED = ("depth", "radiant_exposure", "duration")  # dimensions whose values add up over days (a total is shown)
 
 

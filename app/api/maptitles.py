@@ -79,6 +79,7 @@ _SPECIAL = {
         "mean",
     ),
     "air_temperature_min_overnight": ("Overnight air temperature (noon to noon)", "minimum"),
+    "water_balance": ("Water balance (precipitation minus reference evapotranspiration)", "total"),
 }
 _DAILY = {"min": "minimum", "max": "maximum", "mean": "mean", "sum": "total"}
 _RANGE = {"mean": "mean", "max": "highest", "min": "lowest"}  # a range's statistic of a different daily one
@@ -89,6 +90,11 @@ _METHODS = {"sine": "single sine", "modified": "modified", "average": "simple av
 # Where each family's data come from (`agdata.catalog`'s sources), as the caption says it
 _URMA = "URMA/RTMA hourly grids"
 _FAMILY_SOURCES = (
+    (
+        "water_balance",
+        f"Precipitation from {_URMA}; reference evapotranspiration (FAO-56) computed from air temperature, humidity "
+        f"and wind from {_URMA} and solar radiation from HRRR",
+    ),
     ("air_temperature", f"Air temperature (2 m) from {_URMA}"),
     ("temperature_mean", f"Air temperature and dew point (2 m) from {_URMA}"),
     ("hours_temperature", f"Air temperature (2 m) from {_URMA}"),

@@ -84,7 +84,7 @@ def point_days(
     start = datetime(first.year, first.month, first.day, tzinfo=UTC) - timedelta(days=1)
     end = datetime(last.year, last.month, last.day, tzinfo=UTC) + timedelta(days=1, hours=8)
     values, kinds, applied = cell_hours(latitude, longitude, start, end, now, session)
-    days = daily_at_point(start, values, zone, first, last)
+    days = daily_at_point(start, values, zone, first, last, names=names)
     dates = [first + timedelta(days=k) for k in range((last - first).days + 1)]
     times = [start + k * HOUR for k in range(len(kinds))]
     from agdata.series import Forecast

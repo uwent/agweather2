@@ -22,7 +22,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata import corrections, forecast, pastyears, projection, timecopy
+from agdata import computed, corrections, forecast, pastyears, projection, timecopy
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, GAP_FILL, VARIABLES, Variable
 from agdata.grid import NDFD, Window
 from agdata.places import county_at
@@ -121,7 +121,10 @@ def cells_hours(
     fill_soil: Sequence[FillSoil | None] | None = None,
 ) -> list[HourlyFrame]:
     """`point_hours` at each of several cells, on one read per variable and store (`GridStore.read_cells`: a chunk
-    holding several of the cells is read once). `fill_soil`, if given, has one entry per cell."""
+    holding several of the cells is read once). `fill_soil`, if given, has one entry per cell. A computed variable
+    (`agdata.computed`) is made from its inputs' hours, with its first input's sources."""
+    asked = list(names)
+    names = computed.expand(asked, computed.HOURLY_COMPUTED)
     run = current_forecast(data_dir, now)
     times = [start + k * HOUR for k in range((end - start) // HOUR + 1)]
     n = len(times)
@@ -154,6 +157,11 @@ def cells_hours(
         if fill is not None and run.path is not None:
             own_sources = {name: list(s) for name, s in sources.items()}  # this cell's fills are its own
             _fill_soil(fill, times, own, own_sources, [n for n in names if n in SOIL], cut, run.last_hour)
+        if asked != names:
+            own = computed.complete(own, asked, computed.HOURLY_COMPUTED)
+            own_sources = {
+                name: own_sources[c.inputs[0] if (c := computed.computed(name)) is not None else name] for name in asked
+            }
         frames.append(HourlyFrame(times=times, values=own, sources=own_sources, kinds=kinds, forecast=run))
     return frames
 
@@ -464,6 +472,20 @@ def grid_hours(
         forecast=run,
         run_from=cut,
     )
+
+
+def combine(c: "computed.Computed", reads: Mapping[str, GridSteps]) -> GridSteps:
+    """A computed variable's steps over a window from its inputs' reads (`grid_days` or `grid_hours` of each, over
+    the same steps): missing wherever an input is, a step's kind its first input's unless no value is left anywhere,
+    stale where any input's was read stale, and the inputs' sources together."""
+    first = reads[c.inputs[0]]
+    values = c.compute({name: reads[name].values for name in c.inputs}).astype(np.float32)
+    kinds = [None if np.isnan(values[k]).all() else kind for k, kind in enumerate(first.kinds)]
+    stale = np.zeros(len(first.steps), dtype=bool)
+    for name in c.inputs:
+        stale |= reads[name].stale
+    sources = source_order({s for name in c.inputs for s in reads[name].sources})
+    return replace(first, values=values, kinds=kinds, stale=stale, sources=sources)
 
 
 def last_observed(data_dir: Path, now: datetime | None = None) -> datetime | None:

@@ -205,3 +205,20 @@ def test_a_point_outside_the_box_takes_its_own_days(client, archive, monkeypatch
     assert body["meta"]["location"]["day_basis"] == "local" and body["meta"]["location"]["days"].startswith(
         "Midnight to midnight local time: CST (06:00 to 06:00 UTC)"
     )
+
+
+def test_water_balance_is_rain_less_et0_on_each_day(client, archive):
+    names = "water_balance,precipitation_sum,et0_sum"
+    body = get(client, "weather/daily", start="2025-07-08", end="2025-07-12", vars=names, units="metric").json()
+    data = body["data"]
+    for balance, rain, et0 in zip(data["water_balance"], data["precipitation_sum"], data["et0_sum"], strict=True):
+        assert balance == pytest.approx(rain - et0, abs=0.02)  # each column rounded to its own precision
+    assert data["water_balance"][0] == 0.0  # the archive's 2.4 mm of rain and of ET0
+    assert body["meta"]["units"]["water_balance"] == "mm"
+    alone = get(client, "weather/daily", start="2025-07-08", end="2025-07-12", vars="water_balance").json()
+    assert list(alone["data"]) == ["date", "kind", "water_balance"] and alone["meta"]["units"]["water_balance"] == "in"
+
+
+def test_water_balance_has_no_window_total_until_its_rules_land(client, archive):
+    response = get(client, "weather/totals", start="2025-07-08", end="2025-07-09", vars="water_balance")
+    assert response.status_code == 422 and response.json()["errors"][0]["code"] == "unknown_variable"

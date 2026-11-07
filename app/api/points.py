@@ -12,7 +12,7 @@ from datetime import date, datetime, timedelta
 import numpy as np
 from django.conf import settings
 
-from agdata import series
+from agdata import computed, series
 from agdata.grid import NDFD
 from agdata.timezones import zone_at
 from ops import openmeteo
@@ -124,9 +124,11 @@ def hours(
         return _archive_hours(frame, (lat, lng), names)
     values, kinds, applied = openmeteo.cell_hours(lat, lng, start, end, now)
     n = (end - start) // HOUR + 1
+    read = computed.expand(names, computed.HOURLY_COMPUTED)
+    found = {name: values.get(name, np.full(n, np.nan)) for name in read}
     return Hours(
         times=[start + k * HOUR for k in range(n)],
-        values={name: values.get(name, np.full(n, np.nan)) for name in names},
+        values=computed.complete(found, names, computed.HOURLY_COMPUTED),
         kinds=kinds,
         zone=zone_at(lat, lng),
         sources=("openmeteo",),
@@ -159,7 +161,9 @@ def _archive_hours(frame: series.HourlyFrame, site: tuple[float, float], names: 
         kinds=frame.kinds,
         zone=zone_at(*site),
         sources=series.source_order(seen),
-        corrections=series.in_box_corrections(frame.kinds, frame.forecast, names),
+        corrections=series.in_box_corrections(
+            frame.kinds, frame.forecast, computed.expand(names, computed.HOURLY_COMPUTED)
+        ),
     )
 
 

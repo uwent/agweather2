@@ -12,6 +12,7 @@ from django.http import HttpRequest, HttpResponse
 from ninja import Query, Router
 
 from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, GAP_FILL, VARIABLES
+from agdata.computed import DAILY_COMPUTED, HOURLY_COMPUTED
 from agdata.series import FORECAST, PARTIAL
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
 from api import clock, points
@@ -30,12 +31,15 @@ MAX_HOURS = 2 * 8784  # two years of hours
 MAX_ROWS = 100_000  # points × steps
 MAX_OUTSIDE = 10  # points outside the box (or before the archive) per request: each may fetch from Open-Meteo
 DAILY = {name: v for name, v in DAILY_VARIABLES.items() if name != "et0_sum_estimate"}  # that one's for totals
+DAILY |= {name: c.variable for name, c in DAILY_COMPUTED.items()}  # computed when read (`agdata.computed`)
+HOURLY = {**VARIABLES, **{name: c.variable for name, c in HOURLY_COMPUTED.items()}}
 DAILY_DEFAULT = ["air_temperature_min", "air_temperature_max", "precipitation_sum"]
 HOURLY_DEFAULT = ["air_temperature", "dew_point", "relative_humidity", "precipitation", "wind_speed"]
-TOTALLED = {
+TOTALLED = {  # a computed one's total has its own rules (water balance's, D75: Phase 6 C step 3)
     name: v
     for name, v in DAILY.items()
-    if (name in DAILY_STATISTICS and DAILY_STATISTICS[name].stat == "sum") or v.unit == "hour"
+    if name not in DAILY_COMPUTED
+    and ((name in DAILY_STATISTICS and DAILY_STATISTICS[name].stat == "sum") or v.unit == "hour")
 }
 TOTALS_DEFAULT = ["precipitation_sum", "et0_sum", "shortwave_radiation_sum"]
 
@@ -169,7 +173,7 @@ def hourly(
 ) -> HttpResponse:
     """One row per point and hour: `time` (the hour's end, UTC), `kind`, each variable in `vars` (hourly catalog
     names), and `local_time` in the point's zone with `tz=local`. Defaults: the last 7 days through the forecast."""
-    names = check_vars(vars, VARIABLES, HOURLY_DEFAULT)
+    names = check_vars(vars, HOURLY, HOURLY_DEFAULT)
     if options.day_basis is not None:
         raise ApiError(
             "not_applicable",

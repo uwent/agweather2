@@ -230,6 +230,7 @@ USES: dict[str, Use] = {
     "precipitation": Use(palette="YlGnBu", day=(0, 50), hour=(0, 25)),
     "snow": Use(palette="PuBu", day=(0, 100)),
     "evapotranspiration": Use(palette="YlOrBr", day=(0, 8), hour=(0, 1)),
+    "water_balance": Use(palette="BrBG", day=(-12, 12), centered=True),  # dry brown, wet blue-green; ET0 rarely > 8 mm
     "radiation": Use(palette="inferno", day=(0, 32), hour=(0, 1000)),
     "wind": Use(palette="RdPu", day=(0, 12), hour=(0, 15)),
     "direction": Use(palette="twilight", day=(0, 360), bounded=True),

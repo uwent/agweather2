@@ -484,3 +484,17 @@ def test_a_degree_day_maps_biofix_starts_its_total(client, archive, biofix):
 def test_biofix_on_maps_that_cant_take_it(client, archive, layer, params, code):
     error = get(client, layer, **params).json()["errors"][0]
     assert error["code"] == code
+
+
+@pytest.mark.django_db
+def test_water_balance_is_a_map_of_rain_less_et0(client, archive):
+    found = {}
+    for layer in ("water_balance", "precipitation_sum", "et0_sum"):
+        body = get(client, layer, start="2025-07-09", end="2025-07-11", units="metric").json()
+        found[layer] = np.array(body["data"][layer], dtype=float)
+    np.testing.assert_allclose(found["water_balance"], found["precipitation_sum"] - found["et0_sum"], atol=0.02)
+    assert body["data"]["kind"] == ["observed"] * 6 + ["partial"] * 6 + ["forecast"] * 6
+    layers = {layer["id"]: layer for layer in client.get("/api/v2/layers").json()["data"]}
+    assert layers["water_balance"]["palette"] == "BrBG" and "sum" not in layers["water_balance"]["stats"]
+    refused = get(client, "water_balance", start="2025-07-09", end="2025-07-11", stat="sum")
+    assert refused.status_code == 422 and refused.json()["errors"][0]["param"] == "stat"

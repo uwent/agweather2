@@ -64,6 +64,9 @@ def test_variables_list_the_catalog_with_units_and_hourly_sources(client):
     )
     assert found["cumulative", "dd_sine_50"]["units"] == {"us": "°F·d", "metric": "°C·d"}
     assert found["daily", "dew_point_depression_max"]["unit"] == "delta_degC"
+    balance = found["daily", "water_balance"]  # computed when read (`agdata.computed`)
+    assert balance["computed_from"] == ["precipitation_sum", "et0_sum"] and tmax["computed_from"] == []
+    assert balance["hourly_sources"] == ["precipitation", "et0"] and balance["units"] == {"us": "in", "metric": "mm"}
 
 
 def test_discovery_answers_carry_an_etag_and_a_held_one_is_a_304(client):

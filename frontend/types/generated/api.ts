@@ -428,6 +428,7 @@ export interface VariableInfo {
   valid_max: number | null
   statistic: string | null
   hourly_sources: string[]
+  computed_from: string[]
   notes: string
 }
 /**

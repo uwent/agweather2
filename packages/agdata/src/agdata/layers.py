@@ -1,10 +1,11 @@
 """Mappable layers (PLAN.md Phase 5 E, docs/api.md "Grids"): what `/layers` lists and `/grids/{layer}` reads.
 
 A layer is a catalog variable on the grid with a time axis: a daily variable (local days, `agdata.daily`), an
-hourly one (hours by their UTC end), a running total from January 1 (`agdata.cumulative`), degree days for any
-setting (`degree_days`, computed from each day's minimum and maximum, the same way as at points), or a model's
-outputs (`model`, finished from its ingredients by `agdata.modelgrid`; the layer's id is the model's). Normals and
-departures (Phase 6, time axis `day_of_year`) join the list later without changing what's here.
+hourly one (hours by their UTC end), either of them computed when read from stored ones (`agdata.computed`), a
+running total from January 1 (`agdata.cumulative`), degree days for any setting (`degree_days`, computed from each
+day's minimum and maximum, the same way as at points), or a model's outputs (`model`, finished from its ingredients
+by `agdata.modelgrid`; the layer's id is the model's). Normals and departures (Phase 6, time axis `day_of_year`)
+join the list later without changing what's here.
 
 A model layer's value is one of the model's outputs (`output=`): by default its risk level (an index into the
 spec's levels), or a crop model's stage; `risk_value` is a continuous risk (the insects' summed activity) before it
@@ -22,6 +23,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES, Variable
+from agdata.computed import DAILY_COMPUTED, HOURLY_COMPUTED
 
 TimeAxis = Literal["day", "hour", "day_of_year"]
 Source = Literal["daily", "hourly", "cumulative", "degree_days", "model"]
@@ -67,6 +69,7 @@ class Layer:
 # The colors each variable's map uses (`agdata.palettes.USES`), by name: the first prefix that matches wins
 _USES = (
     ("dd_", "degree_days"),
+    ("water_balance", "water_balance"),
     ("dew_point_depression", "dew_point_depression"),
     ("soil_temperature", "soil_temperature"),
     ("air_temperature", "temperature"),
@@ -94,6 +97,8 @@ def use_for(name: str) -> str:
 
 
 def _daily_stats(v: Variable) -> tuple[Stat, ...]:
+    if v.name in DAILY_COMPUTED:  # a computed one's total has its own rules (water balance's, D75: Phase 6 C step 3)
+        return LEVEL_STATS
     s = DAILY_STATISTICS.get(v.name)
     return SUM_STATS if (s is not None and s.stat == "sum") or v.unit == "hour" else LEVEL_STATS
 
@@ -118,7 +123,7 @@ def _layers() -> list[Layer]:
             use=use_for(v.name),
             stats=_daily_stats(v),
         )
-        for v in DAILY_VARIABLES.values()
+        for v in [*DAILY_VARIABLES.values(), *(c.variable for c in DAILY_COMPUTED.values())]
         if v.name not in _LEFT_OUT
     ]
     found += [
@@ -134,7 +139,7 @@ def _layers() -> list[Layer]:
             use=use_for(v.name),
             stats=_hourly_stats(v),
         )
-        for v in VARIABLES.values()
+        for v in [*VARIABLES.values(), *(c.variable for c in HOURLY_COMPUTED.values())]
         if v.name not in _LEFT_OUT
     ]
     found += [

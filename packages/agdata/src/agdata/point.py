@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 
 from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES
+from agdata.computed import DAILY_COMPUTED, expand
 from agdata.daily import daily_statistic
 from agdata.timezones import day_bounds, evening_bounds, overnight_bounds
 from agmodels import features
@@ -47,9 +48,10 @@ def daily_at_point(
     names: Collection[str] | None = None,
     rh_90_at: float | None = None,
 ) -> dict[str, np.ndarray]:
-    """Every daily variable (or those in `names`, and any others computed with them) for days first..last
-    (inclusive) at a point, by `zone`'s clock (the grid's, `timezones.GRID_ZONE`, or the point's own). `rh_90_at`: the
-    RH that "≥ 90%" hours are counted at (default D50's gridded 88%; a station's own hours, 90).
+    """Every stored daily variable (or those in `names`, and any others computed with them; a computed one
+    (`agdata.computed`) from its inputs, which come back too) for days first..last (inclusive) at a point, by
+    `zone`'s clock (the grid's, `timezones.GRID_ZONE`, or the point's own). `rh_90_at`: the RH that "≥ 90%" hours
+    are counted at (default D50's gridded 88%; a station's own hours, 90).
 
     `hours` holds hourly catalog variables, each a series of hours ending at `first_hour`, `first_hour` + 1 h, …
     in stored units. Hours outside a series, and variables not given, count as missing. A series may carry more
@@ -74,7 +76,7 @@ def daily_at_point(
             out[lo - k0 : hi - k0] = np.asarray(values[lo:hi], dtype=float)
         return out
 
-    wanted = set(DAILY_VARIABLES) if names is None else set(names)
+    wanted = set(DAILY_VARIABLES) if names is None else set(expand(names, DAILY_COMPUTED))
     statistics = [s for s in DAILY_STATISTICS.values() if s.variable.name in wanted]
     groups = {group for name in wanted if (group := _FEATURE_GROUP.get(name)) is not None}
     out: dict[str, np.ndarray] = {}
@@ -144,6 +146,10 @@ def daily_at_point(
     if "overnight" in groups:
         for k0, k1, begin, length in runs(lambda day: overnight_bounds(day, zone)):
             put(k0, k1, features.overnight_features(stacked("air_temperature", begin, length, k1 - k0)))
+    for name in names or ():
+        c = DAILY_COMPUTED.get(name)
+        if c is not None and all(each in out for each in c.inputs):
+            out[name] = c.compute(out)
     return out
 
 
@@ -184,4 +190,7 @@ def hourly_sources() -> dict[str, tuple[str, ...]]:
         for name, value in roll_up(hourly).items():
             if np.isnan(value).all():
                 needs[name].append(hourly)
+    for c in DAILY_COMPUTED.values():  # a computed variable needs what its inputs need
+        wanted = {hourly for each in c.inputs for hourly in needs[each]}
+        needs[c.name] = [hourly for hourly in VARIABLES if hourly in wanted]
     return {name: tuple(sources) for name, sources in needs.items()}

@@ -1,4 +1,5 @@
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
+from agdata.computed import DAILY_COMPUTED, HOURLY_COMPUTED
 from agdata.layers import DEGREE_DAYS, LAYERS
 
 
@@ -7,6 +8,7 @@ def test_every_variable_is_a_layer_but_the_internal_ones():
     assert set(DAILY_VARIABLES) - variables == {"et0_sum_estimate"}
     assert set(VARIABLES) - variables == {"shortwave_radiation_hrrr"}
     assert {n for n in CUMULATIVE_VARIABLES if not n.endswith("_days")} <= variables
+    assert {*DAILY_COMPUTED, *HOURLY_COMPUTED} <= variables  # computed when read (`agdata.computed`)
     assert len(LAYERS) == len(list(LAYERS.values()))  # ids unique
 
 
@@ -16,7 +18,9 @@ def test_layers_name_their_palette_axis_and_unit():
         assert layer.time_axis in ("day", "hour")
         if layer.variable is not None:
             catalog = {"daily": DAILY_VARIABLES, "hourly": VARIABLES, "cumulative": CUMULATIVE_VARIABLES}[layer.source]
-            assert catalog[layer.variable].unit == layer.unit
+            computed = {"daily": DAILY_COMPUTED, "hourly": HOURLY_COMPUTED}.get(layer.source, {})
+            v = computed[layer.variable].variable if layer.variable in computed else catalog[layer.variable]
+            assert v.unit == layer.unit
 
 
 def test_only_quantities_that_add_up_are_summed():
@@ -26,3 +30,4 @@ def test_only_quantities_that_add_up_are_summed():
     assert not {"air_temperature_max", "snow_depth_max", "relative_humidity_mean", "air_temperature_hourly"} & summed
     assert LAYERS["dd_modified_50_86"].stats == () and LAYERS["precipitation_total"].stats == ()
     assert LAYERS["wind_direction_hourly"].stats == ()
+    assert "sum" not in LAYERS["water_balance"].stats  # its total follows D75's rules (Phase 6 C step 3)

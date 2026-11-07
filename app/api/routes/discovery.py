@@ -16,6 +16,8 @@ from ninja import Query, Router, Schema
 
 from agdata import units as agunits
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES, Variable
+from agdata.computed import DAILY_COMPUTED, HOURLY_COMPUTED
+from agdata.computed import computed as computed_variable
 from agdata.grid import NDFD
 from agdata.planting import CROPS, planting_crop, typical_planting
 from agdata.point import hourly_sources
@@ -200,6 +202,7 @@ class VariableInfo(Schema):
     valid_max: float | None
     statistic: str | None  # daily: min, max, mean or sum of `hourly_sources`; None for a feature or a total
     hourly_sources: list[str]  # daily: the hourly variables it's rolled up from
+    computed_from: list[str]  # computed when read from these stored variables (same kind); empty if stored
     notes: str
 
 
@@ -221,6 +224,7 @@ def _variable(v: Variable, kind: Literal["hourly", "daily", "cumulative"]) -> Va
         valid_max=v.valid_max if v.valid_max < float("inf") else None,
         statistic=statistic.stat if statistic is not None else None,
         hourly_sources=list(hourly_sources().get(v.name, ())) if kind == "daily" else [],
+        computed_from=list(c.inputs) if (c := computed_variable(v.name)) is not None else [],
         notes=v.notes,
     )
 
@@ -230,8 +234,10 @@ def variables(request: HttpRequest) -> HttpResponse:
     etag, unchanged = _cached(request, {})
     if unchanged is not None:
         return unchanged
-    found = [_variable(v, "hourly") for v in VARIABLES.values()]
-    found += [_variable(v, "daily") for v in DAILY_VARIABLES.values()]
+    found = [_variable(v, "hourly") for v in [*VARIABLES.values(), *(c.variable for c in HOURLY_COMPUTED.values())]]
+    found += [
+        _variable(v, "daily") for v in [*DAILY_VARIABLES.values(), *(c.variable for c in DAILY_COMPUTED.values())]
+    ]
     found += [_variable(v, "cumulative") for v in CUMULATIVE_VARIABLES.values()]
     return respond(request, Result(request={}, data=[v.model_dump() for v in found], etag=etag))
 

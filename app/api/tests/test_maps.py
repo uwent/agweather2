@@ -53,3 +53,11 @@ def test_the_job_draws_the_default_maps_once(archive):
     drawn = maps.render_default_maps()
     assert set(drawn) == {layer for layer, _ in maps.DEFAULT_MAPS}
     assert all(ms == 0 for ms in maps.render_default_maps().values())  # nothing new to draw
+
+
+@pytest.mark.django_db
+def test_a_computed_layer_is_drawn_with_its_title(client, archive):
+    response = client.get("/api/v2/maps/water_balance.png", {"date": "2025-07-08"})
+    assert _image(response).size[0] == 800
+    tile_json = client.get("/api/v2/tiles/water_balance.json", {"time": "2025-07-08"}).json()
+    assert tile_json["name"].startswith("Water balance (precipitation minus reference evapotranspiration), daily total")

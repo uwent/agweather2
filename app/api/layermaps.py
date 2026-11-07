@@ -30,7 +30,7 @@ import numpy as np
 from django.http import HttpRequest
 from ninja import Schema
 
-from agdata import modelgrid, modelmaps, palettes, regions, seasonal, series
+from agdata import computed, modelgrid, modelmaps, palettes, regions, seasonal, series
 from agdata import units as agunits
 from agdata.daily import days_from_hours
 from agdata.grid import Window
@@ -287,7 +287,7 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         )
     cubes = _cubes(found, setting, stat, q.gaps, first, last)
     # Only what the layer reads: an open checks every variable it's given (~3 ms each)
-    opened = [*hourly_of(found), *([found.variable] if found.variable else [])]
+    opened = [*hourly_of(found), *stored_names(found)]
     if found.id == DEGREE_DAYS:
         opened += ["air_temperature_min", "air_temperature_max"]
     if cubes:
@@ -371,14 +371,14 @@ def stamp(a: LayerAsk, now: datetime) -> Any:
     found, model = a.layer, a.model
     first_day = a.first.date() if isinstance(a.first, datetime) else a.first
     last_day = a.last.date() if isinstance(a.last, datetime) else a.last
-    daily_names = [found.variable] if found.source == "daily" and found.variable else []
+    daily_names = stored_names(found) if found.source == "daily" else []
     if found.id == DEGREE_DAYS:
         daily_names = ["air_temperature_min", "air_temperature_max"]
     if model is not None and found.id in modelgrid.ON_REQUEST:
         daily_names = [q.name for q in model.spec.inputs]  # computed from the days themselves
     totals = [found.variable] if found.source == "cumulative" and found.variable else []
     totals += [c for c in (a.cubes or ()) if c]
-    hourly_stamped = [found.variable] if found.source == "hourly" and found.variable else []
+    hourly_stamped = stored_names(found) if found.source == "hourly" else []
     ingredients: list[str] = []
     if model is not None:
         in_store = {v.name for v in modelmaps.variables()}
@@ -807,7 +807,9 @@ def _compute(layer, first, last, window, stat, setting, gaps, cubes, data_dir, n
     """(values (steps out, y, x) in the layer's stored unit, kinds per step read, extra per-cell counts, sources,
     the forecast run, the steps' labels, whether the running totals were read)."""
     extra: dict[str, np.ndarray] = {}
-    if layer.source == "hourly":
+    if (c := computed.computed(layer.variable or "")) is not None:
+        read = _computed_steps(c, layer, first, last, window, data_dir, now, stores)
+    elif layer.source == "hourly":
         read = series.grid_hours(data_dir, layer.variable, first, last, window, now, stores)
     elif layer.source in ("daily", "cumulative"):
         layout = DAILY if layer.source == "daily" else CUMULATIVE
@@ -823,6 +825,18 @@ def _compute(layer, first, last, window, stat, setting, gaps, cubes, data_dir, n
         if layer.time_axis == "hour":
             extra = {"missing_hours": missing}
     return values, read.kinds, extra, read.sources, read.forecast, read.steps, False
+
+
+def _computed_steps(c: computed.Computed, layer: Layer, first, last, window, data_dir, now, stores) -> series.GridSteps:
+    """A computed variable's steps (`agdata.computed`) from each input's, every input's stale days made fresh first."""
+    reads = {}
+    for name in c.inputs:
+        if layer.source == "hourly":
+            reads[name] = series.grid_hours(data_dir, name, first, last, window, now, stores)
+        else:
+            reads[name] = series.grid_days(data_dir, DAILY, name, first, last, window, now, stores)
+            _fresh(reads[name], LAYERS[name], DAILY, window, data_dir, stores)
+    return series.combine(c, reads)
 
 
 def _degree_days(first, last, window, stat, setting, gaps, cubes, data_dir, now, stores):
@@ -891,8 +905,18 @@ def _fresh(read: series.GridSteps, layer: Layer, layout, window: Window, data_di
 _TOTALS_FROM = {"precipitation": ["precipitation"], "et0": ["et0"]}
 
 
+def stored_names(layer: Layer) -> list[str]:
+    """The stored variables a weather layer reads: a computed one's inputs (`agdata.computed`), else its own."""
+    if layer.variable is None:
+        return []
+    c = computed.computed(layer.variable)
+    return list(c.inputs) if c is not None else [layer.variable]
+
+
 def hourly_of(layer: Layer) -> list[str]:
     """The hourly variables a layer is made from, for the corrections it lists."""
+    if (c := computed.computed(layer.variable or "")) is not None and layer.source == "hourly":
+        return list(c.inputs)
     if layer.source == "model":
         return series.hourly_needed([q.name for q in modelgrid.mapped()[layer.id].SPEC.inputs])
     if layer.variable is None or layer.id == DEGREE_DAYS or layer.variable.startswith("dd_"):
