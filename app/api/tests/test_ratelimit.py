@@ -7,7 +7,7 @@ from django.db import DatabaseError
 
 from api import ratelimit
 from ops.models import ApiUsage
-from ops.tasks import prune_api_usage
+from ops.tasks import housekeeping
 
 pytestmark = pytest.mark.django_db
 CLIENT = "203.0.113.5"
@@ -94,5 +94,5 @@ def test_usage_older_than_a_week_is_pruned():
     now = datetime.now(UTC).replace(second=0, microsecond=0)
     ApiUsage.objects.create(client=CLIENT, minute=now - timedelta(days=8), requests=1, cost=1)
     ApiUsage.objects.create(client=CLIENT, minute=now, requests=1, cost=1)
-    prune_api_usage.func(timestamp=0)
+    housekeeping.func(timestamp=0)
     assert list(ApiUsage.objects.values_list("minute", flat=True)) == [now]

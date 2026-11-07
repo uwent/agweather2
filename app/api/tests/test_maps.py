@@ -1,6 +1,8 @@
 """Static map images (PLAN.md Phase 5 G3, D60) on the fixture archive (Fayette County, Iowa, July 2025)."""
 
 import io
+import os
+import time
 
 import pytest
 from PIL import Image
@@ -48,11 +50,34 @@ def test_days_regions_models_and_refusals(client, archive):
     assert years.status_code == 422 and years.json()["errors"][0]["code"] == "too_large"
 
 
-@pytest.mark.django_db
-def test_the_job_draws_the_default_maps_once(archive):
-    drawn = maps.render_default_maps()
-    assert set(drawn) == {layer for layer, _ in maps.DEFAULT_MAPS}
-    assert all(ms == 0 for ms in maps.render_default_maps().values())  # nothing new to draw
+def test_prune_stale_deletes_old_images_and_temporary_files(settings, tmp_path):
+    settings.DATA_DIR = tmp_path
+    (tmp_path / "maps").mkdir()
+    old, new, tmp = (tmp_path / "maps" / n for n in ("old.png", "new.png", "x.123.tmp"))
+    for path in (old, new, tmp):
+        path.write_bytes(b"x")
+    stale = time.time() - (maps.KEEP_DAYS + 1) * 86400
+    for path in (old, tmp):
+        os.utime(path, (stale, stale))
+    assert maps.prune_stale() == 1
+    assert not old.exists() and not tmp.exists() and new.exists()
+    assert maps.prune_stale() == 0
+
+
+def test_a_draw_over_the_cap_deletes_the_least_recently_used(settings, tmp_path, monkeypatch):
+    settings.DATA_DIR = tmp_path
+    monkeypatch.setattr(maps, "MAX_KEPT", 3)
+    (tmp_path / "maps").mkdir()
+    now = time.time()
+    for age, name in enumerate(["newest", "middle", "oldest", "newer"]):
+        path = tmp_path / "maps" / f"{name}.png"
+        path.write_bytes(b"x")
+        os.utime(path, (now - age * 10, now - age * 10))
+    just_drawn = tmp_path / "maps" / "drawn.png"
+    just_drawn.write_bytes(b"x")
+    maps._enforce_cap(keep=just_drawn)
+    left = {p.stem for p in (tmp_path / "maps").glob("*.png")}
+    assert left == {"drawn", "newest", "middle"}
 
 
 @pytest.mark.django_db

@@ -134,18 +134,6 @@ def update_crop_tiers(timestamp: int) -> None:
         logger.warning("update_crop_tiers skipped: %s", error)
 
 
-@app.periodic(cron="52 * * * *")  # after the hour's ingest (:40) and forecast (:45)
-@app.task(queue="maintenance", queueing_lock="render_default_maps", task_middleware=JOB_MIDDLEWARE)
-def render_default_maps(timestamp: int) -> None:
-    """Draws the default static maps (`api.routes.maps.DEFAULT_MAPS`, D60) for the latest data, so an embedded link
-    ("Today's growing degree day map") answers at once; a map whose data hasn't changed is already drawn."""
-    from api.routes import maps
-
-    drawn = {layer: ms for layer, ms in maps.render_default_maps().items() if ms}
-    if drawn:
-        logger.info("maps drawn: %s", {layer: f"{ms:.0f} ms" for layer, ms in drawn.items()})
-
-
 @app.periodic(cron="0 5 * * 1")  # Mondays, after the past-years copies: past years settle, this year's is weekly
 @app.task(queue="maintenance", queueing_lock="build_downloads", task_middleware=JOB_MIDDLEWARE)
 def build_downloads(timestamp: int) -> None:
@@ -158,14 +146,19 @@ def build_downloads(timestamp: int) -> None:
 
 
 @app.periodic(cron="10 4 * * *")
-@app.task(queue="maintenance", queueing_lock="prune_api_usage", task_middleware=JOB_MIDDLEWARE)
-def prune_api_usage(timestamp: int) -> None:
-    """Deletes the API's usage counts (`ops.models.ApiUsage`, D69) older than a week."""
+@app.task(queue="maintenance", queueing_lock="housekeeping", task_middleware=JOB_MIDDLEWARE)
+def housekeeping(timestamp: int) -> None:
+    """Daily cleanup: deletes the API's usage counts (`ops.models.ApiUsage`, D69) older than a week, and the kept
+    static map images (`api.routes.maps`, D60) unused for two weeks, with any temporary files left by a crash."""
+    from api.routes import maps
     from ops.models import ApiUsage
 
     deleted, _ = ApiUsage.objects.filter(minute__lt=datetime.now(UTC) - timedelta(days=7)).delete()
     if deleted:
         logger.info("API usage: %d rows older than a week deleted", deleted)
+    stale = maps.prune_stale()
+    if stale:
+        logger.info("maps: %d unused images deleted", stale)
 
 
 # The order `manage.py jobs run all` and `jobs start` use: the archive first, then soil (IFS's provisional hours, then
@@ -176,6 +169,5 @@ CATCH_UP = (
     ingest_era5land,
     ingest_forecast,
     update_crop_tiers,
-    render_default_maps,
-    prune_api_usage,
+    housekeeping,
 )

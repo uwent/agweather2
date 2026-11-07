@@ -7,7 +7,9 @@ it's the latest day, so a link such as "Today's growing degree day map" stays cu
 title, the date and a legend.
 
 Images are kept under `data_dir/maps`, named by their ETag (what was asked and the data stamp), so a map is drawn
-once per change of its data; `render_default_maps` (after each hourly ingest) draws `DEFAULT_MAPS` ahead of time.
+once per change of its data, on the first request (0.1–1.4 s on the real archive). Those unused for KEEP_DAYS are
+deleted by the daily `housekeeping` job (`prune_stale`), and at most MAX_KEPT stay: a draw that goes over deletes the
+least recently used.
 """
 
 import hashlib
@@ -20,7 +22,6 @@ from typing import Any
 import numpy as np
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
-from django.test import RequestFactory
 from ninja import Field, Query, Router
 
 from agdata import mapimage, regions, series
@@ -36,18 +37,8 @@ router = Router(tags=["Maps and grids"])
 
 MARGIN_CELLS = 6  # around a region's cells
 KEEP_DAYS = 14  # an image not drawn or read again in this long is deleted
-# What the job draws ahead of time: v1's map set (degree days, temperatures, a week's rain and ET, sunlight, the
-# season's totals)
-DEFAULT_MAPS: list[tuple[str, dict[str, str]]] = [
-    ("dd_modified_50_86", {}),
-    ("air_temperature_max", {}),
-    ("air_temperature_min", {}),
-    ("precipitation_sum", {"days": "7", "stat": "sum"}),
-    ("et0_sum", {"days": "7", "stat": "sum"}),
-    ("shortwave_radiation_sum", {}),
-    ("precipitation_total", {}),
-    ("et0_total", {}),
-]
+MAX_KEPT = 1000  # most images kept; a new draw over this deletes the least recently used
+TMP_HOURS = 1  # a temporary file (from a draw that crashed) older than this is deleted
 
 
 class MapQuery(LayerQuery):
@@ -87,6 +78,7 @@ def static_map(request: HttpRequest, layer: str, query: Query[MapQuery], output:
     else:
         body = _draw(request, a, query, now, data_stamp)
         _keep(path, body)
+        _enforce_cap(keep=path)
     response = HttpResponse(body, content_type="image/png")
     response["ETag"] = etag
     latest = not (query.date or query.time or query.start or query.end or query.season)
@@ -189,20 +181,29 @@ def _keep(path: Path, body: bytes) -> None:
     tmp.replace(path)
 
 
-def render_default_maps() -> dict[str, float]:
-    """Draws `DEFAULT_MAPS` for the latest data where they're not drawn yet, and deletes images not drawn or read in
-    KEEP_DAYS; returns each map's time in ms (0 if it was there already). For `ops.tasks`."""
-    factory = RequestFactory()
-    found: dict[str, float] = {}
-    for layer, params in DEFAULT_MAPS:
-        request = factory.get(f"/api/v2/maps/{layer}.png", params)
-        started = time.perf_counter()
-        before = {p.name for p in _maps_dir().glob("*.png")} if _maps_dir().exists() else set()
-        static_map(request, layer, query=MapQuery(**params), output=UnitsQuery())  # type: ignore[arg-type]
-        after = {p.name for p in _maps_dir().glob("*.png")}
-        found[layer] = (time.perf_counter() - started) * 1000 if after - before else 0.0
-    cutoff = time.time() - KEEP_DAYS * 86400
+def prune_stale() -> int:
+    """Deletes images not drawn or read in KEEP_DAYS and old temporary files; returns how many. For `ops.tasks`."""
+    now = time.time()
+    deleted = 0
     for path in _maps_dir().glob("*.png"):
-        if path.stat().st_mtime < cutoff:
+        if _mtime(path) < now - KEEP_DAYS * 86400:
             path.unlink(missing_ok=True)
-    return found
+            deleted += 1
+    for path in _maps_dir().glob("*.tmp"):
+        if _mtime(path) < now - TMP_HOURS * 3600:
+            path.unlink(missing_ok=True)
+    return deleted
+
+
+def _enforce_cap(keep: Path) -> None:
+    """Deletes the least recently used images beyond MAX_KEPT, never `keep` (the one just drawn)."""
+    kept = sorted(((_mtime(p), p) for p in _maps_dir().glob("*.png") if p != keep), key=lambda e: e[0])
+    for _, path in kept[: max(0, len(kept) + 1 - MAX_KEPT)]:
+        path.unlink(missing_ok=True)
+
+
+def _mtime(path: Path) -> float:
+    try:
+        return path.stat().st_mtime
+    except FileNotFoundError:  # another worker deleted it
+        return float("inf")

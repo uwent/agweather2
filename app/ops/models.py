@@ -87,7 +87,7 @@ class DatasetStatus(models.Model):
 
 class ApiUsage(models.Model):
     """The API's use by one client in one minute (D69): the requests it made and what they cost, which
-    `api.ratelimit` charges by the server time each took. Rows older than a week are deleted (`prune_api_usage`)."""
+    `api.ratelimit` charges by the server time each took. Rows older than a week are deleted (`housekeeping`)."""
 
     client = models.CharField(max_length=64, help_text="IPv4 address, or IPv6 /64 network")
     minute = models.DateTimeField(help_text="The minute's start (UTC)")

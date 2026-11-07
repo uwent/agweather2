@@ -190,17 +190,18 @@ def test_the_crop_tiers_job_skips_an_empty_archive_and_a_held_lock(daily_store, 
     assert warnings(caplog) == []
 
 
-def test_the_maps_and_downloads_jobs_log_what_they_made(monkeypatch, caplog, settings, tmp_path):
+@pytest.mark.django_db
+def test_the_maps_and_downloads_jobs_log_what_they_did(monkeypatch, caplog, settings, tmp_path):
     from types import SimpleNamespace
 
     from api.routes import maps
     from ops import downloads
 
     settings.DATA_DIR = tmp_path
-    monkeypatch.setattr(maps, "render_default_maps", lambda: {"degree_days": 812.0, "tar-spot": 0})
+    monkeypatch.setattr(maps, "prune_stale", lambda: 3)
     monkeypatch.setattr(downloads, "build_wanted", lambda data_dir, now: [SimpleNamespace(bytes=3e6)] * 2)
     with caplog.at_level(logging.INFO, logger=tasks.__name__):
-        tasks.render_default_maps(NOW)
+        tasks.housekeeping(NOW)
         tasks.build_downloads(NOW)
     logged = [r.getMessage() for r in caplog.records if r.name == tasks.__name__]
-    assert logged == ["maps drawn: {'degree_days': '812 ms'}", "downloads: 2 files built (6 MB)"]
+    assert logged == ["maps: 3 unused images deleted", "downloads: 2 files built (6 MB)"]

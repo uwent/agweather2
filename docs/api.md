@@ -500,7 +500,7 @@ The columns match `dd_table`'s (each day's value and running total per setting, 
 
 **Daily Wisconsin grids** (`/api/weather/grid?date=…`, from R; `docs/validation-v1-grid.md`): one `/grids/{variable}?date=…&grid=latlon&res=0.1&method=mean` per variable, on the same 0.1° points. Minimum −0.45 °F on average (MAE 0.72), maximum +0.00 (0.44), dew point −0.02, RH within 0.6%, hours of RH ≥ 90% +1.48 (D50's 88%). Most of the minimum's difference is the day: v2's grid days are CST all year, and v1's followed daylight saving.
 
-**The UW Insect Diagnostic Lab's map link** ("Today's Growing Degree Day Map", v1's `/api/degree_days/map.png`, which draws v1's default, sine 50/86 since January 1): `/api/v2/maps/degree_days.png?dd=sine_50_86&stat=sum` runs from January 1 to the latest day, so the link stays current. v2's own default map, `/maps/dd_modified_50_86.png`, is modified 50/86 since January 1 (one of v1's default map set, Phase 5 G3); which one the lab links to is their call.
+**The UW Insect Diagnostic Lab's map link** ("Today's Growing Degree Day Map", v1's `/api/degree_days/map.png`, which draws v1's default, sine 50/86 since January 1): `/api/v2/maps/degree_days.png?dd=sine_50_86&stat=sum` runs from January 1 to the latest day, so the link stays current. v2's own default map, `/maps/dd_modified_50_86.png`, is modified 50/86 since January 1 (one of v1's default map set, Phase 5 G3; drawn when first requested); which one the lab links to is their call.
 
 ## Implementation choices
 

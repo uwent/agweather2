@@ -171,11 +171,10 @@ The worker in `bin/dev` keeps the archive current:
 | `ingest_forecast`     | :15 and :45    | the newest NBM run                                           |
 | `ingest_ifs`          | hourly, at :50 | the provisional soil and snow                                |
 | `ingest_era5land`     | every 6 hours  | ERA5-Land, about 5 days behind                               |
-| `render_default_maps` | hourly, at :52 | the default static maps (`/maps/…png`)                       |
 | `update_crop_tiers`   | hourly, at :55 | each crop's stages per planting tier, while in season        |
 | `build_past_years`    | Mondays        | the past-years copies                                        |
 | `build_downloads`     | Mondays        | the yearly NetCDF downloads                                  |
-| `prune_api_usage`     | daily          | drops API rate-limit counts older than a week                |
+| `housekeeping`        | daily, at 4:10 | drops API rate-limit counts over a week old and map images unused for 14 days |
 
 `bin/agwx jobs` lists them and their last runs, and `jobs run NAME` runs one now. Each ingest run and backfill block is listed in Django admin under Operations → Ingest records, and `/up` shows how far behind the archive is:
 
