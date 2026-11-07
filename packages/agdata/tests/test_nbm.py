@@ -408,3 +408,69 @@ def test_a_valid_time_falls_in_the_lead_group_that_ends_at_or_after_its_lead():
     table = {"lead_group_ends": [24, 72, 264]}
     lead = lambda hours: calibration.lead_index(CYCLE, CYCLE + timedelta(hours=hours), table)  # noqa: E731
     assert [lead(1), lead(24), lead(25), lead(72), lead(73), lead(264)] == [0, 0, 1, 1, 2, 2]
+
+
+def _map_rh_hour_by_hour(cycle, valid_times, longitude_deg, rh_percent, table):
+    """`map_rh` as it was written before it was vectorized (2026-11-06): one hour at a time, the blend built per
+    hour. The reference the vectorized one must match."""
+
+    def neighbours(x, centers, period=None):
+        c = np.asarray(centers, dtype=float)
+        if period is not None:
+            k = int(np.searchsorted(c, x % period, side="right")) - 1
+            lo, hi = k % len(c), (k + 1) % len(c)
+            span = (c[hi] - c[lo]) % period or period
+            return [(lo, 1 - ((x - c[lo]) % period) / span), (hi, ((x - c[lo]) % period) / span)]
+        if x <= c[0]:
+            return [(0, 1.0)]
+        if x >= c[-1]:
+            return [(len(c) - 1, 1.0)]
+        k = int(np.searchsorted(c, x, side="right")) - 1
+        w = (x - c[k]) / (c[k + 1] - c[k])
+        return [(k, 1 - w), (k + 1, w)]
+
+    maps = np.asarray(table["map"], dtype=float)
+    grid = np.asarray(table["rh_grid"], dtype=float)
+    out = np.array(rh_percent, dtype=float)
+    for k, valid in enumerate(valid_times):
+        doy = valid.timetuple().tm_yday + valid.hour / 24
+        blend = np.zeros(maps.shape[2:])
+        for s, ws in neighbours(doy, table["season_day_of_year"], period=365):
+            for g, wg in neighbours((valid - cycle) // timedelta(hours=1), table["lead_hours"]):
+                blend += ws * wg * maps[s, g]
+        rh = out[k]
+        hour = np.broadcast_to(calibration.solar_hour(valid, longitude_deg) - 0.5, rh.shape)
+        h0 = np.floor(hour).astype(int) % 24
+        wh = hour - np.floor(hour)
+        x = np.clip(np.nan_to_num(rh), grid[0], grid[-1])
+        i0 = np.clip(np.floor(x).astype(int), 0, len(grid) - 2)
+        f = x - grid[i0]
+        h1 = (h0 + 1) % 24
+        lower = (1 - f) * blend[h0, i0] + f * blend[h0, i0 + 1]
+        upper = (1 - f) * blend[h1, i0] + f * blend[h1, i0 + 1]
+        out[k] = np.where(np.isfinite(rh), (1 - wh) * lower + wh * upper, np.nan)
+    return out
+
+
+@pytest.mark.parametrize("lead_hours", [[36, 108, 204], [0]])
+def test_the_vectorized_rh_map_matches_mapping_hour_by_hour(lead_hours, monkeypatch):
+    rng = np.random.default_rng(3)
+    table = rh_table(rng.uniform(0, 100, (4, len(lead_hours), 24, 101)))
+    table["lead_hours"] = lead_hours
+    cycle = datetime(2025, 12, 20, 6, tzinfo=UTC)
+    times = [cycle + (n + 1) * timedelta(hours=1) for n in range(300)]  # across New Year, past the last lead
+    grid_rh = rng.uniform(-5, 105, (300, 2, 3))  # outside 0–100 too: clipped to the grid
+    grid_rh[rng.random(grid_rh.shape) < 0.05] = np.nan
+    lon = np.array([[-97.3, -89.4, -82.0], [-89.4, -89.4, -89.4]])
+    monkeypatch.setattr(calibration, "MAP_BLOCK", 6 * 7)  # several blocks of hours
+    np.testing.assert_allclose(
+        calibration.map_rh(cycle, times, lon, grid_rh, table),
+        _map_rh_hour_by_hour(cycle, times, lon, grid_rh, table),
+        rtol=1e-12,
+    )
+    point_rh = grid_rh[:, 0, 1]  # a point's series, as Open-Meteo's correction passes it
+    np.testing.assert_allclose(
+        calibration.map_rh(cycle, times, -89.4, point_rh, table),
+        _map_rh_hour_by_hour(cycle, times, -89.4, point_rh, table),
+        rtol=1e-12,
+    )

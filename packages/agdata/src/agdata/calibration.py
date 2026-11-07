@@ -97,45 +97,67 @@ def lead_index(cycle: datetime, valid: datetime, table: dict) -> int:
     return int(np.searchsorted(table["lead_group_ends"], (valid - cycle) // HOUR, side="left"))
 
 
-def _neighbours(x: float, centers, period: float | None = None) -> list[tuple[int, float]]:
-    """The two table entries around `x` and their weights (linear; held at the ends, or around `period`)."""
+def _neighbours(x: np.ndarray, centers, period: float | None = None) -> tuple[np.ndarray, np.ndarray]:
+    """For each `x`, the two table entries around it and their weights, (n, 2) each: linear, held at the ends (an
+    end's own entry twice, weights 1 and 0), or around `period`."""
     c = np.asarray(centers, dtype=float)
+    x = np.asarray(x, dtype=float)
     if period is not None:
-        k = int(np.searchsorted(c, x % period, side="right")) - 1  # -1: before the first, so after the last
+        k = np.searchsorted(c, x % period, side="right") - 1  # -1: before the first, so after the last
         lo, hi = k % len(c), (k + 1) % len(c)
-        span = (c[hi] - c[lo]) % period or period
-        return [(lo, 1 - ((x - c[lo]) % period) / span), (hi, ((x - c[lo]) % period) / span)]
-    if x <= c[0]:
-        return [(0, 1.0)]
-    if x >= c[-1]:
-        return [(len(c) - 1, 1.0)]
-    k = int(np.searchsorted(c, x, side="right")) - 1
-    w = (x - c[k]) / (c[k + 1] - c[k])
-    return [(k, 1 - w), (k + 1, w)]
+        span = (c[hi] - c[lo]) % period
+        span = np.where(span == 0, period, span)
+        w = ((x - c[lo]) % period) / span
+        return np.stack([lo, hi], axis=1), np.stack([1 - w, w], axis=1)
+    if len(c) == 1:
+        zero = np.zeros(x.shape, dtype=int)
+        return np.stack([zero, zero], axis=1), np.stack([np.ones(x.shape), np.zeros(x.shape)], axis=1)
+    k = np.clip(np.searchsorted(c, x, side="right") - 1, 0, len(c) - 2)
+    w = np.clip((x - c[k]) / (c[k + 1] - c[k]), 0.0, 1.0)  # held at the ends
+    return np.stack([k, k + 1], axis=1), np.stack([1 - w, w], axis=1)
+
+
+MAP_BLOCK = 2_000_000  # values mapped at once (hours × cells): ~16 MB a temporary
 
 
 def map_rh(cycle: datetime, valid_times: list[datetime], longitude_deg, rh_percent: np.ndarray, table: dict):
-    """Hourly RH (time on axis 0) through the table's maps, each hour's map blended as the module says."""
+    """Hourly RH (time on axis 0) through the table's maps, each hour's map blended as the module says: between
+    the two seasons and the two lead groups around it, and the two solar-hour bins and RH grid points around each
+    value. The blend is linear, so each term is looked up and weighted, for many hours at once."""
     maps = np.asarray(table["map"], dtype=float)  # (season, lead, solar hour, RH grid)
     grid = np.asarray(table["rh_grid"], dtype=float)  # 0, 1, …, 100
     out = np.array(rh_percent, dtype=float)
-    for k, valid in enumerate(valid_times):
-        doy = valid.timetuple().tm_yday + valid.hour / 24
-        blend = np.zeros(maps.shape[2:])
-        for s, ws in _neighbours(doy, table["season_day_of_year"], period=365):
-            for g, wg in _neighbours((valid - cycle) // HOUR, table["lead_hours"]):
-                blend += ws * wg * maps[s, g]
-        rh = out[k]
-        hour = np.broadcast_to(solar_hour(valid, longitude_deg) - 0.5, rh.shape)  # bins centred on h + 0.5
+    n = len(valid_times)
+    if n == 0:
+        return out
+    doy = np.array([v.timetuple().tm_yday + v.hour / 24 for v in valid_times])
+    lead = np.array([(v - cycle) // HOUR for v in valid_times], dtype=float)
+    clock = np.array([v.hour + v.minute / 60 for v in valid_times])
+    season, season_w = _neighbours(doy, table["season_day_of_year"], period=365)
+    group, group_w = _neighbours(lead, table["lead_hours"])
+    lon = np.asarray(longitude_deg, dtype=float)
+    cells = max(1, int(np.prod(out.shape[1:])))
+    step = max(1, MAP_BLOCK // cells)
+    for a in range(0, n, step):
+        b = min(a + step, n)
+        rh = out[a:b]
+        axes = (b - a, *([1] * (rh.ndim - 1)))
+        hour = np.broadcast_to((clock[a:b].reshape(axes) + lon / 15) % 24 - 0.5, rh.shape)  # bins centred on h + 0.5
         h0 = np.floor(hour).astype(int) % 24
         wh = hour - np.floor(hour)
+        h1 = (h0 + 1) % 24
         x = np.clip(np.nan_to_num(rh), grid[0], grid[-1])
         i0 = np.clip(np.floor(x).astype(int), 0, len(grid) - 2)
         f = x - grid[i0]
-        h1 = (h0 + 1) % 24
-        lower = (1 - f) * blend[h0, i0] + f * blend[h0, i0 + 1]
-        upper = (1 - f) * blend[h1, i0] + f * blend[h1, i0 + 1]
-        out[k] = np.where(np.isfinite(rh), (1 - wh) * lower + wh * upper, np.nan)
+        mapped = np.zeros(rh.shape)
+        for p in range(2):
+            for q in range(2):
+                w = (season_w[a:b, p] * group_w[a:b, q]).reshape(axes)
+                m = (season[a:b, p].reshape(axes), group[a:b, q].reshape(axes))
+                lower = (1 - f) * maps[(*m, h0, i0)] + f * maps[(*m, h0, i0 + 1)]
+                upper = (1 - f) * maps[(*m, h1, i0)] + f * maps[(*m, h1, i0 + 1)]
+                mapped += w * ((1 - wh) * lower + wh * upper)
+        out[a:b] = np.where(np.isfinite(rh), mapped, np.nan)
     return out
 
 
