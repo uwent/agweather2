@@ -78,10 +78,13 @@ def rollup_days(data_dir: Path, window: Window, first: date, last: date) -> int:
     """Rolls up grid days first..last (inclusive) from the hourly store into the daily store; returns the
     number of days written. Hours not in the hourly store count as missing. A day's variable is marked `derived`
     only if some cell has a value (so a day not yet observed, such as today with too few hours, reads as not
-    rolled up, and the running totals stop before it)."""
+    rolled up, and the running totals stop before it). A year with no hourly store of its own is skipped, so
+    rolling up from the day before a backfill's first day doesn't make a store for the year before the archive."""
     hourly = _HourlyReader(data_dir)
     written = 0
     for days in _passes(first, last):
+        if hourly.store(days[0].year) is None:
+            continue
         store = open_or_create_daily(data_dir, days[0].year, window)
         has_value: dict[str, np.ndarray] = {}
         for band, out in _rolled(hourly, window, days):
@@ -232,7 +235,7 @@ class _HourlyReader:
         """Hours ending at start, start + 1 h, … before stop, (hours, y, x) as float32."""
         out = np.full(((stop - start) // HOUR, *window.shape), np.nan, dtype=np.float32)
         for year in range(start.year, (stop - HOUR).year + 1):
-            store = self._store(year)
+            store = self.store(year)
             if store is None:
                 continue
             begin = max(start, datetime(year, 1, 1, tzinfo=UTC))
@@ -243,7 +246,7 @@ class _HourlyReader:
             )
         return out
 
-    def _store(self, year: int) -> GridStore | None:
+    def store(self, year: int) -> GridStore | None:
         if year not in self.stores:
             try:
                 self.stores[year] = GridStore.open(self.data_dir, HOURLY, year, VARIABLES.values(), add_missing=True)

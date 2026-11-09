@@ -113,6 +113,14 @@ def test_new_years_eve_reads_the_next_years_hours(tmp_path):
     assert read(tmp_path, "precipitation_sum", date(2026, 1, 1)).shape == WINDOW.shape
 
 
+def test_a_year_without_hours_gets_no_daily_store(tmp_path):
+    """A backfill rolls up from the day before its first: December 31 of the year before the archive isn't made."""
+    hourly_store(tmp_path, 2016, datetime(2016, 1, 1, tzinfo=UTC), 48)
+    rollup_days(tmp_path, WINDOW, date(2015, 12, 31), date(2016, 1, 1))
+    assert not (tmp_path / "daily" / "2015.zarr").exists()
+    assert (tmp_path / "daily" / "2016.zarr").exists()
+
+
 def test_a_new_store_is_on_grid_days(tmp_path):
     store = open_or_create_daily(tmp_path, 2025, WINDOW)
     zones, index = cell_timezones(store)

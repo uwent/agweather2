@@ -22,6 +22,7 @@ from typing import Any
 import numpy as np
 import zarr
 from zarr.codecs.numcodecs import PCodec
+from zarr.errors import GroupNotFoundError
 
 from agdata.catalog import DAILY_VARIABLES, FILL, Variable
 from agdata.grid import Window
@@ -57,10 +58,10 @@ def status(data_dir: Path, year: int) -> str | None:
     "missing", "incomplete" (a build stopped partway), "out of date: the daily data changed" (the daily store was
     written since the copy was built, by an ingest, a rebuild or `archive fill`'s December 31), or "out of date: the
     daily variables' code changed"."""
-    path = PAST.path(data_dir, year)
-    if not path.exists():
+    group = _open_copy(PAST.path(data_dir, year))
+    if group is None:
         return "missing"
-    attrs: dict[str, Any] = dict(zarr.open_group(path, mode="r").attrs)
+    attrs: dict[str, Any] = dict(group.attrs)
     if not attrs.get("complete"):
         return "incomplete"  # a build stopped partway
     daily = GridStore.open(data_dir, DAILY, year, _present(data_dir, year))
@@ -79,6 +80,15 @@ def stale_years(data_dir: Path, before: int) -> dict[int, str]:
         if year < before and (reason := status(data_dir, year)) is not None:
             found[year] = reason
     return found
+
+
+def _open_copy(path: Path) -> zarr.Group | None:
+    """A year's copy, or None if there's none. `build` swaps a new copy in by two renames, and a reader that looks
+    between them finds no copy rather than an error (the dashboard's year table did)."""
+    try:
+        return zarr.open_group(path, mode="r")
+    except (FileNotFoundError, GroupNotFoundError):
+        return None
 
 
 def _present(data_dir: Path, year: int) -> list[Variable]:
@@ -125,9 +135,15 @@ def build(data_dir: Path, year: int, progress: Callable[[int, int], None] | None
             "complete": True,
         }
     )
+    # Swapped in by renames, the old copy deleted after, so the path is empty only between two renames
+    old = path.with_name(path.name + ".old")
+    if old.exists():
+        shutil.rmtree(old)
     if path.exists():
-        shutil.rmtree(path)
+        path.rename(old)
     building.rename(path)
+    if old.exists():
+        shutil.rmtree(old)
 
 
 def _tiles(window: Window) -> Iterable[Window]:
@@ -152,10 +168,9 @@ class Reader:
 
     def _year(self, year: int) -> _Year | None:
         if year not in self.opened:
-            path = PAST.path(self.data_dir, year)
+            group = _open_copy(PAST.path(self.data_dir, year))
             found = None
-            if path.exists():
-                group = zarr.open_group(path, mode="r")
+            if group is not None:
                 attrs: dict[str, Any] = dict(group.attrs)
                 if attrs.get("complete"):
                     w = attrs["window"]

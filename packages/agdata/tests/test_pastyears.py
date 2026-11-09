@@ -67,3 +67,14 @@ def test_years_without_a_complete_copy_or_cells_outside_it_read_nothing(two_year
     assert reader.read(WINDOW.j0, WINDOW.i0, date(2024, 1, 2), date(2024, 1, 3), ["not_a_variable"]) is None
     (pastyears.PAST.path(two_years, 2023).with_name("2023.zarr.part")).mkdir(parents=True)  # a build that crashed
     assert pastyears.status(two_years, 2023) == "missing"
+
+
+def test_a_copy_read_while_its_replacement_is_swapped_in_reads_as_missing(two_years):
+    pastyears.build(two_years, 2024)
+    path = pastyears.PAST.path(two_years, 2024)
+    (path / "zarr.json").unlink()  # what a reader saw mid-swap before builds swapped by renames
+    assert pastyears.status(two_years, 2024) == "missing"
+    assert pastyears.Reader(two_years).read(WINDOW.j0, WINDOW.i0, date(2024, 1, 2), date(2024, 1, 3), NAMES) is None
+    pastyears.build(two_years, 2024)  # a rebuild replaces it whole, leaving nothing beside it
+    assert pastyears.status(two_years, 2024) is None
+    assert sorted(p.name for p in path.parent.iterdir()) == ["2024.zarr"]

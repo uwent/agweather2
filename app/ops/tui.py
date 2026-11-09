@@ -233,7 +233,12 @@ class Dashboard(App):
 
     @work(thread=True, exclusive=True, group="years")
     def load_years(self) -> None:
-        states = archive.year_states(self.data_dir)
+        try:
+            states = archive.year_states(self.data_dir)
+        except Exception as error:  # a store being written can read oddly; the next refresh tries again
+            message = f"Couldn't read the years ({error}); trying again at the next refresh"
+            self.call_from_thread(self._while_running(lambda: self.notify(message, severity="warning")))
+            return
         self.call_from_thread(self._while_running(self.show_years), states)
 
     def show_years(self, states: list[archive.YearState]) -> None:
