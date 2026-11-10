@@ -142,7 +142,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
 ## Phase 6: Frontend plan and the data behind it
 
-- [ ] **Restart `bin/dev` before Monday, November 16** (2026-11-09). Its worker started at 21:37, before past-years builds took turns (a lock added that evening, after two builds at once broke 2017's copy). Ctrl-C in its terminal, then `bin/dev`.
+- [x] **Restart `bin/dev` before Monday, November 16** (2026-11-09; done that evening). Its worker started at 21:37, before past-years builds took turns (a lock added that evening, after two builds at once broke 2017's copy). Ctrl-C in its terminal, then `bin/dev`.
 
 - [ ] **`/tmp` is now a 9.8 GB tmpfs** (Ubuntu 26.04 mounts it in memory by default; found 2026-11-09). The test suite in parallel fills it ("No space left on device" in a dozen tests), and whatever's there uses WSL's 19 GB of RAM. Either give `/tmp` back to the disk, as on 24.04:
 
@@ -153,6 +153,18 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
   ```
 
   or keep the tmpfs and point the tests elsewhere (`TMPDIR=$PWD/tmp/pytest-tmp uv run pytest -n auto --dist loadfile`), which Claude can make the default in `bin/ci` and the root conftest if you'd rather. CI on GitHub isn't affected.
+
+- [ ] **Derive soil and snow again with the B-spline** (D80, 2026-11-09). ERA5-Land and IFS now reach the grid by a cubic B-spline instead of bilinear, which removes the 0.1° grid's creases and squares from soil maps. Ben restarted `bin/dev` (2026-11-09), so the worker's daily ERA5-Land and hourly IFS jobs use it, and the re-derive is running. Derive every year from what's kept (local, no download; about 20 s a month over Wisconsin, so roughly 45 minutes), and rebuild what's made from the daily store:
+
+  ```bash
+  uv run app/manage.py era5land --rederive --start 2016-01-01 --end 2026-11-03
+  uv run app/manage.py rebuild --check       # should print nothing
+  uv run app/manage.py ingredients --check   # then `ingredients` if it lists anything
+  uv run app/manage.py downloads --check     # then `downloads` if it lists anything
+  uv run app/manage.py timecopy --check      # then `timecopy` if it lists anything
+  ```
+
+  Then look at `/api/v2/maps/soil_temperature_4cm_mean.png?stat=min&start=2025-07-01&end=2026-07-01`: no grid lines, though ERA5-Land's own patches (its 0.1° cells differ by several degrees under snow) remain as soft blobs.
 
 - [x] **ERA5-Land kept as received, and the coast of soil and snow** (D79, 2026-11-07; done by 2026-11-09: every month of 2016–2026 has soil on Washington Island, the Door Peninsula's tip and Madeline Island, so the re-derive isn't needed). Claude started the download of 2016 through October 2026 into `data/era5land/` (`era5land --start 2016-01-01 --end 2026-11-03`, 130 monthly requests, 3 at a time: likely a day or two at the CDS; it resumes where it stopped if run again, since a day counts as missing until it's kept). It writes each month's soil and snow by the new coast rule as it arrives.
 

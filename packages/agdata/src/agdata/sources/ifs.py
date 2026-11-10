@@ -13,9 +13,10 @@ newest run's end (older runs' long leads and stale values), so reads stop at `ru
 hours past the newer one (`static/meta.json` gives the newest run).
 
 Cells: ring k from the nearer pole holds 20 + 4(k − 1) points from longitude 0 (`openmeteo.cell_for`). Each NDFD
-cell interpolates linearly along the two rings around it, then between them, by the coast rule (`agdata.coast`,
-D79): neighbours over water (ERA5-Land's land mask, `era5land.LandMask`) get no weight, as IFS's lake points carry
-the lake's temperature; a cell with none on land takes the nearest land point within 40 km; our water is missing.
+cell takes the cubic B-spline over four points on each of the four rings around it (`coast.bspline`, as ERA5-Land),
+by the coast rule (`agdata.coast`, D79): neighbours over water (ERA5-Land's land mask, `era5land.LandMask`) get no
+weight, as IFS's lake points carry the lake's temperature; a cell with none on land takes the nearest land point
+within 40 km; our water is missing.
 """
 
 import json
@@ -32,7 +33,7 @@ import numpy as np
 import zarr
 
 from agdata import soil_seam
-from agdata.coast import Weights, finish, land_only
+from agdata.coast import KERNEL_OFFSETS, Weights, bspline, finish, land_only
 from agdata.grid import NDFD, Window
 from agdata.ingest import SOIL
 from agdata.sources import era5land
@@ -66,7 +67,8 @@ def ring_offsets() -> np.ndarray:
 
 @cache
 def weights_for(window: Window) -> Weights:
-    """Bilinear weights on the rings, before the land mask."""
+    """Cubic B-spline weights on the rings, before the land mask: four points along each of the four rings around a
+    cell, the rings' weights by the cell's place between the two nearest (their spacing is nearly even)."""
     lat, lon = NDFD.window_latlon(window)
     lat, lon = np.asarray(lat, dtype=float), np.asarray(lon, dtype=float) % 360
     first = max(1, int((90 - lat.max()) / 180 * RINGS) - 3)
@@ -74,20 +76,22 @@ def weights_for(window: Window) -> Weights:
     rings = np.arange(first, last + 1)
     ring_lat = np.array([_ring_latitude(int(j)) for j in rings])  # decreasing
     north = rings[np.searchsorted(-ring_lat, -lat, side="right") - 1]  # the ring at or north of each cell
-    south = north + 1
+    if (north + KERNEL_OFFSETS[0] < first).any() or (north + KERNEL_OFFSETS[-1] > last).any():
+        raise ValueError(f"the rings searched don't surround {window}")
     lat_n = ring_lat[north - first]
-    lat_s = ring_lat[south - first]
-    wy = (lat_n - lat) / (lat_n - lat_s)
+    lat_s = ring_lat[north + 1 - first]
+    wy = bspline((lat_n - lat) / (lat_n - lat_s))
     offsets = ring_offsets()
     cells, weights = [], []
-    for ring, w_ring in ((north, 1 - wy), (south, wy)):
+    for a, dj in enumerate(KERNEL_OFFSETS):
+        ring = north + dj
         points = np.vectorize(ring_points)(ring)
         position = lon / (360.0 / points)
-        i0 = np.floor(position).astype(np.int64) % points
-        i1 = (i0 + 1) % points
-        wx = position - np.floor(position)
-        cells += [offsets[ring] + i0, offsets[ring] + i1]
-        weights += [w_ring * (1 - wx), w_ring * wx]
+        i0 = np.floor(position).astype(np.int64)
+        wx = bspline(position - i0)
+        for b, di in enumerate(KERNEL_OFFSETS):
+            cells.append(offsets[ring] + (i0 + di) % points)
+            weights.append(wy[a] * wx[b])
     return Weights(cells=np.stack(cells), weights=np.stack(weights))
 
 
@@ -123,11 +127,11 @@ def coast_weights(window: Window, land: era5land.LandMask) -> Weights:
     within 40 km where none is, nothing on water. Kept per window and mask."""
     key = (window, land.grid, hash(land.fraction.tobytes()))
     if key not in _coast:
-        bilinear = weights_for(window)
-        points = np.unique(bilinear.cells)
+        spline = weights_for(window)
+        points = np.unique(spline.cells)
         land_points = points[_is_land(points, land)]
         lat, lon = cell_latlon(land_points)
-        _coast[key] = finish(land_weights(bilinear, land), window, land_points, lat, lon)[0]
+        _coast[key] = finish(land_weights(spline, land), window, land_points, lat, lon)[0]
     return _coast[key]
 
 

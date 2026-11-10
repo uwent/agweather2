@@ -13,8 +13,8 @@ Checked 2026-10-31 (`reanalysis-era5-land`, GRIB, `download_format: unarchived`)
   partly water is a blend of soil and lake by its land fraction (D79). ERA5-Land's land-sea mask (`land_sea_mask`,
   a land fraction, lakes 0; time-invariant, and the CDS returns it for the whole globe whatever the area) marks land
   at 0.5 or more. Files are kept as received (`read_native`, `agdata.era5store`), and the 2.5 km hours derived from
-  them (`derive`) by the coast rule (`agdata.coast`): land points only, the nearest within 40 km at the coast, our
-  own water missing.
+  them (`derive`) by the coast rule (`agdata.coast`): a cubic B-spline over the 4 × 4 land points around each cell,
+  the nearest within 40 km at the coast, our own water missing.
 - Requests queue at the CDS; a few hours over a small box came back in 24 s, a month over a state takes longer.
   The API is `https://cds.climate.copernicus.eu/api` with the account's key (`COPERNICUS_API_KEY`).
 """
@@ -27,7 +27,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata.coast import Weights, finish, land_only
+from agdata.coast import KERNEL_OFFSETS, Weights, bspline, finish, land_only
 from agdata.grid import NDFD, LatLonGrid, Window
 from agdata.sources.grib import eccodes
 from agdata.sources.openmeteo import soil_at_depths
@@ -36,7 +36,7 @@ from agdata.units import convert
 API = "https://cds.climate.copernicus.eu/api"
 DATASET = "reanalysis-era5-land"
 STEP = 0.1  # degrees
-AREA_MARGIN = 0.2  # degrees requested beyond the window, so every cell has four neighbours
+AREA_MARGIN = 0.2  # degrees requested beyond the window: two points past every cell, for its 4 × 4 neighbours
 LAYERS = {  # GRIB short name → Open-Meteo's layer name (the same layers as IFS)
     "stl1": "soil_temperature_0_to_7cm",
     "stl2": "soil_temperature_7_to_28cm",
@@ -228,8 +228,8 @@ def read(path: Path, window: Window, land: LandMask) -> Hours:
 
 def derive(native: Native, window: Window, land: LandMask) -> Hours:
     """ERA5-Land's hours on the window by the coast rule (`agdata.coast`, D79): the catalog's soil depths (°C) and
-    `snow_depth` (cm), each from ERA5-Land's land points only, the nearest within 40 km at the coast, missing on
-    water."""
+    `snow_depth` (cm), each a cubic B-spline over ERA5-Land's land points only, the nearest within 40 km at the
+    coast, missing on water."""
     weights = coast_weights(native.grid, window, land)
     needed = weights.needed
     out: dict[str, np.ndarray] = {}
@@ -248,8 +248,8 @@ _coast: dict[tuple, Weights] = {}
 
 
 def coast_weights(grid: LatLonGrid, window: Window, land: LandMask) -> Weights:
-    """Each window cell's bilinear neighbours on `grid` (flat indices), by the coast rule; kept per grid, window
-    and mask."""
+    """Each window cell's 4 × 4 neighbours on `grid` (flat indices) and their cubic B-spline weights, by the coast
+    rule; kept per grid, window and mask."""
     key = (grid, window, land.grid, hash(land.fraction.tobytes()))
     if key in _coast:
         return _coast[key]
@@ -257,18 +257,20 @@ def coast_weights(grid: LatLonGrid, window: Window, land: LandMask) -> Weights:
     lat, lon = NDFD.window_latlon(window)
     fj, fi = grid.fractional_index(lat, lon)
     j0, i0 = np.floor(fj).astype(np.int64), np.floor(fi).astype(np.int64)
-    if j0.min() < 0 or i0.min() < 0 or j0.max() + 1 >= grid.ny or i0.max() + 1 >= grid.nx:
+    first, last = KERNEL_OFFSETS[0], KERNEL_OFFSETS[-1]
+    if j0.min() + first < 0 or i0.min() + first < 0 or j0.max() + last >= grid.ny or i0.max() + last >= grid.nx:
         raise ValueError(f"{grid} doesn't surround {window}")
-    wy, wx = fj - j0, fi - i0
+    wy, wx = bspline(fj - j0), bspline(fi - i0)
     cells, weights = [], []
-    for dj, di, w in ((0, 0, (1 - wy) * (1 - wx)), (0, 1, (1 - wy) * wx), (1, 0, wy * (1 - wx)), (1, 1, wy * wx)):
-        cells.append((j0 + dj) * grid.nx + (i0 + di))
-        weights.append(w)
-    bilinear = Weights(cells=np.stack(cells), weights=np.stack(weights))
+    for a, dj in enumerate(KERNEL_OFFSETS):
+        for b, di in enumerate(KERNEL_OFFSETS):
+            cells.append((j0 + dj) * grid.nx + (i0 + di))
+            weights.append(wy[a] * wx[b])
+    spline = Weights(cells=np.stack(cells), weights=np.stack(weights))
     land_points = np.flatnonzero(is_land)
     point_lat = grid.first_lat + (land_points // grid.nx) * grid.step
     point_lon = grid.first_lon + (land_points % grid.nx) * grid.step
-    found, _ = finish(land_only(bilinear, is_land[bilinear.cells]), window, land_points, point_lat, point_lon)
+    found, _ = finish(land_only(spline, is_land[spline.cells]), window, land_points, point_lat, point_lon)
     _coast[key] = found
     return found
 

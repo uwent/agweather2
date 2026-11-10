@@ -5,7 +5,14 @@ partly water is a blend of soil and lake by its land fraction (checked over Door
 open water +2.5 °C in mid-January, land −5.6 °C, mixed cells between). So a 2.5 km cell takes its value from the
 source's land points only (fraction ≥ 0.5), wherever its own center is:
 
-- Its interpolation neighbours that are land, their weights renormalized (`Weights`, `land_only`).
+- Its interpolation neighbours that are land, their weights renormalized (`Weights`, `land_only`). The neighbours
+  are the source's 4 × 4 points around the cell, weighted by the cubic B-spline (`bspline`): every weight is
+  positive, so a cell's value stays within its neighbours' and dropping water ones can't blow it up (an
+  interpolating cubic such as Catmull-Rom has negative weights, and masked it reached −136 °C); the result is
+  smooth across the source's cell lines, where bilinear's slope jumps and its creases and squares show on a map.
+  It's an approximation, not an interpolation: a source point's own value is softened toward its neighbours' (a
+  lone warm 0.1° cell by about a degree), which suits values that are each an area's mean. A field linear in the
+  source's indices comes through exactly.
 - With none of them land (the coast, the Door Peninsula's tip, Washington Island, the Apostle Islands), the nearest
   land point within MAX_COAST_KM (`finish`).
 - On water by our own 2.5 km mask (`water`: where URMA analyzes a wave height, the Great Lakes and the ocean;
@@ -21,6 +28,8 @@ import numpy as np
 from agdata.grid import NDFD, Window
 
 WATER = Path(__file__).parent / "data" / "water.npz"
+KERNEL_OFFSETS = (-1, 0, 1, 2)  # `bspline`'s points, from the source point at or before a cell
+PASS_BUDGET = 4_000_000  # cell-hours in a pass of `Weights.apply` (float64: ~32 MB an array)
 MAX_COAST_KM = 40.0  # a land cell of ours reaches this far for the nearest land point (Washington Island: 32 km)
 EARTH_KM = 6371.0
 
@@ -37,6 +46,14 @@ def water(window: Window) -> np.ndarray:
     return _water_full()[window.j0 : window.j1, window.i0 : window.i1]
 
 
+def bspline(t: np.ndarray) -> np.ndarray:
+    """The cubic B-spline's weights (4, …) for the points at KERNEL_OFFSETS from the one at or before a position,
+    `t` (0–1) past it. Positive, summing to 1."""
+    t = np.asarray(t, dtype=np.float64)
+    s = 1 - t
+    return np.stack([s**3 / 6, (3 * t**3 - 6 * t**2 + 4) / 6, (3 * s**3 - 6 * s**2 + 4) / 6, t**3 / 6])
+
+
 @dataclass(frozen=True, kw_only=True)
 class Weights:
     """Each 2.5 km cell's neighbours in a source (flat indices into its points) and their weights: (k, ny, nx). A
@@ -45,20 +62,39 @@ class Weights:
     cells: np.ndarray
     weights: np.ndarray
 
-    def apply(self, values: np.ndarray, needed: np.ndarray, hours_per_pass: int = 24) -> np.ndarray:
+    def apply(self, values: np.ndarray, needed: np.ndarray, hours_per_pass: int | None = None) -> np.ndarray:
         """Values at the `needed` flat points (sorted), (points, hours) → (hours, ny, nx); NaN where no neighbour
-        with weight has one."""
-        # (k, ny, nx); a neighbour with no weight anywhere may not be in `needed`: any row will do for it
-        rows = np.minimum(np.searchsorted(needed, self.cells), max(0, needed.size - 1))
-        out = np.full((values.shape[1], *self.cells.shape[1:]), np.nan, dtype=np.float32)
-        for h in range(0, values.shape[1], hours_per_pass):
-            v = np.moveaxis(values[rows, h : h + hours_per_pass], -1, 1)  # (k, hours, ny, nx)
-            w = np.where(np.isfinite(v), self.weights[:, None], 0.0)
-            total = w.sum(axis=0)
+        with weight has one. Hours go `hours_per_pass` at a time, by default as many as PASS_BUDGET allows; within a
+        pass the neighbours are summed one at a time, so a pass holds a few (cells, hours) arrays, whatever k is."""
+        k, shape = self.cells.shape[0], self.cells.shape[1:]
+        cells = self.cells.reshape(k, -1)
+        weights = self.weights.reshape(k, -1)
+        used = np.flatnonzero((weights > 0).any(axis=0))  # cells with no weight (our water) stay NaN unread
+        # a neighbour with no weight anywhere may not be in `needed`: any row will do for it
+        rows = np.minimum(np.searchsorted(needed, cells[:, used]), max(0, needed.size - 1))
+        weights = weights[:, used]
+        hours = values.shape[1]
+        out = np.full((hours, int(np.prod(shape))), np.nan, dtype=np.float32)
+        if hours_per_pass is None:
+            hours_per_pass = max(1, PASS_BUDGET // max(1, used.size))
+        weight_total = weights.sum(axis=0)[:, None]  # > 0 for every used cell
+        for h in range(0, hours, hours_per_pass):
+            block = values[:, h : h + hours_per_pass]
+            weighted = np.zeros((used.size, block.shape[1]))
+            if np.isfinite(block).all():  # the usual case: every neighbour counts, with its weight as built
+                for n in range(k):
+                    weighted += weights[n][:, None] * block[rows[n]]
+                out[h : h + hours_per_pass, used] = (weighted / weight_total).T
+                continue
+            total = np.zeros_like(weighted)
+            for n in range(k):
+                v = block[rows[n]]  # (cells, hours)
+                w = np.where(np.isfinite(v), weights[n][:, None], 0.0)
+                total += w
+                weighted += np.where(w > 0, v, 0.0) * w
             with np.errstate(invalid="ignore", divide="ignore"):
-                mean = (np.where(w > 0, v, 0.0) * w).sum(axis=0) / total
-            out[h : h + hours_per_pass] = np.where(total > 0, mean, np.nan)
-        return out
+                out[h : h + hours_per_pass, used] = np.where(total > 0, weighted / total, np.nan).T
+        return out.reshape(hours, *shape)
 
     @property
     def needed(self) -> np.ndarray:
