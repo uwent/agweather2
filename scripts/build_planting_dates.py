@@ -47,7 +47,7 @@ NASS = {  # our crop: the table's heading, and the month a season starts in (win
     "spring-wheat": ("Spring Wheat", 1),
     "winter-wheat": ("Winter Wheat", 7),
 }
-COUNTIES = CACHE / "cb_county_500k.zip"  # from build_counties.py, for state names
+COUNTIES = ROOT / "data" / "census" / "cb_2024_us_county_500k.zip"  # build_counties.py's, for state names
 YEAR = 2025  # a non-leap year to write dates in
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 

@@ -22,6 +22,8 @@ class County:
     geoid: str  # five-digit FIPS code, state first
     name: str
     state: str  # postal abbreviation
+    land_m2: int = 0  # the Census Bureau's land area
+    cells: int = 0  # 2.5 km grid cells that summaries count as the county (`agdata.regions.summary_counties`)
 
 
 @cache
@@ -35,7 +37,19 @@ def counties() -> tuple[County | None, ...]:
     """Counties by grid id (index 0 is no county)."""
     with (DATA / "counties.csv").open() as f:
         rows = list(csv.DictReader(f))
-    return (None, *(County(geoid=r["geoid"], name=r["name"], state=r["state"]) for r in rows))
+    return (
+        None,
+        *(
+            County(
+                geoid=r["geoid"],
+                name=r["name"],
+                state=r["state"],
+                land_m2=int(r.get("land_m2") or 0),
+                cells=int(r.get("cells") or 0),
+            )
+            for r in rows
+        ),
+    )
 
 
 def county_ids(latitude, longitude) -> np.ndarray:

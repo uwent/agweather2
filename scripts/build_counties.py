@@ -1,10 +1,16 @@
-"""Build `agdata/data/counties.npz`: the county at every point of a 0.025° grid over the lower 48 (D34).
+"""Build `agdata/data/counties.npz` and `counties.csv`: the county at every point of a 0.025° grid over the lower 48
+(D34), and each county's land area and cells on the 2.5 km grid.
 
-From the Census Bureau's 2024 cartographic boundary file at 1:500,000 (cb_2024_us_county_500k), downloaded once
-into `tmp/planting-dates/`. Each grid point gets the county whose polygon contains it (0 for none: sea, lakes,
-Canada, Mexico); `agdata.places` looks points up by index arithmetic, so the app needs no geometry library. The grid
+From the Census Bureau's 2024 cartographic boundary file at 1:500,000 (cb_2024_us_county_500k), kept in
+`data/census/` (downloaded there if it's missing). Each grid point gets the county whose polygon contains it (0 for
+none: sea, lakes, Canada, Mexico); `agdata.places` looks points up by index arithmetic, so the app needs no geometry
+library. The grid
 spacing (about 2.8 km north–south, 2 km east–west) puts points within about 1.5 km of a boundary at risk of the
 neighbouring county, which is fine for typical planting dates and state region masks.
+
+`counties.csv` also gives each county's land area (the file's ALAND, in square meters) and its `cells`: the 2.5 km
+grid's cells that summaries count as the county (`agdata.regions.summary_counties`, over the whole grid), so a
+summary can say what share of a county the area we cover holds.
 
 Run (shapely and pyshp only for the build):
     uv run --with shapely --with pyshp python scripts/build_counties.py [--quiet]
@@ -28,7 +34,7 @@ import shapely
 from agdata.progress import Reporter
 
 ROOT = Path(__file__).resolve().parents[1]
-CACHE = ROOT / "tmp" / "planting-dates"
+CENSUS = ROOT / "data" / "census"
 URL = "https://www2.census.gov/geo/tiger/GENZ2024/shp/cb_2024_us_county_500k.zip"
 OUT = ROOT / "packages" / "agdata" / "src" / "agdata" / "data"
 SOUTH, NORTH, WEST, EAST, STEP = 24.4, 49.5, -124.8, -66.9, 0.025
@@ -41,10 +47,10 @@ def main() -> None:
     args = parser.parse_args()
     report = Reporter(quiet=args.quiet)
 
-    archive = CACHE / "cb_county_500k.zip"
+    archive = CENSUS / "cb_2024_us_county_500k.zip"
     report.step(f"building the county grid into {OUT} from {archive}")
     if not archive.exists():
-        CACHE.mkdir(parents=True, exist_ok=True)
+        CENSUS.mkdir(parents=True, exist_ok=True)
         report.step(f"downloading {URL}")
         response = requests.get(URL, timeout=300)
         response.raise_for_status()  # never cache an error page as the archive
@@ -90,13 +96,21 @@ def main() -> None:
     if skipped:
         report.warn(f"{skipped} counties cover no grid point")
     OUT.mkdir(parents=True, exist_ok=True)
-    report.step(f"writing {OUT / 'counties.npz'} and {OUT / 'counties.csv'} (overwriting)")
+    report.step(f"writing {OUT / 'counties.npz'} (overwriting)")
     np.savez_compressed(OUT / "counties.npz", county=grid, south=SOUTH, west=WEST, step=STEP)
+    report.step("counting each county's cells on the 2.5 km grid")
+    from agdata import regions  # reads the county grid just written
+    from agdata.grid import NDFD
+
+    cells = np.bincount(regions.summary_counties(NDFD.window).ravel(), minlength=len(records) + 1)
+    report.step(f"writing {OUT / 'counties.csv'} (overwriting)")
     with (OUT / "counties.csv").open("w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["index", "geoid", "name", "state"])
+        writer.writerow(["index", "geoid", "name", "state", "land_m2", "cells"])
         for index, (rec, _) in enumerate(records, start=1):
-            writer.writerow([index, rec["GEOID"], rec["NAMELSAD"], rec["STUSPS"]])
+            writer.writerow([index, rec["GEOID"], rec["NAMELSAD"], rec["STUSPS"], rec["ALAND"], cells[index]])
+    if (empty := int(np.count_nonzero(cells[1:] == 0))) > 0:
+        report.warn(f"{empty} counties have no cell on the 2.5 km grid")
     if not report.finish(f"{len(records)} counties; {np.count_nonzero(grid)} of {grid.size} grid points in a county"):
         sys.exit(1)
 

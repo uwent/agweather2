@@ -48,6 +48,8 @@ export const UNITS: Record<string, Unit> = {
   ly: u('ly', 'radiant_exposure', 0, 0.041868),
   kg_ha: u('kg/ha', 'areal_mass', 0),
   lb_ac: u('lb/ac', 'areal_mass', 0, 0.45359237 / 0.40468564224),
+  km2: u('km²', 'area', 0),
+  mi2: u('sq mi', 'area', 0, 2.589988110336),
   percent: u('%', 'fraction', 0),
   deg: u('°', 'angle', 0),
   day: u('d', 'duration', 0),
@@ -66,6 +68,7 @@ const DISPLAY: Record<UnitSystem, Record<string, string>> = {
     pressure: 'kPa',
     radiant_exposure: 'MJ_m2',
     areal_mass: 'kg_ha',
+    area: 'km2',
   },
   imperial: {
     temperature: 'degF',
@@ -76,6 +79,7 @@ const DISPLAY: Record<UnitSystem, Record<string, string>> = {
     pressure: 'inHg',
     radiant_exposure: 'MJ_m2',
     areal_mass: 'lb_ac',
+    area: 'mi2',
   },
 }
 

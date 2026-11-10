@@ -756,6 +756,31 @@ def iso_hour(when: datetime) -> str:
     return when.astimezone(UTC).strftime("%Y-%m-%dT%H:%MZ")
 
 
+def find_region(text: str) -> regions.Region:
+    """`region=`'s state or county (`agdata.regions.find`); ApiError if it's none we know."""
+    found = regions.find(text)
+    if found is None:
+        raise ApiError(
+            "unknown_region",
+            f"We don't recognize the region {text!r}. Give a state's name or postal code (wisconsin or WI), or a "
+            "county's five-digit FIPS code (55025 for Dane County, Wisconsin).",
+            "region",
+        )
+    return found
+
+
+def window_around(archive: Window, mask: np.ndarray) -> tuple[Window, np.ndarray]:
+    """The smallest window holding `mask`'s cells (a mask over `archive`, with at least one), and the mask over it."""
+    rows, cols = np.flatnonzero(mask.any(axis=1)), np.flatnonzero(mask.any(axis=0))
+    window = Window(
+        j0=archive.j0 + int(rows[0]),
+        j1=archive.j0 + int(rows[-1]) + 1,
+        i0=archive.i0 + int(cols[0]),
+        i1=archive.i0 + int(cols[-1]) + 1,
+    )
+    return window, mask[rows[0] : rows[-1] + 1, cols[0] : cols[-1] + 1]
+
+
 def archive_window(data_dir, stores: series.Stores) -> Window:
     """The window the archive's stores hold (the service box as it was when they were made)."""
     for year in sorted(series.archive_years(data_dir), reverse=True):

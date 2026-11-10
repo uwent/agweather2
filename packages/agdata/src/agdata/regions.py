@@ -80,6 +80,123 @@ def land(data_dir: Path, window: Window) -> np.ndarray:
     return found
 
 
+@cache
+def summary_counties(window: Window) -> np.ndarray:
+    """Each cell's county as summaries count it (0 for none), (y, x): `cell_counties` less open water
+    (`agdata.coast.water`, the Great Lakes and the ocean), so a shore county's lake cells, which the county grid
+    gives it within ~10 km, don't count. Inland lakes count as land. Cached; don't write to it."""
+    from agdata.coast import water
+
+    found = cell_counties(window).copy()
+    found[water(window)] = 0
+    found.flags.writeable = False
+    return found
+
+
 def mask(region: Region, window: Window) -> np.ndarray:
     """True for the window's cells in the region, (y, x)."""
     return np.isin(cell_counties(window), list(region.county_ids))
+
+
+# --- Summaries by county or state (PLAN.md Phase 6 C5) ----------------------------------------------------------
+
+
+@dataclass(frozen=True, kw_only=True)
+class Area:
+    """A county or state as a summary's row gives it."""
+
+    fips: str  # a county's five digits, a state's two
+    name: str  # "Dane County", "Wisconsin"
+    state: str  # postal code
+    land_m2: int  # the Census Bureau's land area
+    cells: int  # its cells on the whole 2.5 km grid, as `summary_counties` counts them
+
+
+@cache
+def areas(by: str) -> tuple[Area | None, ...]:
+    """Every county (`by="county"`, indexed as the county grid) or state (`"state"`, by postal code), with index 0
+    for none: the labels `area_labels` gives cells."""
+    if by == "county":
+        return (
+            None,
+            *(
+                Area(fips=c.geoid, name=c.name, state=c.state, land_m2=c.land_m2, cells=c.cells)
+                for c in counties()
+                if c is not None
+            ),
+        )
+    found: dict[str, list] = {}
+    for c in counties():
+        if c is not None:
+            found.setdefault(c.state, []).append(c)
+    return (
+        None,
+        *(
+            Area(
+                fips=found[code][0].geoid[:2],
+                name=STATES[code],
+                state=code,
+                land_m2=sum(c.land_m2 for c in found[code]),
+                cells=sum(c.cells for c in found[code]),
+            )
+            for code in sorted(found, key=lambda code: found[code][0].geoid)
+        ),
+    )
+
+
+@cache
+def _state_of_county() -> np.ndarray:
+    """Each county id's index in `areas("state")` (0 for none)."""
+    index = {a.state: k for k, a in enumerate(areas("state")) if a is not None}
+    return np.array([0, *(index[c.state] for c in counties() if c is not None)], dtype=np.int32)
+
+
+def area_labels(by: str, window: Window) -> np.ndarray:
+    """Each cell's index into `areas(by)` (0 for none: open water, outside the lower 48), (y, x)."""
+    ids = summary_counties(window)
+    return ids.astype(np.int32) if by == "county" else _state_of_county()[ids]
+
+
+def area_indices(region: Region, by: str) -> list[int]:
+    """The indices into `areas(by)` that make up `region`: its counties, or its state (a county's own state)."""
+    if by == "county":
+        return sorted(region.county_ids)
+    return sorted({int(_state_of_county()[k]) for k in region.county_ids})
+
+
+@dataclass(kw_only=True)
+class AreaStats:
+    """Statistics over each area's cells with a value, indexed as `areas(by)`: NaN where an area has none."""
+
+    with_data: np.ndarray  # cells with a value (or, with `present`, with an answer)
+    none: np.ndarray  # cells with an answer of none (`present` but no value): a first frost not yet come
+    mean: np.ndarray
+    min: np.ndarray
+    max: np.ndarray
+    levels: np.ndarray | None  # (areas, levels): cells at each level, for a map of levels
+
+
+def area_stats(
+    values: np.ndarray, labels: np.ndarray, n: int, levels: int | None = None, present: np.ndarray | None = None
+) -> AreaStats:
+    """`values` (y, x) over each label's cells (`labels`, 0 for none; `n` labels in all), missing cells left out.
+    The mean isn't weighted by cell area: the 2.5 km grid's cells differ by under 2% across a state. With `levels`,
+    values are level indices (0 to levels − 1), counted per level too. `present` marks the cells with data where
+    that isn't the same as having a value (a first day within bounds: found, or none in the range)."""
+    in_area = labels > 0
+    kept = np.isfinite(values) & in_area
+    label, v = labels[kept], values[kept]
+    counted = np.bincount(label, minlength=n)
+    with_data = counted if present is None else np.bincount(labels[present & in_area], minlength=n)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        mean = np.bincount(label, weights=v, minlength=n) / counted
+    low, high = np.full(n, np.inf), np.full(n, -np.inf)
+    np.minimum.at(low, label, v)
+    np.maximum.at(high, label, v)
+    empty = counted == 0
+    low[empty] = high[empty] = mean[empty] = np.nan
+    per_level = None
+    if levels is not None:
+        index = np.clip(np.rint(v).astype(np.int64), 0, levels - 1)
+        per_level = np.bincount(label * levels + index, minlength=n * levels).reshape(n, levels)
+    return AreaStats(with_data=with_data, none=with_data - counted, mean=mean, min=low, max=high, levels=per_level)

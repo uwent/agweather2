@@ -3,9 +3,12 @@
 From the Census Bureau's cartographic boundary files, 1:5,000,000 (public domain): the lower 48 and DC, each ring
 as lat/lng vertices. Static maps project them onto the grid when drawing (`agdata.mapimage`).
 
-    curl -LO https://www2.census.gov/geo/tiger/GENZ2023/shp/cb_2023_us_state_5m.zip
-    curl -LO https://www2.census.gov/geo/tiger/GENZ2023/shp/cb_2023_us_county_5m.zip
-    uv run --with pyshp python scripts/make_outlines.py cb_2023_us_state_5m.zip cb_2023_us_county_5m.zip
+The files are kept in `data/census/` (download them there if they're missing):
+
+    curl -L --output-dir data/census -O https://www2.census.gov/geo/tiger/GENZ2023/shp/cb_2023_us_state_5m.zip
+    curl -L --output-dir data/census -O https://www2.census.gov/geo/tiger/GENZ2023/shp/cb_2023_us_county_5m.zip
+    uv run --with pyshp python scripts/make_outlines.py data/census/cb_2023_us_state_5m.zip \
+        data/census/cb_2023_us_county_5m.zip
 """
 
 import itertools

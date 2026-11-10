@@ -391,6 +391,14 @@ The native grid is Lambert conformal, not a lat/lng raster, so:
 
 Size limit: JSON and CSV take up to 2 million values (Wisconsin is 57,820 cells, so about 34 days; ~70 MB), and a bigger request is refused pointing to netcdf/geotiff, a stat, a smaller area or a stride. Files take up to 22 million (a leap year of days over Wisconsin). Answers revalidate by ETag, stamped by the write times of the stores the map reads.
 
+### Summaries
+
+`GET /summaries/{layer}` ✓ (Phase 6 C5, F7): any `/grids` layer, with its time, `stat`, `count`, `first`/`last` and settings, summarized over each county (`by=county`, the default) or state (`by=state`). `region=` limits the rows (a state gives its counties); without it, every county or state at least partly in the box. `interval=month` gives a row per month of a range (daily layers, with a statistic; not seasons or projections). JSON and CSV, long form: `fips`, `name`, `state` (counties), `date`/`time` and `kind` without a stat or `month`, `area` (the Census Bureau's land area; km², sq mi in US units), `cells` (the region's cells on the whole grid), `cells_with_data`, `cells_none` (first/last days: none found, counted as data), `coverage` (percent), `complete`, then `mean`, `min`, `max` (dates for first/last days), or for a map of levels `pct_<level>` and `highest`.
+
+- **A region's cells** are those the county grid gives it less open water (`regions.summary_counties`: `coast.water`, the Great Lakes and the ocean); counts per county are in `counties.csv` (`scripts/build_counties.py`).
+- **Coverage** is cells with data over the region's cells, so it falls both outside the box and where cells have no value (soil on the shore, models off ERA5-Land's land fraction). Under `min_coverage` (default 50) the statistics are null, the row kept, and a warning counts them.
+- **The mean is unweighted** (cell areas differ < 2% across a state). Up to 200,000 rows. ETag as the map's.
+
 ### Tiles
 
 Built (Phase 5 G1–G2, ✓):

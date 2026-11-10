@@ -63,6 +63,8 @@ UNITS: dict[str, Unit] = {
         # mass per area: biomass, yield (base kg/ha); a pound per acre is 0.45359237 kg per 0.40468564224 ha
         Unit(symbol="kg_ha", label="kg/ha", dimension="areal_mass", digits=0),
         Unit(symbol="lb_ac", label="lb/ac", dimension="areal_mass", factor=0.45359237 / 0.40468564224, digits=0),
+        Unit(symbol="km2", label="km²", dimension="area", digits=0),
+        Unit(symbol="mi2", label="sq mi", dimension="area", factor=2.589988110336, digits=0),
         # fractions and angles (no conversion)
         Unit(symbol="percent", label="%", dimension="fraction", digits=0),
         Unit(symbol="deg", label="°", dimension="angle", digits=0),
@@ -85,6 +87,7 @@ DISPLAY: dict[System, dict[str, str]] = {
         "pressure": "kPa",
         "radiant_exposure": "MJ_m2",
         "areal_mass": "kg_ha",
+        "area": "km2",
     },
     "imperial": {
         "temperature": "degF",
@@ -95,6 +98,7 @@ DISPLAY: dict[System, dict[str, str]] = {
         "pressure": "inHg",
         "radiant_exposure": "MJ_m2",
         "areal_mass": "lb_ac",
+        "area": "mi2",
     },
 }
 

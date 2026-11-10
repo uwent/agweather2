@@ -357,29 +357,14 @@ def _area(q: GridQuery, archive: Window) -> tuple[Window, np.ndarray, dict[str, 
                 "bbox",
             )
     if q.region is not None:
-        region = regions.find(q.region)
-        if region is None:
-            raise ApiError(
-                "unknown_region",
-                f"We don't recognize the region {q.region!r}. Give a state's name or postal code "
-                "(wisconsin or WI), or a "
-                "county's five-digit FIPS code (55025 for Dane County, Wisconsin).",
-                "region",
-            )
+        region = layermaps.find_region(q.region)
         mask &= regions.mask(region, archive)
         echo["region"] = {"id": region.id, "name": region.name}
         if not mask.any():
             raise ApiError(
                 "outside_box", f"{region.name} is outside the area we cover, so it has no grid cells here.", "region"
             )
-    rows, cols = np.flatnonzero(mask.any(axis=1)), np.flatnonzero(mask.any(axis=0))
-    window = Window(
-        j0=archive.j0 + int(rows[0]),
-        j1=archive.j0 + int(rows[-1]) + 1,
-        i0=archive.i0 + int(cols[0]),
-        i1=archive.i0 + int(cols[-1]) + 1,
-    )
-    crop = mask[rows[0] : rows[-1] + 1, cols[0] : cols[-1] + 1]
+    window, crop = layermaps.window_around(archive, mask)
     return window, crop, echo
 
 

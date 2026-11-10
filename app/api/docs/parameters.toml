@@ -156,3 +156,17 @@ isolines = "Draw lines of equal value on the map, labelled with their values: `a
 
 [tiles_tilejson]
 day_basis = "Maps and grids use the same days everywhere: midnight to midnight Central Standard Time all year (06:00 to 06:00 UTC), so neighboring cells cover the same hours. `central` is accepted; `local` is refused. For a location's own days, ask for its weather or model at the point."
+
+[summaries_summary]
+by = "Summarize by `county` (the default) or `state`."
+region = "Limit the rows to a state (by name or postal code, as `wisconsin` or `WI`) or a county (by its five-digit FIPS code, as `55025`). With `by=county`, a state gives a row for each of its counties. The default is every county or state that is at least partly in the area we cover."
+min_coverage = "The smallest share of a county's or state's grid cells, in percent, that must have data for its statistics to be given. Below it, the row's statistics are empty (`null`). The default is 50; use 100 for whole counties only, or 0 for any data at all."
+interval = "With `month`, one row for each county or state and calendar month of the range, with a `month` column (as `2026-07`). It needs a range and a statistic (`stat`, `count`, `first` or `last`), on a daily layer."
+day_basis = "Summaries use the same days everywhere: midnight to midnight Central Standard Time all year (06:00 to 06:00 UTC), so neighboring cells cover the same hours. `central` is accepted; `local` is refused."
+biofix = "For degree days: the first day of the total, as a date (YYYY-MM-DD) or a month and day (MM-DD, the latest on or before the end date). The days are added up unless you choose another `stat`. Other layers take `start` instead."
+date = "A single day for a daily layer, as YYYY-MM-DD. The default is the last day observed across the whole map."
+time = "A single hour for an hourly layer, as an ISO date and time (`2026-06-01T05:00Z`, `2026-06-01T05` or with an offset such as `-05:00`; without one, UTC). The default is the last observed hour."
+start = "The first day (or hour) of a range. Each step of the range gets its own rows, unless `stat` combines them. With `stat` and no `start`, a daily range runs from January 1; an hourly one needs a start."
+end = "The last day (or hour) of a range, included in the results. The default is the last observed day."
+gaps = "With `stat=sum` and degree days: `estimate` (the default) fills gaps of up to seven days with an estimate; `missing` leaves them out. Precipitation is never estimated."
+format = "The format of the response: `json` (the default) or `csv`. Without it, the `Accept` header is used."

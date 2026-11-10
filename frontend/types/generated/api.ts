@@ -404,6 +404,28 @@ export interface StatusResponse {
   meta: Meta
   data: StatusData
 }
+export interface SummaryQuery {
+  date?: string | null
+  time?: string | null
+  start?: string | null
+  end?: string | null
+  stat?: ('sum' | 'mean' | 'min' | 'max' | 'count' | 'first' | 'last' | 'since') | null
+  count?: string | null
+  first?: string | null
+  last?: string | null
+  since?: string | null
+  dd?: string | null
+  gaps?: 'estimate' | 'missing'
+  output?: string | null
+  planting?: ('early' | 'mid' | 'late' | 'none') | null
+  season?: string | null
+  biofix?: string | null
+  day_basis?: ('central' | 'local') | null
+  by?: 'county' | 'state'
+  region?: string | null
+  min_coverage?: number
+  interval?: 'month' | null
+}
 /**
  * A table of results. `meta` describes the request as computed, the location, the units of each column and a summary; `data` holds the columns.
  */
