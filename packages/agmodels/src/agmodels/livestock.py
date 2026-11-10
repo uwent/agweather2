@@ -40,6 +40,7 @@ CITATIONS = (
 )
 
 THI_MILD_DAIRY = 68.0
+LN_0_3 = float(np.log(0.3))
 THI_STRESS = 72.0
 
 
@@ -55,12 +56,15 @@ def cci_from_2m(temperature_c, rh_percent, wind_2m_m_s, shortwave_w_m2) -> np.nd
     rh = np.asarray(rh_percent, dtype=float)
     ws = np.maximum(np.asarray(wind_2m_m_s, dtype=float), 0.0)
     rad = np.maximum(np.asarray(shortwave_w_m2, dtype=float), 0.0)
-    humidity = np.exp(0.00182 * rh + 1.8e-5 * t * rh) * (0.000054 * t**2 + 0.00192 * t - 0.0246) * (rh - 30)
-    exponent = (1 / (2.26 * ws + 0.23)) ** 0.45 * (
-        2.9 + 1.14e-6 * ws**2.5 - np.log((2.26 * ws + 0.33) ** -2) / np.log(0.3)
-    )
-    wind = -6.56 / np.exp(exponent) - 0.00566 * ws**2 + 3.33
-    radiation = 0.0076 * rad - 0.00002 * rad * t + 0.00005 * t**2 * np.sqrt(rad) + 0.1 * t - 2
+    t2 = t * t
+    humidity = np.exp(0.00182 * rh + 1.8e-5 * t * rh) * (0.000054 * t2 + 0.00192 * t - 0.0246) * (rh - 30)
+    # Eq. 2 as written: (1/(2.26 WS + 0.23))^0.45 × (2.9 + 1.14e-6 WS^2.5 − log_0.3((2.26 WS + 0.33)^−2)), here with
+    # the power as exp(−0.45 ln), WS^2.5 as WS² √WS and the log of the −2nd power as −2 ln (a third of the time)
+    ws2 = ws * ws
+    factor = np.exp(-0.45 * np.log(2.26 * ws + 0.23))
+    exponent = factor * (2.9 + 1.14e-6 * ws2 * np.sqrt(ws) + 2 * np.log(2.26 * ws + 0.33) / LN_0_3)
+    wind = -6.56 * np.exp(-exponent) - 0.00566 * ws2 + 3.33
+    radiation = 0.0076 * rad - 0.00002 * rad * t + 0.00005 * t2 * np.sqrt(rad) + 0.1 * t - 2
     return t + humidity + wind + radiation
 
 

@@ -14,6 +14,8 @@ missing days let a range report "N days estimated" with the same subtraction. Da
 left empty.
 """
 
+from collections.abc import Collection
+from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -36,6 +38,8 @@ from agdata.store import CUMULATIVE, DAILY, GridStore, steps_in_year
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 
 MAX_BRIDGE_DAYS = 7
+# The daily variables the running totals are built from (D25-D27, D75)
+INPUTS = ("air_temperature_min", "air_temperature_max", "et0_sum", "precipitation_sum", "et0_sum_estimate")
 WATER_BALANCE = DAILY_COMPUTED["water_balance"]
 BAND_CELL_DAYS = 3_000_000  # cells × days per band: about 300 bytes each at peak, so about 1 GB
 
@@ -69,8 +73,7 @@ def rebuild_year(data_dir: Path, window: Window, year: int, changed_from: date |
     rows = max(1, BAND_CELL_DAYS // ((n + 2 * MAX_BRIDGE_DAYS) * window.shape[1]))
     for j in range(window.j0, window.j1, rows):
         band = Window(j0=j, j1=min(j + rows, window.j1), i0=window.i0, i1=window.i1)
-        names = ("air_temperature_min", "air_temperature_max", "et0_sum", "precipitation_sum", "et0_sum_estimate")
-        tmin, tmax, et0, precip, et0_estimate = (days.read_with_neighbours(name, band, n) for name in names)
+        tmin, tmax, et0, precip, et0_estimate = (days.read_with_neighbours(name, band, n) for name in INPUTS)
         out = running_totals(tmin, tmax, et0, precip, et0_estimate)
         out = {name: values[skip:] for name, values in out.items()}
         store.write(date(year, 1, 1) + timedelta(days=skip), out, source="derived", window=band)
@@ -172,18 +175,60 @@ class _DailyYear:
             return None
 
 
-def update_days(data_dir: Path, window: Window, first: date, last: date, ingredients: bool = True) -> list[int]:
-    """Rolls up local days first..last, rebuilds every year whose running totals they reach (a year's first and
-    last days bridge into its neighbours) and, unless `ingredients` is False (a backfill, which builds a year's at
-    its end), updates the models' ingredients they reach (`agdata.modelmaps`); returns the years rebuilt."""
+def update_days(
+    data_dir: Path,
+    window: Window,
+    first: date,
+    last: date,
+    ingredients: bool = True,
+    names: Collection[str] | None = None,
+) -> list[int]:
+    """Rolls up local days first..last and updates what reads them: the season-read copy of the minimum and maximum
+    (`agdata.timecopy`), every year whose running totals they reach (a year's first and last days bridge into its
+    neighbours), chill portions, and unless `ingredients` is False (a backfill, which builds a year's at its end)
+    the models' ingredients (`agdata.modelmaps`); returns the years whose running totals were rebuilt.
+
+    By default every daily variable, after new hours (ingest, a fill). With `names` (a rebuild of stale daily
+    variables) only those are rolled up and only what reads them follows (`steps_for`): the hours didn't change, so
+    chill portions don't either."""
     from agdata import modelmaps  # it reads the model registry: import only when used
 
-    rollup_days(data_dir, window, first, last)
-    timecopy.update(data_dir, first, last)  # the season-read copy of min and max (`agdata.timecopy`)
-    reach = timedelta(days=MAX_BRIDGE_DAYS)
-    years = list(range((first - reach).year, (last + reach).year + 1))
-    rebuilt = [year for year in years if rebuild_year(data_dir, window, year, changed_from=first) is not None]
-    chillseason.update(data_dir, window, first, last)  # the Dynamic model's chill, forward from `first`
-    if ingredients:
-        modelmaps.update(data_dir, window, first, last)
+    steps = steps_for(names)
+    rollup_days(data_dir, window, first, last, names)
+    if steps.timecopy:
+        timecopy.update(data_dir, first, last)
+    rebuilt = []
+    if steps.totals:
+        reach = timedelta(days=MAX_BRIDGE_DAYS)
+        years = list(range((first - reach).year, (last + reach).year + 1))
+        rebuilt = [year for year in years if rebuild_year(data_dir, window, year, changed_from=first) is not None]
+    if steps.chill:
+        chillseason.update(data_dir, window, first, last)  # the Dynamic model's chill, forward from `first`
+    if ingredients and (steps.ingredients is None or steps.ingredients):
+        modelmaps.update(data_dir, window, first, last, keys=steps.ingredients)
     return rebuilt
+
+
+@dataclass(frozen=True, kw_only=True)
+class Steps:
+    """What follows a rollup of some daily variables (`update_days`)."""
+
+    timecopy: bool  # the minimum or maximum was rewritten
+    totals: bool  # an input of the running totals was
+    chill: bool  # new hours (chill portions come from them, not from the daily store)
+    ingredients: list[str] | None  # the ingredients whose models read one (None: all of them)
+
+
+def steps_for(names: Collection[str] | None) -> Steps:
+    """What a rollup of `names` (None: every daily variable, after new hours) must update after it."""
+    if names is None:
+        return Steps(timecopy=True, totals=True, chill=True, ingredients=None)
+    from agdata import modelmaps
+
+    wanted = set(names)
+    return Steps(
+        timecopy=bool(wanted & set(timecopy.NAMES)),
+        totals=bool(wanted & set(INPUTS)),
+        chill=False,
+        ingredients=modelmaps.keys_reading(wanted),
+    )

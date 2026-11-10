@@ -10,7 +10,7 @@ in bands of rows so a large box fits in memory.
 """
 
 import warnings
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Collection, Iterator
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -74,12 +74,14 @@ def move_to_grid_days(store: GridStore) -> None:
     store.stale |= set(store.variables)
 
 
-def rollup_days(data_dir: Path, window: Window, first: date, last: date) -> int:
-    """Rolls up grid days first..last (inclusive) from the hourly store into the daily store; returns the
-    number of days written. Hours not in the hourly store count as missing. A day's variable is marked `derived`
-    only if some cell has a value (so a day not yet observed, such as today with too few hours, reads as not
-    rolled up, and the running totals stop before it). A year with no hourly store of its own is skipped, so
-    rolling up from the day before a backfill's first day doesn't make a store for the year before the archive."""
+def rollup_days(data_dir: Path, window: Window, first: date, last: date, names: Collection[str] | None = None) -> int:
+    """Rolls up grid days first..last (inclusive) from the hourly store into the daily store, every daily variable
+    or only `names` (a rebuild of stale ones: the others keep their values and write times, so nothing that reads
+    only them goes stale); returns the number of days written. Hours not in the hourly store count as missing. A
+    day's variable is marked `derived` only if some cell has a value (so a day not yet observed, such as today with
+    too few hours, reads as not rolled up, and the running totals stop before it). A year with no hourly store of
+    its own is skipped, so rolling up from the day before a backfill's first day doesn't make a store for the year
+    before the archive."""
     hourly = _HourlyReader(data_dir)
     written = 0
     for days in _passes(first, last):
@@ -87,7 +89,7 @@ def rollup_days(data_dir: Path, window: Window, first: date, last: date) -> int:
             continue
         store = open_or_create_daily(data_dir, days[0].year, window)
         has_value: dict[str, np.ndarray] = {}
-        for band, out in _rolled(hourly, window, days):
+        for band, out in _rolled(hourly, window, days, names):
             store.write(days[0], out, source=None, window=band)
             for name, values in out.items():
                 some = np.isfinite(values).any(axis=(1, 2))
@@ -98,14 +100,16 @@ def rollup_days(data_dir: Path, window: Window, first: date, last: date) -> int:
     return written
 
 
-def days_from_hours(data_dir: Path, window: Window, first: date, last: date) -> dict[str, np.ndarray]:
-    """Every daily variable for grid days first..last over `window`, rolled up from `data_dir`'s hourly stores as
-    `rollup_days` does, without writing anything: a read of a stale variable (D29) computes it this way."""
+def days_from_hours(
+    data_dir: Path, window: Window, first: date, last: date, names: Collection[str] | None = None
+) -> dict[str, np.ndarray]:
+    """Every daily variable (or `names`) for grid days first..last over `window`, rolled up from `data_dir`'s hourly
+    stores as `rollup_days` does, without writing anything: a read of a stale variable (D29) computes it this way."""
     hourly = _HourlyReader(data_dir)
     out: dict[str, np.ndarray] = {}
     offset = 0
     for days in _passes(first, last):
-        for band, values in _rolled(hourly, window, days):
+        for band, values in _rolled(hourly, window, days, names):
             y0 = band.j0 - window.j0
             for name, v in values.items():
                 target = out.setdefault(name, np.full(((last - first).days + 1, *window.shape), np.nan, np.float32))
@@ -117,11 +121,58 @@ def days_from_hours(data_dir: Path, window: Window, first: date, last: date) -> 
 Span = tuple[datetime, datetime]  # a window's first and last readings (hour ends, UTC)
 
 
+def feature_groups() -> dict[str, str]:
+    """Which feature function makes each daily feature (`calendar`, `soil`, `chill`, `livestock`, `evening`,
+    `overnight`), from one call of each on a day of probe hours, so the table always says what the code does."""
+    return dict(_FEATURE_GROUP)
+
+
+def _probe_groups() -> dict[str, str]:
+    t, td, soil = np.full(24, 20.0), np.full(24, 19.5), np.full(24, -5.0)
+    rh = relative_humidity_percent(t, td)
+    made = {
+        "calendar": features.calendar_features(t, rh, td),
+        "soil": features.soil_features(soil, soil, soil),
+        "chill": features.chill_features(t),
+        "livestock": features.livestock_features(t, rh, t, t),
+        "evening": features.evening_features(t, rh, np.arange(24)),
+        "overnight": features.overnight_features(t),
+    }
+    return {name: group for group, values in made.items() for name in values}
+
+
+_FEATURE_GROUP = _probe_groups()
+# The hourly variables each feature group reads ("humid": temperature and dew point, for RH)
+_GROUP_HOURS = {
+    "calendar": ("air_temperature", "dew_point"),
+    "soil": ("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm"),
+    "chill": ("air_temperature",),
+    "livestock": ("air_temperature", "dew_point", "wind_speed", "shortwave_radiation"),
+    "evening": ("air_temperature", "dew_point"),
+    "overnight": ("air_temperature",),
+}
+_ET0_ESTIMATE = "et0_sum_estimate"
+
+
+def hourly_read_for(names: Collection[str] | None) -> list[str]:
+    """The hourly variables a rollup of `names` (None: every daily variable) reads, in catalog order."""
+    wanted = set(DAILY_VARIABLES) if names is None else set(names)
+    read = {s.hourly for s in DAILY_STATISTICS.values() if s.variable.name in wanted}
+    for name in wanted:
+        read |= set(_GROUP_HOURS.get(_FEATURE_GROUP.get(name, ""), ()))
+    if _ET0_ESTIMATE in wanted:
+        read |= {"et0", "air_temperature", "dew_point", "wind_speed", "surface_pressure", "shortwave_radiation"}
+    return [name for name in VARIABLES if name in read]
+
+
 def _rolled(
-    hourly: "_HourlyReader", window: Window, days: list[date]
+    hourly: "_HourlyReader", window: Window, days: list[date], names: Collection[str] | None = None
 ) -> Iterator[tuple[Window, dict[str, np.ndarray]]]:
-    """Each band of the window and its days' daily variables, (days, rows, columns). Every cell shares a day's
-    windows (grid days, CST): the calendar day, the day from 6 pm and noon to noon (`agdata.timezones`)."""
+    """Each band of the window and its days' daily variables (every one, or `names`), (days, rows, columns). Every
+    cell shares a day's windows (grid days, CST): the calendar day, the day from 6 pm and noon to noon
+    (`agdata.timezones`). Only the hourly variables the wanted ones need are read."""
+    wanted = set(DAILY_VARIABLES) if names is None else set(names)
+    groups = {group for name in wanted if (group := _FEATURE_GROUP.get(name)) is not None}
     calendar = [day_bounds(day, GRID_ZONE) for day in days]
     evenings = [evening_bounds(day, GRID_ZONE) for day in days]
     overnights = [overnight_bounds(day, GRID_ZONE) for day in days]
@@ -130,54 +181,68 @@ def _rolled(
     for band in _bands(window):
         out: dict[str, np.ndarray] = {}
         for name in VARIABLES:
-            stats = [s for s in DAILY_STATISTICS.values() if s.hourly == name]
+            stats = [s for s in DAILY_STATISTICS.values() if s.hourly == name and s.variable.name in wanted]
+            if name == "et0" and _ET0_ESTIMATE in wanted and not stats:
+                stats = [DAILY_STATISTICS["et0_sum"]]  # the estimate fills where the day's total is missing
             if stats:
                 hours = hourly.read(name, span_start, span_stop, band)
                 for s in stats:
                     out[s.variable.name] = _each_day(hours, span_start, calendar, s)
-        out["et0_sum_estimate"] = np.full_like(out["et0_sum"], np.nan)
-        short = np.flatnonzero(np.isnan(out["et0_sum"]).any(axis=(1, 2)))
-        if short.size:
-            # Only over the days missing some ET0, with context: the estimate's arrays are many times the hours'
-            d0, d1 = int(short[0]), int(short[-1]) + 1
-            start = calendar[d0][0] - ESTIMATE_CONTEXT
-            stop = calendar[d1 - 1][1] + HOUR + ESTIMATE_CONTEXT
-            et0 = _estimated_et0_hours(hourly, start, stop, band)
-            estimate = _each_day(et0, start, calendar[d0:d1], DAILY_STATISTICS["et0_sum"])
-            out["et0_sum_estimate"][d0:d1] = np.where(np.isnan(out["et0_sum"][d0:d1]), estimate, np.nan)
-        temperature = hourly.read("air_temperature", feature_start, span_stop, band)
-        dew_point = hourly.read("dew_point", feature_start, span_stop, band)
-        hours = {
-            "temperature": temperature,
-            "dew_point": dew_point,
-            "rh": relative_humidity_percent(temperature, dew_point),
-            "soil_4cm": hourly.read("soil_temperature_4cm", feature_start, span_stop, band),
-            "soil_10cm": hourly.read("soil_temperature_10cm", feature_start, span_stop, band),
-            "soil_30cm": hourly.read("soil_temperature_30cm", feature_start, span_stop, band),
-            "wind": hourly.read("wind_speed", feature_start, span_stop, band),
-            "shortwave": hourly.read("shortwave_radiation", feature_start, span_stop, band),
-        }
+        if _ET0_ESTIMATE in wanted:
+            out[_ET0_ESTIMATE] = np.full_like(out["et0_sum"], np.nan)
+            short = np.flatnonzero(np.isnan(out["et0_sum"]).any(axis=(1, 2)))
+            if short.size:
+                # Only over the days missing some ET0, with context: the estimate's arrays are many times the hours'
+                d0, d1 = int(short[0]), int(short[-1]) + 1
+                start = calendar[d0][0] - ESTIMATE_CONTEXT
+                stop = calendar[d1 - 1][1] + HOUR + ESTIMATE_CONTEXT
+                et0 = _estimated_et0_hours(hourly, start, stop, band)
+                estimate = _each_day(et0, start, calendar[d0:d1], DAILY_STATISTICS["et0_sum"])
+                out[_ET0_ESTIMATE][d0:d1] = np.where(np.isnan(out["et0_sum"][d0:d1]), estimate, np.nan)
+        if groups:
+            read = {name for group in groups for name in _GROUP_HOURS[group]}
+            hours = {name: hourly.read(name, feature_start, span_stop, band) for name in read}
+            if "dew_point" in hours:
+                hours["rh"] = relative_humidity_percent(hours["air_temperature"], hours["dew_point"])
+            out |= _features(groups, hours, feature_start, calendar, evenings, overnights)
+        yield band, {name: values for name, values in out.items() if name in wanted}
+
+
+def _features(groups: set[str], hours: dict[str, np.ndarray], first_hour: datetime, calendar, evenings, overnights):
+    """The wanted feature groups' daily features from the hours they read."""
+    out: dict[str, np.ndarray] = {}
+    day_groups = groups & {"calendar", "soil", "chill", "livestock"}
+    if day_groups:
+
+        def on_calendar_days(h: dict[str, np.ndarray], _) -> dict[str, np.ndarray]:
+            found: dict[str, np.ndarray] = {}
+            if "calendar" in day_groups:
+                found |= features.calendar_features(h["air_temperature"], h["rh"], h["dew_point"])
+            if "soil" in day_groups:
+                found |= features.soil_features(
+                    h["soil_temperature_4cm"], h["soil_temperature_10cm"], h["soil_temperature_30cm"]
+                )
+            if "chill" in day_groups:
+                found |= features.chill_features(h["air_temperature"])
+            if "livestock" in day_groups:
+                found |= features.livestock_features(
+                    h["air_temperature"], h["rh"], h["wind_speed"], h["shortwave_radiation"]
+                )
+            return found
+
+        out |= _each_window(hours, first_hour, calendar, on_calendar_days)
+    if "evening" in groups:
         out |= _each_window(
             hours,
-            feature_start,
-            calendar,
-            lambda h, _: (
-                features.calendar_features(h["temperature"], h["rh"], h["dew_point"])
-                | features.soil_features(h["soil_4cm"], h["soil_10cm"], h["soil_30cm"])
-                | features.chill_features(h["temperature"])
-                | features.livestock_features(h["temperature"], h["rh"], h["wind"], h["shortwave"])
-            ),
-        )
-        out |= _each_window(
-            hours,
-            feature_start,
+            first_hour,
             evenings,
-            lambda h, local_hour: features.evening_features(h["temperature"], h["rh"], local_hour),
+            lambda h, local_hour: features.evening_features(h["air_temperature"], h["rh"], local_hour),
         )
+    if "overnight" in groups:
         out |= _each_window(
-            hours, feature_start, overnights, lambda h, _: features.overnight_features(h["temperature"])
+            hours, first_hour, overnights, lambda h, _: features.overnight_features(h["air_temperature"])
         )
-        yield band, out
+    return out
 
 
 def _each_window(

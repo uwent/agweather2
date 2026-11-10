@@ -1,14 +1,19 @@
 """Recomputing derived data written by an older version of its code (D29).
 
-A derived variable is stale when the store records another version than the catalog's (its code changed), or when the
-catalog added it after the store was written. A daily store written on each cell's local days is stale throughout until
-it's rolled up again on grid days (D74). Daily variables are rolled up again from the hourly store over each year's days
-with data, and the year's running totals rebuilt; running totals are rebuilt from the daily store; the models'
-ingredients (`agdata.modelmaps`) built again from January 1. The corrected shortwave and ET0 are re-derived from the
-stored raw HRRR (`agdata.shortwave`); other stale hourly variables are only reported: they're derived at ingest, so a
-refetch would be needed.
+A derived variable is stale when the store records another version than the catalog's (its code changed), or when
+the catalog added it after the store was written. A daily store written on each cell's local days is stale throughout
+until it's rolled up again on grid days (D74).
+
+Stale daily variables are rolled up again from the hourly store over each year's days with data: only they, reading
+only the hours they need, and only what reads them follows (`cumulative.steps_for`: the timecopy, the running totals,
+the models' ingredients), so a new feature leaves the rest as it was. Stale running totals are rebuilt from the daily
+store, chill portions a season at a time from the hours, and the models' ingredients from January 1. The corrected
+shortwave and ET0 are re-derived from the stored raw HRRR (`agdata.shortwave`), and the daily variables read from
+them roll up again; other stale hourly variables are only reported: they're derived at ingest, so a refetch would be
+needed.
 """
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
@@ -17,10 +22,11 @@ import numpy as np
 
 from agdata import chillseason, modelmaps, shortwave
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
-from agdata.cumulative import rebuild_year, update_days
-from agdata.daily import move_to_grid_days, on_grid_days, year_on_grid_days
+from agdata.cumulative import rebuild_year, steps_for, update_days
+from agdata.daily import hourly_read_for, move_to_grid_days, on_grid_days, year_on_grid_days
 from agdata.grid import Window
 from agdata.modelmaps import INGREDIENTS
+from agdata.point import hourly_sources
 from agdata.store import CUMULATIVE, DAILY, HOURLY, GridStore, StoreLayout
 
 KINDS: list[tuple[StoreLayout, dict]] = [
@@ -55,22 +61,72 @@ def find_stale(data_dir: Path) -> StaleReport:
     return report
 
 
+def plan(report: StaleReport) -> list[str]:
+    """What `rebuild_stale` would do for the stale variables `report` lists, in words for `rebuild --check`: each
+    year's daily roll-up (its variables, the hours they read, what follows), and what goes out of date after it."""
+    lines: list[str] = []
+    daily_years: list[int] = []
+    rolled: set[str] = set()
+    for store, names in report.stale.items():
+        kind, year = store.split("/")
+        if kind == "daily":
+            daily_years.append(int(year))
+            wanted = None if names == ["(local days, D74)"] else names
+            rolled |= set(DAILY_VARIABLES if wanted is None else wanted)
+            steps = steps_for(wanted)
+            follows = [
+                *(["the timecopy"] if steps.timecopy else []),
+                *(["the running totals"] if steps.totals else []),
+                *(["chill portions"] if steps.chill else []),
+                *(
+                    ["every ingredient"]
+                    if steps.ingredients is None
+                    else [f"{len(steps.ingredients)} ingredients"]
+                    if steps.ingredients
+                    else []
+                ),
+            ]
+            what = (
+                "every daily variable" if wanted is None else f"{len(wanted)} daily variable" + "s" * (len(wanted) > 1)
+            )
+            lines.append(
+                f"daily/{year}: roll up {what} from {len(hourly_read_for(wanted))} hourly ones"
+                + (f", then {', '.join(follows)}" if follows else ", and nothing else follows")
+            )
+        elif kind == "cumulative":
+            chill = sorted(set(names) & set(chillseason.NAMES))
+            totals = sorted(set(names) - set(chill))
+            parts = [*(["the running totals"] if totals else []), *(["chill portions' seasons"] if chill else [])]
+            lines.append(f"cumulative/{year}: rebuild {' and '.join(parts)}")
+        elif kind == "ingredients":
+            lines.append(f"ingredients/{year}: build again from January 1")
+        else:
+            lines.append(f"{store}: still stale after a rebuild (derived at ingest; needs a refetch)")
+    if daily_years:
+        years = ", ".join(str(y) for y in sorted(daily_years))
+        lines.append(f"Afterwards out of date: the past-years copies ({years}; `pastyears`, ~75 s a year)")
+        lines.append(f"and the downloads of {len(rolled)} daily variables in those years (`downloads`)")
+    return lines
+
+
 def rebuild_stale(data_dir: Path, window: Window, log=print) -> StaleReport:
     """Recomputes stale variables: the corrected hourly shortwave and ET0 (D48), then daily and cumulative ones
     (the days of a year whose shortwave changed included); returns what's still stale (other hourly ones)."""
     corrected = set(shortwave.correct_archive(data_dir, window, log=log))
     for year in _years(data_dir, DAILY):
         store = GridStore.open(data_dir, DAILY, year, DAILY_VARIABLES.values(), add_missing=True)
-        if not on_grid_days(store):
+        moved = not on_grid_days(store)
+        if moved:
             log(f"daily/{year}: moving to grid days (CST, D74)")
             move_to_grid_days(store)
-        if not store.stale and year not in corrected:
+        names = daily_to_roll_up(store.stale, corrected=year in corrected, moved=moved)
+        if names is not None and not names:
             continue
         days = _days_with_data(store)
         if days is not None:
-            names = sorted(store.stale) or ["the corrected shortwave and ET0"]
-            log(f"daily/{year}: rolling up {days[0]} to {days[1]} for {', '.join(names)}")
-            update_days(data_dir, window, *days)
+            what = "every daily variable" if names is None else ", ".join(names)
+            log(f"daily/{year}: rolling up {days[0]} to {days[1]} for {what}")
+            update_days(data_dir, window, *days, names=names)
         store.mark_current(list(store.stale))
     chill_stale: dict[int, GridStore] = {}
     for year in _years(data_dir, CUMULATIVE):
@@ -93,6 +149,22 @@ def rebuild_stale(data_dir: Path, window: Window, log=print) -> StaleReport:
             log(f"ingredients/{year}: building ({reason})")
             modelmaps.build(data_dir, window, year)
     return find_stale(data_dir)
+
+
+# The hourly variables HRRR's correction rewrites (D48): the daily ones read from them roll up again
+CORRECTED_HOURLY = frozenset({"shortwave_radiation", "et0"})
+
+
+def daily_to_roll_up(stale: Iterable[str], corrected: bool = False, moved: bool = False) -> list[str] | None:
+    """The daily variables a year's rebuild rolls up again: its stale ones, and with `corrected` those read from the
+    corrected shortwave and ET0; None (every one) for a store just moved to grid days, whose every day changed."""
+    if moved:
+        return None
+    names = set(stale)
+    if corrected:
+        sources = hourly_sources()  # each daily variable's hourly inputs, probed from the code
+        names |= {name for name in DAILY_VARIABLES if CORRECTED_HOURLY & set(sources.get(name, CORRECTED_HOURLY))}
+    return [name for name in DAILY_VARIABLES if name in names]
 
 
 def _years(data_dir: Path, layout: StoreLayout) -> list[int]:

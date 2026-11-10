@@ -27,7 +27,7 @@ import zarr
 
 from agdata import calibration, chillseason, interpolate, modelmaps, shortwave
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
-from agdata.cumulative import MAX_BRIDGE_DAYS, open_or_create_cumulative, running_totals
+from agdata.cumulative import INPUTS, MAX_BRIDGE_DAYS, open_or_create_cumulative, running_totals
 from agdata.daily import rollup_days
 from agdata.gaps import FALLBACK_PRESSURE_KPA
 from agdata.grid import NDFD, Window
@@ -391,7 +391,7 @@ def _continue_totals(data_dir: Path, path: Path, window: Window, first_day: date
     (bridged across gaps with the archive's days before as neighbours, as the archive's own totals are)."""
     pad = MAX_BRIDGE_DAYS
     n = (last_day - first_day).days + 1
-    names = ("air_temperature_min", "air_temperature_max", "et0_sum", "precipitation_sum", "et0_sum_estimate")
+    names = INPUTS
     series = {name: np.full((n + 2 * pad, *window.shape), np.nan, dtype=np.float32) for name in names}
     for name in names:
         series[name][:pad] = _read_days(data_dir, DAILY, name, first_day - timedelta(days=pad), pad, window)

@@ -154,7 +154,14 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
   Commit the CSV if it passes.
 
-- [ ] **Don't run `rebuild --stale` yet** (2026-11-10). Chill and heat stress (C6) added eight daily features and three running totals, so every year is stale; the rebuild waits for the pipeline work (PLAN.md C, "Streamlining rebuilds"), which will compute only what's new instead of re-rolling every daily variable. `rebuild --check` lists them meanwhile. Until then (D29) points compute the new features from the hours, maps of up to 7 days do too (a day's map ~4 s), and a longer range answers 503 `stale`.
+- [ ] **Rebuild for chill and heat stress** (2026-11-10). C6 added eight daily features and three running totals, so every year is stale. Rebuilds now roll up only what's stale (C7), so this reads 4 hourly variables for 8 daily ones and leaves the running totals, timecopy and ingredients alone: about 4 minutes a year over Wisconsin, an hour or less for 2016–2026, plus the chill seasons. Until it's done, points compute the new features from the hours, maps of up to 7 days do too, and longer ranges answer 503 `stale`.
+
+  ```bash
+  uv run app/manage.py rebuild --check                  # the plan: "8 daily variables from 4 hourly ones, and nothing else follows"
+  uv run app/manage.py rebuild --stale --background     # then follow it with bin/agwx
+  uv run app/manage.py pastyears                        # the past-years copies (~75 s a year)
+  uv run app/manage.py downloads --background           # the new variables' yearly files
+  ```
 
 - [x] **Restart `bin/dev` before Monday, November 16** (2026-11-09; done that evening). Its worker started at 21:37, before past-years builds took turns (a lock added that evening, after two builds at once broke 2017's copy). Ctrl-C in its terminal, then `bin/dev`.
 

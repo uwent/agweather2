@@ -119,10 +119,13 @@ def test_quiet_keeps_steps_off_stdout(data_dir, monkeypatch):
 def test_rebuild_check_lists_stale_variables_without_rebuilding(data_dir, monkeypatch):
     from ops.management.commands import rebuild
 
-    monkeypatch.setattr(rebuild, "find_stale", lambda data: StaleReport(stale={"daily/2025": ["gdd", "et0"]}))
+    stale = StaleReport(stale={"daily/2025": ["thi_max", "chill_hours"]})
+    monkeypatch.setattr(rebuild, "find_stale", lambda data: stale)
     monkeypatch.setattr(rebuild, "rebuild_stale", lambda *args, **kwargs: pytest.fail("--check is read-only"))
     out, _ = run("rebuild", "--check")
-    assert out == "daily/2025: gdd, et0\n"
+    lines = out.splitlines()
+    assert lines[0] == "daily/2025: thi_max, chill_hours" and lines[2] == "--stale would:"
+    assert lines[3] == "  daily/2025: roll up 2 daily variables from 4 hourly ones, and nothing else follows"
 
 
 def test_rebuild_without_a_flag_says_what_to_pass(data_dir):

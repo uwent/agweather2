@@ -167,6 +167,13 @@ _TIER_OUTPUTS: dict[str, tuple[float, float, float]] = {
 }
 
 
+def keys_reading(names: Iterable[str]) -> list[str]:
+    """The stored ingredients whose models read any of the daily variables `names`."""
+    wanted = set(names)
+    models = all_models()
+    return [s.key for s in stored().values() if {q.name for q in models[s.model_id].SPEC.inputs} & wanted]
+
+
 def tier_key(model_id: str, output: str, tier: str) -> str:
     """Where a crop model's output for a planting tier is kept: `{model_id}.{output}.{tier}`."""
     return f"{model_id}.{output}.{tier}"

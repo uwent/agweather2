@@ -73,3 +73,83 @@ def test_a_total_from_older_code_is_rebuilt_from_the_daily_store(tmp_path, fx):
     assert lines == ["cumulative/2025: rebuilding for dd_sine_50"]
     totals = GridStore.open(tmp_path, CUMULATIVE, 2025, CUMULATIVE_VARIABLES.values())
     np.testing.assert_allclose(totals.read_steps("dd_sine_50", t, t + 1), right, atol=0.5)
+
+
+def _written(data_dir, layout, name: str) -> np.ndarray:
+    from agdata.catalog import CUMULATIVE_VARIABLES
+
+    variables = DAILY_VARIABLES if layout is DAILY else CUMULATIVE_VARIABLES
+    return GridStore.open(data_dir, layout, 2025, variables.values()).read_meta(f"{name}.written")
+
+
+def test_a_stale_feature_rolls_up_alone_and_leaves_the_rest_as_it_was(tmp_path, fx):
+    """C6's case: a feature from older code (or new) is rolled up from the hours it reads, and nothing that reads
+    other variables is rewritten: the other daily variables, the running totals, the timecopy, the ingredients."""
+    from agdata import modelmaps
+    from agdata.daily import days_from_hours
+
+    fx.archive(tmp_path, datetime(2025, 7, 1, tzinfo=UTC), datetime(2025, 7, 7, tzinfo=UTC))
+    modelmaps.build(tmp_path, WINDOW, 2025)
+    before = {
+        "tmin": _written(tmp_path, DAILY, "air_temperature_min"),
+        "rh": _written(tmp_path, DAILY, "hours_rh_over_90"),
+        "dd": _written(tmp_path, CUMULATIVE, "dd_sine_50"),
+        "chill": _written(tmp_path, CUMULATIVE, "chill_portions"),
+    }
+    ingredient = next(iter(modelmaps.stored()))
+    ingredients_before = GridStore.open(tmp_path, modelmaps.INGREDIENTS, 2025, modelmaps.variables()).read_meta(
+        f"{ingredient}.written"
+    )
+    daily = GridStore.open(tmp_path, DAILY, 2025, DAILY_VARIABLES.values())
+    t = daily.index_of(date(2025, 7, 3))
+    daily.write(date(2025, 7, 3), {"thi_max": np.zeros((1, *WINDOW.shape))}, source="derived")  # older code's
+    daily._array("thi_max").attrs["version"] = 0
+    assert find_stale(tmp_path).stale == {"daily/2025": ["thi_max"]}
+
+    lines: list[str] = []
+    assert rebuild_stale(tmp_path, WINDOW, log=lines.append).stale == {}
+    assert lines == ["daily/2025: rolling up 2025-07-02 to 2025-07-05 for thi_max"]
+    daily = GridStore.open(tmp_path, DAILY, 2025, DAILY_VARIABLES.values())
+    expected = days_from_hours(tmp_path, WINDOW, date(2025, 7, 3), date(2025, 7, 3), ["thi_max"])["thi_max"]
+    np.testing.assert_allclose(daily.read_steps("thi_max", t, t + 1), expected, atol=0.05)
+    np.testing.assert_array_equal(_written(tmp_path, DAILY, "air_temperature_min"), before["tmin"])
+    np.testing.assert_array_equal(_written(tmp_path, DAILY, "hours_rh_over_90"), before["rh"])
+    np.testing.assert_array_equal(_written(tmp_path, CUMULATIVE, "dd_sine_50"), before["dd"])
+    np.testing.assert_array_equal(_written(tmp_path, CUMULATIVE, "chill_portions"), before["chill"])
+    ingredients_after = GridStore.open(tmp_path, modelmaps.INGREDIENTS, 2025, modelmaps.variables()).read_meta(
+        f"{ingredient}.written"
+    )
+    np.testing.assert_array_equal(ingredients_after, ingredients_before)
+
+
+def test_a_rollup_of_some_names_gives_the_full_rollups_values(tmp_path, fx):
+    from agdata.daily import days_from_hours, hourly_read_for
+
+    fx.archive(tmp_path, datetime(2025, 7, 1, tzinfo=UTC), datetime(2025, 7, 4, tzinfo=UTC))
+    names = ["cci_max", "chill_hours", "hours_rh_over_90_night", "et0_sum_estimate", "air_temperature_min_overnight"]
+    every = days_from_hours(tmp_path, WINDOW, date(2025, 7, 2), date(2025, 7, 3))
+    some = days_from_hours(tmp_path, WINDOW, date(2025, 7, 2), date(2025, 7, 3), names)
+    assert set(some) == set(names)
+    for name in names:
+        np.testing.assert_array_equal(some[name], every[name], err_msg=name)
+    assert hourly_read_for(["chill_hours"]) == ["air_temperature"]
+    assert set(hourly_read_for(["cci_max"])) == {"air_temperature", "dew_point", "wind_speed", "shortwave_radiation"}
+
+
+def test_what_a_rebuild_rolls_up_and_what_follows():
+    from agdata.cumulative import steps_for
+    from agdata.rebuild import StaleReport, daily_to_roll_up, plan
+
+    assert daily_to_roll_up(["thi_max"]) == ["thi_max"]
+    assert daily_to_roll_up([], moved=True) is None
+    corrected = daily_to_roll_up([], corrected=True)
+    assert corrected is not None and {"shortwave_radiation_sum", "et0_sum", "cci_max"} <= set(corrected)
+    assert "thi_max" not in corrected and "air_temperature_min" not in corrected
+    feature = steps_for(["thi_max", "chill_hours"])
+    assert not (feature.timecopy or feature.totals or feature.chill or feature.ingredients)
+    tmin = steps_for(["air_temperature_min"])
+    assert tmin.timecopy and tmin.totals and tmin.ingredients and not tmin.chill
+    assert steps_for(None).chill and steps_for(None).ingredients is None
+    lines = plan(StaleReport(stale={"daily/2025": ["thi_max"], "cumulative/2025": ["chill_portions"]}))
+    assert lines[0] == "daily/2025: roll up 1 daily variable from 4 hourly ones, and nothing else follows"
+    assert lines[1] == "cumulative/2025: rebuild chill portions' seasons"

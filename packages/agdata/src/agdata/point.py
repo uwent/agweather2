@@ -15,7 +15,7 @@ import numpy as np
 
 from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES
 from agdata.computed import DAILY_COMPUTED, expand
-from agdata.daily import daily_statistic
+from agdata.daily import daily_statistic, feature_groups
 from agdata.timezones import day_bounds, evening_bounds, overnight_bounds
 from agmodels import features
 from agmodels.weather import relative_humidity_percent
@@ -23,22 +23,7 @@ from agmodels.weather import relative_humidity_percent
 HOUR = timedelta(hours=1)
 
 
-def _feature_groups() -> dict[str, str]:
-    """Which feature function makes each daily feature, from one call of each on a day of probe hours."""
-    t, td, soil = np.full(24, 20.0), np.full(24, 19.5), np.full(24, -5.0)
-    rh = relative_humidity_percent(t, td)
-    made = {
-        "calendar": features.calendar_features(t, rh, td),
-        "soil": features.soil_features(soil, soil, soil),
-        "evening": features.evening_features(t, rh, np.arange(24)),
-        "overnight": features.overnight_features(t),
-        "chill": features.chill_features(t),
-        "livestock": features.livestock_features(t, rh, t, t),
-    }
-    return {name: group for group, values in made.items() for name in values}
-
-
-_FEATURE_GROUP = _feature_groups()
+_FEATURE_GROUP = feature_groups()
 
 
 def daily_at_point(

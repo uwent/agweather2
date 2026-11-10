@@ -10,11 +10,13 @@ import numpy as np
 import pytest
 
 from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES
-from agdata.daily import daily_statistic
-from agdata.point import _FEATURE_GROUP, daily_at_point
+from agdata.daily import daily_statistic, feature_groups
+from agdata.point import daily_at_point
 from agdata.timezones import GRID_ZONE, day_bounds, evening_bounds, overnight_bounds
 from agmodels import features
 from agmodels.weather import relative_humidity_percent
+
+_FEATURE_GROUP = feature_groups()
 
 HOUR = timedelta(hours=1)
 NAMES = [name for name in DAILY_VARIABLES if name != "et0_sum_estimate"]
