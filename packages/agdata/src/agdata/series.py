@@ -895,6 +895,21 @@ def projected_runs(
     return Projected(runs=out, years=scenarios_found.years, start=begins, coverage=scenarios_found.coverage)
 
 
+def past_years_stamp(
+    data_dir: Path, cells: list[tuple[int, int]], years: Sequence[int], names: list[str], now: datetime | None = None
+) -> str:
+    """The data stamp of `past_reader`'s reads of `names` at `cells` in `years`: each year's copy's stamp
+    (`pastyears.stamp`), or, for a year read from its hours, those hours' (`last_written` over the year)."""
+    hourly = hourly_needed(names)
+    parts = []
+    for year in years:
+        found = pastyears.stamp(data_dir, year, names, cells)
+        if found is None:
+            found = "h" + last_written(data_dir, date(year, 1, 1), date(year, 12, 31), now=now, hourly=hourly)
+        parts.append(f"{year}={found}")
+    return ";".join(parts)
+
+
 def past_reader(data_dir: Path, j: int, i: int, stores: "Stores | None" = None):
     """`projected_runs`' `read_past` at a cell: a past year's days from the copies laid out for points
     (`agdata.pastyears`), or rolled up from the archive's hours where a year has none yet."""

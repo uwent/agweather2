@@ -146,9 +146,10 @@ def daily(
     now = clock.now()
     computed = _computed(where, first, last, found_settings, fixed or first, options, output)
     computed |= {"targets": goals or None, "projection": mode}
-    years = archive_years(settings.DATA_DIR) if mode else []
-    stamp_from = min([read_from, *(date(y, 1, 1) for y in years if y < read_from.year)])
-    etag = answer_etag(request, computed, points.stamp(where.locations(), stamp_from, last, now, names=TEMPERATURES))
+    past = [y for y in archive_years(settings.DATA_DIR) if y < last.year] if mode else []
+    etag = answer_etag(
+        request, computed, points.stamp(where.locations(), read_from, last, now, names=TEMPERATURES, past_years=past)
+    )
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, read_from, last, options)
@@ -174,7 +175,7 @@ def daily(
         tmax = np.asarray(days.values["air_temperature_max"][:n], dtype=float)[:, None]
         kinds, labels, cut = list(days.kinds[:n]), [None], n
         if mode:
-            tmin, tmax, kinds, labels, cut, info, note = _project(days, n, lat, lng, last, years)
+            tmin, tmax, kinds, labels, cut, info, note = _project(days, n, lat, lng, last, past)
             projections.append({"point": k, **info})
             warnings += [note] if note and note not in warnings else []
         lo_f, hi_f, estimated, usable = temperatures_of(tmin, tmax, options.gaps)

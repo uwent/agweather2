@@ -62,6 +62,30 @@ def test_a_copy_goes_stale_when_its_daily_store_is_written(two_years):
     assert pastyears.status(two_years, 2024) == pastyears.OUT_OF_DATE_DATA
 
 
+def test_a_projections_stamp_follows_what_the_reader_reads(two_years):
+    """A year with a copy is stamped by it (written to the daily store, it reads and stamps the same until rebuilt);
+    a year without one, or a read the copy can't serve, by its hours."""
+    from agdata import series
+
+    cell = [(WINDOW.j0 + 1, WINDOW.i0 + 2)]
+    assert pastyears.stamp(two_years, 2024, NAMES, cell) is None
+    without = series.past_years_stamp(two_years, cells=cell, years=[2023, 2024], names=NAMES)
+    pastyears.build(two_years, 2024)
+    built = pastyears.stamp(two_years, 2024, NAMES, cell)
+    assert built is not None
+    with_copy = series.past_years_stamp(two_years, cells=cell, years=[2023, 2024], names=NAMES)
+    assert with_copy != without and with_copy.split(";")[0] == without.split(";")[0]  # 2023 still by its hours
+    assert pastyears.stamp(two_years, 2024, ["not_a_variable"], cell) is None
+    assert pastyears.stamp(two_years, 2024, NAMES, [(WINDOW.j0 - 5, WINDOW.i0)]) is None
+    pastyears.build(two_years, 2024)  # rebuilt from the same data: the same values, the same stamp
+    assert pastyears.stamp(two_years, 2024, NAMES, cell) == built
+    store = GridStore.open(two_years, DAILY, 2024, [DAILY_VARIABLES["air_temperature_min"]])
+    store.write(date(2024, 1, 5), {"air_temperature_min": np.full((1, *WINDOW.shape), 3.0)}, source="derived")
+    assert pastyears.stamp(two_years, 2024, NAMES, cell) == built  # the reader still reads the copy
+    pastyears.build(two_years, 2024)
+    assert pastyears.stamp(two_years, 2024, NAMES, cell) != built
+
+
 def test_years_without_a_complete_copy_or_cells_outside_it_read_nothing(two_years):
     pastyears.build(two_years, 2024)
     reader = pastyears.Reader(two_years)

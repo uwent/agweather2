@@ -861,9 +861,8 @@ def _revalidate(request, plans, computed, sites, first, last, now, projecting: b
     """(ETag, a 304 if the client holds it, the first day read) for the points `sites`: before any read or run. A
     projection reads the archive's earlier years too, so their writes count."""
     needed, names = days_needed([r for p in plans for r in p.runs], first)
-    years = archive_years(settings.DATA_DIR) if projecting else []
-    since = min([needed, *(date(y, 1, 1) for y in years if y < needed.year)])
-    stamp = points.stamp(sites, since, last, now, names=names)
+    past = [y for y in archive_years(settings.DATA_DIR) if y < last.year] if projecting else []
+    stamp = points.stamp(sites, needed, last, now, names=names, past_years=past)
     etag = None if stamp is None else etag_for(request, computed, stamp)
     unchanged = None if etag is None else not_modified(request, etag)
     return etag, unchanged, needed

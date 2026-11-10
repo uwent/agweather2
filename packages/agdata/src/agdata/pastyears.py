@@ -101,6 +101,25 @@ def _complete(path: Path, attrs: dict[str, Any]) -> bool:
     return bool(attrs.get("complete")) and (path / "values" / "zarr.json").exists()
 
 
+def stamp(data_dir: Path, year: int, names: list[str], cells: list[tuple[int, int]]) -> str | None:
+    """What `Reader.read` of `names` at `cells` in `year` answers from, for an ETag: the copy's `daily_written` (a
+    copy is built from the daily store as it was then, and a rebuild from unchanged data copies the same values),
+    or None if the reader would fall back to the hours (no complete copy, a name it lacks, a cell outside it). One
+    attribute read, where stamping the daily store's writes reads an array per variable."""
+    path = PAST.path(data_dir, year)
+    group = _open_copy(path)
+    if group is None:
+        return None
+    attrs: dict[str, Any] = dict(group.attrs)
+    if not _complete(path, attrs) or not set(names) <= set(attrs.get("names") or ()):
+        return None
+    w = attrs["window"]
+    window = Window(j0=w["j0"], j1=w["j1"], i0=w["i0"], i1=w["i1"])
+    if not all(window.contains(j, i) for j, i in cells):
+        return None
+    return str(attrs.get("daily_written"))
+
+
 @contextmanager
 def _one_build_at_a_time(folder: Path) -> Iterator[None]:
     """Waits for any other build of a copy (in any process) to finish, and holds them off until this one has."""

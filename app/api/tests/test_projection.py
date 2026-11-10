@@ -140,7 +140,8 @@ def test_risk_past_the_forecast(client, projection_archive):
 def test_the_copies_laid_out_for_points_give_the_same_projection(client, projection_archive, tmp_path):
     from agdata import pastyears
 
-    before = get(client, "early-blight-pdays", **BLIGHT, projection="years").json()["data"]
+    first = get(client, "early-blight-pdays", **BLIGHT, projection="years")
+    before = first.json()["data"]
     copy_dir = tmp_path / "with-copies"  # the archive (read only, so linked: 20,000 files) and the copies
     copy_dir.mkdir()
     for entry in projection_archive.iterdir():
@@ -150,7 +151,9 @@ def test_the_copies_laid_out_for_points_give_the_same_projection(client, project
     from django.conf import settings
 
     settings.DATA_DIR = copy_dir
-    after = get(client, "early-blight-pdays", **BLIGHT, projection="years").json()["data"]
+    answer = get(client, "early-blight-pdays", **BLIGHT, projection="years")
+    assert answer["ETag"] != first["ETag"]  # past years are stamped by what's read: the copies now
+    after = answer.json()["data"]
     # The copies hold the daily store's packed values: the same days, to the stored precision
     assert after["year"] == before["year"] and after["kind"] == before["kind"]
     assert after["pdays_total"] == pytest.approx(before["pdays_total"], abs=0.5, nan_ok=True)

@@ -13,6 +13,7 @@ import numpy as np
 from django.conf import settings
 
 from agdata import computed, series
+from agdata.catalog import DAILY_VARIABLES
 from agdata.grid import NDFD
 from agdata.timezones import zone_at
 from ops import openmeteo
@@ -26,15 +27,28 @@ def from_archive(lat: float, lng: float, first: date, last: date) -> bool:
 
 
 def stamp(
-    points: list[tuple[float, float]], first: date, last: date, now: datetime, names: list[str] | None = None
+    points: list[tuple[float, float]],
+    first: date,
+    last: date,
+    now: datetime,
+    names: list[str] | None = None,
+    past_years: list[int] | None = None,
 ) -> str | None:
     """The data stamp for reading days first..last at these points, or None if any comes from Open-Meteo. With
     `names` (the daily variables read), only the hours they're made from are stamped: opening a store for all 16
-    hourly variables was half a point's stamp."""
+    hourly variables was half a point's stamp. `past_years` adds a projection's reads of those years (with `names`;
+    `series.past_years_stamp`): an attribute a year from the past-years copies, where stamping each year's hours
+    read ~100 arrays over ten years (0.21 s)."""
     if not all(from_archive(lat, lng, first, last) for lat, lng in points):
         return None
     hourly = None if names is None else series.hourly_needed(names)
-    return series.last_written(settings.DATA_DIR, first, last, now=now, hourly=hourly)
+    found = series.last_written(settings.DATA_DIR, first, last, now=now, hourly=hourly)
+    if past_years:
+        cells = [cell for lat, lng in points if (cell := NDFD.cell_of(lat, lng)) is not None]
+        found += "|" + series.past_years_stamp(
+            settings.DATA_DIR, cells=cells, years=past_years, names=names or list(DAILY_VARIABLES), now=now
+        )
+    return found
 
 
 def days(
