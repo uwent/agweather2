@@ -20,6 +20,7 @@ A daily variable that a newer version of its code hasn't rebuilt yet (D29: betwe
 is computed from the hours for up to MAX_STALE_DAYS days; a longer range is a 503 until the rebuild is done.
 """
 
+import itertools
 import json
 import threading
 import time
@@ -80,41 +81,62 @@ class LayerQuery(Schema):
 
 @dataclass(frozen=True, kw_only=True)
 class ScaleAsked:
-    """`scale=` as a request gives it: `default`, `auto`, or a range whose ends (None: from the data) are in the
-    stored unit."""
+    """`scale=` as a request gives it: `default`, `auto`, or a range whose ends (None: from the data) and middle (the
+    palette's middle color; None: halfway) are in the stored unit."""
 
     mode: Literal["default", "auto", "range"]
     low: float | None = None
     high: float | None = None
+    middle: float | None = None
     text: str = ""  # as sent, for the ETag
 
 
+SCALE_HINT = (
+    "Give scale=default, scale=auto, the colors' range as low,high, such as scale=40,90, or low,middle,high to put "
+    "the palette's middle at a value, such as scale=0,32,100. An end may be blank to take it from the map."
+)
+
+
 def parse_scale(text: str | None, stored: str, shown: str) -> ScaleAsked | None:
-    """`scale=default`, `auto`, `low,high`, `low,` or `,high` (in `shown`, the request's unit for the map) → the
-    stored unit; None when not given."""
+    """`scale=default`, `auto`, `low,high` or `low,middle,high`, an end blank for the data's (in `shown`, the request's
+    unit for the map) → the stored unit; None when not given."""
     if text is None or not text.strip():
         return None
     given = text.strip().lower()
     if given in ("default", "auto"):
         return ScaleAsked(mode=given, text=given)  # type: ignore[arg-type]
     parts = given.split(",")
-    hint = (
-        "Give scale=default, scale=auto, or the colors' range as low,high, such as scale=40,90 (one end may be blank)."
-    )
-    if len(parts) != 2:
-        raise ApiError("invalid", f"We can't read scale={text}. {hint}", "scale")
+    if len(parts) not in (2, 3):
+        raise ApiError("invalid", f"We can't read scale={text}. {SCALE_HINT}", "scale")
     try:
-        ends = [None if not part.strip() else float(part) for part in parts]
+        values = [None if not part.strip() else float(part) for part in parts]
     except ValueError:
-        raise ApiError("invalid", f"We can't read scale={text}. {hint}", "scale") from None
-    if ends[0] is None and ends[1] is None:
-        raise ApiError("invalid", f"scale needs at least one end. {hint}", "scale")
-    if ends[0] is not None and ends[1] is not None and ends[0] >= ends[1]:
+        raise ApiError("invalid", f"We can't read scale={text}. {SCALE_HINT}", "scale") from None
+    low, high = values[0], values[-1]
+    middle = values[1] if len(values) == 3 else None
+    if len(values) == 3 and middle is None:
         raise ApiError(
-            "out_of_order", f"The scale's low end ({parts[0]}) must be below its high end ({parts[1]}).", "scale"
+            "invalid",
+            f"scale={text} has no middle value. Give one, such as scale=0,32,100, or leave out the middle.",
+            "scale",
         )
-    low, high = (None if e is None else float(agunits.convert(np.float64(e), shown, stored)) for e in ends)
-    return ScaleAsked(mode="range", low=low, high=high, text=given)
+    if low is None and high is None and middle is None:
+        raise ApiError("invalid", f"scale needs at least one end. {SCALE_HINT}", "scale")
+    given_values = [(v, part.strip()) for v, part in zip(values, parts, strict=True) if v is not None]
+    for (a, a_text), (b, b_text) in itertools.pairwise(given_values):
+        if a >= b:
+            raise ApiError(
+                "out_of_order",
+                f"The scale's values must rise from low to high, but {a_text} is not below {b_text}.",
+                "scale",
+            )
+
+    def stored_value(v: float | None) -> float | None:
+        return None if v is None else float(agunits.convert(np.float64(v), shown, stored))
+
+    return ScaleAsked(
+        mode="range", low=stored_value(low), high=stored_value(high), middle=stored_value(middle), text=given
+    )
 
 
 MIN_DATE_SPAN = 14  # days: a date map's narrowest scale
@@ -198,15 +220,18 @@ class LayerAsk:
 
     def domain(self, values: np.ndarray) -> tuple[float, float]:
         """What the palette's ends stand for, in the stored unit, from `values` (the whole map's, so every tile of it
-        colors alike) where the request or the map's use leaves it open: `scale=` as asked (`auto` from the data, an
-        end left blank from the data), else the use's default domain, else the data's."""
+        colors alike): `scale=` as asked (an end left blank from the data), else the data's (`auto_domain`; Ben,
+        2026-11-10), except the use's own domain with `scale=default`, for a cyclic palette (wind direction), and a
+        categorical map's levels. With a middle, an end from the data on the wrong side of it becomes the middle, so
+        the map uses only the half its values reach."""
         found = self.scale
         asked = self.scale_asked
         counted = self.count is not None or (self.event is not None and self.event.kind == "since")
         if counted and (asked is None or asked.mode == "default"):
             # From none to the data's high end (rare days would be dark on 0 to every day), at most every step
             return (0.0, min(float(self.steps), max(1.0, palettes.auto_domain(values)[1])))
-        if found.palette.kind == "categorical" or ((asked is None or asked.mode == "default") and found.domain):
+        use_own = (asked is not None and asked.mode == "default") or (asked is None and found.fixed)
+        if found.palette.kind == "categorical" or (use_own and found.domain):
             return found.domain  # type: ignore[return-value]
         auto = palettes.auto_domain(values, centered=found.centered)
         if self.unit == "date":
@@ -215,10 +240,24 @@ class LayerAsk:
             return auto
         lo = asked.low if asked.low is not None else auto[0]
         hi = asked.high if asked.high is not None else auto[1]
+        middle = asked.middle
+        if middle is not None:
+            if asked.low is None and lo > middle:
+                lo = middle
+            if asked.high is None and hi < middle:
+                hi = middle
+            if lo >= hi:  # every value at the middle
+                return (lo - 1.0, hi + 1.0) if asked.low is None and asked.high is None else (lo, hi + 1.0)
+            return (lo, hi)
         if lo >= hi:  # an end from the data on the wrong side of the one given: keep the data's span
             span = auto[1] - auto[0] or 1.0
             lo, hi = (lo, lo + span) if asked.low is not None else (hi - span, hi)
         return (lo, hi)
+
+    @property
+    def middle(self) -> float | None:
+        """The value for the palette's middle color (`scale=low,middle,high`), in the stored unit; None: halfway."""
+        return self.scale_asked.middle if self.scale_asked is not None else None
 
     def _date_domain(self, auto: tuple[float, float]) -> tuple[float, float]:
         """A date map's domain from its values, at least MIN_DATE_SPAN days wide and inside the window (one day's

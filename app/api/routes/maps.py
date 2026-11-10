@@ -14,6 +14,7 @@ least recently used.
 
 import hashlib
 import os
+import re
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -49,6 +50,7 @@ class MapQuery(LayerQuery):
     width: int = Field(800, ge=400, le=2000)
     scale: str | None = None  # the colors' range: default, auto or low,high (`layermaps.parse_scale`)
     palette: str | None = None  # the colors: any of `/palettes`, `_r` reversed (`layermaps._palette_asked`)
+    isolines: str | None = None  # off, auto (at the legend's ticks) or N (every N in the map's units)
 
 
 @router.get(
@@ -67,8 +69,9 @@ def static_map(request: HttpRequest, layer: str, query: Query[MapQuery], output:
         raise ApiError(
             "invalid", "A map image shows one map. Give one day or hour, or a range of days with stat.", "stat"
         )
+    isolines = parse_isolines(query.isolines, a)
     data_stamp = layermaps.stamp(a, now)
-    etag = etag_for(request, a.echo(), data_stamp)
+    etag = etag_for(request, {**a.echo(), "isolines": isolines}, data_stamp)
     if (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     path = _kept(etag)
@@ -76,11 +79,12 @@ def static_map(request: HttpRequest, layer: str, query: Query[MapQuery], output:
         os.utime(path)  # read: kept another KEEP_DAYS
         body = path.read_bytes()
     else:
-        body = _draw(request, a, query, now, data_stamp)
+        body = _draw(request, a, query, now, data_stamp, isolines)
         _keep(path, body)
         _enforce_cap(keep=path)
     response = HttpResponse(body, content_type="image/png")
     response["ETag"] = etag
+    response["Content-Disposition"] = f'inline; filename="{download_name(a, query, output.units, isolines)}"'
     latest = not (query.date or query.time or query.start or query.end or query.season)
     response["Cache-Control"] = layermaps.cache_control(a, now, latest=latest)
     response["Server-Timing"] = f"total;dur={(time.perf_counter() - started) * 1000:.1f}"
@@ -88,7 +92,7 @@ def static_map(request: HttpRequest, layer: str, query: Query[MapQuery], output:
 
 
 def _layer_query(q: MapQuery, now: datetime) -> LayerQuery:
-    fields: dict[str, Any] = q.model_dump(exclude={"days", "region", "width", "scale", "palette"})
+    fields: dict[str, Any] = q.model_dump(exclude={"days", "region", "width", "scale", "palette", "isolines"})
     if q.days is not None:
         if q.start or q.date or q.time or q.season or q.biofix:
             raise ApiError(
@@ -112,7 +116,84 @@ def _layer_query(q: MapQuery, now: datetime) -> LayerQuery:
     return LayerQuery(**fields)
 
 
-def _draw(request: HttpRequest, a: layermaps.LayerAsk, q: MapQuery, now: datetime, data_stamp: Any) -> bytes:
+def parse_isolines(text: str | None, a: layermaps.LayerAsk) -> mapimage.Isolines:
+    """`isolines=off` (or left out), `auto` (at the legend's ticks) or a positive number (every N in the map's units:
+    degrees, inches, days for a date map)."""
+    if text is None or text.strip().lower() in ("", "off"):
+        return None
+    given = text.strip().lower()
+    if a.scale.palette.kind == "categorical":
+        raise ApiError(
+            "not_applicable",
+            f"{a.label} has a color for each level, so it takes no isolines. Leave out isolines.",
+            "isolines",
+        )
+    if given == "auto":
+        return "auto"
+    try:
+        every = float(given)
+    except ValueError:
+        every = float("nan")
+    if not np.isfinite(every) or every <= 0:
+        raise ApiError(
+            "invalid",
+            f"We can't read isolines={text}. Give isolines=auto for a line at each of the legend's values, a number "
+            "for a line every so many units (isolines=5 for every 5 degrees), or isolines=off.",
+            "isolines",
+        )
+    return every
+
+
+def check_isoline_count(values: np.ndarray, every: float, shown: Any) -> None:
+    """Refuses `isolines=N` that would draw more than `mapimage.MAX_LEVELS` lines over the values' range (`shown`
+    converts stored values to the map's unit), suggesting a spacing that draws about 20."""
+    if not np.isfinite(values).any():
+        return
+    ends = shown(np.array([np.nanmin(values), np.nanmax(values)]))
+    span = abs(float(ends[1] - ends[0]))
+    if span / every > mapimage.MAX_LEVELS:
+        wider = float(f"{span / 20:.1g}")
+        raise ApiError(
+            "too_large",
+            f"isolines={every:g} would draw about {span / every:,.0f} lines on this map, more than "
+            f"{mapimage.MAX_LEVELS}. Choose a wider spacing, such as isolines={wider:g}.",
+            "isolines",
+        )
+
+
+def download_name(a: layermaps.LayerAsk, q: MapQuery, units: str | None, isolines: mapimage.Isolines) -> str:
+    """The name a browser offers when the map is saved: the layer and what was asked (`LayerAsk.echo`, the region,
+    units, scale, palette and isolines), as `soil_temperature_4cm_mean_min_2025-07-01_2026-07-01.png`."""
+    echo = a.echo()
+    parts: list[Any] = [echo.pop("layer")]
+    if "start" in echo:
+        parts += [echo.pop("stat", None), echo.pop("start"), echo.pop("end")]
+    parts += [echo.pop(key, None) for key in ("date", "time", "stat")]
+    for key in ("gaps", "scale", "palette"):
+        echo.pop(key, None)
+    parts += [f"{key}-{value}" for key, value in echo.items() if value is not None]
+    if q.region:
+        parts.append(q.region)
+    if units and units != "us":
+        parts.append(units)
+    if a.scale_asked is not None:
+        parts.append(f"scale-{a.scale_asked.text}")
+    if a.palette_asked is not None:
+        parts.append(a.palette_asked.id)
+    if isolines is not None:
+        parts.append(f"isolines-{isolines if isolines == 'auto' else f'{isolines:g}'}")
+    words = [re.sub(r"[^A-Za-z0-9._-]+", "-", str(p)).strip("-") for p in parts if p not in (None, "")]
+    return "_".join(w for w in words if w)[:150] + ".png"
+
+
+def _draw(
+    request: HttpRequest,
+    a: layermaps.LayerAsk,
+    q: MapQuery,
+    now: datetime,
+    data_stamp: Any,
+    isolines: mapimage.Isolines = None,
+) -> bytes:
     archive = layermaps.archive_window(settings.DATA_DIR, a.stores)
     computed = layermaps.cached(a, archive, now, data_stamp)
     values = computed.values[0]
@@ -140,6 +221,8 @@ def _draw(request: HttpRequest, a: layermaps.LayerAsk, q: MapQuery, now: datetim
     column = Column(name=a.layer.id, values=[], unit=a.unit, step=a.step, variable=a.layer.variable or a.layer.id)
     system, overrides = output_units(request)
     shown_as = shown_unit(column, system, overrides)
+    if isinstance(isolines, float):
+        check_isoline_count(values, isolines, lambda v: agunits.convert(v, a.unit, shown_as))
     return mapimage.map_png(
         values,
         window,
@@ -154,6 +237,8 @@ def _draw(request: HttpRequest, a: layermaps.LayerAsk, q: MapQuery, now: datetim
         width=q.width,
         dates=a.unit == "date",
         states=states,
+        middle=a.middle,
+        isolines=isolines,
     )
 
 

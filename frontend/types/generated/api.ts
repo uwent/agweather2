@@ -284,6 +284,7 @@ export interface MapQuery {
   width?: number
   scale?: string | null
   palette?: string | null
+  isolines?: string | null
 }
 export interface ModelDetail {
   id: string

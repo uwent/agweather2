@@ -91,7 +91,7 @@ def test_a_styled_tile_colors_the_values_with_the_palette(client, archive):
     from agdata import palettes
 
     data = _cells_seen(_pixels(_tile(client, "air_temperature_max", "2025-07-08")), step=0.1)
-    styled = _pixels(_tile(client, "air_temperature_max", "2025-07-08", style="default"))
+    styled = _pixels(_tile(client, "air_temperature_max", "2025-07-08", style="default", scale="default"))
     cells = tiles.index(WINDOW, Z, X, Y)
     assert cells is not None
     p = palettes.PALETTES["BuYlRd"]
@@ -150,8 +150,12 @@ def test_scale_sets_what_the_colors_span(client, archive):
 
     described = client.get("/api/v2/tiles/air_temperature_max.json", {"style": "default", "scale": "60,90"}).json()
     assert described["palette"] == "BuYlRd" and described["domain"] == [60.0, 90.0] and described["domain_unit"] == "°F"
-    metric = client.get("/api/v2/tiles/air_temperature_max.json", {"style": "default", "units": "metric"}).json()
-    assert metric["domain"] == [-30.0, 40.0] and metric["domain_unit"] == "°C"  # the use's default
+    fixed = {"style": "default", "units": "metric", "scale": "default"}
+    metric = client.get("/api/v2/tiles/air_temperature_max.json", fixed).json()
+    assert metric["domain"] == [-30.0, 40.0] and metric["domain_unit"] == "°C"  # the use's own
+    fitted = client.get("/api/v2/tiles/air_temperature_max.json", {"style": "default", "units": "metric"}).json()
+    low, high = fitted["domain"]  # without scale: from the map's values (Ben, 2026-11-10)
+    assert -30 < low < high < 40 and "domain_middle" not in fitted
     open_end = client.get("/api/v2/tiles/air_temperature_max.json", {"style": "default", "scale": "60,"}).json()
     assert open_end["domain"][0] == 60.0 and open_end["domain"][1] > 60.0  # the high end from the map
 
@@ -159,6 +163,8 @@ def test_scale_sets_what_the_colors_span(client, archive):
         return client.get("/api/v2/maps/air_temperature_max.png", params).json()["errors"][0]
 
     assert error(scale="90,60")["code"] == "out_of_order"
+    assert error(scale="0,50,40")["code"] == "out_of_order" and error(scale="0,,40")["code"] == "invalid"
+    assert error(scale="1,2,3,4")["code"] == "invalid"
     assert error(scale="warm")["code"] == "invalid" and error(scale=",")["code"] == "invalid"
     risk = client.get("/api/v2/maps/late-blight-dsv.png", {"date": "2025-07-08", "scale": "auto"}).json()["errors"][0]
     assert risk["code"] == "not_applicable"
@@ -170,7 +176,9 @@ def test_palette_chooses_the_colors(client, archive):
     from agdata import palettes
 
     data = _cells_seen(_pixels(_tile(client, "air_temperature_max", "2025-07-08")), step=0.1)
-    styled = _pixels(_tile(client, "air_temperature_max", "2025-07-08", style="default", palette="viridis_r"))
+    styled = _pixels(
+        _tile(client, "air_temperature_max", "2025-07-08", style="default", palette="viridis_r", scale="default")
+    )
     cells = tiles.index(WINDOW, Z, X, Y)
     assert cells is not None
     k, cell = next((k, int(c)) for k, c in enumerate(cells) if c >= 0)
@@ -198,3 +206,24 @@ def test_palette_chooses_the_colors(client, archive):
     assert error(palette="plaid")["code"] == "unknown_palette"
     assert error(palette="BuYlRd_3")["code"] == "not_applicable"  # categorical on a range of values
     assert error(layer="late-blight-dsv", date="2025-07-08", palette="viridis")["code"] == "not_applicable"
+
+
+@pytest.mark.django_db
+def test_a_middle_in_scale_pins_the_palettes_middle_color(client, archive):
+    from agdata import palettes
+
+    data = _cells_seen(_pixels(_tile(client, "air_temperature_max", "2025-07-08")), step=0.1)
+    styled = _pixels(_tile(client, "air_temperature_max", "2025-07-08", style="default", scale="60,75,90"))
+    cells = tiles.index(WINDOW, Z, X, Y)
+    assert cells is not None
+    k, cell = next((k, int(c)) for k, c in enumerate(cells) if c >= 0)
+    stored = ((60 - 32) / 1.8, (90 - 32) / 1.8)
+    expected = palettes.colorize(np.array([data[cell]]), palettes.PALETTES["BuYlRd"], stored, middle=(75 - 32) / 1.8)
+    assert tuple(styled.reshape(-1, 4)[k]) == tuple(expected[0])
+    described = client.get("/api/v2/tiles/air_temperature_max.json", {"style": "default", "scale": "60,75,90"}).json()
+    assert described["domain"] == [60.0, 90.0] and described["domain_middle"] == 75.0
+    # The data's ends, but a middle below every value: the low end becomes the middle, so only the warm half shows
+    above = client.get("/api/v2/tiles/air_temperature_max.json", {"style": "default", "scale": ",-40,"}).json()
+    assert above["domain"][0] == -40.0 and above["domain"][1] > 50 and above["domain_middle"] == -40.0
+    legend = client.get("/api/v2/tiles/air_temperature_max/legend.png", {"time": "2025-07-08", "scale": "0,32,100"})
+    assert legend.status_code == 200 and legend["Content-Type"] == "image/png"

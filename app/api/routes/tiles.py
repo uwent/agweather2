@@ -153,7 +153,9 @@ def tile(
             body = tiles.png(tiles.data_tile(found.values[0], cells, a.step, states))
         else:
             scale = a.scale
-            colors = palettes.colorize(tiles.pick(found.values[0], cells), scale.palette, a.domain(found.values[0]))
+            colors = palettes.colorize(
+                tiles.pick(found.values[0], cells), scale.palette, a.domain(found.values[0]), middle=a.middle
+            )
             if states is not None:
                 picked = tiles.pick(states, cells)
                 for state, color, _ in mapimage.EMPTY:
@@ -188,6 +190,8 @@ def tilejson(
         shown_as = shown_unit(column, system, overrides)
         shown = [round(float(agunits.convert(np.float64(v), a.unit, shown_as)), 4) for v in stored]
         colored = {"palette": a.scale.palette.id, "domain": shown, "domain_unit": agunits.unit(shown_as).label}
+        if a.middle is not None:  # `scale=low,middle,high`: the value at the palette's middle color
+            colored["domain_middle"] = round(float(agunits.convert(np.float64(a.middle), a.unit, shown_as)), 4)
     lat, lon = NDFD.window_latlon(window)
     params = request.GET.copy()
     params.pop("time", None)
@@ -240,16 +244,16 @@ def legend(
     time: str = "latest",
 ) -> HttpResponse:
     """The legend of `?style=default` tiles at `time` (default `latest`) with the same settings: a color bar with
-    ticks in the request's units (`units=`), or a swatch per level for a categorical map. A map whose domain comes
-    from its values (running totals, reduced ranges, model outputs) takes the same domain as its tiles."""
+    ticks in the request's units (`units=`), or a swatch per level for a categorical map, over the same domain as its
+    tiles (from the map's values unless `scale=` says otherwise)."""
     a, now, window, data_stamp = _prepared(request, layer, time, query, output.units)
     etag = etag_for(request, a.echo(), data_stamp)
     if (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     scale = a.scale
     domain = scale.domain
-    found = layermaps.cached(a, window, now, data_stamp) if domain is None or a.scale_asked or a.event else None
-    if found is not None and (domain is None or a.scale_asked is not None):  # from the values, or `scale=`
+    found = None if scale.palette.kind == "categorical" else layermaps.cached(a, window, now, data_stamp)
+    if found is not None:  # as the tiles: from the values unless `scale=` or the use fixes it (`LayerAsk.domain`)
         domain = a.domain(found.values[0])
     states = layermaps.event_states(found) if found is not None else None
     assert domain is not None
@@ -265,6 +269,7 @@ def legend(
         categories=a.categories,
         dates=a.unit == "date",
         empties=[s for s, _, _ in mapimage.EMPTY if states is not None and (states == s).any()],
+        middle=a.middle,
     )
     response = HttpResponse(body, content_type="image/png")
     response["ETag"] = etag

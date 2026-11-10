@@ -25,8 +25,14 @@ green-to-red) are there for the frontend to offer a reader who wants them.
 
 A map's `Scale` is its palette and the domain its ends stand for, in the stored unit: the use's default where values
 have a natural range (a day's temperature, humidity, hours in a day, a risk level), else None, from the map's own
-values (`auto_domain`): running totals, ranges reduced by `stat`, and model outputs grow through a season. A request
-can choose (`scale=`, `api.layermaps`).
+values (`auto_domain`): running totals, ranges reduced by `stat`, and model outputs grow through a season. Maps take
+their domain from their values unless a request asks for the use's (`scale=default`), except a cyclic palette's, which
+is `fixed` (Ben, 2026-11-10). A request can choose the ends and a value for the palette's middle (`scale=`,
+`api.layermaps`; `position`).
+
+Additional color palette options:
+- Sequential (eg wind speed): https://cmap-docs.readthedocs.io/en/stable/catalog/sequential/
+- Diverging (eg temperature): https://cmap-docs.readthedocs.io/en/stable/catalog/diverging/
 """
 
 from dataclasses import dataclass, replace
@@ -264,6 +270,7 @@ class Scale:
     palette: Palette
     domain: Domain | None
     centered: bool = False
+    fixed: bool = False  # the domain holds without `scale=` (a cyclic palette's: the compass is the scale)
 
 
 def scale_for(use_id: str, time_axis: str, running: bool) -> Scale:
@@ -276,7 +283,7 @@ def scale_for(use_id: str, time_axis: str, running: bool) -> Scale:
     if running and not use.bounded:
         return Scale(palette=p, domain=None, centered=use.centered)
     domain = use.hour if time_axis == "hour" and use.hour is not None else use.day
-    return Scale(palette=p, domain=domain, centered=use.centered)
+    return Scale(palette=p, domain=domain, centered=use.centered, fixed=p.kind == "cyclic")
 
 
 def auto_domain(values: np.ndarray, centered: bool = False) -> tuple[float, float]:
@@ -309,9 +316,23 @@ def rgb(color: str) -> tuple[int, int, int]:
     return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 
-def colorize(values: np.ndarray, p: Palette, domain: tuple[float, float]) -> np.ndarray:
+def position(values: np.ndarray, domain: tuple[float, float], middle: float | None = None) -> np.ndarray:
+    """Where values fall along a continuous palette, 0 to 1 (clipped; NaN stays NaN): linear over `domain`, or with a
+    `middle` (`scale=low,middle,high`) the palette's middle at it and each half stretched over its side. A middle at
+    an end (a map whose values reach only one side) uses only the half they reach."""
+    lo, hi = domain
+    v = np.asarray(values, dtype=np.float64)
+    if middle is None:
+        return np.clip((v - lo) / (hi - lo or 1.0), 0, 1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        below = 0.5 * (v - lo) / (middle - lo) if middle > lo else np.full(v.shape, 0.5)
+        above = 0.5 + 0.5 * (v - middle) / (hi - middle) if hi > middle else np.full(v.shape, 0.5)
+    return np.where(np.isnan(v), np.nan, np.clip(np.where(v < middle, below, above), 0, 1))
+
+
+def colorize(values: np.ndarray, p: Palette, domain: tuple[float, float], middle: float | None = None) -> np.ndarray:
     """RGBA (…, 4) uint8 for values: a categorical palette by level (rounded; outside its levels transparent), others
-    interpolated along the ramp over `domain` (clipped); missing transparent."""
+    interpolated along the ramp over `domain` (clipped; `position`, with its `middle`); missing transparent."""
     colors = np.array([rgb(c) for c in p.colors], dtype=float)
     out = np.zeros((*values.shape, 4), dtype=np.uint8)
     known = np.isfinite(values)
@@ -321,9 +342,7 @@ def colorize(values: np.ndarray, p: Palette, domain: tuple[float, float]) -> np.
         out[shown, :3] = colors[level[shown]].astype(np.uint8)
         out[shown, 3] = 255
         return out
-    lo, hi = domain
-    span = hi - lo or 1.0
-    t = np.clip((np.where(known, values, lo) - lo) / span, 0, 1) * (len(colors) - 1)
+    t = np.nan_to_num(position(values, domain, middle)) * (len(colors) - 1)
     k = np.minimum(np.floor(t).astype(int), len(colors) - 2)
     f = (t - k)[..., None]
     mixed = colors[k] * (1 - f) + colors[k + 1] * f
