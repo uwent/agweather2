@@ -95,8 +95,8 @@ def wanted(data_dir: Path, now: datetime, variables: list[str] | None = None) ->
         store = GridStore.open(data_dir, DAILY, year, [DAILY_VARIABLES[n] for n in names], add_missing=False)
         for name in names:
             written = store.written(name)
-            if written is None:
-                continue  # nothing rolled up
+            if written is None or not store.has_data(name).any():
+                continue  # nothing rolled up, as `build` judges it (2024's ET0 estimate: no day needed one)
             entry = known.get((name, year))
             if entry is None:
                 found.append((name, year, "missing"))

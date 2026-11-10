@@ -142,7 +142,19 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
 ## Phase 6: Frontend plan and the data behind it
 
-- [ ] **ERA5-Land kept as received, and the coast of soil and snow** (D79, 2026-11-07). Claude started the download of 2016 through October 2026 into `data/era5land/` (`era5land --start 2016-01-01 --end 2026-11-03`, 130 monthly requests, 3 at a time: likely a day or two at the CDS; it resumes where it stopped if run again, since a day counts as missing until it's kept). It writes each month's soil and snow by the new coast rule as it arrives.
+- [ ] **Restart `bin/dev` before Monday, November 16** (2026-11-09). Its worker started at 21:37, before past-years builds took turns (a lock added that evening, after two builds at once broke 2017's copy). Ctrl-C in its terminal, then `bin/dev`.
+
+- [ ] **`/tmp` is now a 9.8 GB tmpfs** (Ubuntu 26.04 mounts it in memory by default; found 2026-11-09). The test suite in parallel fills it ("No space left on device" in a dozen tests), and whatever's there uses WSL's 19 GB of RAM. Either give `/tmp` back to the disk, as on 24.04:
+
+  ```bash
+  sudo systemctl mask tmp.mount
+  # then from Windows: wsl --shutdown, and reopen
+  findmnt /tmp     # should print nothing (it's part of /)
+  ```
+
+  or keep the tmpfs and point the tests elsewhere (`TMPDIR=$PWD/tmp/pytest-tmp uv run pytest -n auto --dist loadfile`), which Claude can make the default in `bin/ci` and the root conftest if you'd rather. CI on GitHub isn't affected.
+
+- [x] **ERA5-Land kept as received, and the coast of soil and snow** (D79, 2026-11-07; done by 2026-11-09: every month of 2016–2026 has soil on Washington Island, the Door Peninsula's tip and Madeline Island, so the re-derive isn't needed). Claude started the download of 2016 through October 2026 into `data/era5land/` (`era5land --start 2016-01-01 --end 2026-11-03`, 130 monthly requests, 3 at a time: likely a day or two at the CDS; it resumes where it stopped if run again, since a day counts as missing until it's kept). It writes each month's soil and snow by the new coast rule as it arrives.
 
   1. Restart `bin/dev` now, so the worker's daily ERA5-Land and hourly IFS jobs keep files and use the new coast (Ctrl-C, then `bin/dev`).
   2. The `archive fill` running since this morning has the old code, and its ERA5-Land step for each year writes soil the old way. Stop and resume it at a convenient point (`uv run app/manage.py archive stop`, wait until `archive` no longer lists it, then `f` in `bin/agwx`).
@@ -156,7 +168,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
   Then look at `/api/v2/maps/soil_temperature_10cm_mean.png?date=2026-05-01&region=55029` (Door County): soil to the tip, on Washington Island, and on the Apostle Islands (`region=55007`).
 
-- [ ] **After the backfill** (PLAN.md Phase 6, "After the backfill"; moved from Phase 5, 2026-11-06). When `archive fill` finishes in `bin/agwx`:
+- [x] **After the backfill** (done 2026-11-09: Ben ran the checks; Claude rebuilt 2016–2019's crop tiers, the downloads and the season-read copy) (PLAN.md Phase 6, "After the backfill"; moved from Phase 5, 2026-11-06). When `archive fill` finishes in `bin/agwx`:
 
   ```bash
   uv run app/manage.py rebuild --check       # should print nothing
@@ -167,7 +179,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
   Then tell Claude, who removes the old season search (`_first_day_at`) and times the ten-year projection. Monday's job builds the downloads if you don't run them.
 
-- [ ] **Restart `bin/dev` and the backfill for water balance's running total** (2026-11-07). The worker (running since 00:30) and `archive fill` (writing 2019) run code from before `water_balance_total` existed, so the days they roll up get no water balance running total. Claude rebuilt every year's at about 10:00. Restart both soon: within a week of new days, the next rollups fill the gap themselves (each rewrites from 7 days back).
+- [x] **Restart `bin/dev` and the backfill for water balance's running total** (2026-11-07; done, `rebuild --check` clean 2026-11-09). The worker (running since 00:30) and `archive fill` (writing 2019) run code from before `water_balance_total` existed, so the days they roll up get no water balance running total. Claude rebuilt every year's at about 10:00. Restart both soon: within a week of new days, the next rollups fill the gap themselves (each rewrites from 7 days back).
 
   ```bash
   # in bin/dev's terminal: Ctrl-C, then
@@ -184,7 +196,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
   uv run app/manage.py rebuild --stale
   ```
 
-- [ ] **Restart `bin/dev` and the dashboard** (2026-11-06) so they load the day's changes: the worker's rollups then keep the season-read copy of daily min and max (`agdata.timecopy`) current, and the dashboard uses about a third of the CPU it did. Until then nothing is wrong: maps read any day the copy lacks from the daily store.
+- [x] **Restart `bin/dev` and the dashboard** (2026-11-06; done, `timecopy` filled 2026-11-09) so they load the day's changes: the worker's rollups then keep the season-read copy of daily min and max (`agdata.timecopy`) current, and the dashboard uses about a third of the CPU it did. Until then nothing is wrong: maps read any day the copy lacks from the daily store.
 
   ```bash
   # in bin/dev's terminal: Ctrl-C, then

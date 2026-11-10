@@ -6,6 +6,7 @@ from datetime import date, timedelta
 import numpy as np
 import pytest
 import xarray as xr
+import zarr
 
 from agdata.catalog import DAILY_VARIABLES
 from agdata.grid import NDFD
@@ -119,3 +120,17 @@ def test_the_api_lists_and_serves_them(data_dir, client):
     assert int(response["Content-Length"]) == first["bytes"]
     status = client.get("/api/v2/status").json()["data"]["downloads"]
     assert status["files"] == len(NAMES)
+
+
+def test_after_a_build_nothing_is_left_wanted_even_a_variable_never_given_a_value(data_dir):
+    """A variable written for no day (2024's and 2025's ET0 estimate on dev: no day needed one) has no file to
+    build, so it isn't wanted: it was, forever, since `build` skips it."""
+    names = [*NAMES, "et0_sum_estimate"]
+    store = _store(data_dir, names)
+    store.write(date(2025, 1, 1), {"et0_sum_estimate": np.full((1, *WINDOW.shape), np.nan)}, source="derived")
+    source = store.group["_meta/et0_sum_estimate.source"]
+    assert isinstance(source, zarr.Array)
+    source[:] = 0  # stamped as written, but no day has a source
+    assert store.written("et0_sum_estimate") is not None and not store.has_data("et0_sum_estimate").any()
+    downloads.build_wanted(data_dir, NOW, names)
+    assert downloads.wanted(data_dir, NOW, names) == []

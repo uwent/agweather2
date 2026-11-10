@@ -8,7 +8,7 @@ import pytest
 from agdata import croptiers, cumulative, modelgrid, modelmaps
 from agdata.catalog import DAILY_VARIABLES, GAP_FILL
 from agdata.grid import NDFD
-from agdata.store import DAILY, GridStore
+from agdata.store import DAILY, INGREDIENTS, GridStore
 from agdata.testing import WINDOW
 from agmodels import runner
 from agmodels.accumulate import rolling_mean, rolling_sum, running_total
@@ -337,10 +337,12 @@ def test_a_tier_stored_crop_takes_a_tier(built):
         modelgrid.model_map(root, "soybean-stages", DAYS[1], DAYS[1], WINDOW, tier=None)
 
 
-def test_stored_stage_days_are_what_the_search_finds_and_old_stores_still_search(built, potato_here, monkeypatch):
-    """`croptiers` keeps each tier's first day at each stage (D70); a blight's emergence biofix reads it, and a
-    store built before they were kept falls back to searching the stages."""
-    from agdata import croptiers, planting
+def test_stored_stage_days_are_the_stages_first_days_and_a_store_without_them_says_so(built, potato_here, monkeypatch):
+    """`croptiers` keeps each tier's first day at each stage (D70), the first day the stored stage series reaches
+    it; a blight's emergence biofix reads them. A store without them is one to rebuild (`modelmaps.status`), and
+    until then the blight's planted cells are missing rather than started on a guess."""
+    from agdata import planting
+    from agmodels.crops import stage_days
 
     root, _ = built
     found = croptiers.reached(root, "potato-stages", "mid", 2025, WINDOW)
@@ -348,10 +350,19 @@ def test_stored_stage_days_are_what_the_search_finds_and_old_stores_still_search
     sown = modelgrid._Planting(crop_id="potato-stages", crop="potato", tier="mid", window=WINDOW)
     p = planting.planting_map("potato", "mid", WINDOW, season=2025)
     k = 1  # emergence
-    searched = modelgrid._first_day_at(root, sown, k, p, FIRST, LAST, None)
-    np.testing.assert_array_equal(found[0][k], searched)
-    stored = modelgrid.model_map(root, "early-blight-pdays", DAYS[1], DAYS[1], WINDOW, tier="mid")
+    begin = date.fromordinal(int(np.nanmin(p)))
+    index = stage_days(modelgrid._crop_stages(root, sown, begin, LAST, None), k + 1)[k]
+    first_days = np.where(np.isnan(p), np.nan, np.where(np.isfinite(index), begin.toordinal() + index, np.inf))
+    np.testing.assert_array_equal(found[0][k], first_days)
+    assert modelmaps.status(root, 2025) is None
+
+    monkeypatch.setattr(croptiers, "REACHED", "_not_kept")  # as a store built before they were kept
+    store = GridStore.open(root, INGREDIENTS, 2025, modelmaps.variables())
+    assert "potato-stages.mid" in croptiers.missing_reached(store)
+    assert modelmaps.status(root, 2025) == modelmaps.NO_STAGE_DAYS
     monkeypatch.setattr(croptiers, "reached", lambda *args: None)
-    modelgrid._REACHED.clear()
-    fallback = modelgrid.model_map(root, "early-blight-pdays", DAYS[1], DAYS[1], WINDOW, tier="mid")
-    np.testing.assert_array_equal(stored.cell_biofix, fallback.cell_biofix)
+    without = modelgrid.model_map(root, "early-blight-pdays", DAYS[1], DAYS[1], WINDOW, tier="mid")
+    assert without.cell_biofix is not None and without.level is not None
+    planted = np.isfinite(p)
+    assert np.isinf(without.cell_biofix[0][planted]).all()
+    assert np.isnan(without.level[0][planted]).all()

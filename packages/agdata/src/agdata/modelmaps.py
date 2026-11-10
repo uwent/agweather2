@@ -284,7 +284,7 @@ def build(
 
     tiers = {v.name for v in tier_variables()}
     reason = status(data_dir, year)
-    if reason is not None and reason.endswith("stale variables"):
+    if reason is not None and (reason.endswith("stale variables") or reason == NO_STAGE_DAYS):
         stale = GridStore.stale_variables(data_dir, INGREDIENTS, year, variables())
         rolled = _rolled_days(data_dir, year)
         if stale <= tiers and rolled is not None:  # only the crops' tiers: the rest is current
@@ -304,6 +304,9 @@ def build(
     return days
 
 
+NO_STAGE_DAYS = "crop stages' first days not kept"  # a store built before `croptiers` kept them (D70)
+
+
 def status(data_dir: Path, year: int) -> str | None:
     """Why a year's ingredients need building (not built, stale variables, days missing), or None."""
     rolled = _rolled_days(data_dir, year)
@@ -314,11 +317,15 @@ def status(data_dir: Path, year: int) -> str | None:
     stale = GridStore.stale_variables(data_dir, INGREDIENTS, year, variables())
     if stale:
         return f"{len(stale)} stale variables"
+    from agdata import croptiers  # it uses this module
+
     store = GridStore.open(data_dir, INGREDIENTS, year, variables())
     written = store.read_meta(f"{next(iter(stored()))}.source") > 0
     missing = rolled[~written[rolled]]
     if missing.size:
         return f"{missing.size} days missing (from {date(year, 1, 1) + timedelta(days=int(missing[0]))})"
+    if croptiers.missing_reached(store):
+        return NO_STAGE_DAYS
     return None
 
 

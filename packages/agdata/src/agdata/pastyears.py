@@ -10,10 +10,15 @@ written no later than the copy, no stale variables). `stale_years` says which ye
 (a later write to the daily store, a variable's version, D29); `manage.py pastyears` and a weekly job keep them.
 
 A copy marks itself complete last, so a reader never takes a half-built one; `read` returns None for a year it
-can't serve, and the caller falls back to reading the hours (`agdata.series.point_days`)."""
+can't serve, and the caller falls back to reading the hours (`agdata.series.point_days`). Builds take turns (an
+flock on the copies' folder): they write a shared `.part` beside the copy, and two at once (the weekly job beside
+`archive fill` or `manage.py pastyears`) once left 2017's marked complete without its array (2026-11-09)."""
 
+import fcntl
+import os
 import shutil
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
@@ -62,7 +67,7 @@ def status(data_dir: Path, year: int) -> str | None:
     if group is None:
         return "missing"
     attrs: dict[str, Any] = dict(group.attrs)
-    if not attrs.get("complete"):
+    if not _complete(PAST.path(data_dir, year), attrs):
         return "incomplete"  # a build stopped partway
     daily = GridStore.open(data_dir, DAILY, year, _present(data_dir, year))
     written = _daily_written(daily)
@@ -91,6 +96,23 @@ def _open_copy(path: Path) -> zarr.Group | None:
         return None
 
 
+def _complete(path: Path, attrs: dict[str, Any]) -> bool:
+    """Marked complete, with its array there: two builds at once once left a copy marked complete without it."""
+    return bool(attrs.get("complete")) and (path / "values" / "zarr.json").exists()
+
+
+@contextmanager
+def _one_build_at_a_time(folder: Path) -> Iterator[None]:
+    """Waits for any other build of a copy (in any process) to finish, and holds them off until this one has."""
+    folder.mkdir(parents=True, exist_ok=True)
+    handle = os.open(folder, os.O_RDONLY)
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(handle)  # releases the flock
+
+
 def _present(data_dir: Path, year: int) -> list[Variable]:
     group = zarr.open_group(DAILY.path(data_dir, year), mode="r")
     keys = set(group.array_keys())
@@ -99,7 +121,12 @@ def _present(data_dir: Path, year: int) -> list[Variable]:
 
 def build(data_dir: Path, year: int, progress: Callable[[int, int], None] | None = None) -> None:
     """(Re)builds a year's copy from its daily store, which must have no stale variables (`rebuild --stale` first).
-    Built beside its path and renamed into place once whole."""
+    Built beside its path and renamed into place once whole, one build at a time."""
+    with _one_build_at_a_time(PAST.path(data_dir, year).parent):
+        _build(data_dir, year, progress)
+
+
+def _build(data_dir: Path, year: int, progress: Callable[[int, int], None] | None) -> None:
     variables = _present(data_dir, year)
     daily = GridStore.open(data_dir, DAILY, year, variables)
     if daily.stale:
@@ -172,10 +199,13 @@ class Reader:
             found = None
             if group is not None:
                 attrs: dict[str, Any] = dict(group.attrs)
-                if attrs.get("complete"):
+                if _complete(PAST.path(self.data_dir, year), attrs):
                     w = attrs["window"]
                     window = Window(j0=w["j0"], j1=w["j1"], i0=w["i0"], i1=w["i1"])
-                    found = _Year(values=group["values"], names=list(attrs["names"]), window=window)
+                    try:
+                        found = _Year(values=group["values"], names=list(attrs["names"]), window=window)
+                    except KeyError:  # swapped out since the check: read as missing, like the group
+                        found = None
             self.opened[year] = found
         return self.opened[year]
 

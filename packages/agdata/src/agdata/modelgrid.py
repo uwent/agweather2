@@ -16,12 +16,12 @@ degree days and rain):
 day before it is missing, as a point returns nothing before its biofix. Maps take each place's settings, never a
 user's dates (D66). `model_map` adds the planting tier (early, mid, late; `/grids`' `planting=`): a crop model
 starts at each cell's typical planting date, a stage-anchored biofix (the blights' potato emergence) is each cell's
-first day at that stage, read from what `agdata.croptiers` stored (`_reached`; `_first_day_at` searches the season
-only for stores built before), and a stage-gated disease gets `susceptibility`. Soybean, spring wheat, corn and
-potato stages are read as stored per tier (D70); red crown rot is computed on request from each cell's R1
-(`ON_REQUEST`). With `tier=None` nothing is gated and a stage-anchored biofix is the spec's date, as at a point
-given no planting date (`api.runs`). Cells outside a model's states are missing. The forecast's days come from the
-current run's own stores, which continue the archive's totals, as `series.grid_days` splits them.
+first day at that stage, read from what `agdata.croptiers` stored (`_reached`), and a stage-gated disease gets
+`susceptibility`. Soybean, spring wheat, corn and potato stages are read as stored per tier (D70); red crown rot
+is computed on request from each cell's R1 (`ON_REQUEST`). With `tier=None` nothing is gated and a stage-anchored
+biofix is the spec's date, as at a point given no planting date (`api.runs`). Cells outside a model's states are
+missing. The forecast's days come from the current run's own stores, which continue the archive's totals, as
+`series.grid_days` splits them.
 """
 
 from collections.abc import Callable, Iterable, Mapping
@@ -38,7 +38,7 @@ from agdata import units as agunits
 from agdata.grid import Window
 from agdata.grids import cube_terms
 from agdata.store import CUMULATIVE, DAILY, INGREDIENTS, StoreLayout
-from agmodels.crops import CropModel, disease_susceptibility, stage_days
+from agmodels.crops import CropModel, disease_susceptibility
 from agmodels.ingredients import Accumulation, Ingredient, until_day
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
@@ -387,8 +387,9 @@ def _crop_stages(data_dir, sown: _Planting, first: date, last: date, now) -> np.
 
 def _stage_reached(data_dir, sown: _Planting, code: str, last: date, now):
     """Each cell's first day at the crop stage `code` from its planting (date ordinals; inf if not reached by
-    `last`, NaN where there's no planting), as a biofix: `cell_biofix(day)`, per season. Found over the season once
-    per data stamp (cached), so each day's map of a stage-anchored model reuses it."""
+    `last`, NaN where there's no planting), as a biofix: `cell_biofix(day)`, per season, as `agdata.croptiers` kept
+    them (D70). A season with none kept (its ingredients not built yet; `modelmaps.status` says so) counts as not
+    reached, so the model's map is missing there rather than started on a guess."""
     crop = cast(CropModel, find_model(sown.crop_id))
     k = [s.code for s in crop.stages()].index(code)
     seasons: dict[int, np.ndarray] = {}
@@ -397,25 +398,11 @@ def _stage_reached(data_dir, sown: _Planting, code: str, last: date, now):
         if day.year not in seasons:
             p = sown(day)
             stored = _stored_reached(data_dir, sown, day.year, now) if np.isfinite(p).any() else None
-            if not np.isfinite(p).any():
-                seasons[day.year] = p
-            elif stored is not None:
-                # As `update` kept them (D70): a day after the request's last counts as not reached yet
-                seasons[day.year] = np.where(stored[k] > last.toordinal(), np.inf, stored[k])
+            if stored is None:
+                seasons[day.year] = np.where(np.isnan(p), np.nan, np.inf)
             else:
-                # The season's, whatever the request's last day: a day after it counts as not reached yet
-                begin, end = date.fromordinal(int(np.nanmin(p))), date(day.year, 12, 31)
-                ingredients, totals = _crop_stamped(sown)
-                stamp = series.last_written(
-                    data_dir, begin, end, totals=totals, ingredients=ingredients, now=now, hourly=[]
-                )
-                key = (str(data_dir), sown, k, stamp)
-                if key not in _REACHED:
-                    while len(_REACHED) >= _REACHED_KEEP:
-                        _REACHED.pop(next(iter(_REACHED)))
-                    _REACHED[key] = _first_day_at(data_dir, sown, k, p, begin, end, now)
-                found = _REACHED[key]
-                seasons[day.year] = np.where(found > last.toordinal(), np.inf, found)
+                # As `update` kept them: a day after the request's last counts as not reached yet
+                seasons[day.year] = np.where(stored[k] > last.toordinal(), np.inf, stored[k])
         return seasons[day.year]
 
     return biofix
@@ -423,47 +410,13 @@ def _stage_reached(data_dir, sown: _Planting, code: str, last: date, now):
 
 def _stored_reached(data_dir, sown: _Planting, year: int, now) -> np.ndarray | None:
     """A stored crop's first day at each stage (`croptiers.reached`): the current forecast run's, which runs on
-    through the forecast, else the archive's; None for a crop not stored, or stores from before they were kept."""
-    if sown.crop_id not in modelmaps.TIER_MODELS:
-        return None
+    through the forecast, else the archive's; None if neither store has them."""
     run = series.current_forecast(data_dir, now).path
     for root in (run, data_dir):
         found = None if root is None else croptiers.reached(root, sown.crop_id, sown.tier, year, sown.window)
         if found is not None:
             return found[0]
     return None
-
-
-def _crop_stamped(sown: _Planting) -> tuple[list[str], list[str]]:
-    """What a crop's stages are read from: (ingredient store variables, running totals)."""
-    if sown.crop_id in modelmaps.TIER_MODELS:
-        spec = find_model(sown.crop_id).SPEC
-        return [modelmaps.tier_key(sown.crop_id, q.name, sown.tier) for q in spec.outputs], []
-    return stamped(sown.crop_id)
-
-
-# The days a stage is reached, per crop, planting, span and data stamp (the stores' write times and the run): a
-# blight map reads its emergence many times a day and the season's changes only with new data
-_REACHED: dict[tuple, np.ndarray] = {}
-_REACHED_KEEP = 32
-STAGE_BLOCK_DAYS = 15  # days of a crop's stages computed at once while finding when each cell reaches one
-
-
-def _first_day_at(data_dir, sown: _Planting, k: int, p: np.ndarray, begin: date, end: date, now):
-    """Each planted cell's first day at stage index `k` (date ordinals; inf if not by `end`, NaN unplanted),
-    computed block by block from the earliest planting until every planted cell is there."""
-    out = np.where(np.isnan(p), np.nan, np.inf)
-    a = begin
-    while a <= end and np.isinf(out).any():
-        b = min(end, a + timedelta(days=STAGE_BLOCK_DAYS - 1))
-        stage = _crop_stages(data_dir, sown, a, b, now)
-        if np.isnan(stage).all():
-            break  # past the archive and forecast
-        index = stage_days(stage, k + 1)[k]
-        newly = np.isinf(out) & np.isfinite(index)
-        out[newly] = a.toordinal() + index[newly]
-        a = b + timedelta(days=1)
-    return out
 
 
 def _susceptibility(data_dir, spec: ModelSpec, sown: _Planting, first: date, last: date, now) -> np.ndarray:

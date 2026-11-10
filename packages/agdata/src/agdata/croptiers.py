@@ -192,6 +192,22 @@ def reached(root: Path, model_id: str, tier: str, year: int, window: Window) -> 
     return values, date.fromisoformat(str(array.attrs["through"]))
 
 
+def missing_reached(store: GridStore) -> list[str]:
+    """The crops and tiers (`{crop}.{tier}`) whose stages the ingredients store holds without their first days: a
+    store built before `update` kept them (D70). A tier not computed yet (out of season, or before this hour's job)
+    has neither, so isn't listed."""
+    missing = []
+    for model_id in CROPS:
+        for tier in modelmaps.TIERS:
+            name = f"{model_id}.{tier}"
+            if (
+                store.has_data(modelmaps.tier_key(model_id, "stage", tier)).any()
+                and not (store.path / REACHED / name / "zarr.json").exists()
+            ):
+                missing.append(name)
+    return missing
+
+
 def last_stored(data_dir: Path, year: int, root: Path | None = None) -> date | None:
     """The last day any tier's stage is written for in `year` (the archive's, or a run's under `root`)."""
     try:

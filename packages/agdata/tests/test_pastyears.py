@@ -1,6 +1,9 @@
 """Past years laid out for points (agdata.pastyears; D63's projection)."""
 
+import fcntl
+import os
 import shutil
+import threading
 from datetime import UTC, date, datetime
 
 import numpy as np
@@ -78,3 +81,28 @@ def test_a_copy_read_while_its_replacement_is_swapped_in_reads_as_missing(two_ye
     pastyears.build(two_years, 2024)  # a rebuild replaces it whole, leaving nothing beside it
     assert pastyears.status(two_years, 2024) is None
     assert sorted(p.name for p in path.parent.iterdir()) == ["2024.zarr"]
+
+
+def test_a_copy_marked_complete_without_its_array_is_incomplete_and_reads_nothing(two_years):
+    """What two builds at once left of 2017's copy on dev (2026-11-09): the projection's read raised KeyError."""
+    pastyears.build(two_years, 2024)
+    path = pastyears.PAST.path(two_years, 2024)
+    (path / "values" / "zarr.json").unlink()
+    assert pastyears.status(two_years, 2024) == "incomplete"
+    assert pastyears.stale_years(two_years, before=2025)[2024] == "incomplete"
+    assert pastyears.Reader(two_years).read(WINDOW.j0, WINDOW.i0, date(2024, 1, 2), date(2024, 1, 3), NAMES) is None
+
+
+def test_builds_take_turns(two_years):
+    """A build waits while another holds the copies' folder, then builds whole."""
+    folder = pastyears.PAST.path(two_years, 2024).parent
+    folder.mkdir(parents=True, exist_ok=True)
+    held = os.open(folder, os.O_RDONLY)
+    fcntl.flock(held, fcntl.LOCK_EX)
+    builder = threading.Thread(target=pastyears.build, kwargs={"data_dir": two_years, "year": 2024})
+    builder.start()
+    builder.join(timeout=1)
+    assert builder.is_alive() and pastyears.status(two_years, 2024) == "missing"
+    os.close(held)
+    builder.join(timeout=60)
+    assert not builder.is_alive() and pastyears.status(two_years, 2024) is None
