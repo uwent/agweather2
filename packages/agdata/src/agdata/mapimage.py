@@ -314,7 +314,7 @@ def map_png(
     middle gets a heavier line."""
     rows, cols = window.shape
     inches = width / DPI
-    LEFT, RIGHT = 0.55, 0.2  # inches beside the map: the latitude labels, and a margin
+    LEFT, RIGHT = 0.2, 0.2  # inches beside the map: the latitude labels, and a margin
     map_w = inches - LEFT - RIGHT
     map_h = map_w * rows / cols
     title_lines = textwrap.wrap(title, width=int(inches * 8.3)) or [""]
@@ -357,8 +357,8 @@ def map_png(
                     interpolation="nearest",
                 )
     _graticule(ax, window, extent, cells_per_inch=cols / map_w)
-    _draw_outlines(ax, "counties", window, 0.25, "#9a9a9a")
-    _draw_outlines(ax, "states", window, 0.8, "#333333")
+    _draw_outlines(ax, "counties", window, 0.05, "#333333")
+    _draw_outlines(ax, "states", window, 0.25, "#333333")
     marks = ticks(domain, shown, dates=dates, middle=middle, every=isolines if isinstance(isolines, float) else None)
     if isolines is not None and categories is None:
         _isolines(ax, values, extent, domain, shown, dates, middle, isolines, marks)
@@ -488,8 +488,6 @@ def _isolines(
 
 # --- Frame and graticule ----------------------------------------------------------------------------------------------
 
-GRATICULE_COLOR = "#b0b0b0"
-
 
 def graticule_step(lat_span: float) -> float:
     """Degrees between graticule lines: 1° over a state or more, finer over a county."""
@@ -503,27 +501,40 @@ def _degrees(v: float, positive: str, negative: str) -> str:
 def _graticule(ax, window: Window, extent: tuple[float, float, float, float], cells_per_inch: float) -> None:
     """Latitude and longitude lines (thin, light, under the outlines), labelled where they leave the frame's left and
     bottom edges. The grid is Lambert conformal, so the lines are projected polylines and curve."""
+
+    LINE_STYLE = {"color": "#b0b0b0", "linewidth": 0.25, "linestyle": "dashdot"}
+    LABEL_STYLE = {"fontsize": 7.5, "family": FONT, "color": "#333333", "clip_on": False}
+
     lat, lon = NDFD.window_latlon(window)
     lat_lo, lat_hi = float(np.min(lat)), float(np.max(lat))
     lon_lo, lon_hi = float(np.min(lon)), float(np.max(lon))
     step = graticule_step(lat_hi - lat_lo)
     x0, _, y0, _ = extent
     pad = 0.06 * cells_per_inch  # labels this far from the frame
-    style = {"fontsize": 7.5, "family": FONT, "color": "#333333", "clip_on": False}
+
     for parallel in np.arange(np.floor(lat_lo / step) * step, lat_hi + step, step):
         lons = np.linspace(lon_lo - 2, lon_hi + 2, 400)
         j, i = NDFD.fractional_index(np.full(lons.shape, parallel), lons)
-        ax.plot(i, j, color=GRATICULE_COLOR, linewidth=0.4, zorder=2)
+        ax.plot(i, j, zorder=2, **LINE_STYLE)
         crossing = _crossing(i, j, x0)
         if crossing is not None and extent[2] <= crossing <= extent[3]:
-            ax.text(x0 - pad, crossing, _degrees(float(parallel), "N", "S"), ha="right", va="center", **style)
+            ax.text(
+                x0 - pad,
+                crossing,
+                _degrees(float(parallel), "N", "S"),
+                rotation=90,
+                ha="center",
+                va="center",
+                rotation_mode="anchor",
+                **LABEL_STYLE,
+            )
     for meridian in np.arange(np.floor(lon_lo / step) * step, lon_hi + step, step):
         lats = np.linspace(lat_lo - 2, lat_hi + 2, 400)
         j, i = NDFD.fractional_index(lats, np.full(lats.shape, meridian))
-        ax.plot(i, j, color=GRATICULE_COLOR, linewidth=0.4, zorder=2)
+        ax.plot(i, j, zorder=2, **LINE_STYLE)
         crossing = _crossing(j, i, y0)
         if crossing is not None and extent[0] <= crossing <= extent[1]:
-            ax.text(crossing, y0 - pad, _degrees(float(meridian), "E", "W"), ha="center", va="top", **style)
+            ax.text(crossing, y0 - pad, _degrees(float(meridian), "E", "W"), ha="center", va="top", **LABEL_STYLE)
 
 
 def _crossing(along: np.ndarray, other: np.ndarray, at: float) -> float | None:
