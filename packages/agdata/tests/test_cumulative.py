@@ -3,6 +3,7 @@ from datetime import date
 import numpy as np
 import pytest
 
+from agdata import chillseason
 from agdata.catalog import CUMULATIVE_VARIABLES
 from agdata.cumulative import MAX_BRIDGE_DAYS, rebuild_year, running_totals
 from agdata.daily import open_or_create_daily
@@ -134,8 +135,9 @@ def test_water_balance_takes_missing_rain_as_none_and_bridges_et0():
     assert out["water_balance_missing_days"][-1] == MAX_BRIDGE_DAYS + 1
 
 
-@pytest.mark.parametrize("name", list(CUMULATIVE_VARIABLES))
+@pytest.mark.parametrize("name", [n for n in CUMULATIVE_VARIABLES if n not in chillseason.NAMES])
 def test_every_cumulative_variable_is_built(name):
+    """From the daily store; chill portions come from the hours (`agdata.chillseason`, its own tests)."""
     assert name in running_totals(*series())
 
 

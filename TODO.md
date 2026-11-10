@@ -142,6 +142,20 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
 ## Phase 6: Frontend plan and the data behind it
 
+- [ ] **Optional: check chill against chillR itself** (2026-11-10). The Dynamic model is tested against a line-by-line port of chillR's code; Claude wasn't allowed to run code it downloaded, so a direct comparison waits for you. chillR needn't be installed: its model functions are plain R.
+
+  ```bash
+  cd /tmp && curl -LO https://cran.r-project.org/src/contrib/Archive/chillR/chillR_0.75.tar.gz && tar xzf chillR_0.75.tar.gz
+  cd ~/code/agweather2
+  Rscript packages/agmodels/tests/fixtures/make_chillr_reference.R /tmp/chillR/R/temp_models.R \
+    packages/agmodels/tests/fixtures/chillr_reference.csv
+  uv run pytest packages/agmodels/tests/test_chill_livestock.py   # test_all_three_match_chillr_itself then runs
+  ```
+
+  Commit the CSV if it passes.
+
+- [ ] **Don't run `rebuild --stale` yet** (2026-11-10). Chill and heat stress (C6) added eight daily features and three running totals, so every year is stale; the rebuild waits for the pipeline work (PLAN.md C, "Streamlining rebuilds"), which will compute only what's new instead of re-rolling every daily variable. `rebuild --check` lists them meanwhile. Until then (D29) points compute the new features from the hours, maps of up to 7 days do too (a day's map ~4 s), and a longer range answers 503 `stale`.
+
 - [x] **Restart `bin/dev` before Monday, November 16** (2026-11-09; done that evening). Its worker started at 21:37, before past-years builds took turns (a lock added that evening, after two builds at once broke 2017's copy). Ctrl-C in its terminal, then `bin/dev`.
 
 - [ ] **`/tmp` is now a 9.8 GB tmpfs** (Ubuntu 26.04 mounts it in memory by default; found 2026-11-09). The test suite in parallel fills it ("No space left on device" in a dozen tests), and whatever's there uses WSL's 19 GB of RAM. Either give `/tmp` back to the disk, as on 24.04:

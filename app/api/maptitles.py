@@ -54,6 +54,9 @@ _SUBJECTS = {
     "snow_depth": "Snow depth",
     "et0": "Reference evapotranspiration (ET0)",
     "water_balance": "Water balance (precipitation minus reference evapotranspiration)",
+    "thi": "Temperature humidity index",
+    "cci": "Cattle comfort index",
+    "chill_portions": "Chill portions (Dynamic model)",
 }
 # Variables whose name doesn't follow `<base>_<statistic>`: (subject, the day's statistic)
 _SPECIAL = {
@@ -83,6 +86,10 @@ _SPECIAL = {
         "mean",
     ),
     "air_temperature_min_overnight": ("Overnight air temperature (noon to noon)", "minimum"),
+    "chill_hours": ("Chill hours (32 to 45 °F, 0 to 7.2 °C)", "count"),
+    "utah_chill_units": ("Utah chill units", "total"),
+    "hours_thi_over_68": ("Hours with a temperature humidity index of 68 or more", "count"),
+    "hours_thi_over_72": ("Hours with a temperature humidity index of 72 or more", "count"),
     "water_balance": ("Water balance (precipitation minus reference evapotranspiration)", "total"),
 }
 _DAILY = {"min": "minimum", "max": "maximum", "mean": "mean", "sum": "total"}
@@ -119,6 +126,14 @@ _FAMILY_SOURCES = (
         "and solar radiation from HRRR",
     ),
     ("dd_", f"Air temperature (2 m) from {_URMA}"),
+    ("chill", f"Hourly air temperature (2 m) from {_URMA}"),
+    ("utah_chill", f"Hourly air temperature (2 m) from {_URMA}"),
+    ("thi", f"Air temperature and relative humidity (2 m) from {_URMA}"),
+    ("hours_thi", f"Air temperature and relative humidity (2 m) from {_URMA}"),
+    (
+        "cci",
+        f"Air temperature, relative humidity and wind from {_URMA}, and solar radiation from HRRR",
+    ),
     ("degree_days", f"Air temperature (2 m) from {_URMA}"),
 )
 

@@ -246,6 +246,8 @@ USES: dict[str, Use] = {
     "count": Use(palette="viridis"),  # days or hours within bounds (`count=`); from 0 to the data's high end
     "date": Use(palette="viridis"),  # a first or last day within bounds (`first=`, `last=`); from the data
     "degree_days": Use(palette="BuYlRd", day=(0, 40)),
+    "chill": Use(palette="PuBu", day=(0, 24)),  # chill hours, Utah units, chill portions (D76)
+    "heat_stress": Use(palette="BuYlRd", day=(30, 85), hour=(30, 90)),  # THI: dairy stress from 68 (D77)
     "risk_value": Use(palette="viridis"),  # insects' activity (Ben, 2026-11-06)
     "chance": Use(palette="magma", day=(0, 100), bounded=True),
     "crop_stage": Use(palette="viridis"),

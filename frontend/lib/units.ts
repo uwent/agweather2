@@ -56,6 +56,8 @@ export const UNITS: Record<string, Unit> = {
   hour: u('h', 'duration', 0, 1 / 24),
   index: u('', 'index', 1),
   date: u('', 'date', 0), // days since 1970-01-01 (a map's first frost)
+  chill_units: u('CU', 'chill_units', 1), // Utah (Richardson et al. 1974)
+  chill_portions: u('CP', 'chill_portions', 1), // the Dynamic model
 }
 
 const DISPLAY: Record<UnitSystem, Record<string, string>> = {

@@ -347,8 +347,9 @@ class Bracket:
 DD_BASE = Bracket(what="a degree-day base", usual_f=(32, 60), reason="crop and insect bases run 39–55 °F")
 DD_UPPER = Bracket(what="a degree-day upper threshold", usual_f=(70, 95), reason="upper cutoffs run 75–92 °F")
 FREEZE = Bracket(what="a freeze threshold", usual_f=(20, 36), reason="freeze and frost thresholds run 24–32 °F")
+CHILL = Bracket(what="a chill-hour bound", usual_f=(28, 60), reason="chill-hour ranges run 32–45 °F")
 # With metric units, a value above these looks like °F given as °C (50 °C is a hot day's air, not a base)
-LOOKS_LIKE_F_IN_C = {DD_BASE: 30, DD_UPPER: 45, FREEZE: 10}
+LOOKS_LIKE_F_IN_C = {DD_BASE: 30, DD_UPPER: 45, FREEZE: 10, CHILL: 20}
 
 
 def temperature_threshold(value: float, units: str, bracket: Bracket, param: str, warnings: list[str]) -> float:

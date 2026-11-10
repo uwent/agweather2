@@ -22,8 +22,14 @@ every map that uses it.
 from dataclasses import dataclass
 from typing import Literal
 
-from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES, Variable
-from agdata.computed import DAILY_COMPUTED, HOURLY_COMPUTED
+from agdata.catalog import (
+    CUMULATIVE_VARIABLES,
+    DAILY_VARIABLES,
+    INTERNAL_TOTALS,
+    VARIABLES,
+    Variable,
+)
+from agdata.computed import DAILY_COMPUTED, HOURLY_COMPUTED, adds_up
 
 TimeAxis = Literal["day", "hour", "day_of_year"]
 Source = Literal["daily", "hourly", "cumulative", "degree_days", "model"]
@@ -69,6 +75,10 @@ class Layer:
 # The colors each variable's map uses (`agdata.palettes.USES`), by name: the first prefix that matches wins
 _USES = (
     ("dd_", "degree_days"),
+    ("chill", "chill"),
+    ("utah_chill", "chill"),
+    ("thi", "heat_stress"),
+    ("cci", "temperature"),  # an apparent temperature
     ("water_balance", "water_balance"),
     ("dew_point_depression", "dew_point_depression"),
     ("soil_temperature", "soil_temperature"),
@@ -97,10 +107,7 @@ def use_for(name: str) -> str:
 
 
 def _daily_stats(v: Variable) -> tuple[Stat, ...]:
-    if v.name in DAILY_COMPUTED:  # summed with each input's gaps filled its own way (D75)
-        return SUM_STATS if DAILY_COMPUTED[v.name].adds_up else LEVEL_STATS
-    s = DAILY_STATISTICS.get(v.name)
-    return SUM_STATS if (s is not None and s.stat == "sum") or v.unit == "hour" else LEVEL_STATS
+    return SUM_STATS if adds_up(v.name) else LEVEL_STATS  # a computed one with each input's gaps filled (D75)
 
 
 def _hourly_stats(v: Variable) -> tuple[Stat, ...]:
@@ -144,7 +151,7 @@ def _layers() -> list[Layer]:
     ]
     found += [
         Layer(
-            id=v.name if v.name.startswith("dd_") else f"{v.name}_total",
+            id=v.name if v.name.startswith(("dd_", "chill_")) else f"{v.name}_total",
             name=v.long_name,
             group="running_total",
             time_axis="day",
@@ -156,7 +163,7 @@ def _layers() -> list[Layer]:
             stats=(),
         )
         for v in CUMULATIVE_VARIABLES.values()
-        if not v.name.endswith("_days")
+        if not v.name.endswith(("_days", "_hours")) and v.name not in INTERNAL_TOTALS
     ]
     found.append(
         Layer(

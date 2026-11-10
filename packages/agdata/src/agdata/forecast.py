@@ -25,7 +25,7 @@ import numpy as np
 import requests
 import zarr
 
-from agdata import calibration, interpolate, modelmaps, shortwave
+from agdata import calibration, chillseason, interpolate, modelmaps, shortwave
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
 from agdata.cumulative import MAX_BRIDGE_DAYS, open_or_create_cumulative, running_totals
 from agdata.daily import rollup_days
@@ -349,6 +349,7 @@ def stitch(data_dir: Path, path: Path, window: Window) -> datetime | None:
     last_day = last_forecast.date()
     rollup_days(path, window, first_day, last_day)
     _continue_totals(data_dir, path, window, first_day, last_day)
+    chillseason.update(path, window, first_day, last_day, base_dir=data_dir)  # the archive's chill, carried on
     modelmaps.update(data_dir, window, first_day, last_day, run=path, run_first=first_day)
     info |= {"last_observed": observed.isoformat() if observed else None, "first_day": first_day.isoformat()}
     _write_info(path, info)

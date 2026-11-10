@@ -1,5 +1,5 @@
-"""Degree days and freezes at points (docs/api.md; PLAN.md Phase 5 C), from each day's minimum and maximum
-temperature, for any setting.
+"""Degree days, chill and freezes at points (docs/api.md; PLAN.md Phase 5 C, Phase 6 C6): degree days and freezes
+from each day's minimum and maximum temperature, for any setting; chill from the hours (`agmodels.chill`, D76).
 
 Thresholds follow the request's units (`units=us`: °F, `metric`: °C) and are checked by `api.params`: one no stored
 temperature can reach is refused, an unusual one warned about. Degree days are computed in °F (`agmodels.
@@ -12,15 +12,18 @@ date isn't estimated."""
 
 from collections.abc import Callable
 from datetime import date, timedelta
+from typing import Literal
 
 import numpy as np
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from ninja import Query, Router
 
-from agdata import projection
+from agdata import chillseason, projection
 from agdata.grid import NDFD
-from agdata.series import FORECAST, PARTIAL, archive_years, past_reader
+from agdata.series import FORECAST, PARTIAL, archive_years, day_kinds, past_reader
+from agdata.timezones import day_bounds
+from agmodels import chill
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
 from agmodels.scenarios import first_days, reached, spread
@@ -28,6 +31,7 @@ from api import clock, points
 from api.envelope import Column, Result, catalog_column, not_modified, respond
 from api.errors import ApiError, day_text
 from api.params import (
+    CHILL,
     FREEZE,
     DaysQuery,
     DegreeDaySetting,
@@ -51,8 +55,9 @@ from api.routes.weather import (
     read_days,
 )
 from api.schemas import TableResponse, responses
+from ops.points import day_zone
 
-router = Router(tags=["Degree days and freezes"])
+router = Router(tags=["Degree days, chill and freezes"])
 
 TEMPERATURES = ["air_temperature_min", "air_temperature_max"]
 METHOD: dict[str, Callable] = {
@@ -62,6 +67,10 @@ METHOD: dict[str, Callable] = {
 }
 DD_STEP = 0.1  # °F·d: daily values from temperatures stored to 0.1 °C (0.18 °F)
 FREEZE_DEFAULT_F = (32, 28, 24)
+HOUR = timedelta(hours=1)
+MAX_CHILL_DAYS = 732  # two seasons of hours a point
+# What a chill method counts in: its unit and the precision of a day's value
+CHILL_UNITS = {"dynamic": ("chill_portions", 0.01), "utah": ("chill_units", 0.5), "hours": ("hour", 1.0)}
 
 
 def settings_from(request: HttpRequest, dd: str | None, units: str, warnings: list[str]) -> list[DegreeDaySetting]:
@@ -521,3 +530,133 @@ def _computed(where, first, last, found_settings, biofix, options, output) -> di
         "units": output.units,
         **options.echo(),
     }
+
+
+@router.get("/chill", response=responses(TableResponse), summary="Winter chill at points")
+def chill_at_points(
+    request: HttpRequest,
+    where: Query[PointsQuery],
+    when: Query[DaysQuery],
+    options: Query[SeriesQuery],
+    output: Query[OutputQuery],
+    method: Literal["dynamic", "utah", "hours"] = "dynamic",
+    bounds: str | None = None,
+) -> HttpResponse:
+    """One row per point and day: `chill` (the day's), `chill_total` (since `start`) and `missing_hours`, by the
+    Dynamic model's chill portions (default), Utah chill units, or chill hours (`bounds`, default 32–45 °F), each
+    from the hours (D76). The Dynamic model starts fresh at `start`, default the October 1 before the end. A day
+    with any hour missing has no value of its own; the total adds the hours it has and counts the rest."""
+    warnings: list[str] = []
+    low_c, high_c, given = _chill_bounds(method, bounds, output.units, warnings)
+    now = clock.now()
+    today = now.date()
+    trim_end = when.end is None and when.date is None and options.forecast
+    if when.date is not None:
+        first = last = when.date
+    else:
+        last = when.end or (today + timedelta(days=FORECAST_DAYS) if trim_end else today)
+        first = when.start or chillseason.season_start(last)
+        if first > last:
+            raise ApiError(
+                "out_of_order",
+                f"The start date ({day_text(first)}) is after the end date ({day_text(last)}). Choose a start on or "
+                "before the end.",
+                "start",
+            )
+    n_days = (last - first).days + 1
+    check_size(n_days, len(where.locations()), MAX_CHILL_DAYS, "days")
+    sites = where.locations()
+    zones = [day_zone(lat, lng, options.day_basis) for lat, lng in sites]
+    start = min(day_bounds(first, zone)[0] for zone in zones)
+    end = max(day_bounds(last, zone)[1] for zone in zones)
+    computed = {**where.echo(), "start": first, "end": last, "method": method, "forecast": options.forecast}
+    computed |= {"units": output.units, **({"bounds": given} if given else {}), **options.echo()}
+    etag = answer_etag(request, computed, points.hour_stamp(sites, start, end, now))
+    if etag is not None and (unchanged := not_modified(request, etag)) is not None:
+        return unchanged
+    locations = located(where, first, last, options)
+    dates = [first + timedelta(days=k) for k in range(n_days)]
+    rows: dict[str, list] = {key: [] for key in ("point", "date", "kind", "chill", "chill_total", "missing_hours")}
+    sources: list[str] = []
+    totals: list[float] = []
+    for k, found in enumerate(points.many_hours(sites, start, end, ["air_temperature"], now)):
+        t = np.asarray(found.values["air_temperature"], dtype=float)
+        hourly = _chill_hours(method, t, low_c, high_c)
+        kinds = day_kinds(found.times, found.kinds, zones[k], dates)
+        n = points.keep(kinds, options.forecast, trim_end)
+        running = 0.0
+        for day, kind in zip(dates[:n], kinds[:n], strict=True):
+            begin, close = day_bounds(day, zones[k])
+            h = hourly[(begin - start) // HOUR : (close - start) // HOUR + 1]
+            missing = int(np.isnan(h).sum())
+            running += float(np.nansum(h))
+            rows["point"].append(k)
+            rows["date"].append(day)
+            rows["kind"].append(kind)
+            rows["chill"].append(float(h.sum()) if missing == 0 else None)
+            rows["chill_total"].append(running)
+            rows["missing_hours"].append(missing)
+        totals.append(running)
+        sources += [s for s in found.sources if s not in sources]
+    unit, step = CHILL_UNITS[method]
+    columns = [Column(name="point", values=rows["point"])] if where.points is not None else []
+    columns += [Column(name=name, values=rows[name]) for name in ("date", "kind")]
+    columns += [Column(name=name, values=np.array(rows[name], dtype=float), unit=unit, step=step) for name in
+                ("chill", "chill_total")]  # fmt: skip
+    columns.append(Column(name="missing_hours", values=rows["missing_hours"]))
+    if any(rows["missing_hours"]):
+        warnings.append(
+            f"{sum(rows['missing_hours']):,} hours in this period have no temperature, so they add nothing to the "
+            "totals. The 'missing_hours' column shows which days they fall on."
+        )
+    if trim_end and rows["date"]:
+        computed["end"] = max(rows["date"])
+    return respond(
+        request,
+        Result(
+            request=computed,
+            columns=columns,
+            **envelope_parts(where, locations),
+            summary={"method": method, "chill_total": totals, "missing_hours": sum(rows["missing_hours"])},
+            sources=sources,
+            warnings=warnings,
+            filename=f"agweather-chill-{method}-{first}-{computed['end']}",
+            etag=etag,
+        ),
+    )
+
+
+def _chill_hours(method: str, t: np.ndarray, low_c: float, high_c: float) -> np.ndarray:
+    """Each hour's chill by `method`, NaN where the hour has no temperature (the Dynamic model holds its state)."""
+    if method == "dynamic":
+        portions, _, _ = chill.dynamic(t)
+        return np.where(np.isnan(t), np.nan, portions)
+    if method == "utah":
+        return chill.utah_weights(t)
+    rounded = np.round(t, 2)  # as `agmodels.chill` compares: stored to 0.1 °C, so values fall on the bounds
+    return np.where(np.isnan(t), np.nan, ((rounded >= round(low_c, 2)) & (rounded <= round(high_c, 2))).astype(float))
+
+
+def _chill_bounds(method: str, raw: str | None, units: str, warnings: list[str]) -> tuple[float, float, list[float]]:
+    """Chill hours' bounds in °C (default 0–7.2 °C, 32–45 °F) from `bounds=low,high` in the request's units."""
+    if raw is None:
+        return chill.CHILL_LOW_C, chill.CHILL_HIGH_C, []
+    if method != "hours":
+        raise ApiError(
+            "not_applicable",
+            "'bounds' sets the temperatures that chill hours count between, so it applies only with 'method=hours'.",
+            "bounds",
+        )
+    try:
+        given = [float(v) for v in raw.split(",")]
+    except ValueError:
+        given = []
+    if len(given) != 2 or given[0] >= given[1]:
+        raise ApiError(
+            "invalid",
+            f"Give 'bounds' as a lower and an upper temperature separated by a comma, lower first, such as "
+            f"'bounds={'32,45' if units == 'us' else '0,7.2'}'.",
+            "bounds",
+        )
+    low_f, high_f = (temperature_threshold(v, units, CHILL, "bounds", warnings) for v in given)
+    return (low_f - 32) / 1.8, (high_f - 32) / 1.8, given

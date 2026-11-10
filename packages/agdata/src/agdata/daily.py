@@ -154,6 +154,8 @@ def _rolled(
             "soil_4cm": hourly.read("soil_temperature_4cm", feature_start, span_stop, band),
             "soil_10cm": hourly.read("soil_temperature_10cm", feature_start, span_stop, band),
             "soil_30cm": hourly.read("soil_temperature_30cm", feature_start, span_stop, band),
+            "wind": hourly.read("wind_speed", feature_start, span_stop, band),
+            "shortwave": hourly.read("shortwave_radiation", feature_start, span_stop, band),
         }
         out |= _each_window(
             hours,
@@ -162,6 +164,8 @@ def _rolled(
             lambda h, _: (
                 features.calendar_features(h["temperature"], h["rh"], h["dew_point"])
                 | features.soil_features(h["soil_4cm"], h["soil_10cm"], h["soil_30cm"])
+                | features.chill_features(h["temperature"])
+                | features.livestock_features(h["temperature"], h["rh"], h["wind"], h["shortwave"])
             ),
         )
         out |= _each_window(

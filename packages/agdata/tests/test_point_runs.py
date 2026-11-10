@@ -83,6 +83,12 @@ def _daily_at_point_day_by_day(
                 segment("soil_temperature_10cm", begin, end),
                 segment("soil_temperature_30cm", begin, end),
             )
+        if "chill" in groups:
+            values |= features.chill_features(segment("air_temperature", begin, end))
+        if "livestock" in groups:
+            h = humid(begin, end)
+            wind, sun = segment("wind_speed", begin, end), segment("shortwave_radiation", begin, end)
+            values |= features.livestock_features(h["temperature"], h["rh"], wind, sun)
         if "evening" in groups:
             begin, end = evening_bounds(day, zone)
             h = humid(begin, end)

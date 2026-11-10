@@ -25,7 +25,8 @@ from typing import Literal
 
 import numpy as np
 
-from agdata.catalog import DAILY_VARIABLES, GAP_FILL, VARIABLES, Variable
+from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, GAP_FILL, VARIABLES, Variable
+from agmodels import livestock
 
 Axis = Literal["day", "hour"]
 
@@ -87,6 +88,14 @@ def _water_balance(precipitation_sum: np.ndarray, et0_sum: np.ndarray) -> np.nda
     return precipitation_sum - et0_sum
 
 
+def _thi(air_temperature, relative_humidity):
+    return livestock.thi(air_temperature, relative_humidity)
+
+
+def _cci(air_temperature, relative_humidity, wind_speed, shortwave_radiation):
+    return livestock.cci(air_temperature, relative_humidity, wind_speed, shortwave_radiation)
+
+
 _ALL = [
     Computed(
         variable=Variable(
@@ -106,10 +115,52 @@ _ALL = [
         formula=_water_balance,
         adds_up=True,
     ),
+    Computed(
+        variable=Variable(
+            name="thi",
+            long_name="Temperature humidity index",
+            unit="index",
+            scale=0.1,
+            valid_min=-80,
+            valid_max=140,
+            derived=True,
+            notes="The NRC (1971) temperature humidity index from air temperature and relative humidity "
+            "(`agmodels.livestock`). Dairy cattle's milk yield begins to fall from 68; 72 is commonly taken as stress",
+        ),
+        axis="hour",
+        inputs=("air_temperature", "relative_humidity"),
+        formula=_thi,
+    ),
+    Computed(
+        variable=Variable(
+            name="cci",
+            long_name="Cattle comfort index",
+            unit="degC",
+            scale=0.1,
+            valid_min=-80,
+            valid_max=90,
+            derived=True,
+            notes="Mader, Johnson and Gaughan's (2010) comprehensive climate index: air temperature adjusted for "
+            "humidity, wind (brought from 10 m to 2 m) and solar radiation, as an apparent temperature "
+            "(`agmodels.livestock`)",
+        ),
+        axis="hour",
+        inputs=("air_temperature", "relative_humidity", "wind_speed", "shortwave_radiation"),
+        formula=_cci,
+    ),
 ]
 
 DAILY_COMPUTED: dict[str, Computed] = {c.name: c for c in _ALL if c.axis == "day"}
 HOURLY_COMPUTED: dict[str, Computed] = {c.name: c for c in _ALL if c.axis == "hour"}
+
+
+def adds_up(name: str) -> bool:
+    """Whether a daily variable's days can be summed over a range: daily sums (precipitation, ET0, sunlight), hour
+    counts, Utah chill units (a day's sum of hourly weights) and a computed one that adds up (water balance)."""
+    if name in DAILY_COMPUTED:
+        return DAILY_COMPUTED[name].adds_up
+    s = DAILY_STATISTICS.get(name)
+    return (s is not None and s.stat == "sum") or DAILY_VARIABLES[name].unit in ("hour", "chill_units")
 
 
 def computed(name: str) -> Computed | None:

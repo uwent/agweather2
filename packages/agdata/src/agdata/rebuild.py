@@ -15,7 +15,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata import modelmaps, shortwave
+from agdata import chillseason, modelmaps, shortwave
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
 from agdata.cumulative import rebuild_year, update_days
 from agdata.daily import move_to_grid_days, on_grid_days, year_on_grid_days
@@ -72,12 +72,21 @@ def rebuild_stale(data_dir: Path, window: Window, log=print) -> StaleReport:
             log(f"daily/{year}: rolling up {days[0]} to {days[1]} for {', '.join(names)}")
             update_days(data_dir, window, *days)
         store.mark_current(list(store.stale))
+    chill_stale: dict[int, GridStore] = {}
     for year in _years(data_dir, CUMULATIVE):
         store = GridStore.open(data_dir, CUMULATIVE, year, CUMULATIVE_VARIABLES.values(), add_missing=True)
-        if store.stale:
-            log(f"cumulative/{year}: rebuilding for {', '.join(sorted(store.stale))}")
+        totals = store.stale - set(chillseason.NAMES)
+        if totals:
+            log(f"cumulative/{year}: rebuilding for {', '.join(sorted(totals))}")
             rebuild_year(data_dir, window, year)
-            store.mark_current(list(store.stale))
+            store.mark_current(list(totals))
+        if store.stale & set(chillseason.NAMES):
+            chill_stale[year] = store
+    if chill_stale:  # from hours, a season at a time (`agdata.chillseason`)
+        log(f"chill portions: recomputing the seasons in {', '.join(str(y) for y in chill_stale)}")
+        chillseason.rebuild(data_dir, window, list(chill_stale))
+        for store in chill_stale.values():
+            store.mark_current(list(chillseason.NAMES))
     for year in _years(data_dir, DAILY):
         reason = modelmaps.status(data_dir, year)
         if reason is not None:

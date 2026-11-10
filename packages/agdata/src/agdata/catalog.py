@@ -372,6 +372,8 @@ _TEMPERATURE = {
     "gap_fill": "interpolate",
 }
 _DEPRESSION = {**_TEMPERATURE, "unit": "delta_degC"}  # a difference of temperatures: °F is ×1.8, no offset
+# THI is unitless, about 1.8 T + 32 in humid air: −45 at −40 °C, 120 at 50 °C and saturated
+_INDEX = {"unit": "index", "scale": 0.1, "valid_min": -80, "valid_max": 140, "derived": True, "gap_fill": "interpolate"}
 DAILY_FEATURES: dict[str, Variable] = {
     v.name: v
     for v in [
@@ -438,6 +440,24 @@ DAILY_FEATURES: dict[str, Variable] = {
             long_name="Air temperature, overnight minimum (noon to noon)",
             **_TEMPERATURE,
         ),
+        # Winter chill (D76, `agmodels.chill`) and livestock heat stress (D77, `agmodels.livestock`), calendar days
+        Variable(name="chill_hours", long_name="Chill hours (0–7.2 °C, 32–45 °F)", **_HOURS),
+        Variable(
+            name="utah_chill_units",
+            long_name="Utah chill units",
+            unit="chill_units",
+            scale=0.5,
+            valid_min=-24,
+            valid_max=24,
+            derived=True,
+            gap_fill="interpolate",
+        ),
+        Variable(name="thi_min", long_name="Temperature humidity index, daily min", **_INDEX),
+        Variable(name="thi_mean", long_name="Temperature humidity index, daily mean", **_INDEX),
+        Variable(name="thi_max", long_name="Temperature humidity index, daily max", **_INDEX),
+        Variable(name="hours_thi_over_68", long_name="Hours with a temperature humidity index of 68 or more", **_HOURS),
+        Variable(name="hours_thi_over_72", long_name="Hours with a temperature humidity index of 72 or more", **_HOURS),
+        Variable(name="cci_max", long_name="Cattle comfort index, daily max", **_TEMPERATURE),
     ]
 }
 DAILY_VARIABLES.update(DAILY_FEATURES)
@@ -533,6 +553,37 @@ def _cumulative() -> list[Variable]:
             "both count as estimated days (D75)",
         ),
     ]
+    # The Dynamic model's chill since October 1 (D76, `agdata.chillseason`), from hourly temperature: the portions,
+    # the intermediate each day ends with (the next day starts from it), and the hours without a temperature
+    chill = [
+        Variable(
+            name="chill_portions",
+            long_name="Chill portions (the Dynamic model) since Oct 1",
+            unit="chill_portions",
+            scale=0.01,
+            valid_min=0,
+            valid_max=300,
+            derived=True,
+        ),
+        Variable(
+            name="chill_state",
+            long_name="The Dynamic model's intermediate at the day's end",
+            unit="index",
+            scale=0.001,
+            valid_min=0,
+            valid_max=30,
+            derived=True,
+        ),
+        Variable(
+            name="chill_missing_hours",
+            long_name="Hours without a temperature since Oct 1, in chill portions",
+            unit="hour",
+            scale=1,
+            valid_min=0,
+            valid_max=8784,
+            derived=True,
+        ),
+    ]
     # Running counts of days in the totals that were estimated across a gap or left out (D25). Every DD cube
     # comes from the daily min and max temperature, so they share the temperature counts
     counts = [
@@ -553,10 +604,12 @@ def _cumulative() -> list[Variable]:
         )
         for kind in kinds
     ]
-    return dd + totals + counts
+    return dd + totals + chill + counts
 
 
 CUMULATIVE_VARIABLES: dict[str, Variable] = {v.name: v for v in _cumulative()}
+# Kept in the store for the next day's computation, not served: the Dynamic model's carried intermediate
+INTERNAL_TOTALS = frozenset({"chill_state"})
 
 
 def variable(name: str) -> Variable:

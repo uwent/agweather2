@@ -32,6 +32,8 @@ def _feature_groups() -> dict[str, str]:
         "soil": features.soil_features(soil, soil, soil),
         "evening": features.evening_features(t, rh, np.arange(24)),
         "overnight": features.overnight_features(t),
+        "chill": features.chill_features(t),
+        "livestock": features.livestock_features(t, rh, t, t),
     }
     return {name: group for group, values in made.items() for name in values}
 
@@ -136,6 +138,16 @@ def daily_at_point(
                 stacked("soil_temperature_4cm", begin, length, count),
                 stacked("soil_temperature_10cm", begin, length, count),
                 stacked("soil_temperature_30cm", begin, length, count),
+            )
+        if "chill" in groups:
+            values |= features.chill_features(stacked("air_temperature", begin, length, count))
+        if "livestock" in groups:
+            h = humid(begin, length, count)
+            values |= features.livestock_features(
+                h["temperature"],
+                h["rh"],
+                stacked("wind_speed", begin, length, count),
+                stacked("shortwave_radiation", begin, length, count),
             )
         put(k0, k1, values)
     if "evening" in groups:

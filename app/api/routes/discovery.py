@@ -15,7 +15,14 @@ from django.http import Http404, HttpRequest, HttpResponse
 from ninja import Query, Router, Schema
 
 from agdata import units as agunits
-from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES, Variable
+from agdata.catalog import (
+    CUMULATIVE_VARIABLES,
+    DAILY_STATISTICS,
+    DAILY_VARIABLES,
+    INTERNAL_TOTALS,
+    VARIABLES,
+    Variable,
+)
 from agdata.computed import DAILY_COMPUTED, HOURLY_COMPUTED
 from agdata.computed import computed as computed_variable
 from agdata.grid import NDFD
@@ -238,7 +245,7 @@ def variables(request: HttpRequest) -> HttpResponse:
     found += [
         _variable(v, "daily") for v in [*DAILY_VARIABLES.values(), *(c.variable for c in DAILY_COMPUTED.values())]
     ]
-    found += [_variable(v, "cumulative") for v in CUMULATIVE_VARIABLES.values()]
+    found += [_variable(v, "cumulative") for v in CUMULATIVE_VARIABLES.values() if v.name not in INTERNAL_TOTALS]
     return respond(request, Result(request={}, data=[v.model_dump() for v in found], etag=etag))
 
 

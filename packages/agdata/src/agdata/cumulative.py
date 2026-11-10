@@ -19,7 +19,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata import timecopy
+from agdata import chillseason, timecopy
 from agdata.catalog import (
     CUMULATIVE_VARIABLES,
     DAILY_VARIABLES,
@@ -183,6 +183,7 @@ def update_days(data_dir: Path, window: Window, first: date, last: date, ingredi
     reach = timedelta(days=MAX_BRIDGE_DAYS)
     years = list(range((first - reach).year, (last + reach).year + 1))
     rebuilt = [year for year in years if rebuild_year(data_dir, window, year, changed_from=first) is not None]
+    chillseason.update(data_dir, window, first, last)  # the Dynamic model's chill, forward from `first`
     if ingredients:
         modelmaps.update(data_dir, window, first, last)
     return rebuilt

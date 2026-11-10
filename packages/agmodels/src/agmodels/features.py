@@ -26,6 +26,8 @@ from collections.abc import Mapping
 
 import numpy as np
 
+from agmodels import chill, livestock
+
 # Windows within a day, by the clock hour each ends at (readings stamped after the hour the day before, through it)
 EVENING_HOUR = 18  # the day from 6 pm
 OVERNIGHT_HOUR = 12  # noon to noon
@@ -122,6 +124,26 @@ def soil_features(soil_4cm_c: np.ndarray, soil_10cm_c: np.ndarray, soil_30cm_c: 
         "hours_soil_4cm_below_27f": hours_below(soil_4cm_c, KILLING_SOIL_C),
         "hours_soil_10cm_below_27f": hours_below(soil_10cm_c, KILLING_SOIL_C),
         "hours_soil_8in_below_27f": hours_below(eight_inches, KILLING_SOIL_C),
+    }
+
+
+def chill_features(temperature_c: np.ndarray) -> dict[str, np.ndarray]:
+    """Winter chill over a calendar day's hours (`agmodels.chill`, D76): chill hours (0–7.2 °C) and Utah chill
+    units. The Dynamic model carries its state across days, so its portions are a running total, not a feature."""
+    return {"chill_hours": chill.chill_hours(temperature_c), "utah_chill_units": chill.utah_units(temperature_c)}
+
+
+def livestock_features(
+    temperature_c: np.ndarray, rh_percent: np.ndarray, wind_speed_10m: np.ndarray, shortwave_w_m2: np.ndarray
+) -> dict[str, np.ndarray]:
+    """Livestock heat stress over a calendar day's hours (`agmodels.livestock`, D77): THI's minimum (the night's
+    relief), mean and maximum, hours with THI at or above 68 and 72, and the Cattle Comfort Index's maximum."""
+    index = livestock.thi(temperature_c, rh_percent)
+    comfort = livestock.cci(temperature_c, rh_percent, wind_speed_10m, shortwave_w_m2)
+    return daily_statistics("thi", index) | {
+        "hours_thi_over_68": hours_at_or_above(index, livestock.THI_MILD_DAIRY),
+        "hours_thi_over_72": hours_at_or_above(index, livestock.THI_STRESS),
+        "cci_max": daily_statistics("cci", comfort)["cci_max"],
     }
 
 

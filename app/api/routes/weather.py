@@ -14,8 +14,8 @@ import numpy as np
 from django.http import HttpRequest, HttpResponse
 from ninja import Query, Router, Schema
 
-from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, GAP_FILL, VARIABLES
-from agdata.computed import DAILY_COMPUTED, HOURLY_COMPUTED
+from agdata.catalog import DAILY_VARIABLES, GAP_FILL, VARIABLES
+from agdata.computed import DAILY_COMPUTED, HOURLY_COMPUTED, adds_up
 from agdata.series import FORECAST, PARTIAL
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
 from api import clock, counts, events, points
@@ -49,13 +49,7 @@ DAILY |= {name: c.variable for name, c in DAILY_COMPUTED.items()}  # computed wh
 HOURLY = {**VARIABLES, **{name: c.variable for name, c in HOURLY_COMPUTED.items()}}
 DAILY_DEFAULT = ["air_temperature_min", "air_temperature_max", "precipitation_sum"]
 HOURLY_DEFAULT = ["air_temperature", "dew_point", "relative_humidity", "precipitation", "wind_speed"]
-TOTALLED = {  # a computed one only if it adds up, each input's gaps filled its own way (D75)
-    name: v
-    for name, v in DAILY.items()
-    if (name in DAILY_COMPUTED and DAILY_COMPUTED[name].adds_up)
-    or (name in DAILY_STATISTICS and DAILY_STATISTICS[name].stat == "sum")
-    or v.unit == "hour"
-}
+TOTALLED = {name: v for name, v in DAILY.items() if adds_up(name)}  # a computed one's inputs' gaps filled (D75)
 TOTALS_DEFAULT = ["precipitation_sum", "et0_sum", "shortwave_radiation_sum"]
 
 

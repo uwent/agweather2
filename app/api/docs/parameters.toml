@@ -6,7 +6,7 @@
 [tags]
 "About the data" = "What the service holds: the dates covered by the archive and forecast, the variables, the models, and the grid cell, county and typical planting dates at a location."
 "Weather" = "Hourly and daily weather at one or more locations, and totals over a period of days."
-"Degree days and freezes" = "Growing degree days by any method and thresholds, totals for reports covering many locations, and freeze dates."
+"Degree days, chill and freezes" = "Growing degree days by any method and thresholds, totals for reports covering many locations, winter chill for fruit trees, and freeze dates."
 "Models" = "Crop disease, insect and crop development models, run on our weather at a location or on weather you send from your own station."
 "Maps and grids" = "Any weather variable or model as a map: gridded data in JSON, CSV, NetCDF or GeoTIFF, map tiles for web and GIS software, and finished map images."
 
@@ -89,6 +89,13 @@ forecast = "Whether to include forecast days in the totals (`true`, the default)
 
 [degree_days_freeze]
 thresholds = "The temperatures to count as a freeze, in the request's units, separated by commas. The default is 32, 28 and 24 °F."
+
+[degree_days_chill_at_points]
+method = "How chill is counted: `dynamic` (the default) for chill portions from the Dynamic model, `utah` for Utah chill units, or `hours` for chill hours."
+bounds = "With `method=hours`: the temperatures chill hours count between, both included, in the request's units, lower first and separated by a comma. The default is 32,45 °F (0,7.2 °C)."
+start = "The first day, as YYYY-MM-DD. The default is the October 1 before the end date, the usual start of a chill season."
+end = "The last day, as YYYY-MM-DD. The default runs through the forecast, or through today with `forecast=false`."
+date = "A single day, as YYYY-MM-DD, in place of `start` and `end`."
 
 [models_run]
 points = "Several locations in one request, in place of `lat` and `lng`: latitude and longitude pairs separated by semicolons, as `43.07,-89.40;44.52,-89.57`. Up to 50 locations, or 10 with `projection`. Each row of the response has a `point` column giving its location's position in `meta.locations`, and `meta.summary.points` gives what was worked out at each location, such as its biofix or typical planting dates."

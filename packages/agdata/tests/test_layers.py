@@ -7,7 +7,8 @@ def test_every_variable_is_a_layer_but_the_internal_ones():
     variables = {layer.variable for layer in LAYERS.values()}
     assert set(DAILY_VARIABLES) - variables == {"et0_sum_estimate"}
     assert set(VARIABLES) - variables == {"shortwave_radiation_hrrr"}
-    assert {n for n in CUMULATIVE_VARIABLES if not n.endswith("_days")} <= variables
+    totals = {n for n in CUMULATIVE_VARIABLES if not n.endswith(("_days", "_hours"))}
+    assert totals - variables == {"chill_state"}  # the Dynamic model's carried intermediate
     assert {*DAILY_COMPUTED, *HOURLY_COMPUTED} <= variables  # computed when read (`agdata.computed`)
     assert len(LAYERS) == len(list(LAYERS.values()))  # ids unique
 
