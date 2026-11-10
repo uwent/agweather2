@@ -38,23 +38,13 @@ def test_a_county_holds_its_seat():
     assert np.isin(regions.cell_counties(window), list(region("WI").county_ids)).all()
 
 
-def test_land_is_in_a_county_and_mostly_land_on_era5lands_mask(tmp_path):
-    """Without a mask, land is the county grid; with ERA5-Land's, cells where it's mostly water are left out."""
-    from agdata.grid import NDFD, LatLonGrid, Window
-    from agdata.sources.era5land import STEP, LandMask
-
-    window = Window(j0=900, j1=904, i0=1400, i1=1406)
-    assert regions.land(tmp_path, window).all()  # Fayette County, Iowa: every cell in a county
-    lat, lon = NDFD.window_latlon(window)
-    south, west = float(np.floor(lat.min() / STEP) * STEP) - STEP, float(np.floor(lon.min() / STEP) * STEP) - STEP
-    grid = LatLonGrid(name="era5land", first_lat=south, first_lon=west, step=STEP, ny=6, nx=8)
-    fraction = np.ones((6, 8))
-    fraction[:, 4:] = 0.0  # water to the east
-    (tmp_path / "static").mkdir()
-    LandMask(grid=grid, fraction=fraction).save(tmp_path / "static" / "era5land_land_0_1_0_1.npz")
-    regions.land.cache_clear()
-    found = regions.land(tmp_path, window)
-    assert found[lon < west + 2.9 * STEP].all() and not found[lon > west + 4 * STEP].any()
+def test_land_is_in_a_county_and_not_open_water():
+    """Model maps' land is summaries' cells: Fayette County, Iowa is all land; the Door Peninsula's lake isn't."""
+    assert regions.land(Window(j0=900, j1=904, i0=1400, i1=1406)).all()
+    door = Window(j0=980, j1=1030, i0=1520, i1=1570)
+    found = regions.land(door)
+    assert found.any() and not (found & coast.water(door)).any()
+    assert (found == (regions.summary_counties(door) > 0)).all()
 
 
 def test_summaries_leave_open_water_out_of_a_shore_county():

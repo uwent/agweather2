@@ -932,8 +932,8 @@ def _model_compute(
     else:
         values = found.level if name == "risk_level" else found.risk if name == "risk_value" else found.outputs[name]
     assert values is not None
-    # Land only: a crop's disease or pest over open water (the Great Lakes and their shore cells) means nothing
-    values = np.where(regions.land(data_dir, window), values, np.nan)
+    # Land only: a crop's disease or pest over open water (the Great Lakes and the ocean) means nothing
+    values = np.where(regions.land(window), values, np.nan)
     if found.in_region is not None and not found.in_region.any():
         warnings.append(
             f"{layer_title(layer)} was developed for {', '.join(model.spec.region)}, and none of this area "
