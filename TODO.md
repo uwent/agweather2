@@ -142,6 +142,8 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
 ## Phase 6: Frontend plan and the data behind it
 
+- [ ] **Decide Q37: adjust gridMET's 30 years to our archive?** (2026-11-10; PLAN.md's Q37 and `docs/validation-climate.md`). Over 2016–2025 our daily minimum runs 1.3 °F warmer than gridMET's (2 °F in winter, up to 3 °F at the lake shores), our maximum 0.7 °F cooler, our ET0 17% lower, our wind a third lower. Recommended: correct the 30 years by each cell's difference over the overlap, so departures from normal show weather rather than the change of source. D3 waits for this.
+
 - [ ] **Optional: check chill against chillR itself** (2026-11-10). The Dynamic model is tested against a line-by-line port of chillR's code; Claude wasn't allowed to run code it downloaded, so a direct comparison waits for you. chillR needn't be installed: its model functions are plain R.
 
   ```bash
