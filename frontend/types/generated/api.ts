@@ -184,6 +184,7 @@ export interface GridQuery {
   roll_coverage?: number
   bbox?: string | null
   region?: string | null
+  clip?: boolean
   stride?: number
   grid?: 'native' | 'latlon'
   res?: number | null
@@ -293,6 +294,7 @@ export interface MapQuery {
   roll_coverage?: number
   days?: number | null
   region?: string | null
+  clip?: boolean
   width?: number
   scale?: string | null
   palette?: string | null

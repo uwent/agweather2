@@ -47,6 +47,7 @@ class MapQuery(LayerQuery):
 
     days: int | None = Field(None, ge=1, le=layermaps.MAX_DAYS)
     region: str | None = None
+    clip: bool = False
     width: int = Field(800, ge=400, le=2000)
     scale: str | None = None  # the colors' range: default, auto or low,high (`layermaps.parse_scale`)
     palette: str | None = None  # the colors: any of `/palettes`, `_r` reversed (`layermaps._palette_asked`)
@@ -214,9 +215,10 @@ def _draw(
             raise ApiError(
                 "outside_box", f"{region.name} is outside the area we cover, so it has no grid cells here.", "region"
             )
-        values = np.where(inside, values, np.nan)
+        if q.clip:
+            values = np.where(inside, values, np.nan)
         if states is not None:
-            states = _framed(archive, inside, np.where(inside, states, np.nan))[1]
+            states = _framed(archive, inside, np.where(inside, states, np.nan) if q.clip else states)[1]
         window, values = _framed(archive, inside, values)
     column = Column(name=a.layer.id, values=[], unit=a.unit, step=a.step, variable=a.layer.variable or a.layer.id)
     system, overrides = output_units(request)

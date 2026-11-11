@@ -509,3 +509,21 @@ def test_water_balance_is_a_map_of_rain_less_et0(client, archive):
     np.testing.assert_allclose(total["water_balance"], np.where(known, each, 0).sum(axis=0), atol=0.1)
     assert total["missing_days"] == list((~known).sum(axis=0))
     assert total["estimated_days"] == list(estimated.sum(axis=0))
+
+
+def test_clip_serves_the_regions_cells_or_the_rectangle_around_them(client, archive, monkeypatch):
+    from api.routes import grids
+
+    def diagonal(region, window):  # a region whose cells are (0, 0) and (1, 1) of the 2 × 3 window
+        found = np.zeros(window.shape, dtype=bool)
+        found[0, 0] = found[1, 1] = True
+        return found
+
+    monkeypatch.setattr(grids.regions, "mask", diagonal)
+    whole = get(client, "air_temperature_max", date="2025-07-05", region="IA", cells="true").json()
+    clipped = get(client, "air_temperature_max", date="2025-07-05", region="IA", clip="true", cells="true").json()
+    assert len(whole["data"]["j"]) == 4 and whole["meta"]["request"]["clip"] is False  # the 2 × 2 around them
+    assert sorted(zip(clipped["data"]["j"], clipped["data"]["i"], strict=True)) == [
+        (WINDOW.j0, WINDOW.i0),
+        (WINDOW.j0 + 1, WINDOW.i0 + 1),
+    ]

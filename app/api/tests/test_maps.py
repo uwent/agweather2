@@ -116,3 +116,17 @@ def test_isolines_a_middle_and_the_name_a_saved_map_takes(client, archive):
     assert refused.value.code == "too_large" and "isolines=2" in refused.value.message
     maps.check_isoline_count(np.array([0.0, 40.0]), 0.5, lambda v: v)  # 80 lines: drawn
     assert error("late-blight-dsv", isolines="auto")["code"] == "not_applicable"
+
+
+def test_clip_blanks_the_frame_outside_the_region(client, archive, monkeypatch):
+    def diagonal(region, window):  # a region of one cell
+        found = np.zeros(window.shape, dtype=bool)
+        found[0, 0] = True
+        return found
+
+    monkeypatch.setattr(maps.regions, "mask", diagonal)
+    asked = {"date": "2025-07-05", "region": "IA", "width": "400"}
+    whole = client.get("/api/v2/maps/air_temperature_max.png", asked)
+    clipped = client.get("/api/v2/maps/air_temperature_max.png", {**asked, "clip": "true"})
+    assert whole.status_code == clipped.status_code == 200
+    assert whole.content != clipped.content

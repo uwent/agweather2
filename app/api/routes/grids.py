@@ -198,6 +198,7 @@ class GridQuery(LayerQuery):
 
     bbox: str | None = None
     region: str | None = None
+    clip: bool = False
     stride: int = Field(1, ge=1, le=MAX_STRIDE)
     grid: Literal["native", "latlon"] = "native"
     res: float | None = None
@@ -341,7 +342,8 @@ def _steps(layer: Layer, first, last) -> int:
 
 
 def _area(q: GridQuery, archive: Window) -> tuple[Window, np.ndarray, dict[str, Any]]:
-    """The smallest window holding the cells asked for, and which of its cells those are."""
+    """The smallest window holding the cells asked for, and which of its cells are served: those in the area with
+    `clip`, else every cell of the window (the rectangle around the area, as most grid services give it)."""
     mask = np.ones(archive.shape, dtype=bool)
     echo: dict[str, Any] = {}
     if q.bbox is not None:
@@ -365,6 +367,10 @@ def _area(q: GridQuery, archive: Window) -> tuple[Window, np.ndarray, dict[str, 
                 "outside_box", f"{region.name} is outside the area we cover, so it has no grid cells here.", "region"
             )
     window, crop = layermaps.window_around(archive, mask)
+    if q.bbox is not None or q.region is not None:
+        echo["clip"] = q.clip
+        if not q.clip:
+            crop = np.ones_like(crop)  # every cell of the rectangle around the area (Ben, 2026-11-11)
     return window, crop, echo
 
 
