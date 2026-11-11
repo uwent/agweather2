@@ -120,6 +120,104 @@ pixel nearest the station, unadjusted, which the normal leaves out (Q38).
 | Watertown  |       +0 |       +0 |       +0 |       -0 |       +1 |       +0 |       -0 |       +0 |       +1 |       +1 |       -0 |       +0 |       +0 |       +1 |       +1 |     _+7_ |     _+6_ |     _+5_ |       +0 |       +1 |       +1 |       +1 |       +1 |       +0 |       -0 |        . |       +0 |       -0 |       +1 |       +1 |
 | **median** | **-0.3** | **-0.5** | **-0.3** | **-0.5** | **-0.4** | **-0.3** | **-0.5** | **-0.3** | **-0.5** | **-0.7** | **-0.8** | **-0.7** | **-0.5** | **-0.8** | **-0.5** | **+4.2** | **+5.0** | **+3.3** | **-0.8** | **-0.8** | **-0.1** | **-0.1** | **-0.5** | **-0.5** | **-0.6** | **-0.7** | **-0.8** | **-0.8** | **-1.0** | **-0.2** |
 
+## 5. `last10` against `last30`
+
+Over the map (every cell both periods have), `last10` less `last30`: the change from 1996–2025 to
+2016–2025, with the sources' difference after the adjustment (D84) in it too.
+
+| Statistic                                |   P10 | median |    P90 |
+| ---------------------------------------- | ----: | -----: | -----: |
+| modified GDD 50/86 by December 31 (GDD)  | +35.5 |  +81.5 | +129.0 |
+| precipitation by December 31 (in)        |  +1.5 |   +3.0 |   +4.7 |
+| mean maximum, July 15 (°F)               |  -0.4 |   +0.2 |   +0.7 |
+| mean minimum, January 15 (°F)            |  +0.2 |   +0.7 |   +1.4 |
+| median last spring freeze (32 °F) (days) |  -4.0 |   +1.0 |   +4.0 |
+| median first fall freeze (32 °F) (days)  |  +0.0 |   +4.0 |   +8.0 |
+
+At the stations, the same change on the grid and in the station's own record (the station's 30 years
+without 2011–2013, as the grid's). Where the two agree, the grid's 30 years carry the
+stations' change between the periods; where they don't, the difference is the sources'.
+
+| Station    | GDD by Dec 31, grid | station | summer max, grid (°F) | station | summer min, grid (°F) | station |
+| ---------- | ------------------: | ------: | --------------------: | ------: | --------------------: | ------: |
+| Dubuque    |                +108 |    +150 |                  +0.5 |    +1.1 |                  +0.4 |    +0.7 |
+| Beloit     |                 +97 |     +66 |                  +0.7 |    +0.6 |                  +0.3 |    +0.4 |
+| Madison    |                +160 |    +139 |                  +1.3 |    +1.0 |                  +0.4 |    +0.9 |
+| Milwaukee  |                +144 |    +240 |                  +0.8 |    +1.5 |                  +0.5 |    +1.5 |
+| Hartford   |                 +64 |      +9 |                  +0.4 |    +0.2 |                  +0.2 |    +0.2 |
+| Appleton   |                +122 |     +69 |                  +0.9 |    +0.5 |                  +0.3 |    +0.3 |
+| Green Bay  |                +112 |    +177 |                  +0.5 |    +1.1 |                  +0.7 |    +1.3 |
+| Hancock    |                 +55 |     +37 |                  +0.5 |    +0.7 |                  -0.0 |    +0.0 |
+| La Crosse  |                 -30 |    +170 |                  -1.2 |    +1.2 |                  +0.9 |    +1.1 |
+| Eau Claire |                 +84 |     +52 |                  +0.4 |    +0.3 |                  +0.3 |    +0.4 |
+| Cumberland |                 -13 |     -24 |                  -0.3 |    -0.6 |                  -0.4 |    +0.0 |
+| Wausau     |                 +93 |     +91 |                  +0.7 |    +0.6 |                  +0.4 |    +0.7 |
+| Medford    |                  +6 |     +48 |                  -0.0 |    +0.8 |                  -0.2 |    +0.5 |
+| Racine     |                +168 |    +121 |                  +0.9 |    +0.7 |                  +0.8 |    +0.6 |
+| Horicon    |                 +92 |     +50 |                  +0.4 |    +0.0 |                  +0.6 |    +0.7 |
+| Lancaster  |                +140 |    +153 |                  +0.8 |    +1.1 |                  +0.6 |    +0.9 |
+| Oconomowoc |                +106 |    +121 |                  +0.7 |    +0.8 |                  +0.4 |    +0.6 |
+| Watertown  |                 +63 |     +38 |                  +0.4 |    +0.5 |                  +0.1 |    +0.3 |
+
+The grid's change less the station's, GDD by December 31: median +15 (-200 to +54).
+
+## 6. Frost dates
+
+The median last spring and first fall freeze, the grid's cell less the station's own over the same years,
+in days (later is positive). The station's dates are from its daily minimums by the method the maps use
+(`climatology.freezes`); its dates are given beside. A cooperative station read in the morning puts a
+night's minimum on the day it was read, so its dates may run a day late.
+
+| Station    | period | 32 °F spring: station | grid − station | 32 °F fall: station | grid − station | 28 °F spring: station | grid − station | 28 °F fall: station | grid − station |
+| ---------- | ------ | --------------------: | -------------: | ------------------: | -------------: | --------------------: | -------------: | ------------------: | -------------: |
+| Dubuque    | last30 |                Apr 28 |            -10 |              Oct 11 |             +6 |                Apr 14 |             -6 |              Oct 21 |            +10 |
+| Dubuque    | last10 |                Apr 28 |             -6 |              Oct 14 |             +7 |                Apr 20 |             -4 |              Oct 24 |             +5 |
+| Beloit     | last30 |                Apr 24 |             -0 |              Oct 15 |             +1 |                Apr 10 |             -2 |              Oct 28 |             +3 |
+| Beloit     | last10 |                Apr 28 |             -2 |              Oct 25 |             -4 |                Apr 14 |             -4 |              Oct 30 |             +5 |
+| Madison    | last30 |                 May 3 |             -6 |              Oct 10 |             +9 |                Apr 22 |            -14 |              Oct 21 |             +8 |
+| Madison    | last10 |                 May 4 |             -6 |              Oct 19 |             +4 |                Apr 24 |            -10 |              Oct 27 |             +2 |
+| Milwaukee  | last30 |                Apr 23 |             -1 |              Oct 28 |             +2 |                 Apr 3 |             +0 |               Nov 8 |             +2 |
+| Milwaukee  | last10 |                Apr 24 |             +0 |              Oct 31 |             -2 |                 Apr 2 |             +6 |               Nov 6 |             +0 |
+| Hartford   | last30 |                 May 5 |             -8 |               Oct 8 |             +7 |                Apr 24 |            -14 |              Oct 17 |            +12 |
+| Hartford   | last10 |                May 10 |            -12 |              Oct 13 |             +6 |                Apr 25 |             -9 |              Oct 25 |             +8 |
+| Appleton   | last30 |                May 12 |            -18 |               Oct 7 |            +14 |                Apr 27 |            -19 |              Oct 18 |            +15 |
+| Appleton   | last10 |                May 10 |            -12 |              Oct 15 |            +10 |                Apr 28 |            -14 |              Oct 24 |             +9 |
+| Green Bay  | last30 |                 May 4 |             -6 |              Oct 13 |             +2 |                Apr 21 |             -9 |              Oct 21 |             +6 |
+| Green Bay  | last10 |                Apr 28 |             -0 |              Oct 21 |             -1 |                Apr 18 |             +4 |              Oct 30 |             +0 |
+| Hancock    | last30 |                May 15 |             -9 |               Oct 4 |             +1 |                Apr 29 |             -8 |              Oct 15 |             +4 |
+| Hancock    | last10 |                May 13 |             -2 |              Oct 10 |             -1 |                Apr 29 |             -1 |              Oct 17 |             +5 |
+| La Crosse  | last30 |                Apr 26 |             -9 |              Oct 15 |             +6 |                Apr 12 |             -4 |              Oct 24 |             +7 |
+| La Crosse  | last10 |                Apr 27 |             -9 |              Oct 23 |             +6 |                Apr 16 |             -9 |              Oct 24 |            +16 |
+| Eau Claire | last30 |                May 13 |            -15 |               Oct 4 |             +4 |                Apr 28 |            -12 |              Oct 15 |             +7 |
+| Eau Claire | last10 |                 May 9 |            -11 |               Oct 9 |             +4 |                Apr 28 |             -4 |              Oct 20 |             +4 |
+| Cumberland | last30 |                Apr 29 |             +3 |               Oct 7 |             -1 |                Apr 24 |             -2 |              Oct 23 |             -6 |
+| Cumberland | last10 |                Apr 29 |             +2 |              Oct 12 |             -4 |                Apr 28 |             -2 |              Oct 24 |             -1 |
+| Wausau     | last30 |                 May 6 |             +4 |               Oct 7 |             -4 |                Apr 24 |             -2 |              Oct 21 |             +0 |
+| Wausau     | last10 |                 May 4 |             +2 |              Oct 14 |             -3 |                Apr 26 |             +2 |              Oct 25 |             +0 |
+| Medford    | last30 |                May 14 |             -1 |               Oct 1 |             +1 |                Apr 28 |             -0 |               Oct 7 |             +5 |
+| Medford    | last10 |                     . |              . |                   . |              . |                     . |              . |                   . |              . |
+| Racine     | last30 |                Apr 16 |             +0 |              Oct 24 |             +7 |                 Apr 2 |             -4 |               Nov 7 |             +5 |
+| Racine     | last10 |                Apr 24 |             +0 |              Oct 31 |             +1 |                 Apr 6 |             -4 |               Nov 2 |             +6 |
+| Horicon    | last30 |                 May 2 |             -4 |               Oct 8 |             +5 |                Apr 18 |             -8 |              Oct 22 |             +1 |
+| Horicon    | last10 |                 May 2 |             -4 |              Oct 17 |             +2 |                Apr 23 |             -7 |              Oct 30 |             +1 |
+| Lancaster  | last30 |                Apr 26 |             -8 |              Oct 11 |             +2 |                Apr 14 |             -4 |              Oct 21 |             +8 |
+| Lancaster  | last10 |                Apr 28 |             -2 |              Oct 13 |             +2 |                Apr 20 |             -4 |              Oct 23 |             +6 |
+| Oconomowoc | last30 |                Apr 28 |             -2 |              Oct 13 |             +0 |                Apr 18 |             -8 |              Oct 22 |             +6 |
+| Oconomowoc | last10 |                Apr 28 |             +0 |              Oct 19 |             -2 |                Apr 24 |             -6 |              Oct 29 |             +4 |
+| Watertown  | last30 |                Apr 28 |             -0 |              Oct 13 |             +2 |                Apr 14 |             -4 |              Oct 22 |             +1 |
+| Watertown  | last10 |                Apr 30 |             -2 |              Oct 17 |             +0 |                Apr 24 |             -4 |              Oct 27 |             +4 |
+
+Medians, grid less station, days:
+
+- last30 spring at 32 °F: -5.2 (P10 -11, P90 +1)
+- last30 fall at 32 °F: +2.5 (P10 +0, P90 +8)
+- last30 spring at 28 °F: -5.5 (P10 -14, P90 -2)
+- last30 fall at 28 °F: +5.5 (P10 +1, P90 +11)
+- last10 spring at 32 °F: -2.0 (P10 -12, P90 +1)
+- last10 fall at 32 °F: +1.0 (P10 -3, P90 +6)
+- last10 spring at 28 °F: -3.5 (P10 -9, P90 +3)
+- last10 fall at 28 °F: +4.0 (P10 +0, P90 +9)
+
 ## Summary
 
 The year's total, grid less station: `last30` median -0.9% (range -13.5% to +8.7%); `last10` median -0.8% (-18.6% to +7.8%). Leaving 2011–2013 out of the 30 years changes the stations' own totals by a median of -4 GDD a year (-23 to +7), so the shorter period costs the normal little.

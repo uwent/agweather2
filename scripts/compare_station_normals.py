@@ -176,6 +176,47 @@ def summer_max_by_year(rows: list, j: int, i: int, lat: float, lon: float) -> li
     return found
 
 
+FREEZE_F = (32, 28)
+
+
+def station_freezes(tmin: np.ndarray) -> dict[str, float]:
+    """The median last spring and first fall freeze (calendar slots) at each of `FREEZE_F` from a station's daily
+    minimums (°F), as the normal maps find them (`climatology.freezes`)."""
+    found = {}
+    for f in FREEZE_F:
+        spring, fall = climatology.freezes(tmin, float(f)).dates(0.5)
+        found[f"spring_{f}"], found[f"fall_{f}"] = float(spring), float(fall)
+    return found
+
+
+def grid_freezes(period: str, j: int, i: int) -> dict[str, float]:
+    w = Window(j0=j, j1=j + 1, i0=i, i1=i + 1)
+    found = {}
+    for f in FREEZE_F:
+        for season in ("spring", "fall"):
+            found[f"{season}_{f}"] = float(normals.read_map(DATA, period, f"freeze_{f}/{season}_p50", window=w)[0, 0])
+    return found
+
+
+BOX_STATS = (
+    ("modified GDD 50/86 by December 31", "dd_modified_50_86/mean", date(2025, 12, 31), 1.0, "GDD"),
+    ("precipitation by December 31", "precipitation/mean", date(2025, 12, 31), 1 / 25.4, "in"),
+    ("mean maximum, July 15", "air_temperature_max/mean", date(2025, 7, 15), 1.8, "°F"),
+    ("mean minimum, January 15", "air_temperature_min/mean", date(2025, 1, 15), 1.8, "°F"),
+    ("median last spring freeze (32 °F)", "freeze_32/spring_p50", None, 1.0, "days"),
+    ("median first fall freeze (32 °F)", "freeze_32/fall_p50", None, 1.0, "days"),
+)
+
+
+def box_differences() -> list[tuple[str, np.ndarray, str]]:
+    """`last10` less `last30` over the whole map (cells both have), P10/P50/P90, per statistic."""
+    found = []
+    for label, name, day, factor, unit in BOX_STATS:
+        d = (normals.read_map(DATA, "last10", name, day) - normals.read_map(DATA, "last30", name, day)) * factor
+        found.append((label, np.nanpercentile(d, [10, 50, 90]), unit))
+    return found
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("sheet", type=Path)
@@ -206,6 +247,8 @@ def main() -> int:
             tmax, tmin = by_year(got["data"], years)
             acc, counts, smax, smin = station_normal(tmax, tmin)
             found[label] = (acc[slots], int(counts.min()), smax, smin)
+            if label in ("last30_all", "last10"):
+                found[f"{label}_freezes"] = station_freezes(tmin)
         tmax, tmin = by_year(got["data"], range(1991, 2021))
         found["9120_office"] = (station_normal(tmax, tmin, office_rounding=True)[0][slots],)
         grid = {p: grid_normal(p, j, i) for p in ("last30", "last10")}
@@ -219,16 +262,18 @@ def main() -> int:
                 "acis": found,
                 "grid": grid,
                 "years": summer_max_by_year(got["data"], j, i, lat, lon),
+                "freezes": {p: grid_freezes(p, j, i) for p in ("last30", "last10")},
             }
         )
         report.detail(f"{name}: {got['meta']['name']} ({lat:.3f}, {lon:.3f}) → cell ({j}, {i})")
     report.progress("stations", len(STATIONS), len(STATIONS))
-    OUT.write_text(render(rows))
+    report.step("last10 against last30 over the map")
+    OUT.write_text(render(rows, box_differences()))
     report.step(f"wrote {OUT.relative_to(ROOT)}")
     return 0 if report.finish(f"{len(rows)} stations") else 1
 
 
-def render(rows: list[dict]) -> str:
+def render(rows: list[dict], box: list[tuple[str, np.ndarray, str]]) -> str:
     out = [
         "# Normals against station normals",
         "",
@@ -329,6 +374,76 @@ def render(rows: list[dict]) -> str:
     out.append("| **median** | " + " | ".join(f"**{v:+.1f}**" for v in median) + " |")
     out += [
         "",
+        "## 5. `last10` against `last30`",
+        "",
+        "Over the map (every cell both periods have), `last10` less `last30`: the change from 1996–2025 to",
+        "2016–2025, with the sources' difference after the adjustment (D84) in it too.",
+        "",
+        "| Statistic | P10 | median | P90 |",
+        "| --- | ---: | ---: | ---: |",
+    ]
+    for label, (p10, p50, p90), unit in box:
+        out.append(f"| {label} ({unit}) | {p10:+.1f} | {p50:+.1f} | {p90:+.1f} |")
+    out += [
+        "",
+        "At the stations, the same change on the grid and in the station's own record (the station's 30 years",
+        f"without {LEFT_OUT[0]}–{LEFT_OUT[-1]}, as the grid's). Where the two agree, the grid's 30 years carry the",
+        "stations' change between the periods; where they don't, the difference is the sources'.",
+        "",
+        "| Station | GDD by Dec 31, grid | station | summer max, grid (°F) | station | summer min, grid (°F) "
+        "| station |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    gaps = []
+    for r in rows:
+        g30, gmax30, gmin30 = r["grid"]["last30"]
+        g10, gmax10, gmin10 = r["grid"]["last10"]
+        s30, _, smax30, smin30 = r["acis"]["last30"]
+        s10, _, smax10, smin10 = r["acis"]["last10"]
+        gaps.append((g10[-1] - g30[-1]) - (s10[-1] - s30[-1]))
+        out.append(
+            f"| {r['name']} | {g10[-1] - g30[-1]:+.0f} | {s10[-1] - s30[-1]:+.0f} | {gmax10 - gmax30:+.1f} | "
+            f"{smax10 - smax30:+.1f} | {gmin10 - gmin30:+.1f} | {smin10 - smin30:+.1f} |"
+        )
+    out += [
+        "",
+        f"The grid's change less the station's, GDD by December 31: median {np.median(gaps):+.0f} "
+        f"({min(gaps):+.0f} to {max(gaps):+.0f}).",
+        "",
+        "## 6. Frost dates",
+        "",
+        "The median last spring and first fall freeze, the grid's cell less the station's own over the same years,",
+        "in days (later is positive). The station's dates are from its daily minimums by the method the maps use",
+        "(`climatology.freezes`); its dates are given beside. A cooperative station read in the morning puts a",
+        "night's minimum on the day it was read, so its dates may run a day late.",
+        "",
+        "| Station | period | 32 °F spring: station | grid − station | 32 °F fall: station | grid − station | "
+        "28 °F spring: station | grid − station | 28 °F fall: station | grid − station |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    shifts: dict[str, list[float]] = {}
+    for r in rows:
+        for period, key in (("last30", "last30_all_freezes"), ("last10", "last10_freezes")):
+            station, grid = r["acis"][key], r["freezes"][period]
+            cells = []
+            for f in FREEZE_F:
+                for season in ("spring", "fall"):
+                    k = f"{season}_{f}"
+                    d = grid[k] - station[k]
+                    if np.isfinite(d):
+                        shifts.setdefault(f"{period} {k}", []).append(d)
+                    cells.append(
+                        f"{_slot_text(station[k])} | {d:+.0f}" if np.isfinite(d) else f"{_slot_text(station[k])} | ."
+                    )
+            out.append(f"| {r['name']} | {period} | " + " | ".join(cells) + " |")
+    out += ["", "Medians, grid less station, days:", ""]
+    for k, v in shifts.items():
+        out.append(
+            f"- {k.replace('_', ' at ')} °F: {np.median(v):+.1f} "
+            f"(P10 {np.percentile(v, 10):+.0f}, P90 {np.percentile(v, 90):+.0f})"
+        )
+    out += [
+        "",
         "## Summary",
         "",
         f"The year's total, grid less station: `last30` median {np.median(diffs30) * 100:+.1f}% "
@@ -340,6 +455,13 @@ def render(rows: list[dict]) -> str:
         "",
     ]
     return "\n".join(out)
+
+
+def _slot_text(value: float) -> str:
+    if not np.isfinite(value):
+        return "."
+    day = climatology.slot_date(round(value), 2000)
+    return day.strftime("%b %-d") if day is not None else "."
 
 
 def _year_cell(value: float, year: int) -> str:
