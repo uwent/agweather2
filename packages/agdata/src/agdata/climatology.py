@@ -16,8 +16,9 @@ means the same slot in every year; February 29 is missing in the years without o
   (it had none), unlike a year with too many missing days in the season, which is left out and counted.
 
 Periods (`period`): `last5` and `last10` are the complete years before the current one that the archive has
-(D82); `last30` comes from gridMET (Phase 6 D3). The current year never counts. Points read a period's years from
-the past-years copies (`read_point`); maps read them from the daily stores in blocks of cells (D4).
+(D82); `last30` takes the archive's years and gridMET's before them, adjusted to the archive's basis
+(`agdata.climatestore`, D84). The current year never counts. Points read a period's years from the past-years copies
+and gridMET's derived years (`read_point`); maps read them in blocks of cells (D4).
 
 Arrays put the years first and the slots second: (years, 366, …cells).
 """
@@ -111,12 +112,42 @@ def read_years(read: ReadYear, years: Sequence[int], names: list[str]) -> dict[s
 def read_point(
     data_dir: Path, j: int, i: int, years: Sequence[int], names: list[str], area: Area | None = None
 ) -> dict[str, np.ndarray]:
-    """A cell's years (or `area`'s around it, averaged day by day: `agdata.areas`) from the past-years copies, or
-    rolled up from the hours where a year has no copy (`series.past_reader`), as (years, 366) per name."""
-    from agdata.series import past_reader
+    """A cell's years (or `area`'s around it, averaged day by day: `agdata.areas`) as (years, 366) per name: the
+    archive's from the past-years copies, or rolled up from the hours where a year has no copy
+    (`series.past_reader`); a year before the archive from gridMET's, on the archive's basis (`agdata.climatestore`,
+    D84), where a name gridMET doesn't give (the daily mean temperature, soil) is missing."""
+    from agdata import climatestore
+    from agdata.series import archive_years, past_reader
 
+    archive = set(archive_years(data_dir))
     reader = past_reader(data_dir, j, i, area=area)
-    return read_years(lambda y, n: reader(date(y, 1, 1), date(y, 12, 31), n), years, names)
+    gridmet = climatestore.reader(data_dir)
+
+    def read(year: int, wanted: list[str]) -> dict[str, np.ndarray]:
+        first, last = date(year, 1, 1), date(year, 12, 31)
+        if year in archive:
+            return reader(first, last, wanted)
+        n = (last - first).days + 1
+        out = {name: np.full(n, np.nan) for name in wanted}
+        for name in wanted:  # one at a time: the gridMET store has some names, not all
+            found = (
+                gridmet.read(j, i, first, last, [name])
+                if area is None
+                else gridmet.read_area(area, first, last, [name])
+            )
+            if found is not None:
+                out[name] = found[name]
+        return out
+
+    return read_years(read, years, names)
+
+
+def available_years(data_dir: Path) -> list[int]:
+    """The years a period can draw on: the archive's and gridMET's derived ones (`period`'s `available`)."""
+    from agdata import climatestore
+    from agdata.series import archive_years
+
+    return sorted(set(archive_years(data_dir)) | set(climatestore.years(data_dir)))
 
 
 # --- Daily statistics, pooled ----------------------------------------------------------------------------------

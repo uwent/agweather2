@@ -10,7 +10,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from agdata import calibration, shortwave, soil_seam
+from agdata import calibration, climatestore, shortwave, soil_seam
 
 DOCS = "docs"
 
@@ -161,6 +161,22 @@ IFS_SOIL_SEAM = Correction(
     evidence="docs/validation-soil.md",
     table=soil_seam.TABLE_PATH,
 )
+GRIDMET_BASIS = Correction(
+    id="gridmet-basis",
+    source="gridMET (the 30-year normal's years before the archive)",
+    variable=", ".join(climatestore.ADJUST),
+    method="By cell and calendar day: the archive − gridMET difference added (temperatures, RH; RH kept to 0–100, "
+    "the minimum no higher than the maximum) or the ratio of their totals applied (precipitation, shortwave, wind, "
+    f"ET0; 0.5 to 2), each pooled over {climatestore.POOL_DAYS} days and averaged across {climatestore.SMOOTH} × "
+    f"{climatestore.SMOOTH} cells",
+    fitted_against="The archive's daily values over the years both have (2016–2025 at first), cell by cell",
+    applies_to="gridMET's years in the 30-year normal (`agdata.climatestore`); refitted by `manage.py climatology`",
+    raw_kept="gridMET's files as received in `data/gridmet/` (the fit in `data/climate/gridmet-fit.zarr`)",
+    decision="D84",
+    evidence="docs/validation-climate.md, docs/validation-wind.md",
+    version=str(climatestore.FIT_VERSION),
+    fitted="each `manage.py climatology` fit (its `fitted` attribute)",
+)
 CORRECTIONS: tuple[Correction, ...] = (
     HRRR_SHORTWAVE,
     NBM_SHORTWAVE,
@@ -171,6 +187,7 @@ CORRECTIONS: tuple[Correction, ...] = (
     OPENMETEO_SHORTWAVE,
     OPENMETEO_RH,
     GRIDDED_RH_90,
+    GRIDMET_BASIS,
 )
 
 

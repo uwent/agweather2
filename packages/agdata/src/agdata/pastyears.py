@@ -211,15 +211,16 @@ class Reader:
     """Reads a cell's days from the copies, opening each year's once (a request reads several years)."""
 
     data_dir: Path
+    layout: StoreLayout = PAST  # or another store in the same layout (`agdata.climatestore`'s gridMET years)
     opened: dict[int, _Year | None] = field(default_factory=dict)
 
     def _year(self, year: int) -> _Year | None:
         if year not in self.opened:
-            group = _open_copy(PAST.path(self.data_dir, year))
+            group = _open_copy(self.layout.path(self.data_dir, year))
             found = None
             if group is not None:
                 attrs: dict[str, Any] = dict(group.attrs)
-                if _complete(PAST.path(self.data_dir, year), attrs):
+                if _complete(self.layout.path(self.data_dir, year), attrs):
                     w = attrs["window"]
                     window = Window(j0=w["j0"], j1=w["j1"], i0=w["i0"], i1=w["i1"])
                     try:

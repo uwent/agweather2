@@ -1,12 +1,13 @@
 """gridMET against the archive, 2.5 km cell by cell (PLAN.md Phase 6 D2; D82).
 
-uv run --with scipy python scripts/compare_gridmet.py --start 2016 --end 2025 [--out docs/validation-climate.md]
+uv run python scripts/compare_gridmet.py --start 2016 --end 2025 [--out docs/validation-climate.md]
 
 gridMET (Abatzoglou 2013, doi:10.1002/joc.3413) is the 30-year normals' source (D82); our archive is URMA/RTMA with
 HRRR and ERA5-Land, rolled up to midnight-to-midnight CST days. Before the 30 years are stored (D3), this measures
 how the two differ over the years they share, so a "departure from normal" doesn't show the sources' difference as
-weather. Reads data/gridmet/<var>/<year>.nc (scripts/download_gridmet.py; netCDF-3, hence SciPy) and the daily
-stores in DATA_DIR, regrids gridMET to our cells bilinearly (enough to compare; D3 uses D80's B-spline), and reports:
+weather. Reads data/gridmet/<var>/<year>.nc (kept by `manage.py climatology`, read by `agdata.sources.gridmet`)
+and the daily stores in DATA_DIR, regrids gridMET to our cells bilinearly (enough to compare; D3 uses D80's
+B-spline), and reports:
 
 - by month, the mean difference (archive − gridMET) over every cell and day both have, and the spread of the cells'
   own mean differences (10th–90th percentile); for precipitation, the ratio of totals and of rain days (≥ 0.01 in);
@@ -18,7 +19,6 @@ stores in DATA_DIR, regrids gridMET to our cells bilinearly (enough to compare; 
 
 import argparse
 import sys
-from datetime import date, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -26,12 +26,12 @@ import numpy as np
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "packages" / "agdata" / "src"))
 
-from scipy.io import netcdf_file  # noqa: E402
 
 from agdata import climatology as clim  # noqa: E402
 from agdata.catalog import DAILY_VARIABLES  # noqa: E402
 from agdata.grid import NDFD, Window  # noqa: E402
 from agdata.progress import Reporter  # noqa: E402
+from agdata.sources import gridmet  # noqa: E402
 from agdata.store import DAILY, GridStore  # noqa: E402
 
 DATCP_POINTS = [
@@ -46,21 +46,14 @@ RAIN_MM = 0.254
 SAMPLE = 7  # every 7th row and column for the day-to-day correlations
 
 
-def kelvin(v):
-    return v - 273.15
-
-
-def per_m2_day(v):
-    return v * 0.0864  # W/m² as a day's mean → MJ/m²
-
-
-# (label, archive variable, gridMET variable, gridMET → archive's unit, unit shown, how compared)
+# (label, archive variable, gridMET variable, a further conversion (none: the adapter reads in our units), unit shown,
+# how compared)
 PAIRS = [
-    ("Maximum temperature", "air_temperature_max", "tmmx", kelvin, "°F", "diff"),
-    ("Minimum temperature", "air_temperature_min", "tmmn", kelvin, "°F", "diff"),
+    ("Maximum temperature", "air_temperature_max", "tmmx", None, "°F", "diff"),
+    ("Minimum temperature", "air_temperature_min", "tmmn", None, "°F", "diff"),
     ("Precipitation", "precipitation_sum", "pr", None, "in", "rain"),
     ("Reference ET (grass)", "et0_sum", "pet", None, "in", "ratio"),
-    ("Shortwave radiation", "shortwave_radiation_sum", "srad", per_m2_day, "MJ/m²", "ratio"),
+    ("Shortwave radiation", "shortwave_radiation_sum", "srad", None, "MJ/m²", "ratio"),
     ("Wind speed (10 m)", "wind_speed_mean", "vs", None, "mph", "ratio"),
     ("Maximum relative humidity", "relative_humidity_max", "rmax", None, "%", "diff"),
     ("Minimum relative humidity", "relative_humidity_min", "rmin", None, "%", "diff"),
@@ -69,17 +62,12 @@ SHOWN = {"°F": 1.8, "in": 1 / 25.4, "mph": 2.23694, "MJ/m²": 1.0, "%": 1.0}  #
 
 
 def read_gridmet(path: Path, var: str):
-    """(dates, values (days, lat, lon) in gridMET's unit with NaN for fill, lats, lons)."""
-    with netcdf_file(path, mmap=False) as f:
-        data = next(v for v in f.variables.values() if v.data.ndim == 3)
-        attrs = data._attributes
-        raw = data.data.astype(np.float64)
-        fill = attrs.get("_FillValue", 32767)
-        values = np.where(data.data == fill, np.nan, raw * attrs.get("scale_factor", 1.0) + attrs.get("add_offset", 0))
-        days = [date(1900, 1, 1) + timedelta(days=int(d)) for d in f.variables["day"].data]
-        lats = np.array(f.variables["lat"].data, dtype=np.float64)
-        lons = np.array(f.variables["lon"].data, dtype=np.float64)
-    return days, values, lats, lons
+    """(dates, values (days, lat, lon) in the daily variable's unit with NaN for fill, lats north to south, lons):
+    the adapter's reading, rows back in gridMET's order for `Regrid`."""
+    year = gridmet.read(path, var)
+    lats = year.grid.first_lat + np.arange(year.grid.ny) * year.grid.step
+    lons = year.grid.first_lon + np.arange(year.grid.nx) * year.grid.step
+    return year.days, year.values[:, ::-1].astype(np.float64), lats[::-1], lons
 
 
 class Regrid:
@@ -138,7 +126,7 @@ def main() -> int:
         for label, ours, theirs, convert, _, how in PAIRS:
             path = data / "gridmet" / theirs / f"{year}.nc"
             if not path.exists():
-                report.fail(f"{theirs} {year}", f"{path} is missing; run scripts/download_gridmet.py")
+                report.fail(f"{theirs} {year}", f"{path} is missing; run manage.py climatology")
                 continue
             days, raw, lats, lons = read_gridmet(path, theirs)
             if regrid is None:

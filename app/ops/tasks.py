@@ -108,6 +108,29 @@ def build_past_years(timestamp: int) -> None:
             logger.warning("past-years copy of %s not built: %s", past, error)
 
 
+@app.periodic(cron="0 6 15 * *")  # monthly; in January the 30 years roll forward (gridMET's December is in by then)
+@app.task(queue="maintenance", queueing_lock="update_climatology", task_middleware=JOB_MIDDLEWARE)
+def update_climatology(timestamp: int) -> None:
+    """Keeps the 30-year normal's gridMET years (`ops.climatology`, D82, D84): in January, fetches the new overlap
+    year and drops the oldest, fits again and derives; other months, retries anything a run left undone (a plan with
+    nothing to do costs a directory listing). Not in the catch-up: a whole period's download takes hours."""
+    from agdata.grid import service_window
+    from agdata.progress import Reporter
+    from ops import climatology
+
+    window = service_window(settings.SERVICE_BOX)
+    p = climatology.plan(settings.DATA_DIR, datetime.fromtimestamp(timestamp, UTC).date(), window)
+    if p.nothing:
+        return
+    for line in climatology.describe(p):
+        logger.info("climatology: %s", line)
+    report = Reporter(quiet=True)
+    derived = climatology.run(settings.DATA_DIR, window, p, report=report, lock=_waiting_lock("job update_climatology"))
+    for failure in report.failures:
+        logger.warning("climatology: %s", failure)
+    logger.info("climatology: %d files fetched, %d years derived", len(p.fetch), derived)
+
+
 @app.periodic(cron="55 * * * *")  # after the hour's ingest (:40) and the forecast's (:45)
 @app.task(queue="maintenance", queueing_lock="update_crop_tiers", task_middleware=JOB_MIDDLEWARE)
 def update_crop_tiers(timestamp: int) -> None:

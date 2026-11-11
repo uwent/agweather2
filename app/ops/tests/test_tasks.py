@@ -205,3 +205,25 @@ def test_the_maps_and_downloads_jobs_log_what_they_did(monkeypatch, caplog, sett
         tasks.build_downloads(NOW)
     logged = [r.getMessage() for r in caplog.records if r.name == tasks.__name__]
     assert logged == ["maps: 3 unused images deleted", "downloads: 2 files built (6 MB)"]
+
+
+def test_update_climatology_runs_only_when_the_plan_has_work(monkeypatch, settings, tmp_path, caplog):
+    from ops import climatology
+
+    settings.DATA_DIR = tmp_path
+    settings.SERVICE_BOX = "wisconsin"
+    ran = []
+    monkeypatch.setattr(climatology, "run", lambda *a, **k: ran.append(k) or 0)
+    with caplog.at_level(logging.INFO, logger=tasks.__name__):
+        monkeypatch.setattr(climatology, "plan", lambda *a, **k: climatology.Plan(period=(), normal=[], overlap=[]))
+        tasks.update_climatology(NOW)
+        assert ran == []
+        monkeypatch.setattr(
+            climatology,
+            "plan",
+            lambda *a, **k: climatology.Plan(period=(1995,), normal=[1995], overlap=[], fetch=[("pr", 1995)]),
+        )
+        tasks.update_climatology(NOW)
+    assert len(ran) == 1
+    logged = [r.getMessage() for r in caplog.records if r.name == tasks.__name__]
+    assert logged[-1] == "climatology: 1 files fetched, 0 years derived"
