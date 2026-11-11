@@ -1,8 +1,9 @@
-"""Rolling windows (`agdata.rolling`, D81) against a plain loop over days, and zoo's conventions."""
+"""Rolling windows (`agdata.rolling`, D81) against a plain loop over days, and pandas' `rolling`."""
 
 import math
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from agdata.rolling import Roll, any_in_window, roll
@@ -12,8 +13,8 @@ def reference(values, days, align, partial, coverage, stat, extent=None, circula
     """Day by day, as the rules read: the window's days, clipped to the series, then coverage."""
     n = len(values)
     lo, hi = extent or (0, n)
-    after = days // 2 if align == "centered" else 0
-    before = days - 1 - after
+    before = days // 2 if align == "centered" else days - 1
+    after = days - 1 - before
     out = []
     for d in range(n):
         if not circular and not lo <= d < hi:
@@ -61,15 +62,21 @@ def test_extent_and_circular(partial):
     assert np.isfinite(wrapped[0]) and np.isfinite(wrapped[-1])  # the year's ends have whole windows
 
 
-def test_zoo_conventions():
-    """zoo: `rollapply(1:10, 4, mean, fill = NA)` is NA 2.5 3.5 … 8.5 NA NA (centered, the extra day after), and
-    with `partial = TRUE` the ends are means of what's there: 2 2.5 3.5 … 8.5 9 9.5."""
-    x = np.arange(1.0, 11.0)
-    whole = roll(x, Roll(days=4, align="centered"), "mean", name=None).values
-    np.testing.assert_allclose(whole, [np.nan, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, np.nan, np.nan], equal_nan=True)
-    part = roll(x, Roll(days=4, align="centered", partial=True, coverage=0), "mean").values
-    np.testing.assert_allclose(part, [2.0, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.0, 9.5])
-    assert Roll(days=14, align="centered").offsets == (6, 7)
+@pytest.mark.parametrize("days", [3, 4, 7, 14])
+@pytest.mark.parametrize("center", [False, True])
+@pytest.mark.parametrize("stat", ["sum", "mean", "min", "max"])
+def test_pandas_conventions(days, center, stat):
+    """pandas' `rolling(days, center=…)`: with `min_periods=days` our whole windows at coverage 1, and with
+    `min_periods=1` our partial windows at coverage 0 (any one value, ends clipped)."""
+    x = pd.Series(SERIES)
+    align = "centered" if center else "trailing"
+    whole = getattr(x.rolling(days, center=center, min_periods=days), stat)().to_numpy()
+    ours = roll(np.array(SERIES), Roll(days=days, align=align, coverage=1.0), stat).values
+    np.testing.assert_allclose(ours, whole, equal_nan=True)
+    part = getattr(x.rolling(days, center=center, min_periods=1), stat)().to_numpy()
+    ours = roll(np.array(SERIES), Roll(days=days, align=align, partial=True, coverage=0), stat).values
+    np.testing.assert_allclose(ours, part, equal_nan=True)
+    assert Roll(days=14, align="centered").offsets == (7, 6)
     assert Roll(days=7, align="centered").offsets == (3, 3)
     assert Roll(days=7).offsets == (6, 0)
 
@@ -112,10 +119,10 @@ def test_cells_as_trailing_axes():
 def test_clipped_and_forecast_flags():
     x = np.arange(10.0)
     found = roll(x, Roll(days=4, align="centered", partial=True), "mean")
-    assert list(found.clipped) == [True] + [False] * 7 + [True, True]
-    assert list(found.held) == [3, 4, 4, 4, 4, 4, 4, 4, 3, 2]
+    assert list(found.clipped) == [True, True] + [False] * 7 + [True]  # two days before, one after
+    assert list(found.held) == [2, 3, 4, 4, 4, 4, 4, 4, 4, 3]
     forecast = np.array([False] * 7 + [True] * 3)
-    assert list(any_in_window(forecast, Roll(days=4, align="centered"))) == [False] * 5 + [True] * 5
+    assert list(any_in_window(forecast, Roll(days=4, align="centered"))) == [False] * 6 + [True] * 4
     assert list(any_in_window(forecast, Roll(days=4))) == [False] * 7 + [True] * 3
 
 

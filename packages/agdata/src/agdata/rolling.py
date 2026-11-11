@@ -2,8 +2,8 @@
 day of a series, at points (`/weather/daily`, `/degree-days`) and, through the same rules, on maps and in the normals.
 
 A window of N days is trailing (the day and the N − 1 before it) or centered. A centered window of an even length
-has one more day after the day than before, as R's zoo does (`rollapply`'s `seq(to = floor(w/2), length = w)`;
-pandas puts the extra day before). Two separate rules decide whether a window has a value:
+has one more day before the day than after, as pandas' `rolling(center=True)` does (Ben, 2026-11-10: R's zoo puts
+it after). Two separate rules decide whether a window has a value:
 
 - **Ends** (`partial`): a window that runs past the series' ends, onto days that don't exist (before the first day
   with data, after the forecast's last), has no value unless `partial`, which clips it to the days there are (zoo's
@@ -61,8 +61,8 @@ class Roll:
     @property
     def offsets(self) -> tuple[int, int]:
         """(days before, days after) the day its window is for."""
-        after = self.days // 2 if self.align == "centered" else 0
-        return self.days - 1 - after, after
+        before = self.days // 2 if self.align == "centered" else self.days - 1
+        return before, self.days - 1 - before
 
     def needed(self, days: np.ndarray | int) -> np.ndarray:
         """The days with a value a window of `days` days needs: the coverage's share, rounded up, and at least one."""
