@@ -3,9 +3,11 @@ January job do.
 
 `plan` says what the trailing 30 complete years need: gridMET's files for the years the archive lacks (the normal's
 own) and for the years both have (the fit's overlap); a fit when there's none, it's from other years, or it's asked
-for; the normal's gridMET years derived where they're missing or out of date; and kept files and derived years no
-longer needed, dropped. `run` downloads outside the write lock, then takes it (politely) to fit and to write each
-year.
+for; the normal's gridMET years derived where they're missing or out of date; each period's normal maps
+(`agdata.normals`, D85) where its years or their data changed; and kept files and derived years no longer needed,
+dropped. `run` downloads outside the write lock, then takes it (politely) to fit and to write each year. The normal
+maps read only the years' copies and swap their own store into place, as the past-years copies do, so they build
+without the lock.
 """
 
 from collections.abc import Callable, Iterable
@@ -14,7 +16,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
-from agdata import climatestore
+from agdata import climatestore, normals
 from agdata.climatology import PERIODS
 from agdata.grid import Window
 from agdata.progress import Reporter
@@ -34,10 +36,12 @@ class Plan:
     derive: dict[int, str] = field(default_factory=dict)  # year → why
     drop_files: list[Path] = field(default_factory=list)
     drop_years: list[int] = field(default_factory=list)
+    normals: dict[str, str] = field(default_factory=dict)  # period → why its normal maps need building
+    archive: set[int] = field(default_factory=set)  # the archive's complete years
 
     @property
     def nothing(self) -> bool:
-        return not (self.fetch or self.refit or self.derive or self.drop_files or self.drop_years)
+        return not (self.fetch or self.refit or self.derive or self.drop_files or self.drop_years or self.normals)
 
 
 def plan(data_dir: Path, today: date, window: Window, refit: bool = False, rederive: bool = False) -> Plan:
@@ -74,7 +78,23 @@ def plan(data_dir: Path, today: date, window: Window, refit: bool = False, reder
             if file.stem.isdigit() and int(file.stem) not in wanted:
                 found.drop_files.append(file)
     found.drop_years = [y for y in climatestore.years(data_dir) if y not in normal]
+    found.archive = archive
+    for name in PERIODS:
+        years = period_years(found, name)
+        if not years:
+            continue
+        reason = normals.status(data_dir, name, years, archive)
+        if name == "last30" and (found.derive or found.fetch) and reason is None:
+            reason = "its gridMET years change in this run"
+        if reason is not None:
+            found.normals[name] = reason
     return found
+
+
+def period_years(p: Plan, name: str) -> list[int]:
+    """A period's years: the trailing ones the archive has, and for `last30` gridMET's before them."""
+    asked = p.period[-PERIODS[name] :]
+    return [y for y in asked if y in p.archive or (name == "last30" and y in p.normal)]
 
 
 def describe(p: Plan) -> list[str]:
@@ -90,6 +110,8 @@ def describe(p: Plan) -> list[str]:
     if p.derive:
         reasons = sorted(set(p.derive.values()))
         lines.append(f"derive {len(p.derive)} years ({_years(list(p.derive))}): {'; '.join(reasons)}")
+    for name, reason in p.normals.items():
+        lines.append(f"build {name}'s normal maps: {reason}")
     if p.drop_files or p.drop_years:
         lines.append(f"drop {len(p.drop_files)} files and {len(p.drop_years)} derived years no longer in the period")
     if p.nothing:
@@ -164,4 +186,16 @@ def run(
             with lock():
                 climatestore.drop(data_dir, year)
             report.detail(f"dropped the derived {year}")
+    for name in p.normals:
+        if stopping() or report.failures:
+            break  # a failed fetch or derive would leave the maps built on missing years
+        years = period_years(p, name)
+        try:
+            normals.build(
+                data_dir, name, years, p.archive, window, progress=lambda d, t, n=name: report.progress(n, d, t)
+            )
+        except ValueError as error:
+            report.fail(f"{name}'s normal maps", error)
+            continue
+        report.step(f"{name}'s normal maps built ({_years(years)})")
     return derived

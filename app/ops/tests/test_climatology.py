@@ -87,3 +87,13 @@ def test_a_fit_of_other_variables_is_fitted_again(tmp_path, monkeypatch):
     assert climatology.plan(tmp_path, TODAY, WINDOW).refit == "the variables adjusted changed"
     fitted["names"] = sorted(climatestore.ADJUST)
     assert climatology.plan(tmp_path, TODAY, WINDOW).refit is None
+
+
+def test_each_periods_normal_maps_are_planned_with_their_years(tmp_path):
+    archive(tmp_path, range(2016, 2027))
+    p = climatology.plan(tmp_path, TODAY, WINDOW)
+    assert p.normals == {"last5": "missing", "last10": "missing", "last30": "missing"}
+    assert climatology.period_years(p, "last5") == list(range(2021, 2026))
+    assert climatology.period_years(p, "last10") == list(range(2016, 2026))
+    assert climatology.period_years(p, "last30") == list(range(1996, 2026))
+    assert "build last30's normal maps: missing" in climatology.describe(p)

@@ -162,3 +162,21 @@ def test_read_years_lays_out_each_year():
     assert found.shape == (2, SLOTS) and np.isnan(found[0, FEB29]) and found[1, FEB29] == 2024 + 59
     assert found[0, 365] == 2023 + 364 and found[1, 365] == 2024 + 365
     assert (date(2023, 1, 1) + timedelta(days=int(found[0, 60] - 2023))) == date(2023, 3, 1)
+
+
+@pytest.mark.parametrize("method", ["linear", "lower", "higher"])
+def test_nan_quantiles_match_numpys(method):
+    rng = np.random.default_rng(7)
+    values = rng.normal(size=(31, 40, 6))
+    values[rng.random(values.shape) < 0.3] = np.nan
+    values[:, 0, 0] = np.nan  # a row with none
+    values[:, 1, 0] = np.nan
+    values[3, 1, 0] = 2.5  # a row with one
+    qs = [0.0, 0.1, 0.25, 0.5, 0.9, 1.0]
+    got = clim.nan_quantiles(values, qs, axis=0, method=method)
+    with np.errstate(all="ignore"), pytest.warns(RuntimeWarning):
+        expected = np.nanquantile(values, qs, axis=0, method=method)
+    for k in range(len(qs)):
+        np.testing.assert_allclose(got[k], expected[k], rtol=1e-12, atol=1e-12)
+    assert np.isnan(got[0][0, 0]) and got[2][1, 0] == 2.5
+    np.testing.assert_allclose(clim.nan_quantiles(values, [0.5], axis=1)[0], np.nanquantile(values, 0.5, axis=1))

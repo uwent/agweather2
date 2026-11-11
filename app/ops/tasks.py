@@ -111,8 +111,9 @@ def build_past_years(timestamp: int) -> None:
 @app.periodic(cron="0 6 15 * *")  # monthly; in January the 30 years roll forward (gridMET's December is in by then)
 @app.task(queue="maintenance", queueing_lock="update_climatology", task_middleware=JOB_MIDDLEWARE)
 def update_climatology(timestamp: int) -> None:
-    """Keeps the 30-year normal's gridMET years (`ops.climatology`, D82, D84): in January, fetches the new overlap
-    year and drops the oldest, fits again and derives; other months, retries anything a run left undone (a plan with
+    """Keeps the 30-year normal's gridMET years and every period's normal maps (`ops.climatology`, D82, D84, D85):
+    in January, fetches the new overlap year and drops the oldest, fits again, derives and rebuilds the maps; other
+    months, retries anything a run left undone (a plan with
     nothing to do costs a directory listing). Not in the catch-up: a whole period's download takes hours."""
     from agdata.grid import service_window
     from agdata.progress import Reporter

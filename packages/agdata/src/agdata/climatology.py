@@ -23,7 +23,6 @@ and gridMET's derived years (`read_point`); maps read them in blocks of cells (D
 Arrays put the years first and the slots second: (years, 366, …cells).
 """
 
-import warnings
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -226,11 +225,36 @@ def pooled(
 
 def _percentile(values: np.ndarray, p: float, axis: int) -> np.ndarray:
     """`np.nanpercentile`, NaN without a warning where there are no values."""
-    if values.shape[axis] == 0:
-        return np.full(np.delete(values.shape, axis), np.nan)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", RuntimeWarning)
-        return np.nanpercentile(values, p, axis=axis)
+    return nan_quantiles(values, [p / 100], axis=axis)[0]
+
+
+def nan_quantiles(
+    values: np.ndarray, qs: Sequence[float], axis: int, method: Literal["linear", "lower", "higher"] = "linear"
+) -> list[np.ndarray]:
+    """`np.nanquantile` of `values` along `axis` at each of `qs` (0 to 1), NaN where a row has no values: one sort
+    for every quantile, where NumPy's goes row by row once there's a NaN (33 s against 0.2 for a block's deciles)."""
+    values = np.moveaxis(np.asarray(values), axis, 0)
+    if values.shape[0] == 0:
+        return [np.full(values.shape[1:], np.nan) for _ in qs]
+    ordered = np.sort(values, axis=0)  # NaNs last
+    n = np.isfinite(ordered).sum(axis=0)
+    last = np.maximum(n - 1, 0)
+    out = []
+    for q in qs:
+        position = last * float(q)
+        low = np.floor(position).astype(np.int64)
+        high = np.minimum(low + 1, last) if method == "linear" else np.ceil(position).astype(np.int64)
+        a = np.take_along_axis(ordered, low[None], axis=0)[0]
+        b = np.take_along_axis(ordered, high[None], axis=0)[0]
+        if method == "lower":
+            found = a
+        elif method == "higher":
+            found = b
+        else:
+            t = position - low
+            found = np.where(t >= 0.5, b - (b - a) * (1 - t), a + (b - a) * t)  # NumPy's lerp
+        out.append(np.where(n > 0, found, np.nan))
+    return out
 
 
 def _leap(year: int) -> bool:
@@ -358,11 +382,9 @@ def _quantile(values: np.ndarray, q: float, nones: bool = True) -> np.ndarray:
     where it reaches a year with none (`NONE_SPRING`, `NONE_FALL`), which has no date to interpolate."""
     if values.shape[0] == 0:
         return np.full(values.shape[1:], np.nan)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", RuntimeWarning)
-        found = np.nanquantile(values, q, axis=0)
-        if not nones:
-            return found
-        low = np.nanquantile(values, q, axis=0, method="lower")
-        high = np.nanquantile(values, q, axis=0, method="higher")
+    (found,) = nan_quantiles(values, [q], axis=0)
+    if not nones:
+        return found
+    (low,) = nan_quantiles(values, [q], axis=0, method="lower")
+    (high,) = nan_quantiles(values, [q], axis=0, method="higher")
     return np.where((low == NONE_SPRING) | (high == NONE_FALL), np.nan, found)
