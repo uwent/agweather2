@@ -33,13 +33,14 @@ import numpy as np
 from django.http import HttpRequest
 from ninja import Schema
 
-from agdata import computed, modelgrid, modelmaps, palettes, regions, seasonal, series
+from agdata import computed, modelgrid, modelmaps, palettes, regions, rolling, seasonal, series
 from agdata import units as agunits
 from agdata.daily import days_from_hours
 from agdata.grid import Window
 from agdata.grids import cube_terms, degree_days, reduce
 from agdata.layers import DEGREE_DAYS, LAYERS, SUSCEPTIBILITY, Layer, LayerOutput
 from agdata.planting import planting_crop, planting_map
+from agdata.rolling import Roll
 from agdata.store import CUMULATIVE, DAILY
 from agmodels import seasons
 from agmodels.seasons import Season
@@ -77,6 +78,10 @@ class LayerQuery(Schema):
     season: str | None = None
     biofix: str | None = None  # degree days only: the start of a sum (a date, or MM-DD)
     day_basis: Literal["central", "local"] | None = None  # maps' days are grid days (CST, D74); `local` is refused
+    roll: int | None = None  # a window of days ending on (or centered on) `date`, combined by `stat` (D81)
+    roll_align: Literal["trailing", "centered"] = "trailing"
+    roll_partial: bool = False
+    roll_coverage: float = 75  # percent of the window's days a cell needs values for
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -164,6 +169,8 @@ class LayerAsk:
     count_bounds: tuple[float | None, float | None] = (None, None)  # its bounds (or an event's) in the stored unit
     count_shown: str = ""  # the unit its bounds were given in, for the title
     event: "events.Event | None" = None  # with stat=first, last or since: what's found (`api.events`)
+    roll: Roll | None = None  # `roll=`: the window (`agdata.rolling`) whose days first..last are, and its day
+    roll_day: date | None = None
 
     @property
     def value_unit(self) -> str:
@@ -289,6 +296,16 @@ class LayerAsk:
                 "end": iso_hour(last) if isinstance(last, datetime) else last.isoformat(),
             }
         model = self.model
+        if self.roll is not None:
+            assert self.roll_day is not None
+            when = {
+                "date": self.roll_day.isoformat(),
+                "roll": self.roll.days,
+                "roll_align": self.roll.align,
+                "roll_partial": self.roll.partial,
+                "roll_coverage": round(self.roll.coverage * 100, 6),
+                **when,
+            }
         return {
             "layer": self.layer.id,
             **when,
@@ -327,6 +344,9 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
     observed = series.last_observed(data_dir, now)
     if observed is None:
         raise ApiError("no_data", NO_DATA, None, status=503)
+    roll, roll_day = None, None
+    if q.roll is not None:
+        q, roll, roll_day = _roll_range(found, q, observed)
     if q.count is not None and q.stat is None:
         q = q.model_copy(update={"stat": "count"})  # a count is a statistic of the range
     event = events.asked(q.first, q.last, q.since)
@@ -445,10 +465,113 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         count_bounds=bounds,
         count_shown=shown,
         event=event,
+        roll=roll,
+        roll_day=roll_day,
     )
     a.scale_asked = _scale_asked(request, a)
     a.palette_asked = _palette_asked(request, a)
     return a
+
+
+ROLL_EXCLUDES = ("start", "end", "biofix", "season", "first", "last", "since")
+
+
+def _roll_range(layer: Layer, q: LayerQuery, observed: datetime) -> tuple[LayerQuery, Roll, date]:
+    """`roll=` on a map: the window of days ending on (or centered on) `date`, default the latest whole day, as a
+    range reduced by `stat` (by default a sum for values that add up, else a mean)."""
+    if layer.time_axis != "day":
+        raise ApiError(
+            "invalid",
+            f"roll combines days, and {layer_title(layer)} is hourly. Choose a daily layer, or give start and end "
+            "times with stat.",
+            "roll",
+        )
+    if layer.source == "cumulative":
+        raise ApiError(
+            "invalid",
+            f"{layer_title(layer)} is already a running total, so it takes no roll. For the total over a window, "
+            "map the daily layer it adds up with roll and stat=sum.",
+            "roll",
+        )
+    for name in ROLL_EXCLUDES:
+        if getattr(q, name) is not None:
+            raise ApiError(
+                "conflict",
+                f"roll sets the days from date, so it can't go with {name}. Give date and roll, as "
+                "date=2026-06-19&roll=14, or start and end with stat.",
+                name,
+            )
+    days = q.roll
+    assert days is not None
+    if not rolling.MIN_DAYS <= days <= rolling.MAX_DAYS:
+        raise ApiError(
+            "out_of_range",
+            f"A window of {days} days can't be used. Give from {rolling.MIN_DAYS} to {rolling.MAX_DAYS} days.",
+            "roll",
+        )
+    if not 0 <= q.roll_coverage <= 100:
+        raise ApiError(
+            "out_of_range",
+            f"roll_coverage ({q.roll_coverage:g}) is a percentage of a window's days, from 0 to 100.",
+            "roll_coverage",
+        )
+    spec = Roll(days=days, align=q.roll_align, partial=q.roll_partial, coverage=q.roll_coverage / 100)
+    day = parse_date(q.date, "date") if q.date is not None else series.last_closed_day(observed)
+    before, after = spec.offsets
+    stat = q.stat or ("count" if q.count is not None else _roll_stat(layer))
+    update = {
+        "date": None,
+        "start": (day - timedelta(days=before)).isoformat(),
+        "end": (day + timedelta(days=after)).isoformat(),
+        "stat": stat,
+    }
+    return q.model_copy(update=update), spec, day
+
+
+def _roll_stat(layer: Layer) -> str:
+    """A window's statistic by default: a sum for values that add up over days (precipitation, ET0, degree days),
+    else a mean."""
+    if layer.id == DEGREE_DAYS:
+        return "sum"
+    if layer.source == "daily" and layer.variable is not None and "sum" in layer.stats:
+        try:
+            return "sum" if computed.adds_up(layer.variable) else "mean"
+        except KeyError:
+            return "mean"
+    return "mean"
+
+
+def _roll_rules(
+    a: "LayerAsk", values: np.ndarray, kinds: list, extra: dict[str, np.ndarray]
+) -> tuple[np.ndarray, list[str]]:
+    """D81's ends and coverage on a window's map: without `roll_partial`, a window reaching days we have no data for
+    (past the forecast, before the archive) gives no map; a cell needs `roll_coverage` of the window's days (of the
+    days there are, with `roll_partial`)."""
+    spec, notes = a.roll, []
+    assert spec is not None and a.roll_day is not None
+    exists = sum(k is not None for k in kinds)
+    where = "ending on" if spec.align == "trailing" else "centered on"
+    if exists == 0:
+        return values, notes
+    if not spec.partial and exists < a.steps:
+        notes.append(
+            f"The {spec.days}-day window {where} {day_text(a.roll_day)} reaches days we have no data for yet, so the "
+            "map is empty. Add roll_partial=true to use the days there are, or choose an earlier date."
+        )
+        return np.full_like(values, np.nan), notes
+    missing = extra.get("missing_days")
+    if missing is None:
+        return values, notes
+    known = a.steps - np.asarray(missing)
+    short = (known < spec.needed(exists if spec.partial else a.steps)) & np.isfinite(values[0])
+    if short.any():
+        values = values.copy()
+        values[0][short] = np.nan
+        notes.append(
+            f"Some locations have no {spec.days}-day value because fewer than {spec.coverage * 100:g}% of the "
+            "window's days had data there. Lower roll_coverage to accept windows with more missing days."
+        )
+    return values, notes
 
 
 def _check_event(layer: Layer, q: LayerQuery, event: "events.Event") -> None:
@@ -598,6 +721,7 @@ class Computed:
     steps: list  # the steps' labels (days or hours)
     from_cubes: bool  # degree days read from the running totals
     ms: float  # time to compute
+    notes: list[str] = field(default_factory=list)  # warnings the values bring, kept with them (`cached`)
 
 
 def compute(a: LayerAsk, window: Window, now: datetime) -> Computed:
@@ -624,6 +748,10 @@ def compute(a: LayerAsk, window: Window, now: datetime) -> Computed:
             a.count_bounds,
         )
     values, kinds, extra, sources, run, steps, from_cubes = found
+    notes: list[str] = []
+    if a.roll is not None:
+        values, notes = _roll_rules(a, values, kinds, extra)
+        a.warnings += [n for n in notes if n not in a.warnings]
     return Computed(
         values=values,
         kinds=kinds,
@@ -633,6 +761,7 @@ def compute(a: LayerAsk, window: Window, now: datetime) -> Computed:
         steps=steps,
         from_cubes=from_cubes,
         ms=(time.perf_counter() - started) * 1000,
+        notes=notes,
     )
 
 
@@ -1220,6 +1349,7 @@ def cached(a: LayerAsk, window: Window, now: datetime, data_stamp: Any) -> Compu
         found = _maps.get(key)
         if found is not None:
             _maps.move_to_end(key)
+            a.warnings += [n for n in found.notes if n not in a.warnings]
             return found
     found = compute(a, window, now)
     with _maps_lock:

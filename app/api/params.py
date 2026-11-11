@@ -19,6 +19,8 @@ from ninja.parser import Parser
 from pydantic import PrivateAttr, ValidationInfo, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 
+from agdata import rolling
+from agdata.rolling import Roll
 from api.errors import ApiError, day_text, hour_text
 
 MAX_POINTS = 50  # per GET; more go by POST (docs/api.md)
@@ -179,6 +181,66 @@ class SeriesQuery(Schema):
     def echo(self) -> dict[str, Any]:
         """`day_basis` for `meta.request` (and the ETag) when it was given."""
         return {"day_basis": self.day_basis} if self.day_basis is not None else {}
+
+
+class RollQuery(Schema):
+    """Rolling windows on a daily series (D81, `agdata.rolling`): `roll=7,14,28` adds a column per window."""
+
+    roll: str | None = None
+    roll_stat: Literal["sum", "mean", "min", "max"] | None = None
+    roll_align: Literal["trailing", "centered"] = "trailing"
+    roll_partial: bool = False
+    roll_coverage: float = 75
+    _windows: list[int] = PrivateAttr(default_factory=list)
+
+    @model_validator(mode="after")
+    def _check(self) -> "RollQuery":
+        if not 0 <= self.roll_coverage <= 100:
+            raise fail(
+                "out_of_range",
+                "roll_coverage",
+                f"roll_coverage ({self.roll_coverage:g}) is a percentage of a window's days, from 0 to 100.",
+            )
+        if self.roll is None or not self.roll.strip():
+            return self
+        found = []
+        for text in (t.strip() for t in self.roll.split(",") if t.strip()):
+            n = int(text) if text.isdigit() else None
+            if n is None or not rolling.MIN_DAYS <= n <= rolling.MAX_DAYS:
+                raise fail(
+                    "invalid",
+                    "roll",
+                    f"The window {text!r} isn't a number of days from {rolling.MIN_DAYS} to {rolling.MAX_DAYS}. "
+                    "Give one or more lengths in days, separated by commas, such as roll=7,14,28.",
+                )
+            found.append(n)
+        if len(set(found)) < len(found):
+            raise fail("invalid", "roll", "The same window is given twice. List each length once.")
+        self._windows = found
+        return self
+
+    def specs(self) -> list[Roll]:
+        return [
+            Roll(days=n, align=self.roll_align, partial=self.roll_partial, coverage=self.roll_coverage / 100)
+            for n in self._windows
+        ]
+
+    def lead(self) -> tuple[int, int]:
+        """The most days any window reaches before and after its day: what a request reads beyond its range."""
+        offsets = [s.offsets for s in self.specs()]
+        return max((b for b, _ in offsets), default=0), max((a for _, a in offsets), default=0)
+
+    def echo(self) -> dict[str, Any]:
+        """For `meta.request` (and the ETag), when windows were asked for."""
+        if not self._windows:
+            return {}
+        return {
+            "roll": self._windows,
+            "roll_stat": self.roll_stat,
+            "roll_align": self.roll_align,
+            "roll_partial": self.roll_partial,
+            "roll_coverage": self.roll_coverage,
+        }
 
 
 class UnitsQuery(Schema):

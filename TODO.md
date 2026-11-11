@@ -108,7 +108,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 - [ ] **Ask the UW Insect Diagnostic Lab to switch their "Today's Growing Degree Day Map" link** from v1's `/api/degree_days/map.png` to `/api/v2/maps/dd_modified_50_86.png` once v2 is live (Phase 8; v1's path redirects to the legacy host for a year, D62).
 - [x] **Rebuild potato volunteer's ingredients** (Phase 4 H, 2026-11-05): version 0.2 marks them stale, so its map is a 503 until then. `uv run app/manage.py ingredients --check`, then `uv run app/manage.py ingredients` (or `i` in `bin/agwx`); it rebuilds each stale year whole, about 3 minutes a year over Wisconsin.
 - [x] **Restart bin/dev's worker** (Phase 5 F3, 2026-11-05) so it picks up the new `update_crop_tiers` job (soybean and spring wheat stages per planting tier, hourly at :55): stop `bin/dev` and start it again. `uv run app/manage.py jobs` should then list it.
-- [ ] ~~**Build the models' ingredients for the past years**~~ moved to Phase 6's "After the backfill" below (2026-11-06). (Phase 5 F2): 2023–2026 are built (2022 through Oct 9, 2026-11-05); the running backfill started before F2, so it won't build the years it fills. When it's done (or sooner, if you don't mind them sharing the disk): `uv run app/manage.py ingredients --check`, then `uv run app/manage.py ingredients` (about 3 minutes a year over Wisconsin; or `i` in `bin/agwx`). It takes the write lock politely, a block at a time.
+- [x] ~~**Build the models' ingredients for the past years**~~ moved to Phase 6's "After the backfill" below (2026-11-06). (Phase 5 F2): 2023–2026 are built (2022 through Oct 9, 2026-11-05); the running backfill started before F2, so it won't build the years it fills. When it's done (or sooner, if you don't mind them sharing the disk): `uv run app/manage.py ingredients --check`, then `uv run app/manage.py ingredients` (about 3 minutes a year over Wisconsin; or `i` in `bin/agwx`). It takes the write lock politely, a block at a time.
 - [x] Compile the Veg Path newsletters' potato tables (early/mid/late planting and 50% emergence by location, every season on vegpath.plantpath.wisc.edu, as in 2026-08-23's) into a spreadsheet in `tmp/`, for a GDD-based planting and emergence model (PLAN.md Phase 5 D, D64). Done 2026-11-03 (2020–2026); `potato-stages` is fitted to it.
 - [x] **Open a v2 grid in the tools agencies use** (GeoTIFF in QGIS: fine, 2026-11-04. NetCDF in R: failed to reproject, fixed the same day; rerun your main.R on a fresh `tmax.nc` to confirm) (Phase 5 E, 2026-11-04): Claude checked the GeoTIFF with GDAL (rasterio) and the NetCDF with xarray, but not in QGIS or R. With `bin/dev` running:
 
@@ -119,7 +119,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
   QGIS: drag `/tmp/gdd.tif` in over an OpenStreetMap layer; Wisconsin should line up with its borders (a 2.5 km cell is visible at county zoom). R: `terra::rast("/tmp/tmax.nc")` should have 7 layers and a Lambert CRS, and `terra::project(r, "EPSG:4326")` should land on Wisconsin. Tell Claude if either is off.
 
-- [ ] Send `docs/server-sizing.md` to IT (Q4): r7i.2xlarge, 1.5 TB gp3 data volume (500 MB/s), 200 GB scratch, RDS PostgreSQL db.t4g.medium, us-east-1, and a temporary resize for the backfill.
+- [x] Send `docs/server-sizing.md` to IT (Q4): r7i.2xlarge, 1.5 TB gp3 data volume (500 MB/s), 200 GB scratch, RDS PostgreSQL db.t4g.medium, us-east-1, and a temporary resize for the backfill.
 - [ ] Before launch (Phase 8), with IT: DNS for `legacy.agweather.cals.wisc.edu` pointing at the old server, its TLS certificate, and nginx's `server_name` on the old server answering to it (D62). Check v1 serves its API there before `agweather.cals.wisc.edu` moves to v2.
 - [x] DATCP's v1 query: confirmed by DATCP (2026-11-02) and in the logs (8 settings × 23 points daily).
 - [x] DATCP's normals spreadsheet (2026-11-02): mean cumulative modified 50/86 GDD at their 23 points, from the State Climatology Office. Drop a copy in `tmp/` if Phase 6 should compare our gridded normals with it.
@@ -154,7 +154,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
   Commit the CSV if it passes.
 
-- [ ] **Rebuild for chill and heat stress** (2026-11-10). C6 added eight daily features and three running totals, so every year is stale. Rebuilds now roll up only what's stale (C7), so this reads 4 hourly variables for 8 daily ones and leaves the running totals, timecopy and ingredients alone: about 4 minutes a year over Wisconsin, an hour or less for 2016–2026, plus the chill seasons. Until it's done, points compute the new features from the hours, maps of up to 7 days do too, and longer ranges answer 503 `stale`.
+- [x] **Rebuild for chill and heat stress** (2026-11-10). C6 added eight daily features and three running totals, so every year is stale. Rebuilds now roll up only what's stale (C7), so this reads 4 hourly variables for 8 daily ones and leaves the running totals, timecopy and ingredients alone: about 4 minutes a year over Wisconsin, an hour or less for 2016–2026, plus the chill seasons. Until it's done, points compute the new features from the hours, maps of up to 7 days do too, and longer ranges answer 503 `stale`.
 
   ```bash
   uv run app/manage.py rebuild --check                  # the plan: "8 daily variables from 4 hourly ones, and nothing else follows"
@@ -165,7 +165,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
 - [x] **Restart `bin/dev` before Monday, November 16** (2026-11-09; done that evening). Its worker started at 21:37, before past-years builds took turns (a lock added that evening, after two builds at once broke 2017's copy). Ctrl-C in its terminal, then `bin/dev`.
 
-- [ ] **`/tmp` is now a 9.8 GB tmpfs** (Ubuntu 26.04 mounts it in memory by default; found 2026-11-09). The test suite in parallel fills it ("No space left on device" in a dozen tests), and whatever's there uses WSL's 19 GB of RAM. Either give `/tmp` back to the disk, as on 24.04:
+- [x] **`/tmp` is now a 9.8 GB tmpfs** (Ubuntu 26.04 mounts it in memory by default; found 2026-11-09). The test suite in parallel fills it ("No space left on device" in a dozen tests), and whatever's there uses WSL's 19 GB of RAM. Either give `/tmp` back to the disk, as on 24.04:
 
   ```bash
   sudo systemctl mask tmp.mount
@@ -175,7 +175,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
   or keep the tmpfs and point the tests elsewhere (`TMPDIR=$PWD/tmp/pytest-tmp uv run pytest -n auto --dist loadfile`), which Claude can make the default in `bin/ci` and the root conftest if you'd rather. CI on GitHub isn't affected.
 
-- [ ] **Derive soil and snow again with the B-spline** (D80, 2026-11-09). ERA5-Land and IFS now reach the grid by a cubic B-spline instead of bilinear, which removes the 0.1° grid's creases and squares from soil maps. Ben restarted `bin/dev` (2026-11-09), so the worker's daily ERA5-Land and hourly IFS jobs use it, and the re-derive is running. Derive every year from what's kept (local, no download; about 20 s a month over Wisconsin, so roughly 45 minutes), and rebuild what's made from the daily store:
+- [x] **Derive soil and snow again with the B-spline** (D80, 2026-11-09). ERA5-Land and IFS now reach the grid by a cubic B-spline instead of bilinear, which removes the 0.1° grid's creases and squares from soil maps. Ben restarted `bin/dev` (2026-11-09), so the worker's daily ERA5-Land and hourly IFS jobs use it, and the re-derive is running. Derive every year from what's kept (local, no download; about 20 s a month over Wisconsin, so roughly 45 minutes), and rebuild what's made from the daily store:
 
   ```bash
   uv run app/manage.py era5land --rederive --start 2016-01-01 --end 2026-11-03

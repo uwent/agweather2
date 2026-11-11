@@ -27,7 +27,7 @@ from agmodels import chill
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
 from agmodels.scenarios import first_days, reached, spread
-from api import clock, points
+from api import clock, points, rolled
 from api.envelope import Column, Result, catalog_column, not_modified, respond
 from api.errors import ApiError, day_text
 from api.params import (
@@ -37,6 +37,7 @@ from api.params import (
     DegreeDaySetting,
     OutputQuery,
     PointsQuery,
+    RollQuery,
     SeriesQuery,
     degree_day_settings,
     resolve_biofix,
@@ -128,6 +129,7 @@ def daily(
     when: Query[DaysQuery],
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
+    rolls: Query[RollQuery],
     dd: str | None = None,
     base: float | None = None,
     upper: float | None = None,
@@ -143,26 +145,42 @@ def daily(
     modified) for one. Defaults: January 1 through the forecast. `targets=1400,2000` (degree days in the request's
     units): when each setting's running total reaches each, in `meta.summary.targets`. `projection=true` carries
     the series past the forecast to `end` (default December 31) on each earlier archive year (D63), as
-    `GET /models/{id}/run` does: P50 with `_p10` and `_p90` columns, or `projection=years` for each year's."""
+    `GET /models/{id}/run` does: P50 with `_p10` and `_p90` columns, or `projection=years` for each year's.
+    `roll=7,14` adds each setting's rolling window of its daily degree days (`dd_<setting>_7d`, a sum by default;
+    D81, `api.rolled`), not with a projection."""
     warnings: list[str] = []
     found_settings = settings_from(request, dd, output.units, warnings)
     goals = _targets(targets, output.units)
     mode = projection_mode(projection)
+    if mode and rolls.specs():
+        raise ApiError(
+            "conflict",
+            "Rolling windows can't be combined with a projection. Leave out roll, or projection.",
+            "roll",
+        )
     read_from, first, last, trim_end, fixed = dd_window(when, options, biofix)
     if mode and when.end is None and when.date is None:
         last, trim_end = date(first.year, 12, 31), False
     check_size((last - read_from).days + 1, len(where.locations()), MAX_DAYS, "days")
+    before, after = rolls.lead()
+    if before:
+        read_from = min(read_from, rolled.read_start(where.locations(), first, before))
+    read_last = last + timedelta(days=after)
     now = clock.now()
     computed = _computed(where, first, last, found_settings, fixed or first, options, output)
-    computed |= {"targets": goals or None, "projection": mode}
+    computed |= {"targets": goals or None, "projection": mode, **rolls.echo()}
     past = [y for y in archive_years(settings.DATA_DIR) if y < last.year] if mode else []
     etag = answer_etag(
-        request, computed, points.stamp(where.locations(), read_from, last, now, names=TEMPERATURES, past_years=past)
+        request,
+        computed,
+        points.stamp(where.locations(), read_from, read_last, now, names=TEMPERATURES, past_years=past),
     )
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    locations = located(where, read_from, last, options)
-    found, read_warnings, sources, corrections = read_days(where, read_from, last, TEMPERATURES, options, trim_end, now)
+    locations = located(where, read_from, read_last, options)
+    found, read_warnings, sources, corrections = read_days(
+        where, read_from, read_last, TEMPERATURES, options, trim_end, now
+    )
     warnings += read_warnings
     skip = (first - read_from).days
     start_at = max(0, ((fixed or first) - read_from).days)
@@ -172,6 +190,9 @@ def daily(
             "running totals."
         )
     columns: dict[str, list] = {}
+    roller = rolled.Roller(q=rolls, gaps=options.gaps)
+    asked = (last - first).days + 1
+    shown_rows: list[tuple] = []
     reached_targets: list[dict] = []
     projections: list[dict] = []
 
@@ -191,11 +212,12 @@ def daily(
         dds = {s.name: degree_days(s, lo_f, hi_f) for s in found_settings}
         totals = {name: running(values, usable, start_at) for name, values in dds.items()}
         rows = len(kinds)
+        stop = rows if mode else max(skip, min(rows, skip + asked))  # not the windows' lead-out past `end`
         for target_f, shown_target in goals:
             for s in found_settings:
                 days_hit = first_days(
-                    days.dates[:cut] + _projected_dates(days.dates, cut, rows),
-                    [totals[s.name][:, j] >= target_f for j in range(totals[s.name].shape[1])],
+                    (days.dates[:cut] + _projected_dates(days.dates, cut, rows))[:stop],
+                    [totals[s.name][:stop, j] >= target_f for j in range(totals[s.name].shape[1])],
                 )
                 hit = reached("target", s.name, days_hit)
                 reached_targets.append(
@@ -203,15 +225,28 @@ def daily(
                     | {"p10": hit.p10, "p50": hit.p50, "p90": hit.p90}
                 )
         dates = days.dates[:cut] + _projected_dates(days.dates, cut, rows)
-        shown = slice(skip, rows)
+        shown = slice(skip, stop)
+        shown_rows.append((days, shown))
         temps = {"air_temperature_min": tmin, "air_temperature_max": tmax}
         sums = {}
         for s in found_settings:  # each setting's day, then its running total
             sums[f"dd_{s.name}"] = np.where(usable, dds[s.name], np.nan)
             sums[f"dd_{s.name}_cum"] = totals[s.name]
+        for j, s in enumerate(found_settings):
+            if rolls.specs():
+                roller.add(
+                    point=k if where.points is not None else None,
+                    name=f"dd_{s.name}",
+                    values=sums[f"dd_{s.name}"][:, 0],
+                    kinds=kinds,
+                    dates=dates,
+                    shown=shown,
+                    adds_up=True,
+                    note=j == 0,
+                )
         before = np.arange(rows) < cut
         if mode == "band" and labels != [None]:  # projected: the line, P50, and the band
-            add("point", [k] * (rows - skip))
+            add("point", [k] * (shown.stop - shown.start))
             add("date", dates[shown])
             add("kind", kinds[shown])
             for group in (temps, sums):
@@ -228,9 +263,9 @@ def daily(
             add("projection_years", [int(years_with[d]) if d >= cut else None for d in range(skip, rows)])
         else:
             for j, year in enumerate(labels):
-                add("point", [k] * (rows - skip))
+                add("point", [k] * (shown.stop - shown.start))
                 if mode == "years":
-                    add("year", [year] * (rows - skip))
+                    add("year", [year] * (shown.stop - shown.start))
                 add("date", dates[shown])
                 add("kind", kinds[shown])
                 for name, values in temps.items():
@@ -259,13 +294,19 @@ def daily(
             table.append(Column(name=name, values=values, unit="degF_day", step=DD_STEP, summarize=name == base_name))
         else:
             table.append(Column(name=name, values=values))
+    for name, values in roller.columns.items():
+        table.append(Column(name=name, values=values, unit="degF_day", step=DD_STEP))
+    if rolls.specs():
+        warnings += roller.warnings()
     if found and trim_end:
         computed["end"] = max((days.dates[n - 1] for days, n in found if n), default=last)
     summary = {
-        **day_counts([(days, n) for days, n in found]),
+        **day_counts(shown_rows),
         "days_estimated": sum(v for v in columns.get("temperature_estimated", []) if v),
         "corrections": corrections,
     }
+    if rolls.specs():
+        summary["roll"] = roller.summary()
     if goals:
         summary["targets"] = reached_targets
     if mode:

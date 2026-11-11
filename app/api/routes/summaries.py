@@ -145,6 +145,12 @@ def _periods(a: LayerAsk, interval: str | None) -> list[tuple[str | None, LayerA
     """The request's one period, or with `interval=month` each calendar month of its range, each a `LayerAsk`."""
     if interval is None:
         return [(None, a)]
+    if a.roll is not None:
+        raise ApiError(
+            "conflict",
+            "'roll' summarizes one window of days, so it can't go with 'interval=month'. Leave out one of them.",
+            "interval",
+        )
     if a.stat is None or a.first == a.last:
         raise ApiError(
             "not_applicable",

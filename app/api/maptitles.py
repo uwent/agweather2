@@ -170,8 +170,9 @@ def layer_title(layer: Layer) -> str:
 
 def title(a: Any, units: str) -> str:
     """The map's title for a `layermaps.LayerAsk` (`units`: the request's system, for degree-day thresholds); a count
-    is the one-day title and what it counts: "Air temperature, daily maximum, days at or above 86 °F"."""
-    text = _title(a, units)
+    is the one-day title and what it counts: "Air temperature, daily maximum, days at or above 86 °F". A window
+    (`roll=`) names its length: "Precipitation, 7-day total", "Air temperature, 14-day mean daily maximum"."""
+    text = _rolled(_title(a, units), a)
     count = getattr(a, "count", None)
     event = getattr(a, "event", None)
     if event is not None:
@@ -199,6 +200,16 @@ def _title(a: Any, units: str) -> str:
     return f"{what}, {_statistic(daily or 'value', a.stat if ranged else None)}"
 
 
+def _rolled(text: str, a: Any) -> str:
+    roll = getattr(a, "roll", None)
+    if roll is None or a.stat not in _STAT_WORDS:
+        return text
+    if ", cumulative " in text:
+        return text.replace(", cumulative ", f", {roll.days}-day ", 1)
+    head, _, tail = text.rpartition(", ")
+    return f"{head}, {roll.days}-day {tail}" if head else f"{text}, {roll.days}-day {_STAT_WORDS[str(a.stat)]}"
+
+
 def subtitle(a: Any, region: str | None = None) -> str:
     """Where and when, and a model's planting and options: "Wisconsin · Jan 1 – Nov 5, 2026"."""
     parts = [region] if region else []
@@ -211,6 +222,9 @@ def subtitle(a: Any, region: str | None = None) -> str:
         )
     elif a.layer.source == "cumulative":
         parts.append(f"{range_text(date(a.last.year, 1, 1), a.last)}{_span(a)}")
+    elif getattr(a, "roll", None) is not None:
+        where = "ending" if a.roll.align == "trailing" else "centered on"
+        parts.append(f"{a.roll.days} days {where} {day_text(a.roll_day)} ({range_text(a.first, a.last)})")
     else:
         parts.append(day_text(a.first) if a.first == a.last else f"{range_text(a.first, a.last)}{_span(a)}")
     if model is not None:

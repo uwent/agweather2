@@ -174,6 +174,10 @@ export interface GridQuery {
   season?: string | null
   biofix?: string | null
   day_basis?: ('central' | 'local') | null
+  roll?: number | null
+  roll_align?: 'trailing' | 'centered'
+  roll_partial?: boolean
+  roll_coverage?: number
   bbox?: string | null
   region?: string | null
   stride?: number
@@ -279,6 +283,10 @@ export interface MapQuery {
   season?: string | null
   biofix?: string | null
   day_basis?: ('central' | 'local') | null
+  roll?: number | null
+  roll_align?: 'trailing' | 'centered'
+  roll_partial?: boolean
+  roll_coverage?: number
   days?: number | null
   region?: string | null
   width?: number
@@ -382,6 +390,13 @@ export interface PointsQuery {
   lng?: number | null
   points?: string | null
 }
+export interface RollQuery {
+  roll?: string | null
+  roll_stat?: ('sum' | 'mean' | 'min' | 'max') | null
+  roll_align?: 'trailing' | 'centered'
+  roll_partial?: boolean
+  roll_coverage?: number
+}
 export interface SeriesQuery {
   forecast?: boolean
   gaps?: 'estimate' | 'missing'
@@ -421,6 +436,10 @@ export interface SummaryQuery {
   season?: string | null
   biofix?: string | null
   day_basis?: ('central' | 'local') | null
+  roll?: number | null
+  roll_align?: 'trailing' | 'centered'
+  roll_partial?: boolean
+  roll_coverage?: number
   by?: 'county' | 'state'
   region?: string | null
   min_coverage?: number
@@ -453,6 +472,10 @@ export interface TileQuery {
   scale?: string | null
   palette?: string | null
   day_basis?: ('central' | 'local') | null
+  roll?: number | null
+  roll_align?: 'trailing' | 'centered'
+  roll_partial?: boolean
+  roll_coverage?: number
 }
 export interface UnitsQuery {
   units?: 'us' | 'metric'

@@ -50,11 +50,22 @@ class TileQuery(Schema):
     scale: str | None = None  # colored tiles and legends: default, auto or low,high (`layermaps.parse_scale`)
     palette: str | None = None  # colored tiles and legends: any of `/palettes`, `_r` reversed
     day_basis: Literal["central", "local"] | None = None  # maps' days are grid days (CST); `local` is refused
+    roll: int | None = None  # a window of days ending on (or centered on) the tile's day (D81)
+    roll_align: Literal["trailing", "centered"] = "trailing"
+    roll_partial: bool = False
+    roll_coverage: float = 75
 
 
 def _layer_query(when: str, q: TileQuery) -> LayerQuery:
     """`{time}` and the settings as `/grids` takes them."""
     fields: dict[str, Any] = q.model_dump(exclude={"style", "scale", "palette"})
+    if q.roll is not None and RANGE.match(when) is not None:
+        raise ApiError(
+            "conflict",
+            "roll sets the days from one date, so the time can't be a range. Give one day, such as 2025-07-08, "
+            "with roll.",
+            "roll",
+        )
     event = q.first is not None or q.last is not None or q.since is not None
     if when == "latest":
         pass
@@ -75,7 +86,7 @@ def _layer_query(when: str, q: TileQuery) -> LayerQuery:
         fields["time"] = when
     else:
         fields["date"] = when
-    if (q.stat is not None or q.count is not None) and RANGE.match(when) is None:
+    if (q.stat is not None or q.count is not None) and RANGE.match(when) is None and q.roll is None:
         param = "stat" if q.stat is not None else "count"
         raise ApiError(
             "invalid",

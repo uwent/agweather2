@@ -5,7 +5,7 @@ Raw values show missing where they're missing (D45). Totals bridge gaps by each 
 GAP_FILL: interpolated up to 7 days), counting estimated and missing days; precipitation is never estimated: its
 total sums the known days and counts the rest as missing (no rain)."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, Literal
 from zoneinfo import ZoneInfo
@@ -18,7 +18,7 @@ from agdata.catalog import DAILY_VARIABLES, GAP_FILL, VARIABLES
 from agdata.computed import DAILY_COMPUTED, HOURLY_COMPUTED, adds_up
 from agdata.series import FORECAST, PARTIAL
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
-from api import clock, counts, events, points
+from api import clock, counts, events, points, rolled
 from api.envelope import (
     SYSTEMS,
     Column,
@@ -32,7 +32,7 @@ from api.envelope import (
 )
 from api.errors import ApiError, counted
 from api.locations import describe, describe_days
-from api.params import DaysQuery, HoursQuery, OutputQuery, PointsQuery, SeriesQuery, check_vars
+from api.params import DaysQuery, HoursQuery, OutputQuery, PointsQuery, RollQuery, SeriesQuery, check_vars
 from api.schemas import TableResponse, responses
 from ops.points import day_zone
 
@@ -110,7 +110,8 @@ def read_days(
 
 
 def day_counts(found) -> dict:
-    kinds = [k for days, n in found for k in days.kinds[:n]]
+    """Days returned, forecast and missing, over each series' first n rows (or the rows of a slice)."""
+    kinds = [k for days, n in found for k in days.kinds[n if isinstance(n, slice) else slice(n)]]
     return {
         "days_returned": len(kinds),
         "days_forecast": sum(k in (FORECAST, PARTIAL) for k in kinds),
@@ -125,37 +126,66 @@ def daily(
     when: Query[DaysQuery],
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
+    rolls: Query[RollQuery],
     vars: str | None = None,
 ) -> HttpResponse:
     """One row per point and local day: `date`, `kind` (observed, partial, forecast, or null with no data), and each
-    variable in `vars` (daily catalog names; `GET /variables`). Defaults: January 1 through the forecast."""
+    variable in `vars` (daily catalog names; `GET /variables`). Defaults: January 1 through the forecast. `roll=7,14`
+    adds each variable's rolling window beside it (`<name>_7d`; D81, `api.rolled`)."""
     names = check_vars(vars, DAILY, DAILY_DEFAULT)
     now = clock.now()
     today = now.date()
     trim_end = when.end is None and when.date is None
     first, last = when.span(default_end=today + timedelta(days=FORECAST_DAYS) if options.forecast else today)
     check_size((last - first).days + 1, len(where.locations()), MAX_DAYS, "days")
+    rolled.check_stat(rolls, {name: adds_up(name) for name in names})
+    before, after = rolls.lead()
+    read_first = rolled.read_start(where.locations(), first, before) if before else first
+    read_last = last + timedelta(days=after)
     computed = {**where.echo(), "start": first, "end": last, "vars": names, "forecast": options.forecast}
-    computed |= {"units": output.units, **options.echo()}
-    etag = answer_etag(request, computed, points.stamp(where.locations(), first, last, now, names=names))
+    computed |= {"units": output.units, **options.echo(), **rolls.echo()}
+    etag = answer_etag(request, computed, points.stamp(where.locations(), read_first, read_last, now, names=names))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    locations = located(where, first, last, options)
-    found, warnings, sources, corrections = read_days(where, first, last, names, options, trim_end, now)
+    locations = located(where, read_first, read_last, options)
+    found, warnings, sources, corrections = read_days(where, read_first, read_last, names, options, trim_end, now)
+    skip, asked = (first - read_first).days, (last - first).days + 1
+    shown = [(days, slice(skip, max(skip, min(n, skip + asked)))) for days, n in found]
+    roller = rolled.Roller(q=rolls)
     columns: dict[str, list] = {"point": [], "date": [], "kind": [], **{name: [] for name in names}}
-    for k, (days, n) in enumerate(found):
-        columns["point"] += [k] * n
-        columns["date"] += days.dates[:n]
-        columns["kind"] += days.kinds[:n]
-        for name in names:
-            columns[name] += list(days.values[name][:n])
+    for k, ((days, n), (_, rows)) in enumerate(zip(found, shown, strict=True)):
+        columns["point"] += [k] * (rows.stop - rows.start)
+        columns["date"] += days.dates[rows]
+        columns["kind"] += days.kinds[rows]
+        for j, name in enumerate(names):
+            columns[name] += list(days.values[name][rows])
+            if rolls.specs():
+                roller.add(
+                    point=k if where.points is not None else None,
+                    name=name,
+                    values=np.asarray(days.values[name][:n], dtype=float),
+                    kinds=days.kinds[:n],
+                    dates=days.dates[:n],
+                    shown=rows,
+                    adds_up=adds_up(name),
+                    variable=name,
+                    note=j == 0,
+                )
     table = [Column(name=name, values=columns[name]) for name in ("point", "date", "kind")]
     if where.points is None:
         table = table[1:]
-    table += [catalog_column(name, columns[name]) for name in names]
+    for name in names:
+        table.append(catalog_column(name, columns[name]))
+        for column in (c for c in roller.columns if roller.of[c] == name):
+            table.append(replace(catalog_column(column, roller.columns[column], variable=name), summarize=False))
     if found and trim_end:
-        computed["end"] = max((days.dates[n - 1] for days, n in found if n), default=last)
-    summary = {"days_requested": (computed["end"] - first).days + 1, **day_counts(found), "corrections": corrections}
+        computed["end"] = max(
+            (days.dates[rows.stop - 1] for days, rows in shown if rows.stop > rows.start), default=last
+        )
+    summary = {"days_requested": (computed["end"] - first).days + 1, **day_counts(shown), "corrections": corrections}
+    if rolls.specs():
+        summary["roll"] = roller.summary()
+        warnings += roller.warnings()
     return respond(
         request,
         Result(

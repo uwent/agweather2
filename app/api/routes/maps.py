@@ -94,11 +94,11 @@ def static_map(request: HttpRequest, layer: str, query: Query[MapQuery], output:
 def _layer_query(q: MapQuery, now: datetime) -> LayerQuery:
     fields: dict[str, Any] = q.model_dump(exclude={"days", "region", "width", "scale", "palette", "isolines"})
     if q.days is not None:
-        if q.start or q.date or q.time or q.season or q.biofix:
+        if q.start or q.date or q.time or q.season or q.biofix or q.roll is not None:
             raise ApiError(
                 "conflict",
-                "days counts back from end (or the latest day), so it takes no start, biofix, date, time or "
-                "season. Leave those out.",
+                "days counts back from end (or the latest day), so it takes no start, biofix, date, time, season "
+                "or roll. Leave those out.",
                 "days",
             )
         if q.stat is None and q.count is None:
