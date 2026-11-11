@@ -2,60 +2,25 @@
 differ (noise per cell, gaps in one), across a year's end, then a forecast run without soil, which each cell fills
 from its own source."""
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 
 import numpy as np
 import pytest
 
-from agdata import forecast, series, testing
-from agdata.catalog import DAILY_VARIABLES, VARIABLES
-from agdata.cumulative import update_days
-from agdata.store import HOURLY, GridStore
+from agdata import series, testing
+from agdata.catalog import DAILY_VARIABLES
 from agdata.timezones import GRID_ZONE
 
 HOUR = timedelta(hours=1)
-START = datetime(2024, 12, 28, tzinfo=UTC)
-CYCLE = datetime(2025, 1, 3, 12, tzinfo=UTC)
-NOW = CYCLE + 2 * HOUR
+START, CYCLE, NOW = testing.CELLS_START, testing.CELLS_CYCLE, testing.CELLS_NOW
 CELLS = [(900, 1400), (901, 1402), (900, 1401), (901, 1400)]
 ZONES = [GRID_ZONE, GRID_ZONE, "America/New_York", GRID_ZONE]
 NAMES = [name for name in DAILY_VARIABLES if name != "et0_sum_estimate"]
 
 
-def _noisy(values: dict[str, np.ndarray], rng: np.random.Generator) -> None:
-    shape = values["air_temperature"].shape
-    values["air_temperature"] += rng.normal(0, 2.0, shape)
-    values["dew_point"] = values["air_temperature"] - 1 - np.abs(rng.normal(0, 3.0, shape))
-    values["precipitation"] = np.where(rng.random(shape) < 0.2, rng.exponential(1.0, shape), 0.0)
-
-
 @pytest.fixture(scope="module")
 def mixed(tmp_path_factory):
-    path = tmp_path_factory.mktemp("cells")
-    rng = np.random.default_rng(7)
-    end = CYCLE + 2 * HOUR
-    times = [START + k * HOUR for k in range((end - START) // HOUR + 1)]
-    values = testing.weather(times, warm=2.0)
-    _noisy(values, rng)
-    shape = values["air_temperature"].shape
-    values |= {
-        "surface_pressure": np.full(shape, 98.0),
-        "relative_humidity": np.full(shape, 75.0),
-        "et0": np.full(shape, 0.05),
-    }
-    gaps = rng.random(shape[0]) < 0.1  # hours missing in one cell only, and a block that empties a day
-    gaps[60:76] = True
-    for v in values.values():
-        v[gaps, 1, 2] = np.nan
-    for year in (2024, 2025):
-        store = GridStore.create(path, HOURLY, year, testing.WINDOW, VARIABLES.values())
-        k = [n for n, t in enumerate(times) if t.year == year]
-        store.write(times[k[0]], {name: v[k[0] : k[-1] + 1] for name, v in values.items()}, source="urma")
-    update_days(path, testing.WINDOW, (START + timedelta(days=1)).date(), (end - timedelta(days=1)).date())
-    run = testing.nbm_run(CYCLE, warm=6.0)
-    _noisy(run.values, rng)
-    forecast.publish(path, forecast.write_run(path, testing.WINDOW, run, pressure_kpa=98.0))
-    return path
+    return testing.differing_cells(tmp_path_factory.mktemp("cells"))
 
 
 def _filler(level: float):

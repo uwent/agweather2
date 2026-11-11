@@ -36,7 +36,7 @@ from api import clock, points, runs, stations
 from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_modified, respond, table
 from api.errors import ApiError, day_text
 from api.locations import describe, describe_days
-from api.params import DaysQuery, OutputQuery, PointsQuery, SeriesQuery, resolve_biofix
+from api.params import AreaQuery, DaysQuery, OutputQuery, PointsQuery, SeriesQuery, resolve_biofix
 from api.routes.weather import FORECAST_DAYS, MAX_DAYS, check_size, envelope_parts, located
 from api.schemas import TableResponse, responses
 from ops.points import day_zone, models_at_point, models_at_points, projected_at_point
@@ -100,6 +100,7 @@ def run(
     when: Query[DaysQuery],
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
+    area: Query[AreaQuery],
     biofix: str | None = None,
     planting_date: str | None = None,
     projection: str | None = None,
@@ -171,19 +172,23 @@ def run(
         "units": output.units,
         **({"season": the_season.name} if the_season is not None else {}),
         **options.echo(),
+        **area.echo(),
     }
-    etag, unchanged, needed = _revalidate(request, plans, computed, sites, first, last, now, projecting=bool(mode))
+    around = area.ask(output.units)
+    etag, unchanged, needed = _revalidate(
+        request, plans, computed, sites, first, last, now, projecting=bool(mode), area=around
+    )
     if unchanged is not None:
         return unchanged
-    locations = located(where, needed, last, options)
+    locations = located(where, needed, last, options, area=around)
     zones = [day_zone(lat, lng, options.day_basis) for lat, lng in sites]
     if mode:
         found = [
-            _run_site(p, lat, lng, first, last, now, mode, zone, options.forecast, trim_end)
+            _run_site(p, lat, lng, first, last, now, mode, zone, options.forecast, trim_end, around)
             for p, (lat, lng), zone in zip(plans, sites, zones, strict=True)
         ]
     else:  # every point's weather on one read (`ops.points.models_at_points`)
-        every = models_at_points(sites, [p.runs for p in plans], first, last, now, zones)
+        every = models_at_points(sites, [p.runs for p in plans], first, last, now, zones, area=around)
         found = [
             SiteRun(
                 results=results,
@@ -251,6 +256,7 @@ def run_several(
     when: Query[DaysQuery],
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
+    area: Query[AreaQuery],
     models: str = "all",
     planting_date: str | None = None,
     projection: str | None = None,
@@ -288,20 +294,22 @@ def run_several(
         "projection": mode,
         "units": output.units,
         **options.echo(),
+        **area.echo(),
     }
+    around = area.ask(output.units)
     etag, unchanged, needed = _revalidate(
-        request, plans, computed, [(lat, lng)], first, last, now, projecting=bool(mode)
+        request, plans, computed, [(lat, lng)], first, last, now, projecting=bool(mode), area=around
     )
     if unchanged is not None:
         return unchanged
-    location = located(where, needed, last, options)[0]
+    location = located(where, needed, last, options, area=around)[0]
     zone = day_zone(lat, lng, options.day_basis)
-    found, notes = _projected(plans, lat, lng, first, last, now, mode, zone) if mode else (None, [])
+    found, notes = _projected(plans, lat, lng, first, last, now, mode, zone, around) if mode else (None, [])
     if found is not None:
         grouped = [f.results for f in found]
         answers = _nested(request, plans, grouped, max(len(r.dates) for rs in grouped for r in rs), projected=found)
     else:
-        grouped = _execute(plans, lat, lng, first, last, now, zone)
+        grouped = _execute(plans, lat, lng, first, last, now, zone, around)
         kept = max(points.keep(r.kinds, options.forecast, trim_end) for results in grouped for r in results)
         if trim_end and kept:
             computed["end"] = grouped[0][0].dates[kept - 1]
@@ -326,6 +334,7 @@ def risk(
     request: HttpRequest,
     where: Query[PointsQuery],
     output: Query[OutputQuery],
+    area: Query[AreaQuery],
     date: date | None = None,
     models: str | None = None,
     planting_date: str | None = None,
@@ -352,19 +361,22 @@ def risk(
     mode = projection_mode(projection)
     computed |= {"planting_date": planting_date, "units": output.units, "projection": mode and "band"}
     days_on = SeriesQuery(day_basis=day_basis)
-    computed |= days_on.echo()
-    etag, unchanged, needed = _revalidate(request, plans, computed, [(lat, lng)], day, day, now, projecting=bool(mode))
+    computed |= days_on.echo() | area.echo()
+    around = area.ask(output.units)
+    etag, unchanged, needed = _revalidate(
+        request, plans, computed, [(lat, lng)], day, day, now, projecting=bool(mode), area=around
+    )
     if unchanged is not None:
         return unchanged
-    location = located(where, needed, day, days_on)[0]
+    location = located(where, needed, day, days_on, area=around)[0]
     zone = day_zone(lat, lng, day_basis)
-    found, notes = _projected(plans, lat, lng, day, day, now, "band", zone) if mode else (None, [])
+    found, notes = _projected(plans, lat, lng, day, day, now, "band", zone, around) if mode else (None, [])
     projected_years = [None] * len(plans)
     if found is not None:
         grouped = [f.results for f in found]
         projected_years = [f.bands for f in found]
     else:
-        grouped = _execute(plans, lat, lng, day, day, now, zone)
+        grouped = _execute(plans, lat, lng, day, day, now, zone, around)
     rows: dict[str, list[Any]] = {
         name: []
         for name in (
@@ -857,23 +869,23 @@ def _one_point(where: PointsQuery) -> tuple[float, float]:
     return where.locations()[0]
 
 
-def _revalidate(request, plans, computed, sites, first, last, now, projecting: bool = False):
+def _revalidate(request, plans, computed, sites, first, last, now, projecting: bool = False, area=None):
     """(ETag, a 304 if the client holds it, the first day read) for the points `sites`: before any read or run. A
     projection reads the archive's earlier years too, so their writes count."""
     needed, names = days_needed([r for p in plans for r in p.runs], first)
     past = [y for y in archive_years(settings.DATA_DIR) if y < last.year] if projecting else []
-    stamp = points.stamp(sites, needed, last, now, names=names, past_years=past)
+    stamp = points.stamp(sites, needed, last, now, names=names, past_years=past, area=area)
     etag = None if stamp is None else etag_for(request, computed, stamp)
     unchanged = None if etag is None else not_modified(request, etag)
     return etag, unchanged, needed
 
 
 def _execute(
-    plans: list[runs.Plan], lat: float, lng: float, first: date, last: date, now, zone: str
+    plans: list[runs.Plan], lat: float, lng: float, first: date, last: date, now, zone: str, area=None
 ) -> list[list[ModelRun]]:
     """Every plan's runs on one read of the weather (days on `zone`'s clock), split back per plan."""
     every = [r for p in plans for r in p.runs]
-    results = models_at_point(lat, lng, every, first, last, now, planting_default=False, zone=zone)
+    results = models_at_point(lat, lng, every, first, last, now, planting_default=False, zone=zone, area=area)
     grouped, k = [], 0
     for p in plans:
         grouped.append(results[k : k + len(p.runs)])
@@ -1124,8 +1136,9 @@ def _run_site(
     zone: str,
     forecast: bool,
     trim_end: bool,
+    area=None,
 ) -> SiteRun:
-    found, notes = _projected([the_plan], lat, lng, first, last, now, mode, zone) if mode else (None, [])
+    found, notes = _projected([the_plan], lat, lng, first, last, now, mode, zone, area) if mode else (None, [])
     if found is not None:
         results = found[0].results
         return SiteRun(
@@ -1136,7 +1149,7 @@ def _run_site(
             projection=found[0].summary,
             notes=notes,
         )
-    results = _execute([the_plan], lat, lng, first, last, now, zone)[0]
+    results = _execute([the_plan], lat, lng, first, last, now, zone, area)[0]
     kept = max(points.keep(r.kinds, forecast, trim_end) for r in results)
     return SiteRun(results=results, kept=kept, labels=_labels(results), notes=notes)
 
@@ -1231,11 +1244,11 @@ def _season_end(spec, first: date) -> date:
 
 
 def _projected(
-    plans: list[runs.Plan], lat: float, lng: float, first: date, last: date, now, mode: str, zone: str
+    plans: list[runs.Plan], lat: float, lng: float, first: date, last: date, now, mode: str, zone: str, area=None
 ) -> tuple[list[Projected] | None, list[str]]:
     """Each plan's runs carried past the forecast on the archive's earlier years, or None outside the archive."""
     every = [r for p in plans for r in p.runs]
-    found = projected_at_point(lat, lng, every, first, last, now, zone=zone)
+    found = projected_at_point(lat, lng, every, first, last, now, zone=zone, area=area)
     if found is None:
         return None, [NO_PROJECTION]
     warnings = []

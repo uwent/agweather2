@@ -33,6 +33,7 @@ from api.errors import ApiError, day_text
 from api.params import (
     CHILL,
     FREEZE,
+    AreaQuery,
     DaysQuery,
     DegreeDaySetting,
     OutputQuery,
@@ -56,7 +57,7 @@ from api.routes.weather import (
     read_days,
 )
 from api.schemas import TableResponse, responses
-from ops.points import day_zone
+from ops.points import AreaAsk, day_zone
 
 router = Router(tags=["Degree days, chill and freezes"])
 
@@ -130,6 +131,7 @@ def daily(
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
     rolls: Query[RollQuery],
+    area: Query[AreaQuery],
     dd: str | None = None,
     base: float | None = None,
     upper: float | None = None,
@@ -168,18 +170,19 @@ def daily(
     read_last = last + timedelta(days=after)
     now = clock.now()
     computed = _computed(where, first, last, found_settings, fixed or first, options, output)
-    computed |= {"targets": goals or None, "projection": mode, **rolls.echo()}
+    around = area.ask(output.units)
+    computed |= {"targets": goals or None, "projection": mode, **rolls.echo(), **area.echo()}
     past = [y for y in archive_years(settings.DATA_DIR) if y < last.year] if mode else []
     etag = answer_etag(
         request,
         computed,
-        points.stamp(where.locations(), read_from, read_last, now, names=TEMPERATURES, past_years=past),
+        points.stamp(where.locations(), read_from, read_last, now, names=TEMPERATURES, past_years=past, area=around),
     )
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    locations = located(where, read_from, read_last, options)
+    locations = located(where, read_from, read_last, options, area=around)
     found, read_warnings, sources, corrections = read_days(
-        where, read_from, read_last, TEMPERATURES, options, trim_end, now
+        where, read_from, read_last, TEMPERATURES, options, trim_end, now, area=around
     )
     warnings += read_warnings
     skip = (first - read_from).days
@@ -205,7 +208,7 @@ def daily(
         tmax = np.asarray(days.values["air_temperature_max"][:n], dtype=float)[:, None]
         kinds, labels, cut = list(days.kinds[:n]), [None], n
         if mode:
-            tmin, tmax, kinds, labels, cut, info, note = _project(days, n, lat, lng, last, past)
+            tmin, tmax, kinds, labels, cut, info, note = _project(days, n, lat, lng, last, past, around)
             projections.append({"point": k, **info})
             warnings += [note] if note and note not in warnings else []
         lo_f, hi_f, estimated, usable = temperatures_of(tmin, tmax, options.gaps)
@@ -351,7 +354,7 @@ def _projected_dates(dates: list[date], cut: int, rows: int) -> list[date]:
     return [start + timedelta(days=d) for d in range(rows - cut)]
 
 
-def _project(days, n: int, lat: float, lng: float, last: date, years: list[int]):
+def _project(days, n: int, lat: float, lng: float, last: date, years: list[int], area: AreaAsk | None = None):
     """The point's min and max, (days × years) with each earlier year's after the series' last day with data."""
     tmin = np.asarray(days.values["air_temperature_min"][:n], dtype=float)
     tmax = np.asarray(days.values["air_temperature_max"][:n], dtype=float)
@@ -369,7 +372,11 @@ def _project(days, n: int, lat: float, lng: float, last: date, years: list[int])
         return *plain, {"start": None, "years": []}, NO_PROJECTION
     cut = (begins - days.dates[0]).days
     found = projection.build(
-        begins, last, [y for y in years if y < last.year], TEMPERATURES, past_reader(settings.DATA_DIR, *cell)
+        begins,
+        last,
+        [y for y in years if y < last.year],
+        TEMPERATURES,
+        past_reader(settings.DATA_DIR, *cell, area=area.at(lat, lng) if area is not None else None),
     )
     if not found.years:
         return *plain, {"start": begins, "years": []}, "no earlier years in the archive to project with"
@@ -412,6 +419,7 @@ def table(
     when: Query[DaysQuery],
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
+    area: Query[AreaQuery],
     dd: str | None = None,
     base: float | None = None,
     upper: float | None = None,
@@ -427,11 +435,15 @@ def table(
     check_size((last - read_from).days + 1, len(where.locations()), MAX_DAYS, "days")
     now = clock.now()
     computed = _computed(where, first, last, found_settings, fixed or first, options, output)
+    around = area.ask(output.units)
+    computed |= area.echo()
     etag = answer_etag(request, computed, points.stamp(where.locations(), read_from, last, now, names=TEMPERATURES))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    locations = located(where, read_from, last, options)
-    found, read_warnings, sources, corrections = read_days(where, read_from, last, TEMPERATURES, options, trim_end, now)
+    locations = located(where, read_from, last, options, area=around)
+    found, read_warnings, sources, corrections = read_days(
+        where, read_from, last, TEMPERATURES, options, trim_end, now, area=around
+    )
     warnings += read_warnings
     begin = ((fixed or first) - read_from).days
     rows: dict[str, list] = {key: [] for key in ("point", "setting", "dd", "estimated_days", "missing_days")}
@@ -480,6 +492,7 @@ def freeze(
     when: Query[DaysQuery],
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
+    area: Query[AreaQuery],
     thresholds: str | None = None,
 ) -> HttpResponse:
     """One row per point and threshold (default 32, 28 and 24 °F, or `thresholds=` in the request's units): the
@@ -513,15 +526,23 @@ def freeze(
     now = clock.now()
     computed = {**where.echo(), "start": first, "end": last, "thresholds": given, "forecast": options.forecast}
     computed |= {"threshold_units": "°C" if output.units == "metric" else "°F", "units": output.units}
-    computed |= options.echo()
+    around = area.ask(output.units)
+    computed |= options.echo() | area.echo()
     etag = answer_etag(
         request, computed, points.stamp(where.locations(), first, last, now, names=["air_temperature_min"])
     )
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    locations = located(where, first, last, options)
+    locations = located(where, first, last, options, area=around)
     found, read_warnings, sources, corrections = read_days(
-        where, first, last, ["air_temperature_min"], options, trim_end, now
+        where,
+        first,
+        last,
+        ["air_temperature_min"],
+        options,
+        trim_end,
+        now,
+        area=around,
     )
     warnings += read_warnings
     rows: dict[str, list] = {key: [] for key in ("point", "threshold", "freeze_days", "last_spring", "first_fall")}
@@ -580,6 +601,7 @@ def chill_at_points(
     when: Query[DaysQuery],
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
+    area: Query[AreaQuery],
     method: Literal["dynamic", "utah", "hours"] = "dynamic",
     bounds: str | None = None,
 ) -> HttpResponse:
@@ -611,16 +633,17 @@ def chill_at_points(
     start = min(day_bounds(first, zone)[0] for zone in zones)
     end = max(day_bounds(last, zone)[1] for zone in zones)
     computed = {**where.echo(), "start": first, "end": last, "method": method, "forecast": options.forecast}
-    computed |= {"units": output.units, **({"bounds": given} if given else {}), **options.echo()}
+    around = area.ask(output.units)
+    computed |= {"units": output.units, **({"bounds": given} if given else {}), **options.echo(), **area.echo()}
     etag = answer_etag(request, computed, points.hour_stamp(sites, start, end, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    locations = located(where, first, last, options)
+    locations = located(where, first, last, options, area=around)
     dates = [first + timedelta(days=k) for k in range(n_days)]
     rows: dict[str, list] = {key: [] for key in ("point", "date", "kind", "chill", "chill_total", "missing_hours")}
     sources: list[str] = []
     totals: list[float] = []
-    for k, found in enumerate(points.many_hours(sites, start, end, ["air_temperature"], now)):
+    for k, found in enumerate(points.many_hours(sites, start, end, ["air_temperature"], now, area=around)):
         t = np.asarray(found.values["air_temperature"], dtype=float)
         hourly = _chill_hours(method, t, low_c, high_c)
         kinds = day_kinds(found.times, found.kinds, zones[k], dates)

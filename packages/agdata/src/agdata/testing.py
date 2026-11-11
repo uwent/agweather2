@@ -1,7 +1,7 @@
 """A small archive and NBM runs over a 2 x 3 window near Madison in Central time, for tests here and in the app
 (agdata's conftest and the API's fixture archive). Not used outside tests."""
 
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
@@ -125,3 +125,47 @@ def winters(root, last: date = WINTER_LAST):
     keys = [modelmaps.key(spec.id, i) for i in spec.ingredients]
     modelmaps.update(root, WINDOW, date(2023, 1, 1), last, keys=keys)
     return root
+
+
+CELLS_START = datetime(2024, 12, 28, tzinfo=UTC)
+CELLS_CYCLE = datetime(2025, 1, 3, 12, tzinfo=UTC)
+CELLS_NOW = CELLS_CYCLE + 2 * HOUR
+
+
+def _noisy(values: dict[str, np.ndarray], rng: np.random.Generator) -> None:
+    shape = values["air_temperature"].shape
+    values["air_temperature"] += rng.normal(0, 2.0, shape)
+    values["dew_point"] = values["air_temperature"] - 1 - np.abs(rng.normal(0, 3.0, shape))
+    values["precipitation"] = np.where(rng.random(shape) < 0.2, rng.exponential(1.0, shape), 0.0)
+
+
+def differing_cells(path):
+    """An archive whose cells differ (noise per cell, hours missing in cell (901, 1402) and a block that empties a
+    day), across a year's end (CELLS_START to CELLS_CYCLE + 2 h), then an NBM run at CELLS_CYCLE without
+    soil."""
+    rng = np.random.default_rng(7)
+    end = CELLS_CYCLE + 2 * HOUR
+    times = [CELLS_START + k * HOUR for k in range((end - CELLS_START) // HOUR + 1)]
+    values = weather(times, warm=2.0)
+    _noisy(values, rng)
+    shape = values["air_temperature"].shape
+    values |= {
+        "surface_pressure": np.full(shape, 98.0),
+        "relative_humidity": np.full(shape, 75.0),
+        "et0": np.full(shape, 0.05),
+    }
+    gaps = rng.random(shape[0]) < 0.1  # hours missing in one cell only, and a block that empties a day
+    gaps[60:76] = True
+    for v in values.values():
+        v[gaps, 1, 2] = np.nan
+    for year in (2024, 2025):
+        store = GridStore.create(path, HOURLY, year, WINDOW, VARIABLES.values())
+        k = [n for n, t in enumerate(times) if t.year == year]
+        store.write(times[k[0]], {name: v[k[0] : k[-1] + 1] for name, v in values.items()}, source="urma")
+    update_days(path, WINDOW, (CELLS_START + timedelta(days=1)).date(), (end - timedelta(days=1)).date())
+    run = nbm_run(CELLS_CYCLE, warm=6.0)
+    _noisy(run.values, rng)
+    from agdata import forecast
+
+    forecast.publish(path, forecast.write_run(path, WINDOW, run, pressure_kpa=98.0))
+    return path

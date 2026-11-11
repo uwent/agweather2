@@ -32,9 +32,18 @@ from api.envelope import (
 )
 from api.errors import ApiError, counted
 from api.locations import describe, describe_days
-from api.params import DaysQuery, HoursQuery, OutputQuery, PointsQuery, RollQuery, SeriesQuery, check_vars
+from api.params import (
+    AreaQuery,
+    DaysQuery,
+    HoursQuery,
+    OutputQuery,
+    PointsQuery,
+    RollQuery,
+    SeriesQuery,
+    check_vars,
+)
 from api.schemas import TableResponse, responses
-from ops.points import day_zone
+from ops.points import AreaAsk, day_zone
 
 router = Router(tags=["Weather"])
 
@@ -43,6 +52,7 @@ MAX_DAYS = 3660  # per point and request: ten years of days
 MAX_HOURS = 2 * 8784  # two years of hours
 MAX_ROWS = 100_000  # points × steps
 HOUR = timedelta(hours=1)
+RADIUS_FROM = "2016"  # the archive's first year, for messages
 MAX_OUTSIDE = 10  # points outside the box (or before the archive) per request: each may fetch from Open-Meteo
 DAILY = {name: v for name, v in DAILY_VARIABLES.items() if name != "et0_sum_estimate"}  # that one's for totals
 DAILY |= {name: c.variable for name, c in DAILY_COMPUTED.items()}  # computed when read (`agdata.computed`)
@@ -53,14 +63,37 @@ TOTALLED = {name: v for name, v in DAILY.items() if adds_up(name)}  # a computed
 TOTALS_DEFAULT = ["precipitation_sum", "et0_sum", "shortwave_radiation_sum"]
 
 
-def located(where: PointsQuery, first: date, last: date, options: SeriesQuery | None = None) -> list[dict]:
-    """`meta.location(s)` for the points, refusing more outside the archive than MAX_OUTSIDE; for days (`options`
-    given), whose clock sets them (`day_basis`, `days`)."""
+def located(
+    where: PointsQuery, first: date, last: date, options: SeriesQuery | None = None, area: AreaAsk | None = None
+) -> list[dict]:
+    """`meta.location(s)` for the points, refusing more outside the archive than MAX_OUTSIDE, and any with `area`
+    (`radius`); for days (`options` given), whose clock sets them (`day_basis`, `days`); with `area`, the cells
+    averaged (`meta.location.area`)."""
     found = [
         describe(lat, lng) | ({} if options is None else describe_days(lat, lng, last.year, options.day_basis))
         for lat, lng in where.locations()
     ]
     outside = sum(not points.from_archive(lat, lng, first, last) for lat, lng in where.locations())
+    if area is not None:
+        if outside:
+            raise ApiError(
+                "not_applicable",
+                "radius averages our gridded weather around a location, so it works only inside the area we cover "
+                f"and from {RADIUS_FROM} on. "
+                + (
+                    "This location, or the dates asked for, is outside it, so leave out radius."
+                    if len(found) == 1
+                    else f"{outside} of these {len(found)} locations, or the dates asked for, are outside it, so "
+                    "leave out radius, or ask for those locations separately."
+                ),
+                "radius",
+            )
+        for location, (lat, lng) in zip(found, where.locations(), strict=True):
+            location["area"] = {
+                "radius_km": round(area.radius_km, 3),
+                "weighting": area.weighting,
+                "cells": len(area.at(lat, lng).cells),
+            }
     if outside > MAX_OUTSIDE:
         raise ApiError(
             "too_many",
@@ -93,13 +126,21 @@ def envelope_parts(where: PointsQuery, locations: list[dict]) -> dict:
 
 
 def read_days(
-    where: PointsQuery, first: date, last: date, names: list[str], options: SeriesQuery, trim_end: bool, now: datetime
+    where: PointsQuery,
+    first: date,
+    last: date,
+    names: list[str],
+    options: SeriesQuery,
+    trim_end: bool,
+    now: datetime,
+    area: AreaAsk | None = None,
 ):
     """Each point's days, trimmed (`points.keep`), with the warnings, sources and corrections they bring."""
     found, warnings, sources, corrections = [], [], [], []
     sites = where.locations()
     zones = [day_zone(lat, lng, options.day_basis) for lat, lng in sites]
-    for days in points.many_days(sites, first, last, names, now, zones, stores=points.shared_stores(names)):
+    stores = points.shared_stores(names)
+    for days in points.many_days(sites, first, last, names, now, zones, stores=stores, area=area):
         n = points.keep(days.kinds, options.forecast, trim_end)
         found.append((days, n))
         sources += [s for s in days.sources if s not in sources]
@@ -127,6 +168,7 @@ def daily(
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
     rolls: Query[RollQuery],
+    area: Query[AreaQuery],
     vars: str | None = None,
 ) -> HttpResponse:
     """One row per point and local day: `date`, `kind` (observed, partial, forecast, or null with no data), and each
@@ -143,12 +185,15 @@ def daily(
     read_first = rolled.read_start(where.locations(), first, before) if before else first
     read_last = last + timedelta(days=after)
     computed = {**where.echo(), "start": first, "end": last, "vars": names, "forecast": options.forecast}
-    computed |= {"units": output.units, **options.echo(), **rolls.echo()}
+    around = area.ask(output.units)
+    computed |= {"units": output.units, **options.echo(), **rolls.echo(), **area.echo()}
     etag = answer_etag(request, computed, points.stamp(where.locations(), read_first, read_last, now, names=names))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    locations = located(where, read_first, read_last, options)
-    found, warnings, sources, corrections = read_days(where, read_first, read_last, names, options, trim_end, now)
+    locations = located(where, read_first, read_last, options, area=around)
+    found, warnings, sources, corrections = read_days(
+        where, read_first, read_last, names, options, trim_end, now, area=around
+    )
     skip, asked = (first - read_first).days, (last - first).days + 1
     shown = [(days, slice(skip, max(skip, min(n, skip + asked)))) for days, n in found]
     roller = rolled.Roller(q=rolls)
@@ -208,6 +253,7 @@ def hourly(
     when: Query[HoursQuery],
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
+    area: Query[AreaQuery],
     vars: str | None = None,
 ) -> HttpResponse:
     """One row per point and hour: `time` (the hour's end, UTC), `kind`, each variable in `vars` (hourly catalog
@@ -228,14 +274,15 @@ def hourly(
     steps = (end - start) // timedelta(hours=1) + 1
     check_size(steps, len(where.locations()), MAX_HOURS, "hours")
     computed = {**where.echo(), "start": start, "end": end, "vars": names, "forecast": options.forecast}
-    computed |= {"tz": options.tz, "units": output.units}
+    around = area.ask(output.units)
+    computed |= {"tz": options.tz, "units": output.units, **area.echo()}
     etag = answer_etag(request, computed, points.hour_stamp(where.locations(), start, end, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    locations = located(where, start.date(), end.date())
+    locations = located(where, start.date(), end.date(), area=around)
     columns: dict[str, list] = {"point": [], "time": [], "local_time": [], "kind": [], **{name: [] for name in names}}
     sources: list[str] = []
-    for k, found in enumerate(points.many_hours(where.locations(), start, end, names, now)):
+    for k, found in enumerate(points.many_hours(where.locations(), start, end, names, now, area=around)):
         n = points.keep(found.kinds, options.forecast, trim_end)
         columns["point"] += [k] * n
         columns["time"] += found.times[:n]
@@ -456,6 +503,7 @@ def totals(
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
     found_days: Query[EventsQuery],
+    area: Query[AreaQuery],
     vars: str | None = None,
     count: str | None = None,
     interval: Literal["month"] | None = None,
@@ -491,7 +539,8 @@ def totals(
     if hourly_counted:
         check_size(((last - first).days + 1) * 24, len(where.locations()), MAX_HOURS, "hours")
     computed = {**where.echo(), "start": first, "end": last, "vars": names, "forecast": options.forecast}
-    computed |= {"gaps": options.gaps, "units": output.units, **options.echo()}
+    around = area.ask(output.units)
+    computed |= {"gaps": options.gaps, "units": output.units, **options.echo(), **area.echo()}
     if wanted:
         computed["count"] = [f"{c.variable}:{c.count.name}" for c in wanted]
     for kind in events.KINDS:
@@ -506,12 +555,12 @@ def totals(
     etag = answer_etag(request, computed, points.stamp(where.locations(), read_from, last, now, names=stamped))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    locations = located(where, first, last, options)
-    found, warnings, sources, corrections = read_days(where, read_from, last, read, options, trim_end, now)
+    locations = located(where, first, last, options, area=around)
+    found, warnings, sources, corrections = read_days(where, read_from, last, read, options, trim_end, now, area=around)
     hours: list[points.Hours] = []
     if hourly_counted:
         start, end = _midnight(first - timedelta(days=1)), _midnight(last + timedelta(days=2))
-        hours = points.many_hours(where.locations(), start, end, hourly_counted, now)
+        hours = points.many_hours(where.locations(), start, end, hourly_counted, now, area=around)
         for h in hours:
             sources += [s for s in h.sources if s not in sources]
 

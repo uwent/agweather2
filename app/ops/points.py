@@ -3,18 +3,46 @@ soil hours the run lacks from Open-Meteo (D44); outside it, or before the archiv
 cache."""
 
 from collections.abc import Sequence
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 
 import numpy as np
 from django.conf import settings
 
-from agdata import series
+from agdata import areas, series
+from agdata.areas import Area, Place, Weighting
 from agdata.grid import NDFD, service_window
 from agdata.store import DAILY
 from agdata.timezones import DayBasis, basis_zone
 from agmodels.runner import ModelRun
 from ops import openmeteo
+
+
+@dataclass(frozen=True, kw_only=True)
+class AreaAsk:
+    """A request's `radius` (in km) and `weighting`: each point's weather is the area's around it
+    (`agdata.areas`)."""
+
+    radius_km: float
+    weighting: Weighting = "equal"
+
+    def at(self, latitude: float, longitude: float) -> Area:
+        found = areas.around(
+            latitude, longitude, self.radius_km, self.weighting, window=service_window(settings.SERVICE_BOX)
+        )
+        if found is None:
+            raise ValueError(f"({latitude}, {longitude}) is off the grid")
+        return found
+
+
+def place_at(latitude: float, longitude: float, area: AreaAsk | None) -> Place:
+    """The cell a point reads, or the area around it."""
+    if area is not None:
+        return area.at(latitude, longitude)
+    cell = NDFD.cell_of(latitude, longitude)
+    if cell is None:
+        raise ValueError(f"({latitude}, {longitude}) is off the grid")
+    return cell
 
 
 def in_box(latitude: float, longitude: float) -> bool:
@@ -52,11 +80,12 @@ def models_at_point(
     now: datetime,
     planting_default: bool = True,
     zone: str | None = None,
+    area: AreaAsk | None = None,
 ) -> list[ModelRun]:
-    """Models' three layers at a point, each day marked observed, partial or forecast, in the order of `runs`. The
-    runs whose days the archive covers read it once; any that reach before it (or a point outside the box) read
-    Open-Meteo once, so one model's long lookback doesn't move the others off the archive. Days follow `zone`'s clock
-    (default `day_zone`'s)."""
+    """Models' three layers at a point (on the weather of `area` around it, if given), each day marked observed,
+    partial or forecast, in the order of `runs`. The runs whose days the archive covers read it once; any that reach
+    before it (or a point outside the box) read Open-Meteo once, so one model's long lookback doesn't move the others
+    off the archive. Days follow `zone`'s clock (default `day_zone`'s)."""
     zone = zone or day_zone(latitude, longitude)
     if planting_default:
         runs = [series.with_planting(run, latitude, longitude, start) for run in runs]
@@ -68,7 +97,7 @@ def models_at_point(
             continue
         chosen = [runs[k] for k in group]
         found = (
-            _archive_runs(latitude, longitude, chosen, start, end, now, zone)
+            _archive_runs(latitude, longitude, chosen, start, end, now, zone, area)
             if from_archive
             else _openmeteo_runs(latitude, longitude, chosen, start, end, now, zone)
         )
@@ -84,6 +113,7 @@ def models_at_points(
     end: date,
     now: datetime,
     zones: Sequence[str],
+    area: AreaAsk | None = None,
 ) -> list[list[ModelRun]]:
     """`models_at_point` (without typical planting dates) at each point, with its own runs (`runs[k]`) on its own
     zone's days (`zones[k]`): the runs the archive covers, at every point, on one read of their cells
@@ -101,10 +131,10 @@ def models_at_points(
     if batched:
         chosen = {k: [m for m in range(len(runs[k])) if (k, m) in archived] for k in batched}
         first, names = series.days_needed([runs[k][m] for k in batched for m in chosen[k]], start)
-        cells = [cell for k in batched if (cell := NDFD.cell_of(*sites[k])) is not None]
+        places = [place_at(*sites[k], area) for k in batched]
         found = series.cells_days(
             settings.DATA_DIR,
-            cells,
+            places,
             first,
             end,
             names,
@@ -149,7 +179,7 @@ def _soil_filler(latitude: float, longitude: float, now: datetime):
     return fill_soil
 
 
-def _archive_runs(latitude, longitude, runs, start, end, now, zone: str) -> list[ModelRun]:
+def _archive_runs(latitude, longitude, runs, start, end, now, zone: str, area: AreaAsk | None) -> list[ModelRun]:
     fill_soil = _soil_filler(latitude, longitude, now)
     return series.models_at_point(
         settings.DATA_DIR,
@@ -162,6 +192,7 @@ def _archive_runs(latitude, longitude, runs, start, end, now, zone: str) -> list
         fill_soil=fill_soil,
         planting_default=False,
         zone=zone,
+        area=area.at(latitude, longitude) if area is not None else None,
     )
 
 
@@ -180,6 +211,7 @@ def projected_at_point(
     end: date,
     now: datetime,
     zone: str | None = None,
+    area: AreaAsk | None = None,
 ) -> series.Projected | None:
     """Runs carried past the forecast on each earlier archive year (D63); None for a point outside the archive (no
     projection there yet: Ben, 2026-11-03). This year's days follow `zone`; the past years' are grid days (their
@@ -193,15 +225,25 @@ def projected_at_point(
     stores = series.Stores(series.hourly_needed(names))
 
     fill_soil = _soil_filler(latitude, longitude, now)
+    around = area.at(latitude, longitude) if area is not None else None
 
     def read_days(a: date, b: date, wanted: list[str]) -> series.DailySeries:
         return series.point_days(
-            settings.DATA_DIR, *cell, a, b, wanted, now=now, fill_soil=fill_soil, stores=stores, zone=zone
+            settings.DATA_DIR,
+            *cell,
+            a,
+            b,
+            wanted,
+            now=now,
+            fill_soil=fill_soil,
+            stores=stores,
+            zone=zone,
+            area=around,
         )
 
     return series.projected_runs(
         read_days,
-        series.past_reader(settings.DATA_DIR, *cell, stores=stores),
+        series.past_reader(settings.DATA_DIR, *cell, stores=stores, area=around),
         latitude,
         longitude,
         runs,

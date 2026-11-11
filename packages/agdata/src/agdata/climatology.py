@@ -32,6 +32,8 @@ from typing import Literal
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 
+from agdata.areas import Area
+
 SLOTS = 366
 LEAP = 2000  # the calendar slots are a leap year's days
 FEB29 = 59
@@ -106,12 +108,14 @@ def read_years(read: ReadYear, years: Sequence[int], names: list[str]) -> dict[s
     return {name: np.stack(found[name]) if found[name] else np.full((0, SLOTS), np.nan) for name in names}
 
 
-def read_point(data_dir: Path, j: int, i: int, years: Sequence[int], names: list[str]) -> dict[str, np.ndarray]:
-    """A cell's years from the past-years copies, or rolled up from the hours where a year has no copy
-    (`series.past_reader`), as (years, 366) per name."""
+def read_point(
+    data_dir: Path, j: int, i: int, years: Sequence[int], names: list[str], area: Area | None = None
+) -> dict[str, np.ndarray]:
+    """A cell's years (or `area`'s around it, averaged day by day: `agdata.areas`) from the past-years copies, or
+    rolled up from the hours where a year has no copy (`series.past_reader`), as (years, 366) per name."""
     from agdata.series import past_reader
 
-    reader = past_reader(data_dir, j, i)
+    reader = past_reader(data_dir, j, i, area=area)
     return read_years(lambda y, n: reader(date(y, 1, 1), date(y, 12, 31), n), years, names)
 
 

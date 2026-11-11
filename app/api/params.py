@@ -19,9 +19,10 @@ from ninja.parser import Parser
 from pydantic import PrivateAttr, ValidationInfo, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 
-from agdata import rolling
+from agdata import areas, rolling
 from agdata.rolling import Roll
 from api.errors import ApiError, day_text, hour_text
+from ops.points import AreaAsk
 
 MAX_POINTS = 50  # per GET; more go by POST (docs/api.md)
 ALIASES = {"lat": ("latitude",), "lng": ("lon", "long", "longitude")}
@@ -181,6 +182,35 @@ class SeriesQuery(Schema):
     def echo(self) -> dict[str, Any]:
         """`day_basis` for `meta.request` (and the ETag) when it was given."""
         return {"day_basis": self.day_basis} if self.day_basis is not None else {}
+
+
+MAX_RADIUS = {"us": 10.0, "metric": 16.0}  # miles, km: well under a county (`agdata.areas.MAX_RADIUS_KM`)
+
+
+class AreaQuery(Schema):
+    """`radius` (miles, or km with `units=metric`) and `weighting`: each point's weather averaged over the grid
+    cells around it (`agdata.areas`, `ops.points.AreaAsk`)."""
+
+    radius: float | None = None
+    weighting: Literal["equal", "center"] = "equal"
+
+    def ask(self, units: str) -> AreaAsk | None:
+        if self.radius is None:
+            return None
+        system = "metric" if units == "metric" else "us"
+        label = "km" if system == "metric" else "miles"
+        if not 0 < self.radius <= MAX_RADIUS[system]:
+            raise ApiError(
+                "out_of_range",
+                f"A radius of {self.radius:g} {label} can't be used. Give a radius over 0 and up to "
+                f"{MAX_RADIUS[system]:g} {label}, which keeps the area well under the size of a county.",
+                "radius",
+            )
+        km = self.radius if system == "metric" else self.radius * 1.609344
+        return AreaAsk(radius_km=min(km, areas.MAX_RADIUS_KM), weighting=self.weighting)
+
+    def echo(self) -> dict[str, Any]:
+        return {"radius": self.radius, "weighting": self.weighting} if self.radius is not None else {}
 
 
 class RollQuery(Schema):

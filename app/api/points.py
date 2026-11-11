@@ -17,7 +17,7 @@ from agdata.catalog import DAILY_VARIABLES
 from agdata.grid import NDFD
 from agdata.timezones import zone_at
 from ops import openmeteo
-from ops.points import day_zone, in_archive
+from ops.points import AreaAsk, day_zone, in_archive, place_at
 
 HOUR = timedelta(hours=1)
 
@@ -33,6 +33,7 @@ def stamp(
     now: datetime,
     names: list[str] | None = None,
     past_years: list[int] | None = None,
+    area: AreaAsk | None = None,
 ) -> str | None:
     """The data stamp for reading days first..last at these points, or None if any comes from Open-Meteo. With
     `names` (the daily variables read), only the hours they're made from are stamped: opening a store for all 16
@@ -44,7 +45,11 @@ def stamp(
     hourly = None if names is None else series.hourly_needed(names)
     found = series.last_written(settings.DATA_DIR, first, last, now=now, hourly=hourly)
     if past_years:
-        cells = [cell for lat, lng in points if (cell := NDFD.cell_of(lat, lng)) is not None]
+        cells = (
+            [cell for lat, lng in points if (cell := NDFD.cell_of(lat, lng)) is not None]
+            if area is None
+            else [cell for lat, lng in points for cell in area.at(lat, lng).cells]
+        )
         found += "|" + series.past_years_stamp(
             settings.DATA_DIR, cells=cells, years=past_years, names=names or list(DAILY_VARIABLES), now=now
         )
@@ -60,6 +65,7 @@ def days(
     now: datetime,
     stores: series.Stores | None = None,
     zone: str | None = None,
+    area: AreaAsk | None = None,
 ) -> series.DailySeries:
     """Days first..last at a point by `zone`'s clock (default `ops.points.day_zone`'s), each with its kind; sources
     and corrections on the series. Points read in one request share `stores` (`shared_stores`)."""
@@ -67,7 +73,17 @@ def days(
     if from_archive(lat, lng, first, last):
         cell = NDFD.cell_of(lat, lng)
         assert cell is not None
-        return series.point_days(settings.DATA_DIR, *cell, first, last, names, now=now, stores=stores, zone=zone)
+        return series.point_days(
+            settings.DATA_DIR,
+            *cell,
+            first,
+            last,
+            names,
+            now=now,
+            stores=stores,
+            zone=zone,
+            area=area.at(lat, lng) if area is not None else None,
+        )
     found = openmeteo.point_days(lat, lng, first, last, names, now, zone=zone)
     found.sources = ("openmeteo",)
     return found
@@ -81,16 +97,16 @@ def many_days(
     now: datetime,
     zones: list[str],
     stores: series.Stores | None = None,
+    area: AreaAsk | None = None,
 ) -> list[series.DailySeries]:
     """`days` at each point (each by its zone in `zones`): those the archive covers on one read of their cells
     (`series.cells_days`), the rest from Open-Meteo one by one."""
     found: list[series.DailySeries | None] = [None] * len(sites)
     inside = [k for k, (lat, lng) in enumerate(sites) if from_archive(lat, lng, first, last)]
     if inside:
-        cells = [NDFD.cell_of(*sites[k]) for k in inside]
         batch = series.cells_days(
             settings.DATA_DIR,
-            [c for c in cells if c is not None],
+            [place_at(*sites[k], area) for k in inside],
             first,
             last,
             names,
@@ -102,7 +118,7 @@ def many_days(
             found[k] = series_k
     for k, (lat, lng) in enumerate(sites):
         if found[k] is None:
-            found[k] = days(lat, lng, first, last, names, now, zone=zones[k])
+            found[k] = days(lat, lng, first, last, names, now, zone=zones[k], area=area)
     return [d for d in found if d is not None]
 
 
@@ -129,12 +145,22 @@ def hours(
     names: list[str],
     now: datetime,
     stores: series.Stores | None = None,
+    area: AreaAsk | None = None,
 ) -> Hours:
     """Hours ending start..end (UTC) at a point; points read in one request share `stores` (opening `names`)."""
     if from_archive(lat, lng, start.date(), end.date()):
         cell = NDFD.cell_of(lat, lng)
         assert cell is not None
-        frame = series.point_hours(settings.DATA_DIR, *cell, start, end, names, now=now, stores=stores)
+        frame = series.point_hours(
+            settings.DATA_DIR,
+            *cell,
+            start,
+            end,
+            names,
+            now=now,
+            stores=stores,
+            area=area.at(lat, lng) if area is not None else None,
+        )
         return _archive_hours(frame, (lat, lng), names)
     values, kinds, applied = openmeteo.cell_hours(lat, lng, start, end, now)
     n = (end - start) // HOUR + 1
@@ -151,19 +177,24 @@ def hours(
 
 
 def many_hours(
-    sites: list[tuple[float, float]], start: datetime, end: datetime, names: list[str], now: datetime
+    sites: list[tuple[float, float]],
+    start: datetime,
+    end: datetime,
+    names: list[str],
+    now: datetime,
+    area: AreaAsk | None = None,
 ) -> list[Hours]:
     """`hours` at each point: those the archive covers on one read of their cells (`series.cells_hours`)."""
     found: list[Hours | None] = [None] * len(sites)
     inside = [k for k, (lat, lng) in enumerate(sites) if from_archive(lat, lng, start.date(), end.date())]
     if inside:
-        cells = [c for k in inside if (c := NDFD.cell_of(*sites[k])) is not None]
-        frames = series.cells_hours(settings.DATA_DIR, cells, start, end, names, now=now)
+        places = [place_at(*sites[k], area) for k in inside]
+        frames = series.cells_hours(settings.DATA_DIR, places, start, end, names, now=now)
         for k, frame in zip(inside, frames, strict=True):
             found[k] = _archive_hours(frame, sites[k], names)
     for k, (lat, lng) in enumerate(sites):
         if found[k] is None:
-            found[k] = hours(lat, lng, start, end, names, now)
+            found[k] = hours(lat, lng, start, end, names, now, area=area)
     return [h for h in found if h is not None]
 
 

@@ -23,6 +23,8 @@ from pathlib import Path
 import numpy as np
 
 from agdata import computed, corrections, forecast, pastyears, projection, timecopy
+from agdata.areas import Area, Place, cells_of
+from agdata.areas import combine as combine_area
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, GAP_FILL, VARIABLES, Variable
 from agdata.grid import NDFD, Window
 from agdata.places import county_at
@@ -104,15 +106,18 @@ def point_hours(
     now: datetime | None = None,
     stores: "Stores | None" = None,
     fill_soil: FillSoil | None = None,
+    area: Area | None = None,
 ) -> HourlyFrame:
-    """Hours ending start..end (inclusive, UTC) at a cell: the archive's through its last observed hour, then the
-    current run's, with forecast soil hours the run lacks from `fill_soil` (sourced `openmeteo`)."""
-    return cells_hours(data_dir, [(j, i)], start, end, names, now=now, stores=stores, fill_soil=[fill_soil])[0]
+    """Hours ending start..end (inclusive, UTC) at a cell (or `area`, around it): the archive's through its last
+    observed hour, then the current run's, with forecast soil hours the run lacks from `fill_soil` (sourced
+    `openmeteo`)."""
+    place: Place = area if area is not None else (j, i)
+    return cells_hours(data_dir, [place], start, end, names, now=now, stores=stores, fill_soil=[fill_soil])[0]
 
 
 def cells_hours(
     data_dir: Path,
-    cells: Sequence[tuple[int, int]],
+    cells: Sequence[Place],
     start: datetime,
     end: datetime,
     names,
@@ -121,7 +126,8 @@ def cells_hours(
     fill_soil: Sequence[FillSoil | None] | None = None,
 ) -> list[HourlyFrame]:
     """`point_hours` at each of several cells, on one read per variable and store (`GridStore.read_cells`: a chunk
-    holding several of the cells is read once). `fill_soil`, if given, has one entry per cell. A computed variable
+    holding several of the cells is read once). A cell may be an area (`agdata.areas.Area`), whose cells are read
+    and averaged hour by hour. `fill_soil`, if given, has one entry per cell. A computed variable
     (`agdata.computed`) is made from its inputs' hours, with its first input's sources."""
     asked = list(names)
     names = computed.expand(asked, computed.HOURLY_COMPUTED)
@@ -178,10 +184,11 @@ def point_days(
     fill_soil: FillSoil | None = None,
     stores: "Stores | None" = None,
     zone: str = GRID_ZONE,
+    area: Area | None = None,
 ) -> DailySeries:
-    """Days first..last at a cell by `zone`'s clock, from its stitched hours by the rollup's definitions
-    (`agdata.point`): a day is observed if every hour is, partial with some of each, forecast with only forecast
-    hours.
+    """Days first..last at a cell (or `area`, around it) by `zone`'s clock, from its stitched hours by the rollup's
+    definitions (`agdata.point`): a day is observed if every hour is, partial with some of each, forecast with only
+    forecast hours.
 
     A point's days come from its hours rather than the daily store, whose chunks are a day of a map: a season of
     them is ~300 chunk reads per variable (2.4 s for five), its hours ~11 per variable. Only the hourly variables
@@ -190,15 +197,16 @@ def point_days(
     observed, the run's from it. `fill_soil` is used only when one of `names` is a soil variable. Days in a year
     the archive doesn't have are missing. `stores`, shared by a caller reading many points, must open at least
     `hourly_needed(names)` and `totals`."""
+    place: Place = area if area is not None else (j, i)
     found = cells_days(
-        data_dir, [(j, i)], first, last, names, totals, now=now, fill_soil=[fill_soil], stores=stores, zones=[zone]
+        data_dir, [place], first, last, names, totals, now=now, fill_soil=[fill_soil], stores=stores, zones=[zone]
     )
     return found[0]
 
 
 def cells_days(
     data_dir: Path,
-    cells: Sequence[tuple[int, int]],
+    cells: Sequence[Place],
     first: date,
     last: date,
     names,
@@ -710,13 +718,17 @@ def _read_day(
 
 
 def _cells_steps(
-    stores: Stores, path: Path, layout: StoreLayout, name: str, cells: Sequence[tuple[int, int]], first, n: int
+    stores: Stores, path: Path, layout: StoreLayout, name: str, cells: Sequence[Place], first, n: int
 ) -> tuple[np.ndarray, list[str | None]]:
-    """n steps from `first` (a UTC hour or a date) at each cell, (steps, cells), across years; NaN and None where
-    nothing's stored. The sources are per step (a write covers the whole window)."""
+    """n steps from `first` (a UTC hour or a date) at each cell or area (`agdata.areas`: its cells read and averaged
+    step by step), (steps, places), across years; NaN and None where nothing's stored. The sources are per step (a
+    write covers the whole window)."""
     hourly = layout.step == "hour"
     step = HOUR if hourly else timedelta(days=1)
-    values = np.full((n, len(cells)), np.nan)
+    places = cells
+    plain = not any(isinstance(p, Area) for p in places)
+    read: list[tuple[int, int]] = list(places) if plain else cells_of(places)  # type: ignore[arg-type]
+    values = np.full((n, len(read)), np.nan)
     sources: list[str | None] = [None] * n
     k = 0
     while k < n:
@@ -727,11 +739,16 @@ def _cells_steps(
         count = min(n - k, int((start_of_next - when) / step))
         if store is not None:
             t = store.index_of(when)
-            values[k : k + count] = store.read_cells(name, cells, t, t + count)
+            if plain:
+                values[k : k + count] = store.read_cells(name, read, t, t + count)
+            else:
+                inside = [c for c, cell in enumerate(read) if store.window.contains(*cell)]
+                if inside:
+                    values[k : k + count, inside] = store.read_cells(name, [read[c] for c in inside], t, t + count)
             if hourly:
                 sources[k : k + count] = store.sources(name, t, t + count)
         k += count
-    return values, sources
+    return (values if plain else combine_area(values, read, places, name)), sources
 
 
 ReadDays = Callable[[date, date, list[str]], DailySeries]  # local days first..last of the named variables
@@ -910,16 +927,16 @@ def past_years_stamp(
     return ";".join(parts)
 
 
-def past_reader(data_dir: Path, j: int, i: int, stores: "Stores | None" = None):
-    """`projected_runs`' `read_past` at a cell: a past year's days from the copies laid out for points
-    (`agdata.pastyears`), or rolled up from the archive's hours where a year has none yet."""
+def past_reader(data_dir: Path, j: int, i: int, stores: "Stores | None" = None, area: Area | None = None):
+    """`projected_runs`' `read_past` at a cell (or `area`, around it): a past year's days from the copies laid out
+    for points (`agdata.pastyears`), or rolled up from the archive's hours where a year has none yet."""
     copies = pastyears.Reader(data_dir)
 
     def read(first: date, last: date, names: list[str]) -> dict[str, np.ndarray]:
-        found = copies.read(j, i, first, last, names)
+        found = copies.read(j, i, first, last, names) if area is None else copies.read_area(area, first, last, names)
         if found is not None:
             return found
-        return point_days(data_dir, j, i, first, last, names, stores=stores).values
+        return point_days(data_dir, j, i, first, last, names, stores=stores, area=area).values
 
     return read
 
@@ -935,15 +952,17 @@ def models_at_point(
     fill_soil: FillSoil | None = None,
     planting_default: bool = True,
     zone: str = GRID_ZONE,
+    area: Area | None = None,
 ) -> list[ModelRun]:
     """Models at a point in the box from `start` to `end`, through the forecast (D30), from the archive and the
-    current run (`runs_at_point` with one `point_days` by `zone`'s days; soil past the run's from `fill_soil`, D44)."""
+    current run (`runs_at_point` with one `point_days` by `zone`'s days; soil past the run's from `fill_soil`, D44),
+    on the weather of `area` around it if given."""
     cell = NDFD.cell_of(latitude, longitude)
     if cell is None:
         raise ValueError(f"({latitude}, {longitude}) is off the grid")
 
     def read_days(first: date, last: date, names: list[str]) -> DailySeries:
-        return point_days(data_dir, *cell, first, last, names, now=now, fill_soil=fill_soil, zone=zone)
+        return point_days(data_dir, *cell, first, last, names, now=now, fill_soil=fill_soil, zone=zone, area=area)
 
     return runs_at_point(read_days, latitude, longitude, runs, start, end, planting_default=planting_default)
 

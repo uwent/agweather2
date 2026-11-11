@@ -29,6 +29,7 @@ import zarr
 from zarr.codecs.numcodecs import PCodec
 from zarr.errors import GroupNotFoundError
 
+from agdata.areas import Area, combine
 from agdata.catalog import DAILY_VARIABLES, FILL, Variable
 from agdata.grid import Window
 from agdata.store import DAILY, GridStore, StoreLayout
@@ -227,6 +228,32 @@ class Reader:
                         found = None
             self.opened[year] = found
         return self.opened[year]
+
+    def read_area(self, area: Area, first: date, last: date, names: list[str]) -> dict[str, np.ndarray] | None:
+        """`read` over an area's cells (`agdata.areas`), averaged day by day: each year's block around them read
+        once. None where `read` would be for the area's own cell."""
+        n = (last - first).days + 1
+        out = {name: np.full(n, np.nan) for name in names}
+        day = first
+        while day <= last:
+            found = self._year(day.year)
+            if found is None or not set(names) <= set(found.names) or not found.window.contains(*area.center):
+                return None
+            cells = [c for c in area.cells if found.window.contains(*c)]
+            j0, j1 = min(c[0] for c in cells), max(c[0] for c in cells) + 1
+            i0, i1 = min(c[1] for c in cells), max(c[1] for c in cells) + 1
+            end = min(last, date(day.year, 12, 31))
+            t0, t1 = (day - date(day.year, 1, 1)).days, (end - date(day.year, 1, 1)).days + 1
+            w = found.window
+            packed = np.asarray(found.values[:, t0:t1, j0 - w.j0 : j1 - w.j0, i0 - w.i0 : i1 - w.i0])
+            rows = [c[0] - j0 for c in cells]
+            cols = [c[1] - i0 for c in cells]
+            k = (day - first).days
+            for name in names:
+                block = DAILY_VARIABLES[name].decode(packed[found.names.index(name)])  # (days, y, x)
+                out[name][k : k + (t1 - t0)] = combine(block[:, rows, cols], cells, [area], name)[:, 0]
+            day = end + timedelta(days=1)
+        return out
 
     def read(self, j: int, i: int, first: date, last: date, names: list[str]) -> dict[str, np.ndarray] | None:
         """Days first..last of `names` at a cell, or None if any year in the span has no complete copy with them

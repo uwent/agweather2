@@ -9,6 +9,10 @@ export interface ArchiveStatus {
   stale: string[]
   refreshed_at: string
 }
+export interface AreaQuery {
+  radius?: number | null
+  weighting?: 'equal' | 'center'
+}
 export interface BiofixInfo {
   default: string
   label: string
