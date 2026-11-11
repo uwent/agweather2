@@ -892,7 +892,7 @@ def find_region(text: str) -> regions.Region:
         raise ApiError(
             "unknown_region",
             f"We don't recognize the region {text!r}. Give a state's name or postal code (wisconsin or WI), or a "
-            "county's five-digit FIPS code (55025 for Dane County, Wisconsin).",
+            "county's name and state (Dane, WI) or five-digit FIPS code (55025).",
             "region",
         )
     return found

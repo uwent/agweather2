@@ -19,6 +19,26 @@ def test_regions_by_name_code_or_fips():
     assert len(region("WI").county_ids) == 72
 
 
+def test_counties_by_name_and_state():
+    dane = region("55025")
+    for spec in (
+        "Dane, WI",
+        "Dane County, Wisconsin",
+        "dane-wi",
+        "dane-county-wi",
+        "DANE, wi",
+        "dane_county_wisconsin",
+    ):
+        assert regions.find(spec) == dane, spec
+    assert region("St. Croix, WI") == region("saint-croix-wi") == region("st croix county, WI")
+    assert region("St. Croix, WI").name == "St. Croix County, WI"
+    assert regions.find("Dane, MN") is None and regions.find("Dane") is None
+    # Baltimore County and Baltimore city: the short name is ambiguous, the full names aren't
+    assert regions.find("Baltimore, MD") is None
+    assert region("Baltimore County, MD").name != region("Baltimore city, MD").name
+    assert region("Orleans, LA").name == "Orleans Parish, LA"
+
+
 def test_a_state_line_splits_the_cells():
     beloit = NDFD.cell_of(42.5, -89.03)  # on the Wisconsin–Illinois line
     assert beloit is not None

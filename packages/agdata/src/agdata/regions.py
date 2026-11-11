@@ -3,10 +3,12 @@
 
 Each cell takes the county under its center (a cell just over a line, or on a shore within about 10 km, takes the
 nearest county, as a point does); open water further out is in no county and so in no region. A state is its
-counties. A region is given as a state's name (`wisconsin`, `new-york`), its postal code (`WI`), or a county's
-five-digit FIPS code (`55025`, Dane County).
+counties. A region is given as a state's name (`wisconsin`, `new-york`), its postal code (`WI`), a county's
+five-digit FIPS code (`55025`, Dane County), or a county's name with its state (`Dane, WI`, `Dane County, Wisconsin`,
+`dane-wi`, `st-croix-wi`).
 """
 
+import re
 from dataclasses import dataclass
 from functools import cache
 
@@ -38,18 +40,77 @@ class Region:
 
 
 def find(spec: str) -> Region | None:
-    """A region by state name, postal code or county FIPS code (case and spaces don't matter); None if unknown."""
+    """A region by state name, postal code, county FIPS code, or county name with its state (case, spaces and
+    punctuation don't matter); None if unknown."""
     text = spec.strip()
     if text.isdigit() and len(text) == 5:
         for k, county in enumerate(counties()):
             if county is not None and county.geoid == text:
-                return Region(id=text, name=f"{county.name}, {county.state}", county_ids=frozenset({k}))
+                return _county_region(k)
         return None
-    code = text.upper() if text.upper() in STATES else _BY_NAME.get(text.lower().replace(" ", "-").replace("_", "-"))
+    code = _state_code(text)
     if code is None:
-        return None
+        k = _county_by_name(text)
+        return None if k is None else _county_region(k)
     ids = frozenset(k for k, c in enumerate(counties()) if c is not None and c.state == code)
     return Region(id=STATES[code].lower().replace(" ", "-"), name=STATES[code], county_ids=ids)
+
+
+def _county_region(k: int) -> Region:
+    county = counties()[k]
+    assert county is not None
+    return Region(id=county.geoid, name=f"{county.name}, {county.state}", county_ids=frozenset({k}))
+
+
+def _slug(text: str) -> str:
+    """Lowercase words joined by hyphens, without punctuation; "Saint" as "st" (`St. Croix`, `Saint Croix`)."""
+    words = re.sub(r"[^a-z0-9]+", " ", text.lower().replace("'", "")).split()
+    return "-".join("st" if w == "saint" else w for w in words)
+
+
+def _state_code(text: str) -> str | None:
+    code = text.strip().upper()
+    return code if code in STATES else _BY_NAME.get(_slug(text))
+
+
+# A county's name ends in one of these; the name without it is accepted too where that's unambiguous in its state
+_SUFFIXES = ("city-and-borough", "census-area", "municipality", "borough", "parish", "county", "city")
+
+
+@cache
+def _county_names() -> dict[tuple[str, str], int | None]:
+    """(state code, name slug) → county id, by full name and by name without its suffix; None where two counties of
+    a state share the shorter form (Baltimore County and Baltimore city), so only the full name finds them."""
+    full: dict[tuple[str, str], int] = {}
+    short: dict[tuple[str, str], list[int]] = {}
+    for k, county in enumerate(counties()):
+        if county is None:
+            continue
+        slug = _slug(county.name)
+        full[(county.state, slug)] = k
+        for suffix in _SUFFIXES:
+            if slug.endswith("-" + suffix):
+                short.setdefault((county.state, slug[: -len(suffix) - 1]), []).append(k)
+                break
+    found: dict[tuple[str, str], int | None] = {key: ks[0] if len(ks) == 1 else None for key, ks in short.items()}
+    found.update(full)
+    return found
+
+
+def _county_by_name(text: str) -> int | None:
+    """A county id from "Name, State" or a slug ending in the state (`dane-wi`, `dane-county-wisconsin`)."""
+    if "," in text:
+        name, state = text.rsplit(",", 1)
+        code = _state_code(state)
+        return None if code is None else _county_names().get((code, _slug(name)))
+    slug = _slug(text)
+    for code, state in STATES.items():
+        for tail in (code.lower(), _slug(state)):
+            if slug.endswith("-" + tail):
+                found = _county_names().get((code, slug[: -len(tail) - 1]))
+                if found is not None:
+                    return found
+    return None
 
 
 @cache

@@ -201,15 +201,7 @@ def _draw(
     states = layermaps.event_states(computed)  # a first or last day's none and no data (D78)
     window, region = archive, None
     if q.region is not None:
-        region = regions.find(q.region)
-        if region is None:
-            raise ApiError(
-                "unknown_region",
-                f"We don't recognize the region {q.region!r}. Give a state's name or postal code "
-                "(wisconsin or WI), or a "
-                "county's five-digit FIPS code (55025).",
-                "region",
-            )
+        region = layermaps.find_region(q.region)
         inside = regions.mask(region, archive)
         if not inside.any():
             raise ApiError(
