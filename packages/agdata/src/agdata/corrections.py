@@ -168,12 +168,13 @@ GRIDMET_BASIS = Correction(
     method="By cell and calendar day: the archive − gridMET difference added (temperatures, RH; RH kept to 0–100, "
     "the minimum no higher than the maximum) or the ratio of their totals applied (precipitation, shortwave, wind, "
     f"ET0; 0.5 to 2), each pooled over {climatestore.POOL_DAYS} days and averaged across {climatestore.SMOOTH} × "
-    f"{climatestore.SMOOTH} cells",
+    f"{climatestore.SMOOTH} cells. The maximum and ET0 of 2011–2013 are left out as missing (3–6 °F warm in summer "
+    "against every station checked)",
     fitted_against="The archive's daily values over the years both have (2016–2025 at first), cell by cell",
     applies_to="gridMET's years in the 30-year normal (`agdata.climatestore`); refitted by `manage.py climatology`",
     raw_kept="gridMET's files as received in `data/gridmet/` (the fit in `data/climate/gridmet-fit.zarr`)",
-    decision="D84",
-    evidence="docs/validation-climate.md, docs/validation-wind.md",
+    decision="D84, Q38",
+    evidence="docs/validation-climate.md, docs/validation-wind.md, docs/validation-normals.md",
     version=str(climatestore.FIT_VERSION),
     fitted="each `manage.py climatology` fit (its `fitted` attribute)",
 )

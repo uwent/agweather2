@@ -44,7 +44,7 @@ from agdata.sources import gridmet
 from agdata.store import DAILY, GridStore, StoreLayout
 
 LAYOUT = StoreLayout(kind="climate/gridmet", step="day")
-VERSION = 1  # of `derive`: bump when its output changes, and every year is derived again
+VERSION = 2  # of `derive`: bump when its output changes, and every year is derived again (2: `LEFT_OUT`)
 FIT_VERSION = 1  # of `fit`'s method
 Kind = Literal["add", "ratio"]
 ADJUST: dict[str, Kind] = {
@@ -67,6 +67,13 @@ RATIO_MIN_TOTAL = {
     "shortwave_radiation_sum": 100.0,
     "wind_speed_mean": 50.0,
     "et0_sum": 25.0,
+}
+# gridMET's values left out as wrong, by variable: years written as missing (Q38, decided 2026-11-11). Its maximum
+# for 2011–2013 runs 3–6 °F above every station checked in summer (other years within ~0.5 °F;
+# `docs/validation-normals.md` §4), and its ET0 is computed from it. The fit's overlap (2016 on) holds none of them.
+LEFT_OUT: dict[str, tuple[int, ...]] = {
+    "air_temperature_max": (2011, 2012, 2013),
+    "et0_sum": (2011, 2012, 2013),
 }
 Progress = Callable[[int, int], None]
 
@@ -283,7 +290,8 @@ def _files(data_dir: Path, year: int) -> dict[str, float]:
 
 def derive(data_dir: Path, year: int, window: Window, progress: Progress | None = None) -> list[str]:
     """Writes a year's store from its kept files (every `gridmet.SOURCES` variable it has), adjusted by the current
-    fit where there is one. Returns the daily variables written. Built beside its path and renamed into place."""
+    fit where there is one, and `LEFT_OUT`'s variables missing in their years. Returns the daily variables
+    written. Built beside its path and renamed into place."""
     present = [s for s in gridmet.SOURCES if gridmet.kept(gridmet.path(data_dir, s.name, year))]
     if not present:
         raise ValueError(f"no gridMET files kept for {year}")
@@ -304,6 +312,8 @@ def derive(data_dir: Path, year: int, window: Window, progress: Progress | None 
         if table is not None:
             adjusted.append(source.daily)
         days[source.daily] = adjust(source.daily, gridmet.regrid(found, window), year, table)
+        if year in LEFT_OUT.get(source.daily, ()):
+            days[source.daily] = np.full_like(days[source.daily], np.nan)
         if progress is not None:
             progress(k + 1, len(present) + 1)
     _pairs(days)

@@ -191,11 +191,20 @@ def run(
             break  # a failed fetch or derive would leave the maps built on missing years
         years = period_years(p, name)
         try:
-            normals.build(
-                data_dir, name, years, p.archive, window, progress=lambda d, t, n=name: report.progress(n, d, t)
+            built = normals.build(
+                data_dir,
+                name,
+                years,
+                p.archive,
+                window,
+                progress=lambda d, t, n=name: report.progress(n, d, t),
+                stopping=stopping,
             )
         except ValueError as error:
             report.fail(f"{name}'s normal maps", error)
             continue
+        if built is None:
+            report.step(f"{name}'s normal maps stopped part way; its current maps stay until a rerun builds them")
+            break
         report.step(f"{name}'s normal maps built ({_years(years)})")
     return derived

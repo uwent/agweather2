@@ -23,6 +23,7 @@ and gridMET's derived years (`read_point`); maps read them in blocks of cells (D
 Arrays put the years first and the slots second: (years, 366, …cells).
 """
 
+import math
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -38,11 +39,16 @@ SLOTS = 366
 LEAP = 2000  # the calendar slots are a leap year's days
 FEB29 = 59
 POOL_DAYS = 15
-COVERAGE = 0.75  # of a pool's possible values, for a slot to have statistics
+COVERAGE = 0.75  # of a pool's possible values, for a slot to have statistics; of the years, for a running total's
 MAX_MISSING = 7  # days a year's running total may miss and still count
 SEASON_MISSING = 0.1  # share of a freeze season's days a year may miss and still count
 PERIODS = {"last5": 5, "last10": 10, "last30": 30}
 PeriodName = Literal["last5", "last10", "last30"]
+
+
+def enough_years(n: int) -> int:
+    """The years of `n` a running total or freeze statistic needs: `COVERAGE` of them, at least one."""
+    return max(1, math.ceil(COVERAGE * n))
 
 
 def slot(day: date) -> int:
@@ -286,7 +292,9 @@ def running(
     """Each year's running total of `daily` (years, 366, …: a day's value already worked out from that year's own
     days, as its degree days) from slot `start` through December 31, and their mean and spread by slot. February 29
     adds nothing in a year without one; another missing day adds nothing and counts against the year, which stops
-    counting once it has missed more than `max_missing`."""
+    counting once it has missed more than `max_missing`. A slot's statistics need `enough_years` of the years to
+    count there, so a period isn't summarized by the few years it has (gridMET's 30 over a lake, which it leaves
+    out, would otherwise be the archive's 10)."""
     daily = np.asarray(daily, dtype=np.float64)
     missing = np.isnan(daily)
     for k, year in enumerate(years):
@@ -299,9 +307,10 @@ def running(
     full[:, start:] = totals
     known = np.isfinite(full)
     count = known.sum(axis=0)
+    enough = count >= enough_years(len(years))
     with np.errstate(invalid="ignore", divide="ignore"):
-        mean = np.where(count > 0, np.where(known, full, 0.0).sum(axis=0) / np.maximum(count, 1), np.nan)
-        found = {float(p): _percentile(full, p, axis=0) for p in percentiles}
+        mean = np.where(enough, np.where(known, full, 0.0).sum(axis=0) / np.maximum(count, 1), np.nan)
+        found = {float(p): np.where(enough, _percentile(full, p, axis=0), np.nan) for p in percentiles}
     return Running(totals=full, mean=mean, percentiles=found, count=count)
 
 
@@ -340,10 +349,14 @@ class Freezes:
 
 
 def freezes(tmin: np.ndarray, threshold: float, max_missing: float = SEASON_MISSING) -> Freezes:
-    """Freeze dates and chances from daily minimums (years, 366, …) at or below `threshold` (their unit)."""
+    """Freeze dates and chances from daily minimums (years, 366, …) at or below `threshold` (their unit). A season
+    with fewer than `enough_years` of the years counting has none of its statistics."""
     tmin = np.asarray(tmin, dtype=np.float64)
     spring = _event(tmin, threshold, SPRING, "last", NONE_SPRING, max_missing)
     fall = _event(tmin, threshold, FALL, "first", NONE_FALL, max_missing)
+    need = enough_years(tmin.shape[0])
+    spring = np.where(np.isfinite(spring).sum(axis=0) >= need, spring, np.nan)
+    fall = np.where(np.isfinite(fall).sum(axis=0) >= need, fall, np.nan)
     slots = np.arange(SLOTS, dtype=np.float64).reshape((SLOTS, 1) + (1,) * (tmin.ndim - 2))  # (366, years, …)
     with np.errstate(invalid="ignore", divide="ignore"):
         years_spring = np.isfinite(spring).sum(axis=0)

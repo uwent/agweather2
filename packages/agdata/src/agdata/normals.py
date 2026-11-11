@@ -49,7 +49,7 @@ from agdata.grid import Window
 from agdata.qc import fill_short_gaps
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 
-VERSION = 1  # bump when what's stored changes, and every period is built again
+VERSION = 2  # bump when what's stored changes, and every period is built again (2: `enough_years`)
 KIND = "climate/normals"
 BLOCK = pastyears.CELLS  # cells a side per block: one chunk a year from the copies
 TILE = 256  # cells a side per stored chunk
@@ -264,10 +264,12 @@ def build(
     window: Window,
     progress: Progress | None = None,
     days_per_chunk: int = 1,
-) -> list[str]:
+    stopping: Callable[[], bool] = lambda: False,
+) -> list[str] | None:
     """Builds a period's store from `years` (the archive's where in `archive`, else gridMET's). Returns the arrays
     written. Built beside its path and renamed into place once whole. `days_per_chunk` is for tests: a chunk a day
-    is ~30,000 chunk writes whatever the window."""
+    is ~30,000 chunk writes whatever the window. Checks `stopping` between blocks and arrays: a stopped build
+    removes what it wrote, leaves the period's current store in place and returns None (a rerun starts over)."""
     if not years:
         raise ValueError(f"{period} has no years")
     sources = {y: _open_year(data_dir, y, archive) for y in years}
@@ -297,6 +299,9 @@ def build(
     blocks = list(_blocks(window, BLOCK))
     steps = len(blocks) + len(want)
     for k, block in enumerate(blocks):
+        if stopping():
+            shutil.rmtree(scratch)
+            return None
         by_year = [_read_block(sources[y], block, names, y) for y in years]
         found = block_stats(years, by_year, period)
         rows = slice(block.j0 - window.j0, block.j1 - window.j0)
@@ -308,6 +313,10 @@ def build(
     # Pass 2: rechunked into maps, a day per chunk
     group = zarr.open_group(building, mode="w")
     for k, s in enumerate(want):
+        if stopping():
+            shutil.rmtree(scratch)
+            shutil.rmtree(building)
+            return None
         days = 1 if s.single else climatology.SLOTS
         array = group.create_array(
             s.name,

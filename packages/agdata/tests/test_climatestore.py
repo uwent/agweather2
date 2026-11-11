@@ -227,6 +227,17 @@ def test_without_a_fit_a_year_is_derived_as_gridmet_gives_it(kept):
     assert got["air_temperature_max"][0] == pytest.approx(g[181, *WINDOW.local(1003, 1402)], abs=0.06)
 
 
+def test_values_left_out_are_missing_in_their_years(kept, monkeypatch):
+    monkeypatch.setattr(climatestore, "LEFT_OUT", {"air_temperature_max": (1999,)})
+    climatestore.derive(kept, 1999, WINDOW)
+    names = ["air_temperature_max", "air_temperature_min"]
+    got = climatestore.reader(kept).read(1003, 1402, date(1999, 7, 1), date(1999, 7, 31), names)
+    assert got is not None
+    assert np.isnan(got["air_temperature_max"]).all() and np.isfinite(got["air_temperature_min"]).all()
+    assert climatestore.LEFT_OUT  # the real table is in force otherwise
+    assert climatestore.status(kept, 1999) is None
+
+
 def test_a_fit_from_another_window_is_refused(kept):
     climatestore.fit(kept, WINDOW, [2016, 2017])
     other = Window(j0=1000, j1=1005, i0=1400, i1=1405)

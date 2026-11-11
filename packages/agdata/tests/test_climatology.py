@@ -148,9 +148,22 @@ def test_freeze_dates_and_chances():
 def test_a_season_with_many_missing_days_is_left_out():
     year = _tmin(2021, date(2021, 4, 20), date(2021, 10, 1))
     year[slot(date(2021, 2, 1)) : slot(date(2021, 3, 15))] = np.nan  # 42 days: over a tenth of the spring
-    found = clim.freezes(np.stack([year, _tmin(2022, date(2022, 5, 1), None)]), 0.0)
-    assert np.isnan(found.spring[0]) and found.years_spring == 1 and found.years_fall == 2
+    others = [_tmin(y, date(y, 5, 1), None) for y in (2022, 2023, 2024)]
+    found = clim.freezes(np.stack([year, *others]), 0.0)
+    assert np.isnan(found.spring[0]) and found.years_spring == 3 and found.years_fall == 4
     assert found.after_spring[slot(date(2025, 4, 25))] == 1.0
+    # With two of the four left out, the spring has too few years to say anything (`enough_years`)
+    found = clim.freezes(np.stack([year, year, *others[:2]]), 0.0)
+    assert found.years_spring == 0 and np.isnan(found.after_spring).all() and np.isnan(found.dates(0.5)[0])
+
+
+def test_running_statistics_need_enough_years():
+    daily = np.ones((4, clim.SLOTS))
+    daily[:2, 100:120] = np.nan  # 20 days missed (adding nothing): those years stop counting from slot 107
+    r = clim.running(daily, [2021, 2022, 2023, 2025], percentiles=[50])
+    assert clim.enough_years(4) == 3 and clim.enough_years(30) == 23 and clim.enough_years(1) == 1
+    assert r.mean[106] == pytest.approx(103.5) and np.isnan(r.mean[107]) and np.isnan(r.percentiles[50.0][107])
+    assert r.count[107] == 2
 
 
 def test_read_years_lays_out_each_year():

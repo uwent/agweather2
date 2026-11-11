@@ -141,3 +141,21 @@ def test_a_read_over_part_of_the_window(built):
     got = normals.read_map(data_dir, "last5", "et0/mean", date(2025, 1, 10), window=part)
     assert got.shape == (3, 8)
     np.testing.assert_allclose(got, 20.0, atol=0.1)
+
+
+def test_a_stopped_build_leaves_the_current_store(built, tmp_path):
+    data_dir, _ = built
+    for year in YEARS:
+        target = pastyears.PAST.path(tmp_path, year)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.symlink_to(pastyears.PAST.path(data_dir, year))
+    normals.build(tmp_path, "last5", YEARS, set(YEARS), WINDOW, days_per_chunk=366)
+    before = normals.read_map(tmp_path, "last5", "et0/mean", date(2025, 6, 1))
+    calls = iter([False, True])  # the first block, then stop
+    got = normals.build(
+        tmp_path, "last5", YEARS[1:], set(YEARS), WINDOW, days_per_chunk=366, stopping=lambda: next(calls, True)
+    )
+    assert got is None
+    np.testing.assert_array_equal(normals.read_map(tmp_path, "last5", "et0/mean", date(2025, 6, 1)), before)
+    assert normals.status(tmp_path, "last5", YEARS, set(YEARS)) is None
+    assert sorted(p.name for p in normals.path(tmp_path, "last5").parent.iterdir()) == ["last5.zarr"]
