@@ -24,10 +24,11 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata import climatology, normals
+from agdata import climatestore, climatology, normals
 from agdata.clients.acis import Acis
 from agdata.grid import NDFD, Window
 from agdata.progress import Reporter
+from agdata.sources import gridmet
 from agmodels.degree_days import degree_days_modified
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -85,7 +86,7 @@ def station_days(acis: Acis, sid: str) -> dict:
     return acis.post("StnData", query, cache_key=f"stn_{sid}.json")
 
 
-def by_year(rows: list, years: range) -> tuple[np.ndarray, np.ndarray]:
+def by_year(rows: list, years: range | list[int]) -> tuple[np.ndarray, np.ndarray]:
     """(years, 366) daily max and min, °F, on the calendar slots."""
     days: dict[int, list[tuple[date, float, float]]] = {}
     for d, hi, lo in rows:
@@ -143,21 +144,35 @@ def grid_normal(period: str, j: int, i: int) -> tuple[np.ndarray, float, float]:
 
 
 YEARS = range(1996, 2026)
+LEFT_OUT = climatestore.LEFT_OUT["air_temperature_max"]  # gridMET's maximum, left out of the normal (Q38)
+_RAW: dict[int, gridmet.Year] = {}
 
 
-def summer_max_by_year(rows: list, j: int, i: int) -> list[float]:
-    """Each year's June–August mean maximum, the grid's cell (gridMET's derived years, then the archive's) less the
-    station's, °F; NaN where the station missed more than ten days."""
+def _raw_summer_max(year: int, lat: float, lon: float) -> float:
+    """gridMET's own June–August mean maximum at its pixel nearest a point, °F, unadjusted: for the years the normal
+    leaves out, so the table still shows why."""
+    if year not in _RAW:
+        _RAW[year] = gridmet.read(gridmet.path(DATA, "tmmx", year), "tmmx")
+    found = _RAW[year]
+    fj, fi = found.grid.fractional_index(lat, lon)
+    summer = np.array([d.month in (6, 7, 8) for d in found.days])
+    return float(np.nanmean(found.values[summer, round(float(fj)), round(float(fi))])) * 1.8 + 32
+
+
+def summer_max_by_year(rows: list, j: int, i: int, lat: float, lon: float) -> list[float]:
+    """Each year's June–August mean maximum, the grid's cell (gridMET's derived years, then the archive's; for the
+    years left out, gridMET's raw pixel) less the station's, °F; NaN where the station missed more than ten days."""
     cell = climatology.read_point(DATA, j, i, list(YEARS), ["air_temperature_max"])["air_temperature_max"]
     station, _ = by_year(rows, YEARS)
     lo, hi = SUMMER
     found = []
-    for k in range(len(YEARS)):
+    for k, year in enumerate(YEARS):
         s = station[k, lo:hi]
         if np.isfinite(s).sum() < (hi - lo) - 10:
             found.append(np.nan)
             continue
-        found.append(float(np.nanmean(cell[k, lo:hi]) * 1.8 + 32 - np.nanmean(s)))
+        grid = _raw_summer_max(year, lat, lon) if year in LEFT_OUT else float(np.nanmean(cell[k, lo:hi])) * 1.8 + 32
+        found.append(grid - float(np.nanmean(s)))
     return found
 
 
@@ -181,7 +196,13 @@ def main() -> int:
             continue
         j, i = cell
         found = {}
-        for label, years in (("9120", range(1991, 2021)), ("last30", range(1996, 2026)), ("last10", range(2016, 2026))):
+        periods = {
+            "9120": range(1991, 2021),
+            "last30": [y for y in YEARS if y not in LEFT_OUT],
+            "last30_all": YEARS,
+            "last10": range(2016, 2026),
+        }
+        for label, years in periods.items():
             tmax, tmin = by_year(got["data"], years)
             acc, counts, smax, smin = station_normal(tmax, tmin)
             found[label] = (acc[slots], int(counts.min()), smax, smin)
@@ -197,7 +218,7 @@ def main() -> int:
                 "sheet": sheet[name][slots] if name in sheet else None,
                 "acis": found,
                 "grid": grid,
-                "years": summer_max_by_year(got["data"], j, i),
+                "years": summer_max_by_year(got["data"], j, i, lat, lon),
             }
         )
         report.detail(f"{name}: {got['meta']['name']} ({lat:.3f}, {lon:.3f}) → cell ({j}, {i})")
@@ -251,23 +272,27 @@ def render(rows: list[dict]) -> str:
         "## 2. The grid against the station, the same years",
         "",
         "`last30` at the station's cell less the station's own 1996–2025, by date, and summer's (June–August) mean",
-        "maximum and minimum, grid less station, °F.",
+        f"maximum and minimum, grid less station, °F. The station's years leave out {LEFT_OUT[0]}–{LEFT_OUT[-1]},",
+        "as the grid's maximum (and so its degree days) does (gridMET's maximum is wrong in them: section 4). The",
+        "last column but one is what leaving them out costs the station's own total: 27 years' normal less 30's.",
         "",
         "| Station (cell's lat, lon) | "
         + " | ".join(d.strftime("%b %-d") for d in CHECKPOINTS)
-        + " | station Dec 31 | summer max | summer min | fewest years |",
-        "| --- | " + " | ".join("---:" for _ in CHECKPOINTS) + " | ---: | ---: | ---: | ---: |",
+        + " | station Dec 31 | summer max | summer min | 27 years less 30, station | fewest years |",
+        "| --- | " + " | ".join("---:" for _ in CHECKPOINTS) + " | ---: | ---: | ---: | ---: | ---: |",
     ]
-    diffs30, diffs10 = [], []
+    diffs30, diffs10, costs = [], [], []
     for r in rows:
         acc, count, smax, smin = r["acis"]["last30"]
+        every = r["acis"]["last30_all"][0]
         totals, gmax, gmin = r["grid"]["last30"]
         d = totals - acc
         diffs30.append(d[-1] / acc[-1])
+        costs.append(acc[-1] - every[-1])
         cells = " | ".join(f"{v:+.0f}" for v in d)
         out.append(
             f"| {r['name']} ({r['ll'][0]:.2f}, {r['ll'][1]:.2f}) | {cells} | {acc[-1]:.0f} | {gmax - smax:+.1f} | "
-            f"{gmin - smin:+.1f} | {count} |"
+            f"{gmin - smin:+.1f} | {acc[-1] - every[-1]:+.0f} | {count} |"
         )
     out += [
         "",
@@ -290,13 +315,16 @@ def render(rows: list[dict]) -> str:
         "## 4. Summer's maximum, year by year",
         "",
         "Each year's June–August mean maximum at the station's cell less the station's, °F: adjusted gridMET for",
-        "1996–2015, the archive from 2016.",
+        f"1996–2015, the archive from 2016. In italics, {LEFT_OUT[0]}–{LEFT_OUT[-1]}: gridMET's own maximum at its",
+        "pixel nearest the station, unadjusted, which the normal leaves out (Q38).",
         "",
         "| Station | " + " | ".join(f"{y % 100:02d}" for y in YEARS) + " |",
         "| --- | " + " | ".join("---:" for _ in YEARS) + " |",
     ]
     for r in rows:
-        out.append(f"| {r['name']} | " + " | ".join(f"{v:+.0f}" if np.isfinite(v) else "." for v in r["years"]) + " |")
+        out.append(
+            f"| {r['name']} | " + " | ".join(_year_cell(v, y) for v, y in zip(r["years"], YEARS, strict=True)) + " |"
+        )
     median = np.nanmedian(np.array([r["years"] for r in rows]), axis=0)
     out.append("| **median** | " + " | ".join(f"**{v:+.1f}**" for v in median) + " |")
     out += [
@@ -305,10 +333,19 @@ def render(rows: list[dict]) -> str:
         "",
         f"The year's total, grid less station: `last30` median {np.median(diffs30) * 100:+.1f}% "
         f"(range {min(diffs30) * 100:+.1f}% to {max(diffs30) * 100:+.1f}%); `last10` median "
-        f"{np.median(diffs10) * 100:+.1f}% ({min(diffs10) * 100:+.1f}% to {max(diffs10) * 100:+.1f}%).",
+        f"{np.median(diffs10) * 100:+.1f}% ({min(diffs10) * 100:+.1f}% to {max(diffs10) * 100:+.1f}%). Leaving "
+        f"{LEFT_OUT[0]}–{LEFT_OUT[-1]} out of the 30 years changes the stations' own totals by a median of "
+        f"{np.median(costs):+.0f} GDD a year ({min(costs):+.0f} to {max(costs):+.0f}), "
+        "so the shorter period costs the normal little.",
         "",
     ]
     return "\n".join(out)
+
+
+def _year_cell(value: float, year: int) -> str:
+    if not np.isfinite(value):
+        return "."
+    return f"*{value:+.0f}*" if year in LEFT_OUT else f"{value:+.0f}"
 
 
 if __name__ == "__main__":
