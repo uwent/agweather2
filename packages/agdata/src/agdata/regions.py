@@ -9,8 +9,10 @@ five-digit FIPS code (`55025`, Dane County), or a county's name with its state (
 """
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import cache
+from pathlib import Path
 
 import numpy as np
 
@@ -120,21 +122,59 @@ def cell_counties(window: Window) -> np.ndarray:
     return county_ids(lat, lon)
 
 
+SUMMARY_WATER = 50  # percent: a cell at least this much open water isn't counted in summaries (Ben, 2026-11-11)
+_terrain_dir: Callable[[], Path] | None = None
+
+
+def use_terrain(data_dir: Callable[[], Path] | None) -> None:
+    """Take open water from the terrain store in the folder `data_dir()` gives (`agdata.terrain`, D6) where it's
+    built; the app calls this at start, with a function so that a changed setting (tests) is followed. Without it,
+    or outside the store's window, open water is the wave-height mask's."""
+    global _terrain_dir
+    _terrain_dir = data_dir
+
+
+def _terrain():
+    from agdata import terrain
+
+    return None if _terrain_dir is None else terrain.load(Path(_terrain_dir()))
+
+
+def water(window: Window) -> np.ndarray:
+    """Open water as summaries and model maps leave it out, (y, x): cells at least `SUMMARY_WATER` percent water by
+    the terrain store (lakes, reservoirs and wide rivers too), else the Great Lakes and the ocean by URMA's wave
+    height (`coast.water`)."""
+    from agdata.coast import water as wave_water
+
+    found = wave_water(window)
+    t = _terrain()
+    if t is None:
+        return found
+    return np.where(t.inside(window), t.crop("water_share", window) >= SUMMARY_WATER, found)
+
+
+def _water_stamp() -> float | None:
+    t = _terrain()
+    return None if t is None else t.stamp
+
+
 def land(window: Window) -> np.ndarray:
-    """True for the window's cells on land, (y, x): in a county and not open water, the same cells summaries count
-    (`summary_counties`). Model maps keep only these (a crop's disease over the Great Lakes means nothing). Until
-    2026-11-10 they went by ERA5-Land's land fraction (at least half land), which also dropped shore cells our
-    water mask (`coast.water`, from URMA's wave height) calls land, so shore counties' summaries came up short."""
+    """True for the window's cells on land, (y, x): in a county and not open water (`water`), the same cells
+    summaries count (`summary_counties`). Model maps keep only these (a crop's disease over a lake means nothing).
+    Until 2026-11-10 they went by ERA5-Land's land fraction (at least half land), which also dropped shore cells
+    the wave-height mask calls land, so shore counties' summaries came up short."""
     return summary_counties(window) > 0
 
 
-@cache
 def summary_counties(window: Window) -> np.ndarray:
-    """Each cell's county as summaries count it (0 for none), (y, x): `cell_counties` less open water
-    (`agdata.coast.water`, the Great Lakes and the ocean), so a shore county's lake cells, which the county grid
-    gives it within ~10 km, don't count. Inland lakes count as land. Cached; don't write to it."""
-    from agdata.coast import water
+    """Each cell's county as summaries count it (0 for none), (y, x): `cell_counties` less open water (`water`), so
+    a shore county's lake cells, which the county grid gives it within ~10 km, don't count. Cached per build of the
+    terrain store; don't write to it."""
+    return _summary_counties(window, _water_stamp())
 
+
+@cache
+def _summary_counties(window: Window, stamp: float | None) -> np.ndarray:
     found = cell_counties(window).copy()
     found[water(window)] = 0
     found.flags.writeable = False
@@ -160,34 +200,55 @@ class Area:
     cells: int  # its cells on the whole 2.5 km grid, as `summary_counties` counts them
 
 
-@cache
 def areas(by: str) -> tuple[Area | None, ...]:
     """Every county (`by="county"`, indexed as the county grid) or state (`"state"`, by postal code), with index 0
     for none: the labels `area_labels` gives cells."""
+    return _areas(by, _water_stamp())
+
+
+def _county_cells() -> list[int]:
+    """Each county's cells on the whole grid as summaries count them (indexed as the county grid): `counties.csv`'s
+    count (made with the wave-height mask, `scripts/build_counties.py`), less the cells the terrain store's water
+    takes away (or gives back) inside its window."""
+    found = [0 if c is None else c.cells for c in counties()]
+    t = _terrain()
+    if t is None:
+        return found
+    from agdata.coast import water as wave_water
+
+    ids = cell_counties(t.window)
+    before = np.bincount(ids[~wave_water(t.window)], minlength=len(found))
+    after = np.bincount(ids[~water(t.window)], minlength=len(found))
+    return [int(n + a - b) for n, a, b in zip(found, after, before, strict=False)]
+
+
+@cache
+def _areas(by: str, stamp: float | None) -> tuple[Area | None, ...]:
+    cells = _county_cells()
     if by == "county":
         return (
             None,
             *(
-                Area(fips=c.geoid, name=c.name, state=c.state, land_m2=c.land_m2, cells=c.cells)
-                for c in counties()
+                Area(fips=c.geoid, name=c.name, state=c.state, land_m2=c.land_m2, cells=cells[k])
+                for k, c in enumerate(counties())
                 if c is not None
             ),
         )
     found: dict[str, list] = {}
-    for c in counties():
+    for k, c in enumerate(counties()):
         if c is not None:
-            found.setdefault(c.state, []).append(c)
+            found.setdefault(c.state, []).append((k, c))
     return (
         None,
         *(
             Area(
-                fips=found[code][0].geoid[:2],
+                fips=found[code][0][1].geoid[:2],
                 name=STATES[code],
                 state=code,
-                land_m2=sum(c.land_m2 for c in found[code]),
-                cells=sum(c.cells for c in found[code]),
+                land_m2=sum(c.land_m2 for _, c in found[code]),
+                cells=sum(cells[k] for k, _ in found[code]),
             )
-            for code in sorted(found, key=lambda code: found[code][0].geoid)
+            for code in sorted(found, key=lambda code: found[code][0][1].geoid)
         ),
     )
 

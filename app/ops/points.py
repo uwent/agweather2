@@ -9,7 +9,7 @@ from datetime import date, datetime
 import numpy as np
 from django.conf import settings
 
-from agdata import areas, series
+from agdata import areas, series, terrain
 from agdata.areas import Area, Place, Weighting
 from agdata.grid import NDFD, service_window
 from agdata.store import DAILY
@@ -25,14 +25,37 @@ class AreaAsk:
 
     radius_km: float
     weighting: Weighting = "equal"
+    land_only: bool = False  # leave out cells all open water (`agdata.terrain`, D6)
 
     def at(self, latitude: float, longitude: float) -> Area:
+        keep = _not_all_water() if self.land_only else None
         found = areas.around(
-            latitude, longitude, self.radius_km, self.weighting, window=service_window(settings.SERVICE_BOX)
+            latitude, longitude, self.radius_km, self.weighting, window=service_window(settings.SERVICE_BOX), keep=keep
         )
         if found is None:
+            if NDFD.cell_of(latitude, longitude) is not None and self.land_only:
+                raise AllWater(f"every cell within {self.radius_km:g} km of ({latitude}, {longitude}) is open water")
             raise ValueError(f"({latitude}, {longitude}) is off the grid")
         return found
+
+
+class AllWater(ValueError):
+    """`land_only` left no cell in a point's area."""
+
+
+def _not_all_water():
+    """For `areas.around`'s `keep`: a cell isn't all open water by the terrain store (cells outside it count)."""
+    t = terrain.load(settings.DATA_DIR)
+    if t is None:
+        raise terrain.NotBuilt("the terrain store isn't built: run manage.py terrain")
+    w = t.window
+
+    def keep(jj: np.ndarray, ii: np.ndarray) -> np.ndarray:
+        inside = (jj >= w.j0) & (jj < w.j1) & (ii >= w.i0) & (ii < w.i1)
+        share = t.cells["water_share"][np.clip(jj - w.j0, 0, w.shape[0] - 1), np.clip(ii - w.i0, 0, w.shape[1] - 1)]
+        return ~inside | (share < 100)
+
+    return keep
 
 
 def place_at(latitude: float, longitude: float, area: AreaAsk | None) -> Place:

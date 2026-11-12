@@ -14,7 +14,7 @@ Wind direction is averaged as unit vectors.
 """
 
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
@@ -31,9 +31,10 @@ Cell = tuple[int, int]
 
 @dataclass(frozen=True, kw_only=True)
 class Area:
-    """Cells around a point and their weights (summing to 1), the point's own cell first."""
+    """Cells around a point and their weights (summing to 1), the point's own cell first unless `land_only` left
+    it out."""
 
-    center: Cell
+    center: Cell  # the point's own cell, in `cells` or not
     cells: tuple[Cell, ...]
     weights: tuple[float, ...]
     radius_km: float
@@ -41,9 +42,16 @@ class Area:
 
 
 def around(
-    lat: float, lng: float, radius_km: float, weighting: Weighting = "equal", window: Window | None = None
+    lat: float,
+    lng: float,
+    radius_km: float,
+    weighting: Weighting = "equal",
+    window: Window | None = None,
+    keep: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
 ) -> Area | None:
-    """The cells whose centers lie within `radius_km` of (lat, lng), inside `window` if given; None off the grid."""
+    """The cells whose centers lie within `radius_km` of (lat, lng), inside `window` if given, and for which `keep`
+    (grid indices j, i → bool) is true if given (`land_only`: no cell all water, the point's own included); None
+    off the grid or where no cell is left."""
     if not 0 < radius_km <= MAX_RADIUS_KM + 1e-6:
         raise ValueError(f"a radius is over 0 and at most {MAX_RADIUS_KM} km, not {radius_km}")
     center = NDFD.cell_of(lat, lng)
@@ -59,9 +67,14 @@ def around(
     inside[reach, reach] = True  # the point's own cell, whatever its center's distance
     if window is not None:
         inside &= (jj >= window.j0) & (jj < window.j1) & (ii >= window.i0) & (ii < window.i1)
+    if keep is not None:
+        inside &= keep(jj, ii)
+    if not inside.any():
+        return None
     order = np.argsort(np.where(inside, d, np.inf).ravel(), kind="stable")
     own = reach * len(is_) + reach
-    picked = [own] + [int(k) for k in order if inside.ravel()[k] and k != own]
+    first = [own] if inside[reach, reach] else []
+    picked = first + [int(k) for k in order if inside.ravel()[k] and k != own]
     dist = d.ravel()[picked]
     if weighting == "center":
         sigma = radius_km / 2
@@ -71,7 +84,11 @@ def around(
     w = w / w.sum()
     cells = tuple((int(jj.ravel()[k]), int(ii.ravel()[k])) for k in picked)
     return Area(
-        center=cells[0], cells=cells, weights=tuple(float(x) for x in w), radius_km=radius_km, weighting=weighting
+        center=(int(center[0]), int(center[1])),
+        cells=cells,
+        weights=tuple(float(x) for x in w),
+        radius_km=radius_km,
+        weighting=weighting,
     )
 
 

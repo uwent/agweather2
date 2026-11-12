@@ -18,7 +18,7 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from ninja import Field, Query, Router, Schema
 
-from agdata import modelgrid, palettes, regions, seasonal, series
+from agdata import modelgrid, palettes, regions, seasonal, series, terrain
 from agdata import units as agunits
 from agdata.catalog import DAILY_STATISTICS
 from agdata.grid import NDFD, Box, Window
@@ -40,7 +40,7 @@ from api.errors import ApiError, counted
 from api.events import to_date
 from api.gridfiles import GridFile, geotiff, netcdf
 from api.layermaps import LayerQuery
-from api.params import OutputQuery
+from api.params import OutputQuery, require_terrain
 from api.routes.discovery import DisplayUnits, display_units
 from api.schemas import Meta, TableResponse, responses
 from ops.status import dataset_status
@@ -199,6 +199,7 @@ class GridQuery(LayerQuery):
     bbox: str | None = None
     region: str | None = None
     clip: bool = False
+    land_only: bool = False
     stride: int = Field(1, ge=1, le=MAX_STRIDE)
     grid: Literal["native", "latlon"] = "native"
     res: float | None = None
@@ -371,6 +372,16 @@ def _area(q: GridQuery, archive: Window) -> tuple[Window, np.ndarray, dict[str, 
         echo["clip"] = q.clip
         if not q.clip:
             crop = np.ones_like(crop)  # every cell of the rectangle around the area (Ben, 2026-11-11)
+    if q.land_only:
+        require_terrain("land_only")
+        found = terrain.load(settings.DATA_DIR)
+        assert found is not None
+        crop = crop & ~(found.inside(window) & (found.crop("water_share", window) >= 100))
+        echo["land_only"] = True
+        if not crop.any():
+            raise ApiError(
+                "no_data", "Every grid cell in the area asked for is open water, so land_only leaves none.", "land_only"
+            )
     return window, crop, echo
 
 

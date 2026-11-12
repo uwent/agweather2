@@ -193,10 +193,20 @@ class AreaQuery(Schema):
 
     radius: float | None = None
     weighting: Literal["equal", "center"] = "equal"
+    land_only: bool = False
 
     def ask(self, units: str) -> AreaAsk | None:
         if self.radius is None:
+            if self.land_only:
+                raise ApiError(
+                    "not_applicable",
+                    "land_only leaves open water out of an area, so it works only with radius. Add a radius, or "
+                    "leave out land_only.",
+                    "land_only",
+                )
             return None
+        if self.land_only:
+            require_terrain("land_only")
         system = "metric" if units == "metric" else "us"
         label = "km" if system == "metric" else "miles"
         if not 0 < self.radius <= MAX_RADIUS[system]:
@@ -207,10 +217,26 @@ class AreaQuery(Schema):
                 "radius",
             )
         km = self.radius if system == "metric" else self.radius * 1.609344
-        return AreaAsk(radius_km=min(km, areas.MAX_RADIUS_KM), weighting=self.weighting)
+        return AreaAsk(radius_km=min(km, areas.MAX_RADIUS_KM), weighting=self.weighting, land_only=self.land_only)
 
     def echo(self) -> dict[str, Any]:
-        return {"radius": self.radius, "weighting": self.weighting} if self.radius is not None else {}
+        if self.radius is None:
+            return {}
+        return {"radius": self.radius, "weighting": self.weighting, "land_only": self.land_only}
+
+
+def require_terrain(param: str) -> None:
+    """Refuse `param` (`land_only`) while the terrain store (D6) isn't built."""
+    from django.conf import settings
+
+    from agdata import terrain
+
+    if terrain.load(settings.DATA_DIR) is None:
+        raise ApiError(
+            "no_data",
+            f"{param} needs our map of open water, which isn't available yet. Leave out {param}, or try again later.",
+            param,
+        )
 
 
 class RollQuery(Schema):

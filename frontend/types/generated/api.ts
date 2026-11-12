@@ -12,6 +12,7 @@ export interface ArchiveStatus {
 export interface AreaQuery {
   radius?: number | null
   weighting?: 'equal' | 'center'
+  land_only?: boolean
 }
 export interface BiofixInfo {
   default: string
@@ -107,6 +108,9 @@ export interface Location {
   timezone: string | null
   county: string | null
   state: string | null
+  elevation_m?: number | null
+  cell_elevation_m?: number | null
+  water_percent?: number | null
 }
 export interface DownloadsStatus {
   files: number
@@ -185,6 +189,7 @@ export interface GridQuery {
   bbox?: string | null
   region?: string | null
   clip?: boolean
+  land_only?: boolean
   stride?: number
   grid?: 'native' | 'latlon'
   res?: number | null
@@ -253,6 +258,9 @@ export interface LocateData {
   timezone: string | null
   county: string | null
   state: string | null
+  elevation_m?: number | null
+  cell_elevation_m?: number | null
+  water_percent?: number | null
   corners: number[][] | null
   planting: PlantingInfo[]
 }

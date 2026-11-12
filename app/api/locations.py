@@ -6,8 +6,10 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+import numpy as np
 from django.conf import settings
 
+from agdata import terrain
 from agdata.grid import NDFD, service_window
 from agdata.places import county_at
 from agdata.timezones import GRID_ZONE, DayBasis, basis_zone, zone_at
@@ -42,7 +44,9 @@ def describe_days(lat: float, lng: float, year: int, basis: DayBasis | None = No
 
 def describe(lat: float, lng: float) -> dict[str, Any]:
     """The point asked for, its NDFD cell (center rounded to 4 decimals, ~10 m) or None off the grid, `in_box`
-    (inside the archive's window), and its zone, county and state (None outside the US counties' grid)."""
+    (inside the archive's window), its zone, county and state (None outside the US counties' grid), and from the
+    terrain store (D6; None where it isn't built or has none) the point's elevation, its cell's mean elevation and
+    the cell's share of open water. Nothing is moved: a cell mostly water is still the cell read."""
     found = NDFD.cell_of(lat, lng)
     cell = None
     if found is not None:
@@ -57,4 +61,20 @@ def describe(lat: float, lng: float) -> dict[str, Any]:
         "timezone": zone_at(lat, lng),
         "county": county.name if county is not None else None,
         "state": county.state if county is not None else None,
+        **_terrain(lat, lng, found),
     }
+
+
+def _terrain(lat: float, lng: float, cell: tuple[int, int] | None) -> dict[str, Any]:
+    found: dict[str, Any] = {"elevation_m": None, "cell_elevation_m": None, "water_percent": None}
+    t = terrain.load(settings.DATA_DIR)
+    if t is None or cell is None or not t.window.contains(*cell):
+        return found
+    j, i = cell
+    y, x = j - t.window.j0, i - t.window.i0
+    point = terrain.point_elevation(settings.DATA_DIR, lat, lng)
+    mean = float(t.cells["elevation_mean"][y, x])
+    found["elevation_m"] = None if point is None else round(point, 1)
+    found["cell_elevation_m"] = None if np.isnan(mean) else round(mean, 1)
+    found["water_percent"] = int(t.cells["water_share"][y, x])
+    return found

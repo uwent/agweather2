@@ -41,6 +41,9 @@ class Location(Schema):
     timezone: str | None
     county: str | None
     state: str | None
+    elevation_m: float | None = None
+    cell_elevation_m: float | None = None
+    water_percent: int | None = None
 
 
 class Meta(Schema):

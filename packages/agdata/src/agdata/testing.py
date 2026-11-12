@@ -169,3 +169,25 @@ def differing_cells(path):
 
     forecast.publish(path, forecast.write_run(path, WINDOW, run, pressure_kpa=98.0))
     return path
+
+
+def terrain_store(data_dir, window: Window, water_share: np.ndarray, elevation_m: float | np.ndarray = 260.0) -> None:
+    """A terrain store (`agdata.terrain`) over `window` with the given water share (percent, (y, x)) and a DEM at
+    `elevation_m` everywhere (or per cell, (y, x)), as `terrain.build` leaves it."""
+    import zarr
+
+    from agdata import terrain
+
+    sub = terrain.SUB
+    per_cell = np.broadcast_to(np.asarray(elevation_m, dtype=np.float32), window.shape)
+    group = zarr.open_group(terrain.path(data_dir), mode="w")
+    fine = np.repeat(np.repeat(per_cell, sub, axis=0), sub, axis=1)
+    dem = group.create_array("dem", data=np.round(fine / terrain.DEM_SCALE).astype(np.int16), chunks=(sub, sub))
+    dem.attrs.update({"scale": terrain.DEM_SCALE, "units": "m", "sub": sub})
+    group.create_array("water_share", data=np.asarray(water_share, dtype=np.uint8))
+    stats = terrain.cell_stats(fine)
+    for name, values in stats.items():
+        group.create_array(name, data=values)
+    group.attrs.update(
+        {"version": terrain.VERSION, "window": terrain._window_attrs(window), "archives": [], "complete": True}
+    )

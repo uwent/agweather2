@@ -43,7 +43,7 @@ from api.params import (
     check_vars,
 )
 from api.schemas import TableResponse, responses
-from ops.points import AreaAsk, day_zone
+from ops.points import AllWater, AreaAsk, day_zone
 
 router = Router(tags=["Weather"])
 
@@ -89,10 +89,20 @@ def located(
                 "radius",
             )
         for location, (lat, lng) in zip(found, where.locations(), strict=True):
+            try:
+                cells = area.at(lat, lng).cells
+            except AllWater:
+                raise ApiError(
+                    "no_data",
+                    f"Every grid cell within the radius of ({lat}, {lng}) is open water, so land_only leaves none. "
+                    "Choose a larger radius, or leave out land_only.",
+                    "land_only",
+                ) from None
             location["area"] = {
                 "radius_km": round(area.radius_km, 3),
                 "weighting": area.weighting,
-                "cells": len(area.at(lat, lng).cells),
+                "land_only": area.land_only,
+                "cells": len(cells),
             }
     if outside > MAX_OUTSIDE:
         raise ApiError(
