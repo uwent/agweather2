@@ -6,7 +6,7 @@ Guidance for Claude Code when working in this repository.
 
 AgWeather v2: one Django app replacing the AgWeather API (`../ag-weather`), the AgWeather website (`../soils-ag-wx`), VDIFN (`../ag-vdifn`) and three R Shiny apps (Crop Risk Tool, alfalfa, potato volunteer; copies with their data in `tmp/shiny/`). It stores hourly weather on the native 2.5 km NDFD grid in Zarr, runs every degree-day, disease and insect model from one Python package, and serves maps, sites, charts, alerts and a public API. Target: live before April 1, 2027.
 
-- `PLAN.md`: architecture, recorded decisions (D#), phases and open questions (Q#). The current phase is detailed; later phases are sketches that get detailed when they start. Check it before starting work, and tick its checklists as work lands.
+- `PLAN.md`: architecture, recorded decisions (D#, a `### D87. Title` heading each, with the date and text below), phases and open questions (Q#, a heading each). The current phase is detailed; later phases are sketches that get detailed when they start. Check it before starting work, and tick its checklists as work lands.
 - `TODO.md`: things only Ben can do (installs, accounts, IT, data copies, exit checks), by phase.
 - `docs/project-plan.md`: the original inventory and rebuild proposal, with the option comparisons, storage budget and server sizing behind PLAN.md's decisions. Background only; PLAN.md wins where they differ.
 - `docs/api.md`: the API v2 contract (envelope, formats, endpoints); PLAN.md Phase 5 has the work list and its open questions.
@@ -105,6 +105,7 @@ Frontend:
 - **Tailwind scans `app/` for classes in Django templates** (`@source '../../app'` in `application.css`); a glob over the template folders matched nothing. Don't write a glob with `*/` in a CSS comment: it ends the comment.
 - **Vite's `server.origin`** must stay set: without it, fonts and images imported by CSS load from Django's port in development and 404.
 - **lint-staged runs Prettier on committed JSON.** Large data files go in `.prettierignore`, or they're expanded to thousands of lines.
+- **Prettier pads Markdown tables** to their longest cell, so one long row makes every line of the table thousands of characters wide, and an unescaped `|` inside code splits a cell. lint-staged skips Markdown, and `pnpm format` covers only `content/`'s; don't run it on PLAN.md or `docs/` by hand. A table whose cells are sentences is written compact (`| a | b |`, `| --- | --- |`) with `<!-- prettier-ignore -->` on the line above; long entries (PLAN.md's decisions and open questions) are headings, not table rows.
 
 Django and tests:
 

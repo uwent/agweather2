@@ -13,34 +13,35 @@ The work list for PLAN.md Phase 3 D8 step 4: moving each insect from its legacy 
 
 ## Summary
 
-| Insect                               | Current (all single sine)          | Source (spreadsheet, USPest, papers)                                                                 | Source's method and biofix                                      | Status                            |
-| ------------------------------------ | ---------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------- |
-| Seedcorn maggot                      | Average 39/84.2 °F, Jan 1 (2.0)    | Sanborn et al. 1982; Funderburk et al. 1984                                                          | Average, 3.9 °C, 29 °C cap                                      | ✅                                |
-| Alfalfa weevil                       | 48.2/86, Jan 1, CRT stage table    | USPest `aw1` from Harcourt 1981 (U. Wyoming); Litsinger & Apple 1973 (WI)                            | **Simple average**, 48/110 °F, calendar biofix                  | 🔎                                |
-| Aphid PVY vectors                    | 39.2/86, Jan 1, (1838, 2515, 3228) | Bradford & Groves, unpublished analysis (cited)                                                      | as fitted                                                       | Ben: method used in the fit       |
-| Black cutworm                        | 50/86, May 15, (300, 700, 1000)    | USPest `bcw` (UC Davis; MSU events); Luckmann et al. 1976; Story et al. 1984                         | Sine 50/86 °F; **biofix: peak pheromone-trap captures**         | 🔎                                |
-| Cabbage looper                       | 50/90, May 15, 2 gens 790 apart    | USPest `cbl` from Toba et al. 1973                                                                   | Sine 50/90 °F; **biofix: first pheromone-trap catch**           | 🔎                                |
-| Cabbage maggot                       | 42.8/86, Jan 1, 2 gens             | USPest `cm1` (OSU cards, UC Extension); Eckenrode & Chapman 1971, 1972 (WI)                          | USPest: sine 39.7/86 °F; Wisconsin: **modified max-min**, 43 °F | 🔎 which one?                     |
-| Colorado potato beetle (CRT)         | 50/86, Jan 1, stage table          | Bradford & Groves, unpublished analysis (cited): 10 years of Central Sands scouting                  | as fitted                                                       | Ben: method used in the fit       |
-| CPB adults / larvae (VDIFN)          | 50/86, Jan 1                       | Bradford & Groves, unpublished analysis (cited); the spreadsheet's CPB is an older 52 °F/May 1 model | as fitted                                                       | Ben: confirm                      |
-| Common asparagus beetle              | 50/86, Jan 1, (105, 250, 405)      | Spreadsheet links only UW vegento; Taylor & Harcourt 1978                                            | lab rates                                                       | 🔎                                |
-| Corn earworm                         | 55/92, Aug 1, (70, 275, 440)       | USPest `cew` from Hartstack et al. 1976; UC IPM `ma-h_zea`                                           | Sine 55/92 °F; **biofix: first silk**                           | 🔎                                |
-| Corn rootworm                        | 52/none, Jan 1, (329, 472, 636)    | UC IPM `ma-n_corn_rootworm` (events with 90% ranges)                                                 | ? (UC IPM page to read)                                         | 🔎                                |
-| Crucifer flea beetle                 | 50/none, Jan 1, 2 gens             | UC IPM `ma-crucifer_flea_beetle`; Ulmer & Dosdall 2006                                               | ? (UC IPM page to read)                                         | 🔎                                |
-| European corn borer                  | 50/86, Jan 1, 2 gens               | Univ. Kentucky EF-106; Matteson & Decker 1965; Anderson et al. 1982                                  | ?                                                               | 🔎                                |
-| Imported cabbageworm                 | 50/none, Jan 1, 2 gens             | Spreadsheet: "XHT1087" (unknown)                                                                     | ?                                                               | ❓ Ben                            |
-| Japanese beetle                      | 50/none, Jan 1, (970, 1600, 2150)  | USPest `jpb` (OSU analysis of lab and field studies); Régnière et al. 1981                           | Sine **50/92** °F (spreadsheet 50/100)                          | 🔎                                |
-| Mint flea beetle                     | 41/none, Jan 1, (1475, 1675, 1880) | USPest `mfb` from Berry et al. (OSU)                                                                 | Sine 41/103 °F                                                  | ❓ paper                          |
-| Mint root borer                      | 50/none, Apr 1, (430, 1280, 2150)  | USPest `mrb` from Berry et al. (OSU); Tollerup et al. 2013                                           | Sine 50 °F                                                      | ❓ paper                          |
-| Onion maggot                         | 39.2/86, Jan 1, 2 gens             | Spreadsheet: "XHT1087" (unknown), 40/86; Eckenrode et al. 1975; Liu et al. 1982                      | Liu: sine 4.4 °C (39.9 °F)                                      | 🔎                                |
-| Spotted wing drosophila              | 45/86, Jan 1, (1276, 3180, 4000)   | Kamiyama et al. 2020 (VDIFN's link); Tochen et al. 2014                                              | see paper                                                       | 🔎 (open access)                  |
-| Squash vine borer                    | 50/none, Jan 1, (750, 900, 1000)   | Spreadsheet links only UW vegento                                                                    | ?                                                               | ❓                                |
-| Stalk borer                          | 41/86, Jan 1, (1110, 1400, 1700)   | Old UW AgWeather thermal model; Levine 1983                                                          | 5 °C                                                            | 🔎                                |
-| Tarnished plant bug                  | 52/none, Jan 1, (275, 1000, 2000)  | USPest `lyg` from Simko 2000 (alfalfa seed, E. Oregon and SW Idaho), for **_Lygus hesperus_**        | Sine 52 °F                                                      | ⚠ wrong species for WI            |
-| Variegated cutworm                   | 45/80.1, May 1, (900, 1450, 2100)  | USPest `vcw` from Coop & Berry 1987 (peppermint)                                                     | Sine **41/88** °F                                               | ⚠ events at 41/88, run at 45/80.1 |
-| Western bean cutworm                 | 50/none, May 1, (1320, 1420, 1535) | USPest `wbc` (Nebraska IPM); UNL CropWatch 2016; UW A3856; Hanson et al. 2015                        | **Simple average**, 50 °F                                       | 🔎                                |
-| Western flower thrips                | 45/none, Jan 1, 4 gens 670 apart   | USPest `wft` (OSU analysis, "under development")                                                     | Sine 45/104 °F                                                  | ❓ paper                          |
-| Oak wilt vectors (`models/oak_wilt`) | 41 °F, Jan 1                       | Jagemann et al. 2018 (cited)                                                                         | check                                                           | 🔎 method only                    |
+<!-- prettier-ignore -->
+| Insect | Current (all single sine) | Source (spreadsheet, USPest, papers) | Source's method and biofix | Status |
+| --- | --- | --- | --- | --- |
+| Seedcorn maggot | Average 39/84.2 °F, Jan 1 (2.0) | Sanborn et al. 1982; Funderburk et al. 1984 | Average, 3.9 °C, 29 °C cap | ✅ |
+| Alfalfa weevil | 48.2/86, Jan 1, CRT stage table | USPest `aw1` from Harcourt 1981 (U. Wyoming); Litsinger & Apple 1973 (WI) | **Simple average**, 48/110 °F, calendar biofix | 🔎 |
+| Aphid PVY vectors | 39.2/86, Jan 1, (1838, 2515, 3228) | Bradford & Groves, unpublished analysis (cited) | as fitted | Ben: method used in the fit |
+| Black cutworm | 50/86, May 15, (300, 700, 1000) | USPest `bcw` (UC Davis; MSU events); Luckmann et al. 1976; Story et al. 1984 | Sine 50/86 °F; **biofix: peak pheromone-trap captures** | 🔎 |
+| Cabbage looper | 50/90, May 15, 2 gens 790 apart | USPest `cbl` from Toba et al. 1973 | Sine 50/90 °F; **biofix: first pheromone-trap catch** | 🔎 |
+| Cabbage maggot | 42.8/86, Jan 1, 2 gens | USPest `cm1` (OSU cards, UC Extension); Eckenrode & Chapman 1971, 1972 (WI) | USPest: sine 39.7/86 °F; Wisconsin: **modified max-min**, 43 °F | 🔎 which one? |
+| Colorado potato beetle (CRT) | 50/86, Jan 1, stage table | Bradford & Groves, unpublished analysis (cited): 10 years of Central Sands scouting | as fitted | Ben: method used in the fit |
+| CPB adults / larvae (VDIFN) | 50/86, Jan 1 | Bradford & Groves, unpublished analysis (cited); the spreadsheet's CPB is an older 52 °F/May 1 model | as fitted | Ben: confirm |
+| Common asparagus beetle | 50/86, Jan 1, (105, 250, 405) | Spreadsheet links only UW vegento; Taylor & Harcourt 1978 | lab rates | 🔎 |
+| Corn earworm | 55/92, Aug 1, (70, 275, 440) | USPest `cew` from Hartstack et al. 1976; UC IPM `ma-h_zea` | Sine 55/92 °F; **biofix: first silk** | 🔎 |
+| Corn rootworm | 52/none, Jan 1, (329, 472, 636) | UC IPM `ma-n_corn_rootworm` (events with 90% ranges) | ? (UC IPM page to read) | 🔎 |
+| Crucifer flea beetle | 50/none, Jan 1, 2 gens | UC IPM `ma-crucifer_flea_beetle`; Ulmer & Dosdall 2006 | ? (UC IPM page to read) | 🔎 |
+| European corn borer | 50/86, Jan 1, 2 gens | Univ. Kentucky EF-106; Matteson & Decker 1965; Anderson et al. 1982 | ? | 🔎 |
+| Imported cabbageworm | 50/none, Jan 1, 2 gens | Spreadsheet: "XHT1087" (unknown) | ? | ❓ Ben |
+| Japanese beetle | 50/none, Jan 1, (970, 1600, 2150) | USPest `jpb` (OSU analysis of lab and field studies); Régnière et al. 1981 | Sine **50/92** °F (spreadsheet 50/100) | 🔎 |
+| Mint flea beetle | 41/none, Jan 1, (1475, 1675, 1880) | USPest `mfb` from Berry et al. (OSU) | Sine 41/103 °F | ❓ paper |
+| Mint root borer | 50/none, Apr 1, (430, 1280, 2150) | USPest `mrb` from Berry et al. (OSU); Tollerup et al. 2013 | Sine 50 °F | ❓ paper |
+| Onion maggot | 39.2/86, Jan 1, 2 gens | Spreadsheet: "XHT1087" (unknown), 40/86; Eckenrode et al. 1975; Liu et al. 1982 | Liu: sine 4.4 °C (39.9 °F) | 🔎 |
+| Spotted wing drosophila | 45/86, Jan 1, (1276, 3180, 4000) | Kamiyama et al. 2020 (VDIFN's link); Tochen et al. 2014 | see paper | 🔎 (open access) |
+| Squash vine borer | 50/none, Jan 1, (750, 900, 1000) | Spreadsheet links only UW vegento | ? | ❓ |
+| Stalk borer | 41/86, Jan 1, (1110, 1400, 1700) | Old UW AgWeather thermal model; Levine 1983 | 5 °C | 🔎 |
+| Tarnished plant bug | 52/none, Jan 1, (275, 1000, 2000) | USPest `lyg` from Simko 2000 (alfalfa seed, E. Oregon and SW Idaho), for **_Lygus hesperus_** | Sine 52 °F | ⚠ wrong species for WI |
+| Variegated cutworm | 45/80.1, May 1, (900, 1450, 2100) | USPest `vcw` from Coop & Berry 1987 (peppermint) | Sine **41/88** °F | ⚠ events at 41/88, run at 45/80.1 |
+| Western bean cutworm | 50/none, May 1, (1320, 1420, 1535) | USPest `wbc` (Nebraska IPM); UNL CropWatch 2016; UW A3856; Hanson et al. 2015 | **Simple average**, 50 °F | 🔎 |
+| Western flower thrips | 45/none, Jan 1, 4 gens 670 apart | USPest `wft` (OSU analysis, "under development") | Sine 45/104 °F | ❓ paper |
+| Oak wilt vectors (`models/oak_wilt`) | 41 °F, Jan 1 | Jagemann et al. 2018 (cited) | check | 🔎 method only |
 
 ### What the VDIFN Models spreadsheet adds
 

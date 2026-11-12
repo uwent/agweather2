@@ -14,6 +14,7 @@ The six apps share one core: a gridded weather store, a library of degree-day an
 
 ## Apps reviewed
 
+<!-- prettier-ignore -->
 | App | Stack | Role | Data in | Notable |
 | --- | --- | --- | --- | --- |
 | [AgWeather API](https://github.com/uwent/ag-weather) | Rails 8, Postgres, cron, gnuplot | Ingest, compute, serve | RTMA 2.5 km hourly (T, Td, precip), SSEC GOES insolation | 0.1° grid, lat 38–50, lng −98 to −82 (161 × 121 = 19,481 points); daily tables for weather, precip, insolation, ET, 17 DD models, 5 disease indices; PNG map generator; Swagger docs; data back to 2016 |
@@ -34,6 +35,7 @@ Verdicts: **Keep** = carry forward as is, **Rework** = keep the capability but r
 
 ### Data sources and variables
 
+<!-- prettier-ignore -->
 | Feature | Where today | Verdict | v2 notes |
 | --- | --- | --- | --- |
 | Hourly 2 m temperature, dew point | API (RTMA, discarded after daily rollup) | Rework | Store hourly. Consider URMA (the QC'd RTMA, about 6 h later) for the archive and RTMA for the last few hours |
@@ -51,6 +53,7 @@ Verdicts: **Keep** = carry forward as is, **Rework** = keep the capability but r
 
 ### Models
 
+<!-- prettier-ignore -->
 | Model | Where today | Verdict | v2 notes |
 | --- | --- | --- | --- |
 | Degree days, 17 fixed base/upper pairs, sine/average/modified | API, VDIFN, site | Rework | Cumulative cubes for fixed pairs; arbitrary base/upper computed on the fly |
@@ -68,6 +71,7 @@ Verdicts: **Keep** = carry forward as is, **Rework** = keep the capability but r
 
 ### API
 
+<!-- prettier-ignore -->
 | Capability | Where today | Verdict | v2 notes |
 | --- | --- | --- | --- |
 | Point time series (weather, precip, ET, insolation, DD, pest), JSON + CSV | API `index` endpoints | Rework | One `/points` family, hourly or daily, any variable list, multiple points per call |
@@ -83,6 +87,7 @@ Verdicts: **Keep** = carry forward as is, **Rework** = keep the capability but r
 
 ### UI
 
+<!-- prettier-ignore -->
 | Feature | Where today | Verdict | v2 notes |
 | --- | --- | --- | --- |
 | Map explorer: variable, date or range, stat, units, palette | Site (images), VDIFN (rectangles), Alfalfa | Rework | One fast map, recolored in the browser |
@@ -101,6 +106,7 @@ Verdicts: **Keep** = carry forward as is, **Rework** = keep the capability but r
 
 ### Accounts, alerts, ops
 
+<!-- prettier-ignore -->
 | Feature | Where today | Verdict | v2 notes |
 | --- | --- | --- | --- |
 | Subscriber accounts by email token, saved sites | Site | Rework | Magic-link sign-in |
@@ -114,6 +120,7 @@ Verdicts: **Keep** = carry forward as is, **Rework** = keep the capability but r
 
 These are the items I would not carry forward. Each one is a guess from the code, so strike any you want to keep.
 
+<!-- prettier-ignore -->
 | Item | Where | Why drop |
 | --- | --- | --- |
 | AWON station tables, `stations` and `station_hourly_observations` | API (archived), site (commented routes) | Already deprecated; Wisconet replaced AWON |
@@ -163,6 +170,7 @@ Ingest and the API import the same `agmodels` package, so a model gives the same
 
 Performance does not separate these options. The slow paths are tiles, grids, point series and model runs, and all three options serve those from Python (NumPy, Zarr, Numba) behind a cache. What differs is how many runtimes you maintain, how much of WISP 3 you can reuse, and how alerts reach model output. Every option already has two runtimes in production: SvelteKit's server is Node, just as Rails is Ruby.
 
+<!-- prettier-ignore -->
 |  | A. Rails/Inertia web + Python data service | B. FastAPI + SvelteKit | C. Django + Inertia + Svelte |
 | --- | --- | --- | --- |
 | Production runtimes | Ruby + Python (Node at build only) | Python + Node | Python only (Node at build only) |
@@ -181,6 +189,7 @@ Performance does not separate these options. The slow paths are tiles, grids, po
 
 ### Monorepo layout
 
+<!-- prettier-ignore -->
 | Path | What it holds | Key tools |
 | --- | --- | --- |
 | `packages/agmodels` | Pure functions: hourly → daily → windows → DD → disease/insect models, each with its valid region. Same code runs on one point (pandas) or the whole grid (xarray) | NumPy, xarray, Numba where needed; parity tests against the R `.rds` fixtures and old API outputs |
@@ -223,6 +232,7 @@ The native box starts as the Upper Midwest, about 35–50° N and 100–75° W (
 
 Use both sources, as the alfalfa app already does with its 5/10/30-year options. External data gives a true 30-year baseline. The internal archive gives recent normals on exactly the same grid as the observations.
 
+<!-- prettier-ignore -->
 | Baseline | Source | Coverage | Notes |
 | --- | --- | --- | --- |
 | 30-year (1991–2020 standard, or rolling) | [NOAA nClimGrid-daily](https://noaa-nclimgrid-daily-pds.s3.amazonaws.com/doc/nclimgrid-daily_v1-0-0_readme-web.txt) on AWS | CONUS, \~5 km, 1951–present, daily Tmax/Tmin/Tavg/precip | Free and public, no key. Enough for GDD, frost/freeze and precip normals |
@@ -235,6 +245,7 @@ Both are reduced once to **climatology cubes** on the native grid: a value per c
 
 At the native 2.5 km grid, the Upper Midwest box needs roughly 500–600 GB for 11 years, so a 1 TB data volume covers it. Full CONUS needs about 3 TB. These are estimates assuming 10 hourly variables stored as scaled 16-bit integers with 3–4× compression. A one-month pilot should measure the real ratio before the volume is ordered.
 
+<!-- prettier-ignore -->
 | Extent | Grid cells (2.5 km) | Hourly / yr | Daily + cumulative / yr | 11-year total |
 | --- | --- | --- | --- | --- |
 | Current WI-centered box (38–50° N, 98–82° W) | \~299,000 | 13–18 GB | \~7 GB | 220–270 GB |
@@ -257,6 +268,7 @@ After that, ingest is one hour at a time: a byte-range download of about 10 vari
 
 ### Latency targets
 
+<!-- prettier-ignore -->
 | Request | Today | v2 target | How |
 | --- | --- | --- | --- |
 | VDIFN-style risk map, any date range | 5+ s | < 300 ms to first view | Cumulative-cube subtraction into cached data tiles, colored on the GPU |
@@ -275,6 +287,7 @@ Size the new Ubuntu 26.04 server for the Upper Midwest now. Growing to CONUS sho
 
 **RDS and Docker (IT's proposal, 2026-10-26).** Both fit. RDS holds the app data: users, sites, alerts, the job queue, ingest status and model metadata. That is only a few GB, so a small instance is enough. The gridded archive (hundreds of GB to TB) is Zarr files, not database rows, so it lives on an EBS volume attached to the server. EBS volumes can be enlarged without downtime, and older years can move to S3 later. Ask IT for the EC2 server, its EBS data volume, and RDS in the same region and availability zone, so database calls stay under a millisecond.
 
+<!-- prettier-ignore -->
 | Resource | Upper Midwest (now) | CONUS (goal) | Why |
 | --- | --- | --- | --- |
 | OS | Ubuntu 26.04 LTS, x86\_64 | Same | x86\_64 avoids arm64 build issues with eccodes and Numba |
@@ -300,6 +313,7 @@ Size the new Ubuntu 26.04 server for the Upper Midwest now. Growing to CONUS sho
 
 P0 is needed for the 2027 season launch. P1 comes during the 2027 season. P2 waits for the refinement period after it. This is my first sort; reorder freely.
 
+<!-- prettier-ignore -->
 | Feature | Priority | Why |
 | --- | --- | --- |
 | Hourly archive, backfill, daily and cumulative cubes (Upper Midwest) | P0 | Everything else reads it |
