@@ -1,6 +1,6 @@
 The AgWeather API gives hourly and daily weather, growing degree days, and crop disease, insect and crop development models for the Upper Midwest. It is free to use and needs no account. AgWeather is a service of the University of Wisconsin–Madison.
 
-The weather comes from the National Weather Service's analyses and forecasts on a 2.5 km (1.6 mi) grid, from 2016 to the present, with a forecast up to 16 days ahead. Every request is computed from the same data and code that the AgWeather website uses.
+The weather comes from the National Weather Service's analyses and forecasts on a 2.5 km (1.6 mi) grid, with a forecast up to 16 days ahead. Our records keep the most recent 11 years, from 2016 to the present at first; each January the oldest year is removed. Maps cover only those years. For a location, earlier dates and places outside the area we cover come from Open-Meteo. Every request is computed from the same data and code that the AgWeather website uses.
 
 ## Making a request
 

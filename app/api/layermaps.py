@@ -456,6 +456,13 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
             f"{layer_title(found)} isn't counted by season, so it takes no season. Give a date instead.",
             "season",
         )
+    if q.climate != "normal":  # a normal's date only names a day of the year
+        # The first day the reader gave: a default start (a season's, an event's, a window's lead-in) isn't refused
+        given = next((name for name in ("date", "time", "start", "biofix") if getattr(q, name) is not None), None)
+        if roll_day is not None:
+            _check_archive_years(roll_day, "date", data_dir)
+        else:
+            _check_archive_years(first if given else last, given or "end", data_dir)
     setting = None
     if found.id == DEGREE_DAYS:
         settings_found = degree_day_settings(q.dd, units, warnings)
@@ -915,6 +922,25 @@ def _data_dir():
 
 
 # --- Parsing -------------------------------------------------------------------------------------------------------
+
+
+def _check_archive_years(first: date | datetime, param: str, data_dir) -> None:
+    """Maps cover only the archive's years (D3, D87): a first asked day before its first year is refused, pointing
+    to the points, which answer earlier dates from Open-Meteo. Days after the archive's end are missing, not refused
+    (the forecast's end moves; a new year's store is created on its first hour)."""
+    years = series.archive_years(data_dir)
+    if not years:
+        return  # no archive at all: `last_observed` has already answered 503
+    begins = date(min(years), 1, 1)
+    day = first.date() if isinstance(first, datetime) else first
+    if day < begins:
+        raise ApiError(
+            "out_of_range",
+            f"Maps cover {day_text(begins)} onward, the years our records hold, and {day_text(day)} is before that. "
+            "Choose a later date, or ask for a location's weather (such as /weather/daily), which covers earlier "
+            "dates from Open-Meteo.",
+            param,
+        )
 
 
 def span(layer: Layer, q: LayerQuery, observed: datetime) -> tuple[Any, Any]:

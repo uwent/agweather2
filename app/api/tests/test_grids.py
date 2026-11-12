@@ -54,6 +54,23 @@ def test_a_day_is_a_row_per_cell(client, archive):
     assert meta["request"]["window"] == [WINDOW.j0, WINDOW.j1, WINDOW.i0, WINDOW.i1]
 
 
+def test_maps_refuse_days_before_the_archive(client, archive):
+    # The fixture's archive is 2025 alone: earlier days go to the points (Open-Meteo), not an empty map
+    for params, param in (
+        ({"date": "2024-07-01"}, "date"),
+        ({"start": "2024-12-30", "end": "2025-07-02", "stat": "mean"}, "start"),
+        ({"end": "2024-07-01", "stat": "mean"}, "end"),
+        ({"date": "2025-01-03", "roll": 7}, None),  # the window's lead-in reaches 2024: partial, not refused
+    ):
+        body = get(client, "air_temperature_max", **params).json()
+        if param is None:
+            assert "errors" not in body
+            continue
+        error = body["errors"][0]
+        assert (error["code"], error["param"]) == ("out_of_range", param)
+        assert error["message"].startswith("Maps cover January 1, 2025 onward")
+
+
 def test_the_default_day_is_the_last_observed_everywhere(client, archive):
     assert get(client, "air_temperature_max").json()["meta"]["request"]["date"] == "2025-07-09"
 
@@ -409,7 +426,7 @@ def test_a_range_reduced_by_a_stat_is_limited_too(client, archive):
     # A stat returns one map, but reads every day of the range
     years = get(client, "air_temperature_max", start="2016-01-01", end="2025-07-08", stat="mean")
     assert years.status_code == 422 and years.json()["errors"][0]["code"] == "too_large"
-    assert get(client, "air_temperature_max", start="2024-07-09", end="2025-07-08", stat="mean").status_code == 200
+    assert get(client, "air_temperature_max", start="2025-01-01", end="2026-01-01", stat="mean").status_code == 200
 
 
 def test_an_hourly_layer_is_a_map_an_hour(client, archive):

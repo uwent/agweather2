@@ -33,6 +33,13 @@ def error(response) -> dict:
     return response.json()["errors"][0]
 
 
+def test_a_normal_takes_any_year_and_a_departure_only_the_archives(client, climate_archive):
+    # A normal's date names a day of the year; a departure needs the day's weather (the archive is 2025 here)
+    assert values(grid(client, "air_temperature_max", date="2010-07-15", climate="normal", period="last5"))
+    found = error(grid(client, "air_temperature_max", date="2024-07-05", climate="departure", period="last5"))
+    assert (found["code"], found["param"]) == ("out_of_range", "date")
+
+
 def test_a_normal_map_reads_no_weather(client, climate_archive):
     response = grid(client, "air_temperature_max", date="2026-07-15", climate="normal", period="last5")
     assert values(response) == [22.0] * WINDOW.shape[0] * WINDOW.shape[1]
