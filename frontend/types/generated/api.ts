@@ -404,6 +404,9 @@ export interface PaletteInfo {
   source: string
   colorblind_safe: boolean
 }
+export interface PeriodQuery {
+  period?: 'last30' | 'last10' | 'last5'
+}
 export interface PointsQuery {
   lat?: number | null
   lng?: number | null

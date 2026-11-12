@@ -144,3 +144,38 @@ def test_a_point_matches_the_stored_maps_at_its_cell(client, climate_archive, tm
     totals = data(get(client, start="2025-01-01", end="2025-09-30", vars="precipitation_sum"))
     assert totals["precipitation_sum_cum"][-1] == pytest.approx(stored("precipitation/mean", day), abs=0.1)
     assert np.isfinite(stored("air_temperature_max/p90", day))
+
+
+# --- Freezes: every year's minimum is −5 °C on January 1–10 and from December 20, 10 °C between ---------------
+
+
+def frost(client, path="climate/frost", **params):
+    return client.get(f"/api/v2/{path}", {"lat": LAT, "lng": LNG, "period": "last5", **params})
+
+
+def test_freeze_dates_and_season_length(client, climate_archive):
+    found = data(frost(client, thresholds="32,20"))
+    assert found["threshold"] == [32.0, 20.0]
+    assert found["last_spring_p10"] == found["last_spring_p90"] == ["2025-01-10", None]  # −5 °C isn't 20 °F
+    assert found["first_fall_p50"] == ["2025-12-20", None]
+    assert found["season_days_p50"] == [345, 366]  # December 20 less January 10; no freeze: the whole year
+    assert found["years_spring"] == [5, 5] and found["years_without_spring"] == [0, 5]
+    assert found["years_without_fall"] == [0, 5]
+    assert data(frost(client, probabilities="25"))["last_spring_p25"] == ["2025-01-10"] * 3
+
+
+def test_freeze_chances_by_date(client, climate_archive):
+    found = data(frost(client, "climate/frost/chances", thresholds="32", start="2025-01-09", end="2025-01-11"))
+    assert found["season"] == ["spring"] * 3
+    assert found["chance"] == [100, 0, 0]  # a freeze after January 9 every year, after January 10 none
+    fall = data(frost(client, "climate/frost/chances", thresholds="32", start="2025-12-19", end="2025-12-20"))
+    assert fall["season"] == ["fall"] * 2 and fall["chance"] == [0, 100]
+    metric = frost(client, "climate/frost/chances", units="metric", date="2025-01-05")
+    assert data(metric)["threshold"] == [0.0, -2.2, -4.4]
+
+
+def test_freeze_refusals(client, climate_archive):
+    assert error(frost(client, probabilities="0"))["param"] == "probabilities"
+    assert error(frost(client, thresholds="cold"))["param"] == "thresholds"
+    assert error(frost(client, "climate/frost/chances", start="2024-12-01", end="2025-01-31"))["param"] == "end"
+    assert error(frost(client, lat=46.0, lng=-100.0))["code"] == "not_applicable"

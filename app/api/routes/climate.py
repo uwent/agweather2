@@ -31,7 +31,7 @@ from api.params import (
     check_vars,
     degree_day_settings,
 )
-from api.routes.degree_days import degree_days
+from api.routes.degree_days import degree_days, freeze_thresholds
 from api.routes.weather import answer_etag, check_size, envelope_parts, located
 from api.schemas import TableResponse, responses
 
@@ -96,7 +96,7 @@ def normals_at_points(
     climate.one_year(first, last)
     check_size((last - first).days + 1, len(where.locations()), 366, "days")
     around = area.ask(output.units)
-    asked, period_warnings = climate.ask(where, q, today, around)
+    asked, period_warnings = climate.ask(where, q, today, around, pool_days=q.window)
     warnings += period_warnings
     wanted: list[str] = [*names, *(TEMPERATURES if settings_found else [])]
     read: list[str] = list(dict.fromkeys(wanted))
@@ -162,7 +162,7 @@ def normals_at_points(
                     for p in percentiles:
                         add(f"{name}_{climate.suffix(p)}", [span.percentiles[p]], of)
                 continue
-            pooled = climatology.pooled(values, asked.years, percentiles=percentiles, days=asked.pool_days)
+            pooled = climatology.pooled(values, asked.years, percentiles=percentiles, days=q.window)
             add(name, pooled.mean[slots], of, main=True)
             for p in percentiles:
                 add(f"{name}_{climate.suffix(p)}", pooled.percentiles[p][slots], of)
@@ -219,3 +219,175 @@ def _dd(s, lo_f: np.ndarray, hi_f: np.ndarray) -> np.ndarray:
     usable = np.isfinite(lo_f) & np.isfinite(hi_f)
     found = degree_days(s, np.where(usable, lo_f, 0.0), np.where(usable, hi_f, 0.0))
     return np.where(usable, found, np.nan)
+
+
+# --- Freezes ------------------------------------------------------------------------------------------------------
+
+
+def _freezes_at(found: dict[str, np.ndarray], limits_f: list[float]) -> list[climatology.Freezes]:
+    """A point's freeze statistics at each threshold (°F), from its years' daily minimums (°C)."""
+    tmin = found["air_temperature_min"]
+    return [climatology.freezes(tmin, (f - 32) / 1.8) for f in limits_f]
+
+
+def _slot_day(value: float, year: int, spring: bool) -> date | None:
+    """A calendar slot (fractional, from a quantile) as a date in `year`; None for none. February 29 in a year
+    without one is February 28 in spring and March 1 in fall (a freeze date can't fall on a day that isn't)."""
+    if not np.isfinite(value):
+        return None
+    index = round(float(value))
+    found = climatology.slot_date(index, year)
+    if found is None:
+        return date(year, 2, 28) if spring else date(year, 3, 1)
+    return found
+
+
+@router.get("/climate/frost", response=responses(TableResponse), summary="Freeze dates and season length at points")
+def frost(
+    request: HttpRequest,
+    where: Query[PointsQuery],
+    q: Query[climate.PeriodQuery],
+    output: Query[OutputQuery],
+    area: Query[AreaQuery],
+    thresholds: str | None = None,
+    probabilities: str | None = None,
+) -> HttpResponse:
+    """One row per point and threshold (default 32, 28 and 24 °F): `last_spring_p<N>`, the date by which N% of the
+    period's years had had their last spring freeze (at or below the threshold, January–June), `first_fall_p<N>`,
+    the date by which N% had had their first fall freeze (July–December), and `season_days_p<N>`, the frost-free
+    season's length that N% of years were at or under, for each of `probabilities` (default 10, 50, 90); the years
+    counted and the years with no freeze in each season. Dates are this year's. A date is null where N% of years
+    reaches years with no freeze at all."""
+    warnings: list[str] = []
+    given, limits_f = freeze_thresholds(thresholds, output.units, warnings)
+    chances = climate.percents(probabilities, "probabilities", "probabilities=10,50,90") or [10.0, 50.0, 90.0]
+    now = clock.now()
+    today = now.date()
+    around = area.ask(output.units)
+    asked, period_warnings = climate.ask(where, q, today, around)
+    warnings += period_warnings
+    computed = {**where.echo(), "thresholds": given, "probabilities": chances, **q.echo(), "units": output.units}
+    computed |= {"threshold_units": "°C" if output.units == "metric" else "°F", **area.echo()}
+    etag = answer_etag(request, computed, asked.stamp(["air_temperature_min"], now))
+    if etag is not None and (unchanged := not_modified(request, etag)) is not None:
+        return unchanged
+    locations = located(where, today, today, area=around)
+    rows: dict[str, list] = {"point": [], "threshold": []}
+    for p in chances:
+        for key in ("last_spring", "first_fall", "season_days"):
+            rows[f"{key}_{climate.suffix(p)}"] = []
+    for key in ("years_spring", "years_fall", "years_without_spring", "years_without_fall"):
+        rows[key] = []
+    for k, found in enumerate(asked.read(["air_temperature_min"])):
+        note = climate.few_years_warning(
+            climate.years_counted(found["air_temperature_min"]),
+            asked.period,
+            "this location" if where.points is None else f"location {k}",
+        )
+        if note is not None and note not in warnings:
+            warnings.append(note)
+        for value, fz in zip(given, _freezes_at(found, limits_f), strict=True):
+            rows["point"].append(k)
+            rows["threshold"].append(value)
+            for p in chances:
+                spring, fall = fz.dates(p / 100)
+                season = fz.season_length(p / 100)
+                rows[f"last_spring_{climate.suffix(p)}"].append(_slot_day(float(spring), today.year, spring=True))
+                rows[f"first_fall_{climate.suffix(p)}"].append(_slot_day(float(fall), today.year, spring=False))
+                length = float(season) if np.isfinite(season) else None
+                rows[f"season_days_{climate.suffix(p)}"].append(round(length) if length is not None else None)
+            rows["years_spring"].append(int(fz.years_spring))
+            rows["years_fall"].append(int(fz.years_fall))
+            rows["years_without_spring"].append(int((fz.spring == climatology.NONE_SPRING).sum()))
+            rows["years_without_fall"].append(int((fz.fall == climatology.NONE_FALL).sum()))
+    columns = [Column(name=name, values=values) for name, values in rows.items()]
+    if where.points is None:
+        columns = columns[1:]
+    return respond(
+        request,
+        Result(
+            request=computed,
+            columns=columns,
+            **envelope_parts(where, locations),
+            summary=asked.summary(),
+            sources=asked.sources(),
+            warnings=warnings,
+            filename=f"agweather-frost-{q.period}",
+            etag=etag,
+        ),
+    )
+
+
+@router.get(
+    "/climate/frost/chances", response=responses(TableResponse), summary="Chances of a freeze by date at points"
+)
+def frost_chances(
+    request: HttpRequest,
+    where: Query[PointsQuery],
+    when: Query[DaysQuery],
+    q: Query[climate.PeriodQuery],
+    output: Query[OutputQuery],
+    area: Query[AreaQuery],
+    thresholds: str | None = None,
+) -> HttpResponse:
+    """One row per point, threshold and date of one calendar year (default this year, January 1 to December 31):
+    `season` and `chance`, in percent: January–June (`spring`), the chance of a freeze (at or below the threshold)
+    after the date; July–December (`fall`), the chance one has come on or before it. Among the period's years that
+    count."""
+    warnings: list[str] = []
+    given, limits_f = freeze_thresholds(thresholds, output.units, warnings)
+    now = clock.now()
+    today = now.date()
+    first, last = when.span(default_end=date(today.year, 12, 31))
+    climate.one_year(first, last)
+    check_size((last - first).days + 1, len(where.locations()) * len(given), 366, "days")
+    around = area.ask(output.units)
+    asked, period_warnings = climate.ask(where, q, today, around)
+    warnings += period_warnings
+    computed = {**where.echo(), "start": first, "end": last, "thresholds": given, **q.echo(), "units": output.units}
+    computed |= {"threshold_units": "°C" if output.units == "metric" else "°F", **area.echo()}
+    etag = answer_etag(request, computed, asked.stamp(["air_temperature_min"], now))
+    if etag is not None and (unchanged := not_modified(request, etag)) is not None:
+        return unchanged
+    locations = located(where, today, today, area=around)
+    dates = [first + timedelta(days=k) for k in range((last - first).days + 1)]
+    slots = np.array([climatology.slot(d) for d in dates])
+    spring_end = climatology.SPRING[1]
+    rows: dict[str, list] = {key: [] for key in ("point", "threshold", "date", "day_of_year", "season", "chance")}
+    for k, found in enumerate(asked.read(["air_temperature_min"])):
+        note = climate.few_years_warning(
+            climate.years_counted(found["air_temperature_min"]),
+            asked.period,
+            "this location" if where.points is None else f"location {k}",
+        )
+        if note is not None and note not in warnings:
+            warnings.append(note)
+        for value, fz in zip(given, _freezes_at(found, limits_f), strict=True):
+            chance = np.where(slots < spring_end, fz.after_spring[slots], fz.by_fall[slots]) * 100
+            rows["point"] += [k] * len(dates)
+            rows["threshold"] += [value] * len(dates)
+            rows["date"] += dates
+            rows["day_of_year"] += [int(s) + 1 for s in slots]
+            rows["season"] += ["spring" if s < spring_end else "fall" for s in slots]
+            rows["chance"] += chance.tolist()
+    columns = [
+        Column(name=name, values=values, unit="percent", step=1)
+        if name == "chance"
+        else Column(name=name, values=values)
+        for name, values in rows.items()
+    ]
+    if where.points is None:
+        columns = columns[1:]
+    return respond(
+        request,
+        Result(
+            request=computed,
+            columns=columns,
+            **envelope_parts(where, locations),
+            summary=asked.summary(),
+            sources=asked.sources(),
+            warnings=warnings,
+            filename=f"agweather-frost-chances-{q.period}-{first}-{last}",
+            etag=etag,
+        ),
+    )

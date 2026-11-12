@@ -28,10 +28,18 @@ MIN_POOL, MAX_POOL = 1, 61
 PERIOD_TEXT = {"last30": "30-year", "last10": "10-year", "last5": "5-year"}
 
 
-class ClimateQuery(Schema):
-    """The reference period (D82), the days pooled around each day (`window`), and the percentiles wanted."""
+class PeriodQuery(Schema):
+    """The reference period (D82)."""
 
     period: Literal["last30", "last10", "last5"] = "last30"
+
+    def echo(self) -> dict[str, Any]:
+        return {"period": self.period}
+
+
+class ClimateQuery(PeriodQuery):
+    """The period, the days pooled around each day (`window`), and the percentiles wanted."""
+
     window: int = climatology.POOL_DAYS
     percentiles: str | None = None
 
@@ -48,27 +56,34 @@ class ClimateQuery(Schema):
         return self
 
     def percentile_list(self) -> list[float]:
-        if self.percentiles is None or not self.percentiles.strip():
-            return []
-        found: list[float] = []
-        for text in (t.strip() for t in self.percentiles.split(",") if t.strip()):
-            try:
-                p = float(text)
-            except ValueError:
-                p = float("nan")
-            if not 0 < p < 100:
-                raise fail(
-                    "invalid",
-                    "percentiles",
-                    f"The percentile {text!r} can't be used. Give numbers over 0 and under 100, separated by commas, "
-                    "such as percentiles=10,50,90.",
-                )
-            if p not in found:
-                found.append(p)
-        return found
+        return percents(self.percentiles, "percentiles", "percentiles=10,50,90", fail_with=fail)
 
     def echo(self) -> dict[str, Any]:
         return {"period": self.period, "window": self.window, "percentiles": self.percentile_list()}
+
+
+def percents(text: str | None, param: str, example: str, fail_with=None) -> list[float]:
+    """A list of percentages over 0 and under 100 (`10,50,90`), each once, in the order given; empty for none.
+    Raises `fail_with`'s error (a validator's) or an ApiError."""
+    if text is None or not text.strip():
+        return []
+    found: list[float] = []
+    for part in (t.strip() for t in text.split(",") if t.strip()):
+        try:
+            p = float(part)
+        except ValueError:
+            p = float("nan")
+        if not 0 < p < 100:
+            message = (
+                f"The {param.rstrip('s')} {part!r} can't be used. Give numbers over 0 and under 100, separated by "
+                f"commas, such as {example}."
+            )
+            if fail_with is not None:
+                raise fail_with("invalid", param, message)
+            raise ApiError("invalid", message, param)
+        if p not in found:
+            found.append(p)
+    return found
 
 
 def suffix(p: float) -> str:
@@ -81,7 +96,7 @@ class PeriodAsk:
     """A request's period: its years, and the cells each point reads (its own, or its area's)."""
 
     period: climatology.Period
-    pool_days: int
+    pool_days: int | None = None
     sites: list[tuple[float, float]]
     places: list[tuple[tuple[int, int], Area | None]]
 
@@ -119,11 +134,12 @@ class PeriodAsk:
             "last_year": p.asked[-1],
             "years": len(p.years),
             "missing_years": list(p.missing),
-            "pool_days": self.pool_days,
-        }
+        } | ({"pool_days": self.pool_days} if self.pool_days is not None else {})
 
 
-def ask(where: PointsQuery, q: ClimateQuery, today: date, area: AreaAsk | None) -> tuple[PeriodAsk, list[str]]:
+def ask(
+    where: PointsQuery, q: PeriodQuery, today: date, area: AreaAsk | None, pool_days: int | None = None
+) -> tuple[PeriodAsk, list[str]]:
     """The period for `today`'s year and each point's place in it, with warnings; ApiError for a point outside the
     area we cover."""
     sites = where.locations()
@@ -172,7 +188,7 @@ def ask(where: PointsQuery, q: ClimateQuery, today: date, area: AreaAsk | None) 
                 "Choose a larger radius, or leave out land_only.",
                 "land_only",
             ) from None
-    return PeriodAsk(period=period, pool_days=q.window, sites=sites, places=places), warnings
+    return PeriodAsk(period=period, pool_days=pool_days, sites=sites, places=places), warnings
 
 
 def one_year(first: date, last: date) -> None:

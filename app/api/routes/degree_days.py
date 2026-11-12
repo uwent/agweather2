@@ -485,23 +485,10 @@ def table(
     )
 
 
-@router.get("/freeze", response=responses(TableResponse), summary="Freezes at points")
-def freeze(
-    request: HttpRequest,
-    where: Query[PointsQuery],
-    when: Query[DaysQuery],
-    options: Query[SeriesQuery],
-    output: Query[OutputQuery],
-    area: Query[AreaQuery],
-    thresholds: str | None = None,
-) -> HttpResponse:
-    """One row per point and threshold (default 32, 28 and 24 °F, or `thresholds=` in the request's units): the
-    days whose minimum reached it (≤), the last such day before July 1 (`last_spring`) and the first from July 1
-    (`first_fall`) within the window, and the days with no minimum (`missing_days`), which a freeze could hide.
-    Defaults: January 1 through the forecast."""
-    warnings: list[str] = []
+def freeze_thresholds(thresholds: str | None, units: str, warnings: list[str]) -> tuple[list[float], list[float]]:
+    """`thresholds=` as given (default 32, 28 and 24 °F, or their °C) and in °F."""
     if thresholds is None:
-        given = [float(t) for t in FREEZE_DEFAULT_F] if output.units == "us" else [0.0, -2.2, -4.4]
+        given = [float(t) for t in FREEZE_DEFAULT_F] if units == "us" else [0.0, -2.2, -4.4]
     else:
         try:
             given = [float(t) for t in thresholds.split(",") if t.strip()]
@@ -518,7 +505,25 @@ def freeze(
                 "such as thresholds=32,28.",
                 "thresholds",
             )
-    limits_f = [temperature_threshold(t, output.units, FREEZE, "thresholds", warnings) for t in given]
+    return given, [temperature_threshold(t, units, FREEZE, "thresholds", warnings) for t in given]
+
+
+@router.get("/freeze", response=responses(TableResponse), summary="Freezes at points")
+def freeze(
+    request: HttpRequest,
+    where: Query[PointsQuery],
+    when: Query[DaysQuery],
+    options: Query[SeriesQuery],
+    output: Query[OutputQuery],
+    area: Query[AreaQuery],
+    thresholds: str | None = None,
+) -> HttpResponse:
+    """One row per point and threshold (default 32, 28 and 24 °F, or `thresholds=` in the request's units): the
+    days whose minimum reached it (≤), the last such day before July 1 (`last_spring`) and the first from July 1
+    (`first_fall`) within the window, and the days with no minimum (`missing_days`), which a freeze could hide.
+    Defaults: January 1 through the forecast."""
+    warnings: list[str] = []
+    given, limits_f = freeze_thresholds(thresholds, output.units, warnings)
     today = clock.now().date()
     trim_end = when.end is None and when.date is None and options.forecast
     first, last = when.span(default_end=today + timedelta(days=FORECAST_DAYS) if trim_end else today)

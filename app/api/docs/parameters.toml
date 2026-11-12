@@ -8,7 +8,7 @@
 "Weather" = "Hourly and daily weather at one or more locations, and totals over a period of days."
 "Degree days, chill and freezes" = "Growing degree days by any method and thresholds, totals for reports covering many locations, winter chill for fruit trees, and freeze dates."
 "Models" = "Crop disease, insect and crop development models, run on our weather at a location or on weather you send from your own station."
-"Climate" = "Normal weather and degree days for each day of the year, from the past 30, 10 or 5 years, at locations inside the area we cover."
+"Climate" = "Normal weather and degree days for each day of the year, and freeze dates and their chances, from the past 30, 10 or 5 years, at locations inside the area we cover."
 "Maps and grids" = "Any weather variable or model as a map: gridded data in JSON, CSV, NetCDF or GeoTIFF, map tiles for web and GIS software, and finished map images."
 
 [schemas]
@@ -102,6 +102,20 @@ radius = "Average the weather over the area around each location instead of usin
 roll = "Add a rolling window beside each daily normal: the window's length in days, from 2 to 365, or several separated by commas, as `roll=7,28`. Each adds a column named for its length (`precipitation_sum_7d`): the normal week's rain, or the normal temperature averaged over the window. Windows wrap from December 31 to January 1, so every day has a whole window."
 roll_partial = "Not used here: windows of normals wrap around the year, so none reaches past the ends."
 roll_coverage = "The smallest share of a rolling window's days, in percent, that must have a normal for the window to have a value. The default is 75."
+
+[climate_frost]
+thresholds = "The temperatures to count as a freeze, in the request's units, separated by commas. The default is 32, 28 and 24 °F (0, -2.2 and -4.4 °C)."
+probabilities = "The shares of years, in percent, for which to give dates and season lengths, over 0 and under 100, separated by commas. The default is `10,50,90`. Each adds columns ending in its number, such as `last_spring_p90`."
+period = "The years the results come from: `last30` (the default), the 30 complete years before this one; `last10`, the last 10; or `last5`, the last 5. Each moves forward a year every January. With fewer years, an occasional extreme year counts for more."
+radius = "Average the weather over the area around each location instead of using its one grid cell: the area's radius in miles (in kilometers with `units=metric`), up to 10 miles (16 km). Each year's daily minimum is averaged over the area before freezes are counted, so an average freezes less often than its coldest cells. Use it where a location's own cell is unusual, such as a lakeshore or a city."
+
+[climate_frost_chances]
+thresholds = "The temperatures to count as a freeze, in the request's units, separated by commas. The default is 32, 28 and 24 °F (0, -2.2 and -4.4 °C)."
+period = "The years the results come from: `last30` (the default), the 30 complete years before this one; `last10`, the last 10; or `last5`, the last 5. Each moves forward a year every January. With fewer years, an occasional extreme year counts for more."
+radius = "Average the weather over the area around each location instead of using its one grid cell: the area's radius in miles (in kilometers with `units=metric`), up to 10 miles (16 km). Each year's daily minimum is averaged over the area before freezes are counted, so an average freezes less often than its coldest cells. Use it where a location's own cell is unusual, such as a lakeshore or a city."
+date = "A single day of the year, as YYYY-MM-DD, in place of `start` and `end`."
+start = "The first day, as YYYY-MM-DD. The default is January 1. The start and end must be in the same calendar year."
+end = "The last day, as YYYY-MM-DD. The default is December 31 of this year, or of the year of `start`."
 
 [degree_days_daily]
 targets = "Running totals to watch for, in degree days in the request's units, separated by commas (as `1400,2000`). For each setting, `meta.summary.targets` gives the day each total is reached, or is expected to be reached when the forecast or a projection is included."
