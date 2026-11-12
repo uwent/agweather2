@@ -108,6 +108,14 @@ def cases(
             path=f"/tiles/air_temperature_max/{month}..{map_day}/{tile}?stat=mean&climate=normal&period={period}",
         )
     )
+    found.append(
+        Case(
+            name="heat days against normal, a month",
+            target_ms=300,
+            # D88: the month's count less the stored running count's change
+            path=f"/tiles/air_temperature_max/{month}..{map_day}/{tile}?count=days_above_90&climate=departure&period={period}",
+        )
+    )
     point = urlencode({"lat": lat, "lng": lng})
     found.append(
         Case(
