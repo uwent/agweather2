@@ -20,7 +20,7 @@ const ts = await compile(schema, root, {
 
 // Drop the root listing (it only keeps every definition reachable) and json2ts's provenance comments
 const cleaned = ts
-  .replace(new RegExp(`export interface ${root} \\{[\\s\\S]*?\\n\\}\\n`), '')
+  .replace(new RegExp(`export interface ${root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{[\\s\\S]*?\\n\\}\\n`), '')
   .replace(/\/\*\*\n \* This interface was referenced by[\s\S]*?\*\/\n/g, '')
   .replace(/ \*\n \* This interface was referenced by[\s\S]*?(?= \*\/\n)/g, '')
 writeFileSync(output, cleaned)
