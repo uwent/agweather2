@@ -179,3 +179,58 @@ def test_freeze_refusals(client, climate_archive):
     assert error(frost(client, thresholds="cold"))["param"] == "thresholds"
     assert error(frost(client, "climate/frost/chances", start="2024-12-01", end="2025-01-31"))["param"] == "end"
     assert error(frost(client, lat=46.0, lng=-100.0))["code"] == "not_applicable"
+
+
+# --- This year against normal: this year is the fixture archive's July 2025 (observed to the 10th, then the forecast)
+
+
+def compare(client, **params):
+    return client.get("/api/v2/climate/compare", {**METRIC, "start": "2025-07-01", "end": "2025-07-31", **params})
+
+
+def test_this_year_against_last_year_and_normal(client, climate_archive):
+    response = compare(client, dd="modified_10_30", vars="precipitation_sum")
+    found = data(response)
+    days = data(
+        client.get(
+            "/api/v2/degree-days",
+            {"lat": LAT, "lng": LNG, "units": "metric", "dd": "modified_10_30", "start": "2025-07-01"},
+        )
+    )
+    n = len(days["date"])
+    assert found["kind"][:n] == days["kind"] and found["kind"][n:] == [None] * (31 - n)
+    assert found["dd_modified_10_30_cum"][:n] == days["dd_modified_10_30_cum"]  # as /degree-days totals them
+    assert found["dd_modified_10_30_cum"][n:] == [None] * (31 - n)  # nothing past the forecast
+    assert found["dd_modified_10_30_cum_normal"][:3] == pytest.approx([6.0, 12.0, 18.0], abs=0.06)
+    assert found["dd_modified_10_30_cum_last_year"][9] == pytest.approx(70.0, abs=0.06)  # 2024: 7 °C·d a day
+    assert found["dd_modified_10_30_cum_normal_p10"][0] < 6.0 < found["dd_modified_10_30_cum_normal_p90"][0]
+    assert found["precipitation_sum_cum_normal"][9] == 10.0 == found["precipitation_sum_cum_last_year"][9]
+    total, normal = found["dd_modified_10_30_cum"][4], found["dd_modified_10_30_cum_normal"][4]
+    assert found["dd_modified_10_30_departure"][4] == pytest.approx(total - normal, abs=0.1)
+    assert found["dd_modified_10_30_percent_of_normal"][4] == round(total / normal * 100)
+    rates = [5.0, 5.5, 6.0, 6.5, 7.0]  # each year's °C·d a day: 9 + 0.9 °F·d a year from 2020
+    below = sum(r * 5 < total for r in rates) + 0.5 * sum(r * 5 == total for r in rates)
+    assert found["dd_modified_10_30_percentile"][4] == round(100 * below / 5)
+
+
+def test_days_ahead_of_normal_on_the_last_observed_day(client, climate_archive):
+    response = compare(client, dd="modified_10_30")
+    found, meta = data(response), response.json()["meta"]
+    as_of = meta["summary"]["compare"]["as_of"]
+    k = found["date"].index(as_of)
+    assert found["kind"][k] == "observed" and found["kind"][k + 1] != "observed"
+    total = found["dd_modified_10_30_cum"][k]
+    nearest = round(total / 6.0) - 1  # the normal is 6 °C·d a day from July 1: day m has 6 (m + 1)
+    assert meta["summary"]["compare"]["totals"]["dd_modified_10_30"]["days_ahead"] == nearest - k
+
+
+def test_without_the_forecast_this_year_ends_with_the_observed_days(client, climate_archive):
+    found = data(compare(client, forecast="false"))
+    assert "forecast" not in found["kind"]
+    last = max(k for k, kind in enumerate(found["kind"]) if kind is not None)
+    assert found["precipitation_sum_cum"][last] is not None and found["precipitation_sum_cum"][last + 1] is None
+
+
+def test_compare_refusals(client, climate_archive):
+    assert error(compare(client, vars="air_temperature_max"))["param"] == "vars"  # not a total
+    assert error(compare(client, end="2026-01-31"))["param"] == "end"
