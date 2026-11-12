@@ -8,6 +8,7 @@
 "Weather" = "Hourly and daily weather at one or more locations, and totals over a period of days."
 "Degree days, chill and freezes" = "Growing degree days by any method and thresholds, totals for reports covering many locations, winter chill for fruit trees, and freeze dates."
 "Models" = "Crop disease, insect and crop development models, run on our weather at a location or on weather you send from your own station."
+"Climate" = "Normal weather and degree days for each day of the year, from the past 30, 10 or 5 years, at locations inside the area we cover."
 "Maps and grids" = "Any weather variable or model as a map: gridded data in JSON, CSV, NetCDF or GeoTIFF, map tiles for web and GIS software, and finished map images."
 
 [schemas]
@@ -86,6 +87,21 @@ first = "Find the first day in the period whose daily value is within bounds: a 
 last = "Find the last day in the period whose daily value is within bounds, as for `first`: `last=air_temperature_min:frost` in May gives this spring's last frost so far."
 since = "The number of days since the last day within bounds, as for `first`, counted to `end`, or to today when `end` is left out: `since=air_temperature_min:hard_freeze` gives the days since the last hard freeze."
 interval = "With `month`, one row for each location and calendar month in the period, with a `month` column (as `2026-07`), in place of one row for the whole period."
+
+[climate_normals_at_points]
+period = "The years the normals come from: `last30` (the default), the 30 complete years before this one; `last10`, the last 10; or `last5`, the last 5. Each moves forward a year every January."
+window = "The number of days pooled around each day of the year, centered on it, from 1 to 61. The default is 15. A wider window gives smoother normals; a narrower one follows sharper seasonal changes."
+percentiles = "Percentiles to add beside each normal, from 1 to 99, separated by commas, as `percentiles=10,90`. Each adds a column ending in its number (`air_temperature_max_p10`). A 10th percentile of 50 °F means one value in ten across the period's years was 50 °F or below."
+vars = "The variables, separated by commas: `air_temperature_min`, `air_temperature_max`, `air_temperature_mean` (not with the 30-year period), `precipitation_sum`, `relative_humidity_min`, `relative_humidity_max`, `shortwave_radiation_sum`, `wind_speed_mean` and `et0_sum`. The default is the minimum and maximum air temperature and precipitation, or none when `dd` is given."
+dd = "Degree-day settings, as on `/degree-days`: a method, a base temperature and an optional upper threshold, joined by underscores, in the request's units, such as `modified_50_86`. Several may be given, separated by commas. Each adds the normal degree days for each day (`dd_modified_50_86`) and the normal running total from `start` (`dd_modified_50_86_cum`)."
+interval = "`day` (the default) for a row for each day, `month` for a row for each calendar month with a `month` column (as `2026-07`), or `year` for one row covering `start` to `end`."
+date = "A single day of the year, as YYYY-MM-DD, in place of `start` and `end`."
+start = "The first day, as YYYY-MM-DD. The default is January 1. Running totals start here. The start and end must be in the same calendar year."
+end = "The last day, as YYYY-MM-DD. The default is December 31 of this year, or of the year of `start`."
+radius = "Average the weather over the area around each location instead of using its one grid cell: the area's radius in miles (in kilometers with `units=metric`), up to 10 miles (16 km). Each year's weather is averaged over the area day by day before the normals are worked out, so they describe the area rather than one spot. Use it where a location's own cell is unusual, such as a lakeshore, a city or a valley."
+roll = "Add a rolling window beside each daily normal: the window's length in days, from 2 to 365, or several separated by commas, as `roll=7,28`. Each adds a column named for its length (`precipitation_sum_7d`): the normal week's rain, or the normal temperature averaged over the window. Windows wrap from December 31 to January 1, so every day has a whole window."
+roll_partial = "Not used here: windows of normals wrap around the year, so none reaches past the ends."
+roll_coverage = "The smallest share of a rolling window's days, in percent, that must have a normal for the window to have a value. The default is 75."
 
 [degree_days_daily]
 targets = "Running totals to watch for, in degree days in the request's units, separated by commas (as `1400,2000`). For each setting, `meta.summary.targets` gives the day each total is reached, or is expected to be reached when the forecast or a projection is included."

@@ -147,6 +147,29 @@ def read_point(
     return read_years(read, years, names)
 
 
+def stamp(data_dir: Path, years: Sequence[int], names: list[str], cells: list[tuple[int, int]], now=None) -> str:
+    """The data stamp of `read_point`'s reads of `names` at `cells` in `years`, for an ETag: an archive year's as
+    `series.past_years_stamp` gives it, a gridMET year's by its derivation (version and fit)."""
+    import zarr
+    from zarr.errors import GroupNotFoundError
+
+    from agdata import climatestore
+    from agdata.series import archive_years, past_years_stamp
+
+    archive = set(archive_years(data_dir))
+    parts = []
+    for year in years:
+        if year in archive:
+            parts.append(past_years_stamp(data_dir, cells=cells, years=[year], names=names, now=now))
+            continue
+        try:
+            attrs = dict(zarr.open_group(climatestore.path(data_dir, year), mode="r").attrs)
+        except (FileNotFoundError, GroupNotFoundError):
+            attrs = {}
+        parts.append(f"{year}=g{attrs.get('version')}@{attrs.get('fit')}")
+    return ";".join(parts)
+
+
 def available_years(data_dir: Path) -> list[int]:
     """The years a period can draw on: the archive's and gridMET's derived ones (`period`'s `available`)."""
     from agdata import climatestore
@@ -265,6 +288,90 @@ def nan_quantiles(
 
 def _leap(year: int) -> bool:
     return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+
+
+def days_of(year: int) -> np.ndarray:
+    """Which of the 366 slots are days in `year` (all but February 29 in a year without one)."""
+    exists = np.ones(SLOTS, dtype=bool)
+    if not _leap(year):
+        exists[FEB29] = False
+    return exists
+
+
+# --- Across years: a span's value in each year, then its statistics ------------------------------------------
+
+
+@dataclass(kw_only=True)
+class AcrossYears:
+    """A span's value in each year that counts (`values`, (years, …), NaN for one that doesn't), and their mean and
+    percentiles where `enough_years` count (`count` of them)."""
+
+    values: np.ndarray
+    mean: np.ndarray
+    percentiles: dict[float, np.ndarray]
+    count: np.ndarray
+
+
+def over_span(
+    values: np.ndarray,
+    years: Sequence[int],
+    lo: int,
+    hi: int,
+    *,
+    total: bool,
+    percentiles: Sequence[float] = (),
+    max_missing: float = SEASON_MISSING,
+) -> AcrossYears:
+    """Each year's total (`total`) or mean of `values` (years, 366, …) over slots [lo, hi), then their mean and
+    percentiles across years: a month's or a year's normal from each year's own, never from averaged days. A year
+    counts where it misses at most `max_missing` of the span's days (February 29 isn't one in a year without it); a
+    total sums the known days, so a missing day adds nothing (D45)."""
+    values = np.asarray(values, dtype=np.float64)
+    part = values[:, lo:hi]
+    exists = np.stack([days_of(y)[lo:hi] for y in years]) if len(years) else np.zeros((0, hi - lo), dtype=bool)
+    exists = exists.reshape(exists.shape + (1,) * (part.ndim - 2))
+    known = np.isfinite(part) & exists
+    days = exists.sum(axis=1)
+    missing = days - known.sum(axis=1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        summed = np.where(known, part, 0.0).sum(axis=1)
+        found = summed if total else summed / np.maximum(known.sum(axis=1), 1)
+    ok = (missing <= max_missing * days) & (known.sum(axis=1) > 0)
+    per_year = np.where(ok, found, np.nan)
+    return across(per_year, len(years), percentiles)
+
+
+def across(per_year: np.ndarray, n_years: int, percentiles: Sequence[float] = ()) -> AcrossYears:
+    """The mean and percentiles across years (axis 0) of values NaN for a year that doesn't count, where
+    `enough_years` of `n_years` count."""
+    known = np.isfinite(per_year)
+    count = known.sum(axis=0)
+    enough = count >= enough_years(n_years)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        mean = np.where(enough, np.where(known, per_year, 0.0).sum(axis=0) / np.maximum(count, 1), np.nan)
+        found = {float(p): np.where(enough, _percentile(per_year, p, axis=0), np.nan) for p in percentiles}
+    return AcrossYears(values=per_year, mean=mean, percentiles=found, count=count)
+
+
+# --- Degree days by year ---------------------------------------------------------------------------------------
+
+
+def degree_day_temperatures(tmin_c: np.ndarray, tmax_c: np.ndarray, year: int) -> tuple[np.ndarray, np.ndarray]:
+    """A year's daily minimum and maximum (366 slots, …; °C) in °F for degree days, gaps of up to the cumulative
+    store's `MAX_BRIDGE_DAYS` bridged within the year as it bridges them, NaN on a day that can't be estimated
+    (and February 29 in a year without one). A day's degree days from these are that year's own (D61)."""
+    from agdata.cumulative import MAX_BRIDGE_DAYS
+    from agdata.qc import fill_short_gaps
+
+    real = days_of(year)
+    lo, hi = np.asarray(tmin_c, dtype=np.float64)[real], np.asarray(tmax_c, dtype=np.float64)[real]
+    known = np.isfinite(lo) & np.isfinite(hi)
+    lo, _ = fill_short_gaps(np.where(known, lo, np.nan), MAX_BRIDGE_DAYS)
+    hi, _ = fill_short_gaps(np.where(known, hi, np.nan), MAX_BRIDGE_DAYS)
+    usable = np.isfinite(lo) & np.isfinite(hi)
+    lo_f = np.where(usable, lo * 1.8 + 32, np.nan)
+    hi_f = np.where(usable, hi * 1.8 + 32, np.nan)
+    return layout(lo_f, year), layout(hi_f, year)
 
 
 # --- Running totals --------------------------------------------------------------------------------------------

@@ -39,6 +39,11 @@ export interface CitationInfo {
   doi: string | null
   url: string | null
 }
+export interface ClimateQuery {
+  period?: 'last30' | 'last10' | 'last5'
+  window?: number
+  percentiles?: string | null
+}
 export interface CropInfo {
   model: string
   crop: string

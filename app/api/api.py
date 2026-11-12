@@ -7,7 +7,7 @@ from ninja.operation import Operation
 
 from api import docs, errors, strict
 from api.params import QueryParser
-from api.routes import degree_days, discovery, grids, maps, models, summaries, tiles, weather
+from api.routes import climate, degree_days, discovery, grids, maps, models, summaries, tiles, weather
 
 
 class AgWeatherAPI(NinjaAPI):
@@ -39,4 +39,5 @@ api.add_router("/", grids.router)
 api.add_router("/", summaries.router)
 api.add_router("/", tiles.router)
 api.add_router("/", maps.router)
+api.add_router("/", climate.router)
 strict.install(api)  # after the routers: every operation's query is checked

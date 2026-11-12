@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from agdata import daily
-from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
+from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, FILL, VARIABLES
 from agdata.cumulative import update_days
 from agdata.grid import Window
 from agdata.sources.nbm import HORIZON_HOURS, HourlyRun
@@ -190,4 +190,43 @@ def terrain_store(data_dir, window: Window, water_share: np.ndarray, elevation_m
         group.create_array(name, data=values)
     group.attrs.update(
         {"version": terrain.VERSION, "window": terrain._window_attrs(window), "archives": [], "complete": True}
+    )
+
+
+def climate_year(data_dir, window: Window, year: int, values: dict[str, np.ndarray], fit: str = "1@test") -> None:
+    """A derived gridMET year (`agdata.climatestore`) over `window`: `values` per daily variable, (days, y, x) or
+    (days,) for every cell, as `climatestore.derive` leaves them (without the files it records)."""
+    import zarr
+    from zarr.codecs.numcodecs import PCodec
+
+    from agdata import climatestore
+
+    names = list(values)
+    n = (date(year + 1, 1, 1) - date(year, 1, 1)).days
+    group = zarr.open_group(climatestore.path(data_dir, year), mode="w")
+    array = group.create_array(
+        "values",
+        shape=(len(names), n, *window.shape),
+        chunks=(len(names), n, min(16, window.shape[0]), min(16, window.shape[1])),
+        dtype="int16",
+        fill_value=int(FILL),
+        serializer=PCodec(level=1),
+    )
+
+    def whole(v) -> np.ndarray:
+        v = np.asarray(v, dtype=float)
+        return np.broadcast_to(v[:, None, None] if v.ndim == 1 else v, (n, *window.shape))
+
+    array[:] = np.stack([DAILY_VARIABLES[name].encode(np.array(whole(values[name]))) for name in names])
+    group.attrs.update(
+        {
+            "year": year,
+            "window": {"j0": window.j0, "j1": window.j1, "i0": window.i0, "i1": window.i1},
+            "names": names,
+            "version": climatestore.VERSION,
+            "fit": fit,
+            "adjusted": [],
+            "files": {},
+            "complete": True,
+        }
     )

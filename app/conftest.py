@@ -49,3 +49,18 @@ def projection_archive(projection_archive_dir, settings, monkeypatch):
     settings.SERVICE_BOX = fixture_archive.BOX
     monkeypatch.setattr("api.clock.now", lambda: fixture_archive.NOW)
     return projection_archive_dir
+
+
+@pytest.fixture(scope="session")
+def climate_archive_dir(_built_archive, tmp_path_factory):
+    """The fixture archive with five gridMET years for `last5` (`fixture_archive.add_climate_years`), built once."""
+    path = shutil.copytree(_built_archive, tmp_path_factory.mktemp("climate") / "archive")
+    return fixture_archive.add_climate_years(path)
+
+
+@pytest.fixture
+def climate_archive(climate_archive_dir, settings, monkeypatch):
+    settings.DATA_DIR = climate_archive_dir
+    settings.SERVICE_BOX = fixture_archive.BOX
+    monkeypatch.setattr("api.clock.now", lambda: fixture_archive.NOW)
+    return climate_archive_dir

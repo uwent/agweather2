@@ -130,3 +130,20 @@ def test_builds_take_turns(two_years):
     os.close(held)
     builder.join(timeout=60)
     assert not builder.is_alive() and pastyears.status(two_years, 2024) is None
+
+
+def test_an_area_reaching_past_a_copy_averages_the_cells_inside_it(tmp_path):
+    """An area clipped to the service box can hold cells a copy (here gridMET's, same layout) doesn't: they're
+    missing, left out of the mean, as the hours' areas leave them."""
+    from agdata import climatestore
+    from agdata.areas import Area
+    from agdata.testing import climate_year
+
+    per_cell = np.arange(WINDOW.shape[0] * WINDOW.shape[1], dtype=float).reshape(WINDOW.shape)
+    climate_year(tmp_path, WINDOW, 2021, {"air_temperature_max": np.broadcast_to(per_cell, (365, *WINDOW.shape))})
+    a, b = (WINDOW.j0, WINDOW.i0), (WINDOW.j0, WINDOW.i0 + 1)
+    outside = (WINDOW.j0 - 1, WINDOW.i0)
+    area = Area(center=a, cells=(a, b, outside), weights=(0.25, 0.25, 0.5), radius_km=3.0, weighting="equal")
+    found = climatestore.reader(tmp_path).read_area(area, date(2021, 7, 1), date(2021, 7, 2), ["air_temperature_max"])
+    assert found is not None
+    np.testing.assert_allclose(found["air_temperature_max"], 0.5)  # cells 0 and 1, equally

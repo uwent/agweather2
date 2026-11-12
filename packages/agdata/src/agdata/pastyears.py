@@ -247,12 +247,15 @@ class Reader:
             t0, t1 = (day - date(day.year, 1, 1)).days, (end - date(day.year, 1, 1)).days + 1
             w = found.window
             packed = np.asarray(found.values[:, t0:t1, j0 - w.j0 : j1 - w.j0, i0 - w.i0 : i1 - w.i0])
-            rows = [c[0] - j0 for c in cells]
-            cols = [c[1] - i0 for c in cells]
+            inside = [k for k, c in enumerate(area.cells) if found.window.contains(*c)]
+            rows = [area.cells[k][0] - j0 for k in inside]
+            cols = [area.cells[k][1] - i0 for k in inside]
             k = (day - first).days
             for name in names:
                 block = DAILY_VARIABLES[name].decode(packed[found.names.index(name)])  # (days, y, x)
-                out[name][k : k + (t1 - t0)] = combine(block[:, rows, cols], cells, [area], name)[:, 0]
+                every = np.full((t1 - t0, len(area.cells)), np.nan)  # cells outside the copy: missing, left out
+                every[:, inside] = block[:, rows, cols]
+                out[name][k : k + (t1 - t0)] = combine(every, area.cells, [area], name)[:, 0]
             day = end + timedelta(days=1)
         return out
 

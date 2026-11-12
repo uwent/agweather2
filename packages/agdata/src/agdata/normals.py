@@ -44,9 +44,7 @@ from agdata.catalog import (
     FILL,
     dd_name,
 )
-from agdata.cumulative import MAX_BRIDGE_DAYS
 from agdata.grid import Window
-from agdata.qc import fill_short_gaps
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 
 VERSION = 2  # bump when what's stored changes, and every period is built again (2: `enough_years`)
@@ -154,15 +152,11 @@ def _read_block(source: _Source, block: Window, names: list[str], year: int) -> 
 
 
 def _daily_degree_days(tmin_c: np.ndarray, tmax_c: np.ndarray, year: int) -> dict[str, np.ndarray]:
-    """A year's daily degree days per cube (366 slots, …), gaps of up to MAX_BRIDGE_DAYS bridged as the cumulative
-    store bridges them (within the year), NaN where a day can't be estimated."""
-    real = ~np.isnan(climatology.layout(np.zeros(366 if climatology._leap(year) else 365), year))
-    lo, hi = tmin_c[real], tmax_c[real]
-    known = np.isfinite(lo) & np.isfinite(hi)
-    lo, _ = fill_short_gaps(np.where(known, lo, np.nan), MAX_BRIDGE_DAYS)
-    hi, _ = fill_short_gaps(np.where(known, hi, np.nan), MAX_BRIDGE_DAYS)
-    lo_f, hi_f = lo * 1.8 + 32, hi * 1.8 + 32
+    """A year's daily degree days per cube (366 slots, …), gaps bridged as the cumulative store bridges them
+    (`climatology.degree_day_temperatures`), NaN where a day can't be estimated."""
+    lo_f, hi_f = climatology.degree_day_temperatures(tmin_c, tmax_c, year)
     usable = np.isfinite(lo_f) & np.isfinite(hi_f)
+    lo_f, hi_f = np.where(usable, lo_f, 0.0), np.where(usable, hi_f, 0.0)
     days: dict[str, np.ndarray] = {}
     for t, name in zip(DD_SINE_THRESHOLDS_F, SINE, strict=True):
         days[name] = degree_days_sine(lo_f, hi_f, t)
@@ -170,7 +164,7 @@ def _daily_degree_days(tmin_c: np.ndarray, tmax_c: np.ndarray, year: int) -> dic
         days[name] = degree_days_modified(lo_f, hi_f, b, u)
     for (b, u), name in zip(DD_AVERAGE_SETTINGS_F, AVERAGE, strict=True):
         days[name] = degree_days_average(lo_f, hi_f, b, u)
-    return {name: climatology.layout(np.where(usable, v, np.nan), year) for name, v in days.items()}
+    return {name: np.where(usable, v, np.nan) for name, v in days.items()}
 
 
 def block_stats(years: list[int], by_year: list[dict[str, np.ndarray]], period: str) -> dict[str, np.ndarray]:
