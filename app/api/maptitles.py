@@ -172,7 +172,14 @@ def title(a: Any, units: str) -> str:
     """The map's title for a `layermaps.LayerAsk` (`units`: the request's system, for degree-day thresholds); a count
     is the one-day title and what it counts: "Air temperature, daily maximum, days at or above 86 °F". A window
     (`roll=`) names its length: "Precipitation, 7-day total", "Air temperature, 14-day mean daily maximum"."""
+    climate = getattr(a, "climate", None)
+    if climate is not None and a.layer.source in ("normals", "terrain"):
+        return _stored_title(a, units)
     text = _rolled(_title(a, units), a)
+    if climate is not None:
+        from api import climatemaps
+
+        return f"{text}, {climatemaps.words(climate)}"
     count = getattr(a, "count", None)
     event = getattr(a, "event", None)
     if event is not None:
@@ -200,6 +207,20 @@ def _title(a: Any, units: str) -> str:
     return f"{what}, {_statistic(daily or 'value', a.stat if ranged else None)}"
 
 
+def _stored_title(a: Any, units: str) -> str:
+    """A freeze or elevation map's title: "Chance of a freeze (32 °F), 30-year normal"."""
+    c = a.climate
+    if a.layer.source == "terrain":
+        return f"Elevation, {c.output.label[0].lower()}{c.output.label[1:]}" if c.output.name != "mean" else "Elevation"
+    from api import climatemaps
+
+    threshold = _threshold(float(c.threshold_f), units)
+    period = climatemaps.PERIOD_WORDS[c.period]
+    if c.output is None:
+        return f"Chance of a freeze ({threshold}), {period} normal"
+    return f"{c.output.label} ({threshold}), {period} normal"
+
+
 def _rolled(text: str, a: Any) -> str:
     roll = getattr(a, "roll", None)
     if roll is None or a.stat not in _STAT_WORDS:
@@ -214,6 +235,13 @@ def subtitle(a: Any, region: str | None = None) -> str:
     """Where and when, and a model's planting and options: "Wisconsin · Jan 1 – Nov 5, 2026"."""
     parts = [region] if region else []
     model = a.model
+    climate = getattr(a, "climate", None)
+    if climate is not None and a.layer.source in ("normals", "terrain"):
+        if a.layer.time_axis == "day_of_year":
+            parts.append(f"{a.first:%B} {a.first.day}")
+        if climate.years is not None:
+            parts.append(f"Years {climate.years[0]}–{climate.years[1]}")
+        return " · ".join(parts)
     if model is not None and model.season is not None and a.first == a.last:
         parts.append(f"{model.season.label} season, through {day_text(a.last)}")
     elif isinstance(a.first, datetime):
@@ -242,7 +270,7 @@ def subtitle(a: Any, region: str | None = None) -> str:
 def caption(a: Any, computed: Any) -> list[str]:
     """The data sources, then the days or hours estimated or missing: one string a line (`mapimage.map_png` wraps
     them)."""
-    lines = [f"Data sources: {_sources(a)}{_forecast(a, computed)}."]
+    lines = [f"Data sources: {_sources(a)}{_forecast(a, computed)}{_climate_sources(a)}."]
     gaps = _gaps(a, computed)
     if gaps:
         lines.append(gaps)
@@ -317,6 +345,11 @@ def _lower_first(text: str) -> str:
 
 
 def _sources(a: Any) -> str:
+    c = getattr(a, "climate", None)
+    if c is not None and a.layer.source == "terrain":
+        return "Elevation from the USGS National Elevation Dataset in NHDPlus V2"
+    if c is not None and a.layer.source == "normals":
+        return "Daily minimum air temperature from "
     if a.model is not None:
         names = {i.name for i in a.model.spec.inputs}
         found = [f"Weather from {_URMA}"]
@@ -327,6 +360,20 @@ def _sources(a: Any) -> str:
         return ", ".join(found)
     name = a.layer.variable or a.layer.id
     return next((text for prefix, text in _FAMILY_SOURCES if name.startswith(prefix)), "AgWeather's archive")
+
+
+def _climate_sources(a: Any) -> str:
+    """A climate map's years and their sources, after the weather's (or alone, for stored statistics)."""
+    c = getattr(a, "climate", None)
+    if c is None or a.layer.source == "terrain" or c.years is None:
+        return ""
+    first, last = c.years
+    since = max(first, 2016)
+    parts = [f"AgWeather's archive ({since}–{last})"] if last >= 2016 else []
+    if first < 2016:
+        parts.append(f"gridMET ({first}–2015), adjusted to the archive")
+    text = " and ".join(parts)
+    return f"; normals from {text}" if a.layer.source != "normals" else text
 
 
 def _forecast(a: Any, computed: Any) -> str:

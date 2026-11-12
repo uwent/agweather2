@@ -191,6 +191,9 @@ export interface GridQuery {
   roll_align?: 'trailing' | 'centered'
   roll_partial?: boolean
   roll_coverage?: number
+  climate?: ('normal' | 'departure' | 'percentile') | null
+  period?: 'last30' | 'last10' | 'last5'
+  threshold?: number | null
   bbox?: string | null
   region?: string | null
   clip?: boolean
@@ -217,8 +220,8 @@ export interface LayerInfo {
   id: string
   name: string
   title: string
-  group: 'weather' | 'running_total' | 'degree_days' | 'model'
-  time_axis: 'day' | 'hour' | 'day_of_year'
+  group: 'weather' | 'running_total' | 'degree_days' | 'model' | 'climate' | 'terrain'
+  time_axis: 'day' | 'hour' | 'day_of_year' | 'none'
   variable: string | null
   unit: string
   units: DisplayUnits
@@ -233,6 +236,7 @@ export interface LayerInfo {
   options?: string[]
   planting?: string[]
   seasons?: string[]
+  climate?: string[]
 }
 export interface LayerRange {
   first: string | null
@@ -305,6 +309,9 @@ export interface MapQuery {
   roll_align?: 'trailing' | 'centered'
   roll_partial?: boolean
   roll_coverage?: number
+  climate?: ('normal' | 'departure' | 'percentile') | null
+  period?: 'last30' | 'last10' | 'last5'
+  threshold?: number | null
   days?: number | null
   region?: string | null
   clip?: boolean
@@ -462,6 +469,9 @@ export interface SummaryQuery {
   roll_align?: 'trailing' | 'centered'
   roll_partial?: boolean
   roll_coverage?: number
+  climate?: ('normal' | 'departure' | 'percentile') | null
+  period?: 'last30' | 'last10' | 'last5'
+  threshold?: number | null
   by?: 'county' | 'state'
   region?: string | null
   min_coverage?: number
@@ -498,6 +508,9 @@ export interface TileQuery {
   roll_align?: 'trailing' | 'centered'
   roll_partial?: boolean
   roll_coverage?: number
+  climate?: ('normal' | 'departure' | 'percentile') | null
+  period?: 'last30' | 'last10' | 'last5'
+  threshold?: number | null
 }
 export interface UnitsQuery {
   units?: 'us' | 'metric'

@@ -77,8 +77,8 @@ class LayerInfo(Schema):
     id: str
     name: str
     title: str  # its name as a map's title gives it ("Air temperature, daily maximum")
-    group: Literal["weather", "running_total", "degree_days", "model"]
-    time_axis: Literal["day", "hour", "day_of_year"]
+    group: Literal["weather", "running_total", "degree_days", "model", "climate", "terrain"]
+    time_axis: Literal["day", "hour", "day_of_year", "none"]  # a day of any year; no time at all
     variable: str | None  # the catalog variable (`/variables`); None where the layer is computed (degree days)
     unit: str  # stored unit symbol
     units: DisplayUnits
@@ -94,6 +94,7 @@ class LayerInfo(Schema):
     options: list[str] = Field(default_factory=list)
     planting: list[str] = Field(default_factory=list)
     seasons: list[str] = Field(default_factory=list)  # a seasonal product's (`season=`), oldest first
+    climate: list[str] = Field(default_factory=list)  # what `climate=` takes (D86): normal, departure, percentile
 
 
 class LayersResponse(Schema):
@@ -104,8 +105,8 @@ class LayersResponse(Schema):
 @router.get("/layers", response=responses(LayersResponse), summary="Every mappable layer")
 def layers(request: HttpRequest) -> HttpResponse:
     """Each layer `/grids/{layer}` serves, with its time axis and the range the archive and forecast hold now (from
-    `/status`'s rows), and for a model its outputs and options. Normals and departures (time axis `day_of_year`)
-    join later."""
+    `/status`'s rows), for a model its outputs and options, and what `climate=` it takes (D86). The freeze and
+    elevation layers have no range: `day_of_year` takes a date in any year, `none` no time at all."""
     rows = dataset_status(settings.DATA_DIR)
     run = rows["forecast"]
     in_use = run.first is not None and clock.now() - run.first <= series.MAX_RUN_AGE
@@ -122,6 +123,8 @@ def layers(request: HttpRequest) -> HttpResponse:
             last=series.last_closed_day(observed).isoformat() if observed else None,
             forecast_through=run.last.date().isoformat() if in_use and run.last else None,
         ),
+        "day_of_year": LayerRange(first=None, last=None, forecast_through=None),
+        "none": LayerRange(first=None, last=None, forecast_through=None),
     }
     found = [
         LayerInfo(
@@ -137,13 +140,14 @@ def layers(request: HttpRequest) -> HttpResponse:
             palette=palettes.use_palette(layer.use).id,
             domain=_layer_domain(layer),
             stats=list(layer.stats),
-            parameters=["dd"] if layer.id == DEGREE_DAYS else [],
+            parameters=["dd"] if layer.id == DEGREE_DAYS else (["threshold"] if layer.threshold else []),
             range=ranges[layer.time_axis],
             description=layer.description,
             outputs=[_output_info(o) for o in layer.outputs],
             options=_map_options(layer),
             planting=["early", "mid", "late", "none"] if layer.planting else [],
             seasons=_seasons_held(layer, observed),
+            climate=list(layer.climate),
         )
         for layer in LAYERS.values()
     ]
@@ -308,7 +312,7 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
             long_name=long_name,
             unit="days since 1970-01-01" if shown_as == "date" else shown_as,  # CF's form of a date (D78)
             values=shown if index is None else index.resample(shown),
-            steps=None if stat is not None else step_labels,
+            steps=None if stat is not None or found.time_axis == "none" else step_labels,
             window=window if index is None else None,
             stride=query.stride,
             lats=index.lats if index is not None else None,
@@ -511,7 +515,7 @@ def _long_form(layer, column, values, kinds, extra, steps, stat, window, mask, q
         counts = {name: index.resample(v[None])[0].ravel()[inside] for name, v in extra.items()}
     n_cells = lat.size
     columns: list[Column] = []
-    if stat is None:
+    if stat is None and layer.time_axis != "none":  # elevation and freeze dates have no time
         label = "time" if layer.time_axis == "hour" else "date"
         columns.append(Column(name=label, values=np.repeat(np.array(steps, dtype=object), n_cells).tolist()))
         columns.append(Column(name="kind", values=np.repeat(np.array(kinds, dtype=object), n_cells).tolist()))

@@ -25,7 +25,7 @@ itself complete last. It's stale when its years, a year's copy, the gridMET fit 
 import shutil
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -383,3 +383,80 @@ def read_map(
     packed = np.asarray(array[index, window.j0 - w.j0 : window.j1 - w.j0, window.i0 - w.i0 : window.i1 - w.i0])
     scale = float(array.attrs["scale"])  # type: ignore[arg-type]
     return np.where(packed == FILL, np.nan, packed.astype(np.float64) * scale)
+
+
+def has(data_dir: Path, period: str) -> bool:
+    """Whether a period's store is built (complete)."""
+    try:
+        return bool(zarr.open_group(path(data_dir, period), mode="r").attrs.get("complete"))
+    except (FileNotFoundError, GroupNotFoundError):
+        return False
+
+
+def info(data_dir: Path, period: str) -> dict[str, Any] | None:
+    """A built store's attributes (its years, window, build time, version), or None."""
+    try:
+        attrs: dict[str, Any] = dict(zarr.open_group(path(data_dir, period), mode="r").attrs)
+    except (FileNotFoundError, GroupNotFoundError):
+        return None
+    return attrs if attrs.get("complete") else None
+
+
+def stamp(data_dir: Path, period: str) -> str | None:
+    """A built store's data stamp for an ETag: its version, years and build time."""
+    attrs = info(data_dir, period)
+    if attrs is None:
+        return None
+    return f"{period}:{attrs.get('version')}:{attrs.get('built')}"
+
+
+def read_within(data_dir: Path, period: str, name: str, day: date | None, window: Window) -> np.ndarray:
+    """`read_map` over any window: NaN where it reaches past the store's (the normals cover the area their years
+    do, which can be less than the archive's)."""
+    attrs = info(data_dir, period)
+    if attrs is None:
+        raise KeyError(f"{period} isn't built")
+    w = Window(**attrs["window"])
+    out = np.full(window.shape, np.nan)
+    j0, j1 = max(window.j0, w.j0), min(window.j1, w.j1)
+    i0, i1 = max(window.i0, w.i0), min(window.i1, w.i1)
+    if j0 < j1 and i0 < i1:
+        inner = Window(j0=j0, j1=j1, i0=i0, i1=i1)
+        out[j0 - window.j0 : j1 - window.j0, i0 - window.i0 : i1 - window.i0] = read_map(
+            data_dir, period, name, day, inner
+        )
+    return out
+
+
+def running_change(data_dir: Path, period: str, name: str, first: date, last: date, window: Window) -> np.ndarray:
+    """The normal of a running total's change from the start of `first` to the end of `last` (`<name>/mean`, from
+    January 1 each year): within a year the difference of two days, across December 31 the sum of each year's
+    part."""
+    total = np.zeros(window.shape)
+    day = first
+    while day <= last:
+        end = min(last, date(day.year, 12, 31))
+        upto = read_within(data_dir, period, f"{name}/mean", end, window)
+        if (day.month, day.day) != (1, 1):
+            upto = upto - read_within(data_dir, period, f"{name}/mean", day - timedelta(days=1), window)
+        total = total + upto
+        day = end + timedelta(days=1)
+    return total
+
+
+def percentile_among(value: np.ndarray, deciles: list[np.ndarray]) -> np.ndarray:
+    """Where `value` sits among the years by their stored deciles (P10 … P90), as a percentile: interpolated
+    between deciles, 5 below the 10th and 95 above the 90th (the stored deciles can't place it further), NaN where
+    either is missing."""
+    d = np.stack(deciles)  # (9, …)
+    out = np.full(value.shape, np.nan)
+    known = np.isfinite(value) & np.isfinite(d).all(axis=0)
+    out = np.where(known & (value < d[0]), 5.0, out)
+    out = np.where(known & (value > d[-1]), 95.0, out)
+    for k in range(len(deciles) - 1):
+        lo, hi = d[k], d[k + 1]
+        inside = known & (value >= lo) & (value <= hi) & np.isnan(out)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            t = np.where(hi > lo, (value - lo) / (hi - lo), 0.5)
+        out = np.where(inside, 10.0 * (k + 1) + 10.0 * t, out)
+    return out

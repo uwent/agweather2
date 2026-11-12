@@ -45,7 +45,7 @@ from agdata.store import CUMULATIVE, DAILY
 from agmodels import seasons
 from agmodels.seasons import Season
 from agmodels.spec import ModelSpec
-from api import counts, events
+from api import climatemaps, counts, events
 from api.envelope import SYSTEMS, Column, shown_unit, unit_overrides
 from api.errors import ApiError, day_text, hour_text
 from api.maptitles import layer_title
@@ -82,6 +82,9 @@ class LayerQuery(Schema):
     roll_align: Literal["trailing", "centered"] = "trailing"
     roll_partial: bool = False
     roll_coverage: float = 75  # percent of the window's days a cell needs values for
+    climate: Literal["normal", "departure", "percentile"] | None = None  # D86 (`api.climatemaps`)
+    period: Literal["last30", "last10", "last5"] = "last30"
+    threshold: float | None = None  # a freeze map's, in the request's units
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -171,11 +174,20 @@ class LayerAsk:
     event: "events.Event | None" = None  # with stat=first, last or since: what's found (`api.events`)
     roll: Roll | None = None  # `roll=`: the window (`agdata.rolling`) whose days first..last are, and its day
     roll_day: date | None = None
+    climate: "climatemaps.ClimateAsk | None" = None  # `climate=`, or a freeze or elevation layer's (D86)
 
     @property
     def value_unit(self) -> str:
-        """The unit of the values a step has (a model output's for a model layer), before any count."""
+        """The unit of the values a step has (a model output's for a model layer, a climate map's own), before any
+        count."""
+        if self.climate is not None:
+            return climatemaps.unit(self.climate, self.layer.unit)
         return self.model.output.unit if self.model is not None else self.layer.unit
+
+    @property
+    def stored_only(self) -> bool:
+        """A map of the stored climate statistics alone, with no weather read (a normal, freeze or elevation)."""
+        return self.climate is not None and self.climate.kind in (None, "normal")
 
     @property
     def unit(self) -> str:
@@ -189,6 +201,10 @@ class LayerAsk:
     def step(self) -> float:
         if self.count is not None or self.event is not None:
             return 1
+        if self.climate is not None:
+            if self.climate.output is not None:
+                return self.climate.output.step
+            return 1 if self.climate.kind == "percentile" else self.layer.step
         return self.model.output.step if self.model is not None else self.layer.step
 
     @property
@@ -208,6 +224,12 @@ class LayerAsk:
             found = palettes.scale_for("date", "day", running=True)
         elif self.model is not None:
             found = palettes.scale_for(self.model.output.use, "day", running=True)
+        elif self.climate is not None:
+            use = climatemaps.use(self.climate, self.layer.use)
+            ranged = self.layer.source == "cumulative" or self.stat is not None or self.climate.kind == "departure"
+            found = palettes.scale_for(use, "day", running=ranged or self.climate.output is not None)
+            if self.climate.kind == "percentile":  # 0 to 100 with 50 in the middle, whatever the map's values
+                found = replace(found, fixed=True)
         else:
             running = self.layer.source == "cumulative" or self.stat is not None
             found = palettes.scale_for(self.layer.use, self.layer.time_axis, running)
@@ -271,6 +293,8 @@ class LayerAsk:
         freeze everywhere would otherwise color the map with a one-day scale)."""
         lo, hi = auto
         start, end = float((self.first - events.EPOCH).days), float((self.last - events.EPOCH).days)
+        if self.layer.time_axis == "none":  # a freeze date: anywhere in the year
+            start, end = climatemaps.year_span(self.first.year)
         if hi - lo < MIN_DATE_SPAN:
             middle = (lo + hi) / 2
             lo, hi = middle - MIN_DATE_SPAN / 2, middle + MIN_DATE_SPAN / 2
@@ -296,6 +320,8 @@ class LayerAsk:
                 "end": iso_hour(last) if isinstance(last, datetime) else last.isoformat(),
             }
         model = self.model
+        if self.layer.time_axis == "none":
+            when = {}
         if self.roll is not None:
             assert self.roll_day is not None
             when = {
@@ -316,9 +342,26 @@ class LayerAsk:
             **({"season": model.season.name} if model is not None and model.season is not None else {}),
             "dd": self.setting.name if self.setting else None,
             "gaps": self.gaps,
+            **(self._climate_echo() if self.climate is not None else {}),
             **({"scale": self.scale_asked.text} if self.scale_asked is not None else {}),
             **({"palette": self.palette_asked.id} if self.palette_asked is not None else {}),
         }
+
+    def _climate_echo(self) -> dict[str, Any]:
+        c = self.climate
+        assert c is not None
+        found: dict[str, Any] = {}
+        if c.kind is not None:
+            found["climate"] = c.kind
+        if self.layer.source != "terrain":
+            found["period"] = c.period
+            if c.years is not None:
+                found["years"] = climatemaps.years_text(c)
+        if c.threshold_f is not None:
+            found["threshold_f"] = c.threshold_f
+        if c.output is not None:
+            found["output"] = c.output.name
+        return found
 
 
 def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: datetime) -> LayerAsk:
@@ -344,6 +387,8 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
     observed = series.last_observed(data_dir, now)
     if observed is None:
         raise ApiError("no_data", NO_DATA, None, status=503)
+    if found.source in ("normals", "terrain"):
+        return _stored_ask(request, found, q, units, observed, warnings)
     roll, roll_day = None, None
     if q.roll is not None:
         q, roll, roll_day = _roll_range(found, q, observed)
@@ -426,6 +471,17 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
             "invalid", "dd applies only to the degree_days layer. Leave it out, or ask for /grids/degree_days.", "dd"
         )
     cubes = _cubes(found, setting, stat, q.gaps, first, last)
+    climate = climatemaps.check(
+        found,
+        q,
+        first=first,
+        last=last,
+        stat=stat,
+        setting=setting,
+        roll=roll,
+        counted=stat in ("count", *events.KINDS),
+        model=model,
+    )
     count, bounds, shown = None, (None, None), ""
     if stat == "count":
         assert q.count is not None
@@ -467,6 +523,40 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         event=event,
         roll=roll,
         roll_day=roll_day,
+        climate=climate,
+    )
+    if climate is not None and climate.kind == "normal":
+        a.stores = series.Stores(_opened_for_window())  # nothing read but the archive's window
+    a.scale_asked = _scale_asked(request, a)
+    a.palette_asked = _palette_asked(request, a)
+    return a
+
+
+def _opened_for_window() -> list[str]:
+    """What a map that reads no weather opens: one variable, for the archive's window (`archive_window`)."""
+    return ["air_temperature_min"]
+
+
+def _stored_ask(request, found: Layer, q: LayerQuery, units: str, observed: datetime, warnings) -> LayerAsk:
+    """A freeze or elevation layer's map (`api.climatemaps`): one map, of a day of the year or of no time."""
+    climate = climatemaps.ask_layer(found, q, units)
+    day = parse_date(q.date, "date") if q.date is not None else series.last_closed_day(observed)
+    if found.time_axis == "none":
+        day = date(day.year, 1, 1)
+    a = LayerAsk(
+        layer=found,
+        first=day,
+        last=day,
+        stat=None,
+        gaps=q.gaps,
+        setting=None,
+        cubes=None,
+        model=None,
+        stores=series.Stores(_opened_for_window()),
+        observed=observed,
+        warnings=warnings,
+        units=units,
+        climate=climate,
     )
     a.scale_asked = _scale_asked(request, a)
     a.palette_asked = _palette_asked(request, a)
@@ -675,6 +765,15 @@ def _scale_asked(request: HttpRequest, a: "LayerAsk") -> ScaleAsked | None:
 
 def stamp(a: LayerAsk, now: datetime) -> Any:
     """The data stamp of what the map reads (`series.last_written`), for its ETag."""
+    if a.climate is not None:
+        own = climatemaps.stamp(a.climate)
+        if a.stored_only:
+            return own
+        return [_weather_stamp(a, now), own]
+    return _weather_stamp(a, now)
+
+
+def _weather_stamp(a: LayerAsk, now: datetime) -> Any:
     found, model = a.layer, a.model
     first_day = a.first.date() if isinstance(a.first, datetime) else a.first
     last_day = a.last.date() if isinstance(a.last, datetime) else a.last
@@ -728,6 +827,8 @@ def compute(a: LayerAsk, window: Window, now: datetime) -> Computed:
     """The layer's map over `window`."""
     started = time.perf_counter()
     data_dir = _data_dir()
+    if a.climate is not None:
+        return _climate_compute(a, window, now, started)
     if a.model is not None:
         found = _model_compute(
             a.layer, a.model, a.first, a.last, window, a.stat, data_dir, now, a.stores, a.warnings, a.count_bounds
@@ -762,6 +863,48 @@ def compute(a: LayerAsk, window: Window, now: datetime) -> Computed:
         from_cubes=from_cubes,
         ms=(time.perf_counter() - started) * 1000,
         notes=notes,
+    )
+
+
+def _climate_compute(a: LayerAsk, window: Window, now: datetime, started: float) -> Computed:
+    """A climate map (`api.climatemaps`): stored statistics alone, or the map as asked against its normal."""
+    c = a.climate
+    assert c is not None
+    kinds: list[str | None]
+    extra: dict[str, np.ndarray]
+    if a.layer.source in ("normals", "terrain"):
+        values = climatemaps.stored_layer(a.layer, c, a.first, window)
+        kinds = ["normal"]
+        extra = {}
+        sources: list[str] = climatemaps.sources(c)
+        run, steps, from_cubes = climatemaps.no_forecast(), [a.first], False
+    else:
+        normal = climatemaps.normal(a.layer, c, a.first, a.last, a.stat, window)
+        if c.kind == "normal":
+            values, sources = normal, climatemaps.sources(c)
+            kinds, extra = ["normal"], {}
+            run, steps, from_cubes = climatemaps.no_forecast(), [a.last], False
+        else:
+            plain = replace(a, climate=None)
+            found = compute(plain, window, now)
+            actual = found.values[0]
+            if c.kind == "departure":
+                values = actual - normal
+            else:
+                values = climatemaps.percentile(a.layer, c, actual, a.last, window, a.setting)
+            kinds, extra, run, steps, from_cubes = found.kinds, found.extra, found.run, found.steps, found.from_cubes
+            kinds = list(kinds)
+            sources = [*found.sources, *(s for s in climatemaps.sources(c) if s not in found.sources)]
+            a.warnings += [n for n in plain.warnings if n not in a.warnings]
+    return Computed(
+        values=np.asarray(values, dtype=np.float64)[None],
+        kinds=kinds,
+        extra=extra,
+        sources=sources,
+        run=run,
+        steps=steps,
+        from_cubes=from_cubes,
+        ms=(time.perf_counter() - started) * 1000,
     )
 
 

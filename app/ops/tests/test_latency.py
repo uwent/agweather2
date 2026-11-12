@@ -42,10 +42,11 @@ def _cases():
         last_day=DAY,
         models=("tar-spot",),
         spread=0.0005,  # the sites within the fixture's cells
+        period="last10",  # the climate fixture's normal maps (`climate_archive`)
     )
 
 
-def test_every_case_answers_well_within_ten_times_its_target(archive):
+def test_every_case_answers_well_within_ten_times_its_target(climate_archive):
     latency.warm_up(lat=LAT, lng=LNG, day=date(2025, 7, 2))
     timings = latency.run(_cases(), repeats=1)
     assert [t.status for t in timings] == [200] * len(timings), [latency.describe(t) for t in timings]

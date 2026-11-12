@@ -226,7 +226,7 @@ class _Rows:
         ]
         if self.by == "county":
             out.append(Column(name="state", values=[a.state for a in areas if a is not None]))
-        if self.a.stat is None:
+        if self.a.stat is None and time_axis != "none":  # elevation and freeze dates have no time
             out.append(Column(name="time" if time_axis == "hour" else "date", values=self.when))
             out.append(Column(name="kind", values=self.kinds))
         elif interval == "month":

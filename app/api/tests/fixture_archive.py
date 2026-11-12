@@ -67,7 +67,12 @@ def climate_values(year: int) -> dict[str, np.ndarray]:
 
 
 def add_climate_years(path: Path) -> Path:
-    """To an archive `build` made, gridMET's derived years for `last5` over the window (`CLIMATE_YEARS`)."""
+    """To an archive `build` made, gridMET's derived years for `last5` over the window (`CLIMATE_YEARS`), and their
+    normal maps (`agdata.normals`) as `last5` and, from the same years, `last10` (which keeps deciles)."""
+    from agdata import normals
+
     for year in CLIMATE_YEARS:
         testing.climate_year(path, testing.WINDOW, year, climate_values(year))
+    for period in ("last5", "last10"):
+        normals.build(path, period, list(CLIMATE_YEARS), set(), testing.WINDOW, days_per_chunk=366)
     return path

@@ -65,9 +65,11 @@ def cases(
     last_day: date,
     models: tuple[str, ...],
     spread: float = 1.0,
+    period: str = "last30",
 ) -> list[Case]:
     """§3's paths: a risk map (a day and a week's maximum) per model, a custom degree-day map from `season_start`,
-    a point's hourly season, and every model at a point through the forecast; and one model at 50 sites around the
+    climate maps (a degree-day departure, a month's normal) and a point's normals, of `period` (D86), a point's hourly
+    season, and every model at a point through the forecast; and one model at 50 sites around the
     point, `spread` times ±0.4° by ±0.9° (the sites' feed, Phase 6 B; 2 s is its own target, not §3's)."""
     z, x, y = tile_of(lat, lng)
     tile = f"{z}/{x}/{y}.png"
@@ -90,7 +92,30 @@ def cases(
             path=f"/tiles/degree_days/{season_start}..{last_day}/{tile}?stat=sum&dd=sine_48_86",
         )
     )
+    month = date.fromordinal(map_day.toordinal() - 29)
+    found.append(
+        Case(
+            name="degree-day departure from normal, season to date",
+            target_ms=300,
+            # D86: the running totals' change less the stored normal's (two reads of each)
+            path=f"/tiles/degree_days/{season_start}..{last_day}/{tile}?stat=sum&dd=modified_50_86&climate=departure&period={period}",
+        )
+    )
+    found.append(
+        Case(
+            name="normal map, a month's mean maximum",
+            target_ms=300,
+            path=f"/tiles/air_temperature_max/{month}..{map_day}/{tile}?stat=mean&climate=normal&period={period}",
+        )
+    )
     point = urlencode({"lat": lat, "lng": lng})
+    found.append(
+        Case(
+            name="point, 30-year normals with degree days",
+            target_ms=1000,
+            path=f"/climate/normals?{point}&dd=modified_50_86&percentiles=10,90&period={period}",
+        )
+    )
     found.append(
         Case(
             name="point, hourly season",

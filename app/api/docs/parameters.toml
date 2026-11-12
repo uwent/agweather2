@@ -23,6 +23,9 @@ LayersResponse = "Every layer that can be shown as a map."
 DownloadsResponse = "The yearly data files available for download."
 
 [shared]
+climate = "Show the map against the climate of the past years: `normal` for the normal map of what you asked for, `departure` for your map less its normal (above normal is positive), or `percentile` for where your map ranks among the past years (50 is a typical year). Normals are kept for the daily weather variables, their running totals and degree days. A range of days takes `stat=sum` or `stat=mean`. Percentiles are kept for running totals from January 1 of precipitation and of modified 50/86 and single sine 41/86 degree days. `/layers` lists what each layer takes. For other statistics, ask at a location with `/climate/normals` or `/climate/compare`."
+period = "With `climate`, or for the freeze maps: the years the normal comes from. `last30` (the default) is the 30 complete years before this one, `last10` the last 10 and `last5` the last 5. Each moves forward a year every January."
+threshold = "For the freeze maps: the temperature that counts as a freeze, 32 (the default), 28 or 24 °F (0, -2.2 or -4.4 °C with `units=metric`). For any other temperature, ask at a location with `/climate/frost`."
 lat = "Latitude of the location, in decimal degrees (for example 43.07). `latitude` is also accepted."
 lng = "Longitude of the location, in decimal degrees, negative west of Greenwich (for example -89.40). `lon`, `long` and `longitude` are also accepted."
 points = "Several locations in one request, in place of `lat` and `lng`: latitude and longitude pairs separated by semicolons, as `43.07,-89.40;44.52,-89.57`. Up to 50 locations. Each row of the response has a `point` column giving its location's position in `meta.locations`."

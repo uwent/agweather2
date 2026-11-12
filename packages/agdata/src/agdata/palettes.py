@@ -255,8 +255,30 @@ USES: dict[str, Use] = {
     "risk_4": Use(palette="BuYlRd_4"),
     "risk_5": Use(palette="BuYlRd_5"),
     "susceptibility": Use(palette="GyOrRd_3"),
+    # Climate (D86): a departure from normal centered on none, a percentile among the period's years, a season's
+    # length, and elevation
+    "warm_departure": Use(palette="BuYlRd", centered=True),  # temperature, degree days, sunlight, wind
+    "wet_departure": Use(palette="BrBG", centered=True),  # precipitation, humidity: wetter is blue-green
+    "dry_departure": Use(palette="BrBG", reverse=True, centered=True),  # ET0: more is drier, brown
+    "warm_percentile": Use(palette="BuYlRd", day=(0, 100), bounded=True),
+    "wet_percentile": Use(palette="BrBG", day=(0, 100), bounded=True),
+    "season_length": Use(palette="viridis"),
+    "elevation": Use(palette="YlOrBr"),
     "default": Use(palette="viridis"),
 }
+
+_WET = ("precipitation", "humidity", "water_balance", "snow")
+
+
+def climate_use(use_id: str, kind: str) -> str:
+    """The use of a layer's departure or percentile map (`climate=`, D86), from the layer's own use."""
+    if kind == "departure":
+        if use_id in _WET:
+            return "wet_departure"
+        return "dry_departure" if use_id == "evapotranspiration" else "warm_departure"
+    if kind == "percentile":
+        return "wet_percentile" if use_id in _WET else "warm_percentile"
+    return use_id
 
 
 def use_palette(use_id: str) -> Palette:

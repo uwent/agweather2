@@ -54,6 +54,9 @@ class TileQuery(Schema):
     roll_align: Literal["trailing", "centered"] = "trailing"
     roll_partial: bool = False
     roll_coverage: float = 75
+    climate: Literal["normal", "departure", "percentile"] | None = None  # D86 (`api.climatemaps`)
+    period: Literal["last30", "last10", "last5"] = "last30"
+    threshold: float | None = None  # a freeze map's
 
 
 def _layer_query(when: str, q: TileQuery) -> LayerQuery:
