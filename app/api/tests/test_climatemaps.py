@@ -97,7 +97,11 @@ def test_climate_refusals(client, climate_archive):
     assert error(grid(client, "air_temperature_max", climate="percentile", **on))["param"] == "climate"
     ranged = {"start": "2025-07-01", "end": "2025-07-05", "period": "last5"}
     assert error(grid(client, "air_temperature_max", stat="max", climate="normal", **ranged))["param"] == "stat"
-    assert error(grid(client, "air_temperature_max", count="days_above_30", climate="normal", **ranged))
+    unkept = error(grid(client, "air_temperature_max", count="days_above_31", climate="normal", **ranged))
+    assert unkept["param"] == "count" and "days_above_30, days_above_32.22, days_above_34" in unkept["message"]
+    on_counts = {"count": "days_above_30", **ranged}
+    assert error(grid(client, "air_temperature_max", climate="percentile", **on_counts))["param"] == "climate"
+    assert error(grid(client, "relative_humidity_max", count="days_above_90", climate="normal", **ranged))
     assert error(grid(client, "air_temperature_max", date="2025-07-05", period="last10"))["param"] == "period"
     dd = {"dd": "sine_48_86", "stat": "sum", "climate": "normal", **ranged}
     assert error(grid(client, "degree_days", **dd))["param"] == "dd"  # 48 °F isn't a kept threshold
@@ -105,6 +109,31 @@ def test_climate_refusals(client, climate_archive):
     assert last30.status_code == 503  # not built here
     percentile = {"dd": "modified_10_30", "stat": "sum", "climate": "percentile", "period": "last5"}
     assert error(grid(client, "degree_days", start="2025-01-01", end="2025-07-05", **percentile))["param"] == "climate"
+
+
+def test_counts_against_their_stored_normals(client, climate_archive):
+    """D88: the minimum is −5 °C on January 1–10 every year, so 10 freeze days in January; none in July."""
+    january = {"start": "2026-01-01", "end": "2026-01-31", "period": "last5", "count": "days_below_0"}
+    response = grid(client, "air_temperature_min", climate="normal", **january)
+    assert values(response) == [10.0] * WINDOW.shape[0] * WINDOW.shape[1]
+    assert response.json()["meta"]["units"]["air_temperature_min"] == "d"
+    us = client.get(
+        "/api/v2/grids/air_temperature_min",
+        {"bbox": BOX, "format": "json", "climate": "normal", **january, "count": "days_below_32"},
+    )
+    assert values(us) == [10.0] * WINDOW.shape[0] * WINDOW.shape[1]
+    july = {"start": "2025-07-01", "end": "2025-07-05", "period": "last5", "count": "days_below_0"}
+    plain = values(grid(client, "air_temperature_min", **{k: v for k, v in july.items() if k != "period"}))
+    departure = grid(client, "air_temperature_min", climate="departure", **july)
+    assert values(departure) == plain  # the normal is none
+    summary = client.get(
+        "/api/v2/summaries/air_temperature_min",
+        {"by": "county", "climate": "normal", "units": "metric", "min_coverage": 0, **january},
+    )
+    assert summary.status_code == 200, summary.json()
+    assert set(summary.json()["data"]["mean"]) - {None} == {10.0}
+    image = client.get("/api/v2/maps/air_temperature_min.png", {"climate": "departure", "units": "metric", **july})
+    assert image.status_code == 200, image.content[:300]
 
 
 def test_freeze_maps(client, climate_archive):

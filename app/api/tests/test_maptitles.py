@@ -137,3 +137,13 @@ def test_a_static_map_is_drawn_with_its_title_subtitle_and_caption(client, archi
     assert args[4:6] == ("Precipitation, cumulative total", "Jan 1 – Jul 8, 2025 (189 days)")
     assert kwargs["caption"][0] == "Data sources: Precipitation from URMA/RTMA hourly grids."
     assert all("combined" not in line for line in kwargs["caption"])
+
+
+def test_a_count_s_normal_names_what_it_counts():
+    from api import climatemaps, counts
+
+    a = ask("air_temperature_min", date(2026, 1, 1), date(2026, 1, 31), "count")
+    a.count, a.count_shown = counts.parse("days_below_32"), "degF"
+    a.climate = climatemaps.ClimateAsk(kind="departure", period="last30", years=(1996, 2025))
+    expected = "Air temperature, daily minimum, days at or below 32 °F, departure from the 30-year normal"
+    assert maptitles.title(a, "us") == expected

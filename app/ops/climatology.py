@@ -17,7 +17,7 @@ from datetime import date
 from pathlib import Path
 
 from agdata import climatestore, normals
-from agdata.climatology import PERIODS
+from agdata.climatology import MAPPED, PERIODS
 from agdata.grid import Window
 from agdata.progress import Reporter
 from agdata.series import archive_years
@@ -79,7 +79,7 @@ def plan(data_dir: Path, today: date, window: Window, refit: bool = False, reder
                 found.drop_files.append(file)
     found.drop_years = [y for y in climatestore.years(data_dir) if y not in normal]
     found.archive = archive
-    for name in PERIODS:
+    for name in MAPPED:
         years = period_years(found, name)
         if not years:
             continue

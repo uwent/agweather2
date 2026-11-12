@@ -141,3 +141,15 @@ def display_unit(stored_unit: str, system: System) -> str:
 
 def to_display(value, stored_unit: str, system: System):
     return convert(value, stored_unit, display_unit(stored_unit, system))
+
+
+def stored_bounds(
+    low: float | None, high: float | None, shown: str, stored: str, step: float
+) -> tuple[float | None, float | None]:
+    """A count's bounds (D75) given in `shown` → the stored unit, each widened by a quarter of the stored `step`, so a
+    stored value on a bound counts despite float noise (86 °F is 30.000000000000004 °C) and none a step away does.
+    None is an open side."""
+    slack = step / 4
+    low_stored = None if low is None else float(convert(low, shown, stored)) - slack
+    high_stored = None if high is None else float(convert(high, shown, stored)) + slack
+    return low_stored, high_stored

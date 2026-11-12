@@ -104,6 +104,24 @@ def test_daily_statistics_and_running_totals(built):
     np.testing.assert_allclose(rain, 31.0, atol=0.2)
 
 
+def test_counts_are_running_counts_from_january_1(built):
+    """D88: the minimum is −5 °C on January 1–10 and December 20–31, so 10 freeze days by January 31 and 22 in the
+    year; the maximum (20 °C) never reaches 86 °F."""
+    data_dir, names = built
+    assert "count_air_temperature_min_below_32degF/mean" in names
+    assert normals.COUNTS[0].name == "count_air_temperature_max_above_86degF"
+    assert normals.COUNTS[7].name == "count_precipitation_sum_below_0p01in"
+    freeze = "count_air_temperature_min_below_32degF/mean"
+    np.testing.assert_allclose(normals.read_map(data_dir, "last5", freeze, date(2025, 1, 31)), 10.0)
+    np.testing.assert_allclose(normals.read_map(data_dir, "last5", freeze, date(2025, 12, 31)), 22.0)
+    window = normals.running_change(
+        data_dir, "last5", freeze.split("/")[0], date(2025, 12, 1), date(2025, 12, 31), WINDOW
+    )
+    np.testing.assert_allclose(window, 12.0)
+    hot = normals.read_map(data_dir, "last5", "count_air_temperature_max_above_86degF/mean", date(2025, 12, 31))
+    np.testing.assert_allclose(hot, 0.0)
+
+
 def test_freeze_chances_and_dates(built):
     data_dir, _ = built
     chance = lambda day: normals.read_map(data_dir, "last5", "freeze_32/chance", day)  # noqa: E731

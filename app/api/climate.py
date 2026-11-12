@@ -25,13 +25,14 @@ from api.params import PointsQuery, fail
 from ops.points import AllWater, AreaAsk, in_box
 
 MIN_POOL, MAX_POOL = 1, 61
-PERIOD_TEXT = {"last30": "30-year", "last10": "10-year", "last5": "5-year"}
+PERIOD_TEXT = {"last30": "30-year", "last20": "20-year", "last10": "10-year", "last5": "5-year"}
+BEFORE_ARCHIVE = ("last20", "last30")  # periods reaching into gridMET's years, which have no mean temperature
 
 
 class PeriodQuery(Schema):
     """The reference period (D82)."""
 
-    period: Literal["last30", "last10", "last5"] = "last30"
+    period: Literal["last30", "last20", "last10", "last5"] = "last30"
 
     def echo(self) -> dict[str, Any]:
         return {"period": self.period}

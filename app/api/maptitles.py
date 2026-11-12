@@ -176,11 +176,12 @@ def title(a: Any, units: str) -> str:
     if climate is not None and a.layer.source in ("normals", "terrain"):
         return _stored_title(a, units)
     text = _rolled(_title(a, units), a)
+    count = getattr(a, "count", None)
     if climate is not None:
         from api import climatemaps
 
-        return f"{text}, {climatemaps.words(climate)}"
-    count = getattr(a, "count", None)
+        counted = "" if count is None else f", {count.words(a.count_shown)}"
+        return f"{text}{counted}, {climatemaps.words(climate)}"
     event = getattr(a, "event", None)
     if event is not None:
         return f"{text}, {event.words(a.count_shown)}"

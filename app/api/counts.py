@@ -18,6 +18,7 @@ from typing import Literal
 import numpy as np
 
 from agdata import units as agunits
+from agdata.units import stored_bounds
 from api.errors import ApiError
 
 _NUMBER = r"(-?\d+(?:[.p]\d+)?)"
@@ -44,16 +45,6 @@ class Count:
     def words(self, shown: str) -> str:
         """`days at or above 86 °F`, `hours between 50 and 86 °F`, in the unit the values are shown in."""
         return f"{self.axis} {bounds_words(self.low, self.high, shown)}"
-
-
-def stored_bounds(
-    low: float | None, high: float | None, shown: str, stored: str, step: float
-) -> tuple[float | None, float | None]:
-    """Bounds given in `shown` → the stored unit, each widened by a quarter of the stored step."""
-    slack = step / 4
-    low_stored = None if low is None else float(agunits.convert(low, shown, stored)) - slack
-    high_stored = None if high is None else float(agunits.convert(high, shown, stored)) + slack
-    return low_stored, high_stored
 
 
 def bounds_words(low: float | None, high: float | None, shown: str) -> str:

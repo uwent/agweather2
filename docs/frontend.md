@@ -113,7 +113,7 @@ Priorities follow project-plan.md's launch table (P0 for April 1, 2027; P1 durin
 | This year against last year and normal: running totals, departure, percentile, "N days ahead of normal" for degree days | alfalfa "Weather plot", U2U | ○ `/climate/compare` |
 | Frost and freeze: probability of a freeze on or before each date at 32, 28 and 24 °F, growing season length | alfalfa, MRCC | ○ `/climate/frost` |
 | Long record at a location (from 1951 or 1979) | U2U comparison years from 1981 | ✗ not planned (D87): points before the archive come from Open-Meteo, one request per span |
-| Monthly benchmark: counts of heat days, cold days, warm nights, freeze days, dry days, heavy-rain days, sunny and cloudy days, against a 10-, 20- or 30-year average | ISU FACTS Weather Tool | ✗ (count statistics, monthly rollups; F7) |
+| Monthly benchmark: counts of heat days, cold days, warm nights, freeze days, dry days, heavy-rain days, sunny and cloudy days, against a 10-, 20- or 30-year average | ISU FACTS Weather Tool | ✓ (`count=` on `/climate/normals` and `/climate/compare`, any bounds at points; stored counts on maps and by county with `climate=`; cold days on the 10- and 5-year normals only; D88) |
 
 ### Data and reference (P0 unless noted)
 
@@ -304,7 +304,7 @@ Visited 2026-11-06 with a headless browser (Playwright), late-blight-db added th
 **[ISU FACTS Weather Tool](https://facts.extension.iastate.edu/weather-tool)**: pick a crop reporting district on a map of 12 states, a variable, a month or the whole year, and a benchmark (most recent 10-, 20- or 30-year average, or a custom range from 1984). Variables are counts and sums with stated thresholds: heat days (max >93.2 °F), cold days (mean <50 °F), warm nights, freeze days (min <32 °F), dry days (rain <0.25 mm), extreme rain days (>25 mm), sunny (>20 MJ/m²) and cloudy (<10 MJ/m²) days, GDD base 50, precipitation, radiation, and NASS corn and soybean yields. Its graphs didn't render in the headless browser, so the output wasn't seen.
 
 - Take: the threshold-count variables and the benchmark choice, as a "This month against normal" section of the climate explorer and, by county, as a map. Stating each threshold beside its name is a good practice to copy.
-- API: ✗ (count statistics over a window, monthly rollups at points and by county; F7).
+- API: ✓ (D88): `count=` with `interval=month` on `/climate/normals` at points, `/climate/compare` for this year against normal, and `/summaries` with `count=` and `climate=normal` or `departure` by county for the stored counts.
 
 **[HPRCC Agroclimate](https://hprcc.unl.edu/agroclimate/)**: a list of tools, several from partners. CliGrow is the one to take: location, planting date, crop presets with base and upper (alfalfa 41/77, corn 50/86, dry beans, grass 32/77, potatoes 45/97, sorghum, soybeans, sugarbeets, sunflower 50/99, wheat 32/77, custom), maturity GDD, freeze temperature, a comparison year, and a bookmarkable graph. Also the Cattle Comfort Index (past and forecast), wet bulb globe temperature forecasts, Climate Perspectives (recent weather against prior periods at a station) and links to drought tools.
 
@@ -330,7 +330,7 @@ Ideas from the review that aren't already in the feature tables, and what each n
 | Livestock heat stress: Temperature Humidity Index and its hours above thresholds; cattle comfort index | Wisconet, HPRCC | ✓ | Derived hourly variable from temperature, humidity (and wind, sun for CCI) with daily features; S |
 | Water balance: precipitation minus ET0 over a window, as a layer and at locations | MRCC | ✗ (◐ at points: both totals ✓) | A derived layer computed from two stored running totals; S |
 | Current-season freeze maps: first fall freeze date, days since the last freeze, nights below a threshold in the last N days | MRCC | ✓ (`/freeze` at points, `count=days_below_32`, `stat=min`, `first=frost`/`last=`/`since=`, D78) | Built in Phase 6 C steps 2 and 4 |
-| Monthly or seasonal threshold counts against normal (heat days, warm nights, dry days, heavy-rain days) by location and county | FACTS | ✗ | Count statistics (above), `interval=month` at points, county summaries (below), normals of counts from the climatology (D61 keeps daily data, so they're computable); M |
+| Monthly or seasonal threshold counts against normal (heat days, warm nights, dry days, heavy-rain days) by location and county | FACTS | ✓ (D88) | Count statistics (above), `interval=month` at points, county summaries (below), normals of counts from the climatology (D61 keeps daily data, so they're computable); M |
 | County and crop-district summaries (mean, min, max of a layer over an area) | FACTS, U2U, Drought Monitor statistics | ✗ | A zonal statistics endpoint over `agdata.regions`' counties and states; M |
 | Trends in freeze dates and season length (1951 on) | MRCC Freeze Date Tool | ✗ | Not planned (D87): maps cover the archive's 11 years only, and gridMET's years build the normals, not daily maps |
 | Drought category at a location; NWS watches and warnings at a location | Wisconet | — | Browser fetches from the Drought Monitor feature service and api.weather.gov, as WISP 3 does for overlays; S |

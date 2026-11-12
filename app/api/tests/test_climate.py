@@ -113,6 +113,44 @@ def test_refusals(client, climate_archive):
     assert error(get(client, window="100"))["param"] == "window"
 
 
+def test_counts_from_each_year_s_own_days(client, climate_archive):
+    """D88: the maximum is 20 to 24 °C by year, so 3 years in 5 are at or above 22 °C every day."""
+    hot = "air_temperature_max:days_above_22"
+    daily = get(client, start="2025-07-01", end="2025-07-03", count=hot)
+    found = data(daily)
+    assert "air_temperature_max" not in found  # only the counts when count is given alone
+    assert found["air_temperature_max_days_above_22"] == [0.6] * 3  # a day's expected count
+    assert found["air_temperature_max_days_above_22_cum"] == [0.6, 1.2, 1.8]
+    assert daily.json()["meta"]["units"]["air_temperature_max_days_above_22"] == "d"
+    months = data(get(client, start="2025-06-01", end="2025-07-31", interval="month", count=hot, percentiles="10,90"))
+    assert months["air_temperature_max_days_above_22"] == [18.0, 18.6]  # 30 or 31 days in 3 years of 5
+    assert months["air_temperature_max_days_above_22_p10"] == [0.0, 0.0]
+    assert months["air_temperature_max_days_above_22_p90"] == [30.0, 31.0]
+    # the minimum is −5 °C on January 1–10 and December 20–31 every year
+    year = data(
+        get(client, start="2025-01-01", end="2025-12-31", interval="year", count="air_temperature_min:days_below_0")
+    )
+    assert year == {"air_temperature_min_days_below_0": [22.0]}
+    both = data(get(client, date="2025-07-01", vars="precipitation_sum", count=f"{hot},precipitation_sum:days_above_1"))
+    assert both["precipitation_sum"] == [1.0]
+    assert both["precipitation_sum_days_above_1"] == [1.0]  # 1 mm a day, the bound included
+    us = data(get(client, date="2025-07-01", units="us", count="air_temperature_max:days_above_71p6"))
+    assert us["air_temperature_max_days_above_71p6"] == [0.6]  # 22 °C, in °F
+
+
+def test_count_refusals(client, climate_archive):
+    assert error(get(client, count="air_temperature:hours_above_20"))["param"] == "count"  # hours
+    assert error(get(client, count="hours_rh_over_90:days_above_5"))["param"] == "count"  # no years of it
+    assert error(get(client, count="air_temperature_mean:days_below_10", period="last30"))["param"] == "count"
+    assert error(get(client, count="air_temperature_max:days_over_22"))["param"] == "count"
+
+
+def test_twenty_years_at_points(client, climate_archive):
+    meta = get(client, date="2025-07-01", period="last20").json()["meta"]
+    assert meta["summary"]["first_year"] == 2005 and meta["summary"]["years"] == 5
+    assert error(get(client, date="2025-07-01", period="last20", vars="air_temperature_mean"))["param"] == "vars"
+
+
 def test_an_unchanged_answer_is_not_sent_again(client, climate_archive):
     first = get(client, date="2025-07-01")
     again = client.get(
@@ -229,6 +267,28 @@ def test_without_the_forecast_this_year_ends_with_the_observed_days(client, clim
     assert "forecast" not in found["kind"]
     last = max(k for k, kind in enumerate(found["kind"]) if kind is not None)
     assert found["precipitation_sum_cum"][last] is not None and found["precipitation_sum_cum"][last + 1] is None
+
+
+def test_counts_this_year_against_normal(client, climate_archive):
+    hot = "air_temperature_max:days_above_22"
+    response = compare(client, count=hot)
+    found = data(response)
+    assert "precipitation_sum_cum" not in found  # only the counts when count is given alone
+    name = "air_temperature_max_days_above_22"
+    assert found[f"{name}_cum_normal"][:3] == [0.6, 1.2, 1.8]
+    assert found[f"{name}_cum_last_year"][:3] == [1.0, 2.0, 3.0]  # 2024: 24 °C every day
+    as_of = response.json()["meta"]["summary"]["compare"]["as_of"]
+    k = found["date"].index(as_of)
+    totals = data(
+        client.get(
+            "/api/v2/weather/totals",
+            {"lat": LAT, "lng": LNG, "units": "metric", "count": hot, "start": "2025-07-01", "end": as_of},
+        )
+    )
+    assert found[f"{name}_cum"][k] == totals[name][0]  # as /weather/totals counts them
+    assert found[f"{name}_missing_days"][k] == totals[f"{name}_missing_days"][0]
+    entry = response.json()["meta"]["summary"]["compare"]["totals"][name]
+    assert entry["missing_days"] == found[f"{name}_missing_days"][k] and "days_ahead" not in entry
 
 
 def test_compare_refusals(client, climate_archive):

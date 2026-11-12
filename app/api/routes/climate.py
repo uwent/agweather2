@@ -35,7 +35,16 @@ from api.params import (
     degree_day_settings,
 )
 from api.routes.degree_days import degree_days, freeze_thresholds, temperatures_of
-from api.routes.weather import FORECAST_DAYS, answer_etag, check_size, envelope_parts, located, read_days
+from api.routes.weather import (
+    FORECAST_DAYS,
+    CountColumn,
+    answer_etag,
+    check_size,
+    count_columns,
+    envelope_parts,
+    located,
+    read_days,
+)
 from api.schemas import TableResponse, responses
 
 router = Router(tags=["Climate"])
@@ -44,6 +53,43 @@ NORMAL_VARIABLES = {name: name for name in normals.DAILY_NAMES}
 DEFAULT_VARS = ["air_temperature_min", "air_temperature_max", "precipitation_sum"]
 TEMPERATURES = ["air_temperature_min", "air_temperature_max"]
 NOT_IN_LAST30 = ("air_temperature_mean",)  # gridMET's years have no hourly mean (`agdata.normals`)
+COUNT_STEP = 0.1  # days: a count's normal is a mean across years
+COUNT_DAY_STEP = 0.01  # a day's expected count, a share of years and pooled days
+
+
+def _no_mean_before_archive(period: str, names: list[str], param: str) -> None:
+    """The 30- and 20-year normals reach into gridMET's years, which have no mean temperature."""
+    if period in climate.BEFORE_ARCHIVE and (lacking := [n for n in names if n in NOT_IN_LAST30]):
+        years = climate.PERIOD_TEXT[period]
+        raise ApiError(
+            "not_applicable",
+            f"The {years} normals have no {lacking[0]}: the records before 2016 give each day's minimum and maximum "
+            "only. Ask for period=last10 or last5, or for air_temperature_min and air_temperature_max.",
+            param,
+        )
+
+
+def climate_counts(request: HttpRequest, units: str, period: str, offered: dict[str, str]) -> list[CountColumn]:
+    """Every `count=var:days_above_X` (as `/weather/totals` reads them, D75), limited to the daily variables the
+    period's years hold (D88): the years are kept as days, so hours can't be counted."""
+    found = count_columns(request, units)
+    for c in found:
+        if c.hourly:
+            raise ApiError(
+                "not_applicable",
+                "Normals count days, not hours: the years they come from are kept as daily values. Count a daily "
+                "variable, such as count=air_temperature_max:days_above_86.",
+                "count",
+            )
+        if c.variable not in offered:
+            raise ApiError(
+                "not_applicable",
+                f"We don't keep the years of {c.variable} that its normals would come from. Count one of "
+                f"{', '.join(offered)}.",
+                "count",
+            )
+    _no_mean_before_archive(period, [c.variable for c in found], "count")
+    return found
 
 
 def _months(first: date, last: date) -> list[tuple[str, int, int]]:
@@ -68,22 +114,21 @@ def normals_at_points(
     area: Query[AreaQuery],
     vars: str | None = None,
     dd: str | None = None,
+    count: str | None = None,
     interval: Literal["day", "month", "year"] = "day",
 ) -> HttpResponse:
     """One row per point and day (or month, or one per point with `interval=year`) of one calendar year, default
     this one: each variable's normal (`<var>`), its percentiles (`<var>_p10`), and for values that add up the normal
     running total from `start` (`<var>_cum`, `<var>_cum_p10`); with `dd=`, each setting's normal degree days
-    (`dd_<setting>`) and running total (`dd_<setting>_cum`). Only the degree days when `dd` is given alone."""
+    (`dd_<setting>`) and running total (`dd_<setting>_cum`); with `count=` (D88), each count's expected days
+    (`<var>_<count>`, a share of a day) and its running count. Only the degree days or counts when given alone."""
     warnings: list[str] = []
     settings_found = degree_day_settings(dd, output.units, warnings) if dd is not None else []
-    names = check_vars(vars, NORMAL_VARIABLES, [] if settings_found and vars is None else DEFAULT_VARS)
-    if q.period == "last30" and (lacking := [n for n in names if n in NOT_IN_LAST30]):
-        raise ApiError(
-            "not_applicable",
-            f"The 30-year normals have no {lacking[0]}: the records before 2016 give each day's minimum and maximum "
-            "only. Ask for period=last10 or last5, or for air_temperature_min and air_temperature_max.",
-            "vars",
-        )
+    del count  # repeatable: read from request.GET
+    wanted_counts = climate_counts(request, output.units, q.period, NORMAL_VARIABLES)
+    alone = (settings_found or wanted_counts) and vars is None
+    names = check_vars(vars, NORMAL_VARIABLES, [] if alone else DEFAULT_VARS)
+    _no_mean_before_archive(q.period, names, "vars")
     percentiles = q.percentile_list()
     specs = rolls.specs()
     if specs and interval != "day":
@@ -92,7 +137,7 @@ def normals_at_points(
             f"Rolling windows apply to daily normals, not to interval={interval}. Leave out roll, or interval.",
             "roll",
         )
-    rolled.check_stat(rolls, {name: adds_up(name) for name in names})
+    rolled.check_stat(rolls, {name: adds_up(name) for name in names} | {c.name: True for c in wanted_counts})
     now = clock.now()
     today = now.date()
     first, last = when.span(default_end=date(today.year, 12, 31))
@@ -101,10 +146,11 @@ def normals_at_points(
     around = area.ask(output.units)
     asked, period_warnings = climate.ask(where, q, today, around, pool_days=q.window)
     warnings += period_warnings
-    wanted: list[str] = [*names, *(TEMPERATURES if settings_found else [])]
+    wanted: list[str] = [*names, *(TEMPERATURES if settings_found else []), *(c.variable for c in wanted_counts)]
     read: list[str] = list(dict.fromkeys(wanted))
     computed = {**where.echo(), "start": first, "end": last, "vars": names, "interval": interval, **q.echo()}
     computed |= {"dd": [s.name for s in settings_found] or None, "units": output.units}
+    computed |= {"count": [f"{c.variable}:{c.count.name}" for c in wanted_counts] or None}
     computed |= {**rolls.echo(), **area.echo()}
     etag = answer_etag(request, computed, asked.stamp(read, now))
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
@@ -156,8 +202,11 @@ def normals_at_points(
             for s in settings_found:
                 days = np.stack([_dd(s, lo_f, hi_f) for lo_f, hi_f in temps]) if temps else np.empty((0, 366))
                 series[f"dd_{s.name}"] = (days, True)
+        for c in wanted_counts:
+            series[c.name] = (climatology.indicator(found[c.variable], *c.bounds), True)
+        counted_names = {c.name for c in wanted_counts}
         for name, (values, totals) in series.items():
-            of = "dd" if name.startswith("dd_") else name
+            of = "dd" if name.startswith("dd_") else "count" if name in counted_names else name
             if interval != "day":
                 for _, a, b in spans:
                     span = climatology.over_span(values, asked.years, a, b, total=totals, percentiles=percentiles)
@@ -191,6 +240,9 @@ def normals_at_points(
         of = kinds[name]
         if of == "dd":
             table.append(Column(name=name, values=values, unit="degF_day", step=DD_STEP, summarize=name in summarized))
+        elif of == "count":
+            step = COUNT_DAY_STEP if interval == "day" and name in summarized else COUNT_STEP
+            table.append(Column(name=name, values=values, unit="day", step=step, summarize=name in summarized))
         else:
             column = catalog_column(name, values, variable=of)
             table.append(replace(column, summarize=name in summarized))
@@ -447,6 +499,7 @@ def compare(
     vars: str | None = None,
     dd: str | None = None,
     percentiles: str | None = None,
+    count: str | None = None,
     forecast: bool = True,
     gaps: Literal["estimate", "missing"] = "estimate",
 ) -> HttpResponse:
@@ -455,11 +508,16 @@ def compare(
     `X` (`precipitation_sum` or `dd_<setting>`): this year's running total from `start` through the forecast
     (`X_cum`), last year's to the same date (`X_cum_last_year`), the period's normal (`X_cum_normal`, with
     `X_cum_normal_p10` … for `percentiles`, default 10 and 90), `X_departure`, `X_percent_of_normal`, and
-    `X_percentile` among the period's years. `meta.summary.as_of` is each point's last observed day, with each
-    total's percentile there and, for degree days, `days_ahead` of normal (negative: behind)."""
+    `X_percentile` among the period's years; each `count` (`air_temperature_max:days_above_90`, D88) the same, as
+    `<var>_<count>`, with `_missing_days` (this year's days without a value, not counted). `meta.summary.as_of` is
+    each point's last observed day, with each total's percentile there and, for degree days, `days_ahead` of normal
+    (negative: behind)."""
     warnings: list[str] = []
     settings_found = degree_day_settings(dd, output.units, warnings) if dd is not None else []
-    names = check_vars(vars, COMPARE_VARIABLES, [] if settings_found and vars is None else ["precipitation_sum"])
+    del count  # repeatable: read from request.GET
+    wanted_counts = climate_counts(request, output.units, q.period, NORMAL_VARIABLES)
+    alone = (settings_found or wanted_counts) and vars is None
+    names = check_vars(vars, COMPARE_VARIABLES, [] if alone else ["precipitation_sum"])
     spread = (
         climate.percents(percentiles, "percentiles", "percentiles=10,90") if percentiles is not None else [10.0, 90.0]
     )
@@ -471,12 +529,13 @@ def compare(
     around = area.ask(output.units)
     asked, period_warnings = climate.ask(where, q, today, around)
     warnings += period_warnings
-    wanted: list[str] = [*names, *(TEMPERATURES if settings_found else [])]
+    wanted: list[str] = [*names, *(TEMPERATURES if settings_found else []), *(c.variable for c in wanted_counts)]
     read: list[str] = list(dict.fromkeys(wanted))
     options = SeriesQuery(forecast=forecast, gaps=gaps)
     computed = {**where.echo(), "start": first, "end": last, "vars": names, **q.echo(), "percentiles": spread}
     computed |= {"dd": [s.name for s in settings_found] or None, "forecast": forecast, "gaps": gaps}
     computed |= {"units": output.units, **area.echo()}
+    computed |= {"count": [f"{c.variable}:{c.count.name}" for c in wanted_counts] or None}
     stamp = points.stamp(
         where.locations(), first, min(last, today + timedelta(days=FORECAST_DAYS)), now, names=read, area=around
     )
@@ -547,13 +606,20 @@ def compare(
             for s in settings_found:
                 now_daily[f"dd_{s.name}"] = np.where(usable, degree_days(s, lo_f, hi_f), np.nan)
                 past_daily[f"dd_{s.name}"] = np.stack([_dd(s, a, b) for a, b in temps]) if temps else np.empty((0, 366))
+        for c in wanted_counts:  # counts never estimate (D75): a missing day isn't counted, and is counted as missing
+            now_daily[c.name] = climatology.indicator(own(c.variable), *c.bounds)
+            past_daily[c.name] = climatology.indicator(past[c.variable], *c.bounds)
         point_summary: dict = {"as_of": dates[as_of] if as_of is not None else None, "totals": {}}
         if where.points is not None:
             point_summary = {"point": k, **point_summary}
+        counted_names = {c.name for c in wanted_counts}
         for name, daily in now_daily.items():
-            of = "dd" if name.startswith("dd_") else name
+            of = "dd" if name.startswith("dd_") else "count" if name in counted_names else name
             total = np.cumsum(np.where(np.isfinite(daily), daily, 0.0))
             total[ends:] = np.nan
+            if name in counted_names:
+                missed = np.cumsum(~np.isfinite(daily)).astype(float)
+                missed[ends:] = np.nan
             r = climatology.running(past_daily[name], asked.years, start=lo, percentiles=spread)
             normal = r.mean[slots]
             mine = r.totals[last_year, slots] if last_year is not None else np.full(len(dates), np.nan)
@@ -568,8 +634,12 @@ def compare(
             add(f"{name}_departure", total - normal, of)
             add(f"{name}_percent_of_normal", share, "percent")
             add(f"{name}_percentile", ranks, "percent")
+            if name in counted_names:
+                add(f"{name}_missing_days", missed, "days")
             if as_of is not None:
                 entry: dict = {"percentile": None if np.isnan(ranks[as_of]) else round(float(ranks[as_of]))}
+                if name in counted_names:
+                    entry["missing_days"] = int(missed[as_of])
                 if name.startswith("dd_"):
                     entry["days_ahead"] = _days_ahead(float(total[as_of]), r.mean, lo, dates[as_of])
                 point_summary["totals"][name] = entry
@@ -585,6 +655,10 @@ def compare(
             table.append(Column(name=name, values=values, unit="percent", step=1))
         elif of == "dd":
             table.append(Column(name=name, values=values, unit="degF_day", step=DD_STEP))
+        elif of == "count":
+            table.append(Column(name=name, values=values, unit="day", step=COUNT_STEP))
+        elif of == "days":
+            table.append(Column(name=name, values=[None if np.isnan(v) else int(v) for v in values]))
         else:
             table.append(replace(catalog_column(name, values, variable=of), summarize=False))
     summary = asked.summary() | {"estimated_days": estimated_days, "corrections": corrections}

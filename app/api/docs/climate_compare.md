@@ -10,6 +10,8 @@ Each row is one location and day, with its `kind` (`observed`, `partial` or `for
 - `dd_modified_50_86_departure` is this year's total less the normal, and `dd_modified_50_86_percent_of_normal` is this year's total as a percentage of it.
 - `dd_modified_50_86_percentile` ranks this year's total among the period's years: 50 is a typical year, and 90 means this year is ahead of nine years in ten.
 
+Counts of days within bounds (`count=air_temperature_max:days_above_90`) get the same columns: this year's heat days so far, last year's, the normal count and the rest. This year's days with no value are not counted, and `air_temperature_max_days_above_90_missing_days` says how many there were.
+
 `meta.summary.compare` gives each location's last observed day (`as_of`), each total's percentile on that day and, for degree days, `days_ahead`: how many days ahead of normal the season is. It is negative when the season is behind. It is the number of days between today and the day the normal total reaches this year's total, so 5 means this year reached today's total 5 days sooner than a normal year would. It is empty when this year's total is beyond the highest normal total for the year.
 
 This year's totals are computed as on `/degree-days` and `/weather/totals`: short gaps in temperature and ET0 are filled with an estimate, and missing precipitation counts as no rain. Totals are available only inside the area we cover.

@@ -10,6 +10,9 @@ A store per period, `data_dir/climate/normals/<period>.zarr`, an array per stati
   normal is the difference of its thresholds' (`dd_sine_41` − `dd_sine_86`) and a total from another start is a
   subtraction, and only the cubes are stored. `DECILE_NAMES` (modified 50/86, sine 41/86, precipitation) also keep
   `p10` … `p90` (not in `last5`, whose five years can't give deciles), for a percentile map among the years.
+- **Counts of days within bounds** (`COUNTS`, D88: FACTS's heat, freeze, dry, heavy-rain, sunny and cloudy days and
+  a few more): `count_<variable>_<above|below>_<value><unit>/mean`, the mean running count from January 1 (each
+  year's own count, then averaged), linear like a running total, so any window's normal count is a subtraction.
 - **Freezes** at 32, 28 and 24 °F (`freeze_32`, …): `chance`, per day, the share of years with a freeze still to
   come (January–June: after the date) or already come (July–December: by the date); and single maps (slot 0 of
   their array) `spring_p10`, `spring_p50`, `spring_p90`, `fall_p10`, … (calendar slots, `climatology.slot`; a
@@ -35,6 +38,7 @@ from zarr.codecs.numcodecs import PCodec
 from zarr.errors import GroupNotFoundError
 
 from agdata import climatestore, climatology, pastyears
+from agdata import units as agunits
 from agdata.catalog import (
     CUMULATIVE_VARIABLES,
     DAILY_VARIABLES,
@@ -47,7 +51,7 @@ from agdata.catalog import (
 from agdata.grid import Window
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 
-VERSION = 2  # bump when what's stored changes, and every period is built again (2: `enough_years`)
+VERSION = 3  # bump when what's stored changes, and every period is built again (2: `enough_years`; 3: counts)
 KIND = "climate/normals"
 BLOCK = pastyears.CELLS  # cells a side per block: one chunk a year from the copies
 TILE = 256  # cells a side per stored chunk
@@ -71,6 +75,45 @@ RUNNING_NAMES = (*SINE, *MODIFIED, *AVERAGE, "precipitation", "et0")
 DECILE_NAMES = ("dd_modified_50_86", "dd_sine_41_86", "precipitation")
 DECILES = tuple(float(p) for p in range(10, 100, 10))
 FREEZE_F = (32, 28, 24)
+COUNT_SCALE = 0.02  # days: a running count's mean, up to 366 within int16
+
+
+@dataclass(frozen=True, kw_only=True)
+class StoredCount:
+    """A count of days kept as a normal map (D88): a daily variable's days at or above `low` or at or below `high`,
+    in `unit`, both inclusive (`api.counts`)."""
+
+    variable: str
+    low: float | None = None
+    high: float | None = None
+    unit: str
+
+    @property
+    def name(self) -> str:
+        """The stored array's name: `count_air_temperature_max_above_86degF`."""
+        side, value = ("above", self.low) if self.low is not None else ("below", self.high)
+        return f"count_{self.variable}_{side}_{value:g}{self.unit}".replace(".", "p")
+
+    def bounds(self) -> tuple[float | None, float | None]:
+        """The bounds in the variable's stored unit, widened as a request's are (`units.stored_bounds`)."""
+        v = DAILY_VARIABLES[self.variable]
+        return agunits.stored_bounds(self.low, self.high, self.unit, v.unit, v.scale)
+
+
+COUNTS = (
+    StoredCount(variable="air_temperature_max", low=86, unit="degF"),  # corn's upper threshold
+    StoredCount(variable="air_temperature_max", low=90, unit="degF"),
+    StoredCount(variable="air_temperature_max", low=93.2, unit="degF"),  # FACTS's heat days
+    StoredCount(variable="air_temperature_max", high=32, unit="degF"),  # days that stay below freezing
+    StoredCount(variable="air_temperature_min", high=32, unit="degF"),  # freeze days
+    StoredCount(variable="air_temperature_min", high=28, unit="degF"),
+    StoredCount(variable="air_temperature_min", low=70, unit="degF"),  # warm nights
+    StoredCount(variable="precipitation_sum", high=0.01, unit="in"),  # dry days: FACTS's < 0.25 mm on 0.1 mm values
+    StoredCount(variable="precipitation_sum", low=0.5, unit="in"),
+    StoredCount(variable="precipitation_sum", low=1, unit="in"),  # heavy rain
+    StoredCount(variable="shortwave_radiation_sum", low=20, unit="MJ_m2"),  # sunny
+    StoredCount(variable="shortwave_radiation_sum", high=10, unit="MJ_m2"),  # cloudy
+)
 FREEZE_QUANTILES = (0.1, 0.5, 0.9)
 Progress = Callable[[int, int], None]
 
@@ -102,6 +145,7 @@ def stats(period: str) -> list[Stat]:
         for name in DECILE_NAMES:
             scale = CUMULATIVE_VARIABLES.get(name, CUMULATIVE_VARIABLES["dd_sine_41"]).scale
             out += [Stat(name=f"{name}/p{p:g}", scale=scale) for p in DECILES]
+    out += [Stat(name=f"{c.name}/mean", scale=COUNT_SCALE) for c in COUNTS]
     for f in FREEZE_F:
         out.append(Stat(name=f"freeze_{f}/chance", scale=0.1))  # percent
         for season in ("spring", "fall"):
@@ -202,6 +246,8 @@ def block_stats(years: list[int], by_year: list[dict[str, np.ndarray]], period: 
             out[f"{name}/mean"] = r.mean
         for q in deciles:
             out[f"{name}/p{q:g}"] = r.percentiles[q]
+    for c in COUNTS:  # the mean running count from January 1, as a running total's (D88)
+        out[f"{c.name}/mean"] = climatology.running(climatology.indicator(stack(c.variable), *c.bounds()), years).mean
     tmin = stack("air_temperature_min")
     spring_slots = slice(*climatology.SPRING)
     for f in FREEZE_F:

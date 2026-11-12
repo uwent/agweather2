@@ -199,6 +199,8 @@ class LayerAsk:
 
     @property
     def step(self) -> float:
+        if self.count is not None and self.climate is not None:
+            return 0.1  # a normal count is a mean across years
         if self.count is not None or self.event is not None:
             return 1
         if self.climate is not None:
@@ -218,7 +220,8 @@ class LayerAsk:
     def scale(self) -> palettes.Scale:
         """The map's palette (`palette=` if asked, else its use's) and its fixed domain (None: from the map's values,
         `auto_domain`)."""
-        if self.count is not None or (self.event is not None and self.event.kind == "since"):
+        normal_count = self.climate is None or self.climate.kind == "normal"
+        if (self.count is not None and normal_count) or (self.event is not None and self.event.kind == "since"):
             found = palettes.scale_for("count", "day", running=True)
         elif self.event is not None:
             found = palettes.scale_for("date", "day", running=True)
@@ -478,17 +481,6 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
             "invalid", "dd applies only to the degree_days layer. Leave it out, or ask for /grids/degree_days.", "dd"
         )
     cubes = _cubes(found, setting, stat, q.gaps, first, last)
-    climate = climatemaps.check(
-        found,
-        q,
-        first=first,
-        last=last,
-        stat=stat,
-        setting=setting,
-        roll=roll,
-        counted=stat in ("count", *events.KINDS),
-        model=model,
-    )
     count, bounds, shown = None, (None, None), ""
     if stat == "count":
         assert q.count is not None
@@ -499,6 +491,19 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         column = Column(name=found.id, values=[], unit=base_unit, step=base_step, variable=found.variable or found.id)
         shown = shown_unit(column, SYSTEMS.get(units, "imperial"), unit_overrides(request))
         bounds = count.bounds(shown, base_unit, base_step)
+    climate = climatemaps.check(
+        found,
+        q,
+        first=first,
+        last=last,
+        stat=stat,
+        setting=setting,
+        roll=roll,
+        counted=stat in events.KINDS,
+        count_bounds=bounds if count is not None else None,
+        count_shown=shown,
+        model=model,
+    )
     if event is not None:
         column = Column(name=found.id, values=[], unit=found.unit, step=found.step, variable=found.variable or found.id)
         shown = shown_unit(column, SYSTEMS.get(units, "imperial"), unit_overrides(request))

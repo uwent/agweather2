@@ -7,8 +7,9 @@ A layer that lists `climate` (`agdata.layers`) takes `climate=normal`, `departur
   of its days' means) or a sum of one that adds up (precipitation's and ET0's from their normal running totals,
   each year's own total; sunlight's from its days' means), a running total on a day, and degree days whose setting
   the stored cubes make (a single sine pair is the difference of its thresholds', any start a subtraction).
-  A minimum or maximum over days, a count, a first or last day, an hourly map and a model's aren't, and are refused
-  (the points, `/climate/*`, compute them from the years).
+  A count of days is too where it's one of the stored counts (`normals.COUNTS`, D88: its mean running count, so a
+  window is a subtraction). A minimum or maximum over days, another count, a first or last day, an hourly map and a
+  model's aren't, and are refused (the points, `/climate/*`, compute them from the years).
 - **departure**: the map as asked less its normal, in a difference's unit (°F of difference, not °F).
 - **percentile**: where the map sits among the period's years, from the stored deciles (`normals.percentile_among`):
   only running totals from January 1 of modified 50/86 and sine 41/86 degree days and precipitation, not in `last5`.
@@ -26,7 +27,8 @@ import numpy as np
 from django.conf import settings
 
 from agdata import normals, palettes, series, terrain
-from agdata.catalog import dd_name
+from agdata import units as agunits
+from agdata.catalog import DAILY_VARIABLES, dd_name
 from agdata.grid import Window
 from agdata.layers import DEGREE_DAYS, ELEVATION_OUTPUTS, FREEZE_DATE_OUTPUTS, NORMAL_DECILES, Layer, LayerOutput
 from api.errors import ApiError
@@ -53,6 +55,7 @@ class ClimateAsk:
     threshold_f: int | None = None
     output: LayerOutput | None = None
     cubes: tuple[str, str | None] | None = None
+    count: normals.StoredCount | None = None  # a count's stored normal (D88)
 
 
 def built(period: str) -> dict[str, Any]:
@@ -152,10 +155,13 @@ def check(
     setting: Any,
     roll: Any,
     counted: bool,
+    count_bounds: tuple[float | None, float | None] | None,
+    count_shown: str,
     model: Any,
 ) -> ClimateAsk | None:
     """`climate=` on a weather layer, checked against what the normal maps can give (module docstring); None
-    without it, refusing `period` and `threshold` alone."""
+    without it, refusing `period` and `threshold` alone. `counted`: a first, last or since day; `count_bounds`:
+    a count's bounds in the stored unit (`count_shown` the unit asked in), matched to a stored count (D88)."""
     kind = q.climate
     if kind is None:
         if q.period != "last30":
@@ -181,10 +187,13 @@ def check(
     if model is not None or counted:
         raise ApiError(
             "not_applicable",
-            "A climate map combines days by their sum or mean. Leave out count, first, last and since, or ask for "
-            "them at a location with /climate/normals.",
+            "A climate map combines days by their sum, mean or count. Leave out first, last and since, or ask for "
+            "freeze dates at a location with /climate/frost.",
             "climate",
         )
+    stored_count = None
+    if count_bounds is not None:
+        stored_count = _stored_count(layer, count_bounds, count_shown, kind)
     if first != last and stat is None:
         raise ApiError(
             "invalid",
@@ -203,6 +212,14 @@ def check(
     cubes = None
     if layer.source == "daily":
         assert layer.variable is not None
+        if stored_count is not None and stored_count.name not in held:
+            raise ApiError(
+                "no_data",
+                f"The {PERIOD_WORDS[q.period]} normal maps of counts aren't ready yet. Please try again later, or ask "
+                "for the count at a location with /climate/normals.",
+                "period",
+                status=503,
+            )
         if layer.variable not in held:
             raise ApiError(
                 "not_applicable",
@@ -237,7 +254,50 @@ def check(
                 "start",
             )
     del roll  # a window is a range with its statistic by now (`layermaps._roll_range`)
-    return ClimateAsk(kind=kind, period=q.period, years=_years(info), cubes=cubes)
+    return ClimateAsk(kind=kind, period=q.period, years=_years(info), cubes=cubes, count=stored_count)
+
+
+def _stored_count(
+    layer: Layer, bounds: tuple[float | None, float | None], shown: str, kind: str
+) -> normals.StoredCount:
+    """The stored count (D88) whose bounds are the request's, to half the stored step; an ApiError naming those
+    kept for the layer, in the unit asked in, otherwise."""
+    if kind == "percentile":
+        raise ApiError(
+            "not_applicable",
+            "Percentile maps aren't kept for counts. Ask for climate=departure, or for the percentile at a location "
+            "with /climate/compare.",
+            "climate",
+        )
+    offered = [s for s in normals.COUNTS if s.variable == layer.variable]
+    if layer.source != "daily" or not offered:
+        raise ApiError(
+            "not_applicable",
+            "Normal maps of counts are kept for the daily maximum and minimum temperature, precipitation and "
+            "sunlight. Ask for other counts at a location with /climate/normals.",
+            "count",
+        )
+    step = DAILY_VARIABLES[offered[0].variable].scale
+
+    def same(a: float | None, b: float | None) -> bool:
+        return (a is None and b is None) or (a is not None and b is not None and abs(a - b) <= step / 2)
+
+    for s in offered:
+        low, high = s.bounds()
+        if same(low, bounds[0]) and same(high, bounds[1]):
+            return s
+    forms = []
+    for s in offered:
+        side, value = ("above", s.low) if s.low is not None else ("below", s.high)
+        assert value is not None
+        number = f"{float(agunits.convert(value, s.unit, shown)):.2f}".rstrip("0").rstrip(".")
+        forms.append(f"days_{side}_{number}")
+    raise ApiError(
+        "not_applicable",
+        f"{layer_title(layer)} has normal maps for these counts only: {', '.join(forms)}. Choose one of those, or "
+        "ask for any count at a location with /climate/normals.",
+        "count",
+    )
 
 
 def _stored(info: dict[str, Any]) -> list[str]:
@@ -278,6 +338,8 @@ def unit(c: ClimateAsk, layer_unit: str) -> str:
 def use(c: ClimateAsk, layer_use: str) -> str:
     if c.output is not None:
         return c.output.use
+    if c.count is not None:
+        return "count" if c.kind == "normal" else palettes.count_departure_use(layer_use, below=c.count.low is None)
     return palettes.climate_use(layer_use, c.kind or "normal")
 
 
@@ -309,6 +371,8 @@ def normal(layer: Layer, c: ClimateAsk, first: date, last: date, stat: str | Non
     """The normal of the map as asked (one map, in the layer's stored unit)."""
     data_dir, period = settings.DATA_DIR, c.period
     days = (last - first).days + 1
+    if c.count is not None:
+        return normals.running_change(data_dir, period, c.count.name, first, last, window)
     if layer.source == "cumulative":
         assert layer.variable is not None
         return normals.read_within(data_dir, period, f"{layer.variable}/mean", last, window)

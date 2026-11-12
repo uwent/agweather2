@@ -258,6 +258,7 @@ USES: dict[str, Use] = {
     # Climate (D86): a departure from normal centered on none, a percentile among the period's years, a season's
     # length, and elevation
     "warm_departure": Use(palette="BuYlRd", centered=True),  # temperature, degree days, sunlight, wind
+    "cold_departure": Use(palette="BuYlRd", reverse=True, centered=True),  # more freeze or cloudy days is blue
     "wet_departure": Use(palette="BrBG", centered=True),  # precipitation, humidity: wetter is blue-green
     "dry_departure": Use(palette="BrBG", reverse=True, centered=True),  # ET0: more is drier, brown
     "warm_percentile": Use(palette="BuYlRd", day=(0, 100), bounded=True),
@@ -279,6 +280,14 @@ def climate_use(use_id: str, kind: str) -> str:
     if kind == "percentile":
         return "wet_percentile" if use_id in _WET else "warm_percentile"
     return use_id
+
+
+def count_departure_use(use_id: str, below: bool) -> str:
+    """The use of a count's departure map (D88): more days above a bound reads as the variable's departure does
+    (warmer, wetter); more days below it the other way (colder, drier)."""
+    if use_id in _WET:
+        return "dry_departure" if below else "wet_departure"
+    return "cold_departure" if below else "warm_departure"
 
 
 def use_palette(use_id: str) -> Palette:

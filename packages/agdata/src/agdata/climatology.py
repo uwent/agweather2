@@ -42,8 +42,23 @@ POOL_DAYS = 15
 COVERAGE = 0.75  # of a pool's possible values, for a slot to have statistics; of the years, for a running total's
 MAX_MISSING = 7  # days a year's running total may miss and still count
 SEASON_MISSING = 0.1  # share of a freeze season's days a year may miss and still count
-PERIODS = {"last5": 5, "last10": 10, "last30": 30}
-PeriodName = Literal["last5", "last10", "last30"]
+PERIODS = {"last5": 5, "last10": 10, "last20": 20, "last30": 30}
+PeriodName = Literal["last5", "last10", "last20", "last30"]
+MAPPED = ("last5", "last10", "last30")  # periods with stored normal maps (D85); `last20` is at points only (D88)
+
+
+def indicator(values: np.ndarray, low: float | None, high: float | None) -> np.ndarray:
+    """1 where a value is within [low, high] (None: open), 0 where it's outside, NaN where it's missing: a count of
+    days within bounds is this series' total, so its normal is a total's (D88)."""
+    values = np.asarray(values, dtype=np.float64)
+    known = np.isfinite(values)
+    hit = known.copy()
+    with np.errstate(invalid="ignore"):
+        if low is not None:
+            hit &= values >= low
+        if high is not None:
+            hit &= values <= high
+    return np.where(known, hit.astype(np.float64), np.nan)
 
 
 def enough_years(n: int) -> int:
@@ -82,7 +97,7 @@ class Period:
 
 
 def period(name: str, today: date, available: Sequence[int]) -> Period:
-    """`last5`, `last10` or `last30`: that many complete years before `today`'s, those in `available`."""
+    """`last5`, `last10`, `last20` or `last30`: that many complete years before `today`'s, those in `available`."""
     if name not in PERIODS:
         raise ValueError(f"a period is one of {', '.join(PERIODS)}, not {name!r}")
     asked = tuple(range(today.year - PERIODS[name], today.year))
