@@ -31,6 +31,7 @@ Each model's description, citations, inputs, options and version history are ava
 
 - A request can cover up to ten years of daily data or two years of hourly data at a location.
 - Requests are limited per IP address, by how much work they take: a quick request counts as 1 unit, and one that takes longer to compute counts for more. Each response's `RateLimit-Limit` and `RateLimit-Remaining` headers give your allowance per minute and how much of it is left. If you exceed the limit, the API returns status 429, and the `Retry-After` header says how many seconds to wait.
+- A request that takes longer than 30 seconds is stopped, and the API returns status 503 with the code `timeout`. Most requests take well under a second. A point outside our area may take longer the first time, because we fetch its weather from Open-Meteo; once fetched, it's kept, so trying again a few minutes later is usually quick.
 - Responses carry an ETag. If you send it back in an `If-None-Match` header, the API answers with a short "not modified" response until the data changes.
 - Weather you send to the model endpoints is used to compute your answer and is not stored.
 - The API changes only by addition: new endpoints, parameters and columns may appear, but existing ones keep their meaning. Your code should ignore fields it doesn't recognize. Changes are listed on the [API changes page](/api/changes).

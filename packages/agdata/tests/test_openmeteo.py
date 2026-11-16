@@ -145,10 +145,11 @@ class Replies:
     """Answers each request with the next reply; keeps what was asked."""
 
     def __init__(self, *replies):
-        self.replies, self.calls = list(replies), []
+        self.replies, self.calls, self.timeouts = list(replies), [], []
 
     def get(self, address, params=None, timeout=None):
         self.calls.append((address, params))
+        self.timeouts.append(timeout)
         return self.replies.pop(0)
 
 
@@ -170,6 +171,13 @@ def test_three_server_errors_in_a_row_give_up(no_wait):
     with pytest.raises(requests.HTTPError, match="503"):
         openmeteo._get(session, "https://x", {})  # type: ignore[arg-type]
     assert len(session.calls) == 3
+
+
+def test_a_caller_answering_a_request_waits_less_and_tries_fewer_times(no_wait):
+    session = Replies(Reply(500, {}), Reply(502, {}), Reply(200, {"ok": True}))
+    with pytest.raises(requests.HTTPError, match="502"):
+        openmeteo._get(session, "https://x", {}, timeout=10, tries=2)  # type: ignore[arg-type]
+    assert session.timeouts == [10, 10]
 
 
 def test_a_rejected_request_raises_with_open_meteos_reason_and_is_not_retried(no_wait):

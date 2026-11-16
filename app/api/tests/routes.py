@@ -1,6 +1,8 @@
 """A test-only API exercising the plumbing (params, envelope, errors) on the fixture archive, before real endpoints
 exist; mounted by `@pytest.mark.urls("api.tests.routes")`."""
 
+import time
+
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.urls import path
@@ -69,6 +71,13 @@ def days(
 @api.get("/broken")
 def broken(request: HttpRequest) -> HttpResponse:
     raise RuntimeError("secret internals")
+
+
+@api.get("/sleep")
+def sleep(request: HttpRequest, seconds: float = 0) -> HttpResponse:
+    """For `test_timelimit`: a request that takes `seconds` (in `time.sleep`, where a hang's thread would wait)."""
+    time.sleep(seconds)
+    return respond(request, Result(request={"seconds": seconds}, data={"slept": seconds}))
 
 
 urlpatterns = [path("api/test/", api.urls)]

@@ -39,7 +39,8 @@ FORECAST_DAYS = 12  # through the 11 days of D43, whole local days
 PRIMARY_MODELS = ("ncep_nbm_conus", "best_match")
 SOIL_MODEL = "ecmwf_ifs"
 ARCHIVE_SOIL_MODEL = "era5_land"  # the archive's soil source (D52)
-TIMEOUT = 60
+TIMEOUT = 60  # seconds a call may take, by default; a caller answering a request passes less (`ops.openmeteo`)
+TRIES = 3
 HOUR = timedelta(hours=1)
 
 # Open-Meteo variable → (catalog variable, factor to the stored unit)
@@ -117,10 +118,13 @@ def fetch(
     last: date,
     session: requests.Session | None = None,
     api_key: str | None = None,
+    timeout: float = TIMEOUT,
+    tries: int = TRIES,
 ) -> tuple[Hours, float]:
     """The hours ending in UTC days first..last (00Z … 23Z) at a cell from one endpoint, merged across the models
     in order; returns the hours and the calls Open-Meteo counts for them. The forecast endpoint reaches
-    RECENT_DAYS back and FORECAST_DAYS ahead (`endpoint_for`)."""
+    RECENT_DAYS back and FORECAST_DAYS ahead (`endpoint_for`). Each call waits up to `timeout` seconds and is tried
+    up to `tries` times."""
     session = session or requests.Session()
     names = list(VARIABLES)
     start = datetime(first.year, first.month, first.day, tzinfo=UTC)  # the UTC day's hours end 00Z … 23Z
@@ -149,7 +153,7 @@ def fetch(
             params["models"] = model
         if api_key:
             params["apikey"] = api_key
-        body = _get(session, url(endpoint, api_key), params)
+        body = _get(session, url(endpoint, api_key), params, timeout=timeout, tries=tries)
         calls += weight(len(variables), days)
         elevation = elevation if elevation is not None else body.get("elevation")
         times = np.asarray(body["hourly"]["time"], dtype=np.int64)
@@ -183,12 +187,12 @@ def cell_for(latitude: float, longitude: float) -> Cell:
 RETRY_SECONDS = 5  # times the attempt number, between tries (a 429 retried at once only makes it worse)
 
 
-def _get(session: requests.Session, address: str, params: dict) -> dict:
+def _get(session: requests.Session, address: str, params: dict, timeout: float = TIMEOUT, tries: int = TRIES) -> dict:
     """The JSON body, retrying throttling (429), server errors, dropped connections and a 200 whose body isn't JSON
     (Open-Meteo's "timeoutReached"); any other status raises with Open-Meteo's reason."""
-    for attempt in range(1, 4):
+    for attempt in range(1, tries + 1):
         try:
-            response = session.get(address, params=params, timeout=TIMEOUT)
+            response = session.get(address, params=params, timeout=timeout)
             if response.status_code == 429 or response.status_code >= 500:
                 raise requests.HTTPError(f"Open-Meteo {response.status_code}", response=response)
             if response.status_code != 200:
@@ -199,7 +203,7 @@ def _get(session: requests.Session, address: str, params: dict) -> dict:
                 raise ValueError(f"Open-Meteo {response.status_code}: {reason}")
             return response.json()
         except (requests.ConnectionError, requests.Timeout, requests.HTTPError, requests.JSONDecodeError):
-            if attempt == 3:
+            if attempt == tries:
                 raise
             time.sleep(RETRY_SECONDS * attempt)
     raise AssertionError("unreachable")

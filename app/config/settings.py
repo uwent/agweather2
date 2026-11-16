@@ -46,6 +46,9 @@ JOB_RUNS = os.environ.get("JOB_RUNS", "1" if ENV == "development" else "0") == "
 API_RATE_LIMIT: int | None = None if TESTING else int(os.environ.get("API_RATE_LIMIT", "200"))
 API_RATE_UNIT_MS = 100
 API_RATE_EXEMPT = [n.strip() for n in os.environ.get("API_RATE_EXEMPT", "127.0.0.0/8,::1/128").split(",") if n.strip()]
+# The API's time limit (api.timelimit): seconds before a request still running is answered with a 503; 0 turns it
+# off. Off in tests (their own turn it on). Caddy's response_header_timeout (infra/Caddyfile) is the outer bound.
+API_TIME_LIMIT: float | None = None if TESTING else (float(os.environ.get("API_TIME_LIMIT", "30")) or None)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -64,7 +67,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "api.middleware.TimingMiddleware",  # first, so compute_ms covers the rest
+    "api.timelimit.TimeLimitMiddleware",  # first: answers an API request past its time limit, whatever it's doing
+    "api.middleware.TimingMiddleware",  # next, so compute_ms covers the rest
     "api.ratelimit.RateLimitMiddleware",  # /api/ only: refuse a client over its budget before any work
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.csp.ContentSecurityPolicyMiddleware",

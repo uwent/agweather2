@@ -18,6 +18,10 @@ from ops.models import WeatherCellCache
 HOUR = timedelta(hours=1)
 FORECAST_TTL = timedelta(hours=3)
 RECENT_TTL = timedelta(days=1)
+# A request waits less than a job would: a call that fails gives up within 25 s (10 s, a 5 s pause, 10 s), so a slow
+# Open-Meteo answers as `weather_unavailable` inside the API's 30 s time limit (`api.timelimit`) rather than `timeout`
+REQUEST_TIMEOUT = 10
+REQUEST_TRIES = 2
 
 
 class Unavailable(Exception):
@@ -105,7 +109,14 @@ def _cached(cell, endpoint: str, first: date, last: date, now: datetime, session
         return _unpack(bytes(row.data))
     try:
         hours, calls = openmeteo.fetch(
-            endpoint, cell, first, last, session, getattr(settings, "OPEN_METEO_API_KEY", None)
+            endpoint,
+            cell,
+            first,
+            last,
+            session=session,
+            api_key=getattr(settings, "OPEN_METEO_API_KEY", None),
+            timeout=REQUEST_TIMEOUT,
+            tries=REQUEST_TRIES,
         )
     except requests.RequestException as error:
         raise Unavailable(f"Open-Meteo {endpoint}: {error}") from error

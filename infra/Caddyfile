@@ -21,6 +21,23 @@ handle_path /downloads/* {
 	file_server
 }
 
+# The outer bound on a request: the API answers its own past API_TIME_LIMIT (30 s, api.timelimit), so this is for a
+# process too stuck to answer at all, and for pages
 handle {
-	reverse_proxy web:8000
+	reverse_proxy web:8000 {
+		transport http {
+			response_header_timeout 45s
+		}
+	}
+}
+
+# When the app can't answer (stuck past the bound above, or restarting), the API's clients still get its envelope
+handle_errors {
+	@api path /api/*
+	handle @api {
+		header Content-Type application/json
+		header Cache-Control no-store
+		header Retry-After 120
+		respond `{"meta":{"api_version":"2.0"},"errors":[{"code":"unavailable","param":null,"message":"We couldn't answer this request just now: the service is busy or restarting. Please try again in a few minutes."}]}` {err.status_code}
+	}
 }

@@ -31,7 +31,11 @@ def fake_fetch(monkeypatch):
     """Open-Meteo at 20 °C (forecast 25 °C), counting fetches."""
     fetched = []
 
-    def fetch(endpoint, cell, first, last, session=None, api_key=None):
+    def fetch(endpoint, cell, first, last, session=None, api_key=None, timeout=None, tries=None):
+        assert (timeout, tries) == (
+            openmeteo.REQUEST_TIMEOUT,
+            openmeteo.REQUEST_TRIES,
+        )  # a request waits less than a job
         fetched.append((endpoint, first, last))
         n = ((last - first).days + 1) * 24
         start = datetime(first.year, first.month, first.day, tzinfo=UTC)
