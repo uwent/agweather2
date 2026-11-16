@@ -46,6 +46,8 @@ JOB_RUNS = os.environ.get("JOB_RUNS", "1" if ENV == "development" else "0") == "
 API_RATE_LIMIT: int | None = None if TESTING else int(os.environ.get("API_RATE_LIMIT", "200"))
 API_RATE_UNIT_MS = 100
 API_RATE_EXEMPT = [n.strip() for n in os.environ.get("API_RATE_EXEMPT", "127.0.0.0/8,::1/128").split(",") if n.strip()]
+# A line per request with its status and time in the log (web.requestlog), as Rails writes it: development only
+REQUEST_LOG = os.environ.get("REQUEST_LOG", "1" if ENV == "development" else "0") == "1"
 # The API's time limit (api.timelimit): seconds before a request still running is answered with a 503; 0 turns it
 # off. Off in tests (their own turn it on). Caddy's response_header_timeout (infra/Caddyfile) is the outer bound.
 API_TIME_LIMIT: float | None = None if TESTING else (float(os.environ.get("API_TIME_LIMIT", "30")) or None)
@@ -67,6 +69,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "web.requestlog.RequestLogMiddleware",  # first: one line per request with its time (development only)
     "api.timelimit.TimeLimitMiddleware",  # first: answers an API request past its time limit, whatever it's doing
     "api.middleware.TimingMiddleware",  # next, so compute_ms covers the rest
     "api.ratelimit.RateLimitMiddleware",  # /api/ only: refuse a client over its budget before any work
@@ -178,6 +181,13 @@ LOGGING = {
     "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": os.environ.get("LOG_LEVEL", "INFO")},
-    # Procrastinate logs every task registration at INFO
-    "loggers": {"procrastinate": {"level": "WARNING"}},
+    "loggers": {
+        # Procrastinate logs every task registration at INFO
+        "procrastinate": {"level": "WARNING"},
+        # Django's own console handler (DEFAULT_LOGGING) printed each record a second time beside the root's
+        "django": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        # A 4xx is a warning line per request ("Not Found: /x"), which the request log (web.requestlog) already
+        # says; errors (5xx, with their tracebacks) still show
+        "django.request": {"level": "ERROR"},
+    },
 }

@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib import admin
 from django.urls import path, re_path
+from django.views.generic import RedirectView
 
 from api import views as api_views
 from api.api import api
@@ -10,6 +11,8 @@ from web import views as web
 urlpatterns = [
     path("", web.home, name="home"),
     path("up", ops.up, name="up"),
+    # The API's root is its documentation (a temporary redirect, so the root could become an index later)
+    path("api/v2/", RedirectView.as_view(url="/api/v2/docs", permanent=False), name="api-root"),
     path("api/v2/", api.urls),
     re_path(r"^api/v2/(?P<rest>.*)$", api_views.not_found),  # after the API's own routes
     path("admin/", admin.site.urls),

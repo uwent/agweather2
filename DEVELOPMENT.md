@@ -56,6 +56,8 @@ pnpm check                            # svelte-check and TypeScript
 pnpm test                             # Vitest
 ```
 
+`bin/dev` logs a line per request with its status and time, as Rails does (`GET /api/v2/status 200 OK in 12 ms`; `web.requestlog`, on in development, `REQUEST_LOG=0` turns it off). uvicorn's own access log is off in `Procfile.dev`, since it has no timing. Static files aren't logged. An API answer's `Server-Timing` header breaks its time down.
+
 The browser tests fail on any console error (a CSP violation included) and run axe on every page in light and dark. GitHub Actions runs `bin/ci` on every push to `main` and on pull requests. Tests never use the network: pytest-socket blocks it, and fixtures are recorded.
 
 ## 4. Containers
