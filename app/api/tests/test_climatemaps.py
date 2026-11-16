@@ -98,7 +98,7 @@ def test_climate_refusals(client, climate_archive):
     ranged = {"start": "2025-07-01", "end": "2025-07-05", "period": "last5"}
     assert error(grid(client, "air_temperature_max", stat="max", climate="normal", **ranged))["param"] == "stat"
     unkept = error(grid(client, "air_temperature_max", count="days_above_31", climate="normal", **ranged))
-    assert unkept["param"] == "count" and "days_above_30, days_above_32.22, days_above_34" in unkept["message"]
+    assert unkept["param"] == "count" and "'days_above_30', 'days_above_32.22', 'days_above_34'" in unkept["message"]
     on_counts = {"count": "days_above_30", **ranged}
     assert error(grid(client, "air_temperature_max", climate="percentile", **on_counts))["param"] == "climate"
     assert error(grid(client, "relative_humidity_max", count="days_above_90", climate="normal", **ranged))

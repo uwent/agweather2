@@ -20,22 +20,40 @@ def _operations():
                     url = "/api/v2/" + path.lstrip("/")
                     for name, value in EXAMPLES.items():
                         url = url.replace("{" + name + "}", value)
-                    yield pytest.param(method, url, id=f"{method} {path}")
+                    yield pytest.param(method, url, path, id=f"{method} {path}")
 
 
-@pytest.mark.parametrize(("method", "url"), list(_operations()))
-def test_every_endpoint_refuses_a_parameter_it_doesnt_take(client, method, url):
+@pytest.fixture(scope="module")
+def documented():
+    """Each operation's query parameters as the API docs list them, by (method, path)."""
+    schema = api.get_openapi_schema()
+    return {
+        (method.upper(), path.removeprefix("/api/v2")): [
+            p["name"] for p in op.get("parameters", []) if p["in"] == "query"
+        ]
+        for path, ops in schema["paths"].items()
+        for method, op in ops.items()
+    }
+
+
+@pytest.mark.parametrize(("method", "url", "path"), list(_operations()))
+def test_every_endpoint_refuses_a_parameter_it_doesnt_take_and_lists_those_it_does(
+    client, documented, method, url, path
+):
     response = client.generic(method, url + "?not_a_parameter=1", content_type="application/json")
     assert response.status_code == 422
-    errors = response.json()["errors"]
-    assert errors == [
+    body = response.json()
+    assert body["errors"] == [
         {
             "code": "unknown_parameter",
             "param": "not_a_parameter",
-            "message": "This request doesn't take a parameter named not_a_parameter. The parameters each request "
-            "takes are listed at /api/v2/docs.",
+            "message": "This request doesn't take a parameter named 'not_a_parameter'. 'meta.params' lists the "
+            "parameters it takes.",
         }
     ]
+    # Every parameter the docs list, in their order (then what the endpoint reads itself: tar spot's crop options)
+    listed = list(body["meta"]["params"])
+    assert listed[: len(documented[(method, "/" + path.lstrip("/"))])] == documented[(method, "/" + path.lstrip("/"))]
 
 
 @pytest.mark.parametrize(
@@ -48,7 +66,7 @@ def test_every_endpoint_refuses_a_parameter_it_doesnt_take(client, method, url):
 )
 def test_a_close_name_is_suggested(client, url, suggested):
     error = client.get(url).json()["errors"][0]
-    assert error["code"] == "unknown_parameter" and f"Did you mean {suggested}?" in error["message"]
+    assert error["code"] == "unknown_parameter" and f"Did you mean '{suggested}'?" in error["message"]
 
 
 def test_each_unknown_parameter_is_its_own_error(client):
@@ -115,7 +133,7 @@ def test_one_parser_takes_every_form_of_an_hour(sent, expected):
 def test_a_time_that_isnt_a_whole_hour_is_refused(sent):
     with pytest.raises(ApiError) as found:
         parse_hour(sent, "start")
-    assert found.value.param == "start" and found.value.message.startswith("The value of start (")
+    assert found.value.param == "start" and found.value.message.startswith("The value of 'start' (")
 
 
 def test_points_and_maps_read_hours_alike(client, archive):

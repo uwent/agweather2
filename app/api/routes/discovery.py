@@ -519,7 +519,7 @@ class LocateResponse(Schema):
 )
 def locate(request: HttpRequest, where: Query[PointsQuery]) -> HttpResponse:
     if where.points is not None:
-        raise ApiError("conflict", "This endpoint takes one location. Give lat and lng.", "points")
+        raise ApiError("conflict", "This endpoint takes one location. Give 'lat' and 'lng'.", "points")
     computed = where.echo()
     etag, unchanged = _cached(request, computed)
     if unchanged is not None:

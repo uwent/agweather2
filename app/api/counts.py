@@ -19,12 +19,12 @@ import numpy as np
 
 from agdata import units as agunits
 from agdata.units import stored_bounds
-from api.errors import ApiError
+from api.errors import ApiError, quoted
 
 _NUMBER = r"(-?\d+(?:[.p]\d+)?)"
 _ONE = re.compile(rf"^(above|below)_{_NUMBER}$")
 _BETWEEN = re.compile(rf"^between_{_NUMBER}_{_NUMBER}$")
-EXAMPLES = "days_above_86, days_below_32 or days_between_50_86 (hours_above_86 for hourly values)"
+EXAMPLES = "'days_above_86', 'days_below_32' or 'days_between_50_86' ('hours_above_86' for hourly values)"
 
 Axis = Literal["days", "hours"]
 
@@ -66,7 +66,7 @@ def parse(text: str, param: str = "count") -> Count:
     if m is None:
         raise ApiError(
             "invalid",
-            f"We can't read {param}={text}. Give a count as {EXAMPLES}; a decimal as 93.2 or 93p2.",
+            f"We can't read {quoted(f'{param}={text}')}. Give a count as {EXAMPLES}; a decimal as '93.2' or '93p2'.",
             param,
         )
     axis = m.group(1)
@@ -88,14 +88,15 @@ def parse_bounds(
         if low > high:
             raise ApiError(
                 "out_of_order",
-                f"In {param}={text}, the lower bound ({_number(low)}) is above the upper one ({_number(high)}). "
-                f"Give the lower bound first, such as {prefix}between_{_number(high)}_{_number(low)}.",
+                f"In {quoted(f'{param}={text}')}, the lower bound ({_number(low)}) is above the upper one "
+                f"({_number(high)}). Give the lower bound first, such as "
+                f"{quoted(f'{prefix}between_{_number(high)}_{_number(low)}')}.",
                 param,
             )
         return low, high
     raise ApiError(
         "invalid",
-        f"We can't read {param}={text}. Give it as {examples}; a decimal as 93.2 or 93p2.",
+        f"We can't read {quoted(f'{param}={text}')}. Give it as {examples}; a decimal as '93.2' or '93p2'.",
         param,
     )
 
@@ -108,7 +109,7 @@ def check_axis(found: Count, time_axis: str, what: str, param: str = "count", pr
         raise ApiError(
             "invalid",
             f"{what} has a value for each {time_axis}, so it counts {wanted}, not {found.axis}. "
-            f"Give {param}={prefix}{example}.",
+            f"Give {quoted(f'{param}={prefix}{example}')}.",
             param,
         )
 

@@ -90,6 +90,9 @@ export interface Meta {
   request: {
     [k: string]: unknown
   }
+  params?: {
+    [k: string]: unknown
+  }
   location?: Location | null
   locations?: Location[] | null
   units: {
@@ -130,6 +133,9 @@ export interface ErrorMeta {
   request: {
     [k: string]: string | null
   }
+  params?: {
+    [k: string]: unknown
+  } | null
   api_version: string
   generated_at: string
   compute_ms: number

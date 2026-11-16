@@ -36,7 +36,7 @@ from api.envelope import (
     respond,
     shown_unit,
 )
-from api.errors import ApiError, counted
+from api.errors import ApiError, counted, quoted
 from api.events import to_date
 from api.gridfiles import GridFile, geotiff, netcdf
 from api.layermaps import LayerQuery
@@ -323,7 +323,8 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
         result.binary_units = {found.id: agunits.unit(shown_as).label}
 
         def render(kind: str, meta: dict[str, Any]) -> bytes:
-            file.attrs = {key: meta[key] for key in ("request", "sources", "warnings", "attribution", "api_version")}
+            kept = ("request", "params", "sources", "warnings", "attribution", "api_version")
+            file.attrs = {key: meta[key] for key in kept if key in meta}
             file.attrs["generated_at"] = meta["generated_at"]
             # One gridded variable a NetCDF file (D71): beside the counts GDAL opens it as subdatasets, which terra
             # on Windows then reads without its projection. The counts are in JSON, CSV and GeoTIFF's bands.
@@ -359,7 +360,8 @@ def _area(q: GridQuery, archive: Window) -> tuple[Window, np.ndarray, dict[str, 
         if not mask.any():
             raise ApiError(
                 "outside_box",
-                f"The bbox has no grid cells in the area we cover ({settings.SERVICE_BOX}, as south,west,north,east). "
+                f"The 'bbox' has no grid cells in the area we cover ({quoted(settings.SERVICE_BOX)}, as "
+                "south,west,north,east). "
                 "Choose a box that overlaps it.",
                 "bbox",
             )
@@ -384,7 +386,9 @@ def _area(q: GridQuery, archive: Window) -> tuple[Window, np.ndarray, dict[str, 
         echo["land_only"] = True
         if not crop.any():
             raise ApiError(
-                "no_data", "Every grid cell in the area asked for is open water, so land_only leaves none.", "land_only"
+                "no_data",
+                "Every grid cell in the area asked for is open water, so 'land_only' leaves none.",
+                "land_only",
             )
     return window, crop, echo
 
@@ -396,8 +400,8 @@ def _parse_bbox(text: str) -> Box:
     except ValueError:
         raise ApiError(
             "invalid",
-            f"The bbox ({text}) isn't four numbers. Give it as south,west,north,east in degrees, such as "
-            "42.5,-92.9,47.1,-86.8.",
+            f"The 'bbox' ({quoted(text)}) isn't four numbers. Give it as south,west,north,east in degrees, such as "
+            "'42.5,-92.9,47.1,-86.8'.",
             "bbox",
         ) from None
 
@@ -409,7 +413,7 @@ def _grid_spec(q: GridQuery, window: Window, mask: np.ndarray) -> dict[str, Any]
         if q.res is not None or q.method is not None:
             raise ApiError(
                 "invalid",
-                "res and method apply only to grid=latlon. Leave them out, or add grid=latlon.",
+                "'res' and 'method' apply only to 'grid=latlon'. Leave them out, or add 'grid=latlon'.",
                 "res" if q.res is not None else "method",
             )
         kept = mask[:: q.stride, :: q.stride]
@@ -422,17 +426,17 @@ def _grid_spec(q: GridQuery, window: Window, mask: np.ndarray) -> dict[str, Any]
     if q.stride != 1:
         raise ApiError(
             "invalid",
-            "stride applies only to the native grid. For a coarser latitude and longitude grid, give a larger res.",
+            "'stride' applies only to the native grid. For a coarser latitude and longitude grid, give a larger 'res'.",
             "stride",
         )
     if q.res is None:
         raise ApiError(
-            "missing", f"grid=latlon needs res, the grid's spacing in degrees (at least {MIN_LATLON_RES}).", "res"
+            "missing", f"'grid=latlon' needs 'res', the grid's spacing in degrees (at least {MIN_LATLON_RES}).", "res"
         )
     if not MIN_LATLON_RES <= q.res <= 5:
         raise ApiError(
             "out_of_range",
-            f"res={q.res:g} isn't between {MIN_LATLON_RES} and 5 degrees. Choose a spacing in that range.",
+            f"{quoted(f'res={q.res:g}')} isn't between {MIN_LATLON_RES} and 5 degrees. Choose a spacing in that range.",
             "res",
         )
     method = q.method or ("mean" if q.res >= 0.05 else "nearest")
@@ -466,16 +470,15 @@ def _check_size(fmt: str, steps: int, cells: int, full: int) -> None:
             raise ApiError(
                 "too_large",
                 f"This request has {steps * cells:,} values ({steps} steps × {cells:,} cells); JSON and CSV hold up to "
-                f"{MAX_TEXT_VALUES:,}. Ask for format=netcdf or geotiff, combine the days with "
-                "stat, or choose a smaller "
-                "area or a stride.",
+                f"{MAX_TEXT_VALUES:,}. Ask for 'format=netcdf' or 'geotiff', combine the days with 'stat', or choose a "
+                "smaller area or a 'stride'.",
                 "format",
             )
     elif steps * full > MAX_FILE_VALUES:
         raise ApiError(
             "too_large",
             f"This request has {steps * full:,} values ({steps} steps × {full:,} cells); a file holds up to "
-            f"{MAX_FILE_VALUES:,}. Choose a smaller area, a stride or a shorter range.",
+            f"{MAX_FILE_VALUES:,}. Choose a smaller area, a 'stride' or a shorter range.",
             "start",
         )
 

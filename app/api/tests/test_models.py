@@ -353,7 +353,7 @@ def test_evaluate_defaults_warnings_and_errors(client):
     assert all(len(v) == 1 for v in defaults["data"].values())
     assert all(v is not None for v in defaults["meta"]["request"]["inputs"].values())
     far = evaluate(client, "early-blight-pdays", {"tmin": 10, "tmax": 140}).json()  # °F: 140 is past its 40 °C
-    assert any("tmax 140 is outside its usual" in w for w in far["meta"]["warnings"])
+    assert any("'tmax' 140 is outside its usual" in w for w in far["meta"]["warnings"])
     unknown = evaluate(client, "early-blight-pdays", {"rain": 1})
     assert unknown.status_code == 422 and unknown.json()["errors"][0]["code"] == "unknown_input"
     big = evaluate(client, "early-blight-pdays", {"tmin": list(range(200)), "tmax": list(range(200))})
@@ -371,7 +371,7 @@ def test_crop_options_without_a_planting_date_run_once(client, archive):
 def test_a_biofix_for_a_model_without_one_and_too_many_option_sets_are_refused(client, archive):
     biofix = get(client, "cotton-planting", biofix="2025-05-01").json()["errors"][0]
     assert (biofix["code"], biofix["param"]) == ("not_applicable", "biofix")
-    assert biofix["message"] == "The Cotton planting stand risk model doesn't take a biofix date. Leave out biofix."
+    assert biofix["message"] == "The Cotton planting stand risk model doesn't take a biofix date. Leave out 'biofix'."
     many = get(client, "soybean-stages", planting_date="2025-05-01", maturity_group="all", seeding_depth_in="all")
     error = many.json()["errors"][0]  # 9 maturity groups x 3 depths
     assert many.status_code == 422 and (error["code"], error["param"]) == ("too_many", "all")
@@ -385,5 +385,5 @@ def test_all_needs_an_option_with_choices():
 
     typed = Option(name="threshold", label="Threshold", choices=(), default="10")
     assert option_values(typed, None, []) == ["10"] and option_values(typed, "12", []) == ["12"]
-    with pytest.raises(ApiError, match="threshold has no list of choices, so it can't be set to all"):
+    with pytest.raises(ApiError, match="'threshold' has no list of choices, so it can't be set to 'all'"):
         option_values(typed, "all", [])

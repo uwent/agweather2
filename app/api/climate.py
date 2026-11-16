@@ -20,7 +20,7 @@ from agdata import climatology
 from agdata.areas import Area
 from agdata.grid import NDFD
 from agdata.series import archive_years
-from api.errors import ApiError, day_text
+from api.errors import ApiError, day_text, quoted
 from api.params import PointsQuery, fail
 from ops.points import AllWater, AreaAsk, in_box
 
@@ -76,8 +76,8 @@ def percents(text: str | None, param: str, example: str, fail_with=None) -> list
             p = float("nan")
         if not 0 < p < 100:
             message = (
-                f"The {param.rstrip('s')} {part!r} can't be used. Give numbers over 0 and under 100, separated by "
-                f"commas, such as {example}."
+                f"The value {quoted(part)} in {quoted(param)} can't be used. Give numbers over 0 and under 100, "
+                f"separated by commas, such as {quoted(example)}."
             )
             if fail_with is not None:
                 raise fail_with("invalid", param, message)
@@ -172,7 +172,7 @@ def ask(
         raise ApiError(
             "no_data",
             f"We don't yet have any of the years of the {PERIOD_TEXT[q.period]} period. Try a shorter period, such "
-            "as period=last5.",
+            "as 'period=last5'.",
             "period",
             status=503,
         )
@@ -185,8 +185,8 @@ def ask(
         except AllWater:
             raise ApiError(
                 "no_data",
-                f"Every grid cell within the radius of ({lat}, {lng}) is open water, so land_only leaves none. "
-                "Choose a larger radius, or leave out land_only.",
+                f"Every grid cell within the radius of ({lat}, {lng}) is open water, so 'land_only' leaves none. "
+                "Choose a larger radius, or leave out 'land_only'.",
                 "land_only",
             ) from None
     return PeriodAsk(period=period, pool_days=pool_days, sites=sites, places=places), warnings

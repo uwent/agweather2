@@ -27,6 +27,8 @@ from ninja.operation import Operation
 
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
+from api import takes
+from api.errors import quoted
 
 ALWAYS = frozenset({"latitude", "lon", "long", "longitude", "_"})
 # v1's names, and what a v1 caller means by them here
@@ -43,36 +45,25 @@ def install(api: NinjaAPI) -> None:
 
 
 def _checked(api: NinjaAPI, operation: Operation, run: Callable[..., HttpResponse]) -> Callable[..., HttpResponse]:
-    declared = _declared(operation)
+    base = takes.declared(operation)
+    declared = frozenset(p.name for p in base)
     path = operation.path
     post = "POST" in operation.methods
 
     def checked(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        # What it takes, for `meta.params` on its answer or its errors
+        request.api_takes = takes.for_request(base, path, post, kwargs, request)  # pyright: ignore[reportAttributeAccessIssue]
         extra = _dynamic(path, post, kwargs)
         if extra is not None:
             unknown = [name for name in request.GET if name not in declared and not _taken(name, extra)]
             if unknown:
                 from api.envelope import error_response
 
-                takes = declared | extra
-                return error_response(request, [_item(name, takes) for name in unknown], status=422)
+                accepted = declared | extra
+                return error_response(request, [_item(name, accepted) for name in unknown], status=422)
         return run(request, *args, **kwargs)
 
     return checked
-
-
-def _declared(operation: Operation) -> frozenset[str]:
-    """The query names an operation's schemas declare, with their aliases."""
-    names: set[str] = set()
-    for model in operation.models:
-        if getattr(model, "__ninja_param_source__", None) != "query":
-            continue
-        for name, field in model.model_fields.items():
-            inner = getattr(field.annotation, "model_fields", None)
-            fields = inner.items() if inner is not None else [(name, field)]
-            for sub_name, sub in fields:
-                names.add(sub.alias or sub_name)
-    return frozenset(names)
 
 
 def _taken(name: str, extra: frozenset[str]) -> bool:
@@ -145,10 +136,10 @@ def _item(name: str, takes: Iterable[str]) -> dict[str, Any]:
     if suggestion is None or suggestion not in takes:
         close = difflib.get_close_matches(name, sorted(takes), n=1, cutoff=0.75)
         suggestion = close[0] if close else None
-    hint = f" Did you mean {suggestion}?" if suggestion else ""
+    hint = f" Did you mean {quoted(suggestion)}?" if suggestion else ""
     return {
         "code": "unknown_parameter",
         "param": name,
-        "message": f"This request doesn't take a parameter named {name}.{hint} The parameters each request takes "
-        "are listed at /api/v2/docs.",
+        "message": f"This request doesn't take a parameter named {quoted(name)}.{hint} 'meta.params' lists the "
+        "parameters it takes.",
     }

@@ -71,7 +71,7 @@ def test_inputs_that_cannot_be_made_are_named_with_their_hourly_sources(client, 
     error = response.json()["errors"][0]
     assert (
         error["code"] == "missing_inputs"
-        and "hours_rh_over_90_from_6pm (hourly: air_temperature, dew_point)" in error["message"]
+        and "'hours_rh_over_90_from_6pm' (hourly: 'air_temperature', 'dew_point')" in error["message"]
     )
     filled = post(
         client, "models/late-blight-dsv/run", body_for(hourly=hourly, start="2025-07-02", end="2025-07-09", fill="grid")
@@ -100,7 +100,7 @@ def test_a_gap_the_model_bridges_is_estimated_and_out_of_range_values_are_droppe
         body_for(daily={"date": days, "air_temperature_min": lows, "air_temperature_max": highs}),
     ).json()
     assert body["data"]["kind"][2] == "estimated" and body["data"]["kind"][5] == "estimated"
-    assert any(w.startswith("1 day of air_temperature_m") for w in body["meta"]["warnings"])
+    assert any(w.startswith("1 day of 'air_temperature_m") for w in body["meta"]["warnings"])
     assert body["meta"]["summary"]["days_estimated"] == 2
     assert body["data"]["air_temperature_max_estimated"][5] is True  # and its input column says which
     assert body["meta"]["summary"]["estimated_by_input"] == {"air_temperature_max": 1, "air_temperature_min": 1}

@@ -104,7 +104,7 @@ def test_impossible_settings_are_refused(client, archive, params, code):
     ("params", "said"),
     [
         ({"dd": "sine_70"}, "outside the usual range of 32–60 °F"),
-        ({"dd": "sine_10"}, "If you meant °C, add units=metric."),
+        ({"dd": "sine_10"}, "If you meant °C, add 'units=metric'."),
         ({"dd": "sine_50", "units": "metric"}, "is read as 50 °C (122 °F)"),
         ({"dd": "sine_10_60"}, "A degree-day upper threshold of 60 °F is outside the usual range of 70–95 °F"),
     ],

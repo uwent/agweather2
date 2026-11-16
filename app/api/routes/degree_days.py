@@ -79,7 +79,7 @@ def settings_from(request: HttpRequest, dd: str | None, units: str, warnings: li
     """`dd=` settings, or one from `base` (and `upper`, `method`, default sine)."""
     base = request.GET.get("base")
     if dd is not None and base is not None:
-        raise ApiError("conflict", "Give either dd, or base (with upper and method), but not both.", "dd")
+        raise ApiError("conflict", "Give either 'dd', or 'base' (with 'upper' and 'method'), but not both.", "dd")
     if base is None:
         return degree_day_settings(dd, units, warnings)
     upper = request.GET.get("upper")
@@ -87,7 +87,7 @@ def settings_from(request: HttpRequest, dd: str | None, units: str, warnings: li
         base_value = float(base)
         upper_value = float(upper) if upper not in (None, "") else None
     except ValueError:
-        raise ApiError("invalid", "base and upper must be numbers, such as base=50&upper=86.", "base") from None
+        raise ApiError("invalid", "'base' and 'upper' must be numbers, such as 'base=50&upper=86'.", "base") from None
     method = request.GET.get("method", "sine").lower()
     return [setting(method, base_value, upper_value, units, warnings, "base")]
 
@@ -157,7 +157,7 @@ def daily(
     if mode and rolls.specs():
         raise ApiError(
             "conflict",
-            "Rolling windows can't be combined with a projection. Leave out roll, or projection.",
+            "Rolling windows can't be combined with a projection. Leave out 'roll', or 'projection'.",
             "roll",
         )
     read_from, first, last, trim_end, fixed = dd_window(when, options, biofix)
@@ -340,7 +340,7 @@ def _targets(raw: str | None, units: str) -> list[tuple[float, float]]:
         except ValueError:
             raise ApiError(
                 "invalid",
-                "Give targets as degree-day totals separated by commas, such as targets=1400,2000.",
+                "Give 'targets' as degree-day totals separated by commas, such as 'targets=1400,2000'.",
                 "targets",
             ) from None
         if value <= 0:
@@ -379,7 +379,11 @@ def _project(days, n: int, lat: float, lng: float, last: date, years: list[int],
         past_reader(settings.DATA_DIR, *cell, area=area.at(lat, lng) if area is not None else None),
     )
     if not found.years:
-        return *plain, {"start": begins, "years": []}, "no earlier years in the archive to project with"
+        return (
+            *plain,
+            {"start": begins, "years": []},
+            "The archive has no earlier years to project with, so the series ends with the forecast.",
+        )
     values, all_kinds = projection.stacked(
         {"air_temperature_min": tmin[:cut], "air_temperature_max": tmax[:cut]}, kinds[:cut], found
     )
@@ -495,14 +499,14 @@ def freeze_thresholds(thresholds: str | None, units: str, warnings: list[str]) -
         except ValueError:
             raise ApiError(
                 "invalid",
-                "Give thresholds as temperatures separated by commas, such as thresholds=32,28,24.",
+                "Give 'thresholds' as temperatures separated by commas, such as 'thresholds=32,28,24'.",
                 "thresholds",
             ) from None
         if not given:
             raise ApiError(
                 "missing",
-                "The thresholds list is empty. Give one or more temperatures separated by commas, "
-                "such as thresholds=32,28.",
+                "The 'thresholds' list is empty. Give one or more temperatures separated by commas, "
+                "such as 'thresholds=32,28'.",
                 "thresholds",
             )
     return given, [temperature_threshold(t, units, FREEZE, "thresholds", warnings) for t in given]

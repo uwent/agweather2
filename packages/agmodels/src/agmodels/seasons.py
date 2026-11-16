@@ -49,10 +49,12 @@ def season_named(spec: ModelSpec, name: str) -> Season:
     """The season `name` (2025-26, or 2025 for one within a year); ValueError if it isn't one of the spec's."""
     match = NAME.match(name.strip())
     if match is None:
-        raise ValueError(f"Seasons are named by their years, such as {season_starting(spec, 2025).name}, not {name!r}.")
+        raise ValueError(
+            f"Seasons are named by their years, such as '{season_starting(spec, 2025).name}', not '{name}'."
+        )
     found = season_starting(spec, int(match.group(1)))
     if found.name != name.strip():
-        raise ValueError(f"{spec.name}'s seasons are named by their years, such as {found.name}, not {name!r}.")
+        raise ValueError(f"{spec.name}'s seasons are named by their years, such as '{found.name}', not '{name}'.")
     return found
 
 

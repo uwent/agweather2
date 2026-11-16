@@ -14,6 +14,17 @@ def _own_data_dir(settings, tmp_path_factory):
     settings.DATA_DIR = tmp_path_factory.mktemp("data")
 
 
+@pytest.fixture(autouse=True)
+def _public_text_quotes_identifiers():
+    """Fails a test whose API answer named a parameter, value or column without quotes (`api.errors.check_style`)."""
+    from api import errors
+
+    errors.STYLE_SLIPS.clear()
+    yield
+    slips, errors.STYLE_SLIPS[:] = list(errors.STYLE_SLIPS), []
+    assert not slips, "Quote what a reader could type ('start', 'thresholds=32,28'):\n" + "\n".join(slips)
+
+
 @pytest.fixture(scope="session")
 def _built_archive(tmp_path_factory):
     """The fixture archive (`api.tests.fixture_archive`), built once per session (~13 s) and never handed to a test:

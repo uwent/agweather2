@@ -12,7 +12,7 @@ Agreed 2026-11-02 (D57, D58). The contract for `/api/v2`: what each endpoint tak
 ## Principles
 
 - **GET with query parameters** for every read, so a URL can be shared, bookmarked, cached and read with `read.csv(url)`. POST only where the input won't fit in a URL (model evaluation, a station's weather).
-- **The same parameter means the same thing everywhere** (`lat`, `lng`, `start`, `end`, `vars`, `units`, `format`), and every default applied is echoed back in `meta.request`.
+- **The same parameter means the same thing everywhere** (`lat`, `lng`, `start`, `end`, `vars`, `units`, `format`), and `meta.params` lists every parameter an endpoint takes with the value used, defaults included.
 - **Explicit units.** Every value's unit is in `meta.units`. Storage is SI (D18); conversion happens here, at the edge.
 - **Every value says where it came from.** Each day or hour carries its kind (observed, forecast, estimated). Models carry their version and their estimated and missing days (D45, D56).
 - **Missing is `null`** in JSON and an empty cell in CSV. NaN never appears (it isn't valid JSON).
@@ -33,6 +33,21 @@ Every JSON response except tiles and binary grids:
       "vars": ["air_temperature_min", "air_temperature_max", "precipitation_sum"],
       "forecast": true,
       "units": "us"
+    },
+    "params": {
+      "lat": 43.073,
+      "lng": -89.401,
+      "points": null,
+      "date": null,
+      "start": "2026-10-28",
+      "end": "2026-11-08",
+      "forecast": true,
+      "gaps": "estimate",
+      "tz": "utc",
+      "day_basis": "central",
+      "units": "us",
+      "format": "json",
+      "…": "…"
     },
     "location": {
       "lat": 43.073,
@@ -76,6 +91,8 @@ Every JSON response except tiles and binary grids:
 (`/weather/daily` at Madison on 2026-11-06, cut short; `stats` lists every column.)
 
 - `meta.request` is the request **after** defaults and normalization: what was actually computed, not just what was sent.
+- `meta.params` (D90, `api.takes`) lists every parameter the endpoint takes, in the order the API docs give them, each with the value used: the value in `meta.request` (a model's options from its `options`), else as given (parsed by its type, or as sent if it doesn't parse), else the default, else `null`. `format` is the format answered in and `day_basis` the basis `meta.location` reports. It lists a model's options and its crop model's (on `/models/run` and `/risk`, those of the models asked for; an option whose default differs between them has none), a model layer's options but those a map refuses, and a unit given for one variable. It comes back on errors too, with what could be read, so `unknown_parameter` points to it rather than repeating the list. CSV carries it as a `# params:` line, NetCDF as an attribute, TileJSON as `params` beside `request`; `{}` on endpoints without parameters.
+- **Messages and warnings** put what a reader could type in single quotes: parameter names, values, `name=value`, variable, column, model and layer ids, and typed examples ("Give 'thresholds' as temperatures separated by commas, such as 'thresholds=32,28,24'."), never ordinary words used as words ("the start date") or paths. Under pytest every message the API sends is checked for unquoted `name=value` and snake_case words (`api.errors.check_style`).
 - `meta.location` reports the cell actually read. A point snaps to the cell center, which can differ from the point asked for, so a user can see the snap. From the terrain store (D6; null where it isn't built): `elevation_m` (the point's own, from NHDPlus V2's 30 m elevation model on a 31.7 m grid), `cell_elevation_m` (the cell's mean) and `water_percent` (the cell's share of open water). Nothing is redirected: a cell mostly water is still the one read.
 - `meta.summary` holds what v1's `info` had (days requested and returned, min, max, total) per variable, plus the D45/D56 counts and the corrections applied to what was read (`corrections`: the forecast's calibration, D49, and HRRR's shortwave, D48, each with its version).
 - `meta.warnings` is for non-fatal notes, each a sentence in the public style (CLAUDE.md): "Precipitation is missing on 2 days. We never estimate precipitation, so the totals count those days as no rain." or "The forecast is out of date, so the series ends with the last observed day."

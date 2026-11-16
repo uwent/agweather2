@@ -34,7 +34,7 @@ from agmodels.seasons import Season
 from agmodels.spec import Model
 from api import clock, points, runs, stations
 from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_modified, respond, table
-from api.errors import ApiError, day_text
+from api.errors import ApiError, day_text, quoted
 from api.locations import describe, describe_days
 from api.params import AreaQuery, DaysQuery, OutputQuery, PointsQuery, SeriesQuery, resolve_biofix
 from api.routes.weather import FORECAST_DAYS, MAX_DAYS, check_size, envelope_parts, located
@@ -153,7 +153,7 @@ def run(
     elif season is not None:
         raise ApiError(
             "not_applicable",
-            f"{m.SPEC.name} isn't counted by season, so it takes no season. Give dates instead.",
+            f"{m.SPEC.name} isn't counted by season, so it takes no 'season'. Give dates instead.",
             "season",
         )
     if mode and trim_end:
@@ -452,7 +452,8 @@ def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Qu
     if unknown:
         raise ApiError(
             "unknown_input",
-            f"{spec.name} has no input named {', '.join(unknown)}. Its inputs are {', '.join(explorer)}.",
+            f"{spec.name} has no input named {quoted(unknown)}. Its inputs are "
+            f"{', '.join(quoted(n) for n in explorer)}.",
             unknown[0],
         )
     system = SYSTEMS[output.units]
@@ -467,13 +468,15 @@ def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Qu
         else:
             values = [float(v) for v in raw] if isinstance(raw, list) else [float(raw)]
         if not values or not all(np.isfinite(v) for v in values):
-            raise ApiError("invalid", f"{name} must be a number, or a list of numbers.", name)
+            raise ApiError("invalid", f"{quoted(name)} must be a number, or a list of numbers.", name)
         stored = [float(agunits.convert(v, shown, e.unit)) for v in values]
         outside = [v for v, x in zip(values, stored, strict=True) if not e.minimum <= x <= e.maximum]
         if outside:
             lo, hi = (float(agunits.convert(b, e.unit, shown)) for b in (e.minimum, e.maximum))
             label = agunits.unit(shown).label
-            warnings.append(f"{name} {outside[0]:g} is outside its usual {lo:g}–{hi:g} {label}".rstrip())
+            warnings.append(
+                f"{quoted(name)} {outside[0]:g} is outside its usual range of {lo:g}–{hi:g} {label}".rstrip() + "."
+            )
         given[name] = stored
         echo[name] = values if isinstance(raw, list) else values[0]
     count = 1
@@ -572,7 +575,7 @@ def _posted(request: HttpRequest) -> tuple[dict[str, Any], dict[str, str]]:
         ) from None
     if not isinstance(body, dict):
         raise ApiError(
-            "invalid", "The request body must be a JSON object, with the weather under hourly or daily.", "body"
+            "invalid", "The request body must be a JSON object, with the weather under 'hourly' or 'daily'.", "body"
         )
     options = {str(k): str(v) for k, v in (body.get("options") or {}).items()}
     return body, options
@@ -585,7 +588,7 @@ def _date_field(body: dict[str, Any], name: str) -> date | None:
     try:
         return date.fromisoformat(str(value))
     except ValueError:
-        raise ApiError("invalid", f"{name} must be a date, as YYYY-MM-DD.", name) from None
+        raise ApiError("invalid", f"{quoted(name)} must be a date, as YYYY-MM-DD.", name) from None
 
 
 def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> HttpResponse:
@@ -596,7 +599,7 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
     except (KeyError, TypeError, ValueError):
         raise ApiError(
             "missing",
-            "Give the location as lat and lng. It sets the local days and the region the models check.",
+            "Give the location as 'lat' and 'lng'. It sets the local days and the region the models check.",
             "location",
         ) from None
     if not (-90 <= lat <= 90 and -180 <= lng <= 180):
@@ -609,9 +612,9 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
     units = str(body.get("units") or request.GET.get("units") or "us")
     fill, extend = str(body.get("fill") or "none"), str(body.get("extend") or "none")
     if fill not in ("none", "grid"):
-        raise ApiError("invalid", "Give fill as none or grid.", "fill")
+        raise ApiError("invalid", "Give 'fill' as 'none' or 'grid'.", "fill")
     if extend not in ("none", "forecast"):
-        raise ApiError("invalid", "Give extend as none or forecast.", "extend")
+        raise ApiError("invalid", "Give 'extend' as 'none' or 'forecast'.", "extend")
     overrides = {str(k): str(v) for k, v in (body.get("input_units") or {}).items()}
     overrides |= {k: request.GET[k] for k in request.GET if k in stations.HOURLY or k in stations.DAILY}
     station = stations.parse(body, units, overrides)
@@ -619,7 +622,8 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
     if basis not in (None, "central", "local"):
         raise ApiError(
             "invalid",
-            "Give day_basis as central (midnight to midnight CST, our maps' days) or local (the location's own clock).",
+            "Give 'day_basis' as 'central' (midnight to midnight CST, our maps' days) or 'local' (the location's "
+            "own clock).",
             "day_basis",
         )
     zone = day_zone(lat, lng, basis)
@@ -664,9 +668,8 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
         if not runnable:
             raise ApiError(
                 "missing_inputs",
-                "None of the models asked for can run on the weather sent. Send the inputs they "
-                "need, or add fill=grid to "
-                "fill the rest from our data.",
+                "None of the models asked for can run on the weather sent. Send the inputs they need, or add "
+                "'fill=grid' to fill the rest from our data.",
                 "body",
             )
         plans = runnable
@@ -684,7 +687,10 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
     warnings = list(station.warnings)
     lacking = [name for name in names if name not in available]
     if lacking:
-        warnings.append(f"{', '.join(lacking)} from our archive at the cell (fill=grid): the station didn't send them")
+        warnings.append(
+            f"{', '.join(quoted(n) for n in lacking)} come from our archive at the cell ('fill=grid'), since the "
+            "weather sent doesn't include them."
+        )
     days, sources = _station_days(station, zone, needed, last, names, lat, lng, now, fill, extend, sent[1])
     results = runs_at_point(
         lambda first_day, _last, wanted: sliced(days, first_day, wanted),
@@ -762,9 +768,11 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
 
 def _cannot_make(lacking: list[str]) -> str:
     sources = hourly_sources()
-    needs = "; ".join(f"{n} (hourly: {', '.join(sources.get(n, ())) or 'none'})" for n in lacking)
+    needs = "; ".join(
+        f"{quoted(n)} (hourly: {', '.join(quoted(s) for s in sources.get(n, ())) or 'none'})" for n in lacking
+    )
     return (
-        f"We can't make {needs} from the weather sent. Send them, daily or hourly, or add fill=grid to fill them "
+        f"We can't make {needs} from the weather sent. Send them, daily or hourly, or add 'fill=grid' to fill them "
         "from our data."
     )
 
@@ -848,12 +856,12 @@ def _models(raw: str) -> list[Model]:
         return list(all_models().values())
     ids = [part.strip() for part in raw.split(",") if part.strip()]
     if not ids:
-        raise ApiError("missing", "The models list is empty. Give model ids separated by commas, or all.", "models")
+        raise ApiError("missing", "The 'models' list is empty. Give model ids separated by commas, or 'all'.", "models")
     unknown = [i for i in ids if i not in all_models()]
     if unknown:
         raise ApiError(
             "not_found",
-            f"We don't have a model with the id {', '.join(unknown)}. GET /api/v2/models lists every model and its id.",
+            f"We don't have a model with the id {quoted(unknown)}. GET /api/v2/models lists every model and its id.",
             "models",
         )
     return [all_models()[i] for i in dict.fromkeys(ids)]
@@ -863,7 +871,7 @@ def _one_point(where: PointsQuery) -> tuple[float, float]:
     if len(where.locations()) > 1:
         raise ApiError(
             "too_many",
-            "This endpoint takes one location. Give lat and lng, or make one request per location.",
+            "This endpoint takes one location. Give 'lat' and 'lng', or make one request per location.",
             "points",
         )
     return where.locations()[0]
@@ -899,7 +907,7 @@ def _season_days(
     """A seasonal product's days (D68): `season=` or, with no dates, the current season (its start through its end
     or the default end); dates as asked, in the season their last day falls in."""
     if name is not None and (when.date or when.start or when.end):
-        raise ApiError("conflict", "Give either a season, or a date or range of dates, but not both.", "season")
+        raise ApiError("conflict", "Give either 'season', or a date or range of dates, but not both.", "season")
     if name is None and (when.date or when.start or when.end):
         return first, last, seasons.season_of(spec, last)
     try:
@@ -1229,7 +1237,7 @@ def projection_mode(raw: str | None) -> str | None:
         return "years"
     raise ApiError(
         "invalid",
-        "Give projection as true, for the middle and range across past years, or years, for each year's path.",
+        "Give 'projection' as 'true', for the middle and range across past years, or 'years', for each year's path.",
         "projection",
     )
 

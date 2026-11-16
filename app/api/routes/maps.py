@@ -30,7 +30,7 @@ from agdata import units as agunits
 from agdata.grid import Window
 from api import clock, layermaps, maptitles
 from api.envelope import Column, etag_for, not_modified, output_units, shown_unit
-from api.errors import ApiError
+from api.errors import ApiError, quoted
 from api.layermaps import LayerQuery
 from api.params import UnitsQuery
 
@@ -68,7 +68,7 @@ def static_map(request: HttpRequest, layer: str, query: Query[MapQuery], output:
     a = layermaps.ask(request, layer, _layer_query(query, now), output.units, now)
     if a.first != a.last and a.stat is None:
         raise ApiError(
-            "invalid", "A map image shows one map. Give one day or hour, or a range of days with stat.", "stat"
+            "invalid", "A map image shows one map. Give one day or hour, or a range of days with 'stat'.", "stat"
         )
     isolines = parse_isolines(query.isolines, a)
     data_stamp = layermaps.stamp(a, now)
@@ -98,13 +98,15 @@ def _layer_query(q: MapQuery, now: datetime) -> LayerQuery:
         if q.start or q.date or q.time or q.season or q.biofix or q.roll is not None:
             raise ApiError(
                 "conflict",
-                "days counts back from end (or the latest day), so it takes no start, biofix, date, time, season "
-                "or roll. Leave those out.",
+                "'days' counts back from 'end' (or the latest day), so it takes no 'start', 'biofix', 'date', 'time', "
+                "'season' or 'roll'. Leave those out.",
                 "days",
             )
         if q.stat is None and q.count is None:
             raise ApiError(
-                "invalid", "days needs stat to combine them (sum, mean, min or max), or count to count them.", "stat"
+                "invalid",
+                "'days' needs 'stat' to combine them ('sum', 'mean', 'min' or 'max'), or 'count' to count them.",
+                "stat",
             )
         if q.end is not None:
             end = layermaps.parse_date(q.end, "end")
@@ -126,7 +128,7 @@ def parse_isolines(text: str | None, a: layermaps.LayerAsk) -> mapimage.Isolines
     if a.scale.palette.kind == "categorical":
         raise ApiError(
             "not_applicable",
-            f"{a.label} has a color for each level, so it takes no isolines. Leave out isolines.",
+            f"{a.label} has a color for each level, so it takes no 'isolines'. Leave out 'isolines'.",
             "isolines",
         )
     if given == "auto":
@@ -138,8 +140,8 @@ def parse_isolines(text: str | None, a: layermaps.LayerAsk) -> mapimage.Isolines
     if not np.isfinite(every) or every <= 0:
         raise ApiError(
             "invalid",
-            f"We can't read isolines={text}. Give isolines=auto for a line at each of the legend's values, a number "
-            "for a line every so many units (isolines=5 for every 5 degrees), or isolines=off.",
+            f"We can't read {quoted(f'isolines={text}')}. Give 'isolines=auto' for a line at each of the legend's "
+            "values, a number for a line every so many units ('isolines=5' for every 5 degrees), or 'isolines=off'.",
             "isolines",
         )
     return every
@@ -156,8 +158,8 @@ def check_isoline_count(values: np.ndarray, every: float, shown: Any) -> None:
         wider = float(f"{span / 20:.1g}")
         raise ApiError(
             "too_large",
-            f"isolines={every:g} would draw about {span / every:,.0f} lines on this map, more than "
-            f"{mapimage.MAX_LEVELS}. Choose a wider spacing, such as isolines={wider:g}.",
+            f"{quoted(f'isolines={every:g}')} would draw about {span / every:,.0f} lines on this map, more than "
+            f"{mapimage.MAX_LEVELS}. Choose a wider spacing, such as {quoted(f'isolines={wider:g}')}.",
             "isolines",
         )
 

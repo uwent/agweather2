@@ -31,7 +31,7 @@ from agdata.point import daily_at_point, hourly_sources
 from agdata.qc import check_range, run_qc
 from agmodels.weather import dew_point_from_rh_c, relative_humidity_percent
 from api.envelope import SYSTEMS, match_unit, units_like
-from api.errors import ApiError, counted
+from api.errors import ApiError, counted, quoted
 from api.params import TIME_FORMS, parse_time
 
 HOUR = timedelta(hours=1)
@@ -95,7 +95,7 @@ def parse(body: dict[str, Any], system_name: str, overrides: dict[str, str]) -> 
     """A JSON body's `hourly` and `daily` blocks, checked, converted and QC'd."""
     system = SYSTEMS.get(system_name)
     if system is None:
-        raise ApiError("invalid", "Give units as us or metric.", "units")
+        raise ApiError("invalid", "Give 'units' as 'us' or 'metric'.", "units")
     station = Station()
     hourly, daily = body.get("hourly"), body.get("daily")
     if not hourly and not daily:
@@ -116,16 +116,15 @@ def parse_csv(text: str) -> dict[str, Any]:
     header = [h.strip() for h in rows[0]]
     if header[0] not in ("time", "date"):
         raise ApiError(
-            "invalid", "The CSV's first column must be time, for hourly values, or date, for daily values.", "body"
+            "invalid", "The CSV's first column must be 'time', for hourly values, or 'date', for daily values.", "body"
         )
     columns: dict[str, list[Any]] = {h: [] for h in header}
     for n, row in enumerate(rows[1:], start=2):
         if len(row) != len(header):
             raise ApiError(
                 "invalid",
-                f"Row {n} of the CSV has {len(row)} values, but there are {len(header)} column "
-                "names. Give every row one "
-                "value per column (empty for a missing value).",
+                f"Row {n} of the CSV has {len(row)} values, but there are {len(header)} column names. Give every row "
+                "one value per column (empty for a missing value).",
                 "body",
             )
         for h, value in zip(header, row, strict=True):
@@ -135,12 +134,17 @@ def parse_csv(text: str) -> dict[str, Any]:
 
 def _block(block: Any, kind: str, key: str) -> dict[str, list[Any]]:
     if not isinstance(block, dict) or key not in block:
-        raise ApiError("invalid", f"The {kind} values need a list named {key} and a list for each variable.", kind)
+        raise ApiError(
+            "invalid", f"The {kind} values need a list named {quoted(key)} and a list for each variable.", kind
+        )
     n = len(block[key])
     for name, values in block.items():
         if not isinstance(values, list) or len(values) != n:
             raise ApiError(
-                "invalid", f"{kind}.{name} must be a list with one value for each entry in {kind}.{key} ({n}).", kind
+                "invalid",
+                f"{quoted(f'{kind}.{name}')} must be a list with one value for each entry in "
+                f"{quoted(f'{kind}.{key}')} ({n}).",
+                kind,
             )
     return block
 
@@ -149,7 +153,7 @@ def _numbers(values: list[Any], where: str) -> np.ndarray:
     try:
         return np.array([np.nan if v is None or v == "" else float(v) for v in values], dtype=float)
     except (TypeError, ValueError):
-        raise ApiError("invalid", f"{where} must hold numbers, or null for a missing value.", where) from None
+        raise ApiError("invalid", f"{quoted(where)} must hold numbers, or null for a missing value.", where) from None
 
 
 def _unit_in(v: Variable, system, overrides: dict[str, str]) -> str:
@@ -160,7 +164,8 @@ def _unit_in(v: Variable, system, overrides: dict[str, str]) -> str:
             if symbol is None:
                 raise ApiError(
                     "bad_unit",
-                    f"We can't read {v.name} in {given!r}. Choose one of these units: {units_like(v.unit)}.",
+                    f"We can't read {quoted(v.name)} in {quoted(given)}. Choose one of these units: "
+                    f"{units_like(v.unit)}.",
                     f"input_units.{name}",
                 )
             return symbol
@@ -172,7 +177,7 @@ def _hourly(station: Station, block: dict[str, list[Any]], system, overrides: di
     if unknown:
         raise ApiError(
             "unknown_variable",
-            f"We don't have an hourly variable named {', '.join(unknown)}. GET /api/v2/variables lists the names.",
+            f"We don't have an hourly variable named {quoted(unknown)}. GET /api/v2/variables lists the names.",
             "hourly",
         )
     times = []
@@ -182,28 +187,30 @@ def _hourly(station: Station, block: dict[str, list[Any]], system, overrides: di
         except (ValueError, OverflowError, OSError):
             raise ApiError(
                 "invalid",
-                f"Entry {k} of hourly.time ({text}) isn't a time. Give times {TIME_FORMS}.",
+                f"Entry {k} of 'hourly.time' ({quoted(text)}) isn't a time. Give times {TIME_FORMS}.",
                 "hourly.time",
             ) from None
         if when.tzinfo is None:
             raise ApiError(
                 "invalid",
-                f"Entry {k} of hourly.time needs a time zone, such as Z for UTC or -05:00. Each value is for the hour "
-                "ending at its time.",
+                f"Entry {k} of 'hourly.time' needs a time zone, such as 'Z' for UTC or '-05:00'. Each value is for the "
+                "hour ending at its time.",
                 "hourly.time",
             )
         if when.minute or when.second:
             raise ApiError(
                 "invalid",
-                f"Entry {k} of hourly.time ({text}) isn't on the hour. Give each hour's end, such "
-                "as 2025-07-08T15:00Z.",
+                f"Entry {k} of 'hourly.time' ({quoted(text)}) isn't on the hour. Give each hour's end, such "
+                "as '2025-07-08T15:00Z'.",
                 "hourly.time",
             )
         times.append(when.astimezone(UTC))
     if not times:
         return
     if len(set(times)) != len(times):
-        raise ApiError("invalid", "hourly.time lists the same hour more than once. Give each hour once.", "hourly.time")
+        raise ApiError(
+            "invalid", "'hourly.time' lists the same hour more than once. Give each hour once.", "hourly.time"
+        )
     first, last = min(times), max(times)
     n = (last - first) // HOUR + 1
     if n > MAX_HOURS:
@@ -224,7 +231,7 @@ def _hourly(station: Station, block: dict[str, list[Any]], system, overrides: di
         dropped = qc.out_of_range + qc.spikes
         if dropped:
             station.warnings.append(
-                f"{counted(dropped, 'hour')} of {name} were outside its possible range or jumped too "
+                f"{counted(dropped, 'hour')} of {quoted(name)} were outside its possible range or jumped too "
                 "sharply, so we treat them as missing."
             )
         station.hourly[name] = qc.values
@@ -249,7 +256,7 @@ def _daily(station: Station, block: dict[str, list[Any]], system, overrides: dic
     if unknown:
         raise ApiError(
             "unknown_variable",
-            f"We don't have a daily variable named {', '.join(unknown)}. GET /api/v2/variables lists the names.",
+            f"We don't have a daily variable named {quoted(unknown)}. GET /api/v2/variables lists the names.",
             "daily",
         )
     days = []
@@ -258,10 +265,12 @@ def _daily(station: Station, block: dict[str, list[Any]], system, overrides: dic
             days.append(date.fromisoformat(str(text)))
         except ValueError:
             raise ApiError(
-                "invalid", f"Entry {k} of daily.date ({text}) isn't a date. Give dates as YYYY-MM-DD.", "daily.date"
+                "invalid",
+                f"Entry {k} of 'daily.date' ({quoted(text)}) isn't a date. Give dates as YYYY-MM-DD.",
+                "daily.date",
             ) from None
     if len(set(days)) != len(days):
-        raise ApiError("invalid", "daily.date lists the same day more than once. Give each day once.", "daily.date")
+        raise ApiError("invalid", "'daily.date' lists the same day more than once. Give each day once.", "daily.date")
     if days and (max(days) - min(days)).days + 1 > MAX_DAYS:
         raise ApiError(
             "too_large",
@@ -277,6 +286,6 @@ def _daily(station: Station, block: dict[str, list[Any]], system, overrides: dic
         cleaned, bad = check_range(v, values)
         if bad:
             station.warnings.append(
-                f"{counted(bad, 'day')} of {name} were outside its possible range, so we treat them as missing."
+                f"{counted(bad, 'day')} of {quoted(name)} were outside its possible range, so we treat them as missing."
             )
         station.daily[name] = cleaned

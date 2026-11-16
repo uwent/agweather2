@@ -34,7 +34,8 @@ from django.utils.cache import patch_vary_headers
 from agdata import units as agunits
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES, Variable
 from agdata.computed import DAILY_COMPUTED, HOURLY_COMPUTED
-from api.errors import ApiError
+from api import takes
+from api.errors import ApiError, check_style, quoted
 
 API_VERSION = "2.0"
 # The code's version in an ETag: the deployed commit, or in development this process's start (uvicorn restarts on a
@@ -119,7 +120,9 @@ def unit_overrides(request: HttpRequest) -> dict[str, str]:
         symbol = match_unit(v.unit, value)
         if symbol is None:
             raise ApiError(
-                "bad_unit", f"We can't show {name} in {value!r}. Choose one of these units: {units_like(v.unit)}.", name
+                "bad_unit",
+                f"We can't show {quoted(name)} in {quoted(value)}. Choose one of these units: {units_like(v.unit)}.",
+                name,
             )
         found[name] = symbol
     return found
@@ -144,7 +147,7 @@ def match_unit(stored: str, given: str) -> str | None:
 def units_like(stored: str) -> str:
     """The unit symbols a variable stored in `stored` can be given or shown in, for a message."""
     dimension = agunits.unit(stored).dimension
-    return ", ".join(u.symbol for u in agunits.UNITS.values() if u.dimension == dimension)
+    return ", ".join(quoted(u.symbol) for u in agunits.UNITS.values() if u.dimension == dimension)
 
 
 def shown_unit(column: Column, system: agunits.System, overrides: dict[str, str]) -> str:
@@ -240,6 +243,15 @@ def respond(request: HttpRequest, result: Result) -> HttpResponse:
     system = SYSTEMS.get(result.units or params.get("units", "us"), "imperial")
     overrides = unit_overrides(request)
     meta: dict[str, Any] = {"request": result.request}
+    taken = takes.values(request, result.request)
+    if taken is not None:
+        # Values settled here or reported elsewhere in meta: the format used, the days' basis at the location
+        if "format" in taken and taken["format"] is None:
+            taken["format"] = fmt
+        basis = (result.location or {}).get("day_basis")
+        if "day_basis" in taken and taken["day_basis"] is None and basis is not None:
+            taken["day_basis"] = basis
+        meta["params"] = taken
     if result.location is not None:
         meta["location"] = result.location
     if result.locations is not None:
@@ -261,6 +273,7 @@ def respond(request: HttpRequest, result: Result) -> HttpResponse:
         meta["summary"] = result.summary
     meta["sources"] = result.sources
     meta["warnings"] = result.warnings
+    check_style(result.warnings)
     now = datetime.now(UTC)
     meta["attribution"] = attribution(now.year)
     meta["api_version"] = API_VERSION
@@ -279,7 +292,7 @@ def respond(request: HttpRequest, result: Result) -> HttpResponse:
         if result.columns is None:
             raise ApiError(
                 "format_unavailable",
-                "This request's answer comes only as JSON. Leave out format=csv, or give format=json.",
+                "This request's answer comes only as JSON. Leave out 'format=csv', or give 'format=json'.",
                 "format",
             )
         body = _csv(meta, prepared, with_meta=params.get("headers", "true").lower() not in ("false", "0", "no"))
@@ -349,8 +362,12 @@ def not_modified(request: HttpRequest, etag: str) -> HttpResponse | None:
 def error_response(request: HttpRequest, errors: list[dict[str, Any]], status: int) -> HttpResponse:
     """`{meta, errors}`: the request as sent (it couldn't be normalized), and what's wrong with it."""
     now = datetime.now(UTC)
-    meta = {
-        "request": {key: request.GET.get(key) for key in request.GET},
+    meta: dict[str, Any] = {"request": {key: request.GET.get(key) for key in request.GET}}
+    params = takes.values(request)
+    if params is not None:
+        meta["params"] = params
+    check_style(e["message"] for e in errors)
+    meta |= {
         "api_version": API_VERSION,
         "generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "compute_ms": round(_elapsed_ms(request)),
@@ -378,7 +395,8 @@ def _format(request: HttpRequest, offered: tuple[str, ...]) -> str:
         if asked not in offered:
             raise ApiError(
                 "format_unavailable",
-                f"This request's answer doesn't come as {asked}. Choose one of these formats: {', '.join(offered)}.",
+                f"This request's answer doesn't come as {quoted(asked)}. Choose one of these formats: "
+                f"{', '.join(quoted(f) for f in offered)}.",
                 "format",
             )
         return asked

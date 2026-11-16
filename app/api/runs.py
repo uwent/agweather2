@@ -23,7 +23,7 @@ from agdata.series import RunSpec
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
 from agmodels.spec import Model, ModelSpec, Option
-from api.errors import ApiError
+from api.errors import ApiError, quoted
 
 MAX_OPTION_SETS = 20
 ALL = "all"
@@ -44,7 +44,7 @@ def model_or_404(model_id: str) -> Model:
     if model_id not in all_models():
         raise ApiError(
             "not_found",
-            f"We don't have a model with the id {model_id!r}. GET /api/v2/models lists every model and its id.",
+            f"We don't have a model with the id {quoted(model_id)}. GET /api/v2/models lists every model and its id.",
             "model",
             status=404,
         )
@@ -85,13 +85,13 @@ def plan(
     if given and planting_echo is None:
         # The crop's stages run only from a planting date: its options would only repeat the same run
         warnings.append(
-            f"{', '.join(given)} set the crop's stages, which run only from a planting date, so we left them out. Add "
-            "planting_date to use them."
+            f"{', '.join(quoted(g) for g in given)} set the crop's stages, which run only from a planting date, so we "
+            "left them out. Add 'planting_date' to use them."
         )
         crop_opts = {o.name: [o.default] for o in crop_spec.options} if crop_spec else {}
     if biofix is not None and spec.biofix is None:
         raise ApiError(
-            "not_applicable", f"The {spec.name} model doesn't take a biofix date. Leave out biofix.", "biofix"
+            "not_applicable", f"The {spec.name} model doesn't take a biofix date. Leave out 'biofix'.", "biofix"
         )
 
     axes: list[tuple[str, list[Any]]] = [("planting_date", plantings)]
@@ -103,8 +103,7 @@ def plan(
         raise ApiError(
             "too_many",
             f"This request asks for {count} combinations of options; a request can run up to "
-            f"{MAX_OPTION_SETS}. Choose fewer "
-            "options with all.",
+            f"{MAX_OPTION_SETS}. Choose fewer options with 'all'.",
             ALL,
         )
     varying = [name for name, values in axes if len(values) > 1]
@@ -147,7 +146,7 @@ def option_values(option: Option, raw: str | None, warnings: list[str]) -> list[
         if not choices:
             raise ApiError(
                 "invalid",
-                f"{option.name} has no list of choices, so it can't be set to all. Give one value.",
+                f"{quoted(option.name)} has no list of choices, so it can't be set to 'all'. Give one value.",
                 option.name,
             )
         return choices
@@ -162,13 +161,15 @@ def option_values(option: Option, raw: str | None, warnings: list[str]) -> list[
         else:
             if not min(numbers) <= value <= max(numbers):
                 warnings.append(
-                    f"{option.name}={raw} is outside its usual range of {min(numbers):g} to {max(numbers):g}. The "
-                    "model runs with it as given, so check that it's the value you meant."
+                    f"{quoted(f'{option.name}={raw}')} is outside its usual range of {min(numbers):g} to "
+                    f"{max(numbers):g}. The model runs with it as given, so check that it's the value you meant."
                 )
             return [raw]
-    listed = ", ".join(choices)
+    listed = ", ".join(quoted(c) for c in choices)
     hint = " or a number" if numbers is not None else ""
-    raise ApiError("invalid", f"{option.name} must be one of {listed}{hint}, or all to run every choice.", option.name)
+    raise ApiError(
+        "invalid", f"{quoted(option.name)} must be one of {listed}{hint}, or 'all' to run every choice.", option.name
+    )
 
 
 def _numbers(choices: list[str]) -> list[float] | None:
@@ -188,7 +189,7 @@ def _plantings(
     if crop is None:
         raise ApiError(
             "not_applicable",
-            f"The {spec.name} model doesn't take a planting date. Leave out planting_date.",
+            f"The {spec.name} model doesn't take a planting date. Leave out 'planting_date'.",
             "planting_date",
         )
     if raw not in (*TIERS, ALL):
@@ -197,9 +198,8 @@ def _plantings(
         except ValueError:
             raise ApiError(
                 "invalid",
-                "Give planting_date as a date (YYYY-MM-DD), or as early, mid or late for this "
-                "location's typical dates, or all "
-                "for all three.",
+                "Give 'planting_date' as a date (YYYY-MM-DD), or as 'early', 'mid' or 'late' for this location's "
+                "typical dates, or 'all' for all three.",
                 "planting_date",
             ) from None
     crop_name = crop[1]
@@ -207,8 +207,8 @@ def _plantings(
     if found is None:
         raise ApiError(
             "no_estimate",
-            f"We have no typical {crop_name} planting dates for this location. Give planting_date "
-            "as a date (YYYY-MM-DD).",
+            f"We have no typical {crop_name} planting dates for this location. Give 'planting_date' as a date "
+            "(YYYY-MM-DD).",
             "planting_date",
         )
     tiers = list(TIERS) if raw == ALL else [raw]

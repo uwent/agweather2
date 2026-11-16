@@ -31,7 +31,7 @@ from agdata import units as agunits
 from agdata.catalog import DAILY_VARIABLES, dd_name
 from agdata.grid import Window
 from agdata.layers import DEGREE_DAYS, ELEVATION_OUTPUTS, FREEZE_DATE_OUTPUTS, NORMAL_DECILES, Layer, LayerOutput
-from api.errors import ApiError
+from api.errors import ApiError, quoted
 from api.events import EPOCH
 from api.maptitles import layer_title
 
@@ -98,9 +98,9 @@ def _output(layer: Layer, name: str | None) -> LayerOutput:
         return layer.outputs[0]
     found = next((o for o in layer.outputs if o.name == name), None)
     if found is None:
-        names = ", ".join(o.name for o in layer.outputs)
+        names = ", ".join(quoted(o.name) for o in layer.outputs)
         raise ApiError(
-            "invalid", f"{layer_title(layer)} has no output named {name!r}. Choose one of {names}.", "output"
+            "invalid", f"{layer_title(layer)} has no output named {quoted(name)}. Choose one of {names}.", "output"
         )
     return found
 
@@ -111,30 +111,32 @@ def ask_layer(layer: Layer, q: Any, units: str) -> ClimateAsk:
         if getattr(q, param, None) is not None:
             raise ApiError(
                 "not_applicable",
-                f"{layer_title(layer)} is one map of stored statistics, so it takes no {param}. Leave it out.",
+                f"{layer_title(layer)} is one map of stored statistics, so it takes no {quoted(param)}. Leave it out.",
                 param,
             )
     if getattr(q, "climate", None) is not None:
         raise ApiError(
             "not_applicable",
-            f"{layer_title(layer)} is already a climate statistic, so it takes no climate. Leave it out.",
+            f"{layer_title(layer)} is already a climate statistic, so it takes no 'climate'. Leave it out.",
             "climate",
         )
     if layer.time_axis == "none" and (q.date is not None or q.time is not None):
         param = "date" if q.date is not None else "time"
-        raise ApiError("not_applicable", f"{layer_title(layer)} doesn't change by date, so it takes no {param}.", param)
+        raise ApiError(
+            "not_applicable", f"{layer_title(layer)} doesn't change by date, so it takes no {quoted(param)}.", param
+        )
     if q.time is not None:
         raise ApiError(
-            "invalid", f"{layer_title(layer)} is by day of the year. Give a date rather than a time.", "time"
+            "invalid", f"{layer_title(layer)} is by day of the year. Give 'date' rather than 'time'.", "time"
         )
     if layer.source == "terrain":
         if q.threshold is not None:
-            raise ApiError("not_applicable", "threshold applies only to the freeze maps. Leave it out.", "threshold")
+            raise ApiError("not_applicable", "'threshold' applies only to the freeze maps. Leave it out.", "threshold")
         if terrain.load(settings.DATA_DIR) is None:
             raise ApiError("no_data", "The elevation map isn't ready yet. Please try again later.", None, status=503)
         return ClimateAsk(kind=None, period=q.period, years=None, output=_output(layer, q.output))
     if q.output is not None and not layer.outputs:
-        raise ApiError("not_applicable", f"{layer_title(layer)} has no outputs. Leave out output.", "output")
+        raise ApiError("not_applicable", f"{layer_title(layer)} has no outputs. Leave out 'output'.", "output")
     info = built(q.period)
     return ClimateAsk(
         kind=None,
@@ -167,19 +169,19 @@ def check(
         if q.period != "last30":
             raise ApiError(
                 "not_applicable",
-                "period chooses the years of a climate map, so it applies only with climate=normal, departure or "
-                "percentile. Add climate, or leave out period.",
+                "'period' chooses the years of a climate map, so it applies only with 'climate=normal', 'departure' or "
+                "'percentile'. Add 'climate', or leave out 'period'.",
                 "period",
             )
         if q.threshold is not None:
-            raise ApiError("not_applicable", "threshold applies only to the freeze maps. Leave it out.", "threshold")
+            raise ApiError("not_applicable", "'threshold' applies only to the freeze maps. Leave it out.", "threshold")
         return None
     title = layer_title(layer)
     if q.threshold is not None:
-        raise ApiError("not_applicable", "threshold applies only to the freeze maps. Leave it out.", "threshold")
+        raise ApiError("not_applicable", "'threshold' applies only to the freeze maps. Leave it out.", "threshold")
     if kind not in layer.climate:
         offered = (
-            f"It takes climate={' or '.join(layer.climate)}."
+            f"It takes {' or '.join(quoted(f'climate={c}') for c in layer.climate)}."
             if layer.climate
             else "Normals are kept for the daily weather variables, their running totals and degree days."
         )
@@ -187,8 +189,8 @@ def check(
     if model is not None or counted:
         raise ApiError(
             "not_applicable",
-            "A climate map combines days by their sum, mean or count. Leave out first, last and since, or ask for "
-            "freeze dates at a location with /climate/frost.",
+            "A climate map combines days by their sum, mean or count. Leave out 'first', 'last' and 'since', or ask "
+            "for freeze dates at a location with /climate/frost.",
             "climate",
         )
     stored_count = None
@@ -197,14 +199,14 @@ def check(
     if first != last and stat is None:
         raise ApiError(
             "invalid",
-            "A climate map shows one map. Give one date, or a range of days with stat=sum or stat=mean.",
+            "A climate map shows one map. Give one date, or a range of days with 'stat=sum' or 'stat=mean'.",
             "climate",
         )
     if stat in ("min", "max"):
         raise ApiError(
             "not_applicable",
             f"The normal of a range's {'lowest' if stat == 'min' else 'highest'} value isn't kept as a map. Use "
-            "stat=mean or sum, or ask at a location with /climate/normals, which works it out from each year.",
+            "'stat=mean' or 'sum', or ask at a location with /climate/normals, which works it out from each year.",
             "stat",
         )
     info = built(q.period)
@@ -224,7 +226,7 @@ def check(
             raise ApiError(
                 "not_applicable",
                 f"The {PERIOD_WORDS[q.period]} normals have no {title}: the records before 2016 have each day's "
-                "minimum and maximum only. Ask for period=last10 or last5.",
+                "minimum and maximum only. Ask for 'period=last10' or 'last5'.",
                 "period",
             )
     elif layer.id == DEGREE_DAYS:
@@ -232,8 +234,8 @@ def check(
         if cubes is None or any(c is not None and c not in held for c in cubes):
             raise ApiError(
                 "not_applicable",
-                f"Normal maps are kept for the degree-day settings we keep running totals of, not {setting.name}. "
-                "Ask for its normals at a location with /climate/normals?dd=" + setting.name + ".",
+                f"Normal maps are kept for the degree-day settings we keep running totals of, not "
+                f"{quoted(setting.name)}. Ask for its normals at a location with '/climate/normals?dd={setting.name}'.",
                 "dd",
             )
     if kind == "percentile":
@@ -242,7 +244,7 @@ def check(
             raise ApiError(
                 "not_applicable",
                 "Percentile maps are kept for running totals from January 1 of precipitation and modified 50/86 "
-                "and single sine 41/86 degree days, over the 30 or 10 years. Ask for climate=departure, or for the "
+                "and single sine 41/86 degree days, over the 30 or 10 years. Ask for 'climate=departure', or for the "
                 "percentile at a location with /climate/compare.",
                 "climate",
             )
@@ -250,7 +252,7 @@ def check(
         if layer.id == DEGREE_DAYS and (stat != "sum" or start is None or (start.month, start.day) != (1, 1)):
             raise ApiError(
                 "invalid",
-                "A percentile map ranks the running total from January 1. Give start as January 1 with stat=sum.",
+                "A percentile map ranks the running total from January 1. Give 'start' as January 1 with 'stat=sum'.",
                 "start",
             )
     del roll  # a window is a range with its statistic by now (`layermaps._roll_range`)
@@ -265,7 +267,7 @@ def _stored_count(
     if kind == "percentile":
         raise ApiError(
             "not_applicable",
-            "Percentile maps aren't kept for counts. Ask for climate=departure, or for the percentile at a location "
+            "Percentile maps aren't kept for counts. Ask for 'climate=departure', or for the percentile at a location "
             "with /climate/compare.",
             "climate",
         )
@@ -291,7 +293,7 @@ def _stored_count(
         side, value = ("above", s.low) if s.low is not None else ("below", s.high)
         assert value is not None
         number = f"{float(agunits.convert(value, s.unit, shown)):.2f}".rstrip("0").rstrip(".")
-        forms.append(f"days_{side}_{number}")
+        forms.append(quoted(f"days_{side}_{number}"))
     raise ApiError(
         "not_applicable",
         f"{layer_title(layer)} has normal maps for these counts only: {', '.join(forms)}. Choose one of those, or "

@@ -24,7 +24,7 @@ import numpy as np
 
 from agdata import units as agunits
 from api import counts
-from api.errors import ApiError
+from api.errors import ApiError, quoted
 
 Kind = Literal["first", "last", "since"]
 KINDS: tuple[Kind, ...] = ("first", "last", "since")
@@ -32,7 +32,9 @@ EPOCH = date(1970, 1, 1)
 # Named thresholds (°F, at or below), in the terms growers use (Ben, 2026-11-07)
 NAMED_F = {"frost": 32.0, "hard_freeze": 28.0, "killing_freeze": 24.0}
 _WORDS = {"frost": "frost", "hard_freeze": "hard freeze", "killing_freeze": "killing freeze"}
-EXAMPLES = "above_50, below_32, between_50_86, or frost (32 °F), hard_freeze (28 °F) or killing_freeze (24 °F)"
+EXAMPLES = (
+    "'above_50', 'below_32', 'between_50_86', or 'frost' (32 °F), 'hard_freeze' (28 °F) or 'killing_freeze' (24 °F)"
+)
 SEASON_START = (7, 1)  # a `below` event's default start: the previous July 1
 
 
@@ -90,9 +92,11 @@ def parse(kind: Kind, text: str) -> Event:
     if given in NAMED_F:
         return Event(kind=kind, low=None, high=NAMED_F[given], named=given, name=given)
     if re.match(r"^(days|hours)_", given):
+        bounds = given.split("_", 1)[1]
         raise ApiError(
             "invalid",
-            f"{kind} finds a day, so it takes the bounds alone: {kind}={given.split('_', 1)[1]}, not {kind}={text}.",
+            f"{quoted(kind)} finds a day, so it takes the bounds alone: {quoted(f'{kind}={bounds}')}, "
+            f"not {quoted(f'{kind}={text}')}.",
             kind,
         )
     low, high = counts.parse_bounds(given, text, kind, EXAMPLES)
@@ -105,7 +109,7 @@ def asked(first: str | None, last: str | None, since: str | None) -> Event | Non
         (kind, text) for kind, text in zip(KINDS, (first, last, since), strict=True) if text is not None
     ]
     if len(given) > 1:
-        names = " and ".join(kind for kind, _ in given)
+        names = " and ".join(quoted(kind) for kind, _ in given)
         raise ApiError("conflict", f"A map finds one kind of day. Give {names} in separate requests.", given[1][0])
     return parse(kind=given[0][0], text=given[0][1]) if given else None
 

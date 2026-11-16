@@ -21,7 +21,7 @@ from pydantic_core import PydanticCustomError
 
 from agdata import areas, rolling
 from agdata.rolling import Roll
-from api.errors import ApiError, day_text, hour_text
+from api.errors import ApiError, day_text, hour_text, quoted
 from ops.points import AreaAsk
 
 MAX_POINTS = 50  # per GET; more go by POST (docs/api.md)
@@ -62,7 +62,7 @@ class PointsQuery(Schema):
                 raise fail(
                     "conflict",
                     "points",
-                    "Give either lat and lng for one location, or points for several, but not both.",
+                    "Give either 'lat' and 'lng' for one location, or 'points' for several, but not both.",
                 )
             self._parsed = _parse_points(self.points)
             return self
@@ -71,7 +71,8 @@ class PointsQuery(Schema):
             raise fail(
                 "missing",
                 missing,
-                "Give a location as lat and lng (such as lat=43.07&lng=-89.40), or several as points=lat,lng;lat,lng.",
+                "Give a location as 'lat' and 'lng' (such as 'lat=43.07&lng=-89.40'), or several as "
+                "'points=lat,lng;lat,lng'.",
             )
         _check_point(self.lat, self.lng, "lat", "lng")
         self._parsed = [(self.lat, self.lng)]
@@ -93,8 +94,8 @@ def _parse_points(text: str) -> list[tuple[float, float]]:
         raise fail(
             "missing",
             "points",
-            "The points list is empty. Give latitude,longitude pairs separated by semicolons, such "
-            "as points=43.07,-89.40;44.52,-89.57.",
+            "The 'points' list is empty. Give latitude,longitude pairs separated by semicolons, such "
+            "as 'points=43.07,-89.40;44.52,-89.57'.",
         )
     if len(pairs) > MAX_POINTS:
         raise fail(
@@ -112,7 +113,7 @@ def _parse_points(text: str) -> list[tuple[float, float]]:
             raise fail(
                 "invalid",
                 "points",
-                f"Point {n} ({pair}) isn't a latitude and longitude. Give each point as two numbers "
+                f"Point {n} ({quoted(pair)}) isn't a latitude and longitude. Give each point as two numbers "
                 "separated by a comma.",
             ) from None
         _check_point(lat, lng, "points", "points")
@@ -142,7 +143,9 @@ class DaysQuery(Schema):
     def _check(self) -> "DaysQuery":
         if self.date is not None and (self.start is not None or self.end is not None):
             raise fail(
-                "conflict", "date", "Give either date for one day, or start and end for a range of days, but not both."
+                "conflict",
+                "date",
+                "Give either 'date' for one day, or 'start' and 'end' for a range of days, but not both.",
             )
         if self.start is not None and self.end is not None and self.start > self.end:
             raise fail(
@@ -200,8 +203,8 @@ class AreaQuery(Schema):
             if self.land_only:
                 raise ApiError(
                     "not_applicable",
-                    "land_only leaves open water out of an area, so it works only with radius. Add a radius, or "
-                    "leave out land_only.",
+                    "'land_only' leaves open water out of an area, so it works only with 'radius'. Add a radius, or "
+                    "leave out 'land_only'.",
                     "land_only",
                 )
             return None
@@ -234,7 +237,8 @@ def require_terrain(param: str) -> None:
     if terrain.load(settings.DATA_DIR) is None:
         raise ApiError(
             "no_data",
-            f"{param} needs our map of open water, which isn't available yet. Leave out {param}, or try again later.",
+            f"{quoted(param)} needs our map of open water, which isn't available yet. Leave out {quoted(param)}, or "
+            "try again later.",
             param,
         )
 
@@ -255,7 +259,7 @@ class RollQuery(Schema):
             raise fail(
                 "out_of_range",
                 "roll_coverage",
-                f"roll_coverage ({self.roll_coverage:g}) is a percentage of a window's days, from 0 to 100.",
+                f"'roll_coverage' ({self.roll_coverage:g}) is a percentage of a window's days, from 0 to 100.",
             )
         if self.roll is None or not self.roll.strip():
             return self
@@ -266,8 +270,8 @@ class RollQuery(Schema):
                 raise fail(
                     "invalid",
                     "roll",
-                    f"The window {text!r} isn't a number of days from {rolling.MIN_DAYS} to {rolling.MAX_DAYS}. "
-                    "Give one or more lengths in days, separated by commas, such as roll=7,14,28.",
+                    f"The window {quoted(text)} isn't a number of days from {rolling.MIN_DAYS} to {rolling.MAX_DAYS}. "
+                    "Give one or more lengths in days, separated by commas, such as 'roll=7,14,28'.",
                 )
             found.append(n)
         if len(set(found)) < len(found):
@@ -320,10 +324,10 @@ def check_vars(raw: str | None, valid: Mapping[str, Any], default: list[str], pa
     names = [n.strip() for n in raw.split(",") if n.strip()]
     unknown = [n for n in names if n not in valid]
     if unknown:
-        listed = ", ".join(valid)
+        listed = ", ".join(quoted(v) for v in valid)
         raise ApiError(
             "unknown_variable",
-            f"We don't have a variable named {', '.join(unknown)} here. Choose from: {listed}.",
+            f"We don't have a variable named {quoted(unknown)} here. Choose from: {listed}.",
             param,
         )
     return list(dict.fromkeys(names))
@@ -347,7 +351,7 @@ def resolve_biofix(text: str | dt.date | None, reference: dt.date, param: str = 
         if (month, day) == (2, 29):
             raise ApiError(
                 "invalid",
-                "February 29 isn't in every year, so give the biofix as a full date, such as 2024-02-29.",
+                "February 29 isn't in every year, so give the biofix as a full date, such as '2024-02-29'.",
                 param,
             )
         try:
@@ -358,15 +362,15 @@ def resolve_biofix(text: str | dt.date | None, reference: dt.date, param: str = 
             return found if found <= reference else found.replace(year=reference.year - 1)
     raise ApiError(
         "invalid",
-        f"The {param} ({text}) isn't a date. Give a date as YYYY-MM-DD (2026-04-15), or a month and day as MM-DD "
-        "(04-15) for the latest one on or before the end date.",
+        f"The value of {quoted(param)} ({quoted(text)}) isn't a date. Give a date as YYYY-MM-DD ('2026-04-15'), or a "
+        "month and day as MM-DD ('04-15') for the latest one on or before the end date.",
         param,
     )
 
 
 EPOCH_DIGITS = 9  # a bare number this long or longer is Unix time; 8 digits is a compact date (20261105)
 EPOCH_MS = 10**11  # from here a Unix time is in milliseconds (in seconds it would be the year 5138)
-TIME_FORMS = "as 2025-07-08T15:00Z, or as Unix time in seconds (1751986800)"
+TIME_FORMS = "as '2025-07-08T15:00Z', or as Unix time in seconds ('1751986800')"
 
 
 def parse_time(value: str | int | float) -> dt.datetime:
@@ -394,14 +398,14 @@ def parse_hour(value: str | int | float, param: str) -> dt.datetime:
         found = parse_time(value)
     except (ValueError, OverflowError, OSError):
         raise ApiError(
-            "invalid", f"The value of {param} ({value}) isn't a time. Give a time {TIME_FORMS}.", param
+            "invalid", f"The value of {quoted(param)} ({quoted(value)}) isn't a time. Give a time {TIME_FORMS}.", param
         ) from None
     found = found.replace(tzinfo=dt.UTC) if found.tzinfo is None else found.astimezone(dt.UTC)
     if found.minute or found.second or found.microsecond:
         raise ApiError(
             "invalid",
-            f"The value of {param} ({found:%Y-%m-%dT%H:%M:%S}Z) isn't on the hour. Give a whole hour, such as "
-            "2025-07-08T15:00Z.",
+            f"The value of {quoted(param)} ('{found:%Y-%m-%dT%H:%M:%S}Z') isn't on the hour. Give a whole hour, such "
+            "as '2025-07-08T15:00Z'.",
             param,
         )
     return found
@@ -488,14 +492,15 @@ def temperature_threshold(value: float, units: str, bracket: Bracket, param: str
             param,
         )
     value_f = convert(value, unit, "degF")
+    in_c = convert(value, "degF", "degC")  # what the value is in °C if it was meant in °F
     lo, hi = bracket.usual_f
     if units == "metric" and value > LOOKS_LIKE_F_IN_C[bracket]:
         warnings.append(
-            f"With units=metric, {bracket.what} of {value:g} is read as {value:g} °C ({value_f:g} °F). If you meant "
-            f"{value:g} °F, leave out units=metric or give {convert(value, 'degF', 'degC'):.1f}."
+            f"With 'units=metric', {bracket.what} of {value:g} is read as {value:g} °C ({value_f:g} °F). If you meant "
+            f"{value:g} °F, leave out 'units=metric' or give {quoted(f'{in_c:.1f}')}."
         )
     elif not lo <= value_f <= hi:
-        hint = " If you meant °C, add units=metric." if units != "metric" and value_f < lo else ""
+        hint = " If you meant °C, add 'units=metric'." if units != "metric" and value_f < lo else ""
         usual = f"{convert(lo, 'degF', unit):g}–{convert(hi, 'degF', unit):g} {label}"
         warnings.append(
             f"{bracket.what.capitalize()} of {value:g} {label} is outside the usual range of {usual}, so check that "
@@ -521,8 +526,8 @@ def degree_day_settings(raw: str | None, units: str, warnings: list[str], param:
     if raw is None or not raw.strip():
         raise ApiError(
             "missing",
-            "Give a degree-day setting as dd=method_base_upper (such as sine_50_86, modified_40 or average_43), or as "
-            "base with an optional upper and method.",
+            "Give a degree-day setting as 'dd=method_base_upper' (such as 'sine_50_86', 'modified_40' or "
+            "'average_43'), or as 'base' with an optional 'upper' and 'method'.",
             param,
         )
     found: list[DegreeDaySetting] = []
@@ -531,8 +536,8 @@ def degree_day_settings(raw: str | None, units: str, warnings: list[str], param:
         if parts[0] not in METHODS or len(parts) not in (2, 3):
             raise ApiError(
                 "invalid",
-                f"The degree-day setting {text} isn't in the form method_base_upper. Give a method (sine, average or "
-                "modified) and a base, with an optional upper threshold, such as sine_50_86.",
+                f"The degree-day setting {quoted(text)} isn't in the form 'method_base_upper'. Give a method ('sine', "
+                "'average' or 'modified') and a base, with an optional upper threshold, such as 'sine_50_86'.",
                 param,
             )
         try:
@@ -540,9 +545,8 @@ def degree_day_settings(raw: str | None, units: str, warnings: list[str], param:
         except ValueError:
             raise ApiError(
                 "invalid",
-                f"In the degree-day setting {text}, the base and upper threshold must be numbers, "
-                "such as sine_50_86 or "
-                "sine_39p2_86 (p for a decimal point).",
+                f"In the degree-day setting {quoted(text)}, the base and upper threshold must be numbers, such as "
+                "'sine_50_86' or 'sine_39p2_86' (p for a decimal point).",
                 param,
             ) from None
         found.append(setting(parts[0], numbers[0], numbers[1] if len(numbers) > 1 else None, units, warnings, param))
@@ -557,7 +561,8 @@ def setting(
     if method not in METHODS:
         raise ApiError(
             "invalid",
-            f"We don't compute degree days by a method called {method}. Choose sine, average or modified.",
+            f"We don't compute degree days by a method called {quoted(method)}. Choose 'sine', 'average' or "
+            "'modified'.",
             "method",
         )
     base_f = temperature_threshold(base, units, DD_BASE, param, warnings)

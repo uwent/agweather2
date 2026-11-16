@@ -16,7 +16,7 @@ import numpy as np
 from agdata.rolling import Roll, Stat, any_in_window, label, roll
 from agdata.series import FORECAST, PARTIAL
 from api import points
-from api.errors import ApiError
+from api.errors import ApiError, quoted
 from api.params import RollQuery
 
 ADDS_UP_TEXT = "precipitation, evapotranspiration, sunlight, hour counts and degree days"
@@ -52,8 +52,9 @@ def check_stat(q: RollQuery, adds_up: dict[str, bool]) -> None:
     if others:
         raise ApiError(
             "invalid",
-            f"roll_stat=sum adds values up over days, which works only for values that add up ({ADDS_UP_TEXT}), "
-            f"not {', '.join(others)}. Use roll_stat=mean, min or max for those, or ask for them separately.",
+            f"'roll_stat=sum' adds values up over days, which works only for values that add up ({ADDS_UP_TEXT}), "
+            f"not {', '.join(quoted(o) for o in others)}. Use 'roll_stat=mean', 'min' or 'max' for those, or ask for "
+            "them separately.",
             "roll_stat",
         )
 
@@ -146,7 +147,7 @@ class Roller:
                 days = int(window[:-1])
                 found.append(
                     f"{n} {days}-day {'value is' if n == 1 else 'values are'} missing because fewer than "
-                    f"{self.q.roll_coverage:g}% of the window's days had data. Lower roll_coverage to accept "
+                    f"{self.q.roll_coverage:g}% of the window's days had data. Lower 'roll_coverage' to accept "
                     "windows with more missing days."
                 )
         return found

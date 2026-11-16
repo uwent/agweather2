@@ -17,11 +17,11 @@ Every request is a simple web address (a GET request), so you can open it in a b
 
 ## What a response contains
 
-A JSON response has two parts. `meta` describes the request as it was computed, including any defaults that were filled in, the grid cell that was read, the units of every column, a summary, the data sources and any warnings. `data` holds the values as named columns of equal length, or as a list of rows with `orient=records`.
+A JSON response has two parts. `meta` describes the request as it was computed, including any defaults that were filled in, the grid cell that was read, the units of every column, a summary, the data sources and any warnings. `meta.params` lists every parameter the endpoint takes, with the value used for each, so you can see the defaults and what else you could send. `data` holds the values as named columns of equal length, or as a list of rows with `orient=records`.
 
 Each day or hour says where its values came from in a `kind` column: `observed`, `partial` (today: the hours observed so far, then the forecast), `forecast`, or `projection` (past the forecast, from earlier years' weather, where you ask for it). **Missing data is always `null` (an empty cell in CSV), never zero.** A running total such as degree days bridges a short gap with an estimate and marks those days in a column of its own, so you can see how much of a total was estimated. Precipitation is never estimated: a total counts only the days that have data and reports how many were missing.
 
-If a request can't be answered, the response has a status code of 400 or higher and an `errors` list in place of `data`. Each error names the parameter at fault and says how to correct the request. A parameter the endpoint doesn't take is an error too (`unknown_parameter`), rather than being ignored, so a misspelled name can't change your results without your knowing.
+If a request can't be answered, the response has a status code of 400 or higher and an `errors` list in place of `data`. Each error names the parameter at fault and says how to correct the request, and `meta.params` lists the parameters the endpoint takes. A parameter the endpoint doesn't take is an error too (`unknown_parameter`), rather than being ignored, so a misspelled name can't change your results without your knowing.
 
 ## Models
 

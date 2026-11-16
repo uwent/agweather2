@@ -4,6 +4,7 @@ themselves are built by `api.envelope`; these describe them."""
 from typing import Any
 
 from ninja import Schema
+from pydantic import Field
 
 Value = float | int | str | bool | None
 
@@ -16,6 +17,7 @@ class ErrorItem(Schema):
 
 class ErrorMeta(Schema):
     request: dict[str, str | None]
+    params: dict[str, Any] | None = None  # every parameter the endpoint takes, with what could be read (`api.takes`)
     api_version: str
     generated_at: str
     compute_ms: int
@@ -48,6 +50,9 @@ class Location(Schema):
 
 class Meta(Schema):
     request: dict[str, Any]
+    params: dict[str, Any] = Field(
+        default_factory=dict
+    )  # every parameter the endpoint takes, with the value used (`api.takes`)
     location: Location | None = None
     locations: list[Location] | None = None
     units: dict[str, str]

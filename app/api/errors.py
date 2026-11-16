@@ -2,6 +2,8 @@
 4xx or 5xx status, in place of Ninja's `{"detail": …}`. `install(api)` registers a handler for each kind."""
 
 import logging
+import re
+from collections.abc import Iterable
 from datetime import UTC, date, datetime
 from typing import Any
 
@@ -14,6 +16,40 @@ from ninja.errors import ValidationError as NinjaValidationError
 def day_text(day: date) -> str:
     """A date as public text says it: "July 8, 2025"."""
     return f"{day:%B} {day.day}, {day.year}"
+
+
+def quoted(value: object) -> str:
+    """A parameter's name or value, or anything else a reader could type, as messages set it apart from the prose:
+    in single quotes ('start', 'days_above_86', 'thresholds=32,28'). Lists join with commas, as a query writes them."""
+    if isinstance(value, (list, tuple)):
+        value = ",".join(str(v) for v in value)
+    return f"'{value}'"
+
+
+# The style check (CLAUDE.md "Writing for the public"): identifiers a reader could type are quoted. Only what's
+# unambiguous is checked: `name=value` and words with an underscore, which plain English never has. A name that's also
+# a word ('start', 'date') is left to review. Under pytest every message and warning the API sends is checked, and
+# `app/conftest.py` fails the test that sent a slip.
+STYLE_SLIPS: list[str] = []
+_QUOTED = re.compile(r"(?<!\w)'[^'\n]+?'(?!\w)")
+_PATH = re.compile(r"\S*/\S*")
+_IDENTIFIER = re.compile(r"\b[a-z_]+=\S+|\b[A-Za-z0-9]+_[A-Za-z0-9_]*")
+
+
+def unquoted(message: str) -> list[str]:
+    """The identifiers in `message` outside single quotes (paths aside: '/api/v2/docs' needs none)."""
+    return _IDENTIFIER.findall(_PATH.sub("", _QUOTED.sub("", message)))
+
+
+def check_style(messages: Iterable[str]) -> None:
+    from django.conf import settings
+
+    if not settings.TESTING:
+        return
+    for message in messages:
+        slips = unquoted(message)
+        if slips:
+            STYLE_SLIPS.append(f"{', '.join(slips)} unquoted in: {message}")
 
 
 def counted(n: int, noun: str) -> str:
@@ -117,7 +153,7 @@ _TYPES = {
 def _pydantic_message(param: str | None, code: str, message: str) -> str:
     """Pydantic's own message for a value of the wrong type ("Input should be a valid number…") as a sentence that
     names the parameter."""
-    named = f"The value of {param}" if param else "A value"
+    named = f"The value of {quoted(param)}" if param else "A value"
     if code in _TYPES:
         return f"{named} {_TYPES[code]}."
     text = message[0].lower() + message[1:] if message else "isn't valid"

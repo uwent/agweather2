@@ -22,9 +22,9 @@ from ninja import Query, Router, Schema
 from agdata import mapimage, palettes, tiles
 from agdata import units as agunits
 from agdata.grid import NDFD
-from api import clock, layermaps
+from api import clock, layermaps, takes
 from api.envelope import Column, etag_for, not_modified, output_units, shown_unit
-from api.errors import ApiError
+from api.errors import ApiError, quoted
 from api.layermaps import LayerQuery
 from api.params import EPOCH_DIGITS, UnitsQuery
 
@@ -65,8 +65,8 @@ def _layer_query(when: str, q: TileQuery) -> LayerQuery:
     if q.roll is not None and RANGE.match(when) is not None:
         raise ApiError(
             "conflict",
-            "roll sets the days from one date, so the time can't be a range. Give one day, such as 2025-07-08, "
-            "with roll.",
+            "'roll' sets the days from one date, so the time can't be a range. Give one day, such as '2025-07-08', "
+            "with 'roll'.",
             "roll",
         )
     event = q.first is not None or q.last is not None or q.since is not None
@@ -78,8 +78,8 @@ def _layer_query(when: str, q: TileQuery) -> LayerQuery:
         if q.stat is None and q.count is None and not event:
             raise ApiError(
                 "invalid",
-                "A tile shows one map, so a range of days needs stat to combine them (sum, mean, min or max), or "
-                "count to count days.",
+                "A tile shows one map, so a range of days needs 'stat' to combine them ('sum', 'mean', 'min' or "
+                "'max'), or 'count' to count days.",
                 "stat",
             )
         fields |= {"start": span.group(1), "end": span.group(2)}
@@ -93,7 +93,7 @@ def _layer_query(when: str, q: TileQuery) -> LayerQuery:
         param = "stat" if q.stat is not None else "count"
         raise ApiError(
             "invalid",
-            f"{param} combines a range of days. Give the time as START..END, such as 2025-07-01..2025-07-07.",
+            f"{quoted(param)} combines a range of days. Give the time as START..END, such as '2025-07-01..2025-07-07'.",
             param,
         )
     return LayerQuery(**fields)
@@ -103,7 +103,7 @@ def _ask(request: HttpRequest, layer: str, when: str, q: TileQuery, units: str):
     now = clock.now()
     a = layermaps.ask(request, layer, _layer_query(when, q), units, now)
     if a.first != a.last and a.stat is None:
-        raise ApiError("invalid", "A tile shows one map. Give one day or hour, or a range of days with stat.", "time")
+        raise ApiError("invalid", "A tile shows one map. Give one day or hour, or a range of days with 'stat'.", "time")
     return a, now
 
 
@@ -151,7 +151,10 @@ def tile(
     started = time.perf_counter()
     if not (0 <= z <= tiles.MAX_ZOOM and 0 <= x < 2**z and 0 <= y < 2**z):
         raise ApiError(
-            "out_of_range", f"There's no tile {z}/{x}/{y}. Tiles run from zoom 0 to {tiles.MAX_ZOOM}.", "z", status=404
+            "out_of_range",
+            f"There's no tile {quoted(f'{z}/{x}/{y}')}. Tiles run from zoom 0 to {tiles.MAX_ZOOM}.",
+            "z",
+            status=404,
         )
     a, now, window, data_stamp = _prepared(request, layer, when, query, output.units)
     cells = tiles.index(window, z, x, y)
@@ -223,6 +226,7 @@ def tilejson(
             "maxzoom": tiles.MAX_ZOOM,
             "bounds": [float(lon.min()), float(lat.min()), float(lon.max()), float(lat.max())],
             "request": a.echo(),
+            "params": takes.values(request, a.echo()),
             **colored,
             "encoding": {
                 "scheme": "rgb24",
