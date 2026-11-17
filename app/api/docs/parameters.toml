@@ -21,6 +21,7 @@ ModelResponse = "One model's full description."
 LocateResponse = "What the service knows about a location."
 LayersResponse = "Every layer that can be shown as a map."
 DownloadsResponse = "The yearly data files available for download."
+PresetsResponse = "The usual degree-day settings for common crops."
 
 [shared]
 climate = "Show the map against the climate of the past years: `normal` for the normal map of what you asked for, `departure` for your map less its normal (above normal is positive), or `percentile` for where your map ranks among the past years (50 is a typical year). Normals are kept for the daily weather variables, their running totals and degree days. A range of days takes `stat=sum` or `stat=mean`. Percentiles are kept for running totals from January 1 of precipitation and of modified 50/86 and single sine 41/86 degree days. Normals and departures of counts (`count=`) are kept for these days: a daily maximum at or above 86, 90 or 93.2 °F or at or below 32 °F; a daily minimum at or below 32 or 28 °F or at or above 70 °F; precipitation at or below 0.01 inch or at or above 0.5 or 1 inch; and sunlight at or above 20 or at or below 10 MJ/m². `/layers` lists what each layer takes. For other statistics, ask at a location with `/climate/normals` or `/climate/compare`."

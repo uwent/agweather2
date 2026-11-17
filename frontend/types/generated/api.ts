@@ -436,6 +436,27 @@ export interface ForecastStatus {
    */
   reason: string | null
 }
+export interface FreezeInfo {
+  temperature: Temperature
+  /**
+   * What the freeze kills.
+   */
+  note: string
+  /**
+   * The sources of the temperature.
+   */
+  citations: CitationInfo[]
+}
+export interface Temperature {
+  /**
+   * The temperature in °F.
+   */
+  us: number
+  /**
+   * The temperature in °C, to two decimals.
+   */
+  metric: number
+}
 export interface GridQuery {
   date?: string | null
   time?: string | null
@@ -1016,6 +1037,74 @@ export interface PointsQuery {
   lat?: number | null
   lng?: number | null
   points?: string | null
+}
+export interface PresetInfo {
+  /**
+   * The preset's id.
+   */
+  id: string
+  /**
+   * The crop.
+   */
+  crop: string
+  /**
+   * The preset's name, as a menu shows it.
+   */
+  label: string
+  /**
+   * How each day's degree days are computed: `sine` (single sine), `modified` (the daily minimum and maximum limited to the base and upper threshold, then averaged) or `average` (simple average).
+   */
+  method: string
+  base: Temperature
+  /**
+   * The upper threshold: temperatures above it count as the threshold itself. Null when the setting has none.
+   */
+  upper: Temperature | null
+  dd: SettingText
+  /**
+   * True when we keep running totals of this setting, so maps of it are made faster. Maps of any other setting are computed when you ask for them.
+   */
+  stored: boolean
+  /**
+   * When the count usually starts: `planting` or `january_1`. `notes` says when a crop is counted from another day too, such as alfalfa from its last cutting.
+   */
+  starts: string
+  /**
+   * The id of the growth stage model that uses this setting, which `/models/{model_id}` describes. Null when there is none.
+   */
+  model: string | null
+  /**
+   * How the setting is used, and where sources differ.
+   */
+  notes: string
+  /**
+   * The sources of the setting.
+   */
+  citations: CitationInfo[]
+  /**
+   * The fall freeze that kills the crop. Null when we have no source for one.
+   */
+  freeze: FreezeInfo | null
+}
+export interface SettingText {
+  /**
+   * The setting in °F, for requests with `units=us`.
+   */
+  us: string
+  /**
+   * The setting in °C, for requests with `units=metric`.
+   */
+  metric: string
+}
+/**
+ * The usual degree-day settings for common crops.
+ */
+export interface PresetsResponse {
+  meta: Meta
+  /**
+   * Each preset, by crop.
+   */
+  data: PresetInfo[]
 }
 export interface RollQuery {
   roll?: string | null

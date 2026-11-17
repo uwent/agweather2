@@ -373,7 +373,7 @@ class ModelResponse(Schema):
     data: ModelDetail
 
 
-def _citation(c: Citation) -> CitationInfo:
+def citation_info(c: Citation) -> CitationInfo:
     return CitationInfo(text=c.text, doi=c.doi or None, url=c.doi_url or c.url or None)
 
 
@@ -390,7 +390,7 @@ def _summary(spec: ModelSpec) -> dict:
         "region": list(spec.region),
         "season": list(spec.season) if spec.season else None,
         "seasonal_appears": spec.seasonal.appears if spec.seasonal else None,
-        "citations": [_citation(c) for c in spec.citations],
+        "citations": [citation_info(c) for c in spec.citations],
     }
 
 

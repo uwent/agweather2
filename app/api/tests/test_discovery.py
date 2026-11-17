@@ -179,3 +179,26 @@ def test_a_model_declares_what_evaluate_returns(client):
         ("modified", "degF_day"),
         ("average", "degF_day"),
     ]
+
+
+def test_degree_day_presets_give_each_setting_in_both_unit_systems(client):
+    from api.params import degree_day_settings
+
+    response = client.get("/api/v2/degree-days/presets")
+    assert response.status_code == 200 and response.headers["ETag"]
+    found = {p["id"]: p for p in response.json()["data"]}
+    corn = found["corn"]
+    assert corn["dd"] == {"us": "modified_50_86", "metric": "modified_10_30"} and corn["stored"]
+    assert corn["base"] == {"us": 50.0, "metric": 10.0} and corn["model"] == "corn-stages"
+    assert not found["spring-wheat"]["stored"]  # 32/95 modified: computed when asked
+    for preset in found.values():
+        # The °C text names the same °F thresholds as the °F text (7.22 °C is 45 °F's, not 44.996's)
+        us, metric = (degree_day_settings(preset["dd"][s], s, []) for s in ("us", "metric"))
+        assert [(s.base_f, s.upper_f) for s in us] == [(s.base_f, s.upper_f) for s in metric], preset["id"]
+
+
+def test_a_threshold_in_celsius_names_the_nearest_tenth_of_a_degree_fahrenheit():
+    from api.params import setting
+
+    assert setting("sine", 7.22, 30, "metric", [], "dd").base_f == 45.0
+    assert setting("sine", 45, None, "us", [], "dd").base_f == 45.0

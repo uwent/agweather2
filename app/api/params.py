@@ -491,7 +491,8 @@ def temperature_threshold(value: float, units: str, bracket: Bracket, param: str
             f"run from {lowest:g} to {highest:g} {label}. Choose a value in that range.",
             param,
         )
-    value_f = convert(value, unit, "degF")
+    # In °C, kept to 0.1 °F (0.06 °C), the stored thresholds' step: 7.22 °C is 45 °F's stored totals, not 44.996's
+    value_f = round(convert(value, unit, "degF"), 1) if units == "metric" else convert(value, unit, "degF")
     in_c = convert(value, "degF", "degC")  # what the value is in °C if it was meant in °F
     lo, hi = bracket.usual_f
     if units == "metric" and value > LOOKS_LIKE_F_IN_C[bracket]:

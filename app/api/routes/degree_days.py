@@ -17,18 +17,20 @@ from typing import Literal
 import numpy as np
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
-from ninja import Query, Router
+from ninja import Query, Router, Schema
 
 from agdata import chillseason, projection
 from agdata.grid import NDFD
+from agdata.grids import cube_terms
 from agdata.series import FORECAST, PARTIAL, archive_years, day_kinds, past_reader
 from agdata.timezones import day_bounds
 from agmodels import chill
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
+from agmodels.presets import PRESETS, DegreeDayPreset
 from agmodels.scenarios import first_days, reached, spread
 from api import clock, points, rolled
-from api.envelope import Column, Result, catalog_column, not_modified, respond
+from api.envelope import Column, Result, catalog_column, etag_for, not_modified, respond
 from api.errors import ApiError, day_text
 from api.params import (
     CHILL,
@@ -45,6 +47,7 @@ from api.params import (
     setting,
     temperature_threshold,
 )
+from api.routes.discovery import CitationInfo, citation_info
 from api.routes.models import NO_PROJECTION, projection_mode
 from api.routes.weather import (
     FORECAST_DAYS,
@@ -56,7 +59,7 @@ from api.routes.weather import (
     located,
     read_days,
 )
-from api.schemas import TableResponse, responses
+from api.schemas import Meta, TableResponse, responses
 from ops.points import AreaAsk, day_zone
 
 router = Router(tags=["Degree days, chill and freezes"])
@@ -733,3 +736,89 @@ def _chill_bounds(method: str, raw: str | None, units: str, warnings: list[str])
         )
     low_f, high_f = (temperature_threshold(v, units, CHILL, "bounds", warnings) for v in given)
     return (low_f - 32) / 1.8, (high_f - 32) / 1.8, given
+
+
+# --- /degree-days/presets ------------------------------------------------------------------------------------------
+
+
+class Temperature(Schema):
+    us: float  # °F
+    metric: float  # °C
+
+
+class SettingText(Schema):
+    us: str
+    metric: str
+
+
+class FreezeInfo(Schema):
+    temperature: Temperature
+    note: str
+    citations: list[CitationInfo]
+
+
+class PresetInfo(Schema):
+    id: str
+    crop: str
+    label: str
+    method: str
+    base: Temperature
+    upper: Temperature | None
+    dd: SettingText
+    stored: bool
+    starts: str
+    model: str | None
+    notes: str
+    citations: list[CitationInfo]
+    freeze: FreezeInfo | None
+
+
+class PresetsResponse(Schema):
+    meta: Meta
+    data: list[PresetInfo]
+
+
+def _temperature(f: float) -> Temperature:
+    """Both systems' value, °C to 0.01 so a setting given back as `dd=` in °C names the same °F threshold."""
+    return Temperature(us=f, metric=round((f - 32) / 1.8, 2))
+
+
+def _preset(p: DegreeDayPreset) -> PresetInfo:
+    s = p.setting
+    base, upper = _temperature(s.base_f), None if s.upper_f is None else _temperature(s.upper_f)
+
+    def text(system: Literal["us", "metric"]) -> str:
+        values = [getattr(base, system)] + ([getattr(upper, system)] if upper is not None else [])
+        return "_".join([s.method, *(f"{v:g}".replace(".", "p") for v in values)])
+
+    freeze = None
+    if p.freeze is not None:
+        freeze = FreezeInfo(
+            temperature=_temperature(p.freeze.f),
+            note=p.freeze.note,
+            citations=[citation_info(c) for c in p.freeze.citations],
+        )
+    return PresetInfo(
+        id=p.id,
+        crop=p.crop,
+        label=p.label,
+        method=s.method,
+        base=base,
+        upper=upper,
+        dd=SettingText(us=text("us"), metric=text("metric")),
+        stored=cube_terms(s.method, s.base_f, s.upper_f) is not None,
+        starts=p.starts,
+        model=p.model,
+        notes=p.notes,
+        citations=[citation_info(c) for c in p.citations],
+        freeze=freeze,
+    )
+
+
+@router.get("/degree-days/presets", response=responses(PresetsResponse), summary="Degree-day settings for common crops")
+def presets(request: HttpRequest) -> HttpResponse:
+    etag = etag_for(request, {}, None)
+    if (unchanged := not_modified(request, etag)) is not None:
+        return unchanged
+    found = [_preset(p).model_dump() for p in PRESETS]
+    return respond(request, Result(request={}, data=found, etag=etag))

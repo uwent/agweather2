@@ -1,20 +1,23 @@
-"""Every model's citations: a paper with a DOI carries it (bare, in `doi`), and the DOI is that paper's."""
+"""Every model's and degree-day preset's citations: a paper with a DOI carries it (bare, in `doi`), and the DOI is
+that paper's."""
 
 import re
 
 import pytest
 import requests
 
+from agmodels.presets import PRESETS
 from agmodels.registry import all_models
 
-CITATIONS = sorted({c for m in all_models().values() for c in m.SPEC.citations if c.doi}, key=lambda c: c.doi)
+PRESET_CITATIONS = [c for p in PRESETS for c in (*p.citations, *(p.freeze.citations if p.freeze is not None else ()))]
+EVERY = [*(c for m in all_models().values() for c in m.SPEC.citations), *PRESET_CITATIONS]
+CITATIONS = sorted({c for c in EVERY if c.doi}, key=lambda c: c.doi)
 
 
 def test_dois_are_bare_and_urls_are_not_dois():
-    for model in all_models().values():
-        for citation in model.SPEC.citations:
-            assert not citation.doi or re.fullmatch(r"10\.\d{4,}/\S+", citation.doi), citation
-            assert "doi.org" not in citation.url, f"{model.SPEC.id}: put the DOI in `doi`, not `url`"
+    for citation in EVERY:
+        assert not citation.doi or re.fullmatch(r"10\.\d{4,}/\S+", citation.doi), citation
+        assert "doi.org" not in citation.url, f"{citation.text}: put the DOI in `doi`, not `url`"
 
 
 def test_doi_url():
