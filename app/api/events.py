@@ -95,8 +95,7 @@ def parse(kind: Kind, text: str) -> Event:
         bounds = given.split("_", 1)[1]
         raise ApiError(
             "invalid",
-            f"{quoted(kind)} finds a day, so it takes the bounds alone: {quoted(f'{kind}={bounds}')}, "
-            f"not {quoted(f'{kind}={text}')}.",
+            f"{quoted(kind)} finds a day, so it takes the bounds alone: {quoted(f'{kind}={bounds}')}, not {quoted(f'{kind}={text}')}.",
             kind,
         )
     low, high = counts.parse_bounds(given, text, kind, EXAMPLES)

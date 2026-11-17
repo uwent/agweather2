@@ -442,8 +442,7 @@ def test_an_hourly_layer_is_a_map_an_hour(client, archive):
 def test_an_hourly_range_out_of_order_says_both_times(client, archive):
     error = get(client, "air_temperature_hourly", start="2025-07-08T12:00Z", end="2025-07-08T10:00Z").json()["errors"]
     assert error[0]["message"] == (
-        "The start time (noon UTC, July 8, 2025) is after the end time (10 a.m. UTC, July 8, 2025). Choose a start on "
-        "or before the end."
+        "The start time (noon UTC, July 8, 2025) is after the end time (10 a.m. UTC, July 8, 2025). Choose a start on or before the end."
     )
 
 

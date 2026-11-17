@@ -34,35 +34,26 @@ INSECT = Insect(
         Change(
             version="0.2",
             date="2026-10-29",
-            note="Life stages as curves (D36): adult flight from 70 FDD, half done by 345, and larval feeding timed "
-            "from it, in every generation 720 FDD apart; degree days by the sources' average method (D37) rather than "
-            "single sine, which ran 5–7 days early in spring. Replaces the Crop Risk Tool's step table.",
+            note="Life stages as curves (D36): adult flight from 70 FDD, half done by 345, and larval feeding timed from it, in every generation 720 FDD apart; degree days by the sources' average method (D37) rather than single sine, which ran 5–7 days early in spring. Replaces the Crop Risk Tool's step table.",
         ),
     ),
     source=CRT,
     citations=(
         Citation(text="The Crop Risk Tool (UW–Madison Vegetable Entomology)."),
         Citation(
-            text="Sanborn, S. M., Wyman, J. A. and Chapman, R. K. (1982). Threshold temperature and heat unit "
-            "summations for seedcorn maggot development under controlled conditions. Annals of the Entomological "
-            "Society of America 75, 103–106.",
+            text="Sanborn, S. M., Wyman, J. A. and Chapman, R. K. (1982). Threshold temperature and heat unit summations for seedcorn maggot development under controlled conditions. Annals of the Entomological Society of America 75, 103–106.",
             doi="10.1093/aesa/75.1.103",
         ),
         Citation(
-            text="Funderburk, J. E., Higley, L. G. and Pedigo, L. P. (1984). Seedcorn maggot (Diptera: Anthomyiidae) "
-            "phenology in central Iowa and examination of a thermal-unit system to predict development under field "
-            "conditions. Environmental Entomology 13, 105–109.",
+            text="Funderburk, J. E., Higley, L. G. and Pedigo, L. P. (1984). Seedcorn maggot (Diptera: Anthomyiidae) phenology in central Iowa and examination of a thermal-unit system to predict development under field conditions. Environmental Entomology 13, 105–109.",
             doi="10.1093/ee/13.1.105",
         ),
         Citation(
-            text="Throne, J. E. and Eckenrode, C. J. (1985). Emergence patterns of the seedcorn maggot, Delia platura "
-            "(Diptera: Anthomyiidae). Environmental Entomology 14, 182–186.",
+            text="Throne, J. E. and Eckenrode, C. J. (1985). Emergence patterns of the seedcorn maggot, Delia platura (Diptera: Anthomyiidae). Environmental Entomology 14, 182–186.",
             doi="10.1093/ee/14.2.182",
         ),
         Citation(
-            text="Olaya-Arenas, P., Cho, C. Y. L., Olmstead, D., et al. (2024). Degree-day models for predicting "
-            "adult Delia platura (Diptera: Anthomyiidae) spring flight and first emergence in New York State. "
-            "Journal of Economic Entomology 117, 2181–2185.",
+            text="Olaya-Arenas, P., Cho, C. Y. L., Olmstead, D., et al. (2024). Degree-day models for predicting adult Delia platura (Diptera: Anthomyiidae) spring flight and first emergence in New York State. Journal of Economic Entomology 117, 2181–2185.",
             doi="10.1093/jee/toae148",
         ),
     ),

@@ -156,9 +156,7 @@ def run(
                 result.failed += len(block_report.failed)
                 missing = {name: m for name, m in block_report.missing.items() if m}
                 report.detail(
-                    f"{tag}: wrote {block.hours} hours from {block.start:%m-%d %H}Z; "
-                    f"failed {len(block_report.failed)}; missing {missing or 'none'}; "
-                    f"spikes {sum(block_report.spikes.values())}"
+                    f"{tag}: wrote {block.hours} hours from {block.start:%m-%d %H}Z; failed {len(block_report.failed)}; missing {missing or 'none'}; spikes {sum(block_report.spikes.values())}"
                 )
                 if block_report.failed:
                     report.fail(tag, f"{len(block_report.failed)} hours not fetched (rerun to retry)")

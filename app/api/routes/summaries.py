@@ -67,9 +67,7 @@ def summary(request: HttpRequest, layer: str, query: Query[SummaryQuery], output
     if len(wanted) * steps > MAX_ROWS:
         raise ApiError(
             "too_large",
-            f"This request would make {len(wanted) * steps:,} rows ({len(wanted)} {_plural(by)} × {steps} steps), and "
-            f"the limit is {MAX_ROWS:,}. Choose a smaller region or a shorter range, or summarize the range with "
-            "'stat'.",
+            f"This request would make {len(wanted) * steps:,} rows ({len(wanted)} {_plural(by)} × {steps} steps), and the limit is {MAX_ROWS:,}. Choose a smaller region or a shorter range, or summarize the range with 'stat'.",
             None,
         )
 
@@ -111,8 +109,7 @@ def summary(request: HttpRequest, layer: str, query: Query[SummaryQuery], output
     warnings = a.warnings
     if rows.below:
         warnings.append(
-            f"{rows.below} of the {len(wanted)} {_plural(by)} have less than {query.min_coverage:g}% of their land "
-            f"with data here, so their statistics are empty (null). Lower 'min_coverage' to include them."
+            f"{rows.below} of the {len(wanted)} {_plural(by)} have less than {query.min_coverage:g}% of their land with data here, so their statistics are empty (null). Lower 'min_coverage' to include them."
         )
     summary_meta: dict[str, Any] = {
         "regions": len(wanted),
@@ -154,8 +151,7 @@ def _periods(a: LayerAsk, interval: str | None) -> list[tuple[str | None, LayerA
     if a.stat is None or a.first == a.last:
         raise ApiError(
             "not_applicable",
-            "'interval=month' summarizes each month of a range, so it needs a range ('start' and 'end') and a "
-            "statistic ('stat', 'count', 'first' or 'last').",
+            "'interval=month' summarizes each month of a range, so it needs a range ('start' and 'end') and a statistic ('stat', 'count', 'first' or 'last').",
             "interval",
         )
     if a.layer.time_axis != "day" or (a.model is not None and (a.model.season is not None or a.model.projected)):

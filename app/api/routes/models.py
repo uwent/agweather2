@@ -58,12 +58,9 @@ NO_PROJECTION = (
 # The runner's reasons for a run without outputs (`ModelRun.reason`, kept as they are in /risk's `reason`), as
 # warnings say them
 REASONS = {
-    "outside the model's region": "This location is outside the area the model was developed for, so it gives no "
-    "output here.",
-    "biofix after the series": "The model starts at its biofix, which comes after these dates, so it has no output "
-    "yet.",
-    "biofix not in the series": "The model starts at its biofix, which comes before the weather read, so it has no "
-    "output. Choose a start date on or before the biofix.",
+    "outside the model's region": "This location is outside the area the model was developed for, so it gives no output here.",
+    "biofix after the series": "The model starts at its biofix, which comes after these dates, so it has no output yet.",
+    "biofix not in the series": "The model starts at its biofix, which comes before the weather read, so it has no output. Choose a start date on or before the biofix.",
 }
 
 
@@ -78,10 +75,7 @@ def reason_text(reason: str) -> str:
 
 
 def too_many_runs(count: int) -> str:
-    return (
-        f"This request asks for {count:,} model runs (models times their option sets); a request can include up to "
-        f"{MAX_RUNS}. Ask for fewer models or options."
-    )
+    return f"This request asks for {count:,} model runs (models times their option sets); a request can include up to {MAX_RUNS}. Ask for fewer models or options."
 
 
 SUSCEPTIBILITY = {NOT_SUSCEPTIBLE: "not susceptible", MARGIN: "margin", SUSCEPTIBLE: "susceptible"}
@@ -119,8 +113,7 @@ def run(
     if mode and len(sites) > MAX_PROJECTED_POINTS:
         raise ApiError(
             "too_many",
-            f"A projection can include up to {MAX_PROJECTED_POINTS} locations, and this request has {len(sites)}. "
-            "Split them into several requests.",
+            f"A projection can include up to {MAX_PROJECTED_POINTS} locations, and this request has {len(sites)}. Split them into several requests.",
             "points",
         )
     now = clock.now()
@@ -447,8 +440,7 @@ def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Qu
     if unknown:
         raise ApiError(
             "unknown_input",
-            f"{spec.name} has no input named {quoted(unknown)}. Its inputs are "
-            f"{', '.join(quoted(n) for n in explorer)}.",
+            f"{spec.name} has no input named {quoted(unknown)}. Its inputs are {', '.join(quoted(n) for n in explorer)}.",
             unknown[0],
         )
     system = SYSTEMS[output.units]
@@ -480,9 +472,7 @@ def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Qu
     if count > MAX_EVALUATIONS:
         raise ApiError(
             "too_large",
-            f"This request asks for {count:,} combinations of inputs; a request can evaluate up to "
-            f"{MAX_EVALUATIONS:,}. "
-            "Give fewer values.",
+            f"This request asks for {count:,} combinations of inputs; a request can evaluate up to {MAX_EVALUATIONS:,}. Give fewer values.",
             "inputs",
         )
     declared = {q.name: q for q in (*spec.outputs, *spec.explorer_outputs)}
@@ -600,8 +590,7 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
     if not (-90 <= lat <= 90 and -180 <= lng <= 180):
         raise ApiError(
             "out_of_range",
-            f"The location ({lat:g}, {lng:g}) isn't valid: latitude runs from -90 to 90 and "
-            "longitude from -180 to 180.",
+            f"The location ({lat:g}, {lng:g}) isn't valid: latitude runs from -90 to 90 and longitude from -180 to 180.",
             "location",
         )
     units = str(body.get("units") or request.GET.get("units") or "us")
@@ -617,8 +606,7 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
     if basis not in (None, "central", "local"):
         raise ApiError(
             "invalid",
-            "Give 'day_basis' as 'central' (midnight to midnight CST, our maps' days) or 'local' (the location's "
-            "own clock).",
+            "Give 'day_basis' as 'central' (midnight to midnight CST, our maps' days) or 'local' (the location's own clock).",
             "day_basis",
         )
     zone = day_zone(lat, lng, basis)
@@ -635,9 +623,7 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
     if first > last:
         raise ApiError(
             "out_of_order",
-            f"The start date ({day_text(first)}) is after the end date ({day_text(last)}). Choose a "
-            "start date on or before "
-            "the end date.",
+            f"The start date ({day_text(first)}) is after the end date ({day_text(last)}). Choose a start date on or before the end date.",
             "start",
         )
     sent_biofix = options.pop("biofix", None)
@@ -663,8 +649,7 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
         if not runnable:
             raise ApiError(
                 "missing_inputs",
-                "None of the models asked for can run on the weather sent. Send the inputs they need, or add "
-                "'fill=grid' to fill the rest from our data.",
+                "None of the models asked for can run on the weather sent. Send the inputs they need, or add 'fill=grid' to fill the rest from our data.",
                 "body",
             )
         plans = runnable
@@ -675,16 +660,14 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
     if (last - needed).days + 1 > MAX_DAYS:
         raise ApiError(
             "too_large",
-            f"These models need {(last - needed).days + 1:,} days of weather; a request can cover up to {MAX_DAYS:,}. "
-            "Choose a shorter period.",
+            f"These models need {(last - needed).days + 1:,} days of weather; a request can cover up to {MAX_DAYS:,}. Choose a shorter period.",
             "start",
         )
     warnings = list(station.warnings)
     lacking = [name for name in names if name not in available]
     if lacking:
         warnings.append(
-            f"{', '.join(quoted(n) for n in lacking)} come from our archive at the cell ('fill=grid'), since the "
-            "weather sent doesn't include them."
+            f"{', '.join(quoted(n) for n in lacking)} come from our archive at the cell ('fill=grid'), since the weather sent doesn't include them."
         )
     days, sources = _station_days(station, zone, needed, last, names, lat, lng, now, fill, extend, sent[1])
     results = runs_at_point(
@@ -766,10 +749,7 @@ def _cannot_make(lacking: list[str]) -> str:
     needs = "; ".join(
         f"{quoted(n)} (hourly: {', '.join(quoted(s) for s in sources.get(n, ())) or 'none'})" for n in lacking
     )
-    return (
-        f"We can't make {needs} from the weather sent. Send them, daily or hourly, or add 'fill=grid' to fill them "
-        "from our data."
-    )
+    return f"We can't make {needs} from the weather sent. Send them, daily or hourly, or add 'fill=grid' to fill them from our data."
 
 
 def _station_days(
@@ -1263,8 +1243,7 @@ def _projected(
         warnings.append("The archive has no earlier years to project with, so the series ends with the forecast.")
     elif len(found.years) == 1:
         warnings.append(
-            f"The archive has one earlier year ({found.years[0]}), so the projection follows that year alone, with no "
-            "range."
+            f"The archive has one earlier year ({found.years[0]}), so the projection follows that year alone, with no range."
         )
     out, k = [], 0
     for p in plans:

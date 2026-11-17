@@ -250,8 +250,7 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
     missing_steps = sum(k is None for k in kinds)
     if missing_steps:
         warnings.append(
-            f"{counted(missing_steps, found.time_axis)} of the {len(kinds)} asked for "
-            f"{'has' if missing_steps == 1 else 'have'} no data yet and show as missing."
+            f"{counted(missing_steps, found.time_axis)} of the {len(kinds)} asked for {'has' if missing_steps == 1 else 'have'} no data yet and show as missing."
         )
     if run.reason == "stale" and any(k is None for k in kinds):
         warnings.append("The forecast is out of date, so the map ends with the last observed day.")
@@ -360,9 +359,7 @@ def _area(q: GridQuery, archive: Window) -> tuple[Window, np.ndarray, dict[str, 
         if not mask.any():
             raise ApiError(
                 "outside_box",
-                f"The 'bbox' has no grid cells in the area we cover ({quoted(settings.SERVICE_BOX)}, as "
-                "south,west,north,east). "
-                "Choose a box that overlaps it.",
+                f"The 'bbox' has no grid cells in the area we cover ({quoted(settings.SERVICE_BOX)}, as south,west,north,east). Choose a box that overlaps it.",
                 "bbox",
             )
     if q.region is not None:
@@ -400,8 +397,7 @@ def _parse_bbox(text: str) -> Box:
     except ValueError:
         raise ApiError(
             "invalid",
-            f"The 'bbox' ({quoted(text)}) isn't four numbers. Give it as south,west,north,east in degrees, such as "
-            "'42.5,-92.9,47.1,-86.8'.",
+            f"The 'bbox' ({quoted(text)}) isn't four numbers. Give it as south,west,north,east in degrees, such as '42.5,-92.9,47.1,-86.8'.",
             "bbox",
         ) from None
 
@@ -469,16 +465,13 @@ def _check_size(fmt: str, steps: int, cells: int, full: int) -> None:
         if steps * cells > MAX_TEXT_VALUES:
             raise ApiError(
                 "too_large",
-                f"This request has {steps * cells:,} values ({steps} steps × {cells:,} cells); JSON and CSV hold up to "
-                f"{MAX_TEXT_VALUES:,}. Ask for 'format=netcdf' or 'geotiff', combine the days with 'stat', or choose a "
-                "smaller area or a 'stride'.",
+                f"This request has {steps * cells:,} values ({steps} steps × {cells:,} cells); JSON and CSV hold up to {MAX_TEXT_VALUES:,}. Ask for 'format=netcdf' or 'geotiff', combine the days with 'stat', or choose a smaller area or a 'stride'.",
                 "format",
             )
     elif steps * full > MAX_FILE_VALUES:
         raise ApiError(
             "too_large",
-            f"This request has {steps * full:,} values ({steps} steps × {full:,} cells); a file holds up to "
-            f"{MAX_FILE_VALUES:,}. Choose a smaller area, a 'stride' or a shorter range.",
+            f"This request has {steps * full:,} values ({steps} steps × {full:,} cells); a file holds up to {MAX_FILE_VALUES:,}. Choose a smaller area, a 'stride' or a shorter range.",
             "start",
         )
 

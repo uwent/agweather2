@@ -182,8 +182,7 @@ class GridStore:
             attrs = store._array(name).attrs
             if (attrs.get("scale"), attrs.get("offset")) != (v.scale, v.offset):
                 raise ValueError(
-                    f"{path}: {name} is stored at scale {attrs.get('scale')}, offset {attrs.get('offset')}, but the "
-                    f"catalog says {v.scale}, {v.offset}; run GridStore.rescale on it"
+                    f"{path}: {name} is stored at scale {attrs.get('scale')}, offset {attrs.get('offset')}, but the catalog says {v.scale}, {v.offset}; run GridStore.rescale on it"
                 )
         store.variables = wanted
         return store

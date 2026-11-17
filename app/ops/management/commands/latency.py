@@ -13,12 +13,7 @@ MODELS = ("tar-spot", "early-blight-pdays")  # a plain disease, and one with a c
 
 
 class Command(ReportingCommand):
-    help = (
-        "Time the requests that must be fast (PLAN.md §3) on this archive, in process: a risk map's first tile for "
-        "a day and a week, a custom degree-day map from March 1, a point's hourly season, every model at a point, "
-        "and the first model at 50 sites around it. Each is timed first (a map's compute) and then repeated. Reads "
-        "only; run it with the worker quiet for numbers that mean something."
-    )
+    help = "Time the requests that must be fast (PLAN.md §3) on this archive, in process: a risk map's first tile for a day and a week, a custom degree-day map from March 1, a point's hourly season, every model at a point, and the first model at 50 sites around it. Each is timed first (a map's compute) and then repeated. Reads only; run it with the worker quiet for numbers that mean something."
     tracked = False
 
     def add_arguments(self, parser):
@@ -43,8 +38,7 @@ class Command(ReportingCommand):
             models=tuple(m.strip() for m in options["models"].split(",") if m.strip()),
         )
         self.report.step(
-            f"Timing {len(found)} requests at {options['lat']}, {options['lng']} "
-            f"(maps on {map_day}, the season from March 1 to {last_day}, box {settings.SERVICE_BOX})"
+            f"Timing {len(found)} requests at {options['lat']}, {options['lng']} (maps on {map_day}, the season from March 1 to {last_day}, box {settings.SERVICE_BOX})"
         )
 
         def show(t: latency.Timing) -> None:

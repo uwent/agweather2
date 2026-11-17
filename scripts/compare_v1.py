@@ -186,8 +186,7 @@ def _report(first, last, v1_dd, v2_dd, temperature, totals, v1_et, v1_et_adjuste
         a, b = np.array(pairs).T
         diff = b - a
         lines.append(
-            f"| {name} | {a.mean():.0f} | {b.mean():.0f} | {diff.mean():+.0f} | {diff.min():+.0f} to "
-            f"{diff.max():+.0f} | {100 * diff.mean() / a.mean():+.1f} |"
+            f"| {name} | {a.mean():.0f} | {b.mean():.0f} | {diff.mean():+.0f} | {diff.min():+.0f} to {diff.max():+.0f} | {100 * diff.mean() / a.mean():+.1f} |"
         )
     lines += [
         "",
@@ -205,8 +204,7 @@ def _report(first, last, v1_dd, v2_dd, temperature, totals, v1_et, v1_et_adjuste
             if values.size:
                 lo, hi = np.percentile(values, [5, 95])
                 lines.append(
-                    f"| {label} | {days} | {values.mean():+.2f} | {np.abs(values).mean():.2f} | "
-                    f"{lo:+.1f} to {hi:+.1f} |"
+                    f"| {label} | {days} | {values.mean():+.2f} | {np.abs(values).mean():.2f} | {lo:+.1f} to {hi:+.1f} |"
                 )
     lines += [
         "",

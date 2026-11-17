@@ -101,8 +101,7 @@ def file_read(url: str, messages: int, nbytes: int, get_s: float, decode_s: floa
     act: Activity | None = getattr(_local, "activity", None)
     prefix = f"{act.label}  " if act is not None else ""
     report.detail(
-        f"{prefix}GET {_short_url(url)}: {messages} msg{'s' * (messages != 1)}, {nbytes / 1e6:.1f} MB "
-        f"in {get_s:.1f} s, decoded in {decode_s:.1f} s"
+        f"{prefix}GET {_short_url(url)}: {messages} msg{'s' * (messages != 1)}, {nbytes / 1e6:.1f} MB in {get_s:.1f} s, decoded in {decode_s:.1f} s"
     )
 
 

@@ -25,24 +25,19 @@ CITATIONS = (
         text="Bennett, J. P. (1949). Temperature and bud rest period. California Agriculture 3(11), 9, 12.",
     ),
     Citation(
-        text="Richardson, E. A., Seeley, S. D. and Walker, D. R. (1974). A model for estimating the completion of rest "
-        "for 'Redhaven' and 'Elberta' peach trees. HortScience 9(4), 331–332.",
+        text="Richardson, E. A., Seeley, S. D. and Walker, D. R. (1974). A model for estimating the completion of rest for 'Redhaven' and 'Elberta' peach trees. HortScience 9(4), 331–332.",
         doi="10.21273/HORTSCI.9.4.331",
     ),
     Citation(
-        text="Fishman, S., Erez, A. and Couvillon, G. A. (1987). The temperature dependence of dormancy breaking in "
-        "plants: mathematical analysis of a two-step model involving a cooperative transition. Journal of Theoretical "
-        "Biology 124(4), 473–483.",
+        text="Fishman, S., Erez, A. and Couvillon, G. A. (1987). The temperature dependence of dormancy breaking in plants: mathematical analysis of a two-step model involving a cooperative transition. Journal of Theoretical Biology 124(4), 473–483.",
         doi="10.1016/S0022-5193(87)80221-7",
     ),
     Citation(
-        text="Erez, A., Fishman, S., Linsley-Noakes, G. C. and Allan, P. (1990). The dynamic model for rest completion "
-        "in peach buds. Acta Horticulturae 276, 165–174.",
+        text="Erez, A., Fishman, S., Linsley-Noakes, G. C. and Allan, P. (1990). The dynamic model for rest completion in peach buds. Acta Horticulturae 276, 165–174.",
         doi="10.17660/ActaHortic.1990.276.18",
     ),
     Citation(
-        text="Luedeling, E. chillR: Statistical methods for phenology analysis in temperate fruit trees. R package "
-        "(the reference implementation of all three).",
+        text="Luedeling, E. chillR: Statistical methods for phenology analysis in temperate fruit trees. R package (the reference implementation of all three).",
         url="https://cran.r-project.org/package=chillR",
     ),
 )

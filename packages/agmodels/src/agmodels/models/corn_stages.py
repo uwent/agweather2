@@ -93,25 +93,20 @@ SPEC = ModelSpec(
     group="crop",
     version="0.1",
     status="beta",
-    summary="Corn's vegetative and reproductive stages from planting, by growing degree days (modified 50/86 °F), "
-    "for any hybrid maturity.",
+    summary="Corn's vegetative and reproductive stages from planting, by growing degree days (modified 50/86 °F), for any hybrid maturity.",
     topics=("corn",),
     crops=("Corn",),
     citations=(
         Citation(
-            text="Neild, R. E. and Newman, J. E. (1987). Growing season characteristics and requirements in the Corn "
-            "Belt. National Corn Handbook NCH-40, Purdue University.",
+            text="Neild, R. E. and Newman, J. E. (1987). Growing season characteristics and requirements in the Corn Belt. National Corn Handbook NCH-40, Purdue University.",
             url="https://www.extension.purdue.edu/extmedia/nch/nch-40.html",
         ),
         Citation(
-            text="Yang, H. S., Dobermann, A., Lindquist, J. L., Walters, D. T., Arkebauer, T. J. and Cassman, K. G. "
-            "(2004). Hybrid-maize: a maize simulation model that combines two crop modeling approaches. Field Crops "
-            "Research 87, 131–154.",
+            text="Yang, H. S., Dobermann, A., Lindquist, J. L., Walters, D. T., Arkebauer, T. J. and Cassman, K. G. (2004). Hybrid-maize: a maize simulation model that combines two crop modeling approaches. Field Crops Research 87, 131–154.",
             doi="10.1016/j.fcr.2003.10.003",
         ),
         Citation(
-            text="Nielsen, R. L. Use thermal time to predict leaf stage development in corn. Corny News Network, "
-            "Purdue University.",
+            text="Nielsen, R. L. Use thermal time to predict leaf stage development in corn. Corny News Network, Purdue University.",
             url="https://www.agry.purdue.edu/ext/corn/news/timeless/VStagePrediction.html",
         ),
         Citation(
@@ -119,8 +114,7 @@ SPEC = ModelSpec(
             url="https://www.agry.purdue.edu/ext/corn/news/timeless/GrainFill.html",
         ),
         Citation(
-            text="Abendroth, L. J., Elmore, R. W., Boyer, M. J. and Marlay, S. K. (2011). Corn growth and development. "
-            "PMR 1009, Iowa State University Extension.",
+            text="Abendroth, L. J., Elmore, R. W., Boyer, M. J. and Marlay, S. K. (2011). Corn growth and development. PMR 1009, Iowa State University Extension.",
             url="https://shop.iastate.edu/extension/farm-environment/crops-and-soils/agronomic-crops/pmr1009.html",
         ),
     ),

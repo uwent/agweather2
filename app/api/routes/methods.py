@@ -134,8 +134,7 @@ def correction(request: HttpRequest, correction_id: str) -> HttpResponse:
     found = corrections.BY_ID.get(correction_id)
     if found is None:
         raise Http404(
-            f"We don't have a correction with the id {correction_id!r}. GET /api/v2/methods lists every correction "
-            "and its id."
+            f"We don't have a correction with the id {correction_id!r}. GET /api/v2/methods lists every correction and its id."
         )
     etag = etag_for(request, {"id": correction_id}, None)
     if (unchanged := not_modified(request, etag)) is not None:

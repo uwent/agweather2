@@ -101,9 +101,7 @@ class ReportingCommand(BaseCommand):
         argv = [a for a in self._argv if a != "--background"]
         pid, log = runs.launch(settings.DATA_DIR, [self.command_name, *argv])
         self.stdout.write(
-            f"Started `{' '.join([self.command_name, *argv])}` in the background (pid {pid}).\n"
-            f"  watch: uv run app/manage.py        (the dashboard), or tail -f {log}\n"
-            f"  stop:  uv run app/manage.py archive stop {pid}"
+            f"Started `{' '.join([self.command_name, *argv])}` in the background (pid {pid}).\n  watch: uv run app/manage.py        (the dashboard), or tail -f {log}\n  stop:  uv run app/manage.py archive stop {pid}"
         )
 
     @cached_property

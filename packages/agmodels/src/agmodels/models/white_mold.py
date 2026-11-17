@@ -33,15 +33,12 @@ SPEC = ModelSpec(
     group="disease",
     version="0.1",
     status="stable",
-    summary="The probability of white mold apothecia in soybean fields, from a month of temperature, humidity "
-    "and wind (non-irrigated) or temperature, humidity and row spacing (irrigated); susceptible from R1 to R3.",
+    summary="The probability of white mold apothecia in soybean fields, from a month of temperature, humidity and wind (non-irrigated) or temperature, humidity and row spacing (irrigated); susceptible from R1 to R3.",
     topics=("white-mold",),
     crops=("Soybean",),
     citations=(
         Citation(
-            text="Willbur, J. F., Fall, M. L., Blackwell, T., et al. (2018). Weather-based models for assessing the "
-            "risk of Sclerotinia sclerotiorum apothecial presence in soybean (Glycine max) fields. Plant Disease "
-            "102, 73–84.",
+            text="Willbur, J. F., Fall, M. L., Blackwell, T., et al. (2018). Weather-based models for assessing the risk of Sclerotinia sclerotiorum apothecial presence in soybean (Glycine max) fields. Plant Disease 102, 73–84.",
             doi="10.1094/PDIS-04-17-0504-RE",
         ),
         Citation(
@@ -70,8 +67,7 @@ SPEC = ModelSpec(
     outputs=(Quantity(name="probability", label="Apothecia probability", unit="percent"),),
     risk=Risk(
         levels=PROBABILITY_LEVELS,
-        criteria="Non-irrigated: Very low below 1%, Low from 1%, Moderate from 20%, High from 35%. Irrigated: Very low "
-        "below 1%, Low from 1%, Moderate from 5%, High from 10%.",
+        criteria="Non-irrigated: Very low below 1%, Low from 1%, Moderate from 20%, High from 35%. Irrigated: Very low below 1%, Low from 1%, Moderate from 5%, High from 10%.",
     ),
     explorer=(
         ExplorerInput(

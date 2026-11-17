@@ -467,19 +467,14 @@ def phenology_criteria(insect: Insect) -> str:
     method = "Single-sine" if insect.dd_method == "sine" else "Average"
     stages = "; ".join(_stage_words(s) for s in insect.life_stages)
     repeat = (
-        f" Later generations follow every {insect.generation_dd:,g} degree days, spreading as each generation's "
-        "timing varies."
+        f" Later generations follow every {insect.generation_dd:,g} degree days, spreading as each generation's timing varies."
         if insect.generation_dd
         else ""
     )
     levels = ", ".join(
         f"{word} from {t:g}" for word, t in zip(SEVERITY_LEVELS[1:], insect.risk_thresholds, strict=True)
     )
-    return (
-        f"{method} degree days (base {insect.base_f:g} °F, {upper}) since the biofix time each life stage's first "
-        f"generation ({stages}).{repeat} Risk is the sum of each stage's weight times its activity (1 at "
-        f"the first generation's peak): {levels}. After day 250, fall freezes end the season."
-    )
+    return f"{method} degree days (base {insect.base_f:g} °F, {upper}) since the biofix time each life stage's first generation ({stages}).{repeat} Risk is the sum of each stage's weight times its activity (1 at the first generation's peak): {levels}. After day 250, fall freezes end the season."
 
 
 def _stage_words(stage: LifeStage | DerivedStage) -> str:
@@ -499,10 +494,7 @@ def criteria(insect: Insect) -> str:
         rule = f"{dd} set the severity: {steps}."
     else:
         spans = "; ".join(f"{a:,g}, {b:,g} and {c:,g}" for a, b, c in insect.generations)
-        rule = (
-            f"{dd} set the severity, rising along a half sine from each generation's start to 4 at its peak and "
-            f"falling to its end (start, peak and end: {spans})."
-        )
+        rule = f"{dd} set the severity, rising along a half sine from each generation's start to 4 at its peak and falling to its end (start, peak and end: {spans})."
     return f"{rule} After day 250, less 1 for each day at or below −2 °C in the last 14."
 
 

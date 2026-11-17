@@ -210,7 +210,4 @@ def run(found: list[Case], repeats: int = 5, on_timing: Callable[[Timing], None]
 def describe(t: Timing) -> str:
     """The timing and its verdict, without the case's name."""
     verdict = "met" if t.met else (f"failed (status {t.status})" if t.status != 200 else "over")
-    return (
-        f"first {t.first_ms:,.0f} ms, then {t.repeat_ms:,.0f} ms "
-        f"(target {t.case.target_ms:,.0f} ms on the {t.case.judged_on} request: {verdict}; {t.nbytes:,} bytes)"
-    )
+    return f"first {t.first_ms:,.0f} ms, then {t.repeat_ms:,.0f} ms (target {t.case.target_ms:,.0f} ms on the {t.case.judged_on} request: {verdict}; {t.nbytes:,} bytes)"

@@ -34,19 +34,16 @@ SPEC = ModelSpec(
     group="disease",
     version="0.2",
     status="stable",
-    summary="Potato physiological days from daily minimum and maximum temperature, accumulated from emergence "
-    "to time the first fungicide spray for early blight (about 300 P-days).",
+    summary="Potato physiological days from daily minimum and maximum temperature, accumulated from emergence to time the first fungicide spray for early blight (about 300 P-days).",
     topics=("early-blight",),
     crops=("Potato",),
     citations=(
         Citation(
-            text="Sands, P. J., Hackett, C. and Nix, H. A. (1979). A model of the development and bulking of potatoes "
-            "(Solanum tuberosum L.). I. Derivation from well-managed field crops. Field Crops Research 2, 309–331.",
+            text="Sands, P. J., Hackett, C. and Nix, H. A. (1979). A model of the development and bulking of potatoes (Solanum tuberosum L.). I. Derivation from well-managed field crops. Field Crops Research 2, 309–331.",
             doi="10.1016/0378-4290(79)90031-5",
         ),
         Citation(
-            text="Pscheidt, J. W. and Stevenson, W. R. (1988). The critical period for control of early blight "
-            "(Alternaria solani) of potato. American Potato Journal 65, 425–438.",
+            text="Pscheidt, J. W. and Stevenson, W. R. (1988). The critical period for control of early blight (Alternaria solani) of potato. American Potato Journal 65, 425–438.",
             doi="10.1007/BF02854357",
         ),
         Citation(
@@ -65,9 +62,7 @@ SPEC = ModelSpec(
     ),
     risk=Risk(
         levels=SEVERITY_LEVELS,
-        criteria="Until 400 P-days since emergence, the total sets the risk: Low from 200, Moderate from 250, High "
-        "from 300 (the usual first-spray threshold) and Very high from 350. From 400, the last 7 days' mean does: Very "
-        "low below 1 a day, Low from 1, Moderate from 3, High from 5 and Very high from 9.",
+        criteria="Until 400 P-days since emergence, the total sets the risk: Low from 200, Moderate from 250, High from 300 (the usual first-spray threshold) and Very high from 350. From 400, the last 7 days' mean does: Very low below 1 a day, Low from 1, Moderate from 3, High from 5 and Very high from 9.",
     ),
     explorer=(
         ExplorerInput(
@@ -95,8 +90,7 @@ SPEC = ModelSpec(
         Change(
             version="0.2",
             date="2026-11-03",
-            note="P-day totals and their 7-day mean count from the biofix, as the risk does "
-            "(were from the first day read).",
+            note="P-day totals and their 7-day mean count from the biofix, as the risk does (were from the first day read).",
         ),
     ),
 )

@@ -76,15 +76,12 @@ class Command(ReportingCommand):
         now = datetime.now(UTC)
         self.stdout.write(f"Archive in {data_dir} ({settings.SERVICE_BOX}), {now.astimezone():%Y-%m-%d %H:%M %Z}")
         self.stdout.write(
-            f"  {'year':<5} {'hours':>13} {'URMA':>6} {'RTMA':>6} {'precip':>7} {'shortwave':>9} "
-            f"{'ERA5-Land':>11} {'rolled up':>11}  past years"
+            f"  {'year':<5} {'hours':>13} {'URMA':>6} {'RTMA':>6} {'precip':>7} {'shortwave':>9} {'ERA5-Land':>11} {'rolled up':>11}  past years"
         )
         for y in archive.year_states(data_dir, now=now):
             mark = "✓" if y.complete else " "
             self.stdout.write(
-                f"{mark} {y.year:<5} {_frac(y.analysis, y.hours):>13} {y.urma:>6,} {y.rtma:>6,} "
-                f"{_pct(y.precip, y.hours):>7} {_pct(y.shortwave, y.hours):>9} {_frac(y.era5land_days, y.days):>11} "
-                f"{_frac(y.rolled_up, y.days):>11}  {y.past_years}"
+                f"{mark} {y.year:<5} {_frac(y.analysis, y.hours):>13} {y.urma:>6,} {y.rtma:>6,} {_pct(y.precip, y.hours):>7} {_pct(y.shortwave, y.hours):>9} {_frac(y.era5land_days, y.days):>11} {_frac(y.rolled_up, y.days):>11}  {y.past_years}"
                 + ("  (manage.py pastyears rebuilds it)" if _rebuildable(y) else "")
                 + (f"  stale: {', '.join(y.stale)}" if y.stale else "")
             )
@@ -121,8 +118,7 @@ class Command(ReportingCommand):
         per_hour = archive.seconds_per_hour()
         for plan in plans:
             self.report.step(
-                f"  {plan.year}: {plan.hours.hours:,} hours to fetch, {plan.era5land_days} days of ERA5-Land, "
-                f"past-years copy {'to build' if plan.past_years else 'current'}"
+                f"  {plan.year}: {plan.hours.hours:,} hours to fetch, {plan.era5land_days} days of ERA5-Land, past-years copy {'to build' if plan.past_years else 'current'}"
             )
         estimate = archive.estimate_s(plans, per_hour)
         self.report.step(

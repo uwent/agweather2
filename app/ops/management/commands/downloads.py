@@ -9,11 +9,7 @@ from ops.management.base import ReportingCommand
 
 
 class Command(ReportingCommand):
-    help = (
-        "Build the yearly NetCDF downloads of the daily variables (ops.downloads, D69): every file that's missing or "
-        "built from an older write of its store, the current year's at most weekly. About 1.5 s and 5–15 MB a file "
-        "over Wisconsin. Reads the daily stores only, so it doesn't take the write lock."
-    )
+    help = "Build the yearly NetCDF downloads of the daily variables (ops.downloads, D69): every file that's missing or built from an older write of its store, the current year's at most weekly. About 1.5 s and 5–15 MB a file over Wisconsin. Reads the daily stores only, so it doesn't take the write lock."
     stoppable = True
 
     def add_arguments(self, parser):

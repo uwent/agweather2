@@ -52,8 +52,7 @@ USES: tuple[SourceUse, ...] = (
         name=URMA_NAME,
         role="archive",
         variables=_ANALYSIS,
-        description="NOAA's hourly analysis of weather near the ground on a 2.5 km grid, which combines weather "
-        "station observations with a short forecast. It is published about 6 hours after the hour.",
+        description="NOAA's hourly analysis of weather near the ground on a 2.5 km grid, which combines weather station observations with a short forecast. It is published about 6 hours after the hour.",
         url=URMA_URL,
     ),
     SourceUse(
@@ -71,8 +70,7 @@ USES: tuple[SourceUse, ...] = (
         role="archive",
         variables=("precipitation",),
         last=HOURLY_PRECIP_FROM - timedelta(days=1),
-        description="Before URMA published hourly precipitation, its real-time counterpart RTMA did, so the "
-        "archive's hourly precipitation comes from RTMA until then.",
+        description="Before URMA published hourly precipitation, its real-time counterpart RTMA did, so the archive's hourly precipitation comes from RTMA until then.",
         url=URMA_URL,
     ),
     SourceUse(
@@ -80,8 +78,7 @@ USES: tuple[SourceUse, ...] = (
         name=RTMA_NAME,
         role="provisional",
         variables=(*_ANALYSIS, "precipitation"),
-        description="RTMA is published about an hour after the hour. It fills the newest hours until URMA's arrive "
-        "and replace them.",
+        description="RTMA is published about an hour after the hour. It fills the newest hours until URMA's arrive and replace them.",
         url=URMA_URL,
     ),
     SourceUse(
@@ -89,9 +86,7 @@ USES: tuple[SourceUse, ...] = (
         name="HRRR (High-Resolution Rapid Refresh), NOAA",
         role="archive",
         variables=("shortwave_radiation",),
-        description="Solar radiation from NOAA's hourly weather model on its 3 km grid, taken to our grid, as the "
-        "mean of each hour's four 15-minute values (in 2016, values at each quarter hour rather than means over it), "
-        "and corrected to pyranometers on the ground.",
+        description="Solar radiation from NOAA's hourly weather model on its 3 km grid, taken to our grid, as the mean of each hour's four 15-minute values (in 2016, values at each quarter hour rather than means over it), and corrected to pyranometers on the ground.",
         url="https://rapidrefresh.noaa.gov/hrrr/",
     ),
     SourceUse(
@@ -99,8 +94,7 @@ USES: tuple[SourceUse, ...] = (
         name="ERA5-Land, ECMWF (Copernicus Climate Change Service)",
         role="archive",
         variables=_SOIL_AND_SNOW,
-        description="ECMWF's reanalysis of the land surface on a 9 km grid, taken to our grid and to each depth. It "
-        "is published about 5 days behind.",
+        description="ECMWF's reanalysis of the land surface on a 9 km grid, taken to our grid and to each depth. It is published about 5 days behind.",
         url="https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land",
     ),
     SourceUse(
@@ -108,8 +102,7 @@ USES: tuple[SourceUse, ...] = (
         name=IFS_NAME,
         role="provisional",
         variables=_SOIL_AND_SNOW,
-        description="ECMWF's forecast model fills soil temperature and snow depth for the days since ERA5-Land's "
-        "last, adjusted to meet it, until ERA5-Land's values arrive and replace them.",
+        description="ECMWF's forecast model fills soil temperature and snow depth for the days since ERA5-Land's last, adjusted to meet it, until ERA5-Land's values arrive and replace them.",
         url=IFS_URL,
     ),
     SourceUse(
@@ -126,8 +119,7 @@ USES: tuple[SourceUse, ...] = (
             "precipitation",
             "shortwave_radiation",
         ),
-        description="NOAA's forecast blended from many weather models, on the same 2.5 km grid, for the next 11 "
-        "days. We correct its daily highs, overnight lows, humidity and solar radiation against the archive.",
+        description="NOAA's forecast blended from many weather models, on the same 2.5 km grid, for the next 11 days. We correct its daily highs, overnight lows, humidity and solar radiation against the archive.",
         url="https://vlab.noaa.gov/web/mdl/nbm",
     ),
     SourceUse(
@@ -143,10 +135,7 @@ USES: tuple[SourceUse, ...] = (
         name="Open-Meteo",
         role="outside",
         variables=(*_ANALYSIS, "precipitation", "shortwave_radiation", *_SOIL_AND_SNOW),
-        description="For locations outside the area our maps cover, and for dates before our archive, we read "
-        "weather for the location from Open-Meteo: NBM where it has it, then its best match of weather models, "
-        "with ERA5 and ERA5-Land for earlier years and ECMWF IFS for soil and snow. We correct its solar radiation and "
-        "humidity against Wisconsin's stations and the archive.",
+        description="For locations outside the area our maps cover, and for dates before our archive, we read weather for the location from Open-Meteo: NBM where it has it, then its best match of weather models, with ERA5 and ERA5-Land for earlier years and ECMWF IFS for soil and snow. We correct its solar radiation and humidity against Wisconsin's stations and the archive.",
         url="https://open-meteo.com/",
     ),
     SourceUse(
@@ -154,8 +143,7 @@ USES: tuple[SourceUse, ...] = (
         name="gridMET, Climatology Lab",
         role="normals",
         variables=tuple(ADJUST),
-        description="A gridded daily weather dataset on a 4 km grid. The 30-year normal takes from it the years "
-        "before our archive begins, adjusted to the archive cell by cell.",
+        description="A gridded daily weather dataset on a 4 km grid. The 30-year normal takes from it the years before our archive begins, adjusted to the archive cell by cell.",
         url="https://www.climatologylab.org/gridmet.html",
     ),
 )

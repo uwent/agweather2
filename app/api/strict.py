@@ -140,6 +140,5 @@ def _item(name: str, takes: Iterable[str]) -> dict[str, Any]:
     return {
         "code": "unknown_parameter",
         "param": name,
-        "message": f"This request doesn't take a parameter named {quoted(name)}.{hint} 'meta.params' lists the "
-        "parameters it takes.",
+        "message": f"This request doesn't take a parameter named {quoted(name)}.{hint} 'meta.params' lists the parameters it takes.",
     }

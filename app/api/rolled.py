@@ -52,9 +52,7 @@ def check_stat(q: RollQuery, adds_up: dict[str, bool]) -> None:
     if others:
         raise ApiError(
             "invalid",
-            f"'roll_stat=sum' adds values up over days, which works only for values that add up ({ADDS_UP_TEXT}), "
-            f"not {', '.join(quoted(o) for o in others)}. Use 'roll_stat=mean', 'min' or 'max' for those, or ask for "
-            "them separately.",
+            f"'roll_stat=sum' adds values up over days, which works only for values that add up ({ADDS_UP_TEXT}), not {', '.join(quoted(o) for o in others)}. Use 'roll_stat=mean', 'min' or 'max' for those, or ask for them separately.",
             "roll_stat",
         )
 
@@ -146,8 +144,6 @@ class Roller:
             if n:
                 days = int(window[:-1])
                 found.append(
-                    f"{n} {days}-day {'value is' if n == 1 else 'values are'} missing because fewer than "
-                    f"{self.q.roll_coverage:g}% of the window's days had data. Lower 'roll_coverage' to accept "
-                    "windows with more missing days."
+                    f"{n} {days}-day {'value is' if n == 1 else 'values are'} missing because fewer than {self.q.roll_coverage:g}% of the window's days had data. Lower 'roll_coverage' to accept windows with more missing days."
                 )
         return found

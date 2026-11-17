@@ -32,13 +32,9 @@ if TYPE_CHECKING:
 CROPS = ("corn", "soybean", "spring-wheat", "winter-wheat", "potato")
 POTATO_RADIUS_KM = 40.0
 SOURCES = {  # by a row's level
-    "county": "Deines, J. M. et al. (2023), Remote Sensing of Environment 291, 113551 "
-    "(https://doi.org/10.1016/j.rse.2023.113551; data CC BY 4.0, https://doi.org/10.5281/zenodo.7790257): "
-    "median over 2000–2020",
-    "location": "UW Vegetable Pathology, Vegetable Crop Updates (vegpath.plantpath.wisc.edu): early, mid and late "
-    "planting dates by location in each season's early and late blight table, mean over 2020–2026",
-    "state": "USDA NASS (2010), Usual Planting and Harvesting Dates for U.S. Field Crops, Agricultural Handbook 628: "
-    "1990–2009 crop progress",
+    "county": "Deines, J. M. et al. (2023), Remote Sensing of Environment 291, 113551 (https://doi.org/10.1016/j.rse.2023.113551; data CC BY 4.0, https://doi.org/10.5281/zenodo.7790257): median over 2000–2020",
+    "location": "UW Vegetable Pathology, Vegetable Crop Updates (vegpath.plantpath.wisc.edu): early, mid and late planting dates by location in each season's early and late blight table, mean over 2020–2026",
+    "state": "USDA NASS (2010), Usual Planting and Harvesting Dates for U.S. Field Crops, Agricultural Handbook 628: 1990–2009 crop progress",
 }
 
 

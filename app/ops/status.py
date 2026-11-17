@@ -248,16 +248,13 @@ def status_lines(status: Status) -> list[str]:
         out.append("  archive: empty (run manage.py backfill)")
     else:
         out.append(
-            f"  archive: newest hour {_when(i['newest_hour'])} ({_hours(i['lag_hours'])} ago); "
-            f"URMA {_when(i['newest_urma_hour'])} ({_hours(i['urma_lag_hours'])} ago); "
-            f"{i['missing_hours_7d']} missing hours in 7 days"
+            f"  archive: newest hour {_when(i['newest_hour'])} ({_hours(i['lag_hours'])} ago); URMA {_when(i['newest_urma_hour'])} ({_hours(i['urma_lag_hours'])} ago); {i['missing_hours_7d']} missing hours in 7 days"
         )
         out.append(f"  daily:   rolled up through {status.daily_through or 'nothing yet'}")
         if i.get("stale"):
             out.append(f"  stale:   {', '.join(sorted(i['stale']))} (run manage.py rebuild --stale)")
     out.append(
-        f"  soil:    ERA5-Land through {_when(status.era5land_through)}; "
-        f"IFS run {_when(status.ifs_run) if status.ifs_run else 'none read'} after it"
+        f"  soil:    ERA5-Land through {_when(status.era5land_through)}; IFS run {_when(status.ifs_run) if status.ifs_run else 'none read'} after it"
     )
     if f.get("state") == "not started":
         out.append("  forecast: none published yet")

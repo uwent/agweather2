@@ -5,10 +5,7 @@ from ops.management.base import ReportingCommand, check_range, parse_day
 
 
 class Command(ReportingCommand):
-    help = (
-        "Roll up local days from the hourly archive and rebuild the running totals of the years they touch. Note "
-        "--end is the last local day (inclusive), unlike backfill's."
-    )
+    help = "Roll up local days from the hourly archive and rebuild the running totals of the years they touch. Note --end is the last local day (inclusive), unlike backfill's."
 
     def add_arguments(self, parser):
         parser.add_argument("--start", required=True, help="first local day, YYYY-MM-DD")

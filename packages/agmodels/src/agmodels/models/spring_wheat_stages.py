@@ -49,14 +49,12 @@ SPEC = ModelSpec(
     group="crop",
     version="0.1",
     status="beta",
-    summary="Spring wheat's Haun stages from planting through flowering and watery-ripe kernels, by growing degree "
-    "days (base 32 °F).",
+    summary="Spring wheat's Haun stages from planting through flowering and watery-ripe kernels, by growing degree days (base 32 °F).",
     topics=("spring-wheat",),
     crops=("Wheat",),
     citations=(
         Citation(
-            text="Bauer, A., Fanning, C., Enz, J. W. and Eberlein, C. V. (1984). Use of growing-degree days to "
-            "determine spring wheat growth stages. North Dakota Cooperative Extension Service EB-37.",
+            text="Bauer, A., Fanning, C., Enz, J. W. and Eberlein, C. V. (1984). Use of growing-degree days to determine spring wheat growth stages. North Dakota Cooperative Extension Service EB-37.",
         ),
         Citation(
             text="NDAWN (North Dakota Agricultural Weather Network): Wheat growing degree days.",

@@ -38,19 +38,16 @@ SPEC = ModelSpec(
     group="crop",
     version="0.1",
     status="beta",
-    summary="The date half of a potato planting has emerged, by degree days in air above 4 °C from planting: the "
-    "start of the early and late blight models.",
+    summary="The date half of a potato planting has emerged, by degree days in air above 4 °C from planting: the start of the early and late blight models.",
     topics=("potato",),
     crops=("Potato",),
     citations=(
         Citation(
-            text="UW Vegetable Pathology, Vegetable Crop Updates (2020–2026): early, mid and late planting and 50% "
-            "emergence dates by location, in each season's early and late blight table.",
+            text="UW Vegetable Pathology, Vegetable Crop Updates (2020–2026): early, mid and late planting and 50% emergence dates by location, in each season's early and late blight table.",
             url="https://vegpath.plantpath.wisc.edu/2026/08/23/vegetable-crop-update-aug-23-2026/",
         ),
         Citation(
-            text="Holden, Z. J., Pavek, M. J., Knowles, N. R. and Knowles, L. O. (2011). Accumulated heat units for "
-            "2011: Ice age cometh? Potato Progress XI(6). Washington State Potato Commission.",
+            text="Holden, Z. J., Pavek, M. J., Knowles, N. R. and Knowles, L. O. (2011). Accumulated heat units for 2011: Ice age cometh? Potato Progress XI(6). Washington State Potato Commission.",
             url="https://www.nwpotatoresearch.com/images/documents/PotatoProgressXI6.pdf",
         ),
     ),

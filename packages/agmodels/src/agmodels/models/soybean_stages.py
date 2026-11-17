@@ -124,20 +124,16 @@ SPEC = ModelSpec(
     group="crop",
     version="0.1",
     status="beta",
-    summary="Soybean's vegetative and reproductive stages from planting, from temperature and day length, for any "
-    "maturity group (SOYDEV).",
+    summary="Soybean's vegetative and reproductive stages from planting, from temperature and day length, for any maturity group (SOYDEV).",
     topics=("soybean",),
     crops=("Soybean",),
     citations=(
         Citation(
-            text="Setiyono, T. D., Weiss, A., Specht, J., Bastidas, A. M., Cassman, K. G. and Dobermann, A. (2007). "
-            "Understanding and modeling the effect of temperature and daylength on soybean phenology under "
-            "high-yield conditions. Field Crops Research 100, 257–271.",
+            text="Setiyono, T. D., Weiss, A., Specht, J., Bastidas, A. M., Cassman, K. G. and Dobermann, A. (2007). Understanding and modeling the effect of temperature and daylength on soybean phenology under high-yield conditions. Field Crops Research 100, 257–271.",
             doi="10.1016/j.fcr.2006.07.011",
         ),
         Citation(
-            text="Fehr, W. R. and Caviness, C. E. (1977). Stages of soybean development. Special Report 80, Iowa State "
-            "University.",
+            text="Fehr, W. R. and Caviness, C. E. (1977). Stages of soybean development. Special Report 80, Iowa State University.",
         ),
     ),
     inputs=(Input(name="air_temperature_mean", label="Mean temperature", unit="degC"),),

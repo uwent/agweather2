@@ -78,13 +78,11 @@ def located(
         if outside:
             raise ApiError(
                 "not_applicable",
-                "'radius' averages our gridded weather around a location, so it works only inside the area we cover "
-                f"and from {RADIUS_FROM} on. "
+                f"'radius' averages our gridded weather around a location, so it works only inside the area we cover and from {RADIUS_FROM} on. "
                 + (
                     "This location, or the dates asked for, is outside it, so leave out 'radius'."
                     if len(found) == 1
-                    else f"{outside} of these {len(found)} locations, or the dates asked for, are outside it, so "
-                    "leave out 'radius', or ask for those locations separately."
+                    else f"{outside} of these {len(found)} locations, or the dates asked for, are outside it, so leave out 'radius', or ask for those locations separately."
                 ),
                 "radius",
             )
@@ -94,8 +92,7 @@ def located(
             except AllWater:
                 raise ApiError(
                     "no_data",
-                    f"Every grid cell within the radius of ({lat}, {lng}) is open water, so 'land_only' leaves none. "
-                    "Choose a larger radius, or leave out 'land_only'.",
+                    f"Every grid cell within the radius of ({lat}, {lng}) is open water, so 'land_only' leaves none. Choose a larger radius, or leave out 'land_only'.",
                     "land_only",
                 ) from None
             location["area"] = {
@@ -107,9 +104,7 @@ def located(
     if outside > MAX_OUTSIDE:
         raise ApiError(
             "too_many",
-            f"{outside} of these locations are outside our area or before our records begin, so their weather comes "
-            f"from Open-Meteo; a request can include up to {MAX_OUTSIDE} such locations. Split them into several "
-            "requests.",
+            f"{outside} of these locations are outside our area or before our records begin, so their weather comes from Open-Meteo; a request can include up to {MAX_OUTSIDE} such locations. Split them into several requests.",
             "points",
         )
     return found
@@ -125,8 +120,7 @@ def check_size(steps: int, n_points: int, limit: int, unit: str, param: str = "s
     if steps * n_points > MAX_ROWS:
         raise ApiError(
             "too_large",
-            f"This request would return {steps * n_points:,} rows ({n_points} locations); a request can return up to "
-            f"{MAX_ROWS:,}. Ask for fewer locations or a shorter period.",
+            f"This request would return {steps * n_points:,} rows ({n_points} locations); a request can return up to {MAX_ROWS:,}. Ask for fewer locations or a shorter period.",
             "points",
         )
 
@@ -272,8 +266,7 @@ def hourly(
     if options.day_basis is not None:
         raise ApiError(
             "not_applicable",
-            "Hourly values aren't grouped into days, so 'day_basis' doesn't apply. Leave it out, and use 'tz=local' to "
-            "see each hour on the location's clock.",
+            "Hourly values aren't grouped into days, so 'day_basis' doesn't apply. Leave it out, and use 'tz=local' to see each hour on the location's clock.",
             "day_basis",
         )
     now = clock.now()
@@ -381,8 +374,7 @@ def count_columns(request: HttpRequest, units: str) -> list[CountColumn]:
         if not spec:
             raise ApiError(
                 "invalid",
-                f"We can't read {quoted(f'count={text}')}. Name the variable and what to count, such as "
-                "'count=air_temperature_max:days_above_86' or 'count=air_temperature:hours_above_86'.",
+                f"We can't read {quoted(f'count={text}')}. Name the variable and what to count, such as 'count=air_temperature_max:days_above_86' or 'count=air_temperature:hours_above_86'.",
                 "count",
             )
         if variable in DAILY:
@@ -442,16 +434,14 @@ def event_columns(request: HttpRequest, units: str) -> list[EventColumn]:
             if not spec:
                 raise ApiError(
                     "invalid",
-                    f"We can't read {quoted(f'{kind}={text}')}. Name the daily variable and the days to find, such as "
-                    f"'{kind}=air_temperature_min:frost' or '{kind}=soil_temperature_10cm_mean:above_50'.",
+                    f"We can't read {quoted(f'{kind}={text}')}. Name the daily variable and the days to find, such as '{kind}=air_temperature_min:frost' or '{kind}=soil_temperature_10cm_mean:above_50'.",
                     kind,
                 )
             if variable not in DAILY:
                 hourly = " It's hourly: name a daily variable." if variable in HOURLY else ""
                 raise ApiError(
                     "unknown_variable",
-                    f"We don't have a daily variable named {quoted(variable)}.{hourly} GET /api/v2/variables lists "
-                    "them.",
+                    f"We don't have a daily variable named {quoted(variable)}.{hourly} GET /api/v2/variables lists them.",
                     kind,
                 )
             v = DAILY[variable]
@@ -459,8 +449,7 @@ def event_columns(request: HttpRequest, units: str) -> list[EventColumn]:
             if event.named is not None and v.unit != "degC":
                 raise ApiError(
                     "invalid",
-                    f"{event.name.replace('_', ' ')} is a temperature, and {quoted(variable)} isn't one. Give bounds "
-                    f"such as '{kind}={variable}:below_10'.",
+                    f"{event.name.replace('_', ' ')} is a temperature, and {quoted(variable)} isn't one. Give bounds such as '{kind}={variable}:below_10'.",
                     kind,
                 )
             name = f"{variable}_{kind}_{event.name}"
@@ -640,14 +629,12 @@ def totals(
     missing_rain = sum(rows.get("precipitation_sum_missing_days", []))
     if missing_rain:
         warnings.append(
-            f"Precipitation is missing on {counted(missing_rain, 'day')}. We never estimate precipitation, "
-            "so the totals count those days as no rain."
+            f"Precipitation is missing on {counted(missing_rain, 'day')}. We never estimate precipitation, so the totals count those days as no rain."
         )
     uncounted = [c.name for c in wanted if sum(rows[c.missing])]
     if uncounted:
         warnings.append(
-            f"Some days or hours have no data for {', '.join(quoted(n) for n in uncounted)}. The counts leave them "
-            "out, and each count's '_missing_days' column says how many."
+            f"Some days or hours have no data for {', '.join(quoted(n) for n in uncounted)}. The counts leave them out, and each count's '_missing_days' column says how many."
         )
     if found and trim_end:
         computed["end"] = max((days.dates[n - 1] for days, n in found if n), default=last)

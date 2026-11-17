@@ -62,10 +62,7 @@ def main():
             yearly = r["bytes"] * per_year * scale_vars / cells  # bytes per cell per year
             sizes = {p: yearly * service_window(p).size / 1e9 for p in PRESETS}
             print(
-                f"| {r['layout']} | {r['bytes'] / 1e6:.1f} | {r['ratio_vs_int16']:.1f} | {r['write_month_s']:.1f} s"
-                f" | {r['write_hour_s']:.2f} s | {r['read_point_month_ms']:.1f} ms | {r['read_hour_window_ms']:.0f} ms"
-                f" | {sizes['wisconsin']:.1f} | {sizes['upper_midwest']:.0f} | {sizes['upper_midwest'] * YEARS:.0f}"
-                f" | {sizes['conus'] * YEARS:.0f} |"
+                f"| {r['layout']} | {r['bytes'] / 1e6:.1f} | {r['ratio_vs_int16']:.1f} | {r['write_month_s']:.1f} s | {r['write_hour_s']:.2f} s | {r['read_point_month_ms']:.1f} ms | {r['read_hour_window_ms']:.0f} ms | {sizes['wisconsin']:.1f} | {sizes['upper_midwest']:.0f} | {sizes['upper_midwest'] * YEARS:.0f} | {sizes['conus'] * YEARS:.0f} |"
             )
         best = min(results, key=lambda r: r["bytes"])
         print(f"\nPer variable ({best['layout']}), MB measured:")

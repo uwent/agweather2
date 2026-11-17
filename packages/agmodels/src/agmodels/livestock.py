@@ -18,23 +18,17 @@ from agmodels.weather import wind_speed_2m
 
 CITATIONS = (
     Citation(
-        text="National Research Council (1971). A Guide to Environmental Research on Animals. National Academy of "
-        "Sciences, Washington, DC.",
+        text="National Research Council (1971). A Guide to Environmental Research on Animals. National Academy of Sciences, Washington, DC.",
     ),
     Citation(
-        text="Zimbelman, R. B., Rhoads, R. P., Rhoads, M. L., Duff, G. C., Baumgard, L. H. and Collier, R. J. "
-        "(2009). A re-evaluation of the impact of temperature humidity index (THI) and black globe humidity index "
-        "(BGHI) on milk production in high producing dairy cows. Proceedings of the Southwest Nutrition and "
-        "Management Conference, 158–169.",
+        text="Zimbelman, R. B., Rhoads, R. P., Rhoads, M. L., Duff, G. C., Baumgard, L. H. and Collier, R. J. (2009). A re-evaluation of the impact of temperature humidity index (THI) and black globe humidity index (BGHI) on milk production in high producing dairy cows. Proceedings of the Southwest Nutrition and Management Conference, 158–169.",
     ),
     Citation(
-        text="Armstrong, D. V. (1994). Heat stress interaction with shade and cooling. Journal of Dairy Science "
-        "77(7), 2044–2050.",
+        text="Armstrong, D. V. (1994). Heat stress interaction with shade and cooling. Journal of Dairy Science 77(7), 2044–2050.",
         doi="10.3168/jds.S0022-0302(94)77149-6",
     ),
     Citation(
-        text="Mader, T. L., Johnson, L. J. and Gaughan, J. B. (2010). A comprehensive index for assessing "
-        "environmental stress in animals. Journal of Animal Science 88(6), 2153–2165.",
+        text="Mader, T. L., Johnson, L. J. and Gaughan, J. B. (2010). A comprehensive index for assessing environmental stress in animals. Journal of Animal Science 88(6), 2153–2165.",
         doi="10.2527/jas.2009-2586",
     ),
 )

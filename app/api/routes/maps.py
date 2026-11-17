@@ -98,8 +98,7 @@ def _layer_query(q: MapQuery, now: datetime) -> LayerQuery:
         if q.start or q.date or q.time or q.season or q.biofix or q.roll is not None:
             raise ApiError(
                 "conflict",
-                "'days' counts back from 'end' (or the latest day), so it takes no 'start', 'biofix', 'date', 'time', "
-                "'season' or 'roll'. Leave those out.",
+                "'days' counts back from 'end' (or the latest day), so it takes no 'start', 'biofix', 'date', 'time', 'season' or 'roll'. Leave those out.",
                 "days",
             )
         if q.stat is None and q.count is None:
@@ -140,8 +139,7 @@ def parse_isolines(text: str | None, a: layermaps.LayerAsk) -> mapimage.Isolines
     if not np.isfinite(every) or every <= 0:
         raise ApiError(
             "invalid",
-            f"We can't read {quoted(f'isolines={text}')}. Give 'isolines=auto' for a line at each of the legend's "
-            "values, a number for a line every so many units ('isolines=5' for every 5 degrees), or 'isolines=off'.",
+            f"We can't read {quoted(f'isolines={text}')}. Give 'isolines=auto' for a line at each of the legend's values, a number for a line every so many units ('isolines=5' for every 5 degrees), or 'isolines=off'.",
             "isolines",
         )
     return every
@@ -158,8 +156,7 @@ def check_isoline_count(values: np.ndarray, every: float, shown: Any) -> None:
         wider = float(f"{span / 20:.1g}")
         raise ApiError(
             "too_large",
-            f"{quoted(f'isolines={every:g}')} would draw about {span / every:,.0f} lines on this map, more than "
-            f"{mapimage.MAX_LEVELS}. Choose a wider spacing, such as {quoted(f'isolines={wider:g}')}.",
+            f"{quoted(f'isolines={every:g}')} would draw about {span / every:,.0f} lines on this map, more than {mapimage.MAX_LEVELS}. Choose a wider spacing, such as {quoted(f'isolines={wider:g}')}.",
             "isolines",
         )
 

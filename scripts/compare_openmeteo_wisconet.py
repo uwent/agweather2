@@ -103,8 +103,8 @@ def main():
     start = datetime(first.year, first.month, first.day, tzinfo=UTC)
     n = ((last - first).days + 1) * 24
     report.step(
-        f"Open-Meteo against Wisconet, {first} to {last}: {len(stations)} stations, {n} hours, models "
-        f"{', '.join(MODELS)}; writing {args.out}" + (" and the fitted correction tables" if args.fit else "")
+        f"Open-Meteo against Wisconet, {first} to {last}: {len(stations)} stations, {n} hours, models {', '.join(MODELS)}; writing {args.out}"
+        + (" and the fitted correction tables" if args.fit else "")
     )
     times = [start + (k + 1) * HOUR for k in range(n)]  # hours ending 01Z on the first day …
 
@@ -185,8 +185,7 @@ def main():
             **fit_rh_map(m["rh_derived"], archive["rh"], times, lon[:, 0], every),
         }
         report.step(
-            f"overwriting {shortwave.OPENMETEO_TABLE_PATH} and {calibration.OPENMETEO_RH_MAP_PATH} "
-            f"(fitted on {years_fitted})"
+            f"overwriting {shortwave.OPENMETEO_TABLE_PATH} and {calibration.OPENMETEO_RH_MAP_PATH} (fitted on {years_fitted})"
         )
         shortwave.OPENMETEO_TABLE_PATH.write_text(json.dumps(sw_table, indent=2) + "\n")
         calibration.OPENMETEO_RH_MAP_PATH.write_text(json.dumps(rh_table) + "\n")
@@ -379,11 +378,7 @@ def build_report(args, stations, station, om, archive, old_et, local_day, month,
     lines = [
         "# Open-Meteo against Wisconet",
         "",
-        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_openmeteo_wisconet.py`, {args.start} to "
-        f"{args.end}, at {len(stations)} Wisconet stations. Open-Meteo from its historical-forecast API at each "
-        f"station's location: `{MODELS[0]}`, `{MODELS[1]}`, and the two merged hour by hour ({MODELS[0]} first, as "
-        "v2's points and WISP use them). The archive is v2's grid at the station's cell. Ratios are totals over the "
-        "days both have.",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_openmeteo_wisconet.py`, {args.start} to {args.end}, at {len(stations)} Wisconet stations. Open-Meteo from its historical-forecast API at each station's location: `{MODELS[0]}`, `{MODELS[1]}`, and the two merged hour by hour ({MODELS[0]} first, as v2's points and WISP use them). The archive is v2's grid at the station's cell. Ratios are totals over the days both have.",
         "",
         "## Coverage",
         "",
@@ -392,8 +387,7 @@ def build_report(args, stations, station, om, archive, old_et, local_day, month,
     ]
     for name, s in sources.items():
         lines.append(
-            f"| {name} | {np.isfinite(s['t']).mean():.3f} | {np.isfinite(s['sw']).mean():.3f} "
-            f"| {np.isfinite(s['rh']).mean():.3f} |"
+            f"| {name} | {np.isfinite(s['t']).mean():.3f} | {np.isfinite(s['sw']).mean():.3f} | {np.isfinite(s['rh']).mean():.3f} |"
         )
 
     # Shortwave, daily totals
@@ -415,8 +409,7 @@ def build_report(args, stations, station, om, archive, old_et, local_day, month,
             f"{MONTHS[m]} {model[sel].sum() / obs_sw[sel].sum():.2f}" for m, sel in enumerate(in_month) if sel.any()
         )
         lines.append(
-            f"| {name} | {model[ok].sum() / obs_sw[ok].sum():.3f} | {model[g].sum() / obs_sw[g].sum():.3f} "
-            f"| {np.mean(np.abs(model[ok] - obs_sw[ok])):.2f} | {by_month} |"
+            f"| {name} | {model[ok].sum() / obs_sw[ok].sum():.3f} | {model[g].sum() / obs_sw[g].sum():.3f} | {np.mean(np.abs(model[ok] - obs_sw[ok])):.2f} | {by_month} |"
         )
     middles, factor = table
     held = (day_year != args.fit_year) & (day_year >= date.fromisoformat(args.start).year)
@@ -425,17 +418,13 @@ def build_report(args, stations, station, om, archive, old_et, local_day, month,
     raw = daily(om["merged"]["sw"], local_day, days) * 0.0036
     lines += [
         "",
-        f"The merged series' correction fitted on {args.fit_year}, for the held-out check (`--fit` writes "
-        "`agdata/data/openmeteo_shortwave_correction.json` refitted on every year):",
+        f"The merged series' correction fitted on {args.fit_year}, for the held-out check (`--fit` writes `agdata/data/openmeteo_shortwave_correction.json` refitted on every year):",
         "",
         "| Clearness | " + " | ".join(f"{m:.2f}" for m in middles) + " |",
         "|---|" + "---|" * len(middles),
         "| Factor | " + " | ".join(f"{f:.2f}" for f in factor) + " |",
         "",
-        f"Held out ({', '.join(str(y) for y in sorted(set(day_year[held])))}): "
-        f"ratio {raw[ok].sum() / obs_sw[ok].sum():.3f} "
-        f"→ {model[ok].sum() / obs_sw[ok].sum():.3f}, daily MAE {np.mean(np.abs(raw[ok] - obs_sw[ok])):.2f} → "
-        f"{np.mean(np.abs(model[ok] - obs_sw[ok])):.2f} MJ/m².",
+        f"Held out ({', '.join(str(y) for y in sorted(set(day_year[held])))}): ratio {raw[ok].sum() / obs_sw[ok].sum():.3f} → {model[ok].sum() / obs_sw[ok].sum():.3f}, daily MAE {np.mean(np.abs(raw[ok] - obs_sw[ok])):.2f} → {np.mean(np.abs(model[ok] - obs_sw[ok])):.2f} MJ/m².",
     ]
 
     # Temperature and humidity, hourly
@@ -443,9 +432,7 @@ def build_report(args, stations, station, om, archive, old_et, local_day, month,
         "",
         "## Hourly temperature and humidity",
         "",
-        "RH is Open-Meteo's `relative_humidity_2m`, and RH from its temperature and dew point as v2 derives it. "
-        "Humid hours per day are over complete local days, May–September; the threshold is the RH at or above which "
-        "the source counts as many hours as the stations' RH ≥ 90% (the archive's: 88%, D50).",
+        "RH is Open-Meteo's `relative_humidity_2m`, and RH from its temperature and dew point as v2 derives it. Humid hours per day are over complete local days, May–September; the threshold is the RH at or above which the source counts as many hours as the stations' RH ≥ 90% (the archive's: 88%, D50).",
         "",
         "| Source | temperature bias (°C) | RH bias | RH MAE | RH ≥ 90 h/day (station) | threshold |",
         "|---|---|---|---|---|---|",
@@ -463,9 +450,7 @@ def build_report(args, stations, station, om, archive, old_et, local_day, month,
             sel = ok & summer[None]
             share = np.mean(station["rh"][sel] >= 90)
             lines.append(
-                f"| {name}{label} | {np.mean(s['t'][tok] - station['t'][tok]):+.2f} "
-                f"| {np.mean(rh[ok] - station['rh'][ok]):+.1f} | {np.mean(np.abs(rh[ok] - station['rh'][ok])):.1f} "
-                f"| {hours90[both].mean():.2f} ({st90[both].mean():.2f}) | {np.quantile(rh[sel], 1 - share):.1f} |"
+                f"| {name}{label} | {np.mean(s['t'][tok] - station['t'][tok]):+.2f} | {np.mean(rh[ok] - station['rh'][ok]):+.1f} | {np.mean(np.abs(rh[ok] - station['rh'][ok])):.1f} | {hours90[both].mean():.2f} ({st90[both].mean():.2f}) | {np.quantile(rh[sel], 1 - share):.1f} |"
             )
 
     # The RH map, held out
@@ -473,10 +458,7 @@ def build_report(args, stations, station, om, archive, old_et, local_day, month,
     held_days = (day_year != args.fit_year)[None, :] & np.isin(day_month, (5, 6, 7, 8, 9))[None, :]
     lines += [
         "",
-        f"The merged series' RH mapped onto the archive's, fitted on {args.fit_year} and held out, May–September "
-        "(`--fit` writes `agdata/data/openmeteo_rh_map.json` refitted on every year; fitted on 2026 and tested on "
-        "2025 instead, the map lands 0.2 h a day over the archive at RH ≥ 88%, where this way it's 1.2 under: "
-        "Open-Meteo's humidity changes from year to year):",
+        f"The merged series' RH mapped onto the archive's, fitted on {args.fit_year} and held out, May–September (`--fit` writes `agdata/data/openmeteo_rh_map.json` refitted on every year; fitted on 2026 and tested on 2025 instead, the map lands 0.2 h a day over the archive at RH ≥ 88%, where this way it's 1.2 under: Open-Meteo's humidity changes from year to year):",
         "",
         "| RH | RH ≥ 90 h/day | RH ≥ 88 h/day | bias against the archive | MAE against the stations |",
         "|---|---|---|---|---|",
@@ -494,8 +476,7 @@ def build_report(args, stations, station, om, archive, old_et, local_day, month,
         ok = held_hours & np.isfinite(rh) & np.isfinite(archive["rh"])
         ok_st = held_hours & np.isfinite(rh) & np.isfinite(station["rh"])
         lines.append(
-            f"| {label} | {counts[0]:.2f} | {counts[1]:.2f} | {np.mean(rh[ok] - archive['rh'][ok]):+.1f} "
-            f"| {np.mean(np.abs(rh[ok_st] - station['rh'][ok_st])):.1f} |"
+            f"| {label} | {counts[0]:.2f} | {counts[1]:.2f} | {np.mean(rh[ok] - archive['rh'][ok]):+.1f} | {np.mean(np.abs(rh[ok_st] - station['rh'][ok_st])):.1f} |"
         )
 
     # ET0, daily
@@ -525,8 +506,7 @@ def build_report(args, stations, station, om, archive, old_et, local_day, month,
             if (g & (day_month == m)[None]).any()
         )
         lines.append(
-            f"| {name} | {model[g].sum() / obs_et[g].sum():.3f} | {np.mean(np.abs(model[g] - obs_et[g])):.2f} "
-            f"| {model[ok].sum() / obs_et[ok].sum():.3f} | {by_month} |"
+            f"| {name} | {model[g].sum() / obs_et[g].sum():.3f} | {np.mean(np.abs(model[g] - obs_et[g])):.2f} | {model[ok].sum() / obs_et[ok].sum():.3f} | {by_month} |"
         )
     g = np.isfinite(obs_et) & growing[None]
     lines += [

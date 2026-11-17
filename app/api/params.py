@@ -71,8 +71,7 @@ class PointsQuery(Schema):
             raise fail(
                 "missing",
                 missing,
-                "Give a location as 'lat' and 'lng' (such as 'lat=43.07&lng=-89.40'), or several as "
-                "'points=lat,lng;lat,lng'.",
+                "Give a location as 'lat' and 'lng' (such as 'lat=43.07&lng=-89.40'), or several as 'points=lat,lng;lat,lng'.",
             )
         _check_point(self.lat, self.lng, "lat", "lng")
         self._parsed = [(self.lat, self.lng)]
@@ -94,15 +93,13 @@ def _parse_points(text: str) -> list[tuple[float, float]]:
         raise fail(
             "missing",
             "points",
-            "The 'points' list is empty. Give latitude,longitude pairs separated by semicolons, such "
-            "as 'points=43.07,-89.40;44.52,-89.57'.",
+            "The 'points' list is empty. Give latitude,longitude pairs separated by semicolons, such as 'points=43.07,-89.40;44.52,-89.57'.",
         )
     if len(pairs) > MAX_POINTS:
         raise fail(
             "too_many",
             "points",
-            f"You gave {len(pairs)} points; a request can include up to {MAX_POINTS}. Split them "
-            "into several requests.",
+            f"You gave {len(pairs)} points; a request can include up to {MAX_POINTS}. Split them into several requests.",
         )
     found = []
     for n, pair in enumerate(pairs, start=1):
@@ -113,8 +110,7 @@ def _parse_points(text: str) -> list[tuple[float, float]]:
             raise fail(
                 "invalid",
                 "points",
-                f"Point {n} ({quoted(pair)}) isn't a latitude and longitude. Give each point as two numbers "
-                "separated by a comma.",
+                f"Point {n} ({quoted(pair)}) isn't a latitude and longitude. Give each point as two numbers separated by a comma.",
             ) from None
         _check_point(lat, lng, "points", "points")
         found.append((lat, lng))
@@ -151,8 +147,7 @@ class DaysQuery(Schema):
             raise fail(
                 "out_of_order",
                 "start",
-                f"The start date ({day_text(self.start)}) is after the end date "
-                f"({day_text(self.end)}). Choose a start date on or before the end date.",
+                f"The start date ({day_text(self.start)}) is after the end date ({day_text(self.end)}). Choose a start date on or before the end date.",
             )
         return self
 
@@ -166,8 +161,7 @@ class DaysQuery(Schema):
         if first > last:
             raise ApiError(
                 "out_of_order",
-                f"The start date ({day_text(first)}) is after the default end date "
-                f"({day_text(last)}). Give an end date as well.",
+                f"The start date ({day_text(first)}) is after the default end date ({day_text(last)}). Give an end date as well.",
                 "start",
             )
         return first, last
@@ -203,8 +197,7 @@ class AreaQuery(Schema):
             if self.land_only:
                 raise ApiError(
                     "not_applicable",
-                    "'land_only' leaves open water out of an area, so it works only with 'radius'. Add a radius, or "
-                    "leave out 'land_only'.",
+                    "'land_only' leaves open water out of an area, so it works only with 'radius'. Add a radius, or leave out 'land_only'.",
                     "land_only",
                 )
             return None
@@ -215,8 +208,7 @@ class AreaQuery(Schema):
         if not 0 < self.radius <= MAX_RADIUS[system]:
             raise ApiError(
                 "out_of_range",
-                f"A radius of {self.radius:g} {label} can't be used. Give a radius over 0 and up to "
-                f"{MAX_RADIUS[system]:g} {label}, which keeps the area well under the size of a county.",
+                f"A radius of {self.radius:g} {label} can't be used. Give a radius over 0 and up to {MAX_RADIUS[system]:g} {label}, which keeps the area well under the size of a county.",
                 "radius",
             )
         km = self.radius if system == "metric" else self.radius * 1.609344
@@ -237,8 +229,7 @@ def require_terrain(param: str) -> None:
     if terrain.load(settings.DATA_DIR) is None:
         raise ApiError(
             "no_data",
-            f"{quoted(param)} needs our map of open water, which isn't available yet. Leave out {quoted(param)}, or "
-            "try again later.",
+            f"{quoted(param)} needs our map of open water, which isn't available yet. Leave out {quoted(param)}, or try again later.",
             param,
         )
 
@@ -270,8 +261,7 @@ class RollQuery(Schema):
                 raise fail(
                     "invalid",
                     "roll",
-                    f"The window {quoted(text)} isn't a number of days from {rolling.MIN_DAYS} to {rolling.MAX_DAYS}. "
-                    "Give one or more lengths in days, separated by commas, such as 'roll=7,14,28'.",
+                    f"The window {quoted(text)} isn't a number of days from {rolling.MIN_DAYS} to {rolling.MAX_DAYS}. Give one or more lengths in days, separated by commas, such as 'roll=7,14,28'.",
                 )
             found.append(n)
         if len(set(found)) < len(found):
@@ -362,8 +352,7 @@ def resolve_biofix(text: str | dt.date | None, reference: dt.date, param: str = 
             return found if found <= reference else found.replace(year=reference.year - 1)
     raise ApiError(
         "invalid",
-        f"The value of {quoted(param)} ({quoted(text)}) isn't a date. Give a date as YYYY-MM-DD ('2026-04-15'), or a "
-        "month and day as MM-DD ('04-15') for the latest one on or before the end date.",
+        f"The value of {quoted(param)} ({quoted(text)}) isn't a date. Give a date as YYYY-MM-DD ('2026-04-15'), or a month and day as MM-DD ('04-15') for the latest one on or before the end date.",
         param,
     )
 
@@ -404,8 +393,7 @@ def parse_hour(value: str | int | float, param: str) -> dt.datetime:
     if found.minute or found.second or found.microsecond:
         raise ApiError(
             "invalid",
-            f"The value of {quoted(param)} ('{found:%Y-%m-%dT%H:%M:%S}Z') isn't on the hour. Give a whole hour, such "
-            "as '2025-07-08T15:00Z'.",
+            f"The value of {quoted(param)} ('{found:%Y-%m-%dT%H:%M:%S}Z') isn't on the hour. Give a whole hour, such as '2025-07-08T15:00Z'.",
             param,
         )
     return found
@@ -434,8 +422,7 @@ class HoursQuery(Schema):
             raise fail(
                 "out_of_order",
                 "start",
-                f"The start time ({hour_text(self.start)}) is after the end time "
-                f"({hour_text(self.end)}). Choose a start on or before the end.",
+                f"The start time ({hour_text(self.start)}) is after the end time ({hour_text(self.end)}). Choose a start on or before the end.",
             )
         return self
 
@@ -444,8 +431,7 @@ class HoursQuery(Schema):
         if first > last:
             raise ApiError(
                 "out_of_order",
-                f"The start time ({hour_text(first)}) is after the end time ({hour_text(last)}). "
-                "Choose a start on or before the end.",
+                f"The start time ({hour_text(first)}) is after the end time ({hour_text(last)}). Choose a start on or before the end.",
                 "start",
             )
         return first, last
@@ -487,8 +473,7 @@ def temperature_threshold(value: float, units: str, bracket: Bracket, param: str
     if not lowest <= value <= highest:
         raise ApiError(
             "out_of_range",
-            f"{bracket.what.capitalize()} of {value:g} {label} can never be reached: the air temperatures we store "
-            f"run from {lowest:g} to {highest:g} {label}. Choose a value in that range.",
+            f"{bracket.what.capitalize()} of {value:g} {label} can never be reached: the air temperatures we store run from {lowest:g} to {highest:g} {label}. Choose a value in that range.",
             param,
         )
     # In °C, kept to 0.1 °F (0.06 °C), the stored thresholds' step: 7.22 °C is 45 °F's stored totals, not 44.996's
@@ -497,15 +482,13 @@ def temperature_threshold(value: float, units: str, bracket: Bracket, param: str
     lo, hi = bracket.usual_f
     if units == "metric" and value > LOOKS_LIKE_F_IN_C[bracket]:
         warnings.append(
-            f"With 'units=metric', {bracket.what} of {value:g} is read as {value:g} °C ({value_f:g} °F). If you meant "
-            f"{value:g} °F, leave out 'units=metric' or give {quoted(f'{in_c:.1f}')}."
+            f"With 'units=metric', {bracket.what} of {value:g} is read as {value:g} °C ({value_f:g} °F). If you meant {value:g} °F, leave out 'units=metric' or give {quoted(f'{in_c:.1f}')}."
         )
     elif not lo <= value_f <= hi:
         hint = " If you meant °C, add 'units=metric'." if units != "metric" and value_f < lo else ""
         usual = f"{convert(lo, 'degF', unit):g}–{convert(hi, 'degF', unit):g} {label}"
         warnings.append(
-            f"{bracket.what.capitalize()} of {value:g} {label} is outside the usual range of {usual}, so check that "
-            f"it's the value you meant.{hint}"
+            f"{bracket.what.capitalize()} of {value:g} {label} is outside the usual range of {usual}, so check that it's the value you meant.{hint}"
         )
     return value_f
 
@@ -527,8 +510,7 @@ def degree_day_settings(raw: str | None, units: str, warnings: list[str], param:
     if raw is None or not raw.strip():
         raise ApiError(
             "missing",
-            "Give a degree-day setting as 'dd=method_base_upper' (such as 'sine_50_86', 'modified_40' or "
-            "'average_43'), or as 'base' with an optional 'upper' and 'method'.",
+            "Give a degree-day setting as 'dd=method_base_upper' (such as 'sine_50_86', 'modified_40' or 'average_43'), or as 'base' with an optional 'upper' and 'method'.",
             param,
         )
     found: list[DegreeDaySetting] = []
@@ -537,8 +519,7 @@ def degree_day_settings(raw: str | None, units: str, warnings: list[str], param:
         if parts[0] not in METHODS or len(parts) not in (2, 3):
             raise ApiError(
                 "invalid",
-                f"The degree-day setting {quoted(text)} isn't in the form 'method_base_upper'. Give a method ('sine', "
-                "'average' or 'modified') and a base, with an optional upper threshold, such as 'sine_50_86'.",
+                f"The degree-day setting {quoted(text)} isn't in the form 'method_base_upper'. Give a method ('sine', 'average' or 'modified') and a base, with an optional upper threshold, such as 'sine_50_86'.",
                 param,
             )
         try:
@@ -546,8 +527,7 @@ def degree_day_settings(raw: str | None, units: str, warnings: list[str], param:
         except ValueError:
             raise ApiError(
                 "invalid",
-                f"In the degree-day setting {quoted(text)}, the base and upper threshold must be numbers, such as "
-                "'sine_50_86' or 'sine_39p2_86' (p for a decimal point).",
+                f"In the degree-day setting {quoted(text)}, the base and upper threshold must be numbers, such as 'sine_50_86' or 'sine_39p2_86' (p for a decimal point).",
                 param,
             ) from None
         found.append(setting(parts[0], numbers[0], numbers[1] if len(numbers) > 1 else None, units, warnings, param))
@@ -562,8 +542,7 @@ def setting(
     if method not in METHODS:
         raise ApiError(
             "invalid",
-            f"We don't compute degree days by a method called {quoted(method)}. Choose 'sine', 'average' or "
-            "'modified'.",
+            f"We don't compute degree days by a method called {quoted(method)}. Choose 'sine', 'average' or 'modified'.",
             "method",
         )
     base_f = temperature_threshold(base, units, DD_BASE, param, warnings)
@@ -571,8 +550,7 @@ def setting(
     if upper is not None and upper <= base:
         raise ApiError(
             "invalid",
-            f"The upper threshold ({upper:g}) must be above the base ({base:g}). Give a higher "
-            "upper threshold, or leave it out.",
+            f"The upper threshold ({upper:g}) must be above the base ({base:g}). Give a higher upper threshold, or leave it out.",
             param,
         )
     name = f"{method}_{_number(base)}" + (f"_{_number(upper)}" if upper is not None else "")

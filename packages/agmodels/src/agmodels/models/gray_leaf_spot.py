@@ -30,8 +30,7 @@ SPEC = ModelSpec(
     group="disease",
     version="0.1",
     status="stable",
-    summary="The probability of gray leaf spot spores being present, from three weeks of minimum temperature "
-    "and a month of minimum dew point; corn is susceptible from V10 to R3.",
+    summary="The probability of gray leaf spot spores being present, from three weeks of minimum temperature and a month of minimum dew point; corn is susceptible from V10 to R3.",
     topics=("gray-leaf-spot",),
     crops=("Corn",),
     citations=(

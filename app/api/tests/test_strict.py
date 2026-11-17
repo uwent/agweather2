@@ -47,8 +47,7 @@ def test_every_endpoint_refuses_a_parameter_it_doesnt_take_and_lists_those_it_do
         {
             "code": "unknown_parameter",
             "param": "not_a_parameter",
-            "message": "This request doesn't take a parameter named 'not_a_parameter'. 'meta.params' lists the "
-            "parameters it takes.",
+            "message": "This request doesn't take a parameter named 'not_a_parameter'. 'meta.params' lists the parameters it takes.",
         }
     ]
     # Every parameter the docs list, in their order (then what the endpoint reads itself: tar spot's crop options)

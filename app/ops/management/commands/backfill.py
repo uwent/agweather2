@@ -8,13 +8,7 @@ from ops.management.base import ReportingCommand, check_range, parse_day, positi
 
 
 class Command(ReportingCommand):
-    help = (
-        "Fill the hourly archive for a date range from URMA/RTMA/HRRR, then roll up the local days it finished and "
-        "the running totals. Resumable: it fetches only hours without an analysis, precip or shortwave (or RTMA's "
-        "where URMA is now out), and rolls up days the daily store hasn't got. Downloads the next block while it "
-        "writes this one, holding the write lock only to write, and politely (the worker's jobs go first). A first "
-        "stop (SIGTERM, Ctrl-C, `archive stop`) ends it after the block in hand. For whole years, `archive fill`."
-    )
+    help = "Fill the hourly archive for a date range from URMA/RTMA/HRRR, then roll up the local days it finished and the running totals. Resumable: it fetches only hours without an analysis, precip or shortwave (or RTMA's where URMA is now out), and rolls up days the daily store hasn't got. Downloads the next block while it writes this one, holding the write lock only to write, and politely (the worker's jobs go first). A first stop (SIGTERM, Ctrl-C, `archive stop`) ends it after the block in hand. For whole years, `archive fill`."
     stoppable = True
 
     def add_arguments(self, parser):
@@ -38,9 +32,7 @@ class Command(ReportingCommand):
                 data_dir, window, utc_midnight(first), utc_midnight(end), block_days, redo=options["redo"]
             )
         self.report.step(
-            f"Backfill {first} to {end - timedelta(days=1)}: {the_plan.hours} hours to fetch in "
-            f"{len(the_plan.stale)} of {len(the_plan.blocks)} blocks of {block_days} days, {workers} at a time; "
-            f"window {window}, into {data_dir} (pid {os.getpid()})"
+            f"Backfill {first} to {end - timedelta(days=1)}: {the_plan.hours} hours to fetch in {len(the_plan.stale)} of {len(the_plan.blocks)} blocks of {block_days} days, {workers} at a time; window {window}, into {data_dir} (pid {os.getpid()})"
         )
         result = backfill.run(
             data_dir=data_dir,
@@ -55,7 +47,6 @@ class Command(ReportingCommand):
         )
         if not result.stopped:
             self.report.step(
-                f"The last local day ({end - timedelta(days=1)}) is rolled up once the hours after it are in "
-                "(the hourly job, or `manage.py rollup`)"
+                f"The last local day ({end - timedelta(days=1)}) is rolled up once the hours after it are in (the hourly job, or `manage.py rollup`)"
             )
         self.finish(f"{result.fetched} hours fetched, {result.failed} failed")

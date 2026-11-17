@@ -59,8 +59,7 @@ SPEC = ModelSpec(
     group="agronomic",
     version="0.1",
     status="beta",
-    summary="For each possible planting date, the probability that the emerged cotton stand falls below a "
-    "yield-limiting population, from the rain over the next 3 days and the minimum temperatures over the next 9.",
+    summary="For each possible planting date, the probability that the emerged cotton stand falls below a yield-limiting population, from the rain over the next 3 days and the minimum temperatures over the next 9.",
     topics=("cotton-stand-establishment",),
     crops=("Cotton",),
     citations=(
@@ -68,13 +67,11 @@ SPEC = ModelSpec(
             text="Zachary Noel (Auburn University), with funding from Cotton Incorporated, as in the Crop Risk Tool."
         ),
         Citation(
-            text="Adams, C., Thapa, S. and Kimura, E. (2019). Determination of a plant population density threshold "
-            "for optimizing cotton lint yield: a synthesis. Field Crops Research 230, 11–16.",
+            text="Adams, C., Thapa, S. and Kimura, E. (2019). Determination of a plant population density threshold for optimizing cotton lint yield: a synthesis. Field Crops Research 230, 11–16.",
             doi="10.1016/j.fcr.2018.10.005",
         ),
         Citation(
-            text="Rothrock, C. S., Winters, S. A., Miller, P. K., et al. (2012). Importance of fungicide seed "
-            "treatment and environment on seedling diseases of cotton. Plant Disease 96, 1805–1817.",
+            text="Rothrock, C. S., Winters, S. A., Miller, P. K., et al. (2012). Importance of fungicide seed treatment and environment on seedling diseases of cotton. Plant Disease 96, 1805–1817.",
             doi="10.1094/PDIS-01-12-0031-SR",
         ),
     ),

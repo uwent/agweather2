@@ -107,8 +107,7 @@ _ALL = [
             valid_min=-20,
             valid_max=1280,
             derived=True,
-            notes="Daily precipitation minus daily grass reference evapotranspiration (FAO-56). Positive where "
-            "rain was more than a well-watered grass would use, negative where it was less.",
+            notes="Daily precipitation minus daily grass reference evapotranspiration (FAO-56). Positive where rain was more than a well-watered grass would use, negative where it was less.",
         ),
         axis="day",
         inputs=("precipitation_sum", "et0_sum"),
@@ -124,8 +123,7 @@ _ALL = [
             valid_min=-80,
             valid_max=140,
             derived=True,
-            notes="The National Research Council's (1971) temperature humidity index, from air temperature and "
-            "relative humidity. Dairy cattle's milk yield begins to fall at 68; 72 is commonly taken as heat stress.",
+            notes="The National Research Council's (1971) temperature humidity index, from air temperature and relative humidity. Dairy cattle's milk yield begins to fall at 68; 72 is commonly taken as heat stress.",
         ),
         axis="hour",
         inputs=("air_temperature", "relative_humidity"),
@@ -140,8 +138,7 @@ _ALL = [
             valid_min=-80,
             valid_max=90,
             derived=True,
-            notes="Mader, Johnson and Gaughan's (2010) comprehensive climate index: air temperature adjusted for "
-            "humidity, wind (taken from 10 m to 2 m) and solar radiation, as an apparent temperature.",
+            notes="Mader, Johnson and Gaughan's (2010) comprehensive climate index: air temperature adjusted for humidity, wind (taken from 10 m to 2 m) and solar radiation, as an apparent temperature.",
         ),
         axis="hour",
         inputs=("air_temperature", "relative_humidity", "wind_speed", "shortwave_radiation"),

@@ -29,8 +29,7 @@ SPEC = ModelSpec(
     group="disease",
     version="0.1",
     status="beta",
-    summary="Hours warm (70 °F or more) and humid (RH 90% or more) since March 1 or the last fungicide spray, "
-    "against the spray thresholds for highly, moderately and low susceptible pecan varieties.",
+    summary="Hours warm (70 °F or more) and humid (RH 90% or more) since March 1 or the last fungicide spray, against the spray thresholds for highly, moderately and low susceptible pecan varieties.",
     topics=("pecan-scab",),
     crops=("Pecan",),
     citations=(
@@ -55,10 +54,7 @@ SPEC = ModelSpec(
     ),
     risk=Risk(
         levels=("Low", "Moderate", "High", "Very high"),
-        criteria="Scab hours since March 1 or the last spray: Low below 10, Moderate from 10 (spray highly susceptible "
-        "varieties such as Desirable, Pawnee and Wichita), High from 20 (moderately susceptible, such as Caddo, "
-        "Kiowa and Stuart), Very high from 30 (low susceptibility, such as Excel, Kanza and Lakota). The Mesonet also "
-        "waits 30 days after March 1, or 5 to 14 days after the last spray.",
+        criteria="Scab hours since March 1 or the last spray: Low below 10, Moderate from 10 (spray highly susceptible varieties such as Desirable, Pawnee and Wichita), High from 20 (moderately susceptible, such as Caddo, Kiowa and Stuart), Very high from 30 (low susceptibility, such as Excel, Kanza and Lakota). The Mesonet also waits 30 days after March 1, or 5 to 14 days after the last spray.",
     ),
     explorer=(
         ExplorerInput(

@@ -88,9 +88,7 @@ def parse_bounds(
         if low > high:
             raise ApiError(
                 "out_of_order",
-                f"In {quoted(f'{param}={text}')}, the lower bound ({_number(low)}) is above the upper one "
-                f"({_number(high)}). Give the lower bound first, such as "
-                f"{quoted(f'{prefix}between_{_number(high)}_{_number(low)}')}.",
+                f"In {quoted(f'{param}={text}')}, the lower bound ({_number(low)}) is above the upper one ({_number(high)}). Give the lower bound first, such as {quoted(f'{prefix}between_{_number(high)}_{_number(low)}')}.",
                 param,
             )
         return low, high
@@ -108,8 +106,7 @@ def check_axis(found: Count, time_axis: str, what: str, param: str = "count", pr
         example = found.name.replace(found.axis, wanted, 1)
         raise ApiError(
             "invalid",
-            f"{what} has a value for each {time_axis}, so it counts {wanted}, not {found.axis}. "
-            f"Give {quoted(f'{param}={prefix}{example}')}.",
+            f"{what} has a value for each {time_axis}, so it counts {wanted}, not {found.axis}. Give {quoted(f'{param}={prefix}{example}')}.",
             param,
         )
 

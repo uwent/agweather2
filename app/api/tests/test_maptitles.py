@@ -116,8 +116,7 @@ def test_the_caption_gives_sources_the_forecast_and_the_days_estimated_or_missin
         extra={"missing_days": np.array([[1.0, 0.0, 7.0]]), "estimated_days": np.array([[0.0, 0.0, 0.0]])},
     )
     assert maptitles.caption(a, computed) == [
-        "Data sources: Precipitation from URMA/RTMA hourly grids; the National Blend of Models (NBM) forecast from "
-        "Nov 6, 2026.",
+        "Data sources: Precipitation from URMA/RTMA hourly grids; the National Blend of Models (NBM) forecast from Nov 6, 2026.",
         "At some locations, up to 1 day was missing.",
     ]
     computed.extra["estimated_days"] = np.array([[3.0, 0.0, 0.0]])

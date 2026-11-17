@@ -199,9 +199,7 @@ def main():
         )
         r = results[-1]
         report.step(
-            f"{layout:40} {total / 1e6:8.1f} MB  x{r['ratio_vs_int16']:4.1f}  write month {write_month:5.1f}s"
-            f"  write 1 h {write_hour:5.2f}s  point {r['read_point_month_ms']:6.1f} ms"
-            f"  hour {r['read_hour_window_ms']:6.1f} ms"
+            f"{layout:40} {total / 1e6:8.1f} MB  x{r['ratio_vs_int16']:4.1f}  write month {write_month:5.1f}s  write 1 h {write_hour:5.2f}s  point {r['read_point_month_ms']:6.1f} ms  hour {r['read_hour_window_ms']:6.1f} ms"
         )
 
     meta = {

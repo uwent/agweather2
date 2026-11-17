@@ -46,19 +46,16 @@ SPEC = ModelSpec(
     group="crop",
     version="0.1",
     status="beta",
-    summary="Growing degree days (base 41 °F, upper 86 °F) since spring or the last cutting, and when alfalfa is "
-    "ready to cut (900–1100 GDD).",
+    summary="Growing degree days (base 41 °F, upper 86 °F) since spring or the last cutting, and when alfalfa is ready to cut (900–1100 GDD).",
     topics=("alfalfa",),
     crops=("Alfalfa",),
     citations=(
         Citation(
-            text="Newell, S. Managing fall alfalfa cutting for persistence. UW–Madison Extension Crops and Soils "
-            "(written with the UW alfalfa cutting tool, whose 900–1100 GDD cutting window this follows).",
+            text="Newell, S. Managing fall alfalfa cutting for persistence. UW–Madison Extension Crops and Soils (written with the UW alfalfa cutting tool, whose 900–1100 GDD cutting window this follows).",
             url="https://cropsandsoils.extension.wisc.edu/articles/managing-fall-alfalfa-cutting-for-persistence/",
         ),
         Citation(
-            text="Iowa State University Extension: Should I take a late fall alfalfa cutting? (the 900 and 360 GDD "
-            "rule).",
+            text="Iowa State University Extension: Should I take a late fall alfalfa cutting? (the 900 and 360 GDD rule).",
             url="https://crops.extension.iastate.edu/post/should-i-take-late-fall-alfalfa-cutting-it-too-late-or-warm",
         ),
         Citation(

@@ -246,8 +246,7 @@ def section(label, days, stations, observed, archive, gridmet) -> list[str]:
             per.append((ra, f"| {s['name']} ({s['id']}) | {n:,} | {ra:.2f} | {rg:.2f} | {ng:,} |"))
     ratios = np.array([p[0] for p in per])
     spread = (
-        f" Across stations, the archive's ratio runs {np.percentile(ratios, 10):.2f} (P10), "
-        f"{np.percentile(ratios, 50):.2f} (median), {np.percentile(ratios, 90):.2f} (P90)."
+        f" Across stations, the archive's ratio runs {np.percentile(ratios, 10):.2f} (P10), {np.percentile(ratios, 50):.2f} (median), {np.percentile(ratios, 90):.2f} (P90)."
         if ratios.size
         else ""
     )
@@ -268,15 +267,7 @@ def build_report(args, days, networks, sections) -> str:
     lines = [
         "# Wind against anemometers",
         "",
-        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_wind.py` (PLAN.md Phase 6 D3 (a), D84). Daily "
-        f"mean wind speed, {days[0]} to {days[-1]}, at the stations in the `{args.box}` box: the archive (URMA's "
-        "hourly 10 m analysis, the mean of the CST day's hours) at the station's cell and gridMET (NLDAS-2, 10 m) "
-        "bilinear to the station, against the station's mean of the day. Wisconet's 3 m anemometers are brought to "
-        f"10 m by FAO-56's log profile (× {TO_10M:.3f}); airport anemometers are at about 10 m. URMA assimilates the "
-        "airport stations, and Wisconet's reach MADIS (78 of 81 have MADIS ids), so the archive may have seen "
-        "either. Days are each network's own (Wisconet's and "
-        "IEM's local days; the archive's CST days; gridMET's day runs into our next morning, D2), which matters "
-        "little for a day's mean wind.",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_wind.py` (PLAN.md Phase 6 D3 (a), D84). Daily mean wind speed, {days[0]} to {days[-1]}, at the stations in the `{args.box}` box: the archive (URMA's hourly 10 m analysis, the mean of the CST day's hours) at the station's cell and gridMET (NLDAS-2, 10 m) bilinear to the station, against the station's mean of the day. Wisconet's 3 m anemometers are brought to 10 m by FAO-56's log profile (× {TO_10M:.3f}); airport anemometers are at about 10 m. URMA assimilates the airport stations, and Wisconet's reach MADIS (78 of 81 have MADIS ids), so the archive may have seen either. Days are each network's own (Wisconet's and IEM's local days; the archive's CST days; gridMET's day runs into our next morning, D2), which matters little for a day's mean wind.",
         "",
     ]
     for section_lines in sections:

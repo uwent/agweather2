@@ -65,8 +65,7 @@ def _layer_query(when: str, q: TileQuery) -> LayerQuery:
     if q.roll is not None and RANGE.match(when) is not None:
         raise ApiError(
             "conflict",
-            "'roll' sets the days from one date, so the time can't be a range. Give one day, such as '2025-07-08', "
-            "with 'roll'.",
+            "'roll' sets the days from one date, so the time can't be a range. Give one day, such as '2025-07-08', with 'roll'.",
             "roll",
         )
     event = q.first is not None or q.last is not None or q.since is not None
@@ -78,8 +77,7 @@ def _layer_query(when: str, q: TileQuery) -> LayerQuery:
         if q.stat is None and q.count is None and not event:
             raise ApiError(
                 "invalid",
-                "A tile shows one map, so a range of days needs 'stat' to combine them ('sum', 'mean', 'min' or "
-                "'max'), or 'count' to count days.",
+                "A tile shows one map, so a range of days needs 'stat' to combine them ('sum', 'mean', 'min' or 'max'), or 'count' to count days.",
                 "stat",
             )
         fields |= {"start": span.group(1), "end": span.group(2)}

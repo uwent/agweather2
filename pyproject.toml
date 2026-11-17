@@ -40,6 +40,9 @@ extend-exclude = ["tmp", "data", "node_modules"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "DTZ", "RUF"]
+# The formatter keeps code to line-length; a string or comment stays on one line, wrapped by the editor (Ben,
+# 2026-11-17), so prose is edited without reflowing
+ignore = ["E501"]
 # Scientific notation in docstrings and comments (FAO-56's symbols, ranges, minus signs)
 allowed-confusables = ["–", "−", "×", "γ", "σ", "α"]
 

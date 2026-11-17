@@ -46,8 +46,7 @@ SPEC = ModelSpec(
     crops=(),
     citations=(
         Citation(
-            text="Baskerville, G. L. and Emin, P. (1969). Rapid estimation of heat accumulation from maximum and "
-            "minimum temperatures. Ecology 50, 514–517.",
+            text="Baskerville, G. L. and Emin, P. (1969). Rapid estimation of heat accumulation from maximum and minimum temperatures. Ecology 50, 514–517.",
             doi="10.2307/1933912",
         ),
     ),

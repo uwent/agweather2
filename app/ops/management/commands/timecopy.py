@@ -6,12 +6,7 @@ from ops.management.base import ReportingCommand
 
 
 class Command(ReportingCommand):
-    help = (
-        "Copy each year's daily minimum and maximum temperature into the copy laid out for reading a season over the "
-        "map (agdata.timecopy; the custom degree-day map): the days the daily store has written since the copy last "
-        "copied them. The archive's rollups keep it current; this fills the years rolled up before it existed. "
-        "Takes the write lock a year at a time."
-    )
+    help = "Copy each year's daily minimum and maximum temperature into the copy laid out for reading a season over the map (agdata.timecopy; the custom degree-day map): the days the daily store has written since the copy last copied them. The archive's rollups keep it current; this fills the years rolled up before it existed. Takes the write lock a year at a time."
     stoppable = True
 
     def add_arguments(self, parser):

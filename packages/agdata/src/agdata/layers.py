@@ -211,8 +211,7 @@ def _layers() -> list[Layer]:
             step=DD_STEP,
             use="degree_days",
             stats=SUM_STATS,
-            description="Each day's degree days for `dd=method_base[_upper]` (sine, average or modified), from the "
-            "day's minimum and maximum temperature; `stat=sum` over start..end is the running total from start",
+            description="Each day's degree days for `dd=method_base[_upper]` (sine, average or modified), from the day's minimum and maximum temperature; `stat=sum` over start..end is the running total from start",
             climate=("normal", "departure", "percentile"),
         )
     )
@@ -266,8 +265,7 @@ def _climate_layers() -> list[Layer]:
             step=0.1,
             use="chance",
             stats=(),
-            description="The share of the period's years with a freeze (a minimum at or below `threshold`) after the "
-            "date (January–June) or on or before it (July–December)",
+            description="The share of the period's years with a freeze (a minimum at or below `threshold`) after the date (January–June) or on or before it (July–December)",
             threshold=True,
         ),
         Layer(
@@ -281,8 +279,7 @@ def _climate_layers() -> list[Layer]:
             step=1,
             use="date",
             stats=(),
-            description="The last spring and first fall freeze (a minimum at or below `threshold`) by the share of "
-            "the period's years, and the frost-free season's median length",
+            description="The last spring and first fall freeze (a minimum at or below `threshold`) by the share of the period's years, and the frost-free season's median length",
             outputs=dates,
             threshold=True,
         ),
@@ -297,8 +294,7 @@ def _climate_layers() -> list[Layer]:
             step=0.1,
             use="elevation",
             stats=(),
-            description="Each grid cell's elevation from the National Elevation Dataset (30 m, in NHDPlus V2): its "
-            "mean, lowest, highest, or spread",
+            description="Each grid cell's elevation from the National Elevation Dataset (30 m, in NHDPlus V2): its mean, lowest, highest, or spread",
             outputs=tuple(
                 LayerOutput(name=name, label=label, unit="m", step=0.1, use="elevation")
                 for name, label, _ in ELEVATION_OUTPUTS

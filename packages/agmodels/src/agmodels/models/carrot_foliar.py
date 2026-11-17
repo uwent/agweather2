@@ -40,19 +40,16 @@ SPEC = ModelSpec(
     group="disease",
     version="0.4",
     status="stable",
-    summary="Daily disease severity values (0–4) from hours of leaf wetness and their temperature; the last "
-    "7 days' total times fungicide sprays for Alternaria and Cercospora leaf blights of carrot.",
+    summary="Daily disease severity values (0–4) from hours of leaf wetness and their temperature; the last 7 days' total times fungicide sprays for Alternaria and Cercospora leaf blights of carrot.",
     topics=("carrot-alternaria-leaf-blight", "carrot-cercospora-leaf-blight"),
     crops=("Carrot",),
     citations=(
         Citation(
-            text="Pitblado, R. E. (1992). TOM-CAST: a weather-timed fungicide spray program for field tomatoes. "
-            "Ridgetown College of Agricultural Technology, Ontario.",
+            text="Pitblado, R. E. (1992). TOM-CAST: a weather-timed fungicide spray program for field tomatoes. Ridgetown College of Agricultural Technology, Ontario.",
             url="https://atrium.lib.uoguelph.ca/server/api/core/bitstreams/5c7ec712-43ef-4b73-b8b8-e85c29d3d58b/content",
         ),
         Citation(
-            text="Madden, L., Pennypacker, S. P. and MacNab, A. A. (1978). FAST, a forecast system for Alternaria "
-            "solani on tomato. Phytopathology 68, 1354–1358.",
+            text="Madden, L., Pennypacker, S. P. and MacNab, A. A. (1978). FAST, a forecast system for Alternaria solani on tomato. Phytopathology 68, 1354–1358.",
             url="https://www.apsnet.org/publications/phytopathology/backissues/Documents/1978Articles/Phyto68n09_1354.PDF",
             doi="10.1094/Phyto-68-1354",
         ),
@@ -77,8 +74,7 @@ SPEC = ModelSpec(
     ),
     risk=Risk(
         levels=SEVERITY_LEVELS,
-        criteria="The last 7 days' DSVs: Very low below 5, Low from 5, Moderate from 10, High from 15, Very high "
-        "from 20.",
+        criteria="The last 7 days' DSVs: Very low below 5, Low from 5, Moderate from 10, High from 15, Very high from 20.",
     ),
     explorer=(
         ExplorerInput(
@@ -106,26 +102,22 @@ SPEC = ModelSpec(
         Change(
             version="0.1",
             date="2026-10-28",
-            note="Ported from the Crop Risk Tool; humid hours and their temperature from "
-            "the same window (the day from 8 pm).",
+            note="Ported from the Crop Risk Tool; humid hours and their temperature from the same window (the day from 8 pm).",
         ),
         Change(
             version="0.2",
             date="2026-10-28",
-            note="FAST's table (Madden et al. 1978): the first step at 13–17 °C from 7 h and at 18–20 °C from 4 h, and "
-            "18, 21 and 26 °C in the band above.",
+            note="FAST's table (Madden et al. 1978): the first step at 13–17 °C from 7 h and at 18–20 °C from 4 h, and 18, 21 and 26 °C in the band above.",
         ),
         Change(
             version="0.3",
             date="2026-11-03",
-            note="DSV totals (season and 7-day) count from the biofix, as the risk does "
-            "(were from the first day read).",
+            note="DSV totals (season and 7-day) count from the biofix, as the risk does (were from the first day read).",
         ),
         Change(
             version="0.4",
             date="2026-11-06",
-            note="Humid hours and their temperature from the day from 6 pm CST (was 8 pm local, the Crop Risk "
-            "Tool's), and days on CST all year (D74).",
+            note="Humid hours and their temperature from the day from 6 pm CST (was 8 pm local, the Crop Risk Tool's), and days on CST all year (D74).",
         ),
     ),
 )

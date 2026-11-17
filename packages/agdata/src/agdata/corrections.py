@@ -69,10 +69,7 @@ class Correction:
 HRRR_SHORTWAVE = Correction(
     id="hrrr-shortwave",
     title="Solar radiation in the archive",
-    summary="The HRRR model's solar radiation reads about 18% high against pyranometers on the ground. We correct "
-    "each hour by a factor that depends on how clear the hour was (HRRR's radiation as a share of the radiation on a "
-    "clear day), fitted against 80 Wisconet pyranometers in 2025 and tested on 2026. Reference evapotranspiration and "
-    "daily totals are computed from the corrected values, and we keep HRRR's own values too.",
+    summary="The HRRR model's solar radiation reads about 18% high against pyranometers on the ground. We correct each hour by a factor that depends on how clear the hour was (HRRR's radiation as a share of the radiation on a clear day), fitted against 80 Wisconet pyranometers in 2025 and tested on 2026. Reference evapotranspiration and daily totals are computed from the corrected values, and we keep HRRR's own values too.",
     variables=("shortwave_radiation",),
     scores=(
         Score(
@@ -104,10 +101,7 @@ HRRR_SHORTWAVE = Correction(
 NBM_SHORTWAVE = Correction(
     id="nbm-shortwave",
     title="Solar radiation in the forecast",
-    summary="The National Blend of Models (NBM) forecasts too little solar radiation on days it expects to be very "
-    "cloudy and too much on days it expects to be clear, more so the further ahead the day is, and about 11% too "
-    "much overall. We correct each forecast hour by a factor that depends on how far ahead the day is and how clear "
-    "NBM expects it to be, fitted against the archive's corrected radiation for 73 forecasts made in 2025.",
+    summary="The National Blend of Models (NBM) forecasts too little solar radiation on days it expects to be very cloudy and too much on days it expects to be clear, more so the further ahead the day is, and about 11% too much overall. We correct each forecast hour by a factor that depends on how far ahead the day is and how clear NBM expects it to be, fitted against the archive's corrected radiation for 73 forecasts made in 2025.",
     variables=("shortwave_radiation",),
     scores=(
         Score(
@@ -139,9 +133,7 @@ NBM_SHORTWAVE = Correction(
 NBM_MAX = Correction(
     id="nbm-max",
     title="Daily highs in the forecast",
-    summary="NBM's hourly temperatures and its own forecast of the day's high don't always agree. We reshape each "
-    "day's warm hours to reach NBM's forecast high, less a small seasonal offset (−0.4 to +0.6 °C) fitted against "
-    "the archive's daily highs in 2025.",
+    summary="NBM's hourly temperatures and its own forecast of the day's high don't always agree. We reshape each day's warm hours to reach NBM's forecast high, less a small seasonal offset (−0.4 to +0.6 °C) fitted against the archive's daily highs in 2025.",
     variables=("air_temperature",),
     scores=(
         Score(
@@ -166,9 +158,7 @@ NBM_MAX = Correction(
 NBM_NIGHT_MIN = Correction(
     id="nbm-night-min",
     title="Overnight lows in the forecast",
-    summary="NBM's hourly temperatures run warm at night, by about 0.5 °C on the first night and up to 1.9 °C a "
-    "week or more ahead. We lower each night's coldest hours (6 p.m. to 6 a.m. CST) by that warm bias for how far "
-    "ahead the night is, fitted against the archive's daily lows in 2025.",
+    summary="NBM's hourly temperatures run warm at night, by about 0.5 °C on the first night and up to 1.9 °C a week or more ahead. We lower each night's coldest hours (6 p.m. to 6 a.m. CST) by that warm bias for how far ahead the night is, fitted against the archive's daily lows in 2025.",
     variables=("air_temperature",),
     scores=(
         Score(
@@ -200,9 +190,7 @@ NBM_NIGHT_MIN = Correction(
 NBM_RH = Correction(
     id="nbm-rh",
     title="Humidity in the forecast",
-    summary="NBM forecasts fewer humid hours than the archive records. We map each forecast hour's relative humidity "
-    "onto the archive's, by season, hour of the day and how far ahead it is, and compute the dew point from it, "
-    "keeping the temperature. Disease models that count humid hours read the result.",
+    summary="NBM forecasts fewer humid hours than the archive records. We map each forecast hour's relative humidity onto the archive's, by season, hour of the day and how far ahead it is, and compute the dew point from it, keeping the temperature. Disease models that count humid hours read the result.",
     variables=("dew_point", "relative_humidity"),
     scores=(
         Score(
@@ -234,10 +222,7 @@ NBM_RH = Correction(
 OPENMETEO_SHORTWAVE = Correction(
     id="openmeteo-shortwave",
     title="Solar radiation outside our area",
-    summary="For locations outside the area our maps cover, and for dates before our archive, we read weather from "
-    "Open-Meteo. Its solar radiation reads high against pyranometers, so we correct it the way we correct the "
-    "archive's, by how clear each hour was, fitted against 80 Wisconet pyranometers. The fit is from Wisconsin, and "
-    "we apply it everywhere until we can check it against stations elsewhere.",
+    summary="For locations outside the area our maps cover, and for dates before our archive, we read weather from Open-Meteo. Its solar radiation reads high against pyranometers, so we correct it the way we correct the archive's, by how clear each hour was, fitted against 80 Wisconet pyranometers. The fit is from Wisconsin, and we apply it everywhere until we can check it against stations elsewhere.",
     variables=("shortwave_radiation",),
     scores=(
         Score(
@@ -260,9 +245,7 @@ OPENMETEO_SHORTWAVE = Correction(
     variable="shortwave_radiation",
     method="Factor by the hour's clearness, as for HRRR",
     fitted_against="80 Wisconet pyranometers, hourly (2025–2026; each year tested on the other)",
-    applies_to="The historical-forecast and forecast endpoints, as hours are read from the cache; not ERA5 "
-    "(the archive endpoint, unchecked). Fitted in Wisconsin, applied everywhere until other mesonets are compared "
-    "(Phase 9)",
+    applies_to="The historical-forecast and forecast endpoints, as hours are read from the cache; not ERA5 (the archive endpoint, unchecked). Fitted in Wisconsin, applied everywhere until other mesonets are compared (Phase 9)",
     raw_kept="`Hours.raw` (the cache keeps Open-Meteo's values)",
     decision="D51",
     evidence="docs/validation-openmeteo.md",
@@ -271,10 +254,7 @@ OPENMETEO_SHORTWAVE = Correction(
 OPENMETEO_RH = Correction(
     id="openmeteo-rh",
     title="Humidity outside our area",
-    summary="Open-Meteo's humidity gives fewer humid hours than our archive and the stations. We map each hour's "
-    "relative humidity onto the archive's, by season and hour of the day, and compute the dew point from it, keeping "
-    "the temperature, so disease models outside our area read humidity like the archive's. It closes about half of "
-    "the gap; Open-Meteo's humidity also changes from year to year.",
+    summary="Open-Meteo's humidity gives fewer humid hours than our archive and the stations. We map each hour's relative humidity onto the archive's, by season and hour of the day, and compute the dew point from it, keeping the temperature, so disease models outside our area read humidity like the archive's. It closes about half of the gap; Open-Meteo's humidity also changes from year to year.",
     variables=("dew_point", "relative_humidity"),
     scores=(
         Score(
@@ -299,10 +279,7 @@ OPENMETEO_RH = Correction(
 GRIDDED_RH_90 = Correction(
     id="gridded-rh-90",
     title="Humid hours for disease models",
-    summary="Several disease models count hours with relative humidity at or above 90%, as measured at a field "
-    "weather station. Gridded humidity is an average over a 2.5 km cell, so it reaches 90% less often than a "
-    "station does. We count those hours at 88% instead, the threshold at which the archive has as many humid hours "
-    "as 80 Wisconet stations and as many as their leaf wetness sensors, May to September 2025 and 2026.",
+    summary="Several disease models count hours with relative humidity at or above 90%, as measured at a field weather station. Gridded humidity is an average over a 2.5 km cell, so it reaches 90% less often than a station does. We count those hours at 88% instead, the threshold at which the archive has as many humid hours as 80 Wisconet stations and as many as their leaf wetness sensors, May to September 2025 and 2026.",
     variables=(
         "hours_rh_over_90",
         "hours_rh_over_90_temperature_over_70f",
@@ -325,10 +302,7 @@ GRIDDED_RH_90 = Correction(
 IFS_SOIL_SEAM = Correction(
     id="ifs-soil-seam",
     title="Soil temperature on the newest days and in the forecast",
-    summary="Our soil temperatures come from ERA5-Land, which arrives about five days late. ECMWF's forecast model "
-    "(IFS) fills the days since and the forecast. The two differ, so we shift each cell's IFS values by the "
-    "difference between them at ERA5-Land's last hour, by less and less the further ahead the hour is. ERA5-Land "
-    "replaces these values when it arrives.",
+    summary="Our soil temperatures come from ERA5-Land, which arrives about five days late. ECMWF's forecast model (IFS) fills the days since and the forecast. The two differ, so we shift each cell's IFS values by the difference between them at ERA5-Land's last hour, by less and less the further ahead the hour is. ERA5-Land replaces these values when it arrives.",
     variables=("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm"),
     scores=(
         Score(
@@ -349,12 +323,9 @@ IFS_SOIL_SEAM = Correction(
     scored_version="1",
     source="ECMWF IFS (the archive's provisional hours and the forecast, in the box)",
     variable="soil_temperature_4cm, soil_temperature_10cm, soil_temperature_30cm",
-    method="Each cell shifted by ERA5-Land − IFS in ERA5-Land's last hour, times a weight by lead (1 at the seam, "
-    "fading to a lasting share)",
-    fitted_against="The archive (ERA5-Land) minus Open-Meteo's IFS at 80 Wisconet stations' cells (2025; tested on "
-    "2026)",
-    applies_to="IFS's hours after ERA5-Land's last (`ops.ifs`); replaced by ERA5-Land's as it arrives. Not points "
-    "outside the box, whose recent days and forecast are all IFS",
+    method="Each cell shifted by ERA5-Land − IFS in ERA5-Land's last hour, times a weight by lead (1 at the seam, fading to a lasting share)",
+    fitted_against="The archive (ERA5-Land) minus Open-Meteo's IFS at 80 Wisconet stations' cells (2025; tested on 2026)",
+    applies_to="IFS's hours after ERA5-Land's last (`ops.ifs`); replaced by ERA5-Land's as it arrives. Not points outside the box, whose recent days and forecast are all IFS",
     raw_kept="Each cell's offset in `ifs/latest.zarr` (raw = value − offset × weight)",
     decision="Q23",
     evidence="docs/validation-soil.md",
@@ -363,21 +334,11 @@ IFS_SOIL_SEAM = Correction(
 GRIDMET_BASIS = Correction(
     id="gridmet-basis",
     title="The earlier years of the 30-year normal",
-    summary="Our archive begins in 2016, so the 30-year normal takes its earlier years from gridMET, a gridded "
-    "daily weather dataset (Abatzoglou, 2013). The two differ: gridMET's daily highs, for one, run "
-    "about 0.7 °F warmer than the archive's over the years both cover. We adjust gridMET to the archive cell by "
-    "cell and day of the year, by the difference (temperature, humidity) or the ratio (precipitation, solar "
-    "radiation, wind, evapotranspiration) between them, so the normal's years are on one basis. We leave out "
-    "gridMET's daily highs and evapotranspiration for 2011–2013, which run 3–6 °F warm in summer against every "
-    "station we checked.",
+    summary="Our archive begins in 2016, so the 30-year normal takes its earlier years from gridMET, a gridded daily weather dataset (Abatzoglou, 2013). The two differ: gridMET's daily highs, for one, run about 0.7 °F warmer than the archive's over the years both cover. We adjust gridMET to the archive cell by cell and day of the year, by the difference (temperature, humidity) or the ratio (precipitation, solar radiation, wind, evapotranspiration) between them, so the normal's years are on one basis. We leave out gridMET's daily highs and evapotranspiration for 2011–2013, which run 3–6 °F warm in summer against every station we checked.",
     variables=tuple(climatestore.ADJUST),
     source="gridMET (the 30-year normal's years before the archive)",
     variable=", ".join(climatestore.ADJUST),
-    method="By cell and calendar day: the archive − gridMET difference added (temperatures, RH; RH kept to 0–100, "
-    "the minimum no higher than the maximum) or the ratio of their totals applied (precipitation, shortwave, wind, "
-    f"ET0; 0.5 to 2), each pooled over {climatestore.POOL_DAYS} days and averaged across {climatestore.SMOOTH} × "
-    f"{climatestore.SMOOTH} cells. The maximum and ET0 of 2011–2013 are left out as missing (3–6 °F warm in summer "
-    "against every station checked)",
+    method=f"By cell and calendar day: the archive − gridMET difference added (temperatures, RH; RH kept to 0–100, the minimum no higher than the maximum) or the ratio of their totals applied (precipitation, shortwave, wind, ET0; 0.5 to 2), each pooled over {climatestore.POOL_DAYS} days and averaged across {climatestore.SMOOTH} × {climatestore.SMOOTH} cells. The maximum and ET0 of 2011–2013 are left out as missing (3–6 °F warm in summer against every station checked)",
     fitted_against="The archive's daily values over the years both have (2016–2025 at first), cell by cell",
     applies_to="gridMET's years in the 30-year normal (`agdata.climatestore`); refitted by `manage.py climatology`",
     raw_kept="gridMET's files as received in `data/gridmet/` (the fit in `data/climate/gridmet-fit.zarr`)",
@@ -412,19 +373,15 @@ def markdown() -> str:
     rows = [
         "# Corrections to source data",
         "",
-        "Generated from `agdata.corrections` (`uv run python -m agdata.corrections > docs/corrections.md`); a test "
-        "checks it's current. Each table's version and fitted date come from its file.",
+        "Generated from `agdata.corrections` (`uv run python -m agdata.corrections > docs/corrections.md`); a test checks it's current. Each table's version and fitted date come from its file.",
         "",
-        "| Correction | Source | Variable | Method | Fitted against | Applies to | Raw kept | Version | Fitted "
-        "| Decision | Evidence |",
+        "| Correction | Source | Variable | Method | Fitted against | Applies to | Raw kept | Version | Fitted | Decision | Evidence |",
         "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for c in CORRECTIONS:
         table = f" (`{c.table.relative_to(c.table.parents[2])}`)" if c.table is not None else ""
         rows.append(
-            f"| `{c.id}`{table} | {c.source} | `{c.variable}` | {c.method} | {c.fitted_against} | {c.applies_to} "
-            f"| {c.raw_kept} | {c.current_version} | {c.fitted_on} | {c.decision} | [{Path(c.evidence).name}]"
-            f"({Path(c.evidence).name}) |"
+            f"| `{c.id}`{table} | {c.source} | `{c.variable}` | {c.method} | {c.fitted_against} | {c.applies_to} | {c.raw_kept} | {c.current_version} | {c.fitted_on} | {c.decision} | [{Path(c.evidence).name}]({Path(c.evidence).name}) |"
         )
     return "\n".join(rows) + "\n"
 

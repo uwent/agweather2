@@ -99,10 +99,7 @@ class ScaleAsked:
     text: str = ""  # as sent, for the ETag
 
 
-SCALE_HINT = (
-    "Give 'scale=default', 'scale=auto', the colors' range as low,high, such as 'scale=40,90', or low,middle,high "
-    "to put the palette's middle at a value, such as 'scale=0,32,100'. An end may be blank to take it from the map."
-)
+SCALE_HINT = "Give 'scale=default', 'scale=auto', the colors' range as low,high, such as 'scale=40,90', or low,middle,high to put the palette's middle at a value, such as 'scale=0,32,100'. An end may be blank to take it from the map."
 
 
 def parse_scale(text: str | None, stored: str, shown: str) -> ScaleAsked | None:
@@ -125,8 +122,7 @@ def parse_scale(text: str | None, stored: str, shown: str) -> ScaleAsked | None:
     if len(values) == 3 and middle is None:
         raise ApiError(
             "invalid",
-            f"{quoted(f'scale={text}')} has no middle value. Give one, such as 'scale=0,32,100', or leave out "
-            "the middle.",
+            f"{quoted(f'scale={text}')} has no middle value. Give one, such as 'scale=0,32,100', or leave out the middle.",
             "scale",
         )
     if low is None and high is None and middle is None:
@@ -381,9 +377,7 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
     if q.day_basis == "local":
         raise ApiError(
             "not_applicable",
-            "Maps and grids use the same days everywhere, midnight to midnight Central Standard Time, so that "
-            "neighboring cells cover the same hours. For a location's own days, ask for its weather or model at the "
-            "point with 'day_basis=local'.",
+            "Maps and grids use the same days everywhere, midnight to midnight Central Standard Time, so that neighboring cells cover the same hours. For a location's own days, ask for its weather or model at the point with 'day_basis=local'.",
             "day_basis",
         )
     warnings: list[str] = []
@@ -405,8 +399,7 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
     elif q.stat in events.KINDS:
         raise ApiError(
             "missing",
-            f"{quoted(f'stat={q.stat}')} needs {quoted(f'{q.stat}=')} to say which days to find, such as "
-            f"{quoted(f'{q.stat}=frost')} or {quoted(f'{q.stat}=above_50')}.",
+            f"{quoted(f'stat={q.stat}')} needs {quoted(f'{q.stat}=')} to say which days to find, such as {quoted(f'{q.stat}=frost')} or {quoted(f'{q.stat}=above_50')}.",
             q.stat,
         )
     first, last = span(found, q, observed)
@@ -420,8 +413,7 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
     elif q.count is not None:
         raise ApiError(
             "conflict",
-            f"'count' counts days or hours, so it can't go with {quoted(f'stat={stat}')}. Leave out 'stat', "
-            "or 'count'.",
+            f"'count' counts days or hours, so it can't go with {quoted(f'stat={stat}')}. Leave out 'stat', or 'count'.",
             "count",
         )
     elif stat is not None and stat not in found.stats:
@@ -440,8 +432,7 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         param = "output" if q.output is not None else "planting"
         raise ApiError(
             "invalid",
-            f"{quoted(param)} applies only to a model's map, and {layer_title(found)} isn't one. Leave out "
-            f"{quoted(param)}.",
+            f"{quoted(param)} applies only to a model's map, and {layer_title(found)} isn't one. Leave out {quoted(param)}.",
             param,
         )
     if model is not None and model.spec.seasonal is not None:
@@ -455,8 +446,7 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         if model.projected and model.season is None:
             raise ApiError(
                 "invalid",
-                f"{model.output.label} projects a season, and {day_text(first)} is between seasons. "
-                "Give a date within one.",
+                f"{model.output.label} projects a season, and {day_text(first)} is between seasons. Give a date within one.",
                 "output",
             )
     elif q.season is not None:
@@ -592,23 +582,20 @@ def _roll_range(layer: Layer, q: LayerQuery, observed: datetime) -> tuple[LayerQ
     if layer.time_axis != "day":
         raise ApiError(
             "invalid",
-            f"'roll' combines days, and {layer_title(layer)} is hourly. Choose a daily layer, or give 'start' and "
-            "'end' times with 'stat'.",
+            f"'roll' combines days, and {layer_title(layer)} is hourly. Choose a daily layer, or give 'start' and 'end' times with 'stat'.",
             "roll",
         )
     if layer.source == "cumulative":
         raise ApiError(
             "invalid",
-            f"{layer_title(layer)} is already a running total, so it takes no 'roll'. For the total over a window, "
-            "map the daily layer it adds up with 'roll' and 'stat=sum'.",
+            f"{layer_title(layer)} is already a running total, so it takes no 'roll'. For the total over a window, map the daily layer it adds up with 'roll' and 'stat=sum'.",
             "roll",
         )
     for name in ROLL_EXCLUDES:
         if getattr(q, name) is not None:
             raise ApiError(
                 "conflict",
-                f"'roll' sets the days from 'date', so it can't go with {quoted(name)}. Give 'date' and 'roll', as "
-                "'date=2026-06-19&roll=14', or 'start' and 'end' with 'stat'.",
+                f"'roll' sets the days from 'date', so it can't go with {quoted(name)}. Give 'date' and 'roll', as 'date=2026-06-19&roll=14', or 'start' and 'end' with 'stat'.",
                 name,
             )
     days = q.roll
@@ -665,8 +652,7 @@ def _roll_rules(
         return values, notes
     if not spec.partial and exists < a.steps:
         notes.append(
-            f"The {spec.days}-day window {where} {day_text(a.roll_day)} reaches days we have no data for yet, so the "
-            "map is empty. Add 'roll_partial=true' to use the days there are, or choose an earlier date."
+            f"The {spec.days}-day window {where} {day_text(a.roll_day)} reaches days we have no data for yet, so the map is empty. Add 'roll_partial=true' to use the days there are, or choose an earlier date."
         )
         return np.full_like(values, np.nan), notes
     missing = extra.get("missing_days")
@@ -678,8 +664,7 @@ def _roll_rules(
         values = values.copy()
         values[0][short] = np.nan
         notes.append(
-            f"Some locations have no {spec.days}-day value because fewer than {spec.coverage * 100:g}% of the "
-            "window's days had data there. Lower roll_coverage to accept windows with more missing days."
+            f"Some locations have no {spec.days}-day value because fewer than {spec.coverage * 100:g}% of the window's days had data there. Lower roll_coverage to accept windows with more missing days."
         )
     return values, notes
 
@@ -691,8 +676,7 @@ def _check_event(layer: Layer, q: LayerQuery, event: "events.Event") -> None:
     if q.stat is not None and q.stat != kind:
         raise ApiError(
             "conflict",
-            f"{quoted(kind)} finds a day, so it can't go with {quoted(f'stat={q.stat}')}. Leave out 'stat', "
-            f"or {quoted(kind)}.",
+            f"{quoted(kind)} finds a day, so it can't go with {quoted(f'stat={q.stat}')}. Leave out 'stat', or {quoted(kind)}.",
             kind,
         )
     if q.count is not None:
@@ -709,15 +693,13 @@ def _check_event(layer: Layer, q: LayerQuery, event: "events.Event") -> None:
     if q.date is not None:
         raise ApiError(
             "invalid",
-            f"{quoted(kind)} looks over a range of days. Give 'end' for the last day (default the latest), "
-            "and 'start' if the range should begin elsewhere than its default.",
+            f"{quoted(kind)} looks over a range of days. Give 'end' for the last day (default the latest), and 'start' if the range should begin elsewhere than its default.",
             "date",
         )
     if event.named is not None and layer.unit != "degC":
         raise ApiError(
             "invalid",
-            f"{event.name.replace('_', ' ')} is a temperature, and {layer_title(layer)} isn't one. Give bounds such as "
-            f"{quoted(f'{kind}=below_10')}.",
+            f"{event.name.replace('_', ' ')} is a temperature, and {layer_title(layer)} isn't one. Give bounds such as {quoted(f'{kind}=below_10')}.",
             kind,
         )
 
@@ -746,8 +728,7 @@ def _palette_asked(request: HttpRequest, a: "LayerAsk") -> palettes.Palette | No
     except KeyError:
         raise ApiError(
             "unknown_palette",
-            f"We don't have a palette named {quoted(text)}. GET /api/v2/palettes lists them; add '_r' to any name to "
-            "reverse it.",
+            f"We don't have a palette named {quoted(text)}. GET /api/v2/palettes lists them; add '_r' to any name to reverse it.",
             "palette",
         ) from None
     default = a.scale.palette
@@ -755,15 +736,13 @@ def _palette_asked(request: HttpRequest, a: "LayerAsk") -> palettes.Palette | No
         if chosen.kind != "categorical" or len(chosen.colors) != len(default.colors):
             raise ApiError(
                 "not_applicable",
-                f"{a.label} has a color for each of its {len(default.colors)} levels, so it needs a categorical "
-                f"palette with {len(default.colors)} colors, such as {quoted(default.id)}.",
+                f"{a.label} has a color for each of its {len(default.colors)} levels, so it needs a categorical palette with {len(default.colors)} colors, such as {quoted(default.id)}.",
                 "palette",
             )
     elif chosen.kind == "categorical":
         raise ApiError(
             "not_applicable",
-            f"{quoted(text)} has a color for each level of a category, and {a.label} is a range of values. Choose a "
-            "sequential, diverging or cyclic palette from GET /api/v2/palettes.",
+            f"{quoted(text)} has a color for each level of a category, and {a.label} is a range of values. Choose a sequential, diverging or cyclic palette from GET /api/v2/palettes.",
             "palette",
         )
     return chosen
@@ -954,9 +933,7 @@ def _check_archive_years(first: date | datetime, param: str, data_dir) -> None:
     if day < begins:
         raise ApiError(
             "out_of_range",
-            f"Maps cover {day_text(begins)} onward, the years our records hold, and {day_text(day)} is before that. "
-            "Choose a later date, or ask for a location's weather (such as /weather/daily), which covers earlier "
-            "dates from Open-Meteo.",
+            f"Maps cover {day_text(begins)} onward, the years our records hold, and {day_text(day)} is before that. Choose a later date, or ask for a location's weather (such as /weather/daily), which covers earlier dates from Open-Meteo.",
             param,
         )
 
@@ -981,8 +958,7 @@ def _span(layer: Layer, q: LayerQuery, observed: datetime) -> tuple[Any, Any]:
         if q.date is not None:
             raise ApiError(
                 "invalid",
-                f"{layer_title(layer)} is hourly, so it takes a time rather than a date. Give 'time', or 'start' and "
-                "'end' times.",
+                f"{layer_title(layer)} is hourly, so it takes a time rather than a date. Give 'time', or 'start' and 'end' times.",
                 "date",
             )
         if q.time is not None and (q.start or q.end):
@@ -996,25 +972,21 @@ def _span(layer: Layer, q: LayerQuery, observed: datetime) -> tuple[Any, Any]:
         if q.stat is not None and q.start is None:
             raise ApiError(
                 "missing",
-                f"{layer_title(layer)} is hourly, so 'stat' needs a start time for the hours it combines, such as "
-                "'start=2025-07-08T00:00Z'.",
+                f"{layer_title(layer)} is hourly, so 'stat' needs a start time for the hours it combines, such as 'start=2025-07-08T00:00Z'.",
                 "start",
             )
         first = parse_hour(q.start, "start") if q.start else last
         if first > last:
             raise ApiError(
                 "out_of_order",
-                f"The start time ({hour_text(first)}) is after the end time ({hour_text(last)}). "
-                "Choose a start on or before "
-                "the end.",
+                f"The start time ({hour_text(first)}) is after the end time ({hour_text(last)}). Choose a start on or before the end.",
                 "start",
             )
         return first, last
     if q.time is not None:
         raise ApiError(
             "invalid",
-            f"{layer_title(layer)} is daily, so it takes a date rather than a time. Give 'date', or 'start' "
-            "and 'end' dates.",
+            f"{layer_title(layer)} is daily, so it takes a date rather than a time. Give 'date', or 'start' and 'end' dates.",
             "time",
         )
     if q.date is not None and (q.start or q.end or q.biofix):
@@ -1031,8 +1003,7 @@ def _span(layer: Layer, q: LayerQuery, observed: datetime) -> tuple[Any, Any]:
         if layer.id != DEGREE_DAYS:
             raise ApiError(
                 "not_applicable",
-                f"'biofix' starts a degree-day total, and {layer_title(layer)} isn't one. Give 'start' for "
-                "the first day.",
+                f"'biofix' starts a degree-day total, and {layer_title(layer)} isn't one. Give 'start' for the first day.",
                 "biofix",
             )
         if q.start is not None:
@@ -1042,8 +1013,7 @@ def _span(layer: Layer, q: LayerQuery, observed: datetime) -> tuple[Any, Any]:
         if first > last:
             raise ApiError(
                 "out_of_order",
-                f"The biofix ({day_text(first)}) is after the end date ({day_text(last)}). Choose an end on or after "
-                "it.",
+                f"The biofix ({day_text(first)}) is after the end date ({day_text(last)}). Choose an end on or after it.",
                 "biofix",
             )
         return first, last
@@ -1054,8 +1024,7 @@ def _span(layer: Layer, q: LayerQuery, observed: datetime) -> tuple[Any, Any]:
     if first > last:
         raise ApiError(
             "out_of_order",
-            f"The start date ({day_text(first)}) is after the end date ({day_text(last)}). Choose a start date on or "
-            "before the end date.",
+            f"The start date ({day_text(first)}) is after the end date ({day_text(last)}). Choose a start date on or before the end date.",
             "start",
         )
     return first, last
@@ -1067,8 +1036,7 @@ def parse_date(text: str, param: str) -> date:
     except ValueError:
         raise ApiError(
             "invalid",
-            f"The value of {quoted(param)} ({quoted(text)}) isn't a date. Give dates as YYYY-MM-DD, such as "
-            "'2025-07-08'.",
+            f"The value of {quoted(param)} ({quoted(text)}) isn't a date. Give dates as YYYY-MM-DD, such as '2025-07-08'.",
             param,
         ) from None
 
@@ -1083,8 +1051,7 @@ def find_region(text: str) -> regions.Region:
     if found is None:
         raise ApiError(
             "unknown_region",
-            f"We don't recognize the region {text!r}. Give a state's name or postal code (wisconsin or WI), or a "
-            "county's name and state (Dane, WI) or five-digit FIPS code (55025).",
+            f"We don't recognize the region {text!r}. Give a state's name or postal code (wisconsin or WI), or a county's name and state (Dane, WI) or five-digit FIPS code (55025).",
             "region",
         )
     return found
@@ -1154,10 +1121,7 @@ def model_request(request: HttpRequest, layer: Layer, query: LayerQuery, warning
         later = planting_crop(spec)
         message = f"The {spec.name} model has no crop, so its map takes no 'planting'. Leave out 'planting'."
         if later is not None:
-            message = (
-                f"The crop stages {spec.name} uses aren't mapped yet, so its map takes no 'planting'. "
-                "Leave out 'planting'."
-            )
+            message = f"The crop stages {spec.name} uses aren't mapped yet, so its map takes no 'planting'. Leave out 'planting'."
         raise ApiError("not_applicable", message, "planting")
     tier = None if crop is None or query.planting == "none" else (query.planting or "mid")
     if tier is None and spec.id in modelmaps.TIER_MODELS and not spec.ingredients:  # soybean, spring wheat
@@ -1166,10 +1130,7 @@ def model_request(request: HttpRequest, layer: Layer, query: LayerQuery, warning
             f"{spec.name} is mapped for typical planting dates. Give 'planting=early', 'mid' or 'late'.",
             "planting",
         )
-    pointed = (
-        f"A map uses each location's typical settings. To run {spec.name} with your own at a location, use "
-        f"GET /api/v2/models/{spec.id}/run."
-    )
+    pointed = f"A map uses each location's typical settings. To run {spec.name} with your own at a location, use GET /api/v2/models/{spec.id}/run."
     for name in (*POINT_ONLY, *modelgrid.PLACE_OPTIONS):
         if request.GET.get(name):
             raise ApiError("not_applicable", f"{quoted(name)} doesn't apply to a map. {pointed}", name)
@@ -1186,17 +1147,14 @@ def model_request(request: HttpRequest, layer: Layer, query: LayerQuery, warning
         if request.GET.get(o.name) == "all":
             raise ApiError(
                 "invalid",
-                f"A map shows one {quoted(o.name)}. Give one value, or use GET /api/v2/models/{spec.id}/run "
-                "to run every choice at "
-                "a location.",
+                f"A map shows one {quoted(o.name)}. Give one value, or use GET /api/v2/models/{spec.id}/run to run every choice at a location.",
                 o.name,
             )
         options[o.name] = option_values(o, request.GET.get(o.name), warnings)[0]
     if chosen.name == SUSCEPTIBILITY and tier is None:
         raise ApiError(
             "invalid",
-            "Susceptibility comes from the crop's stages, so it needs a planting date. Give "
-            "'planting=early', 'mid' or 'late'.",
+            "Susceptibility comes from the crop's stages, so it needs a planting date. Give 'planting=early', 'mid' or 'late'.",
             "planting",
         )
     echo = {"model": {"id": spec.id, "version": spec.version}, "output": chosen.name, "options": options}
@@ -1258,9 +1216,7 @@ def _model_compute(
     values = np.where(regions.land(window), values, np.nan)
     if found.in_region is not None and not found.in_region.any():
         warnings.append(
-            f"{layer_title(layer)} was developed for {', '.join(model.spec.region)}, and none of this area "
-            "is in those states, so "
-            "the map is empty."
+            f"{layer_title(layer)} was developed for {', '.join(model.spec.region)}, and none of this area is in those states, so the map is empty."
         )
     if found.in_season is not None and not any(found.in_season):
         first_md, last_md = model.spec.season or ("", "")
@@ -1310,8 +1266,7 @@ def season_span(
     if last > observed_day:
         raise ApiError(
             "not_observed",
-            f"{spec.name} counts observed days only, and the last observed day is {day_text(observed_day)}. Choose a "
-            "date on or before it.",
+            f"{spec.name} counts observed days only, and the last observed day is {day_text(observed_day)}. Choose a date on or before it.",
             "date" if query.date else "end",
         )
     model.season = seasons.season_of(spec, last)
@@ -1322,8 +1277,7 @@ def season_span(
         )
     elif last < model.season.appears:
         warnings.append(
-            f"The {model.season.label} season isn't over: this is its count so far, which we show from "
-            f"{day_text(model.season.appears)} on."
+            f"The {model.season.label} season isn't over: this is its count so far, which we show from {day_text(model.season.appears)} on."
         )
     return first, last
 
@@ -1476,9 +1430,7 @@ def _fresh(read: series.GridSteps, layer: Layer, layout, window: Window, data_di
     if layout is not DAILY or stale.size > MAX_STALE_DAYS:
         raise ApiError(
             "stale",
-            f"We're updating {layer_title(layer)} after a change to how it's computed. Please try again in a few "
-            "minutes, or "
-            f"ask for up to {MAX_STALE_DAYS} days.",
+            f"We're updating {layer_title(layer)} after a change to how it's computed. Please try again in a few minutes, or ask for up to {MAX_STALE_DAYS} days.",
             None,
             status=503,
         )

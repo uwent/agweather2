@@ -123,8 +123,7 @@ def main():
     mode = modes[0].replace("_", "-") if modes else "fetch"
     cached_cycles = [c for c in cycles if cache_path(c).exists() and hours_path(c).exists()]
     report.step(
-        f"backtest ({mode}): {len(cycles)} cycles at {args.hour:02d}Z every {args.every} days, {first} to {last}; "
-        f"{len(cached_cycles)} already cached in {CACHE}; box {args.box}"
+        f"backtest ({mode}): {len(cycles)} cycles at {args.hour:02d}Z every {args.every} days, {first} to {last}; {len(cached_cycles)} already cached in {CACHE}; box {args.box}"
     )
 
     if args.fit_shortwave or args.fit_calibration:
@@ -402,8 +401,7 @@ def fit_shortwave(cycles: list[datetime], report: Reporter) -> str:
             {
                 "version": 1,
                 "fitted": f"{datetime.now(UTC):%Y-%m-%d}",
-                "source": f"backtest of {len(runs)} 13z runs, {runs[0]:%Y-%m-%d} to {runs[-1]:%Y-%m-%d}, against the "
-                "corrected archive",
+                "source": f"backtest of {len(runs)} 13z runs, {runs[0]:%Y-%m-%d} to {runs[-1]:%Y-%m-%d}, against the corrected archive",
                 "clearness": middles.round(3).tolist(),
                 "lead_days": SHORTWAVE_GROUPS,
                 "factor": [[round(float(f), 4) for f in t] for t in final],
@@ -415,12 +413,7 @@ def fit_shortwave(cycles: list[datetime], report: Reporter) -> str:
     lines = [
         "# NBM shortwave correction",
         "",
-        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/backtest_forecast.py --fit-shortwave` (D48). The raw "
-        f"forecast's daily shortwave (NBM's DSWRF by solar-day clearness) at {fc.shape[2]} cells in {len(runs)} runs, "
-        "against the archive (HRRR corrected against Wisconet). Factors by lead group and the forecast day's clearness "
-        "(its total over the FAO-56 clear-sky total); bins with fewer than "
-        f"{SHORTWAVE_MIN_DAYS} cell-days take their neighbours'. Most of it is calibration: as skill falls with lead, "
-        "a forecast very dark or very clear day turns out less so.",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/backtest_forecast.py --fit-shortwave` (D48). The raw forecast's daily shortwave (NBM's DSWRF by solar-day clearness) at {fc.shape[2]} cells in {len(runs)} runs, against the archive (HRRR corrected against Wisconet). Factors by lead group and the forecast day's clearness (its total over the FAO-56 clear-sky total); bins with fewer than {SHORTWAVE_MIN_DAYS} cell-days take their neighbours'. Most of it is calibration: as skill falls with lead, a forecast very dark or very clear day turns out less so.",
         "",
         "| Lead days | " + " | ".join(f"{m:.2f}" for m in middles) + " |",
         "|---|" + "---|" * len(middles),
@@ -623,19 +616,11 @@ def fit_calibration(data_dir: Path, cycles: list[datetime], window: Window, repo
     lines = [
         "# NBM forecast calibration",
         "",
-        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/backtest_forecast.py --fit-calibration` (D39, D49), "
-        f"from the forecast's hours at {lat.shape[1]} cells in {len(runs)} runs against the archive, after the "
-        "max is reshaped to NBM's TMAX. In order, each on the forecast with the ones before it applied:",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/backtest_forecast.py --fit-calibration` (D39, D49), from the forecast's hours at {lat.shape[1]} cells in {len(runs)} runs against the archive, after the max is reshaped to NBM's TMAX. In order, each on the forecast with the ones before it applied:",
         "",
-        "1. **Max offset** by season: NBM's TMAX less the archive's daily max (the warmest top-of-hour value) on "
-        "lead days 1–3, applied at every lead (later leads' errors are mostly weather) and interpolated through "
-        "the year between mid-season days.",
-        "2. **Night min**: the hours' warm bias at each night's min by lead (interpolation between NBM's steps "
-        "rounds off the coldest hours), each night's coldest hours (00–12Z) lowered by it.",
-        "3. **RH maps**: quantile maps from the forecast's hourly RH to the archive's, by season, lead group "
-        f"(hours {', '.join(str(e) for e in RH_LEAD_GROUP_ENDS)} and on) and solar hour, on every {RH_EVERY}nd "
-        "cell; the dew point is recomputed with the temperature kept. NBM's blended humidity rarely saturates, so "
-        "the forecast counts too few humid hours (most in daytime rain and overcast).",
+        "1. **Max offset** by season: NBM's TMAX less the archive's daily max (the warmest top-of-hour value) on lead days 1–3, applied at every lead (later leads' errors are mostly weather) and interpolated through the year between mid-season days.",
+        "2. **Night min**: the hours' warm bias at each night's min by lead (interpolation between NBM's steps rounds off the coldest hours), each night's coldest hours (00–12Z) lowered by it.",
+        f"3. **RH maps**: quantile maps from the forecast's hourly RH to the archive's, by season, lead group (hours {', '.join(str(e) for e in RH_LEAD_GROUP_ENDS)} and on) and solar hour, on every {RH_EVERY}nd cell; the dew point is recomputed with the temperature kept. NBM's blended humidity rarely saturates, so the forecast counts too few humid hours (most in daytime rain and overcast).",
         "",
         "| Season | DJF | MAM | JJA | SON |",
         "|---|---|---|---|---|",
@@ -645,8 +630,7 @@ def fit_calibration(data_dir: Path, cycles: list[datetime], window: Window, repo
         "|---|" + "---|" * LEAD_DAYS,
         "| night warm bias (°C) | " + " | ".join(f"{b:.2f}" for b in night_min["warm_bias_c"]) + " |",
         "",
-        "Held out (2-fold: each run with its step's table fitted on the other half; the steps before it use the "
-        "tables fitted on every run), bias / MAE by lead day (°C, hours a day):",
+        "Held out (2-fold: each run with its step's table fitted on the other half; the steps before it use the tables fitted on every run), bias / MAE by lead day (°C, hours a day):",
         "",
         "| | | " + " | ".join(f"day {k + 1}" for k in range(LEAD_DAYS)) + " |",
         "|---|---|" + "---|" * LEAD_DAYS,
@@ -729,13 +713,7 @@ def build_report(args, cycles: list[datetime]) -> str:
     lines = [
         "# Forecast backtest: NBM against the archive",
         "",
-        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/backtest_forecast.py` (PLAN.md Phase 4 G). "
-        f"The {args.hour}z "
-        f"long run on every {args.every}th day, {cycles[0]:%Y-%m-%d} to {cycles[-1]:%Y-%m-%d}: {len(runs)} runs at "
-        f"{n_points} cells (one per old-API 0.1° point in Central time, box `{args.box}`), {failed} forecast files "
-        "unreadable. The forecast's hours are filled as the forecast job fills them and rolled up by the archive's "
-        "day definitions. Lead day 1 is the first complete local day after the cycle. Errors are forecast minus "
-        "archive, in stored units.",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/backtest_forecast.py` (PLAN.md Phase 4 G). The {args.hour}z long run on every {args.every}th day, {cycles[0]:%Y-%m-%d} to {cycles[-1]:%Y-%m-%d}: {len(runs)} runs at {n_points} cells (one per old-API 0.1° point in Central time, box `{args.box}`), {failed} forecast files unreadable. The forecast's hours are filled as the forecast job fills them and rolled up by the archive's day definitions. Lead day 1 is the first complete local day after the cycle. Errors are forecast minus archive, in stored units.",
         "",
         "## Bias and MAE by lead day",
         "",

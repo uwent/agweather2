@@ -336,8 +336,7 @@ def render(rows: list[dict], box: list[tuple[str, np.ndarray, str]]) -> str:
         costs.append(acc[-1] - every[-1])
         cells = " | ".join(f"{v:+.0f}" for v in d)
         out.append(
-            f"| {r['name']} ({r['ll'][0]:.2f}, {r['ll'][1]:.2f}) | {cells} | {acc[-1]:.0f} | {gmax - smax:+.1f} | "
-            f"{gmin - smin:+.1f} | {acc[-1] - every[-1]:+.0f} | {count} |"
+            f"| {r['name']} ({r['ll'][0]:.2f}, {r['ll'][1]:.2f}) | {cells} | {acc[-1]:.0f} | {gmax - smax:+.1f} | {gmin - smin:+.1f} | {acc[-1] - every[-1]:+.0f} | {count} |"
         )
     out += [
         "",
@@ -390,8 +389,7 @@ def render(rows: list[dict], box: list[tuple[str, np.ndarray, str]]) -> str:
         f"without {LEFT_OUT[0]}–{LEFT_OUT[-1]}, as the grid's). Where the two agree, the grid's 30 years carry the",
         "stations' change between the periods; where they don't, the difference is the sources'.",
         "",
-        "| Station | GDD by Dec 31, grid | station | summer max, grid (°F) | station | summer min, grid (°F) "
-        "| station |",
+        "| Station | GDD by Dec 31, grid | station | summer max, grid (°F) | station | summer min, grid (°F) | station |",
         "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     gaps = []
@@ -402,13 +400,11 @@ def render(rows: list[dict], box: list[tuple[str, np.ndarray, str]]) -> str:
         s10, _, smax10, smin10 = r["acis"]["last10"]
         gaps.append((g10[-1] - g30[-1]) - (s10[-1] - s30[-1]))
         out.append(
-            f"| {r['name']} | {g10[-1] - g30[-1]:+.0f} | {s10[-1] - s30[-1]:+.0f} | {gmax10 - gmax30:+.1f} | "
-            f"{smax10 - smax30:+.1f} | {gmin10 - gmin30:+.1f} | {smin10 - smin30:+.1f} |"
+            f"| {r['name']} | {g10[-1] - g30[-1]:+.0f} | {s10[-1] - s30[-1]:+.0f} | {gmax10 - gmax30:+.1f} | {smax10 - smax30:+.1f} | {gmin10 - gmin30:+.1f} | {smin10 - smin30:+.1f} |"
         )
     out += [
         "",
-        f"The grid's change less the station's, GDD by December 31: median {np.median(gaps):+.0f} "
-        f"({min(gaps):+.0f} to {max(gaps):+.0f}).",
+        f"The grid's change less the station's, GDD by December 31: median {np.median(gaps):+.0f} ({min(gaps):+.0f} to {max(gaps):+.0f}).",
         "",
         "## 6. Frost dates",
         "",
@@ -417,8 +413,7 @@ def render(rows: list[dict], box: list[tuple[str, np.ndarray, str]]) -> str:
         "(`climatology.freezes`); its dates are given beside. A cooperative station read in the morning puts a",
         "night's minimum on the day it was read, so its dates may run a day late.",
         "",
-        "| Station | period | 32 °F spring: station | grid − station | 32 °F fall: station | grid − station | "
-        "28 °F spring: station | grid − station | 28 °F fall: station | grid − station |",
+        "| Station | period | 32 °F spring: station | grid − station | 32 °F fall: station | grid − station | 28 °F spring: station | grid − station | 28 °F fall: station | grid − station |",
         "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     shifts: dict[str, list[float]] = {}
@@ -439,19 +434,13 @@ def render(rows: list[dict], box: list[tuple[str, np.ndarray, str]]) -> str:
     out += ["", "Medians, grid less station, days:", ""]
     for k, v in shifts.items():
         out.append(
-            f"- {k.replace('_', ' at ')} °F: {np.median(v):+.1f} "
-            f"(P10 {np.percentile(v, 10):+.0f}, P90 {np.percentile(v, 90):+.0f})"
+            f"- {k.replace('_', ' at ')} °F: {np.median(v):+.1f} (P10 {np.percentile(v, 10):+.0f}, P90 {np.percentile(v, 90):+.0f})"
         )
     out += [
         "",
         "## Summary",
         "",
-        f"The year's total, grid less station: `last30` median {np.median(diffs30) * 100:+.1f}% "
-        f"(range {min(diffs30) * 100:+.1f}% to {max(diffs30) * 100:+.1f}%); `last10` median "
-        f"{np.median(diffs10) * 100:+.1f}% ({min(diffs10) * 100:+.1f}% to {max(diffs10) * 100:+.1f}%). Leaving "
-        f"{LEFT_OUT[0]}–{LEFT_OUT[-1]} out of the 30 years changes the stations' own totals by a median of "
-        f"{np.median(costs):+.0f} GDD a year ({min(costs):+.0f} to {max(costs):+.0f}), "
-        "so the shorter period costs the normal little.",
+        f"The year's total, grid less station: `last30` median {np.median(diffs30) * 100:+.1f}% (range {min(diffs30) * 100:+.1f}% to {max(diffs30) * 100:+.1f}%); `last10` median {np.median(diffs10) * 100:+.1f}% ({min(diffs10) * 100:+.1f}% to {max(diffs10) * 100:+.1f}%). Leaving {LEFT_OUT[0]}–{LEFT_OUT[-1]} out of the 30 years changes the stations' own totals by a median of {np.median(costs):+.0f} GDD a year ({min(costs):+.0f} to {max(costs):+.0f}), so the shorter period costs the normal little.",
         "",
     ]
     return "\n".join(out)

@@ -63,9 +63,7 @@ def _no_mean_before_archive(period: str, names: list[str], param: str) -> None:
         years = climate.PERIOD_TEXT[period]
         raise ApiError(
             "not_applicable",
-            f"The {years} normals have no {quoted(lacking[0])}: the records before 2016 give each day's minimum and "
-            "maximum only. Ask for 'period=last10' or 'last5', or for 'air_temperature_min' and "
-            "'air_temperature_max'.",
+            f"The {years} normals have no {quoted(lacking[0])}: the records before 2016 give each day's minimum and maximum only. Ask for 'period=last10' or 'last5', or for 'air_temperature_min' and 'air_temperature_max'.",
             param,
         )
 
@@ -78,15 +76,13 @@ def climate_counts(request: HttpRequest, units: str, period: str, offered: dict[
         if c.hourly:
             raise ApiError(
                 "not_applicable",
-                "Normals count days, not hours: the years they come from are kept as daily values. Count a daily "
-                "variable, such as 'count=air_temperature_max:days_above_86'.",
+                "Normals count days, not hours: the years they come from are kept as daily values. Count a daily variable, such as 'count=air_temperature_max:days_above_86'.",
                 "count",
             )
         if c.variable not in offered:
             raise ApiError(
                 "not_applicable",
-                f"We don't keep the years of {quoted(c.variable)} that its normals would come from. Count one of "
-                f"{', '.join(quoted(o) for o in offered)}.",
+                f"We don't keep the years of {quoted(c.variable)} that its normals would come from. Count one of {', '.join(quoted(o) for o in offered)}.",
                 "count",
             )
     _no_mean_before_archive(period, [c.variable for c in found], "count")
@@ -135,8 +131,7 @@ def normals_at_points(
     if specs and interval != "day":
         raise ApiError(
             "conflict",
-            f"Rolling windows apply to daily normals, not to {quoted(f'interval={interval}')}. Leave out 'roll', or "
-            "'interval'.",
+            f"Rolling windows apply to daily normals, not to {quoted(f'interval={interval}')}. Leave out 'roll', or 'interval'.",
             "roll",
         )
     rolled.check_stat(rolls, {name: adds_up(name) for name in names} | {c.name: True for c in wanted_counts})

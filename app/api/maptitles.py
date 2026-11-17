@@ -103,8 +103,7 @@ _URMA = "URMA/RTMA hourly grids"
 _FAMILY_SOURCES = (
     (
         "water_balance",
-        f"Precipitation from {_URMA}; reference evapotranspiration (FAO-56) computed from air temperature, humidity "
-        f"and wind from {_URMA} and solar radiation from HRRR",
+        f"Precipitation from {_URMA}; reference evapotranspiration (FAO-56) computed from air temperature, humidity and wind from {_URMA} and solar radiation from HRRR",
     ),
     ("air_temperature", f"Air temperature (2 m) from {_URMA}"),
     ("temperature_mean", f"Air temperature and dew point (2 m) from {_URMA}"),
@@ -122,8 +121,7 @@ _FAMILY_SOURCES = (
     ("snow_depth", "Snow depth from ERA5-Land, with ECMWF IFS for the latest days"),
     (
         "et0",
-        "Reference evapotranspiration (FAO-56) computed from air temperature, humidity and wind from URMA/RTMA "
-        "and solar radiation from HRRR",
+        "Reference evapotranspiration (FAO-56) computed from air temperature, humidity and wind from URMA/RTMA and solar radiation from HRRR",
     ),
     ("dd_", f"Air temperature (2 m) from {_URMA}"),
     ("chill", f"Hourly air temperature (2 m) from {_URMA}"),

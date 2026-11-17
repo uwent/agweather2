@@ -12,11 +12,7 @@ BLOCK_DAYS = 10
 
 
 class Command(ReportingCommand):
-    help = (
-        "Fetch hourly precip again at the catalog's precision (D28) for a date range, then roll up its local days; "
-        "with --rescale, first repack stores written at an older scale. Hours neither URMA nor RTMA has keep what "
-        "they had, so it's safe to rerun."
-    )
+    help = "Fetch hourly precip again at the catalog's precision (D28) for a date range, then roll up its local days; with --rescale, first repack stores written at an older scale. Hours neither URMA nor RTMA has keep what they had, so it's safe to rerun."
 
     def add_arguments(self, parser):
         parser.add_argument("--start", required=True, help="first day, YYYY-MM-DD (UTC)")

@@ -67,8 +67,7 @@ def main():
         report.fail("stations", f"no Wisconet stations inside the {args.box} box")
         sys.exit(1)
     report.step(
-        f"humidity {first} to {last}: {len(stations)} Wisconet stations in the {args.box} box, "
-        f"{last.year - first.year + 1} year(s); writing {args.out}"
+        f"humidity {first} to {last}: {len(stations)} Wisconet stations in the {args.box} box, {last.year - first.year + 1} year(s); writing {args.out}"
     )
 
     start = datetime(first.year, first.month, first.day, tzinfo=UTC)
@@ -139,14 +138,11 @@ def build_report(args, stations, times, archive_rh, archive_t, station) -> str:
     lines = [
         "# Humidity: the archive against Wisconet",
         "",
-        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_humidity.py`, {args.start} to {args.end}: "
-        f"{len(stations)} Wisconet stations, each against its archive cell (URMA/RTMA RH from temperature and dew "
-        f"point at the top of the hour; the station's are hourly means). {paired.sum():,} paired hours.",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_humidity.py`, {args.start} to {args.end}: {len(stations)} Wisconet stations, each against its archive cell (URMA/RTMA RH from temperature and dew point at the top of the hour; the station's are hourly means). {paired.sum():,} paired hours.",
         "",
         "## By month",
         "",
-        "| Month | RH bias (archive − station) | RH MAE | temperature bias (°C) "
-        "| RH ≥ 90: station / archive (share of hours) | RH ≥ 80: station / archive | leaf wet (station) |",
+        "| Month | RH bias (archive − station) | RH MAE | temperature bias (°C) | RH ≥ 90: station / archive (share of hours) | RH ≥ 80: station / archive | leaf wet (station) |",
         "|---|---|---|---|---|---|---|",
     ]
     for m in range(1, 13):
@@ -156,12 +152,7 @@ def build_report(args, stations, times, archive_rh, archive_t, station) -> str:
         tsel = sel & np.isfinite(t) & np.isfinite(archive_t)
         wsel = np.isfinite(wet) & (month == m)[None]
         lines.append(
-            f"| {MONTHS[m - 1]} | {np.mean(archive_rh[sel] - rh[sel]):+.1f} "
-            f"| {np.mean(np.abs(archive_rh[sel] - rh[sel])):.1f} "
-            f"| {np.mean(archive_t[tsel] - t[tsel]):+.2f} "
-            f"| {np.mean(rh[sel] >= 90):.3f} / {np.mean(archive_rh[sel] >= 90):.3f} "
-            f"| {np.mean(rh[sel] >= 80):.3f} / {np.mean(archive_rh[sel] >= 80):.3f} "
-            f"| {np.mean(wet[wsel] >= WET_SHARE):.3f} |"
+            f"| {MONTHS[m - 1]} | {np.mean(archive_rh[sel] - rh[sel]):+.1f} | {np.mean(np.abs(archive_rh[sel] - rh[sel])):.1f} | {np.mean(archive_t[tsel] - t[tsel]):+.2f} | {np.mean(rh[sel] >= 90):.3f} / {np.mean(archive_rh[sel] >= 90):.3f} | {np.mean(rh[sel] >= 80):.3f} / {np.mean(archive_rh[sel] >= 80):.3f} | {np.mean(wet[wsel] >= WET_SHARE):.3f} |"
         )
 
     # Daily counts at full station-days
@@ -188,16 +179,12 @@ def build_report(args, stations, times, archive_rh, archive_t, station) -> str:
     ]
     for label, sel in (("all", np.ones(len(warm), dtype=bool)), ("May–September", warm)):
         lines.append(
-            f"| {label} ({sel.sum():,}) | {c['st90'][sel].mean():.2f} | {c['ar90'][sel].mean():.2f} "
-            f"| {c['st80'][sel].mean():.2f} | {c['ar80'][sel].mean():.2f} | {np.nanmean(c['wet'][sel]):.2f} |"
+            f"| {label} ({sel.sum():,}) | {c['st90'][sel].mean():.2f} | {c['ar90'][sel].mean():.2f} | {c['st80'][sel].mean():.2f} | {c['ar80'][sel].mean():.2f} | {np.nanmean(c['wet'][sel]):.2f} |"
         )
     both = np.isfinite(c["wet"]) & warm
     lines += [
         "",
-        f"May–September daily counts, correlation with the station's leaf-wet hours: station RH ≥ 90 "
-        f"{np.corrcoef(c['st90'][both], c['wet'][both])[0, 1]:.2f}, archive RH ≥ 90 "
-        f"{np.corrcoef(c['ar90'][both], c['wet'][both])[0, 1]:.2f}; archive against station RH ≥ 90 "
-        f"{np.corrcoef(c['ar90'][warm], c['st90'][warm])[0, 1]:.2f}.",
+        f"May–September daily counts, correlation with the station's leaf-wet hours: station RH ≥ 90 {np.corrcoef(c['st90'][both], c['wet'][both])[0, 1]:.2f}, archive RH ≥ 90 {np.corrcoef(c['ar90'][both], c['wet'][both])[0, 1]:.2f}; archive against station RH ≥ 90 {np.corrcoef(c['ar90'][warm], c['st90'][warm])[0, 1]:.2f}.",
     ]
 
     # Equivalent thresholds: the archive RH whose hours count as many as the station's
@@ -205,8 +192,7 @@ def build_report(args, stations, times, archive_rh, archive_t, station) -> str:
         "",
         "## Equivalent archive thresholds",
         "",
-        "The archive RH at or above which there are as many hours as the stations' RH ≥ 90% and as their leaf-wet "
-        "hours (a share of the hour wet ≥ 0.5), over the paired hours:",
+        "The archive RH at or above which there are as many hours as the stations' RH ≥ 90% and as their leaf-wet hours (a share of the hour wet ≥ 0.5), over the paired hours:",
         "",
         "| Hours | station RH ≥ 90 | leaf wet |",
         "|---|---|---|",
@@ -215,8 +201,7 @@ def build_report(args, stations, times, archive_rh, archive_t, station) -> str:
         sel = paired & np.isin(month, months)[None]
         wsel = sel & np.isfinite(wet)
         lines.append(
-            f"| {label} | {threshold(archive_rh[sel], np.mean(rh[sel] >= 90)):.1f} "
-            f"| {threshold(archive_rh[wsel], np.mean(wet[wsel] >= WET_SHARE)):.1f} |"
+            f"| {label} | {threshold(archive_rh[sel], np.mean(rh[sel] >= 90)):.1f} | {threshold(archive_rh[wsel], np.mean(wet[wsel] >= WET_SHARE)):.1f} |"
         )
 
     # By hour of day
@@ -231,8 +216,7 @@ def build_report(args, stations, times, archive_rh, archive_t, station) -> str:
         sel = paired & ((hour == h) & np.isin(month, (5, 6, 7, 8, 9)))[None]
         wsel = sel & np.isfinite(wet)
         lines.append(
-            f"| {h:02d} | {np.mean(rh[sel] >= 90):.3f} | {np.mean(archive_rh[sel] >= 90):.3f} "
-            f"| {np.mean(wet[wsel] >= WET_SHARE):.3f} | {np.mean(archive_rh[sel] - rh[sel]):+.1f} |"
+            f"| {h:02d} | {np.mean(rh[sel] >= 90):.3f} | {np.mean(archive_rh[sel] >= 90):.3f} | {np.mean(wet[wsel] >= WET_SHARE):.3f} | {np.mean(archive_rh[sel] - rh[sel]):+.1f} |"
         )
 
     # By station
@@ -244,8 +228,7 @@ def build_report(args, stations, times, archive_rh, archive_t, station) -> str:
     r = np.array(ratio)
     lines += [
         "",
-        f"By station ({len(r)} with 90 days or more): archive RH ≥ 90 hours over the station's, median "
-        f"{np.median(r):.2f}, 10–90% {np.percentile(r, 10):.2f}–{np.percentile(r, 90):.2f}.",
+        f"By station ({len(r)} with 90 days or more): archive RH ≥ 90 hours over the station's, median {np.median(r):.2f}, 10–90% {np.percentile(r, 10):.2f}–{np.percentile(r, 90):.2f}.",
         "",
     ]
     return "\n".join(lines)

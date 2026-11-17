@@ -50,10 +50,7 @@ TOTALLED = ("depth", "radiant_exposure", "duration")  # dimensions whose values 
 
 def attribution(year: int) -> str:
     """D53: the sources whose licences ask to be credited."""
-    return (
-        "AgWeather, University of Wisconsin–Madison. Weather from NOAA (URMA, RTMA, HRRR, NBM), Open-Meteo "
-        f"(CC BY 4.0) and ECMWF; contains modified Copernicus Climate Change Service information {year}."
-    )
+    return f"AgWeather, University of Wisconsin–Madison. Weather from NOAA (URMA, RTMA, HRRR, NBM), Open-Meteo (CC BY 4.0) and ECMWF; contains modified Copernicus Climate Change Service information {year}."
 
 
 @dataclass(kw_only=True)
@@ -395,8 +392,7 @@ def _format(request: HttpRequest, offered: tuple[str, ...]) -> str:
         if asked not in offered:
             raise ApiError(
                 "format_unavailable",
-                f"This request's answer doesn't come as {quoted(asked)}. Choose one of these formats: "
-                f"{', '.join(quoted(f) for f in offered)}.",
+                f"This request's answer doesn't come as {quoted(asked)}. Choose one of these formats: {', '.join(quoted(f) for f in offered)}.",
                 "format",
             )
         return asked

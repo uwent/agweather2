@@ -123,8 +123,7 @@ def parse_csv(text: str) -> dict[str, Any]:
         if len(row) != len(header):
             raise ApiError(
                 "invalid",
-                f"Row {n} of the CSV has {len(row)} values, but there are {len(header)} column names. Give every row "
-                "one value per column (empty for a missing value).",
+                f"Row {n} of the CSV has {len(row)} values, but there are {len(header)} column names. Give every row one value per column (empty for a missing value).",
                 "body",
             )
         for h, value in zip(header, row, strict=True):
@@ -142,8 +141,7 @@ def _block(block: Any, kind: str, key: str) -> dict[str, list[Any]]:
         if not isinstance(values, list) or len(values) != n:
             raise ApiError(
                 "invalid",
-                f"{quoted(f'{kind}.{name}')} must be a list with one value for each entry in "
-                f"{quoted(f'{kind}.{key}')} ({n}).",
+                f"{quoted(f'{kind}.{name}')} must be a list with one value for each entry in {quoted(f'{kind}.{key}')} ({n}).",
                 kind,
             )
     return block
@@ -164,8 +162,7 @@ def _unit_in(v: Variable, system, overrides: dict[str, str]) -> str:
             if symbol is None:
                 raise ApiError(
                     "bad_unit",
-                    f"We can't read {quoted(v.name)} in {quoted(given)}. Choose one of these units: "
-                    f"{units_like(v.unit)}.",
+                    f"We can't read {quoted(v.name)} in {quoted(given)}. Choose one of these units: {units_like(v.unit)}.",
                     f"input_units.{name}",
                 )
             return symbol
@@ -193,15 +190,13 @@ def _hourly(station: Station, block: dict[str, list[Any]], system, overrides: di
         if when.tzinfo is None:
             raise ApiError(
                 "invalid",
-                f"Entry {k} of 'hourly.time' needs a time zone, such as 'Z' for UTC or '-05:00'. Each value is for the "
-                "hour ending at its time.",
+                f"Entry {k} of 'hourly.time' needs a time zone, such as 'Z' for UTC or '-05:00'. Each value is for the hour ending at its time.",
                 "hourly.time",
             )
         if when.minute or when.second:
             raise ApiError(
                 "invalid",
-                f"Entry {k} of 'hourly.time' ({quoted(text)}) isn't on the hour. Give each hour's end, such "
-                "as '2025-07-08T15:00Z'.",
+                f"Entry {k} of 'hourly.time' ({quoted(text)}) isn't on the hour. Give each hour's end, such as '2025-07-08T15:00Z'.",
                 "hourly.time",
             )
         times.append(when.astimezone(UTC))
@@ -231,8 +226,7 @@ def _hourly(station: Station, block: dict[str, list[Any]], system, overrides: di
         dropped = qc.out_of_range + qc.spikes
         if dropped:
             station.warnings.append(
-                f"{counted(dropped, 'hour')} of {quoted(name)} were outside its possible range or jumped too "
-                "sharply, so we treat them as missing."
+                f"{counted(dropped, 'hour')} of {quoted(name)} were outside its possible range or jumped too sharply, so we treat them as missing."
             )
         station.hourly[name] = qc.values
     _humidity(station, n)

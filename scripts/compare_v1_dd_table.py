@@ -117,8 +117,9 @@ def _report(first, last, rain_first, v1, v2_dd, v1_rain, v2_rain) -> str:
         "Waunakee lawn notifier's query (old server log, 2026-10-19 to 11-02, twice a day):",
         "`/api/degree_days/dd_table?lat=43.18&lng=-89.45&models=dd_50_86,dd_32` and `/api/precips` over the last",
         "30 days. v1 is a reference, not the truth (D54). v1 reads its 0.1° point (43.2, −89.5, the mean of the",
-        f"2.5 km cells around it); v2 reads the cell containing the point ({meta['location']['cell']['lat']}, "
-        f"{meta['location']['cell']['lng']}). v2's sources: " + ", ".join(meta["sources"]) + ".",
+        f"2.5 km cells around it); v2 reads the cell containing the point ({meta['location']['cell']['lat']}, {meta['location']['cell']['lng']}). v2's sources: "
+        + ", ".join(meta["sources"])
+        + ".",
         "",
         "## In v2",
         "",
@@ -157,8 +158,7 @@ def _report(first, last, rain_first, v1, v2_dd, v1_rain, v2_rain) -> str:
         a, b = np.array(pairs, dtype=float).T
         t1, t2 = days[end][v1_name]["total"], d2[f"dd_{v2_name}_cum"][v2_days[end]]
         lines.append(
-            f"| {v1_name} → {v2_name} | {t1:.0f} | {t2:.0f} | {t2 - t1:+.0f} | {100 * (t2 - t1) / t1:+.1f} | "
-            f"{(b - a).mean():+.2f} | {np.abs(b - a).mean():.2f} |"
+            f"| {v1_name} → {v2_name} | {t1:.0f} | {t2:.0f} | {t2 - t1:+.0f} | {100 * (t2 - t1) / t1:+.1f} | {(b - a).mean():+.2f} | {np.abs(b - a).mean():.2f} |"
         )
     lows = [
         d2["air_temperature_min"][v2_days[d]] - days[d]["min_temp"]
@@ -189,8 +189,7 @@ def _report(first, last, rain_first, v1, v2_dd, v1_rain, v2_rain) -> str:
     lines += [
         "",
         f"Days: {len(shared)} in both; v1 without temperatures on {v1_missing} (its running total counts such a day",
-        f"as 0, unflagged); v2 missing {summary.get('days_missing', 0)} and estimated "
-        f"{summary.get('days_estimated', 0)} (flagged in `temperature_estimated`).",
+        f"as 0, unflagged); v2 missing {summary.get('days_missing', 0)} and estimated {summary.get('days_estimated', 0)} (flagged in `temperature_estimated`).",
         "",
         f"## Precipitation, {rain_first} to {last}",
         "",

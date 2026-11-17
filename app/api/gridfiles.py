@@ -106,8 +106,7 @@ def cell_degrees(what: str) -> dict[str, str]:
     return {
         "long_name": f"{what} of the cell center",
         "units": "degree",
-        "comment": "for plotting without a projection library; not CF auxiliary coordinates, so GIS software uses "
-        "the grid_mapping (see docs/api.md, Grids)",
+        "comment": "for plotting without a projection library; not CF auxiliary coordinates, so GIS software uses the grid_mapping (see docs/api.md, Grids)",
     }
 
 

@@ -78,10 +78,7 @@ def charge_more(client: str, minute: datetime, units: int) -> int:
 
 
 def refused(request: HttpRequest, limit: int, reset: int) -> HttpResponse:
-    message = (
-        f"This address has used its share of the API for this minute ({limit} units; see RateLimit-Limit). "
-        f"Please wait {reset} seconds and try again."
-    )
+    message = f"This address has used its share of the API for this minute ({limit} units; see RateLimit-Limit). Please wait {reset} seconds and try again."
     response = envelope.error_response(request, [{"code": "rate_limited", "param": None, "message": message}], 429)
     response["Retry-After"] = str(reset)
     _headers(response, limit, 0, reset)

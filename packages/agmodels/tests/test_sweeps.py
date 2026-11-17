@@ -39,8 +39,7 @@ def test_sweep_matches_its_snapshot(model_id, update_snapshots):
     saved = json.loads(path.read_text())
     if current["rows"] != saved["rows"]:
         assert current["version"] != saved["version"], (
-            f"{model_id}'s outputs changed but its version is still {saved['version']}: if intended, bump the version, "
-            "add a changelog line and run with --update-snapshots"
+            f"{model_id}'s outputs changed but its version is still {saved['version']}: if intended, bump the version, add a changelog line and run with --update-snapshots"
         )
         pytest.fail(f"{model_id} is version {current['version']} now: run with --update-snapshots to save its sweep")
     assert current["version"] == saved["version"], f"{model_id}'s version changed: run with --update-snapshots"

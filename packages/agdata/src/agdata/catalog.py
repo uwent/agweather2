@@ -206,8 +206,7 @@ VARIABLES: dict[str, Variable] = {
             valid_max=60,
             daily=("min", "max", "mean"),
             version=2,  # 2: ERA5-Land, not HRRR (D52)
-            notes="Taken from the source's soil layers (0–7, 7–28 and 28–100 cm) to the depth. The "
-            "potato models' 2 inch depth.",
+            notes="Taken from the source's soil layers (0–7, 7–28 and 28–100 cm) to the depth. The potato models' 2 inch depth.",
             sources={
                 "era5land": "soil_temperature_level_1-3, at the depth (agdata.sources.era5land)",
                 "ifs": "IFS HRES layers, at the depth (agdata.sources.ifs): provisional days and the forecast",
@@ -222,8 +221,7 @@ VARIABLES: dict[str, Variable] = {
             valid_max=60,
             daily=("min", "max", "mean"),
             version=2,  # 2: ERA5-Land, not HRRR (D52)
-            notes="Taken from the source's soil layers (0–7, 7–28 and 28–100 cm) to the depth. The "
-            "potato models' 4 inch depth.",
+            notes="Taken from the source's soil layers (0–7, 7–28 and 28–100 cm) to the depth. The potato models' 4 inch depth.",
             sources={
                 "era5land": "soil_temperature_level_1-3, at the depth (agdata.sources.era5land)",
                 "ifs": "IFS HRES layers, at the depth (agdata.sources.ifs): provisional days and the forecast",
@@ -238,8 +236,7 @@ VARIABLES: dict[str, Variable] = {
             valid_max=60,
             daily=("min", "max", "mean"),
             version=2,  # 2: ERA5-Land, not HRRR (D52)
-            notes="Taken from the source's soil layers (0–7, 7–28 and 28–100 cm) to the depth. With "
-            "10 cm, it gives the potato models' 8 inch depth.",
+            notes="Taken from the source's soil layers (0–7, 7–28 and 28–100 cm) to the depth. With 10 cm, it gives the potato models' 8 inch depth.",
             sources={
                 "era5land": "soil_temperature_level_1-3, at the depth (agdata.sources.era5land)",
                 "ifs": "IFS HRES layers, at the depth (agdata.sources.ifs): provisional days and the forecast",
@@ -544,8 +541,7 @@ def _cumulative() -> list[Variable]:
             valid_min=-3000,
             valid_max=6000,
             derived=True,
-            notes="A day without precipitation data counts as no rain, and a day without reference "
-            "evapotranspiration is estimated as in its own running total. Either day counts as estimated.",
+            notes="A day without precipitation data counts as no rain, and a day without reference evapotranspiration is estimated as in its own running total. Either day counts as estimated.",
         ),
     ]
     # The Dynamic model's chill since October 1 (D76, `agdata.chillseason`), from hourly temperature: the portions,

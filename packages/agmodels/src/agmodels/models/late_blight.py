@@ -37,19 +37,16 @@ SPEC = ModelSpec(
     group="disease",
     version="0.3",
     status="stable",
-    summary="Daily disease severity values (0–4) from hours of high humidity and their temperature, "
-    "accumulated from crop emergence to time fungicide sprays for potato and tomato late blight.",
+    summary="Daily disease severity values (0–4) from hours of high humidity and their temperature, accumulated from crop emergence to time fungicide sprays for potato and tomato late blight.",
     topics=("late-blight",),
     crops=("Potato", "Tomato"),
     citations=(
         Citation(
-            text="Wallin, J. R. (1962). Summary of recent progress in predicting late blight epidemics in United "
-            "States and Canada. American Potato Journal 39, 306–312.",
+            text="Wallin, J. R. (1962). Summary of recent progress in predicting late blight epidemics in United States and Canada. American Potato Journal 39, 306–312.",
             doi="10.1007/BF02862155",
         ),
         Citation(
-            text="Krause, R. A., Massie, L. B. and Hyre, R. A. (1975). Blitecast: a computerized forecast of potato "
-            "late blight. Plant Disease Reporter 59, 95–98."
+            text="Krause, R. A., Massie, L. B. and Hyre, R. A. (1975). Blitecast: a computerized forecast of potato late blight. Plant Disease Reporter 59, 95–98."
         ),
         Citation(
             text="UC IPM: Potato late blight.", url="https://ipm.ucanr.edu/DISEASE/DATABASE/potatolateblight.html"
@@ -75,9 +72,7 @@ SPEC = ModelSpec(
     ),
     risk=Risk(
         levels=SEVERITY_LEVELS,
-        criteria="Very high: 21 or more DSVs in the last 14 days once the season total reaches 30. High: 14 or more in "
-        "14 days once the total reaches 18. Moderate: a season total of 18 or more (the usual first-spray "
-        "threshold). Low: any DSVs in the last 14 days. Very low: none.",
+        criteria="Very high: 21 or more DSVs in the last 14 days once the season total reaches 30. High: 14 or more in 14 days once the total reaches 18. Moderate: a season total of 18 or more (the usual first-spray threshold). Low: any DSVs in the last 14 days. Very low: none.",
     ),
     explorer=(
         ExplorerInput(
@@ -107,20 +102,17 @@ SPEC = ModelSpec(
         Change(
             version="0.1",
             date="2026-10-28",
-            note="Ported from the Crop Risk Tool; humid hours and their temperature from "
-            "the same window (the day from 8 pm).",
+            note="Ported from the Crop Risk Tool; humid hours and their temperature from the same window (the day from 8 pm).",
         ),
         Change(
             version="0.2",
             date="2026-11-03",
-            note="DSV totals (season and 14-day) count from the biofix, as the risk does "
-            "(were from the first day read).",
+            note="DSV totals (season and 14-day) count from the biofix, as the risk does (were from the first day read).",
         ),
         Change(
             version="0.3",
             date="2026-11-06",
-            note="Humid hours and their temperature from the day from 6 pm CST (was 8 pm local, the Crop Risk "
-            "Tool's), and days on CST all year (D74).",
+            note="Humid hours and their temperature from the day from 6 pm CST (was 8 pm local, the Crop Risk Tool's), and days on CST all year (D74).",
         ),
     ),
 )

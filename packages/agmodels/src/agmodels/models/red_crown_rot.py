@@ -38,14 +38,12 @@ SPEC = ModelSpec(
     group="disease",
     version="0.2",
     status="beta",
-    summary="Predicted share of soybean plants with red crown rot, from temperature and rain in the month either "
-    "side of the beginning of flowering (R1).",
+    summary="Predicted share of soybean plants with red crown rot, from temperature and rain in the month either side of the beginning of flowering (R1).",
     topics=("red-crown-rot",),
     crops=("Soybean",),
     citations=(
         Citation(
-            text="Ochi, S., Kishi, S., Kawaguchi, A. and Akamatsu, H. (2026). Meteorological and agronomic factors "
-            "analysis on the field-level incidence of red crown rot of soybean. Phytopathology 116, 1405–1413.",
+            text="Ochi, S., Kishi, S., Kawaguchi, A. and Akamatsu, H. (2026). Meteorological and agronomic factors analysis on the field-level incidence of red crown rot of soybean. Phytopathology 116, 1405–1413.",
             doi="10.1094/PHYTO-06-25-0207-R",
         ),
         Citation(
@@ -125,8 +123,7 @@ SPEC = ModelSpec(
         Change(
             version="0.2",
             date="2026-10-30",
-            note="Precipitation sums the known days and counts missing days as no rain, reporting how many; the "
-            "tool's mean of the known days times 31 estimated them. Unchanged without gaps.",
+            note="Precipitation sums the known days and counts missing days as no rain, reporting how many; the tool's mean of the known days times 31 estimated them. Unchanged without gaps.",
         ),
     ),
 )

@@ -45,10 +45,7 @@ def overrunning() -> int:
 
 def message(limit: float) -> str:
     seconds = f"{limit:g} seconds" if limit != 1 else "1 second"
-    return (
-        f"This request took longer than {seconds}, so we stopped waiting for it. Please try again in a few minutes; "
-        "a request for a smaller area or a shorter period may help."
-    )
+    return f"This request took longer than {seconds}, so we stopped waiting for it. Please try again in a few minutes; a request for a smaller area or a shorter period may help."
 
 
 class TimeLimitMiddleware:
@@ -92,8 +89,7 @@ def _overran(request: HttpRequest, task: asyncio.Task, started: float, limit: fl
     stack = "".join(f for f in frames if not any(part in f for part in _PLUMBING))
     _overrunning.add(task)
     logger.warning(
-        "API request over its %gs limit, answered with a timeout (%d now running past the limit): %s\n"
-        "Its thread is at:\n%s",
+        "API request over its %gs limit, answered with a timeout (%d now running past the limit): %s\nIts thread is at:\n%s",
         limit,
         len(_overrunning),
         where,

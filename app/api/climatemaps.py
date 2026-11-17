@@ -63,8 +63,7 @@ def built(period: str) -> dict[str, Any]:
     if found is None:
         raise ApiError(
             "no_data",
-            f"The {PERIOD_WORDS[period]} normal maps aren't ready yet. Please try again later, or ask for "
-            "the normals at a location with /climate/normals.",
+            f"The {PERIOD_WORDS[period]} normal maps aren't ready yet. Please try again later, or ask for the normals at a location with /climate/normals.",
             "period",
             status=503,
         )
@@ -87,8 +86,7 @@ def threshold_f(value: float | None, units: str) -> int:
     unit = "°C" if units == "metric" else "°F"
     raise ApiError(
         "invalid",
-        f"Freeze maps are kept for {held} {unit}, not {value:g} {unit}. Choose one of those, or ask for any "
-        "threshold at a location with /climate/frost.",
+        f"Freeze maps are kept for {held} {unit}, not {value:g} {unit}. Choose one of those, or ask for any threshold at a location with /climate/frost.",
         "threshold",
     )
 
@@ -169,8 +167,7 @@ def check(
         if q.period != "last30":
             raise ApiError(
                 "not_applicable",
-                "'period' chooses the years of a climate map, so it applies only with 'climate=normal', 'departure' or "
-                "'percentile'. Add 'climate', or leave out 'period'.",
+                "'period' chooses the years of a climate map, so it applies only with 'climate=normal', 'departure' or 'percentile'. Add 'climate', or leave out 'period'.",
                 "period",
             )
         if q.threshold is not None:
@@ -189,8 +186,7 @@ def check(
     if model is not None or counted:
         raise ApiError(
             "not_applicable",
-            "A climate map combines days by their sum, mean or count. Leave out 'first', 'last' and 'since', or ask "
-            "for freeze dates at a location with /climate/frost.",
+            "A climate map combines days by their sum, mean or count. Leave out 'first', 'last' and 'since', or ask for freeze dates at a location with /climate/frost.",
             "climate",
         )
     stored_count = None
@@ -205,8 +201,7 @@ def check(
     if stat in ("min", "max"):
         raise ApiError(
             "not_applicable",
-            f"The normal of a range's {'lowest' if stat == 'min' else 'highest'} value isn't kept as a map. Use "
-            "'stat=mean' or 'sum', or ask at a location with /climate/normals, which works it out from each year.",
+            f"The normal of a range's {'lowest' if stat == 'min' else 'highest'} value isn't kept as a map. Use 'stat=mean' or 'sum', or ask at a location with /climate/normals, which works it out from each year.",
             "stat",
         )
     info = built(q.period)
@@ -217,16 +212,14 @@ def check(
         if stored_count is not None and stored_count.name not in held:
             raise ApiError(
                 "no_data",
-                f"The {PERIOD_WORDS[q.period]} normal maps of counts aren't ready yet. Please try again later, or ask "
-                "for the count at a location with /climate/normals.",
+                f"The {PERIOD_WORDS[q.period]} normal maps of counts aren't ready yet. Please try again later, or ask for the count at a location with /climate/normals.",
                 "period",
                 status=503,
             )
         if layer.variable not in held:
             raise ApiError(
                 "not_applicable",
-                f"The {PERIOD_WORDS[q.period]} normals have no {title}: the records before 2016 have each day's "
-                "minimum and maximum only. Ask for 'period=last10' or 'last5'.",
+                f"The {PERIOD_WORDS[q.period]} normals have no {title}: the records before 2016 have each day's minimum and maximum only. Ask for 'period=last10' or 'last5'.",
                 "period",
             )
     elif layer.id == DEGREE_DAYS:
@@ -234,8 +227,7 @@ def check(
         if cubes is None or any(c is not None and c not in held for c in cubes):
             raise ApiError(
                 "not_applicable",
-                f"Normal maps are kept for the degree-day settings we keep running totals of, not "
-                f"{quoted(setting.name)}. Ask for its normals at a location with '/climate/normals?dd={setting.name}'.",
+                f"Normal maps are kept for the degree-day settings we keep running totals of, not {quoted(setting.name)}. Ask for its normals at a location with '/climate/normals?dd={setting.name}'.",
                 "dd",
             )
     if kind == "percentile":
@@ -243,9 +235,7 @@ def check(
         if decile is None or q.period == "last5":
             raise ApiError(
                 "not_applicable",
-                "Percentile maps are kept for running totals from January 1 of precipitation and modified 50/86 "
-                "and single sine 41/86 degree days, over the 30 or 10 years. Ask for 'climate=departure', or for the "
-                "percentile at a location with /climate/compare.",
+                "Percentile maps are kept for running totals from January 1 of precipitation and modified 50/86 and single sine 41/86 degree days, over the 30 or 10 years. Ask for 'climate=departure', or for the percentile at a location with /climate/compare.",
                 "climate",
             )
         start = first if isinstance(first, date) else None
@@ -267,16 +257,14 @@ def _stored_count(
     if kind == "percentile":
         raise ApiError(
             "not_applicable",
-            "Percentile maps aren't kept for counts. Ask for 'climate=departure', or for the percentile at a location "
-            "with /climate/compare.",
+            "Percentile maps aren't kept for counts. Ask for 'climate=departure', or for the percentile at a location with /climate/compare.",
             "climate",
         )
     offered = [s for s in normals.COUNTS if s.variable == layer.variable]
     if layer.source != "daily" or not offered:
         raise ApiError(
             "not_applicable",
-            "Normal maps of counts are kept for the daily maximum and minimum temperature, precipitation and "
-            "sunlight. Ask for other counts at a location with /climate/normals.",
+            "Normal maps of counts are kept for the daily maximum and minimum temperature, precipitation and sunlight. Ask for other counts at a location with /climate/normals.",
             "count",
         )
     step = DAILY_VARIABLES[offered[0].variable].scale
@@ -296,8 +284,7 @@ def _stored_count(
         forms.append(quoted(f"days_{side}_{number}"))
     raise ApiError(
         "not_applicable",
-        f"{layer_title(layer)} has normal maps for these counts only: {', '.join(forms)}. Choose one of those, or "
-        "ask for any count at a location with /climate/normals.",
+        f"{layer_title(layer)} has normal maps for these counts only: {', '.join(forms)}. Choose one of those, or ask for any count at a location with /climate/normals.",
         "count",
     )
 

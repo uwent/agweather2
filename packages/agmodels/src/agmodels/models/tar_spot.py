@@ -34,15 +34,12 @@ SPEC = ModelSpec(
     group="disease",
     version="0.2",
     status="stable",
-    summary="The probability of tar spot spores being present, from a month of temperature and humidity; corn "
-    "is susceptible from V10 (10th leaf) to R3 (milk).",
+    summary="The probability of tar spot spores being present, from a month of temperature and humidity; corn is susceptible from V10 (10th leaf) to R3 (milk).",
     topics=("tar-spot",),
     crops=("Corn",),
     citations=(
         Citation(
-            text="Webster, R. W., Nicolli, C., Allen, T. W., et al. (2023). Uncovering the environmental conditions "
-            "required for Phyllachora maydis infection and tar spot development on corn in the United States for "
-            "use as predictive models for future epidemics. Scientific Reports 13, 17064.",
+            text="Webster, R. W., Nicolli, C., Allen, T. W., et al. (2023). Uncovering the environmental conditions required for Phyllachora maydis infection and tar spot development on corn in the United States for use as predictive models for future epidemics. Scientific Reports 13, 17064.",
             doi="10.1038/s41598-023-44338-6",
         ),
         Citation(
@@ -121,8 +118,7 @@ SPEC = ModelSpec(
         Change(
             version="0.2",
             date="2026-11-06",
-            note="The same night hours (readings 20:00–06:00, 7 pm to 6 am) on CST all year, an hour later by the "
-            "clock in summer (D74).",
+            note="The same night hours (readings 20:00–06:00, 7 pm to 6 am) on CST all year, an hour later by the clock in summer (D74).",
         ),
     ),
 )

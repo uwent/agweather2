@@ -24,16 +24,12 @@ SPEC = ModelSpec(
     group="insect",
     version="0.2",
     status="stable",
-    summary="The risk of oak wilt spreading by its beetle vectors, from their flight timed by degree days (base "
-    "41 °F) and the season (wounding before mid-July).",
+    summary="The risk of oak wilt spreading by its beetle vectors, from their flight timed by degree days (base 41 °F) and the season (wounding before mid-July).",
     topics=("oak-wilt",),
     crops=("Oak",),
     citations=(
         Citation(
-            text="Jagemann, S. M., Juzwik, J., Tobin, P. C. and Raffa, K. F. (2018). Seasonal and regional "
-            "distributions, degree-day models, and phoresy rates of the major sap beetle (Coleoptera: Nitidulidae) "
-            "vectors of the oak wilt fungus, Bretziella fagacearum, in Wisconsin. Environmental Entomology 47, "
-            "1152–1164.",
+            text="Jagemann, S. M., Juzwik, J., Tobin, P. C. and Raffa, K. F. (2018). Seasonal and regional distributions, degree-day models, and phoresy rates of the major sap beetle (Coleoptera: Nitidulidae) vectors of the oak wilt fungus, Bretziella fagacearum, in Wisconsin. Environmental Entomology 47, 1152–1164.",
             doi="10.1093/ee/nvy080",
         ),
     ),
@@ -54,9 +50,7 @@ SPEC = ModelSpec(
     ),
     risk=Risk(
         levels=SEVERITY_LEVELS,
-        criteria="Vector flight by degree days: Low from 180 (under 5% of C. truncatus flying), Moderate from 231, "
-        "High from 283, Very high from 388 to 913 (peak flight), then High to 1,792, Moderate to 2,172 and Low after. "
-        "From July 15 two levels lower and at most Low; from July 22 one lower again.",
+        criteria="Vector flight by degree days: Low from 180 (under 5% of C. truncatus flying), Moderate from 231, High from 283, Very high from 388 to 913 (peak flight), then High to 1,792, Moderate to 2,172 and Low after. From July 15 two levels lower and at most Low; from July 22 one lower again.",
     ),
     explorer=(
         ExplorerInput(
@@ -86,8 +80,7 @@ SPEC = ModelSpec(
         Change(
             version="0.2",
             date="2026-11-01",
-            note="The July 15 and July 22 reductions apply to runs, not only the explorer (the spec didn't ask the "
-            "runner for the day of the year), and fall on those dates in leap years too.",
+            note="The July 15 and July 22 reductions apply to runs, not only the explorer (the spec didn't ask the runner for the day of the year), and fall on those dates in leap years too.",
         ),
     ),
 )

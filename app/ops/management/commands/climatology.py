@@ -7,12 +7,7 @@ from ops.management.base import ReportingCommand
 
 
 class Command(ReportingCommand):
-    help = (
-        "Keep the 30-year normal's gridMET years (D82, D84): fetch the files the trailing 30 complete years need "
-        "(the box's part of each, kept as received in data/gridmet), fit the adjustment to the archive over the "
-        "years both have, derive the years the archive lacks onto the 2.5 km grid, and drop what the period no longer "
-        "needs. Downloads run outside the write lock. Resumable: a rerun fetches what's missing."
-    )
+    help = "Keep the 30-year normal's gridMET years (D82, D84): fetch the files the trailing 30 complete years need (the box's part of each, kept as received in data/gridmet), fit the adjustment to the archive over the years both have, derive the years the archive lacks onto the 2.5 km grid, and drop what the period no longer needs. Downloads run outside the write lock. Resumable: a rerun fetches what's missing."
     stoppable = True
 
     def add_arguments(self, parser):

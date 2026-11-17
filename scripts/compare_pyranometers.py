@@ -145,11 +145,7 @@ def build_report(args, days, stations, observed, v2, ssec, open_meteo) -> str:
     lines = [
         "# Shortwave against Wisconet's pyranometers",
         "",
-        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_pyranometers.py` (PLAN.md Phase 2 H). Daily "
-        f"totals (MJ/m²), {days[0]} to {days[-1]}, at {len(stations)} Wisconet stations in the `{args.box}` box: v2 "
-        "(HRRR's hourly means) at the station's cell and the old API's SSEC satellite insolation at the nearest 0.1° "
-        f"point, against the station's `{FIELD}`. Station days outside {PLAUSIBLE_MJ[0]:g}–{PLAUSIBLE_MJ[1]:g} MJ/m² "
-        "are left out. Bias and MAE in MJ/m²; ratio is of the totals over the same days.",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_pyranometers.py` (PLAN.md Phase 2 H). Daily totals (MJ/m²), {days[0]} to {days[-1]}, at {len(stations)} Wisconet stations in the `{args.box}` box: v2 (HRRR's hourly means) at the station's cell and the old API's SSEC satellite insolation at the nearest 0.1° point, against the station's `{FIELD}`. Station days outside {PLAUSIBLE_MJ[0]:g}–{PLAUSIBLE_MJ[1]:g} MJ/m² are left out. Bias and MAE in MJ/m²; ratio is of the totals over the same days.",
         "",
         "## Which day a Wisconet stamp closes",
         "",
@@ -169,8 +165,7 @@ def build_report(args, days, stations, observed, v2, ssec, open_meteo) -> str:
     lines += [row(f"Open-Meteo {model}", values, observed) for model, values in open_meteo.items()]
     lines += [
         "",
-        "Open-Meteo is its historical-forecast API at each station's location (its own cell), on Central days. WISP 3 "
-        "takes ET0 from Open-Meteo, NBM first, then best_match.",
+        "Open-Meteo is its historical-forecast API at each station's location (its own cell), on Central days. WISP 3 takes ET0 from Open-Meteo, NBM first, then best_match.",
     ]
 
     months = np.array([d.year * 100 + d.month for d in days])
@@ -188,8 +183,7 @@ def build_report(args, days, stations, observed, v2, ssec, open_meteo) -> str:
         n, b2, m2, r2, _ = stats(v2[sel], observed[sel])
         _, bs, ms, rs, _ = stats(ssec[sel], observed[sel])
         lines.append(
-            f"| {month // 100}-{month % 100:02d} | {n} | {b2:+.2f} | {m2:.2f} | {r2:.2f} | "
-            f"{bs:+.2f} | {ms:.2f} | {rs:.2f} | "
+            f"| {month // 100}-{month % 100:02d} | {n} | {b2:+.2f} | {m2:.2f} | {r2:.2f} | {bs:+.2f} | {ms:.2f} | {rs:.2f} | "
             + " | ".join(f"{stats(values[sel], observed[sel])[3]:.2f}" for values in open_meteo.values())
             + " |"
         )
@@ -206,8 +200,7 @@ def build_report(args, days, stations, observed, v2, ssec, open_meteo) -> str:
         _, _, _, rs, cs = stats(ssec[:, k], observed[:, k])
         if n:
             lines.append(
-                f"| {station['station_name']} ({station['station_id']}) | {n} | "
-                f"{r2:.2f} | {c2:.3f} | {rs:.2f} | {cs:.3f} |"
+                f"| {station['station_name']} ({station['station_id']}) | {n} | {r2:.2f} | {c2:.3f} | {rs:.2f} | {cs:.3f} |"
             )
     lines.append("")
     return "\n".join(lines)

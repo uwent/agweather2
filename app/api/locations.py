@@ -30,10 +30,7 @@ def days_text(zone: str, year: int) -> str:
 
     if winter.utcoffset() == summer.utcoffset():
         return f"Midnight to midnight {winter.tzname()} ({utc(winter)})."
-    return (
-        f"Midnight to midnight local time: {winter.tzname()} ({utc(winter)}) in standard time and "
-        f"{summer.tzname()} ({utc(summer)}) in daylight time."
-    )
+    return f"Midnight to midnight local time: {winter.tzname()} ({utc(winter)}) in standard time and {summer.tzname()} ({utc(summer)}) in daylight time."
 
 
 def describe_days(lat: float, lng: float, year: int, basis: DayBasis | None = None) -> dict[str, Any]:

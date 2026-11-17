@@ -34,14 +34,12 @@ SPEC = ModelSpec(
     group="disease",
     version="0.3",
     status="stable",
-    summary="Daily infection values (0–7) from hours of high humidity and their temperature; their 2- and "
-    "7-day means time fungicide sprays for Cercospora leaf spot of table and sugar beet.",
+    summary="Daily infection values (0–7) from hours of high humidity and their temperature; their 2- and 7-day means time fungicide sprays for Cercospora leaf spot of table and sugar beet.",
     topics=("beet-cercospora-leaf-spot",),
     crops=("Beet",),
     citations=(
         Citation(
-            text="Windels, C. E., Lamey, H. A., Hilde, D., Widner, J. and Knudsen, T. (1998). A Cercospora leaf spot "
-            "model for sugar beet: in practice by an industry. Plant Disease 82, 716–726.",
+            text="Windels, C. E., Lamey, H. A., Hilde, D., Widner, J. and Knudsen, T. (1998). A Cercospora leaf spot model for sugar beet: in practice by an industry. Plant Disease 82, 716–726.",
             doi="10.1094/PDIS.1998.82.7.716",
         ),
         Citation(
@@ -66,8 +64,7 @@ SPEC = ModelSpec(
     ),
     risk=Risk(
         levels=SEVERITY_LEVELS,
-        criteria="Very high when the last 7 days average 5 or more DIV or the last 2 days 5.5; High from 3 (7 days) or "
-        "3.5 (2 days); Moderate from 1.5 or 2; Low from 0.5 or 1; Very low below those.",
+        criteria="Very high when the last 7 days average 5 or more DIV or the last 2 days 5.5; High from 3 (7 days) or 3.5 (2 days); Moderate from 1.5 or 2; Low from 0.5 or 1; Very low below those.",
     ),
     explorer=(
         ExplorerInput(
@@ -96,8 +93,7 @@ SPEC = ModelSpec(
         Change(
             version="0.1",
             date="2026-10-28",
-            note="Ported from the Crop Risk Tool; humid hours and their temperature from "
-            "the same window (the day from 8 pm).",
+            note="Ported from the Crop Risk Tool; humid hours and their temperature from the same window (the day from 8 pm).",
         ),
         Change(
             version="0.2",
@@ -107,8 +103,7 @@ SPEC = ModelSpec(
         Change(
             version="0.3",
             date="2026-11-06",
-            note="Humid hours and their temperature from the day from 6 pm CST (was 8 pm local, the Crop Risk "
-            "Tool's), and days on CST all year (D74).",
+            note="Humid hours and their temperature from the day from 6 pm CST (was 8 pm local, the Crop Risk Tool's), and days on CST all year (D74).",
         ),
     ),
 )

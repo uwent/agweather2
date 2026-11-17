@@ -66,8 +66,7 @@ def main():
         report.fail("stations", f"no Wisconet stations inside the {args.box} box")
         sys.exit(1)
     report.step(
-        f"fitting the HRRR shortwave correction on {args.fit}, testing on {args.test} (to {args.test_end}), "
-        f"{len(stations)} stations; writing {TABLE_PATH} and {args.out}"
+        f"fitting the HRRR shortwave correction on {args.fit}, testing on {args.test} (to {args.test_end}), {len(stations)} stations; writing {TABLE_PATH} and {args.out}"
     )
 
     fit = pairs(Path(args.data), wisconet, stations, field_id, args.fit, date(args.fit, 12, 31), report)
@@ -103,10 +102,7 @@ def main():
     lines = [
         "# HRRR shortwave correction",
         "",
-        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/fit_shortwave_correction.py` (D48). Fitted on {args.fit}, "
-        f"tested on {args.test} (to {args.test_end}), at {len(stations)} Wisconet stations: hourly HRRR at each "
-        f"station's cell against the station's `{FIELD}`. The factor is by the hour's clearness (HRRR over FAO-56 "
-        "clear-sky Rso), applied as a linear interpolation between bin middles.",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/fit_shortwave_correction.py` (D48). Fitted on {args.fit}, tested on {args.test} (to {args.test_end}), at {len(stations)} Wisconet stations: hourly HRRR at each station's cell against the station's `{FIELD}`. The factor is by the hour's clearness (HRRR over FAO-56 clear-sky Rso), applied as a linear interpolation between bin middles.",
         "",
         "| Clearness | " + " | ".join(f"{m:.2f}" for m in middles) + " |",
         "|---|" + "---|" * len(middles),
@@ -131,9 +127,7 @@ def main():
     )
     lines += [
         "",
-        f"By station: median {np.median(ratios):.2f}, 10–90% {np.percentile(ratios, 10):.2f}–"
-        f"{np.percentile(ratios, 90):.2f} (raw HRRR differs by station too: 1.15 at Arlington, 1.26 at Hancock "
-        "in 2025).",
+        f"By station: median {np.median(ratios):.2f}, 10–90% {np.percentile(ratios, 10):.2f}–{np.percentile(ratios, 90):.2f} (raw HRRR differs by station too: 1.15 at Arlington, 1.26 at Hancock in 2025).",
         "",
     ]
     report.step(f"writing {args.out} (overwriting)")

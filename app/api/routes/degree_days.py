@@ -192,8 +192,7 @@ def daily(
     start_at = max(0, ((fixed or first) - read_from).days)
     if fixed is not None and fixed > last:
         warnings.append(
-            f"The biofix ({day_text(fixed)}) is after the last day asked for ({day_text(last)}), so there are no "
-            "running totals."
+            f"The biofix ({day_text(fixed)}) is after the last day asked for ({day_text(last)}), so there are no running totals."
         )
     columns: dict[str, list] = {}
     roller = rolled.Roller(q=rolls, gaps=options.gaps)
@@ -391,8 +390,7 @@ def _project(days, n: int, lat: float, lng: float, last: date, years: list[int],
         {"air_temperature_min": tmin[:cut], "air_temperature_max": tmax[:cut]}, kinds[:cut], found
     )
     note = (
-        f"The archive has one earlier year ({found.years[0]}), so the projection follows that year alone, with no "
-        "range."
+        f"The archive has one earlier year ({found.years[0]}), so the projection follows that year alone, with no range."
         if len(found.years) == 1
         else None
     )
@@ -508,8 +506,7 @@ def freeze_thresholds(thresholds: str | None, units: str, warnings: list[str]) -
         if not given:
             raise ApiError(
                 "missing",
-                "The 'thresholds' list is empty. Give one or more temperatures separated by commas, "
-                "such as 'thresholds=32,28'.",
+                "The 'thresholds' list is empty. Give one or more temperatures separated by commas, such as 'thresholds=32,28'.",
                 "thresholds",
             )
     return given, [temperature_threshold(t, units, FREEZE, "thresholds", warnings) for t in given]
@@ -634,8 +631,7 @@ def chill_at_points(
         if first > last:
             raise ApiError(
                 "out_of_order",
-                f"The start date ({day_text(first)}) is after the end date ({day_text(last)}). Choose a start on or "
-                "before the end.",
+                f"The start date ({day_text(first)}) is after the end date ({day_text(last)}). Choose a start on or before the end.",
                 "start",
             )
     n_days = (last - first).days + 1
@@ -682,8 +678,7 @@ def chill_at_points(
     columns.append(Column(name="missing_hours", values=rows["missing_hours"]))
     if any(rows["missing_hours"]):
         warnings.append(
-            f"{sum(rows['missing_hours']):,} hours in this period have no temperature, so they add nothing to the "
-            "totals. The 'missing_hours' column shows which days they fall on."
+            f"{sum(rows['missing_hours']):,} hours in this period have no temperature, so they add nothing to the totals. The 'missing_hours' column shows which days they fall on."
         )
     if trim_end and rows["date"]:
         computed["end"] = max(rows["date"])
@@ -730,8 +725,7 @@ def _chill_bounds(method: str, raw: str | None, units: str, warnings: list[str])
     if len(given) != 2 or given[0] >= given[1]:
         raise ApiError(
             "invalid",
-            f"Give 'bounds' as a lower and an upper temperature separated by a comma, lower first, such as "
-            f"'bounds={'32,45' if units == 'us' else '0,7.2'}'.",
+            f"Give 'bounds' as a lower and an upper temperature separated by a comma, lower first, such as 'bounds={'32,45' if units == 'us' else '0,7.2'}'.",
             "bounds",
         )
     low_f, high_f = (temperature_threshold(v, units, CHILL, "bounds", warnings) for v in given)

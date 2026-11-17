@@ -10,10 +10,7 @@ from ops.models import IngestRecord
 
 
 class Command(ReportingCommand):
-    help = (
-        "Build and publish the newest complete long NBM run (or the one before --before), as the job does; exits "
-        "nonzero if the build fails. Holds the write lock for the build (several minutes)."
-    )
+    help = "Build and publish the newest complete long NBM run (or the one before --before), as the job does; exits nonzero if the build fails. Holds the write lock for the build (several minutes)."
 
     def add_arguments(self, parser):
         parser.add_argument("--before", default=None, help="UTC time to look back from, YYYY-MM-DDTHH (default: now)")

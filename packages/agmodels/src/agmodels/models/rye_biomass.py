@@ -31,8 +31,7 @@ SPEC = ModelSpec(
     group="agronomic",
     version="0.2",
     status="beta",
-    summary="Spring biomass of a fall-planted cereal rye cover crop, from growing degree days (base 0 °C) since "
-    "planting, the planting date and fall precipitation, against the biomass cover crop goals need.",
+    summary="Spring biomass of a fall-planted cereal rye cover crop, from growing degree days (base 0 °C) since planting, the planting date and fall precipitation, against the biomass cover crop goals need.",
     topics=("cereal-rye-cover-crop",),
     crops=("Rye",),
     citations=(
@@ -42,8 +41,7 @@ SPEC = ModelSpec(
             url="https://cropsandsoils.extension.wisc.edu/articles/biomass-thresholds-for-cereal-rye-cover-crop-goals/",
         ),
         Citation(
-            text="Badger Crop Network: How much cereal rye cover crop biomass is needed to suppress troublesome weeds "
-            "in Wisconsin?",
+            text="Badger Crop Network: How much cereal rye cover crop biomass is needed to suppress troublesome weeds in Wisconsin?",
             url="https://badgercropnetwork.com/how-much-cereal-rye-cover-crop-biomass-is-needed-to-suppress-troublesome-weeds-in-wisconsin/",
         ),
     ),
@@ -61,8 +59,7 @@ SPEC = ModelSpec(
     ),
     risk=Risk(
         levels=("Low", "Moderate", "High"),
-        criteria="Biomass: Low below 2,000 lb/ac (modest nitrate leaching reduction), Moderate from 2,000 (erosion, "
-        "runoff phosphorus and nitrate), High from 4,500 (weed suppression as well).",
+        criteria="Biomass: Low below 2,000 lb/ac (modest nitrate leaching reduction), Moderate from 2,000 (erosion, runoff phosphorus and nitrate), High from 4,500 (weed suppression as well).",
     ),
     explorer=(
         ExplorerInput(
@@ -112,8 +109,7 @@ SPEC = ModelSpec(
         Change(
             version="0.2",
             date="2026-11-01",
-            note="Biomass is 0 where the fit's linear term goes negative (a late planting after a very wet fall); "
-            "squaring it had made biomass rise again with more rain.",
+            note="Biomass is 0 where the fit's linear term goes negative (a late planting after a very wet fall); squaring it had made biomass rise again with more rain.",
         ),
     ),
 )

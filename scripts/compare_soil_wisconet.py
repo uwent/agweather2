@@ -64,8 +64,7 @@ def main():
     parser.add_argument(
         "--fit-seam",
         action="store_true",
-        help=f"fit IFS's seam weights (Q23) on the first year, test on the rest, write {soil_seam.TABLE_PATH.name} "
-        "fitted on every year, and add the test to the report",
+        help=f"fit IFS's seam weights (Q23) on the first year, test on the rest, write {soil_seam.TABLE_PATH.name} fitted on every year, and add the test to the report",
     )
     parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
@@ -236,15 +235,7 @@ def build_report(args, stations, station, at_potato, ifs_layers, snow, archive, 
     lines = [
         "# Soil temperature against Wisconet",
         "",
-        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_soil_wisconet.py`, {args.start} to {args.end}, "
-        f"at {len(stations)} Wisconet stations (with a sensor at 5 cm: {have[5.0]}, 10: {have[10.0]}, 20: "
-        f"{have[20.0]}, 50: {have[50.0]}, 100: {have[100.0]}). The archive is v2's grid at the "
-        "station's cell (ERA5-Land's soil, D52, where the archive has it); IFS is Open-Meteo's `ecmwf_ifs` from its "
-        "historical-forecast API (short leads) and ERA5-Land "
-        "from its archive API (`era5_land`), both at the station's location and taken to the depths the same way. "
-        "Each depth the potato model reads (2, 4 and 8 in) is set against the station's "
-        f"sensor at 5, 10 and 20 cm. Bias is the source minus the station, in °C; snow-covered hours are those "
-        f"with IFS's snow depth ≥ {SNOW_M * 100:.0f} cm.",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_soil_wisconet.py`, {args.start} to {args.end}, at {len(stations)} Wisconet stations (with a sensor at 5 cm: {have[5.0]}, 10: {have[10.0]}, 20: {have[20.0]}, 50: {have[50.0]}, 100: {have[100.0]}). The archive is v2's grid at the station's cell (ERA5-Land's soil, D52, where the archive has it); IFS is Open-Meteo's `ecmwf_ifs` from its historical-forecast API (short leads) and ERA5-Land from its archive API (`era5_land`), both at the station's location and taken to the depths the same way. Each depth the potato model reads (2, 4 and 8 in) is set against the station's sensor at 5, 10 and 20 cm. Bias is the source minus the station, in °C; snow-covered hours are those with IFS's snow depth ≥ {SNOW_M * 100:.0f} cm.",
         "",
         "## By depth and season (bias / MAE, °C)",
         "",
@@ -264,8 +255,7 @@ def build_report(args, stations, station, at_potato, ifs_layers, snow, archive, 
         "",
         "## Archive minus IFS, by month (°C, mean over the hours both have)",
         "",
-        "What a forecast steps by at the handover, on average, if neither drifts with lead. Beside it, each "
-        "source's bias against the stations at 4 in.",
+        "What a forecast steps by at the handover, on average, if neither drifts with lead. Beside it, each source's bias against the stations at 4 in.",
         "",
         "| Month | 2 in | 4 in | 8 in | archive − station, 4 in | IFS − station, 4 in |",
         "|---|---|---|---|---|---|",
@@ -296,11 +286,7 @@ def build_report(args, stations, station, at_potato, ifs_layers, snow, archive, 
         "",
         "## Shifting IFS by the difference at the seam",
         "",
-        "If the archive hands over to IFS at hour t (ERA5-Land's last hour), how far is IFS from the archive d days "
-        "later: unshifted, shifted by the difference in hour t, or by the mean difference over the 24 hours to t? "
-        "RMSE (°C) of archive − IFS d days on, over every station-hour of the period (IFS's short leads stand in for "
-        "its longer ones). r is the correlation of the difference with itself d days later (each station's mean "
-        "removed).",
+        "If the archive hands over to IFS at hour t (ERA5-Land's last hour), how far is IFS from the archive d days later: unshifted, shifted by the difference in hour t, or by the mean difference over the 24 hours to t? RMSE (°C) of archive − IFS d days on, over every station-hour of the period (IFS's short leads stand in for its longer ones). r is the correlation of the difference with itself d days later (each station's mean removed).",
         "",
         "| Depth | shift | " + " | ".join(f"{d} d" for d in LAGS_DAYS) + " |",
         "|---|---|" + "---|" * len(LAGS_DAYS),
@@ -327,8 +313,7 @@ def build_report(args, stations, station, at_potato, ifs_layers, snow, archive, 
         "",
         "## IFS's layers against the stations at their middles (bias / MAE, °C)",
         "",
-        "The stations' value at a layer's middle is linear between their sensors around it (64 cm between 50 and "
-        "100). If a layer agrees here but its interpolated depths don't, the interpolation is at fault.",
+        "The stations' value at a layer's middle is linear between their sensors around it (64 cm between 50 and 100). If a layer agrees here but its interpolated depths don't, the interpolation is at fault.",
         "",
         "| Layer | middle (cm) | all | " + " | ".join(SEASONS) + " |",
         "|---|---|---|" + "---|" * len(SEASONS),
@@ -348,10 +333,7 @@ def build_report(args, stations, station, at_potato, ifs_layers, snow, archive, 
         "",
         "## Hours below 27 °F, November–March",
         "",
-        "Hours per station-winter-day, over the station-days on which the station and every source have every hour, "
-        "and in brackets the share of those days with any. "
-        "Station soil under snow is insulated; a field the wind has scoured is colder, so a source below the "
-        "stations isn't necessarily wrong here.",
+        "Hours per station-winter-day, over the station-days on which the station and every source have every hour, and in brackets the share of those days with any. Station soil under snow is insulated; a field the wind has scoured is colder, so a source below the stations isn't necessarily wrong here.",
         "",
         "| Depth | station | " + " | ".join(at_potato) + " | station-days |",
         "|---|---|" + "---|" * len(at_potato) + "---|",
@@ -396,9 +378,7 @@ def fit_seam(
         "",
         "## IFS shifted at the seam (Q23)",
         "",
-        f"The weight on the difference in ERA5-Land's last hour, fitted on {times[0].year}'s hours and tested on the "
-        "later ones: RMSE (°C) of the archive − IFS at each lead, unshifted, shifted by the whole difference, and by "
-        f"the fitted weight. The table written (`{soil_seam.TABLE_PATH.name}`) is fitted on every year.",
+        f"The weight on the difference in ERA5-Land's last hour, fitted on {times[0].year}'s hours and tested on the later ones: RMSE (°C) of the archive − IFS at each lead, unshifted, shifted by the whole difference, and by the fitted weight. The table written (`{soil_seam.TABLE_PATH.name}`) is fitted on every year.",
         "",
         "| Depth | lead (d) | weight | none | whole | weighted |",
         "|---|---|---|---|---|---|",
@@ -418,14 +398,12 @@ def fit_seam(
             now, then = d[:, : n - h], d[:, h:]
             ok = np.isfinite(now) & np.isfinite(then) & ~first_year[None, : n - h]
             lines.append(
-                f"| {name.removeprefix('soil_temperature_')} | {h // 24} | {w[k]:.2f} | {rmse(then[ok]):.2f} "
-                f"| {rmse(then[ok] - now[ok]):.2f} | {rmse(then[ok] - w[k] * now[ok]):.2f} |"
+                f"| {name.removeprefix('soil_temperature_')} | {h // 24} | {w[k]:.2f} | {rmse(then[ok]):.2f} | {rmse(then[ok] - now[ok]):.2f} | {rmse(then[ok] - w[k] * now[ok]):.2f} |"
             )
     table = {
         "version": 1,
         "fitted": f"{datetime.now(UTC):%Y-%m-%d}",
-        "source": f"The archive (ERA5-Land) minus Open-Meteo's ecmwf_ifs at {stations} Wisconet stations' cells, "
-        f"{times[0]:%Y-%m-%d} to {times[-1]:%Y-%m-%d}",
+        "source": f"The archive (ERA5-Land) minus Open-Meteo's ecmwf_ifs at {stations} Wisconet stations' cells, {times[0]:%Y-%m-%d} to {times[-1]:%Y-%m-%d}",
         "lead_hours": [int(h) for h in SEAM_LEADS],
         "weight": {name: [round(float(x), 4) for x in w] for name, w in fitted.items()},
     }

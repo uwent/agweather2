@@ -33,14 +33,12 @@ SPEC = ModelSpec(
     group="agronomic",
     version="0.2",
     status="beta",
-    summary="Whether potato tubers left in the field are likely to survive the winter, from the hours of soil "
-    "below 27 °F at 2, 4 and 8 in; surviving volunteers can carry late blight and insect pests into the next season.",
+    summary="Whether potato tubers left in the field are likely to survive the winter, from the hours of soil below 27 °F at 2, 4 and 8 in; surviving volunteers can carry late blight and insect pests into the next season.",
     topics=("potato-volunteers",),
     crops=("Potato",),
     citations=(
         Citation(
-            text="Kirk, W. and Wharton, P. Potential survival of potato volunteers in Michigan. Michigan State "
-            "University Extension.",
+            text="Kirk, W. and Wharton, P. Potential survival of potato volunteers in Michigan. Michigan State University Extension.",
             url="https://www.canr.msu.edu/news/potential_survival_of_potato_volunteers_in_mich",
         ),
         Citation(
@@ -77,8 +75,7 @@ SPEC = ModelSpec(
     ),
     risk=Risk(
         levels=("Low", "Moderate", "High", "Very high"),
-        criteria="The chance tubers survive, by the depths (2, 4 and 8 in) with at least 120 hours below 27 °F from "
-        "November 1 through March 31: Low at all three, Moderate at two, High at one, Very high at none.",
+        criteria="The chance tubers survive, by the depths (2, 4 and 8 in) with at least 120 hours below 27 °F from November 1 through March 31: Low at all three, Moderate at two, High at one, Very high at none.",
     ),
     explorer=tuple(
         ExplorerInput(
@@ -109,8 +106,7 @@ SPEC = ModelSpec(
         Change(
             version="0.2",
             date="2026-11-05",
-            note="Counts November 1 through March 31 (MSU's window), not a year from October 1: April's cold no "
-            "longer counts. A seasonal product, shown from January 1.",
+            note="Counts November 1 through March 31 (MSU's window), not a year from October 1: April's cold no longer counts. A seasonal product, shown from January 1.",
         ),
     ),
 )

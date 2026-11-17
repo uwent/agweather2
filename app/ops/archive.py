@@ -268,8 +268,7 @@ def fill(
             if stopping.is_set():
                 break
             report.step(
-                f"{plan.year}: {plan.hours.hours} hours to fetch, {plan.era5land_days} days of ERA5-Land, "
-                f"past-years copy {'to build' if plan.past_years else 'current'}"
+                f"{plan.year}: {plan.hours.hours} hours to fetch, {plan.era5land_days} days of ERA5-Land, past-years copy {'to build' if plan.past_years else 'current'}"
             )
             run = backfill.run(  # a year whose hours are all in only rolls up days that aren't
                 data_dir=data_dir,

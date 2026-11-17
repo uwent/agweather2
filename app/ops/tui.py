@@ -628,8 +628,7 @@ class Dashboard(App):
 
         self.push_screen(
             Confirm(
-                f"Forget {len(finished)} finished, failed or stopped run(s) with their logs, and stop counting the "
-                "jobs failed so far as a problem? Running ones stay."
+                f"Forget {len(finished)} finished, failed or stopped run(s) with their logs, and stop counting the jobs failed so far as a problem? Running ones stay."
             ),
             clear,
         )

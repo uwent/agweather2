@@ -49,8 +49,7 @@ def main():
     hours = [start + timedelta(hours=n) for n in range(int((end - start) / timedelta(hours=1)))]
     todo = [h for h in hours if not (out / f"{h:%Y%m%d%H}.npz").exists()]
     report.step(
-        f"{len(hours)} hours from {start:%Y-%m-%d %H}Z to {end:%Y-%m-%d %H}Z, {len(todo)} to download "
-        f"({args.workers} workers), window {window.shape}, writing {out}/<YYYYMMDDHH>.npz and download.log"
+        f"{len(hours)} hours from {start:%Y-%m-%d %H}Z to {end:%Y-%m-%d %H}Z, {len(todo)} to download ({args.workers} workers), window {window.shape}, writing {out}/<YYYYMMDDHH>.npz and download.log"
     )
 
     sessions: dict[int, requests.Session] = {}

@@ -99,8 +99,7 @@ def period_years(p: Plan, name: str) -> list[int]:
 
 def describe(p: Plan) -> list[str]:
     lines = [
-        f"30-year period {p.period[0]}–{p.period[-1]}: {_years(p.normal)} from gridMET, "
-        f"{_years(p.overlap)} from the archive (and the fit's overlap)"
+        f"30-year period {p.period[0]}–{p.period[-1]}: {_years(p.normal)} from gridMET, {_years(p.overlap)} from the archive (and the fit's overlap)"
     ]
     if p.fetch:
         years = sorted({y for _, y in p.fetch})

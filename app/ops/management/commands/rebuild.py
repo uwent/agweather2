@@ -6,10 +6,7 @@ from ops.management.base import ReportingCommand
 
 
 class Command(ReportingCommand):
-    help = (
-        "Recompute derived data written by an older version of its code (D29); run on deploy, like migrate. Waits "
-        "for the write lock if a job holds it."
-    )
+    help = "Recompute derived data written by an older version of its code (D29); run on deploy, like migrate. Waits for the write lock if a job holds it."
 
     def add_arguments(self, parser):
         parser.add_argument("--stale", action="store_true", help="recompute stale variables")

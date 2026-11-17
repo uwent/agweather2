@@ -80,15 +80,9 @@ class ApiError(Exception):
         return {"code": self.code, "param": self.param, "message": self.message}
 
 
-INTERNAL_ERROR = (
-    "Something went wrong on our side while answering this request. We've recorded the problem; please try again "
-    "later, and contact us if it continues."
-)
+INTERNAL_ERROR = "Something went wrong on our side while answering this request. We've recorded the problem; please try again later, and contact us if it continues."
 # Points outside the service box, or before the archive, are read from Open-Meteo in the request
-OPEN_METEO_DOWN = (
-    "We couldn't reach Open-Meteo, which supplies the weather for this location (outside our area or before our "
-    "records begin). Please try again in a few minutes."
-)
+OPEN_METEO_DOWN = "We couldn't reach Open-Meteo, which supplies the weather for this location (outside our area or before our records begin). Please try again in a few minutes."
 
 
 def install(api: NinjaAPI) -> None:

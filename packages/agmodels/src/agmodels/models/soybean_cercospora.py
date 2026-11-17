@@ -43,8 +43,7 @@ SPEC = ModelSpec(
     group="disease",
     version="0.1",
     status="beta",
-    summary="Spore probabilities for three Cercospora species causing leaf blight of soybean, from recent "
-    "temperature, dew point depression, wind and humid hours.",
+    summary="Spore probabilities for three Cercospora species causing leaf blight of soybean, from recent temperature, dew point depression, wind and humid hours.",
     topics=("soybean-cercospora-leaf-blight",),
     crops=("Soybean",),
     citations=(
@@ -85,8 +84,7 @@ SPEC = ModelSpec(
     ),
     risk=Risk(
         levels=PROBABILITY_LEVELS,
-        criteria="The highest of the three species' levels. C. flagellaris: Low from 1%, Moderate from 10%, High from "
-        "15%. C. cf. sigesbeckiae and C. kikuchii: Low from 1%, Moderate from 5%, High from 10%.",
+        criteria="The highest of the three species' levels. C. flagellaris: Low from 1%, Moderate from 10%, High from 15%. C. cf. sigesbeckiae and C. kikuchii: Low from 1%, Moderate from 5%, High from 10%.",
     ),
     explorer=(
         ExplorerInput(

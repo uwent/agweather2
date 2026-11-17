@@ -242,9 +242,7 @@ def _write(path: Path, store: GridStore, name: str, n: int, first: date, now: da
         f.attrs.update(
             {
                 **_attrs(f"{v.long_name}, {first.year}", now),
-                "comment": "Each day is the local calendar day in the cell's time zone. Each cell's latitude, "
-                "longitude and time zone are in grid.nc beside the yearly folders. Missing values are left missing, "
-                "never set to zero.",
+                "comment": "Each day is the local calendar day in the cell's time zone. Each cell's latitude, longitude and time zone are in grid.nc beside the yearly folders. Missing values are left missing, never set to zero.",
             }
         )
         time = f.create_variable("time", ("time",), np.int32, data=np.arange(n, dtype=np.int32) + _days(first))
