@@ -12,6 +12,14 @@ Each row is one location and day, with its `kind` (`observed`, `partial` or `for
 
 Counts of days within bounds (`count=air_temperature_max:days_above_90`) get the same columns: this year's heat days so far, last year's, the normal count and the rest. This year's days with no value are not counted, and `air_temperature_max_days_above_90_missing_days` says how many there were.
 
-`meta.summary.compare` gives each location's last observed day (`as_of`), each total's percentile on that day and, for degree days, `days_ahead`: how many days ahead of normal the season is. It is negative when the season is behind. It is the number of days between today and the day the normal total reaches this year's total, so 5 means this year reached today's total 5 days sooner than a normal year would. It is empty when this year's total is beyond the highest normal total for the year.
-
 This year's totals are computed as on `/degree-days` and `/weather/totals`: short gaps in temperature and ET0 are filled with an estimate, and missing precipitation counts as no rain. Totals are available only inside the area we cover.
+
+## In meta.summary
+
+- `period`: The period the normals come from, such as `last30`.
+- `first_year` and `last_year`: The first and last years of that period.
+- `years`: The number of the period's years we have data for.
+- `missing_years`: The period's years we don't have yet, which the normals leave out.
+- `estimated_days`: How many of this year's days needed an estimate for a missing temperature, added over every location.
+- `corrections`: The corrections we applied to the weather we read, each with its version, such as our calibration of the forecast's temperatures.
+- `compare`: Each location's last observed day (`as_of`) and, for each total on that day (`totals`), its `percentile` among the period's years, the days without a value for a count (`missing_days`), and for degree days `days_ahead`: the number of days between `as_of` and the day a normal year reaches this year's total, so 5 means this year got there 5 days sooner than a normal year would. It is negative when the season is behind, and `null` when this year's total is beyond the normal total for the whole year. With several locations, a list with an entry for each location (`point`).

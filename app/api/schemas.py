@@ -1,7 +1,7 @@
 """The envelope's shape for OpenAPI and the frontend's generated types (`bin/types` → `@/types/api`). The responses
 themselves are built by `api.envelope`; these describe them."""
 
-from typing import Any
+from typing import Any, Literal
 
 from ninja import Schema
 from pydantic import Field
@@ -46,6 +46,9 @@ class Location(Schema):
     elevation_m: float | None = None
     cell_elevation_m: float | None = None
     water_percent: int | None = None
+    # on daily answers at points (`api.locations.describe_days`): whose clock sets the days, and what a day is
+    day_basis: Literal["central", "local"] | None = None
+    days: str | None = None
 
 
 class Meta(Schema):

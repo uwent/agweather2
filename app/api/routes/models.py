@@ -45,12 +45,7 @@ router = Router(tags=["Models"])
 
 
 class EvaluateBody(Schema):
-    inputs: dict[str, float | list[float]] = Field(
-        default_factory=dict,
-        description="The model's inputs by name (`/models/{model_id}` lists them under `explorer`), in the request's "
-        "units. Each is a number, or a list of numbers to try in turn; several lists give a row for every combination. "
-        "Inputs you leave out take their usual values.",
-    )
+    inputs: dict[str, float | list[float]] = Field(default_factory=dict)  # public text in api/docs/fields.toml
 
 
 MAX_RUNS = 200  # model runs (models × option sets) per request

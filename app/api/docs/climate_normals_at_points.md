@@ -13,3 +13,13 @@ With `interval=month`, each row is a month. A month's normal is the average acro
 The 30-year normals combine our own records, which begin in 2016, with gridMET, a gridded record from the University of California, Merced. We adjust gridMET's years, cell by cell and season by season, to match our records where the two overlap, so the normals don't jump where one source ends and the other begins. gridMET has no daily mean temperature, so the 30- and 20-year normals give only the minimum and maximum. It has no values over the Great Lakes, where only our own years count. Its maximum temperature for 2011–2013 runs warm in summer and is left out. The 20-year normals (`period=last20`) also reach into gridMET's years. The 10- and 5-year normals (`period=last10` or `last5`) come from our own records alone. `meta.summary` names the years used.
 
 Normals are available only inside the area we cover.
+
+## In meta.summary
+
+- `period`: The period the normals come from, such as `last30`.
+- `first_year` and `last_year`: The first and last years of that period.
+- `years`: The number of the period's years we have data for.
+- `missing_years`: The period's years we don't have yet, which the normals leave out.
+- `pool_days`: The number of days pooled around each day of the year (`window`).
+- `years_with_data`: The number of years with enough data to count at the location; with several locations, a list in the order of the locations.
+- `roll`: With `roll`, each window column's source column, length in days and statistic (`columns`), and the alignment (`align`).

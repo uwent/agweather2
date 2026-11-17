@@ -1,0 +1,316 @@
+# Public text for the fields of the API's response schemas (see __init__.py, D91), shown on the docs page and in the
+# frontend's generated types. Written for the public: follow CLAUDE.md's "Writing for the public". A table per
+# schema, keyed by field; `_inherits` names the table of the schema it extends, whose text fills the fields it
+# doesn't describe itself. Write each entry from the code that fills the field, not from its comment.
+
+# --- The envelope ------------------------------------------------------------------------------------------------
+
+[TableResponse]
+meta = "What the answer was computed for and how to read it."
+data = "The results: named columns of equal length (the default), or a list of rows with `orient=records`. Each endpoint's description lists its columns."
+
+[Meta]
+request = "The request as it was computed, after defaults were filled in and values were standardized, such as today's date for a missing `end`."
+params = "Every parameter this endpoint takes, with the value used for each: as you gave it, the default, or null where none applies. It shows the defaults and what else you could send."
+location = "The location asked for and the grid cell read for it. Absent when the request has no single location."
+locations = "With `points`: each location in the order given. The `point` column of `data` gives a row's position in this list, counting from 0."
+units = "The unit of each numeric column, by column name, in the units asked for."
+summary = "Facts about the results as a whole. Every table has `missing`, the number of missing values in each column, and `stats`, each numeric column's minimum, maximum and mean (and total, where a total means something). Each endpoint's description lists what else it adds."
+sources = "The data sources the answer was read from, by short name, such as `urma` and `nbm` for NOAA's analysis and forecast. The front page of these docs describes each source."
+warnings = "Notes about the answer that didn't stop it, such as missing days or a forecast that is out of date, each a sentence. Empty when there are none."
+attribution = "The credit to give when you publish these results."
+api_version = "The version of the API that answered, such as `2.0`."
+generated_at = "When the answer was made, in UTC (ISO 8601)."
+compute_ms = "How long the answer took to compute, in milliseconds."
+
+[Location]
+lat = "The latitude asked for, in decimal degrees."
+lng = "The longitude asked for, in decimal degrees."
+cell = "The 2.5 km grid cell that contains the location, whose values the answer reads. Null outside the grid."
+in_box = "Whether the location is inside the area our archive covers. Outside it, weather comes from Open-Meteo."
+timezone = "The location's time zone, as an IANA name such as `America/Chicago`."
+county = "The county that contains the location. Null outside the United States."
+state = "The state that contains the location, as its two-letter postal abbreviation. Null outside the United States."
+elevation_m = "The location's own elevation, in meters, from the 30-meter National Elevation Dataset. Null where we don't hold elevation."
+cell_elevation_m = "The mean elevation of the grid cell, in meters. Null where we don't hold elevation."
+water_percent = "The share of the grid cell covered by open water (lakes and wide rivers), as a percentage. A cell that is mostly water is still the cell read. Null where we don't hold it."
+day_basis = "On daily answers: whose clock sets the days. `central` is midnight to midnight Central Standard Time all year, as on our maps; `local` follows the location's own time zone, with daylight saving time. Absent on answers without days."
+days = "On daily answers: what a day is at this location, in words, with its hours in UTC."
+
+[Cell]
+j = "The cell's row on the National Weather Service's 2.5 km grid, counted from the grid's southern edge."
+i = "The cell's column on the grid, counted from its western edge."
+lat = "The latitude of the cell's center, in decimal degrees."
+lng = "The longitude of the cell's center, in decimal degrees."
+
+[DisplayUnits]
+us = "The unit shown with `units=us`, such as °F."
+metric = "The unit shown with `units=metric`, such as °C."
+
+[ErrorResponse]
+meta = "The request as it was received, and when it was answered."
+errors = "Each problem with the request, in the order found."
+
+[ErrorMeta]
+request = "The query parameters as they were sent."
+params = "Every parameter this endpoint takes, with the value that could be read from the request for each, or null. Absent when the request matched no endpoint."
+api_version = "The version of the API that answered."
+generated_at = "When the answer was made, in UTC (ISO 8601)."
+compute_ms = "How long the request ran before it failed, in milliseconds."
+
+[ErrorItem]
+code = "A short name for the kind of problem, such as `invalid`, `missing` or `out_of_range`, for programs to act on."
+param = "The parameter at fault, or null when the problem isn't with one parameter."
+message = "What went wrong and what to change, in one or two sentences."
+
+# --- /status -------------------------------------------------------------------------------------------------------
+
+[StatusResponse]
+meta = "What the answer was computed for and how to read it."
+data = "What the archive and forecast hold now."
+
+[StatusData]
+service = "The service's name, always `agweather`."
+version = "The version of the service's software."
+service_box = "The name of the area the archive covers, such as `wisconsin`."
+archive = "What the archive of past weather holds."
+forecast = "The forecast in use."
+models = "The number of models available from `/models`."
+downloads = "The yearly data files available from `/downloads`."
+
+[ArchiveStatus]
+first_hour = "The first hour in the archive, in UTC. Each hour is named by its end."
+last_hour_by_source = "The newest hour received from each data source, in UTC, by the source's short name."
+daily_through = "The last day with daily values. Days run from midnight to midnight Central Standard Time."
+stale = "Daily values waiting to be recomputed after an update to the service, by year and variable. Usually empty."
+refreshed_at = "When these facts were last read from the archive, in UTC."
+
+[ForecastStatus]
+cycle = "When the forecast in use was issued, in UTC. Null when there is none."
+last_hour = "The forecast's last hour, in UTC."
+in_use = "Whether results run through the forecast. A forecast issued more than 12 hours ago is not used."
+reason = "Why the forecast is not in use: `none` when there isn't one, `stale` when it is too old. Null when it is in use."
+
+[DownloadsStatus]
+files = "The number of yearly data files available from `/downloads`."
+built_at = "When the newest of those files was made, in UTC. Null when there are none."
+
+# --- /downloads ----------------------------------------------------------------------------------------------------
+
+[DownloadsResponse]
+meta = "What the answer was computed for and how to read it."
+data = "The files."
+
+[DownloadsData]
+grid = "The address of `grid.nc`, which gives each grid cell's latitude, longitude and time zone. Null until it has been made."
+files = "Each yearly file, by variable and year."
+
+[DownloadFile]
+variable = "The daily variable the file holds, as named in `/variables`."
+year = "The year the file covers."
+url = "The file's address."
+bytes = "The file's size, in bytes."
+first = "The first day the file holds."
+last = "The last day the file holds."
+complete = "Whether the file holds every day of its year. The current year's file is not complete."
+built_at = "When the file was made, in UTC. A file is made again whenever the data in it are revised."
+
+# --- /variables ----------------------------------------------------------------------------------------------------
+
+[VariablesResponse]
+meta = "What the answer was computed for and how to read it."
+data = "Each variable, hourly first, then daily, then running totals."
+
+[VariableInfo]
+name = "The variable's name, as other requests and the response columns use it."
+long_name = "The variable's name in words."
+kind = "`hourly` for a value each hour, `daily` for a value each day, `cumulative` for a running total over a season."
+unit = "The unit the variable is kept in, as `units` overrides name it, such as `degC` or `mm`."
+units = "The unit shown in each system of units."
+precision = "The smallest step the variable is kept to, in its own unit. Values are rounded to it."
+valid_min = "The lowest value accepted as real, in the variable's own unit. Values below it are treated as errors and left missing. Null when there is no lower limit."
+valid_max = "The highest value accepted as real, in the variable's own unit. Values above it are treated as errors and left missing. Null when there is no upper limit."
+statistic = "For a daily variable made from hourly values: how the day's hours are combined, as `min`, `max`, `mean` or `sum`. Null otherwise."
+hourly_sources = "For a daily variable: the hourly variables it is made from. Weather you send to a model can give these in place of the daily value."
+computed_from = "The variables this one is calculated from whenever it is read. Empty when it is kept as it is."
+notes = "How the variable is made and anything to know when using it."
+
+# --- /models -------------------------------------------------------------------------------------------------------
+
+[ModelsResponse]
+meta = "What the answer was computed for and how to read it."
+data = "Each model, by its id."
+
+[ModelResponse]
+meta = "What the answer was computed for and how to read it."
+data = "The model's full description."
+
+[ModelSummary]
+id = "The model's id, as other requests name it."
+name = "The model's name."
+group = "What the model predicts: `disease`, `insect`, `crop` (growth stages), `agronomic` (field management, such as volunteer plants) or `degree_days`."
+status = "`stable`, or `beta` while the model is new or under review and its results are more likely to change. `retired` marks a model we no longer recommend."
+version = "The model's version. It changes whenever the model's results change; `changelog` says how."
+summary = "What the model predicts, in a sentence or two."
+crops = "The crops the model concerns."
+topics = "The diseases or insects the model predicts, by short name."
+region = "The states where the model was developed or tested, as postal abbreviations. Empty when it is not limited to a region."
+season = "The first and last days of the year the model's results are shown, as `MM-DD`. Null when it runs all year."
+seasonal_appears = "For a model with one result a season: the day of the year (`MM-DD`) the new season's map first appears. Until then, the last season's map is shown. Null for a model with results each day."
+citations = "The research the model is based on."
+
+[ModelDetail]
+_inherits = "ModelSummary"
+lookback_days = "How many days of weather the model reads before the first day of its results."
+inputs = "The daily weather the model reads, including what its crop models read."
+derivable_from_hourly = "For each input: the hourly variables it can be made from when you send hourly weather. An empty list means the daily value must be sent."
+context = "What the model takes from the location and dates rather than the weather, such as `day_of_year` and `latitude`."
+crop_models = "The crop growth stage models this model uses, to limit its risk to the stages a disease affects or to set its biofix."
+outputs = "The model's results, the main one first."
+options = "Choices that change the model's results, such as a resistance class or a biofix date. Each is a parameter of the run endpoints."
+biofix = "The date the model starts counting from, and its default. Null when the model has no biofix."
+susceptible = "The crop stages the disease affects. The model's risk is shown only between them. Null when risk is shown all season."
+crop = "What a planting date adds to the model. Null when the model takes no planting date."
+risk = "How the model's results become risk levels. Null when the model gives no risk, such as a crop growth stage model."
+explorer = "The model's inputs as numbers you can set yourself with `POST /models/{model_id}/evaluate`, with their usual ranges. Their values are in the units shown here; the request takes them in its own units."
+explorer_outputs = "What `POST /models/{model_id}/evaluate` returns beyond `outputs`, such as a daily rate."
+changelog = "The model's versions, oldest first, and what changed in each."
+
+[CitationInfo]
+text = "The reference, in full."
+doi = "The work's Digital Object Identifier (DOI), such as `10.21273/HORTSCI.9.4.331`. Null when it has none."
+url = "Where to read the work: its DOI's address when it has one, otherwise a copy or the publisher's page. Null when there is neither."
+
+[QuantityInfo]
+name = "The column name in the model's results."
+label = "A short name for charts and tables."
+unit = "The unit of its values in the results, before any conversion to the units asked for."
+units = "The unit shown in each system of units."
+description = "What the value means."
+
+[InputInfo]
+_inherits = "QuantityInfo"
+name = "The daily variable's name, as in `/variables`."
+model = "The model that reads it: this one, or one of its crop models."
+
+[OptionInfo]
+name = "The option's name, as a parameter of the run endpoints."
+label = "A short name for forms."
+choices = "The values it takes. Empty when it takes a date or number of your choosing."
+default = "The value used when the option is left out."
+
+[Choice]
+value = "The value to send."
+label = "What it means, in a few words."
+
+[BiofixInfo]
+default = "The biofix used when you don't give one, as `MM-DD`."
+label = "What the biofix date means in the field, such as crop emergence."
+stage = "The crop model and growth stage whose predicted date is used as the biofix in place of `default`, as `[model id, stage]`. Null when `default` is used."
+
+[SusceptibilityInfo]
+crop = "The crop growth stage model whose stages are named."
+first = "The first stage the disease affects."
+last = "The last stage the disease affects. Risk is shown until the next stage begins."
+source = "Where these stages come from."
+note = "Anything more to know about these stages. Empty when there is nothing."
+
+[RiskInfo]
+levels = "The risk levels, lowest first."
+criteria = "How the model's results become each level, in words."
+thresholds = "The value of the main result at which each level after the first begins. Empty when the model gives the level itself."
+
+[ExplorerInputInfo]
+name = "The input's name, as `POST /models/{model_id}/evaluate` takes it."
+label = "A short name for forms."
+unit = "The unit of the values below."
+units = "The unit shown in each system of units."
+minimum = "The low end of the input's usual range, in `unit`. A value outside the range is still used, with a warning."
+maximum = "The high end of the input's usual range, in `unit`."
+step = "A useful step between values to try, in `unit`."
+default = "The value used when the input is left out, in `unit`."
+
+[CropInfo]
+model = "The crop growth stage model a planting date runs."
+crop = "The crop, as `/locate` names it in `planting`."
+typical_dates = "Whether we know typical planting dates for this crop, so `planting_date` can take `early`, `mid` or `late`."
+options = "The crop model's own options, which the run endpoints also take."
+
+[ChangeInfo]
+version = "The version."
+date = "The day it was released, as `YYYY-MM-DD`."
+note = "What changed."
+
+[EvaluateBody]
+inputs = "The model's inputs by name (`/models/{model_id}` lists them under `explorer`), in the request's units. Each is a number, or a list of numbers to try in turn; several lists give a row for every combination. Inputs you leave out take their usual values."
+
+# --- /locate -------------------------------------------------------------------------------------------------------
+
+[LocateResponse]
+meta = "What the answer was computed for and how to read it."
+data = "What we know about the location."
+
+[LocateData]
+_inherits = "Location"
+corners = "The grid cell's corners as `[lat, lng]` pairs, southwest, southeast, northeast and northwest. Null outside the grid."
+planting = "Typical planting dates for each crop where we know them."
+
+[PlantingInfo]
+crop = "The crop."
+early = "An early planting date, as `MM-DD`: when about 10% of the crop is usually planted (the start of the busiest planting period where only state dates are known)."
+typical = "The typical planting date, as `MM-DD`: when about half the crop is usually planted."
+late = "A late planting date, as `MM-DD`: when about 90% of the crop is usually planted (the end of the busiest planting period where only state dates are known)."
+level = "What the dates describe: `county`, `state`, or for potatoes `location`, the nearest place with published dates."
+source = "Where the dates come from."
+
+# --- /layers -------------------------------------------------------------------------------------------------------
+
+[LayersResponse]
+meta = "What the answer was computed for and how to read it."
+data = "Each layer, by its id."
+
+[LayerInfo]
+id = "The layer's id, as `/grids/{layer}`, the tiles and the map images name it."
+name = "The layer's name."
+title = "The layer's name as a map's title gives it."
+group = "What kind of layer it is: `weather`, `running_total` (a total over a season), `degree_days`, `model`, `climate` (made from past years) or `terrain`."
+time_axis = "What the layer is mapped by: `day`, `hour`, `day_of_year` (a date in any year, for the chance of a freeze) or `none` (no date, as for elevation)."
+variable = "The variable the layer shows, as named in `/variables`. Null when the layer is calculated, as degree days are."
+unit = "The unit the layer is kept in."
+units = "The unit shown in each system of units."
+precision = "The smallest step the layer is kept to, in `unit`."
+palette = "The id of the layer's default color palette in `/palettes`. An id ending in `_r` is that palette reversed."
+domain = "The values the palette's two ends stand for, in `unit`. Null when the colors spread over each map's own range of values."
+stats = "How a range of days or hours can be combined, as `stat` takes them. Empty when a range can't be combined, as for running totals."
+parameters = "Parameters the layer requires beyond its date and area: `dd` for degree days, `threshold` for the freeze maps."
+range = "The dates the archive and forecast hold for this layer now."
+description = "What the layer shows."
+outputs = "For a model's layer: the results it can show with `output`, the default first. Empty for other layers."
+options = "For a model's layer: the options a map takes, as `/models/{model_id}` describes them. Empty for other layers."
+planting = "For a model's layer that depends on a planting date: the planting dates a map can show with `planting`. Empty for other layers."
+seasons = "For a model with one result a season: the seasons available with `season`, oldest first. Empty for other layers."
+climate = "What `climate` takes for this layer: `normal`, `departure` or `percentile`. Empty when it can't be compared with the climate."
+
+[LayerRange]
+first = "The first day (or hour, in UTC) the archive holds. Null for layers without a date."
+last = "The last day (or hour) with observed weather. Null for layers without a date."
+forecast_through = "The last day (or hour) of the forecast in use. Null when no forecast is in use, or for layers without a date."
+
+[LayerOutputInfo]
+name = "The result's name, as `output` takes it."
+label = "A short name for legends."
+unit = "The unit the result is kept in."
+units = "The unit shown in each system of units."
+precision = "The smallest step the result is kept to, in `unit`."
+palette = "The id of the result's default color palette in `/palettes`. An id ending in `_r` is that palette reversed."
+domain = "The values the palette's two ends stand for, in `unit`. Null when the colors spread over each map's own range of values."
+
+# --- /palettes -----------------------------------------------------------------------------------------------------
+
+[PaletteInfo]
+id = "The palette's id, as `palette` takes it. Add `_r` to reverse it."
+kind = "`sequential` for values from low to high, `diverging` for values above and below a middle, `categorical` for classes, `cyclic` for values that wrap around, such as a day of the year."
+colors = "The palette's colors from low to high, as hex codes."
+description = "How the palette looks and what it suits."
+source = "Where the colors come from."
+colorblind_safe = "Whether people with the common kinds of color blindness can tell the colors apart. A layer's default palette always is."

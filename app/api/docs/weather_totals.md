@@ -7,3 +7,11 @@ Every total except precipitation bridges gaps of up to seven days with an estima
 You can also count days or hours within bounds, such as the days with a high of 86 °F or more (`count=air_temperature_max:days_above_86`) or the hours between 50 and 86 °F (`count=air_temperature:hours_between_50_86`), and with `interval=month` get a row for each month. Counts are never estimated: days or hours without a value are left out and counted in the count's `_missing_days` or `_missing_hours` column.
 
 To find dates, `first=air_temperature_min:frost` gives each location's first frost (32 °F or colder) since July 1, `last=` the last such day, and `since=` the days since it; `hard_freeze` (28 °F) and `killing_freeze` (24 °F) are the other named temperatures, and any daily variable takes bounds, such as `first=soil_temperature_10cm_mean:above_50`. Only measured days count.
+
+## In meta.summary
+
+- `days_requested`: The number of days from the start date through the end date.
+- `days_returned`: The number of days the totals cover, added over every location.
+- `days_forecast`: How many of those days are forecast days, including today while it is partly forecast.
+- `days_missing`: How many of those days have no data.
+- `corrections`: The corrections we applied to the weather we read, each with its version, such as our calibration of the forecast's temperatures.

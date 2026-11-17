@@ -9,3 +9,11 @@ When coverage is below `min_coverage` (50% by default), the row is still returne
 The mean gives each grid cell equal weight; the cells differ in area by less than 2% across a state. For a model's risk level or a crop stage, each row gives the percent of the county's cells with data at each level (`pct_low`, `pct_high` and so on) and the highest level found (`highest`). For the first or last day within bounds (`first=frost`), the statistics are the earliest, average and latest dates, and `cells_none` counts the cells where no day in the range was within the bounds; those cells count as having data.
 
 Examples: each Wisconsin county's highest temperature on July 15, 2026 (`/summaries/air_temperature_max?date=2026-07-15&region=WI`); each state's summer rainfall (`/summaries/precipitation_sum?start=2026-06-01&end=2026-08-31&stat=sum&by=state`); each county's first fall frost (`/summaries/air_temperature_min?first=frost&region=WI`).
+
+## In meta.summary
+
+- `regions`: The number of regions asked for.
+- `rows`: The number of rows returned.
+- `below_coverage`: The number of regions whose statistics are empty on at least one row because too little of their land had data.
+- `kinds`: How many of the days or hours are `observed`, `partial`, `forecast` or `missing`.
+- `stat`: With a range of days, the statistic that combined them.

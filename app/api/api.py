@@ -18,9 +18,12 @@ class AgWeatherAPI(NinjaAPI):
         area = operation.view_func.__module__.rpartition(".")[2]
         return f"{area}_{operation.view_func.__name__}"
 
-    def get_openapi_schema(self, *, path_prefix: str | None = None, path_params: dict[str, Any] | None = None):
+    def get_openapi_schema(
+        self, *, path_prefix: str | None = None, path_params: dict[str, Any] | None = None, public: bool = True
+    ):
+        """`public=False` keeps the components no operation reaches (the query groups), for `export_types`."""
         schema = super().get_openapi_schema(path_prefix=path_prefix, path_params=path_params)
-        docs.apply(schema)
+        docs.apply(schema, public=public)
         return schema
 
 

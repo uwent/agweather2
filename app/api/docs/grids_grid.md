@@ -15,3 +15,16 @@ You can also map the first or last day in a range when a daily value was within 
 `roll` gives a rolling window of days ending on `date` as one map: `date=2026-06-19&roll=14` is the 14 days from June 6 through June 19, averaged (or added up, for precipitation and other values that add up) unless you choose `stat`. Each cell needs data on at least `roll_coverage` percent of the window's days (75 by default).
 
 `climate` shows the map against the past years' climate: `climate=normal` for its normal, `climate=departure` for the map less its normal, or `climate=percentile` for where it ranks among the years of `period` (the past 30 by default). A normal is kept for one day of a daily variable, a range with `stat=mean` or `stat=sum`, a running total and degree days, but not for a range's lowest or highest value, counts or first and last days. `/layers` lists what each layer takes, and the freeze and elevation layers. A departure of temperature is a difference, so it converts between °F and °C without the 32-degree offset.
+
+## In meta.summary
+
+- `steps`: The number of days or hours the map covers.
+- `kinds`: How many of those days or hours are `observed`, `partial`, `forecast` or `missing`.
+- `cells`: The number of grid cells in each map.
+- `stat`: With a range of days, the statistic that combined them.
+- `corrections`: The corrections we applied to the weather we read, each with its version, such as our calibration of the forecast's temperatures.
+- `from_running_totals`: For degree days added over a range, the stored running totals the sum was worked out from.
+- `model`: For a model's map, the model's `id` and `version` and the `output` shown.
+- `planting`: For a model that follows a crop's planting date, the crop, the planting tier (`tier`), the earliest and latest typical planting dates in the area (`dates`), and the number of cells with no typical date (`cells_without`).
+- `season`: For a model counted over a season, such as a winter: the season's `name` and `label`, its `first` and `last` days, the day its map is first shown (`appears`), the last day counted so far (`through`), and whether the count is `final`.
+- `projection`: For a season's projected map, the earlier seasons it was projected with (`seasons`), and a `note` when the season is over.

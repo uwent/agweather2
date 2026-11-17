@@ -89,6 +89,47 @@ def test_every_entry_is_used():
     assert set(text["schemas"]) <= set(SCHEMA["components"]["schemas"])
 
 
+def test_every_field_is_described():
+    missing = [
+        f"{name}.{field}"
+        for name, component in SCHEMA["components"]["schemas"].items()
+        for field, prop in component.get("properties", {}).items()
+        if not prop.get("description")
+    ]
+    assert not missing, f"add these to api/docs/fields.toml: {missing}"
+
+
+def test_every_field_entry_names_a_field():
+    components = SCHEMA["components"]["schemas"]
+    stale = [
+        f"{name}.{field}"
+        for name, entries in docs.fields().items()
+        for field in entries
+        if field != "_inherits" and field not in components.get(name, {}).get("properties", {})
+    ]
+    parents = [entries["_inherits"] for entries in docs.fields().values() if "_inherits" in entries]
+    assert set(parents) <= set(docs.fields()), f"_inherits names a table that isn't there: {parents}"
+    assert not stale, f"api/docs/fields.toml describes fields that don't exist (or aren't public): {stale}"
+
+
+def test_the_public_schema_leaves_out_the_query_groups():
+    public = set(SCHEMA["components"]["schemas"])
+    everything = set(api.get_openapi_schema(public=False)["components"]["schemas"])
+    assert "GridQuery" in everything - public
+    assert {"TableResponse", "ErrorResponse", "Location", "DisplayUnits"} <= public
+    assert public == docs.reached(SCHEMA)
+
+
+def test_schemas_are_listed_in_reading_order():
+    names = list(SCHEMA["components"]["schemas"])
+    assert names[:2] == ["TableResponse", "Meta"]  # the envelope, then its parts
+    assert names.index("ErrorResponse") < names.index("StatusResponse")
+    # a response before its parts, its parts in field order
+    detail = names.index("ModelDetail")
+    assert names.index("ModelResponse") < detail < names.index("InputInfo") < names.index("OptionInfo")
+    assert names.index("OptionInfo") < names.index("Choice")
+
+
 def test_operation_ids_are_short():
     assert "weather_daily" in OPERATIONS
     assert not [op_id for op_id in OPERATIONS if op_id.startswith("api_")]

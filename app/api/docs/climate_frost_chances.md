@@ -8,3 +8,10 @@ Each row is one location, threshold and day, with a `season` and a `chance` in p
 - In fall (July through December), `chance` is the share of the years in which the first freeze had come on or before that date. In fall it rises toward 100%.
 
 Chances are given among the years with enough data, which `/climate/frost` counts. They describe the past years' weather on our grid, and are guidance, not a forecast. Chances are available only inside the area we cover.
+
+## In meta.summary
+
+- `period`: The period the normals come from, such as `last30`.
+- `first_year` and `last_year`: The first and last years of that period.
+- `years`: The number of the period's years we have data for.
+- `missing_years`: The period's years we don't have yet, which the normals leave out.

@@ -13,3 +13,10 @@ The dates are given in this year. A date is empty where too many years had no fr
 The freeze dates are worked out from each year's daily minimum temperatures. Our grid's daily minimum is the lowest of the hourly readings. Low spots such as valleys and frost pockets can freeze earlier in fall and later in spring than the grid cell around them. The dates are guidance, not a guarantee for any one year. `/climate/frost/chances` gives the chance of a freeze for every date.
 
 Freeze dates are available only inside the area we cover.
+
+## In meta.summary
+
+- `period`: The period the normals come from, such as `last30`.
+- `first_year` and `last_year`: The first and last years of that period.
+- `years`: The number of the period's years we have data for.
+- `missing_years`: The period's years we don't have yet, which the normals leave out.

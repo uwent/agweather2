@@ -9,3 +9,9 @@ Choose how chill is counted with `method`:
 - `hours`: chill hours, the hours between 32 and 45 °F (0 and 7.2 °C), or between the two temperatures you give in `bounds`.
 
 Which method fits depends on the crop and the region: requirements published for a variety are given in one of these units, and the numbers don't convert from one to another. A day with any hour missing has no value of its own (`chill` is empty); the total adds the hours that day has, and `missing_hours` shows how many were left out. Values are calculated from our hourly weather data and the forecast; they are an estimate for the location, not a measurement in your orchard.
+
+## In meta.summary
+
+- `method`: The chill method used.
+- `chill_total`: Each location's total for the period, in the method's units, as a list in the order of the locations.
+- `missing_hours`: The number of hours without a temperature, added over every location.

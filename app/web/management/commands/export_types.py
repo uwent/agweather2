@@ -23,8 +23,14 @@ def api_schemas() -> dict:
     from api import schemas
     from api.api import api
 
-    text = json.dumps(api.get_openapi_schema()["components"]["schemas"])
+    text = json.dumps(api.get_openapi_schema(public=False)["components"]["schemas"])
     found = json.loads(text.replace("#/components/schemas/", "#/$defs/"))
+    # json-schema-to-typescript makes a `$ref` with a sibling description a new type (DisplayUnits1, …): the field
+    # text (api/docs/fields.toml) stays on the docs page there, and the type is the one referred to
+    for component in found.values():
+        for prop in component.get("properties", {}).values():
+            if "$ref" in prop:
+                prop.pop("description", None)
     shared = [(schemas.TableResponse, "serialization"), (schemas.ErrorResponse, "serialization")]
     _, envelope = models_json_schema(shared, ref_template="#/$defs/{model}")
     return {**envelope.get("$defs", {}), **found}
