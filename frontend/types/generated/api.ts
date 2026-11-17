@@ -104,46 +104,68 @@ export interface ClimateQuery {
   window?: number
   percentiles?: string | null
 }
-export interface CropInfo {
+export interface CorrectionDetail {
   /**
-   * The crop growth stage model a planting date runs.
+   * The correction's id, as `/variables`, the models' inputs and `meta.summary.corrections` name it.
    */
-  model: string
+  id: string
   /**
-   * The crop, as `/locate` names it in `planting`.
+   * What the correction applies to.
    */
-  crop: string
+  title: string
   /**
-   * Whether we know typical planting dates for this crop, so `planting_date` can take `early`, `mid` or `late`.
+   * What it corrects, how, and what it was fitted against.
    */
-  typical_dates: boolean
+  summary: string
   /**
-   * The crop model's own options, which the run endpoints also take.
+   * The variables whose values it changes, by their names in `/variables`.
    */
-  options: OptionInfo[]
+  variables: string[]
+  /**
+   * The correction's version. It changes whenever the correction is fitted again or changed.
+   */
+  version: string
+  /**
+   * The day it was last fitted (YYYY-MM-DD). Null when it is fitted again whenever its data are, as for the 30-year normal's earlier years.
+   */
+  fitted: string | null
+  /**
+   * How much the correction improved its data, measured on data it was not fitted to. Empty when there is no such test.
+   */
+  scores: ScoreInfo[]
+  /**
+   * Links to our technical reports on the correction: how it was fitted and tested, with fuller results.
+   */
+  evidence: string[]
+  /**
+   * The fitted values, as the correction reads them: each key is one of the table's axes (such as `clearness` or `lead_hours`) or its values (such as `factor`). Null when the correction has no table.
+   */
+  table: {
+    [k: string]: unknown
+  } | null
 }
-export interface OptionInfo {
+export interface ScoreInfo {
   /**
-   * The option's name, as a parameter of the run endpoints.
+   * What was measured.
    */
-  name: string
+  measure: string
   /**
-   * A short name for forms.
+   * The unit of `before` and `after`, as `units` overrides name it. `index` for a ratio, which has no unit.
    */
-  label: string
+  unit: string
+  units: DisplayUnits
   /**
-   * The values it takes. Empty when it takes a date or number of your choosing.
+   * The measure without the correction.
    */
-  choices: Choice[]
+  before: number
   /**
-   * The value used when the option is left out.
+   * The measure with the correction.
    */
-  default: string
-}
-export interface DaysQuery {
-  date?: string | null
-  start?: string | null
-  end?: string | null
+  after: number
+  /**
+   * The data the measure comes from.
+   */
+  tested: string
 }
 export interface DisplayUnits {
   /**
@@ -155,56 +177,46 @@ export interface DisplayUnits {
    */
   metric: string
 }
-export interface DownloadFile {
+export interface CorrectionInfo {
   /**
-   * The daily variable the file holds, as named in `/variables`.
+   * The correction's id, as `/variables`, the models' inputs and `meta.summary.corrections` name it.
    */
-  variable: string
+  id: string
   /**
-   * The year the file covers.
+   * What the correction applies to.
    */
-  year: number
+  title: string
   /**
-   * The file's address.
+   * What it corrects, how, and what it was fitted against.
    */
-  url: string
+  summary: string
   /**
-   * The file's size, in bytes.
+   * The variables whose values it changes, by their names in `/variables`.
    */
-  bytes: number
+  variables: string[]
   /**
-   * The first day the file holds.
+   * The correction's version. It changes whenever the correction is fitted again or changed.
    */
-  first: string
+  version: string
   /**
-   * The last day the file holds.
+   * The day it was last fitted (YYYY-MM-DD). Null when it is fitted again whenever its data are, as for the 30-year normal's earlier years.
    */
-  last: string
+  fitted: string | null
   /**
-   * Whether the file holds every day of its year. The current year's file is not complete.
+   * How much the correction improved its data, measured on data it was not fitted to. Empty when there is no such test.
    */
-  complete: boolean
+  scores: ScoreInfo[]
   /**
-   * When the file was made, in UTC. A file is made again whenever the data in it are revised.
+   * Links to our technical reports on the correction: how it was fitted and tested, with fuller results.
    */
-  built_at: string
-}
-export interface DownloadsData {
-  /**
-   * The address of `grid.nc`, which gives each grid cell's latitude, longitude and time zone. Null until it has been made.
-   */
-  grid: string | null
-  /**
-   * Each yearly file, by variable and year.
-   */
-  files: DownloadFile[]
+  evidence: string[]
 }
 /**
- * The yearly data files available for download.
+ * One correction, with its fitted values.
  */
-export interface DownloadsResponse {
+export interface CorrectionResponse {
   meta: Meta
-  data: DownloadsData
+  data: CorrectionDetail
 }
 export interface Meta {
   /**
@@ -313,6 +325,98 @@ export interface Location {
    * On daily answers: what a day is at this location, in words, with its hours in UTC.
    */
   days?: string | null
+}
+export interface CropInfo {
+  /**
+   * The crop growth stage model a planting date runs.
+   */
+  model: string
+  /**
+   * The crop, as `/locate` names it in `planting`.
+   */
+  crop: string
+  /**
+   * Whether we know typical planting dates for this crop, so `planting_date` can take `early`, `mid` or `late`.
+   */
+  typical_dates: boolean
+  /**
+   * The crop model's own options, which the run endpoints also take.
+   */
+  options: OptionInfo[]
+}
+export interface OptionInfo {
+  /**
+   * The option's name, as a parameter of the run endpoints.
+   */
+  name: string
+  /**
+   * A short name for forms.
+   */
+  label: string
+  /**
+   * The values it takes. Empty when it takes a date or number of your choosing.
+   */
+  choices: Choice[]
+  /**
+   * The value used when the option is left out.
+   */
+  default: string
+}
+export interface DaysQuery {
+  date?: string | null
+  start?: string | null
+  end?: string | null
+}
+export interface DownloadFile {
+  /**
+   * The daily variable the file holds, as named in `/variables`.
+   */
+  variable: string
+  /**
+   * The year the file covers.
+   */
+  year: number
+  /**
+   * The file's address.
+   */
+  url: string
+  /**
+   * The file's size, in bytes.
+   */
+  bytes: number
+  /**
+   * The first day the file holds.
+   */
+  first: string
+  /**
+   * The last day the file holds.
+   */
+  last: string
+  /**
+   * Whether the file holds every day of its year. The current year's file is not complete.
+   */
+  complete: boolean
+  /**
+   * When the file was made, in UTC. A file is made again whenever the data in it are revised.
+   */
+  built_at: string
+}
+export interface DownloadsData {
+  /**
+   * The address of `grid.nc`, which gives each grid cell's latitude, longitude and time zone. Null until it has been made.
+   */
+  grid: string | null
+  /**
+   * Each yearly file, by variable and year.
+   */
+  files: DownloadFile[]
+}
+/**
+ * The yearly data files available for download.
+ */
+export interface DownloadsResponse {
+  meta: Meta
+  data: DownloadsData
 }
 export interface DownloadsStatus {
   /**
@@ -517,6 +621,10 @@ export interface InputInfo {
    * The model that reads it: this one, or one of its crop models.
    */
   model: string
+  /**
+   * The corrections that change this input's values, by the ids `/methods` lists.
+   */
+  corrections: string[]
 }
 export interface LayerInfo {
   /**
@@ -767,6 +875,57 @@ export interface MapQuery {
   scale?: string | null
   palette?: string | null
   isolines?: string | null
+}
+export interface MethodsData {
+  /**
+   * Each source and what we use it for, by date.
+   */
+  sources: SourceInfo[]
+  /**
+   * Each correction we apply to a source's data.
+   */
+  corrections: CorrectionInfo[]
+}
+export interface SourceInfo {
+  /**
+   * The source's id. Several entries share one when a source serves more than one use.
+   */
+  source: string
+  /**
+   * The source's name and who publishes it.
+   */
+  name: string
+  /**
+   * What we use it for: `archive` (our record of past weather), `provisional` (the newest hours or days, until the archive's source replaces them), `forecast`, `outside` (locations outside the area our maps cover, and dates before our archive) or `normals` (the years of the 30-year normal before our archive).
+   */
+  role: string
+  /**
+   * The variables it supplies in this use, by their names in `/variables`.
+   */
+  variables: string[]
+  /**
+   * The first day it supplies (YYYY-MM-DD). Null when it supplies them from the archive's first day, which `/status` gives.
+   */
+  first: string | null
+  /**
+   * The last day it supplies (YYYY-MM-DD). Null while it is still in use.
+   */
+  last: string | null
+  /**
+   * What the source is and how we use it.
+   */
+  description: string
+  /**
+   * Where to read about the source.
+   */
+  url: string
+}
+/**
+ * Where the data come from, and the corrections we apply to them.
+ */
+export interface MethodsResponse {
+  meta: Meta
+  data: MethodsData
 }
 export interface ModelDetail {
   /**
@@ -1263,6 +1422,18 @@ export interface VariableInfo {
    * How the variable is made and anything to know when using it.
    */
   notes: string
+  /**
+   * Where the variable's values come from, by the source ids `/methods` lists. For a daily variable, the sources of the hourly variables it is made from. Empty for a running total, which comes from its daily variable.
+   */
+  sources: string[]
+  /**
+   * For a daily variable: how a model estimates a missing day, `interpolate` (from the days on either side) or `zero` (counted as none, as for precipitation). Null when it is never estimated.
+   */
+  gap_fill: string | null
+  /**
+   * The corrections that change the variable's values, by the ids `/methods` lists. For a daily variable, those that change the hourly variables it is made from too.
+   */
+  corrections: string[]
 }
 /**
  * The weather variables the service provides.

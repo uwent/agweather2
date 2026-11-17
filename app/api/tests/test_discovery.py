@@ -202,3 +202,39 @@ def test_a_threshold_in_celsius_names_the_nearest_tenth_of_a_degree_fahrenheit()
 
     assert setting("sine", 7.22, 30, "metric", [], "dd").base_f == 45.0
     assert setting("sine", 45, None, "us", [], "dd").base_f == 45.0
+
+
+def test_methods_list_the_sources_and_corrections(client):
+    response = client.get("/api/v2/methods")
+    assert response.status_code == 200 and response.headers["ETag"]
+    data = response.json()["data"]
+    precip = {(s["source"], s["role"]): s for s in data["sources"] if "precipitation" in s["variables"]}
+    assert precip["rtma", "archive"]["last"] == "2017-12-04" and precip["urma", "archive"]["first"] == "2017-12-05"
+    found = {c["id"]: c for c in data["corrections"]}
+    shortwave = found["hrrr-shortwave"]
+    assert shortwave["version"] == "2" and shortwave["fitted"] == "2026-10-31"
+    assert shortwave["scores"][0]["units"] == {"us": "MJ/m²", "metric": "MJ/m²"}
+    assert shortwave["evidence"] == [
+        "https://github.com/uwent/agweather2/blob/main/docs/validation-shortwave-correction.md"
+    ]
+    assert found["gridmet-basis"]["fitted"] is None and len(found["gridmet-basis"]["evidence"]) == 3
+
+
+def test_a_correction_gives_its_fitted_table(client):
+    table = client.get("/api/v2/methods/corrections/hrrr-shortwave").json()["data"]["table"]
+    assert len(table["clearness"]) == len(table["factor"]) == 12 and "version" not in table
+    assert client.get("/api/v2/methods/corrections/gridded-rh-90").json()["data"]["table"] is None
+    missing = client.get("/api/v2/methods/corrections/nope")
+    assert missing.status_code == 404 and "GET /api/v2/methods lists" in missing.json()["errors"][0]["message"]
+
+
+def test_variables_and_model_inputs_name_their_sources_and_corrections(client):
+    found = {(v["kind"], v["name"]): v for v in client.get("/api/v2/variables").json()["data"]}
+    humid = found["daily", "hours_rh_over_90"]
+    assert humid["corrections"] == ["gridded-rh-90", "nbm-max", "nbm-night-min", "nbm-rh", "openmeteo-rh"]
+    assert humid["sources"] == ["urma", "rtma", "nbm", "openmeteo"] and humid["gap_fill"] == "interpolate"
+    assert found["daily", "precipitation_sum"]["gap_fill"] == "zero"
+    assert found["hourly", "soil_temperature_10cm"]["sources"] == ["era5land", "ifs", "openmeteo"]
+    assert found["cumulative", "dd_sine_50"]["sources"] == [] and found["hourly", "air_temperature"]["gap_fill"] is None
+    inputs = {i["name"]: i for i in client.get("/api/v2/models/botrytis-onion-botcast").json()["data"]["inputs"]}
+    assert "gridded-rh-90" in inputs["hours_rh_over_90_from_6pm"]["corrections"]

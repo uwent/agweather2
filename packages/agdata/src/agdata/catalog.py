@@ -109,7 +109,7 @@ VARIABLES: dict[str, Variable] = {
             valid_max=100,
             daily=("min", "max", "mean"),
             derived=True,
-            notes="From air temperature and dew point (Magnus formula over water)",
+            notes="Computed from air temperature and dew point (the Magnus formula, over water).",
         ),
         Variable(
             name="wind_speed",
@@ -139,7 +139,7 @@ VARIABLES: dict[str, Variable] = {
             scale=1,
             valid_min=0,
             valid_max=360,
-            notes="Daily means of directions need vector averaging, so there is no plain daily statistic",
+            notes="A day's directions can't be averaged as numbers, so there is no daily value.",
             sources={"urma": "WDIR:10 m above ground"},
         ),
         Variable(
@@ -171,7 +171,7 @@ VARIABLES: dict[str, Variable] = {
             valid_min=0,
             valid_max=300,
             daily=("sum",),
-            notes="URMA hourly from 2017-12-05; RTMA's hourly precip before that (PLAN.md D23)",
+            notes="The total for the hour ending at the time.",
             sources={"urma": "APCP:surface, 1-hour accumulation"},
         ),
         Variable(
@@ -181,7 +181,7 @@ VARIABLES: dict[str, Variable] = {
             scale=0.1,
             valid_min=0,
             valid_max=1500,
-            notes="HRRR, mean of the hour's four 15-minute values, regridded (D7); reads ~18% high (D48)",
+            notes="HRRR's solar radiation before our correction to ground measurements. It reads about 18% high.",
             sources={"hrrr": "DSWRF:surface, wrfsubhf01"},
         ),
         Variable(
@@ -194,8 +194,7 @@ VARIABLES: dict[str, Variable] = {
             daily=("sum",),
             derived=True,
             version=3,  # 1 + the correction table's version (`agdata.shortwave`; a test checks it)
-            notes="In the archive, HRRR corrected against ground pyranometers by each hour's clearness (D48); in a "
-            "forecast run, NBM's. Daily sums in MJ/m² (W/m² x 0.0036)",
+            notes="Corrected to pyranometers on the ground. Daily totals are in MJ/m² (W/m² × 0.0036).",
             sources={"hrrr": "shortwave_radiation_hrrr, corrected (agdata.shortwave)"},
         ),
         Variable(
@@ -207,9 +206,8 @@ VARIABLES: dict[str, Variable] = {
             valid_max=60,
             daily=("min", "max", "mean"),
             version=2,  # 2: ERA5-Land, not HRRR (D52)
-            notes="ERA5-Land's layers (0-7, 7-28, 28-100 cm) regridded and taken to the depth between their middles "
-            "(D52); IFS's on the newest days until ERA5-Land reaches them, and in the forecast; "
-            "the potato model's 2 in depth",
+            notes="Taken from the source's soil layers (0–7, 7–28 and 28–100 cm) to the depth. The "
+            "potato models' 2 inch depth.",
             sources={
                 "era5land": "soil_temperature_level_1-3, at the depth (agdata.sources.era5land)",
                 "ifs": "IFS HRES layers, at the depth (agdata.sources.ifs): provisional days and the forecast",
@@ -224,9 +222,8 @@ VARIABLES: dict[str, Variable] = {
             valid_max=60,
             daily=("min", "max", "mean"),
             version=2,  # 2: ERA5-Land, not HRRR (D52)
-            notes="ERA5-Land's layers (0-7, 7-28, 28-100 cm) regridded and taken to the depth between their middles "
-            "(D52); IFS's on the newest days until ERA5-Land reaches them, and in the forecast; "
-            "the potato model's 4 in depth",
+            notes="Taken from the source's soil layers (0–7, 7–28 and 28–100 cm) to the depth. The "
+            "potato models' 4 inch depth.",
             sources={
                 "era5land": "soil_temperature_level_1-3, at the depth (agdata.sources.era5land)",
                 "ifs": "IFS HRES layers, at the depth (agdata.sources.ifs): provisional days and the forecast",
@@ -241,9 +238,8 @@ VARIABLES: dict[str, Variable] = {
             valid_max=60,
             daily=("min", "max", "mean"),
             version=2,  # 2: ERA5-Land, not HRRR (D52)
-            notes="ERA5-Land's layers (0-7, 7-28, 28-100 cm) regridded and taken to the depth between their middles "
-            "(D52); IFS's on the newest days until ERA5-Land reaches them, and in the forecast; with 10 cm, the "
-            "potato model's 8 in (interpolated)",
+            notes="Taken from the source's soil layers (0–7, 7–28 and 28–100 cm) to the depth. With "
+            "10 cm, it gives the potato models' 8 inch depth.",
             sources={
                 "era5land": "soil_temperature_level_1-3, at the depth (agdata.sources.era5land)",
                 "ifs": "IFS HRES layers, at the depth (agdata.sources.ifs): provisional days and the forecast",
@@ -257,8 +253,7 @@ VARIABLES: dict[str, Variable] = {
             valid_min=0,
             valid_max=1000,
             daily=("max", "mean"),
-            notes="ERA5-Land's snow depth (of snow, not water), regridded (D52); IFS's on the newest days until "
-            "ERA5-Land reaches them, and in the forecast",
+            notes="The depth of the snow itself, not its water content.",
             sources={
                 "era5land": "snow_depth (agdata.sources.era5land)",
                 "ifs": "snow_depth (agdata.sources.ifs): provisional days and the forecast",
@@ -275,7 +270,7 @@ VARIABLES: dict[str, Variable] = {
             daily=("sum",),
             derived=True,
             version=2,  # 2: Rs/Rso held to 0.3–1 (ASCE-EWRI), so heavy cloud can't make net longwave a gain
-            notes="Hourly FAO-56 Penman-Monteith (PLAN.md D8)",
+            notes="Grass reference evapotranspiration by the FAO-56 Penman-Monteith equation, computed each hour.",
         ),
     ]
 }
@@ -549,8 +544,8 @@ def _cumulative() -> list[Variable]:
             valid_min=-3000,
             valid_max=6000,
             derived=True,
-            notes="A day without precipitation data counts as no rain, and ET0 is bridged as in its own total; "
-            "both count as estimated days (D75)",
+            notes="A day without precipitation data counts as no rain, and a day without reference "
+            "evapotranspiration is estimated as in its own running total. Either day counts as estimated.",
         ),
     ]
     # The Dynamic model's chill since October 1 (D76, `agdata.chillseason`), from hourly temperature: the portions,

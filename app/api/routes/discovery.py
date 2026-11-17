@@ -14,6 +14,7 @@ from django.conf import settings
 from django.http import Http404, HttpRequest, HttpResponse
 from ninja import Query, Router, Schema
 
+from agdata import corrections, provenance
 from agdata import units as agunits
 from agdata.catalog import (
     CUMULATIVE_VARIABLES,
@@ -211,6 +212,9 @@ class VariableInfo(Schema):
     hourly_sources: list[str]  # daily: the hourly variables it's rolled up from
     computed_from: list[str]  # computed when read from these stored variables (same kind); empty if stored
     notes: str
+    sources: list[str]  # `/methods` source ids that supply it, or its hourly variables (`agdata.provenance`)
+    gap_fill: str | None  # daily: how a model's input estimates a missing day (interpolate, zero); None: it doesn't
+    corrections: list[str]  # `/methods` correction ids that change it, or its hourly variables
 
 
 class VariablesResponse(Schema):
@@ -233,7 +237,27 @@ def _variable(v: Variable, kind: Literal["hourly", "daily", "cumulative"]) -> Va
         hourly_sources=list(hourly_sources().get(v.name, ())) if kind == "daily" else [],
         computed_from=list(c.inputs) if (c := computed_variable(v.name)) is not None else [],
         notes=v.notes,
+        sources=_sources_of(v.name) if kind != "cumulative" else [],
+        gap_fill=v.gap_fill if kind == "daily" else None,
+        corrections=corrections_of(v.name) if kind != "cumulative" else [],
     )
+
+
+def _made_from(name: str) -> list[str]:
+    """The variable and, for a daily one, the hourly variables it's rolled up from."""
+    return [name, *hourly_sources().get(name, ())]
+
+
+def _sources_of(name: str) -> list[str]:
+    names = _made_from(name)
+    return list(
+        dict.fromkeys(u.source for u in provenance.USES if u.role != "normals" and set(u.variables) & set(names))
+    )
+
+
+def corrections_of(name: str) -> list[str]:
+    """The corrections that change a variable's values, or those of the hourly variables a daily one comes from."""
+    return list(dict.fromkeys(c for n in _made_from(name) for c in corrections.touching(n)))
 
 
 @router.get("/variables", response=responses(VariablesResponse), summary="The variable catalog")
@@ -289,6 +313,7 @@ class QuantityInfo(Schema):
 
 class InputInfo(QuantityInfo):
     model: str  # the model that reads it: this one, or the crop model it's gated by
+    corrections: list[str]  # `/methods` correction ids that change it (`corrections_of`)
 
 
 class Choice(Schema):
@@ -421,11 +446,13 @@ def _crop(spec: ModelSpec) -> CropInfo | None:
 
 def _detail(spec: ModelSpec) -> ModelDetail:
     crops = crop_models(spec)
-    inputs = [InputInfo(**_quantity(q), model=spec.id) for q in spec.inputs]
+    inputs = [InputInfo(**_quantity(q), model=spec.id, corrections=corrections_of(q.name)) for q in spec.inputs]
     for crop_id in crops:
         seen = {i.name for i in inputs}
         inputs += [
-            InputInfo(**_quantity(q), model=crop_id) for q in find_model(crop_id).SPEC.inputs if q.name not in seen
+            InputInfo(**_quantity(q), model=crop_id, corrections=corrections_of(q.name))
+            for q in find_model(crop_id).SPEC.inputs
+            if q.name not in seen
         ]
     derivable = hourly_sources()
     biofix = None

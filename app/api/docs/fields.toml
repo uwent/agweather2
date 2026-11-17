@@ -134,6 +134,9 @@ statistic = "For a daily variable made from hourly values: how the day's hours a
 hourly_sources = "For a daily variable: the hourly variables it is made from. Weather you send to a model can give these in place of the daily value."
 computed_from = "The variables this one is calculated from whenever it is read. Empty when it is kept as it is."
 notes = "How the variable is made and anything to know when using it."
+sources = "Where the variable's values come from, by the source ids `/methods` lists. For a daily variable, the sources of the hourly variables it is made from. Empty for a running total, which comes from its daily variable."
+gap_fill = "For a daily variable: how a model estimates a missing day, `interpolate` (from the days on either side) or `zero` (counted as none, as for precipitation). Null when it is never estimated."
+corrections = "The corrections that change the variable's values, by the ids `/methods` lists. For a daily variable, those that change the hourly variables it is made from too."
 
 # --- /models -------------------------------------------------------------------------------------------------------
 
@@ -192,6 +195,7 @@ description = "What the value means."
 _inherits = "QuantityInfo"
 name = "The daily variable's name, as in `/variables`."
 model = "The model that reads it: this one, or one of its crop models."
+corrections = "The corrections that change this input's values, by the ids `/methods` lists."
 
 [OptionInfo]
 name = "The option's name, as a parameter of the run endpoints."
@@ -346,3 +350,49 @@ metric = "The setting in °C, for requests with `units=metric`."
 temperature = "The air temperature at or below which the freeze kills the crop."
 note = "What the freeze kills."
 citations = "The sources of the temperature."
+
+# --- /methods ------------------------------------------------------------------------------------------------------
+
+[MethodsResponse]
+meta = "What the answer was computed for and how to read it."
+data = "The sources of the data and the corrections we apply to them."
+
+[MethodsData]
+sources = "Each source and what we use it for, by date."
+corrections = "Each correction we apply to a source's data."
+
+[SourceInfo]
+source = "The source's id. Several entries share one when a source serves more than one use."
+name = "The source's name and who publishes it."
+role = "What we use it for: `archive` (our record of past weather), `provisional` (the newest hours or days, until the archive's source replaces them), `forecast`, `outside` (locations outside the area our maps cover, and dates before our archive) or `normals` (the years of the 30-year normal before our archive)."
+variables = "The variables it supplies in this use, by their names in `/variables`."
+first = "The first day it supplies (YYYY-MM-DD). Null when it supplies them from the archive's first day, which `/status` gives."
+last = "The last day it supplies (YYYY-MM-DD). Null while it is still in use."
+description = "What the source is and how we use it."
+url = "Where to read about the source."
+
+[CorrectionInfo]
+id = "The correction's id, as `/variables`, the models' inputs and `meta.summary.corrections` name it."
+title = "What the correction applies to."
+summary = "What it corrects, how, and what it was fitted against."
+variables = "The variables whose values it changes, by their names in `/variables`."
+version = "The correction's version. It changes whenever the correction is fitted again or changed."
+fitted = "The day it was last fitted (YYYY-MM-DD). Null when it is fitted again whenever its data are, as for the 30-year normal's earlier years."
+scores = "How much the correction improved its data, measured on data it was not fitted to. Empty when there is no such test."
+evidence = "Links to our technical reports on the correction: how it was fitted and tested, with fuller results."
+
+[ScoreInfo]
+measure = "What was measured."
+unit = "The unit of `before` and `after`, as `units` overrides name it. `index` for a ratio, which has no unit."
+units = "The unit shown in each system of units."
+before = "The measure without the correction."
+after = "The measure with the correction."
+tested = "The data the measure comes from."
+
+[CorrectionResponse]
+meta = "What the answer was computed for and how to read it."
+data = "The correction."
+
+[CorrectionDetail]
+_inherits = "CorrectionInfo"
+table = "The fitted values, as the correction reads them: each key is one of the table's axes (such as `clearness` or `lead_hours`) or its values (such as `factor`). Null when the correction has no table."

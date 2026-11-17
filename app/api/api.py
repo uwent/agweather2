@@ -7,7 +7,7 @@ from ninja.operation import Operation
 
 from api import docs, errors, strict
 from api.params import QueryParser
-from api.routes import climate, degree_days, discovery, grids, maps, models, summaries, tiles, weather
+from api.routes import climate, degree_days, discovery, grids, maps, methods, models, summaries, tiles, weather
 
 
 class AgWeatherAPI(NinjaAPI):
@@ -36,6 +36,7 @@ api = AgWeatherAPI(
 errors.install(api)
 api.add_router("/", models.router)  # before discovery: /models/run isn't a model id
 api.add_router("/", discovery.router)
+api.add_router("/", methods.router)
 api.add_router("/", weather.router)
 api.add_router("/", degree_days.router)
 api.add_router("/", grids.router)

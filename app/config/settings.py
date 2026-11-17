@@ -31,6 +31,8 @@ ALLOWED_HOSTS = [h.strip() for h in os.environ.get("ALLOWED_HOSTS", "localhost,1
 
 # The deployed commit, shown by /up and the API status
 APP_VERSION = os.environ.get("APP_VERSION", "dev")
+# Where the code and its validation reports are public; links name APP_VERSION's commit, or main in development
+REPOSITORY_URL = "https://github.com/uwent/agweather2"
 
 # The grid window the archive covers (PLAN.md D20): a preset name or south,west,north,east
 SERVICE_BOX = os.environ.get("SERVICE_BOX", "wisconsin")
