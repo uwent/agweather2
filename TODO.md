@@ -142,6 +142,8 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
 ## Phase 6: Frontend plan and the data behind it
 
+- [ ] **Keep Enviroweather's permission on record** (2026-11-17; PLAN.md Phase 6 step 4). Save the message granting permission to use Enviroweather's source code as a basis for new models (in `tmp/references/enviroweather/`, or somewhere shared with the group) and note any terms in it: how they want to be credited on the model pages, whether the permission covers the whole dump or named models, and whether ported code may be published in this public repository. Claude will word each model's credit from it.
+
 - [ ] **Water and terrain on the server** (2026-11-11; PLAN.md Phase 6 D6): `uv run app/manage.py terrain --check`, then `uv run app/manage.py terrain --background`. It downloads NHDPlus V2.1's archives for the service box (~2.3 GB for Wisconsin's units 04, 07 and 09; the launch box needs more units added to `agdata.terrain.UNITS` first, with their extents measured from the rasters) and builds `data/terrain.zarr` (~3 min and 153 MB over Wisconsin). The web process picks it up without a restart.
 
 - [ ] **The 30-year climatology on the server** (2026-11-11; PLAN.md Phase 6 D3–D4). Once the server's archive is full from 2016: `uv run app/manage.py climatology --check`, then `uv run app/manage.py climatology --background`. It downloads gridMET's 1996–2025 over the service box (the box's part of each file; ~1.8 h over Wisconsin, so expect much longer over the launch box), fits the adjustment, derives 1996–2015 and builds the `last5`, `last10` and `last30` normal maps (~9 GB a period at the launch box, several hours each). A monthly job (`update_climatology`, the 15th at 06:00) keeps it current after that.
