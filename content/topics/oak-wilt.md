@@ -3,7 +3,7 @@ id: oak-wilt
 title: Oak Wilt Vectors
 kind: insect
 crops:
-  - Oak
+  - oak
 scientific_name: ''
 summary: ''
 image: images/oak-wilt.png

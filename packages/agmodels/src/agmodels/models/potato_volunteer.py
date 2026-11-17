@@ -35,7 +35,7 @@ SPEC = ModelSpec(
     status="beta",
     summary="Whether potato tubers left in the field are likely to survive the winter, from the hours of soil below 27 °F at 2, 4 and 8 in; surviving volunteers can carry late blight and insect pests into the next season.",
     topics=("potato-volunteers",),
-    crops=("Potato",),
+    crops=("potato",),
     citations=(
         Citation(
             text="Kirk, W. and Wharton, P. Potential survival of potato volunteers in Michigan. Michigan State University Extension.",

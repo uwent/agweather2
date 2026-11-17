@@ -5,7 +5,7 @@ from agmodels.phenology import Insect
 INSECT = Insect(
     id="tarnished-plant-bug",
     name="Tarnished Plant Bug (Lygus Bug)",
-    crops=("Celery", "Leafy Greens", "Potato", "Raspberry"),
+    crops=("celery", "leafy-greens", "potato", "raspberry"),
     base_f=52,
     upper_f=None,
     biofix="01-01",

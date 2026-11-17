@@ -7,7 +7,7 @@ from agmodels.spec import Change, Citation
 INSECT = Insect(
     id="seedcorn-maggot",
     name="Seedcorn maggot",
-    crops=("Corn (Field and Sweet)", "Bean", "Cucumber", "Melon", "Pumpkin and Squash"),
+    crops=("corn", "sweet-corn", "beans", "cucumber", "melon", "pumpkin-squash"),
     # The sources' method (D37): simple average above 3.9 °C (39 °F), temperatures capped at 29 °C (84.2 °F)
     base_f=39,
     upper_f=84.2,

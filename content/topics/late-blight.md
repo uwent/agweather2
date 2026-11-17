@@ -3,8 +3,8 @@ id: late-blight
 title: Late Blight (Potato/Tomato)
 kind: disease
 crops:
-  - Potato
-  - Tomato
+  - potato
+  - tomato
 scientific_name: ''
 summary: ''
 image: images/late-blight.png

@@ -73,7 +73,7 @@ def test_a_model_outside_the_box_runs_on_open_meteo(fake_fetch, settings, tmp_pa
     settings.SERVICE_BOX = "wisconsin"
     assert not points.in_archive(*STILLWATER, date(2026, 7, 1), date(2026, 7, 20))
     result = points.model_at_point(
-        *STILLWATER, "degree-days", date(2026, 7, 5), date(2026, 7, 20), NOW, biofix=date(2026, 7, 1)
+        *STILLWATER, "custom-degree-days", date(2026, 7, 5), date(2026, 7, 20), NOW, biofix=date(2026, 7, 1)
     )
     assert result.reason is None
     assert result.kinds[:10] == ["observed"] * 10 and result.kinds[10] == "partial" and result.kinds[-1] == "forecast"

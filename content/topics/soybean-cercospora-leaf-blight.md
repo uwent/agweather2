@@ -3,7 +3,7 @@ id: soybean-cercospora-leaf-blight
 title: Cercospora Leaf Blight (Soybean)
 kind: disease
 crops:
-  - Soybean
+  - soybean
 scientific_name: ''
 summary: ''
 image: images/soybean-cercospora-leaf-blight.jpg

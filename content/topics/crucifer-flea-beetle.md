@@ -3,7 +3,7 @@ id: crucifer-flea-beetle
 title: Flea Beetle (Crucifer)
 kind: insect
 crops:
-  - Cole Crops
+  - cole-crops
 scientific_name: ''
 summary: ''
 image: images/crucifer-flea-beetle.jpg

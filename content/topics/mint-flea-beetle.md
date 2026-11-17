@@ -3,7 +3,7 @@ id: mint-flea-beetle
 title: Flea Beetle (Mint)
 kind: insect
 crops:
-  - Mint
+  - mint
 scientific_name: ''
 summary: ''
 image: images/mint-flea-beetle.jpg

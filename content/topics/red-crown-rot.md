@@ -3,7 +3,7 @@ id: red-crown-rot
 title: Red Crown Rot (Soybean)
 kind: disease
 crops:
-  - Soybean
+  - soybean
 scientific_name: ''
 summary: ''
 image: images/red-crown-rot.jpg

@@ -3,9 +3,9 @@ id: spotted-wing-drosophila
 title: Spotted Wing Drosophila
 kind: insect
 crops:
-  - Blackberry
-  - Cherry
-  - Raspberry
+  - blackberry
+  - cherry
+  - raspberry
 scientific_name: ''
 summary: ''
 image: images/spotted-wing-drosophila.png

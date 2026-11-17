@@ -24,10 +24,10 @@ from agdata.grid import NDFD
 from agdata.grids import cube_terms
 from agdata.series import FORECAST, PARTIAL, archive_years, day_kinds, past_reader
 from agdata.timezones import day_bounds
-from agmodels import chill
+from agmodels import chill, croplist
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
-from agmodels.presets import DegreeDayPreset, all_presets
+from agmodels.presets import DegreeDayPreset, Freeze, all_presets
 from agmodels.scenarios import first_days, reached, spread
 from api import clock, points, rolled
 from api.envelope import Column, Result, catalog_column, etag_for, not_modified, respond
@@ -47,7 +47,7 @@ from api.params import (
     setting,
     temperature_threshold,
 )
-from api.routes.discovery import CitationInfo, citation_info
+from api.routes.discovery import CitationInfo, check_crop, citation_info
 from api.routes.models import NO_PROJECTION, projection_mode
 from api.routes.weather import (
     FORECAST_DAYS,
@@ -754,7 +754,8 @@ class FreezeInfo(Schema):
 class PresetInfo(Schema):
     id: str
     group: str  # crop, insect
-    crops: list[str]
+    crops: list[str]  # names
+    crop_ids: list[str]  # `/crops` ids
     label: str
     method: str
     base: Temperature
@@ -779,6 +780,12 @@ def _temperature(f: float) -> Temperature:
     return Temperature(us=f, metric=round((f - 32) / 1.8, 2))
 
 
+def freeze_info(freeze: Freeze) -> FreezeInfo:
+    return FreezeInfo(
+        temperature=_temperature(freeze.f), note=freeze.note, citations=[citation_info(c) for c in freeze.citations]
+    )
+
+
 def _preset(p: DegreeDayPreset) -> PresetInfo:
     s = p.setting
     base, upper = _temperature(s.base_f), None if s.upper_f is None else _temperature(s.upper_f)
@@ -787,17 +794,12 @@ def _preset(p: DegreeDayPreset) -> PresetInfo:
         values = [getattr(base, system)] + ([getattr(upper, system)] if upper is not None else [])
         return "_".join([s.method, *(f"{v:g}".replace(".", "p") for v in values)])
 
-    freeze = None
-    if p.freeze is not None:
-        freeze = FreezeInfo(
-            temperature=_temperature(p.freeze.f),
-            note=p.freeze.note,
-            citations=[citation_info(c) for c in p.freeze.citations],
-        )
+    freeze = freeze_info(p.freeze) if p.freeze is not None else None
     return PresetInfo(
         id=p.id,
         group=p.group,
-        crops=list(p.crops),
+        crops=croplist.names(p.crops),
+        crop_ids=list(p.crops),
         label=p.label,
         method=s.method,
         base=base,
@@ -813,12 +815,23 @@ def _preset(p: DegreeDayPreset) -> PresetInfo:
     )
 
 
+class PresetsQuery(Schema):
+    group: Literal["crop", "insect"] | None = None
+    crop: str | None = None
+
+
 @router.get(
     "/degree-days/presets", response=responses(PresetsResponse), summary="Degree-day settings for crops and insects"
 )
-def presets(request: HttpRequest) -> HttpResponse:
-    etag = etag_for(request, {}, None)
+def presets(request: HttpRequest, query: Query[PresetsQuery]) -> HttpResponse:
+    computed = {"group": query.group, "crop": check_crop(query.crop)}
+    etag = etag_for(request, computed, None)
     if (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    found = [_preset(p).model_dump() for p in all_presets()]
-    return respond(request, Result(request={}, data=found, etag=etag))
+    found = [
+        _preset(p).model_dump()
+        for p in all_presets()
+        if (query.group is None or p.group == query.group)
+        and (query.crop is None or croplist.applies(p.crops, query.crop))
+    ]
+    return respond(request, Result(request=computed, data=found, etag=etag))

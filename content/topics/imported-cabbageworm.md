@@ -3,7 +3,7 @@ id: imported-cabbageworm
 title: Imported Cabbageworm
 kind: insect
 crops:
-  - Cole Crops
+  - cole-crops
 scientific_name: ''
 summary: ''
 image: images/imported-cabbageworm.jpg

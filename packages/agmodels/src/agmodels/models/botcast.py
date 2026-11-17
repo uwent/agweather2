@@ -40,7 +40,7 @@ SPEC = ModelSpec(
     status="stable",
     summary="BOTCAST's daily disease severity index from inoculum and infection conditions, accumulated from emergence to time fungicide sprays for Botrytis leaf blight of onion.",
     topics=("onion-botrytis-leaf-blight",),
-    crops=("Onion",),
+    crops=("onion",),
     citations=(
         Citation(
             text="Sutton, J. C., James, T. D. W. and Rowell, P. M. (1986). BOTCAST: a forecasting system to time the initial fungicide spray for managing Botrytis leaf blight of onions. Agriculture, Ecosystems and Environment 18, 123–143.",

@@ -32,7 +32,7 @@ class Freeze:
 class DegreeDayPreset:
     id: str
     group: Group = "crop"
-    crops: tuple[str, ...]  # the crop, or the crops an insect attacks (the models' crop names)
+    crops: tuple[str, ...]  # the crop, or the crops an insect attacks (`agmodels.croplist` ids)
     label: str  # public: the crop or insect and what the count is for
     setting: DegreeDays
     starts: Start  # when the count usually starts
@@ -54,7 +54,7 @@ NDSU_A1995 = Citation(
 
 CORN = DegreeDayPreset(
     id="corn",
-    crops=("Corn",),
+    crops=("corn",),
     label="Corn (field)",
     setting=DegreeDays(method="modified", base_f=50, upper_f=86),
     starts="planting",
@@ -74,7 +74,7 @@ CORN = DegreeDayPreset(
 )
 ALFALFA = DegreeDayPreset(
     id="alfalfa",
-    crops=("Alfalfa",),
+    crops=("alfalfa",),
     label="Alfalfa",
     setting=DegreeDays(method="sine", base_f=41, upper_f=86),
     starts="january_1",
@@ -99,7 +99,7 @@ ALFALFA = DegreeDayPreset(
 )
 POTATO = DegreeDayPreset(
     id="potato",
-    crops=("Potato",),
+    crops=("potato",),
     label="Potato (to emergence)",
     setting=DegreeDays(method="average", base_f=39.2),
     starts="planting",
@@ -114,7 +114,7 @@ POTATO = DegreeDayPreset(
 )
 SPRING_WHEAT = DegreeDayPreset(
     id="spring-wheat",
-    crops=("Wheat",),
+    crops=("spring-wheat",),
     label="Spring wheat",
     setting=DegreeDays(method="modified", base_f=32, upper_f=95),
     starts="planting",
@@ -133,7 +133,7 @@ SPRING_WHEAT = DegreeDayPreset(
 
 BARLEY = DegreeDayPreset(
     id="barley",
-    crops=("Barley",),
+    crops=("barley",),
     label="Barley",
     setting=DegreeDays(method="modified", base_f=32, upper_f=95),
     starts="planting",
@@ -147,7 +147,7 @@ BARLEY = DegreeDayPreset(
 )
 SOYBEAN = DegreeDayPreset(
     id="soybean",
-    crops=("Soybean",),
+    crops=("soybean",),
     label="Soybean",
     setting=DegreeDays(method="modified", base_f=50, upper_f=86),
     starts="planting",
@@ -162,7 +162,7 @@ SOYBEAN = DegreeDayPreset(
 )
 DRY_BEAN = DegreeDayPreset(
     id="dry-bean",
-    crops=("Dry bean",),
+    crops=("dry-bean",),
     label="Dry (edible) bean",
     setting=DegreeDays(method="modified", base_f=50, upper_f=86),
     starts="planting",
@@ -183,7 +183,7 @@ DRY_BEAN = DegreeDayPreset(
 )
 SORGHUM = DegreeDayPreset(
     id="sorghum",
-    crops=("Sorghum",),
+    crops=("sorghum",),
     label="Grain sorghum",
     setting=DegreeDays(method="modified", base_f=50, upper_f=100),
     starts="planting",
@@ -207,7 +207,7 @@ SORGHUM = DegreeDayPreset(
 )
 SUGARBEET = DegreeDayPreset(
     id="sugarbeet",
-    crops=("Sugarbeet",),
+    crops=("sugarbeet",),
     label="Sugarbeet",
     setting=DegreeDays(method="modified", base_f=34, upper_f=86),
     starts="planting",
@@ -224,7 +224,7 @@ SUGARBEET = DegreeDayPreset(
 )
 SUNFLOWER = DegreeDayPreset(
     id="sunflower",
-    crops=("Sunflower",),
+    crops=("sunflower",),
     label="Sunflower",
     setting=DegreeDays(method="modified", base_f=44),
     starts="planting",
@@ -244,7 +244,7 @@ SUNFLOWER = DegreeDayPreset(
 )
 SWEET_CORN = DegreeDayPreset(
     id="sweet-corn",
-    crops=("Sweet corn",),
+    crops=("sweet-corn",),
     label="Sweet corn (processing)",
     setting=DegreeDays(method="modified", base_f=50, upper_f=86),
     starts="planting",
@@ -258,7 +258,7 @@ SWEET_CORN = DegreeDayPreset(
 )
 PEA = DegreeDayPreset(
     id="pea",
-    crops=("Pea",),
+    crops=("pea",),
     label="Green pea (processing)",
     setting=DegreeDays(method="average", base_f=40),
     starts="planting",
@@ -276,7 +276,7 @@ PEA = DegreeDayPreset(
 )
 SNAP_BEAN = DegreeDayPreset(
     id="snap-bean",
-    crops=("Snap bean",),
+    crops=("snap-bean",),
     label="Snap bean",
     setting=DegreeDays(method="sine", base_f=40, upper_f=90),
     starts="planting",

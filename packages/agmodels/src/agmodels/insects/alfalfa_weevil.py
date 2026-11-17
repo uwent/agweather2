@@ -6,7 +6,7 @@ from agmodels.phenology import Insect, Stage
 INSECT = Insect(
     id="alfalfa-weevil",
     name="Alfalfa weevil",
-    crops=("Alfalfa",),
+    crops=("alfalfa",),
     base_f=48.2,  # 9 °C
     upper_f=86,  # 30 °C
     biofix="01-01",

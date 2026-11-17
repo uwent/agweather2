@@ -30,13 +30,14 @@ from agdata.grid import NDFD
 from agdata.planting import CROPS, planting_crop, typical_planting
 from agdata.point import hourly_sources
 from agdata.series import MAX_RUN_AGE
+from agmodels import croplist
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
 from agmodels.runner import crop_models
 from agmodels.spec import Citation, Group, Input, ModelSpec, Option, Quantity
 from api import clock
 from api.envelope import Result, etag_for, not_modified, respond
-from api.errors import ApiError
+from api.errors import ApiError, quoted
 from api.locations import describe
 from api.params import PointsQuery
 from api.schemas import Location, Meta, responses
@@ -289,7 +290,8 @@ class ModelSummary(Schema):
     status: str  # beta, stable, retired
     version: str
     summary: str
-    crops: list[str]
+    crops: list[str]  # names
+    crop_ids: list[str]  # `/crops` ids
     topics: list[str]
     region: list[str]  # state abbreviations; empty: anywhere
     season: list[str] | None  # [first, last] as MM-DD; None: all year
@@ -410,7 +412,8 @@ def _summary(spec: ModelSpec) -> dict:
         "status": spec.status,
         "version": spec.version,
         "summary": spec.summary,
-        "crops": list(spec.crops),
+        "crops": croplist.names(spec.crops),
+        "crop_ids": list(spec.crops),
         "topics": list(spec.topics),
         "region": list(spec.region),
         "season": list(spec.season) if spec.season else None,
@@ -499,18 +502,31 @@ def _detail(spec: ModelSpec) -> ModelDetail:
 
 class ModelsQuery(Schema):
     group: Group | None = None
+    crop: str | None = None
+
+
+def check_crop(crop: str | None) -> str | None:
+    """A `crop=` value: a crop id from `/crops`, or a 422 that lists them."""
+    if crop is None or crop in croplist.CROPS:
+        return crop
+    raise ApiError(
+        "invalid",
+        f"We don't have a crop with the id {quoted(crop)}. Choose one of the ids that /crops lists, such as 'corn', 'potato' or 'cole-crops'.",
+        "crop",
+    )
 
 
 @router.get("/models", response=responses(ModelsResponse), summary="Every model")
 def models(request: HttpRequest, query: Query[ModelsQuery]) -> HttpResponse:
-    computed = {"group": query.group}
+    computed = {"group": query.group, "crop": check_crop(query.crop)}
     etag, unchanged = _cached(request, computed)
     if unchanged is not None:
         return unchanged
     found = [
         ModelSummary(**_summary(m.SPEC)).model_dump()
         for _, m in sorted(all_models().items())
-        if query.group is None or m.SPEC.group == query.group
+        if (query.group is None or m.SPEC.group == query.group)
+        and (query.crop is None or croplist.applies(m.SPEC.crops, query.crop))
     ]
     return respond(request, Result(request=computed, data=found, etag=etag))
 

@@ -3,7 +3,7 @@ id: gray-leaf-spot
 title: Gray Leaf Spot (Corn)
 kind: disease
 crops:
-  - Corn
+  - corn
 scientific_name: ''
 summary: ''
 image: images/gray-leaf-spot.jpg

@@ -48,7 +48,7 @@ SPEC = ModelSpec(
     status="beta",
     summary="Growing degree days (base 41 °F, upper 86 °F) since spring or the last cutting, and when alfalfa is ready to cut (900–1100 GDD).",
     topics=("alfalfa",),
-    crops=("Alfalfa",),
+    crops=("alfalfa",),
     citations=(
         Citation(
             text="Newell, S. Managing fall alfalfa cutting for persistence. UW–Madison Extension Crops and Soils (written with the UW alfalfa cutting tool, whose 900–1100 GDD cutting window this follows).",

@@ -155,7 +155,8 @@ group = "What the model predicts: `disease`, `insect`, `crop` (growth stages), `
 status = "`stable`, or `beta` while the model is new or under review and its results are more likely to change. `retired` marks a model we no longer recommend."
 version = "The model's version. It changes whenever the model's results change; `changelog` says how."
 summary = "What the model predicts, in a sentence or two."
-crops = "The crops the model concerns."
+crops = "The crops the model concerns, by name."
+crop_ids = "The same crops by their ids in `/crops`. A group, such as `cole-crops`, means each of its crops."
 topics = "The diseases or insects the model predicts, by short name."
 region = "The states where the model was developed or tested, as postal abbreviations. Empty when it is not limited to a region."
 season = "The first and last days of the year the model's results are shown, as `MM-DD`. Null when it runs all year."
@@ -326,7 +327,8 @@ data = "Each preset: the crops first, then the insects."
 [PresetInfo]
 id = "The preset's id."
 group = "`crop` for a crop's growing degree days, `insect` for an insect model's."
-crops = "The crop, or the crops the insect attacks."
+crops = "The crop, or the crops the insect attacks, by name."
+crop_ids = "The same crops by their ids in `/crops`."
 label = "The preset's name, as a menu shows it."
 method = "How each day's degree days are computed: `sine` (single sine), `modified` (the daily minimum and maximum limited to the base and upper threshold, then averaged) or `average` (simple average)."
 base = "The base temperature: a day adds nothing for the time its temperature is below it."
@@ -398,3 +400,32 @@ data = "The correction."
 [CorrectionDetail]
 _inherits = "CorrectionInfo"
 table = "The fitted values, as the correction reads them: each key is one of the table's axes (such as `clearness` or `lead_hours`) or its values (such as `factor`). Null when the correction has no table."
+
+# --- /crops --------------------------------------------------------------------------------------------------------
+
+[CropsResponse]
+meta = "What the answer was computed for and how to read it."
+data = "Each crop, by category and then by name."
+
+[CropResponse]
+meta = "What the answer was computed for and how to read it."
+data = "The crop."
+
+[CropData]
+id = "The crop's id, as `crop` parameters and other responses name it."
+name = "The crop's name."
+category = "The crop's category: `field`, `forage`, `vegetable`, `fruit`, `specialty` or `tree`."
+category_name = "The category's name, as a list shows it, such as Field crops."
+members = "For a group of crops, such as cole crops: the ids of its crops. Empty for a single crop."
+groups = "The ids of the groups the crop belongs to, such as `cole-crops` for broccoli. Models for a group apply to each of its crops."
+models = "The ids of the models for this crop, by group: those that name it, a group it belongs to, or, for a group, one of its crops."
+stage_models = "The ids of the growth stage models for the crop or its group's crops."
+presets = "The ids of the crop's degree-day settings in `/degree-days/presets`."
+freeze = "The fall freeze that kills the crop. Null when we have no source for one."
+typical_planting = "True when we have typical early, middle and late planting dates for the crop, which `/locate` gives for a location and models can use."
+
+[CropModels]
+disease = "Disease models."
+insect = "Insect models."
+crop = "Growth stage models."
+agronomic = "Field management models, such as volunteer plants."

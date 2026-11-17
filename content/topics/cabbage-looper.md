@@ -3,15 +3,15 @@ id: cabbage-looper
 title: Cabbage Looper
 kind: insect
 crops:
-  - Celery
-  - Cole Crops
-  - Hops
-  - Leafy Greens
-  - Melon
-  - Mint
-  - Pea
-  - Potato
-  - Tomato
+  - celery
+  - cole-crops
+  - hops
+  - leafy-greens
+  - melon
+  - mint
+  - pea
+  - potato
+  - tomato
 scientific_name: ''
 summary: ''
 image: images/cabbage-looper.jpg

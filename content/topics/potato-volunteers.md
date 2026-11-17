@@ -3,7 +3,7 @@ id: potato-volunteers
 title: Potato volunteers
 kind: agronomic
 crops:
-  - Potato
+  - potato
 scientific_name: ''
 summary: ''
 image: null

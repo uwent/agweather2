@@ -3,23 +3,23 @@ id: japanese-beetle
 title: Japanese Beetle
 kind: insect
 crops:
-  - Asparagus
-  - Bean
-  - Beet
-  - Blackberry
-  - Cole Crops
-  - Eggplant
-  - Hops
-  - Horseradish
-  - Leafy Greens
-  - Melon
-  - Mint
-  - Pea
-  - Pepper
-  - Potato
-  - Pumpkin and Squash
-  - Raspberry
-  - Tomato
+  - asparagus
+  - beans
+  - beet
+  - blackberry
+  - cole-crops
+  - eggplant
+  - hops
+  - horseradish
+  - leafy-greens
+  - melon
+  - mint
+  - pea
+  - pepper
+  - potato
+  - pumpkin-squash
+  - raspberry
+  - tomato
 scientific_name: ''
 summary: ''
 image: images/japanese-beetle.jpg

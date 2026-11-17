@@ -36,7 +36,7 @@ SPEC = ModelSpec(
     status="stable",
     summary="The probability of tar spot spores being present, from a month of temperature and humidity; corn is susceptible from V10 (10th leaf) to R3 (milk).",
     topics=("tar-spot",),
-    crops=("Corn",),
+    crops=("corn",),
     citations=(
         Citation(
             text="Webster, R. W., Nicolli, C., Allen, T. W., et al. (2023). Uncovering the environmental conditions required for Phyllachora maydis infection and tar spot development on corn in the United States for use as predictive models for future epidemics. Scientific Reports 13, 17064.",

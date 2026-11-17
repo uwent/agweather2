@@ -3,7 +3,7 @@ id: onion-maggot
 title: Onion Maggot
 kind: insect
 crops:
-  - Onion
+  - onion
 scientific_name: ''
 summary: ''
 image: images/onion-maggot.jpg

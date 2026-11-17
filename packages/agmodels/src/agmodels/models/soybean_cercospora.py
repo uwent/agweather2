@@ -45,7 +45,7 @@ SPEC = ModelSpec(
     status="beta",
     summary="Spore probabilities for three Cercospora species causing leaf blight of soybean, from recent temperature, dew point depression, wind and humid hours.",
     topics=("soybean-cercospora-leaf-blight",),
-    crops=("Soybean",),
+    crops=("soybean",),
     citations=(
         Citation(text="Richard Webster (North Dakota State University), as implemented in the Crop Risk Tool."),
         Citation(

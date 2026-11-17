@@ -3,19 +3,20 @@ id: black-cutworm
 title: Black Cutworm
 kind: insect
 crops:
-  - Asparagus
-  - Bean
-  - Beet
-  - Carrot
-  - Celery
-  - Corn (Field and Sweet)
-  - Cucumber
-  - Hops
-  - Melon
-  - Mint
-  - Pea
-  - Potato
-  - Tomato
+  - asparagus
+  - beans
+  - beet
+  - carrot
+  - celery
+  - corn
+  - sweet-corn
+  - cucumber
+  - hops
+  - melon
+  - mint
+  - pea
+  - potato
+  - tomato
 scientific_name: ''
 summary: ''
 image: images/black-cutworm.jpg

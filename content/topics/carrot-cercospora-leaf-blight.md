@@ -3,7 +3,7 @@ id: carrot-cercospora-leaf-blight
 title: Alternaria and Cercospora Leaf Blights (Carrot)
 kind: disease
 crops:
-  - Carrot
+  - carrot
 scientific_name: ''
 summary: ''
 image: images/carrot-cercospora-leaf-blight.png

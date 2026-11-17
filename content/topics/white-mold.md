@@ -3,7 +3,7 @@ id: white-mold
 title: White Mold (Soybean)
 kind: disease
 crops:
-  - Soybean
+  - soybean
 scientific_name: ''
 summary: ''
 image: images/white-mold.jpg

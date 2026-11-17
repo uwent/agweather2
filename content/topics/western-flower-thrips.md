@@ -3,11 +3,11 @@ id: western-flower-thrips
 title: Western Flower Thrips
 kind: insect
 crops:
-  - Cucumber
-  - Eggplant
-  - Onion
-  - Pepper
-  - Tomato
+  - cucumber
+  - eggplant
+  - onion
+  - pepper
+  - tomato
 scientific_name: ''
 summary: ''
 image: images/western-flower-thrips.png

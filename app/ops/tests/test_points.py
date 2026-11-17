@@ -51,11 +51,11 @@ def test_an_archive_point_runs_on_the_archive_with_open_meteo_filling_only_soil(
 
     monkeypatch.setattr(points.openmeteo, "cell_hours", cell_hours)
     result = points.model_at_point(
-        *MADISON, "degree-days", date(2025, 7, 5), date(2025, 7, 10), NOW, biofix=date(2025, 7, 1)
+        *MADISON, "custom-degree-days", date(2025, 7, 5), date(2025, 7, 10), NOW, biofix=date(2025, 7, 1)
     )
     assert result == "archive result"
     assert calls["data_dir"] == archive
-    assert [(run.model_id, run.biofix) for run in calls["runs"]] == [("degree-days", date(2025, 7, 1))]
+    assert [(run.model_id, run.biofix) for run in calls["runs"]] == [("custom-degree-days", date(2025, 7, 1))]
     first, last = datetime(2025, 7, 1, tzinfo=UTC), datetime(2025, 7, 2, tzinfo=UTC)
     filled = calls["fill_soil"](first, last, ["soil_temperature_10cm", "snow_depth"])
     assert list(filled) == ["soil_temperature_10cm"]  # only the names asked for, and only those Open-Meteo has
@@ -74,11 +74,11 @@ def test_a_point_before_the_archive_runs_wholly_on_open_meteo(archive, monkeypat
 
     monkeypatch.setattr(points.series, "runs_at_point", runs_at_point)
     days = points.model_at_point(
-        *MADISON, "degree-days", date(2024, 5, 1), date(2024, 6, 1), NOW, biofix=date(2024, 5, 1)
+        *MADISON, "custom-degree-days", date(2024, 5, 1), date(2024, 6, 1), NOW, biofix=date(2024, 5, 1)
     )
     asked = (*MADISON, date(2024, 5, 1), date(2024, 5, 3), ["air_temperature_max"], NOW)
     assert days == ("days", asked, {"zone": "Etc/GMT+6"})  # in the box, Open-Meteo's days are grid days too (D74)
-    assert [(run.model_id, run.biofix) for run in seen["runs"]] == [("degree-days", date(2024, 5, 1))]
+    assert [(run.model_id, run.biofix) for run in seen["runs"]] == [("custom-degree-days", date(2024, 5, 1))]
 
 
 def test_runs_reaching_before_the_archive_read_open_meteo_and_the_rest_the_archive(archive, monkeypatch):
@@ -93,8 +93,8 @@ def test_runs_reaching_before_the_archive_read_open_meteo_and_the_rest_the_archi
         "_openmeteo_runs",
         lambda lat, lon, runs, *a: seen.setdefault("om", runs) and [f"o:{r.model_id}" for r in runs],
     )
-    runs = [points.series.RunSpec(model_id=m) for m in ("tar-spot", "potato-volunteer", "degree-days")]
+    runs = [points.series.RunSpec(model_id=m) for m in ("tar-spot", "potato-volunteer", "custom-degree-days")]
     runs[1] = points.series.RunSpec(model_id="potato-volunteer", biofix=date(2024, 11, 1))  # last winter's start
     found = points.models_at_point(*MADISON, runs, date(2025, 7, 1), date(2025, 7, 10), NOW, planting_default=False)
-    assert found == ["a:tar-spot", "o:potato-volunteer", "a:degree-days"]  # in the order asked
+    assert found == ["a:tar-spot", "o:potato-volunteer", "a:custom-degree-days"]  # in the order asked
     assert [r.model_id for r in seen["om"]] == ["potato-volunteer"]  # its biofix is before the archive

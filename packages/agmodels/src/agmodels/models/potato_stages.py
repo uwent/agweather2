@@ -40,7 +40,7 @@ SPEC = ModelSpec(
     status="beta",
     summary="The date half of a potato planting has emerged, by degree days in air above 4 °C from planting: the start of the early and late blight models.",
     topics=("potato",),
-    crops=("Potato",),
+    crops=("potato",),
     citations=(
         Citation(
             text="UW Vegetable Pathology, Vegetable Crop Updates (2020–2026): early, mid and late planting and 50% emergence dates by location, in each season's early and late blight table.",

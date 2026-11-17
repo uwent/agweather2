@@ -3,7 +3,7 @@ id: cotton-stand-establishment
 title: Cotton Planting Risk Model
 kind: agronomic
 crops:
-  - Cotton
+  - cotton
 scientific_name: ''
 summary: ''
 image: images/cotton-stand-establishment.jpg

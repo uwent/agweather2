@@ -3,7 +3,8 @@ id: corn-rootworm
 title: Corn Rootworm
 kind: insect
 crops:
-  - Corn (Field and Sweet)
+  - corn
+  - sweet-corn
 scientific_name: ''
 summary: ''
 image: images/corn-rootworm.jpg

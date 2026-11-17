@@ -3,7 +3,7 @@ id: pecan-scab
 title: Pecan Scab
 kind: disease
 crops:
-  - Pecan
+  - pecan
 scientific_name: ''
 summary: ''
 image: images/pecan-scab.jpg

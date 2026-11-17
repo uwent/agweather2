@@ -6,7 +6,7 @@ from agmodels.spec import Citation
 INSECT = Insect(
     id="colorado-potato-beetle-larvae",
     name="Colorado Potato Beetle (Larvae)",
-    crops=("Eggplant", "Potato", "Tomato"),
+    crops=("eggplant", "potato", "tomato"),
     base_f=50,
     upper_f=86,
     biofix="01-01",

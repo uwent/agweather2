@@ -5,7 +5,7 @@ from agmodels.phenology import Insect
 INSECT = Insect(
     id="cabbage-maggot",
     name="Cabbage Maggot",
-    crops=("Cole Crops",),
+    crops=("cole-crops",),
     base_f=42.8,
     upper_f=86,
     biofix="01-01",

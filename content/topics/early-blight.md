@@ -3,7 +3,7 @@ id: early-blight
 title: Early Blight (Potato/Tomato)
 kind: disease
 crops:
-  - Potato
+  - potato
 scientific_name: ''
 summary: ''
 image: images/early-blight.jpg

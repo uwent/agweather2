@@ -36,7 +36,7 @@ SPEC = ModelSpec(
     status="stable",
     summary="Potato physiological days from daily minimum and maximum temperature, accumulated from emergence to time the first fungicide spray for early blight (about 300 P-days).",
     topics=("early-blight",),
-    crops=("Potato",),
+    crops=("potato",),
     citations=(
         Citation(
             text="Sands, P. J., Hackett, C. and Nix, H. A. (1979). A model of the development and bulking of potatoes (Solanum tuberosum L.). I. Derivation from well-managed field crops. Field Crops Research 2, 309–331.",

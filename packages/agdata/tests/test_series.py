@@ -125,7 +125,7 @@ def test_every_model_runs_at_a_point_through_the_forecast(world, monkeypatch):
 
     # Degree days from a biofix inside the stored days: the forecast's warmer days add more
     dd = series.model_at_point(
-        world, lat, lon, "degree-days", date(2025, 7, 5), date(2025, 7, 20), biofix=date(2025, 7, 2), now=NOW
+        world, lat, lon, "custom-degree-days", date(2025, 7, 5), date(2025, 7, 20), biofix=date(2025, 7, 2), now=NOW
     )
     daily = dd.outputs["dd"]
     assert np.isfinite(daily).all() and daily[8] > daily[0] + 10
@@ -138,7 +138,9 @@ def test_models_read_their_days_once_and_match_running_alone(world, monkeypatch)
     lat, lon = (float(v) for v in NDFD.latlon(*CELL))
     start, end = date(2025, 7, 5), date(2025, 7, 20)
     runs = [series.RunSpec(model_id=model_id) for model_id in sorted(all_models())]
-    runs.append(series.RunSpec(model_id="degree-days", biofix=date(2025, 7, 2)))  # a biofix before the others' days
+    runs.append(
+        series.RunSpec(model_id="custom-degree-days", biofix=date(2025, 7, 2))
+    )  # a biofix before the others' days
     runs.append(series.RunSpec(model_id="frogeye-leaf-spot", planting=date(2025, 7, 3)))  # gated, its own planting
     alone = [
         series.model_at_point(
@@ -192,7 +194,7 @@ def test_no_published_run_means_no_forecast(tmp_path):
 
 def test_a_point_off_the_grid_is_refused(world):
     with pytest.raises(ValueError, match="off the grid"):
-        series.model_at_point(world, 10.0, -88.0, "degree-days", date(2025, 7, 5), date(2025, 7, 20), now=NOW)
+        series.model_at_point(world, 10.0, -88.0, "custom-degree-days", date(2025, 7, 5), date(2025, 7, 20), now=NOW)
 
 
 def test_days_in_a_year_without_stores_are_missing(world, tmp_path):

@@ -3,11 +3,12 @@ id: seedcorn-maggot
 title: Seedcorn Maggot
 kind: insect
 crops:
-  - Bean
-  - Corn (Field and Sweet)
-  - Cucumber
-  - Melon
-  - Pumpkin and Squash
+  - beans
+  - corn
+  - sweet-corn
+  - cucumber
+  - melon
+  - pumpkin-squash
 scientific_name: Delia platura
 summary: A fly whose maggots feed on germinating seed and seedlings of many vegetable and field crops in spring; damage can be prevented but not treated.
 image: images/seedcorn-maggot.jpg

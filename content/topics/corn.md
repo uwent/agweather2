@@ -3,7 +3,7 @@ id: corn
 title: Corn
 kind: crop
 crops:
-  - Corn
+  - corn
 scientific_name: ''
 summary: ''
 image: null

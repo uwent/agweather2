@@ -5,7 +5,7 @@ from agmodels.phenology import Insect
 INSECT = Insect(
     id="mint-flea-beetle",
     name="Flea Beetle (Mint)",
-    crops=("Mint",),
+    crops=("mint",),
     base_f=41,
     upper_f=None,
     biofix="01-01",

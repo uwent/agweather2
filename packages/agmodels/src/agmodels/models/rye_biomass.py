@@ -33,7 +33,7 @@ SPEC = ModelSpec(
     status="beta",
     summary="Spring biomass of a fall-planted cereal rye cover crop, from growing degree days (base 0 °C) since planting, the planting date and fall precipitation, against the biomass cover crop goals need.",
     topics=("cereal-rye-cover-crop",),
-    crops=("Rye",),
+    crops=("rye",),
     citations=(
         Citation(text="Unpublished logistic growth fit on Wisconsin data, as in the Crop Risk Tool."),
         Citation(

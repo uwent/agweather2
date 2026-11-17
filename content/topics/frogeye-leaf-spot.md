@@ -3,7 +3,7 @@ id: frogeye-leaf-spot
 title: Frogeye Leaf Spot (Soybean)
 kind: disease
 crops:
-  - Soybean
+  - soybean
 scientific_name: ''
 summary: ''
 image: images/frogeye-leaf-spot.jpg

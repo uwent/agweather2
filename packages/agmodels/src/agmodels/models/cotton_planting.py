@@ -61,7 +61,7 @@ SPEC = ModelSpec(
     status="beta",
     summary="For each possible planting date, the probability that the emerged cotton stand falls below a yield-limiting population, from the rain over the next 3 days and the minimum temperatures over the next 9.",
     topics=("cotton-stand-establishment",),
-    crops=("Cotton",),
+    crops=("cotton",),
     citations=(
         Citation(
             text="Zachary Noel (Auburn University), with funding from Cotton Incorporated, as in the Crop Risk Tool."

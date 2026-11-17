@@ -29,7 +29,7 @@ SPEC = ModelSpec(
     status="stable",
     summary="The probability of a Fusarium head blight epidemic from two weeks of humidity, for the cultivar's resistance class; wheat is susceptible at flowering.",
     topics=("wheat-scab",),
-    crops=("Wheat",),
+    crops=("wheat",),
     citations=(
         Citation(text="Erick De Wolf, as implemented in the Crop Risk Tool."),
         Citation(

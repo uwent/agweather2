@@ -126,7 +126,7 @@ SPEC = ModelSpec(
     status="beta",
     summary="Soybean's vegetative and reproductive stages from planting, from temperature and day length, for any maturity group (SOYDEV).",
     topics=("soybean",),
-    crops=("Soybean",),
+    crops=("soybean",),
     citations=(
         Citation(
             text="Setiyono, T. D., Weiss, A., Specht, J., Bastidas, A. M., Cassman, K. G. and Dobermann, A. (2007). Understanding and modeling the effect of temperature and daylength on soybean phenology under high-yield conditions. Field Crops Research 100, 257–271.",

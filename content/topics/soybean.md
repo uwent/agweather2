@@ -3,7 +3,7 @@ id: soybean
 title: Soybean
 kind: crop
 crops:
-  - Soybean
+  - soybean
 scientific_name: ''
 summary: ''
 image: null

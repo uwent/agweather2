@@ -36,7 +36,7 @@ UPPER = Option(
 )
 
 SPEC = ModelSpec(
-    id="degree-days",
+    id="custom-degree-days",
     name="Custom degree days",
     group="degree_days",
     version="0.1",

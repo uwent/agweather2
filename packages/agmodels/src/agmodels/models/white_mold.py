@@ -35,7 +35,7 @@ SPEC = ModelSpec(
     status="stable",
     summary="The probability of white mold apothecia in soybean fields, from a month of temperature, humidity and wind (non-irrigated) or temperature, humidity and row spacing (irrigated); susceptible from R1 to R3.",
     topics=("white-mold",),
-    crops=("Soybean",),
+    crops=("soybean",),
     citations=(
         Citation(
             text="Willbur, J. F., Fall, M. L., Blackwell, T., et al. (2018). Weather-based models for assessing the risk of Sclerotinia sclerotiorum apothecial presence in soybean (Glycine max) fields. Plant Disease 102, 73–84.",

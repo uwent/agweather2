@@ -3,7 +3,7 @@ id: cereal-rye-cover-crop
 title: Cereal Rye Termination Model
 kind: agronomic
 crops:
-  - Rye
+  - rye
 scientific_name: ''
 summary: ''
 image: null

@@ -3,7 +3,7 @@ id: onion-botrytis-leaf-blight
 title: Botrytis Leaf Blight (Onion)
 kind: disease
 crops:
-  - Onion
+  - onion
 scientific_name: ''
 summary: ''
 image: images/onion-botrytis-leaf-blight.png

@@ -3,19 +3,20 @@ id: variegated-cutworm
 title: Variegated Cutworm
 kind: insect
 crops:
-  - Asparagus
-  - Bean
-  - Beet
-  - Carrot
-  - Celery
-  - Corn (Field and Sweet)
-  - Cucumber
-  - Hops
-  - Leafy Greens
-  - Melon
-  - Mint
-  - Potato
-  - Tomato
+  - asparagus
+  - beans
+  - beet
+  - carrot
+  - celery
+  - corn
+  - sweet-corn
+  - cucumber
+  - hops
+  - leafy-greens
+  - melon
+  - mint
+  - potato
+  - tomato
 scientific_name: ''
 summary: ''
 image: images/variegated-cutworm.jpg

@@ -26,7 +26,7 @@ SPEC = ModelSpec(
     status="stable",
     summary="The risk of oak wilt spreading by its beetle vectors, from their flight timed by degree days (base 41 °F) and the season (wounding before mid-July).",
     topics=("oak-wilt",),
-    crops=("Oak",),
+    crops=("oak",),
     citations=(
         Citation(
             text="Jagemann, S. M., Juzwik, J., Tobin, P. C. and Raffa, K. F. (2018). Seasonal and regional distributions, degree-day models, and phoresy rates of the major sap beetle (Coleoptera: Nitidulidae) vectors of the oak wilt fungus, Bretziella fagacearum, in Wisconsin. Environmental Entomology 47, 1152–1164.",

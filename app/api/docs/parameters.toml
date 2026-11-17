@@ -22,6 +22,8 @@ LocateResponse = "What the service knows about a location."
 LayersResponse = "Every layer that can be shown as a map."
 DownloadsResponse = "The yearly data files available for download."
 PresetsResponse = "The usual degree-day settings for common crops and the insects we model."
+CropsResponse = "Every crop, with the models, degree-day settings and planting dates we have for it."
+CropResponse = "One crop, with the models, degree-day settings and planting dates we have for it."
 MethodsResponse = "Where the data come from, and the corrections we apply to them."
 CorrectionResponse = "One correction, with its fitted values."
 
@@ -44,6 +46,7 @@ format = "The format of the response: `json` (the default) or `csv`. Without it,
 orient = "The layout of JSON data: `columns` (the default), an object with one list per column, or `records`, a list of rows. Spreadsheet and table tools often prefer `records`."
 headers = "For CSV: whether to include the description of the request as lines beginning with `#` above the column names (`true`, the default). Use `false` for a plain table."
 model_id = "The model's identifier, as listed by `/models` (for example `tar-spot`)."
+crop_id = "The crop's identifier, as listed by `/crops` (for example `potato`)."
 correction_id = "The correction's identifier, as listed by `/methods` (for example `hrrr-shortwave`)."
 layer = "The layer's identifier, as listed by `/layers` (for example `air_temperature_max`, `degree_days` or `tar-spot`)."
 dd = "The degree-day settings, required unless `base` is given. Each is a method, a base temperature and an optional upper threshold, joined by underscores, in the request's units: `sine_50_86`, `modified_50_86` or `average_43`. The methods are `sine` (single sine), `modified` (daily minimum and maximum limited to the base and upper threshold, then averaged) and `average` (simple average). A decimal threshold is written `39.2` or `39p2`. Several settings may be given, separated by commas."
@@ -137,7 +140,12 @@ start = "The first day, as YYYY-MM-DD. The default is January 1. The start and e
 end = "The last day, as YYYY-MM-DD. The default is December 31 of this year, or of the year of `start`."
 
 [discovery_models]
+crop = "Only the models for one crop, by its id in `/crops` (such as `potato`). A crop also finds the models for a group it belongs to: `broccoli` finds the cole crop models. A group finds the models for any of its crops."
 group = "Only the models of one group: `disease`, `insect`, `crop` (growth stages), `agronomic` (field management, such as volunteer plants) or `degree_days`. Leave it out for every model."
+
+[degree_days_presets]
+group = "Only the presets of one group: `crop` or `insect`."
+crop = "Only the presets for one crop, by its id in `/crops`: the crop's own setting and those of the insects that attack it."
 
 [degree_days_daily]
 targets = "Running totals to watch for, in degree days in the request's units, separated by commas (as `1400,2000`). For each setting, `meta.summary.targets` gives the day each total is reached, or is expected to be reached when the forecast or a projection is included."

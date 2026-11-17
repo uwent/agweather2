@@ -47,7 +47,7 @@ from agmodels.spec import Model, ModelSpec
 
 # Models with ingredients that aren't model layers, and why
 NOT_MAPPED = {
-    "degree-days": "custom degree days are the degree_days layer",
+    "custom-degree-days": "custom degree days are the degree_days layer",
 }
 # Options that describe the place rather than a scenario: maps use each place's (D66; the model's default until
 # location-adjusted maturity lands)

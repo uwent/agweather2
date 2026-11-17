@@ -5,7 +5,7 @@ from agmodels.phenology import Insect
 INSECT = Insect(
     id="stalk-borer",
     name="Stalk Borer",
-    crops=("Corn (Field and Sweet)",),
+    crops=("corn", "sweet-corn"),
     base_f=41,
     upper_f=86,
     biofix="01-01",

@@ -3,8 +3,9 @@ id: corn-earworm
 title: Corn Earworm
 kind: insect
 crops:
-  - Bean
-  - Corn (Field and Sweet)
+  - beans
+  - corn
+  - sweet-corn
 scientific_name: ''
 summary: ''
 image: images/corn-earworm.jpg

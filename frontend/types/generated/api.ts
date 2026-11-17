@@ -326,6 +326,88 @@ export interface Location {
    */
   days?: string | null
 }
+export interface CropData {
+  /**
+   * The crop's id, as `crop` parameters and other responses name it.
+   */
+  id: string
+  /**
+   * The crop's name.
+   */
+  name: string
+  /**
+   * The crop's category: `field`, `forage`, `vegetable`, `fruit`, `specialty` or `tree`.
+   */
+  category: string
+  /**
+   * The category's name, as a list shows it, such as Field crops.
+   */
+  category_name: string
+  /**
+   * For a group of crops, such as cole crops: the ids of its crops. Empty for a single crop.
+   */
+  members: string[]
+  /**
+   * The ids of the groups the crop belongs to, such as `cole-crops` for broccoli. Models for a group apply to each of its crops.
+   */
+  groups: string[]
+  models: CropModels
+  /**
+   * The ids of the growth stage models for the crop or its group's crops.
+   */
+  stage_models: string[]
+  /**
+   * The ids of the crop's degree-day settings in `/degree-days/presets`.
+   */
+  presets: string[]
+  /**
+   * The fall freeze that kills the crop. Null when we have no source for one.
+   */
+  freeze: FreezeInfo | null
+  /**
+   * True when we have typical early, middle and late planting dates for the crop, which `/locate` gives for a location and models can use.
+   */
+  typical_planting: boolean
+}
+export interface CropModels {
+  /**
+   * Disease models.
+   */
+  disease: string[]
+  /**
+   * Insect models.
+   */
+  insect: string[]
+  /**
+   * Growth stage models.
+   */
+  crop: string[]
+  /**
+   * Field management models, such as volunteer plants.
+   */
+  agronomic: string[]
+}
+export interface FreezeInfo {
+  temperature: Temperature
+  /**
+   * What the freeze kills.
+   */
+  note: string
+  /**
+   * The sources of the temperature.
+   */
+  citations: CitationInfo[]
+}
+export interface Temperature {
+  /**
+   * The temperature in °F.
+   */
+  us: number
+  /**
+   * The temperature in °C, to two decimals.
+   */
+  metric: number
+}
 export interface CropInfo {
   /**
    * The crop growth stage model a planting date runs.
@@ -361,6 +443,23 @@ export interface OptionInfo {
    * The value used when the option is left out.
    */
   default: string
+}
+/**
+ * One crop, with the models, degree-day settings and planting dates we have for it.
+ */
+export interface CropResponse {
+  meta: Meta
+  data: CropData
+}
+/**
+ * Every crop, with the models, degree-day settings and planting dates we have for it.
+ */
+export interface CropsResponse {
+  meta: Meta
+  /**
+   * Each crop, by category and then by name.
+   */
+  data: CropData[]
 }
 export interface DaysQuery {
   date?: string | null
@@ -539,27 +638,6 @@ export interface ForecastStatus {
    * Why the forecast is not in use: `none` when there isn't one, `stale` when it is too old. Null when it is in use.
    */
   reason: string | null
-}
-export interface FreezeInfo {
-  temperature: Temperature
-  /**
-   * What the freeze kills.
-   */
-  note: string
-  /**
-   * The sources of the temperature.
-   */
-  citations: CitationInfo[]
-}
-export interface Temperature {
-  /**
-   * The temperature in °F.
-   */
-  us: number
-  /**
-   * The temperature in °C, to two decimals.
-   */
-  metric: number
 }
 export interface GridQuery {
   date?: string | null
@@ -953,9 +1031,13 @@ export interface ModelDetail {
    */
   summary: string
   /**
-   * The crops the model concerns.
+   * The crops the model concerns, by name.
    */
   crops: string[]
+  /**
+   * The same crops by their ids in `/crops`. A group, such as `cole-crops`, means each of its crops.
+   */
+  crop_ids: string[]
   /**
    * The diseases or insects the model predicts, by short name.
    */
@@ -1123,9 +1205,13 @@ export interface ModelSummary {
    */
   summary: string
   /**
-   * The crops the model concerns.
+   * The crops the model concerns, by name.
    */
   crops: string[]
+  /**
+   * The same crops by their ids in `/crops`. A group, such as `cole-crops`, means each of its crops.
+   */
+  crop_ids: string[]
   /**
    * The diseases or insects the model predicts, by short name.
    */
@@ -1149,6 +1235,7 @@ export interface ModelSummary {
 }
 export interface ModelsQuery {
   group?: ('disease' | 'insect' | 'crop' | 'agronomic' | 'degree_days') | null
+  crop?: string | null
 }
 /**
  * Every model the service runs.
@@ -1210,9 +1297,13 @@ export interface PresetInfo {
    */
   group: string
   /**
-   * The crop, or the crops the insect attacks.
+   * The crop, or the crops the insect attacks, by name.
    */
   crops: string[]
+  /**
+   * The same crops by their ids in `/crops`.
+   */
+  crop_ids: string[]
   /**
    * The preset's name, as a menu shows it.
    */
@@ -1265,6 +1356,10 @@ export interface SettingText {
    * The setting in °C, for requests with `units=metric`.
    */
   metric: string
+}
+export interface PresetsQuery {
+  group?: ('crop' | 'insect') | null
+  crop?: string | null
 }
 /**
  * The usual degree-day settings for common crops and the insects we model.

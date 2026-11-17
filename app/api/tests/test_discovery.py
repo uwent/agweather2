@@ -169,11 +169,11 @@ def test_a_model_says_what_a_planting_date_adds(client):
     assert blight["model"] == "potato-stages" and blight["crop"] == "potato"
     corn = client.get("/api/v2/models/corn-stages").json()["data"]["crop"]
     assert corn["model"] == "corn-stages" and corn["options"] == []  # its own options are under options
-    assert client.get("/api/v2/models/degree-days").json()["data"]["crop"] is None
+    assert client.get("/api/v2/models/custom-degree-days").json()["data"]["crop"] is None
 
 
 def test_a_model_declares_what_evaluate_returns(client):
-    dd = client.get("/api/v2/models/degree-days").json()["data"]["explorer_outputs"]
+    dd = client.get("/api/v2/models/custom-degree-days").json()["data"]["explorer_outputs"]
     assert [(q["name"], q["unit"]) for q in dd] == [
         ("sine", "degF_day"),
         ("modified", "degF_day"),
@@ -193,7 +193,7 @@ def test_degree_day_presets_give_each_setting_in_both_unit_systems(client):
     assert not found["spring-wheat"]["stored"]  # 32/95 modified: computed when asked
     weevil = found["alfalfa-weevil"]
     assert weevil["group"] == "insect" and weevil["dd"]["us"] == "sine_48p2_86" and weevil["biofix"] == "01-01"
-    assert corn["group"] == "crop" and corn["crops"] == ["Corn"] and corn["biofix"] is None
+    assert corn["group"] == "crop" and corn["crop_ids"] == ["corn"] and corn["biofix"] is None
     for preset in found.values():
         # The °C text names the same °F thresholds as the °F text (7.22 °C is 45 °F's, not 44.996's)
         us, metric = (degree_day_settings(preset["dd"][s], s, []) for s in ("us", "metric"))
@@ -246,8 +246,39 @@ def test_variables_and_model_inputs_name_their_sources_and_corrections(client):
 def test_models_can_be_listed_by_group(client):
     insects = client.get("/api/v2/models", {"group": "insect"}).json()
     assert insects["data"] and {m["group"] for m in insects["data"]} == {"insect"}
-    assert insects["meta"]["request"] == {"group": "insect"}
+    assert insects["meta"]["request"] == {"group": "insect", "crop": None}
     every = client.get("/api/v2/models").json()["data"]
     assert len(every) > len(insects["data"])
     wrong = client.get("/api/v2/models", {"group": "insects"})
     assert wrong.status_code == 422 and wrong.json()["errors"][0]["param"] == "group"
+
+
+def test_crops_list_what_we_have_for_each(client):
+    response = client.get("/api/v2/crops")
+    assert response.status_code == 200 and response.headers["ETag"]
+    found = {c["id"]: c for c in response.json()["data"]}
+    potato = found["potato"]
+    assert potato["stage_models"] == ["potato-stages"] and potato["presets"] == ["potato"]
+    assert "late-blight-dsv" in potato["models"]["disease"] and "colorado-potato-beetle" in potato["models"]["insect"]
+    assert potato["typical_planting"] and potato["category_name"] == "Vegetables"
+    broccoli = found["broccoli"]
+    assert broccoli["groups"] == ["cole-crops"] and "cabbage-maggot" in broccoli["models"]["insect"]
+    assert (
+        found["wheat"]["stage_models"] == ["spring-wheat-stages"]
+        and "wheat-scab" in found["wheat"]["models"]["disease"]
+    )
+    assert found["corn"]["freeze"]["temperature"] == {"us": 28.0, "metric": -2.22}
+    one = client.get("/api/v2/crops/cole-crops").json()["data"]
+    assert "broccoli" in one["members"] and "cabbage-maggot" in one["models"]["insect"]
+    assert client.get("/api/v2/crops/nope").status_code == 404
+
+
+def test_models_and_presets_take_a_crop(client):
+    models = client.get("/api/v2/models", {"crop": "broccoli"}).json()["data"]
+    assert "cabbage-maggot" in {m["id"] for m in models} and "tar-spot" not in {m["id"] for m in models}
+    maggot = next(m for m in models if m["id"] == "cabbage-maggot")
+    assert maggot["crop_ids"] == ["cole-crops"] and maggot["crops"] == ["Cole crops"]
+    presets = {p["id"] for p in client.get("/api/v2/degree-days/presets", {"crop": "potato"}).json()["data"]}
+    assert {"potato", "colorado-potato-beetle"} <= presets and "corn" not in presets
+    wrong = client.get("/api/v2/models", {"crop": "brocoli"})
+    assert wrong.status_code == 422 and wrong.json()["errors"][0]["param"] == "crop"

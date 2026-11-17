@@ -3,10 +3,10 @@ id: tarnished-plant-bug
 title: Tarnished Plant Bug (Lygus Bug)
 kind: insect
 crops:
-  - Celery
-  - Leafy Greens
-  - Potato
-  - Raspberry
+  - celery
+  - leafy-greens
+  - potato
+  - raspberry
 scientific_name: ''
 summary: ''
 image: images/tarnished-plant-bug.jpg

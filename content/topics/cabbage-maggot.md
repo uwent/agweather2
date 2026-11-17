@@ -3,7 +3,7 @@ id: cabbage-maggot
 title: Cabbage Maggot
 kind: insect
 crops:
-  - Cole Crops
+  - cole-crops
 scientific_name: ''
 summary: ''
 image: images/cabbage-maggot.jpg

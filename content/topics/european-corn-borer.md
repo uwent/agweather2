@@ -3,11 +3,12 @@ id: european-corn-borer
 title: European Corn Borer
 kind: insect
 crops:
-  - Bean
-  - Corn (Field and Sweet)
-  - Eggplant
-  - Pepper
-  - Potato
+  - beans
+  - corn
+  - sweet-corn
+  - eggplant
+  - pepper
+  - potato
 scientific_name: ''
 summary: ''
 image: images/european-corn-borer.jpg

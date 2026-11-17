@@ -3,7 +3,7 @@ id: potato
 title: Potato
 kind: crop
 crops:
-  - Potato
+  - potato
 scientific_name: Solanum tuberosum
 summary: ''
 image: null

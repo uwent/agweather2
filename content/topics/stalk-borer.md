@@ -3,7 +3,8 @@ id: stalk-borer
 title: Stalk Borer
 kind: insect
 crops:
-  - Corn (Field and Sweet)
+  - corn
+  - sweet-corn
 scientific_name: ''
 summary: ''
 image: images/stalk-borer.png

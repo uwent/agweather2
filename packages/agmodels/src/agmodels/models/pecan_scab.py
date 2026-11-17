@@ -31,7 +31,7 @@ SPEC = ModelSpec(
     status="beta",
     summary="Hours warm (70 °F or more) and humid (RH 90% or more) since March 1 or the last fungicide spray, against the spray thresholds for highly, moderately and low susceptible pecan varieties.",
     topics=("pecan-scab",),
-    crops=("Pecan",),
+    crops=("pecan",),
     citations=(
         Citation(
             text="Oklahoma Mesonet: Pecan Scab Advisor.",

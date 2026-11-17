@@ -6,7 +6,7 @@ from agmodels.spec import Citation
 INSECT = Insect(
     id="aphid-pvy-vectors",
     name="Aphid PVY Vectors",
-    crops=("Potato",),
+    crops=("potato",),
     base_f=39.2,
     upper_f=86,
     biofix="01-01",

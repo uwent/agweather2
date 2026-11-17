@@ -3,7 +3,7 @@ id: beet-cercospora-leaf-spot
 title: Cercospora Leaf Spot (Beet)
 kind: disease
 crops:
-  - Beet
+  - beet
 scientific_name: ''
 summary: ''
 image: images/beet-cercospora-leaf-spot.png

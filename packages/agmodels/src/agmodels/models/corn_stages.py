@@ -95,7 +95,7 @@ SPEC = ModelSpec(
     status="beta",
     summary="Corn's vegetative and reproductive stages from planting, by growing degree days (modified 50/86 °F), for any hybrid maturity.",
     topics=("corn",),
-    crops=("Corn",),
+    crops=("corn",),
     citations=(
         Citation(
             text="Neild, R. E. and Newman, J. E. (1987). Growing season characteristics and requirements in the Corn Belt. National Corn Handbook NCH-40, Purdue University.",

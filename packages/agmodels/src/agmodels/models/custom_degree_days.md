@@ -1,5 +1,5 @@
 ---
-id: degree-days
+id: custom-degree-days
 status: draft
 sources: []
 ---

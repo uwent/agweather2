@@ -3,7 +3,7 @@ id: wheat-scab
 title: Wheat Scab / Fusarium Head Blight
 kind: disease
 crops:
-  - Wheat
+  - wheat
 scientific_name: ''
 summary: ''
 image: images/wheat-scab.jpg

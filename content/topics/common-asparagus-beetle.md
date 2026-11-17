@@ -3,7 +3,7 @@ id: common-asparagus-beetle
 title: Asparagus Beetle (Common)
 kind: insect
 crops:
-  - Asparagus
+  - asparagus
 scientific_name: ''
 summary: ''
 image: images/common-asparagus-beetle.jpg

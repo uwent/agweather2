@@ -40,7 +40,7 @@ SPEC = ModelSpec(
     status="beta",
     summary="Predicted share of soybean plants with red crown rot, from temperature and rain in the month either side of the beginning of flowering (R1).",
     topics=("red-crown-rot",),
-    crops=("Soybean",),
+    crops=("soybean",),
     citations=(
         Citation(
             text="Ochi, S., Kishi, S., Kawaguchi, A. and Akamatsu, H. (2026). Meteorological and agronomic factors analysis on the field-level incidence of red crown rot of soybean. Phytopathology 116, 1405–1413.",

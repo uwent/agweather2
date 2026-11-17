@@ -3,18 +3,19 @@ id: western-bean-cutworm
 title: Western Bean Cutworm
 kind: insect
 crops:
-  - Asparagus
-  - Bean
-  - Beet
-  - Carrot
-  - Celery
-  - Corn (Field and Sweet)
-  - Cucumber
-  - Hops
-  - Melon
-  - Mint
-  - Potato
-  - Tomato
+  - asparagus
+  - beans
+  - beet
+  - carrot
+  - celery
+  - corn
+  - sweet-corn
+  - cucumber
+  - hops
+  - melon
+  - mint
+  - potato
+  - tomato
 scientific_name: ''
 summary: ''
 image: images/western-bean-cutworm.jpg

@@ -3,7 +3,7 @@ id: alfalfa-weevil
 title: Alfalfa Weevil
 kind: insect
 crops:
-  - Alfalfa
+  - alfalfa
 scientific_name: ''
 summary: ''
 image: images/alfalfa-weevil.jpg

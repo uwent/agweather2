@@ -70,7 +70,9 @@ def test_a_projected_run_revalidates(client, projection_archive):
     assert again.status_code == 304
 
 
-@pytest.mark.parametrize("model_id", ["corn-stages", "tar-spot", "seedcorn-maggot", "degree-days", "late-blight-dsv"])
+@pytest.mark.parametrize(
+    "model_id", ["corn-stages", "tar-spot", "seedcorn-maggot", "custom-degree-days", "late-blight-dsv"]
+)
 def test_models_of_each_kind_project(client, projection_archive, model_id):
     params = {"lat": LAT, "lng": LNG, "start": "2025-07-05", "end": "2025-08-20", "projection": "true"}
     if model_id == "corn-stages":
@@ -87,19 +89,19 @@ def test_several_models_project_together(client, projection_archive):
         {
             "lat": LAT,
             "lng": LNG,
-            "models": "early-blight-pdays,degree-days",
+            "models": "early-blight-pdays,custom-degree-days",
             "start": "2025-07-05",
             "end": "2025-08-20",
             "projection": "true",
         },
     ).json()
-    for model_id in ("early-blight-pdays", "degree-days"):
+    for model_id in ("early-blight-pdays", "custom-degree-days"):
         answer = body["data"][model_id]
         assert "projection" in answer["data"]["kind"] and answer["meta"]["summary"]["projection"]["years"] == [
             2023,
             2024,
         ]
-    assert "dd_total_p90" in body["data"]["degree-days"]["data"]
+    assert "dd_total_p90" in body["data"]["custom-degree-days"]["data"]
 
 
 def test_degree_days_project_with_targets(client, projection_archive):

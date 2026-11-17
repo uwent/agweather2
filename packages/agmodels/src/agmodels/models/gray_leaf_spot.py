@@ -32,7 +32,7 @@ SPEC = ModelSpec(
     status="stable",
     summary="The probability of gray leaf spot spores being present, from three weeks of minimum temperature and a month of minimum dew point; corn is susceptible from V10 to R3.",
     topics=("gray-leaf-spot",),
-    crops=("Corn",),
+    crops=("corn",),
     citations=(
         Citation(text="Damon Smith (UW–Madison) and Richard Webster (NDSU), as implemented in the Crop Risk Tool."),
         Citation(

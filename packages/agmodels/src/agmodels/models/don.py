@@ -35,7 +35,7 @@ SPEC = ModelSpec(
     status="stable",
     summary="The probability of DON above 1 ppm from Gibberella ear rot, from temperature and rain 21 to 7 days before and humidity over the last 14 days; corn is susceptible during silking.",
     topics=("gibberella-ear-rot",),
-    crops=("Corn",),
+    crops=("corn",),
     citations=(
         Citation(text="Pierce Paul and Cristiano Nesi (Ohio State University), as implemented in the Crop Risk Tool."),
         Citation(

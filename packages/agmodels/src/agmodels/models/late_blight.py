@@ -39,7 +39,7 @@ SPEC = ModelSpec(
     status="stable",
     summary="Daily disease severity values (0–4) from hours of high humidity and their temperature, accumulated from crop emergence to time fungicide sprays for potato and tomato late blight.",
     topics=("late-blight",),
-    crops=("Potato", "Tomato"),
+    crops=("potato", "tomato"),
     citations=(
         Citation(
             text="Wallin, J. R. (1962). Summary of recent progress in predicting late blight epidemics in United States and Canada. American Potato Journal 39, 306–312.",

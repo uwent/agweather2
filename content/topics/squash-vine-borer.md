@@ -3,9 +3,9 @@ id: squash-vine-borer
 title: Squash Vine Borer
 kind: insect
 crops:
-  - Cucumber
-  - Melon
-  - Pumpkin and Squash
+  - cucumber
+  - melon
+  - pumpkin-squash
 scientific_name: ''
 summary: ''
 image: images/squash-vine-borer.jpg

@@ -3,9 +3,9 @@ id: colorado-potato-beetle
 title: Colorado Potato Beetle
 kind: insect
 crops:
-  - Eggplant
-  - Potato
-  - Tomato
+  - eggplant
+  - potato
+  - tomato
 scientific_name: ''
 summary: ''
 image: images/colorado-potato-beetle.jpg

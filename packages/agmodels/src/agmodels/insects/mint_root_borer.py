@@ -5,7 +5,7 @@ from agmodels.phenology import Insect
 INSECT = Insect(
     id="mint-root-borer",
     name="Mint Root Borer",
-    crops=("Mint",),
+    crops=("mint",),
     base_f=50,
     upper_f=None,
     biofix="04-01",

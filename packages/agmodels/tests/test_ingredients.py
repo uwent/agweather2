@@ -11,7 +11,7 @@ from agmodels.testing import DATES, DAYS, LATITUDE, WEATHER
 # Models a map can't finish from ingredients: day-by-day state machines (soybean stages; spring wheat's cap
 # switches at Haun 2.0 on its own running total), red crown rot's windows either side of R1, and custom degree days,
 # whose daily values depend on the options (any setting, served from min and max by `/grids`, D65)
-WITHOUT_INGREDIENTS = {"soybean-stages", "spring-wheat-stages", "red-crown-rot", "degree-days"}
+WITHOUT_INGREDIENTS = {"soybean-stages", "spring-wheat-stages", "red-crown-rot", "custom-degree-days"}
 
 BIOFIX = 140  # inside the series, after its first New Year
 

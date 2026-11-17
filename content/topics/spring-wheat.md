@@ -3,7 +3,7 @@ id: spring-wheat
 title: Spring wheat
 kind: crop
 crops:
-  - Wheat
+  - wheat
 scientific_name: Triticum aestivum
 summary: ''
 image: null

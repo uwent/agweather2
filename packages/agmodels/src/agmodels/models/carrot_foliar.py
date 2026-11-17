@@ -42,7 +42,7 @@ SPEC = ModelSpec(
     status="stable",
     summary="Daily disease severity values (0–4) from hours of leaf wetness and their temperature; the last 7 days' total times fungicide sprays for Alternaria and Cercospora leaf blights of carrot.",
     topics=("carrot-alternaria-leaf-blight", "carrot-cercospora-leaf-blight"),
-    crops=("Carrot",),
+    crops=("carrot",),
     citations=(
         Citation(
             text="Pitblado, R. E. (1992). TOM-CAST: a weather-timed fungicide spray program for field tomatoes. Ridgetown College of Agricultural Technology, Ontario.",

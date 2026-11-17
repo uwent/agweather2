@@ -3,7 +3,7 @@ id: tar-spot
 title: Tar Spot (Corn)
 kind: disease
 crops:
-  - Corn
+  - corn
 scientific_name: ''
 summary: ''
 image: images/tar-spot.jpg

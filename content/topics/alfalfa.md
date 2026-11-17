@@ -3,7 +3,7 @@ id: alfalfa
 title: Alfalfa
 kind: crop
 crops:
-  - Alfalfa
+  - alfalfa
 scientific_name: ''
 summary: ''
 image: null

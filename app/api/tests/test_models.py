@@ -107,7 +107,7 @@ def test_a_typical_planting_date_comes_with_its_source(client, archive):
 def test_planting_dates_that_cannot_apply_are_refused(client, archive):
     no_crop = get(client, "late-blight-dsv", planting_date="early")  # potato: no typical dates near this point
     assert no_crop.status_code == 422 and no_crop.json()["errors"][0]["code"] == "no_estimate"
-    none = get(client, "degree-days", planting_date="2025-05-01")
+    none = get(client, "custom-degree-days", planting_date="2025-05-01")
     assert none.status_code == 422 and none.json()["errors"][0]["code"] == "not_applicable"
     bad = get(client, "tar-spot", planting_date="soon")
     assert bad.status_code == 422 and bad.json()["errors"][0]["param"] == "planting_date"
@@ -258,10 +258,14 @@ def test_several_models_each_with_its_own_table(client, archive):
 
 def test_a_planting_date_applies_to_models_with_a_crop(client, archive):
     body = several(
-        client, models="tar-spot,degree-days,late-blight-dsv", planting_date="mid", start="2025-07-05", end="2025-07-06"
+        client,
+        models="tar-spot,custom-degree-days,late-blight-dsv",
+        planting_date="mid",
+        start="2025-07-05",
+        end="2025-07-06",
     ).json()
     assert "susceptibility" in body["data"]["tar-spot"]["data"]
-    assert body["data"]["degree-days"]["meta"]["request"]["planting_date"] is None
+    assert body["data"]["custom-degree-days"]["meta"]["request"]["planting_date"] is None
     assert any("no typical potato" in w for w in body["data"]["late-blight-dsv"]["meta"]["warnings"])
 
 
@@ -339,12 +343,12 @@ def test_evaluate_runs_the_models_core(client):
 
 
 def test_evaluate_takes_the_requests_units_and_sweeps_lists(client):
-    body = evaluate(client, "degree-days", {"min_temp": 50, "max_temp": [70, 86, 100]}).json()  # °F by default
+    body = evaluate(client, "custom-degree-days", {"min_temp": 50, "max_temp": [70, 86, 100]}).json()  # °F by default
     data = body["data"]
     assert data["max_temp"] == [70, 86, 100] and len(data["sine"]) == 3
     assert data["average"][0] == pytest.approx(10, abs=0.1)  # (50 + 70) / 2 − 50, in °F·d
     assert body["meta"]["units"]["sine"] == "°F·d"
-    metric = evaluate(client, "degree-days", {"min_temp": 10, "max_temp": 21.1111}, units="metric").json()
+    metric = evaluate(client, "custom-degree-days", {"min_temp": 10, "max_temp": 21.1111}, units="metric").json()
     assert metric["data"]["average"][0] == pytest.approx(10 / 1.8, abs=0.1)  # the same day, in °C·d
 
 

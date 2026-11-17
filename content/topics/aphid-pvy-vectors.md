@@ -3,7 +3,7 @@ id: aphid-pvy-vectors
 title: Aphid PVY Vectors
 kind: insect
 crops:
-  - Potato
+  - potato
 scientific_name: ''
 summary: ''
 image: images/aphid-pvy-vectors.jpg

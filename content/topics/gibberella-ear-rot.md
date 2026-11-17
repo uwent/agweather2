@@ -3,7 +3,7 @@ id: gibberella-ear-rot
 title: Gibberella Ear Rot / Deoxynivalenol (Corn)
 kind: disease
 crops:
-  - Corn
+  - corn
 scientific_name: ''
 summary: ''
 image: images/gibberella-ear-rot.jpg

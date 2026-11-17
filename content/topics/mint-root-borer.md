@@ -3,7 +3,7 @@ id: mint-root-borer
 title: Mint Root Borer
 kind: insect
 crops:
-  - Mint
+  - mint
 scientific_name: ''
 summary: ''
 image: images/mint-root-borer.jpg
