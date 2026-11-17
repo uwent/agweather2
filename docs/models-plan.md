@@ -8,9 +8,9 @@ PLAN.md Phase 6 step 4 (Ben, 2026-11-17: all of it before the frontend; L–XL, 
 
 **Updated 2026-11-17.** Branch `phase-6`.
 
-- **Where things stand:** Part A (the Enviroweather inventory, `docs/enviroweather-models.md`) is done. Part B (apple) is planned below and waits on Ben's answers to its questions (B, "Questions for Ben").
-- **Next:** with Ben's answers, build part B in its order (B1 crop and stages, B2 scab, B3 fire blight, B4 codling moth), each landing with tests, docs and its PLAN.md or changelog notes. Papers first: B needs the sources listed under "Sources to get" (TODO.md asks Ben for the ones behind paywalls).
-- **Waiting on Ben (TODO.md, Phase 6):** keeping Enviroweather's permission on record and its terms for credit; asking MSU for the tables missing from the dump (apple scab's, cherry leaf spot's, cranberry fruitworm's egg laying, blueberry and peach varieties, crop coefficients); the apple papers.
+- **Where things stand:** Part A (the Enviroweather inventory, `docs/enviroweather-models.md`) is done. Part B (apple) is planned and Ben answered its questions (2026-11-17, "Ben's answers" under B): NEWA is the standard where sources conflict (D95), fire blight's wetness from dew point depression as well as RH, codling moth by D36 curves, no harvest dates, our own validation against NEWA.
+- **Next:** part B in its order: B5's validation data first (can we read NEWA's station hours and model results for Wisconsin stations?), then B1 crop and stages, B2 scab, B3 fire blight, B4 codling moth, each landing with tests, docs and its changelog notes. Papers: B needs the sources under "Sources to get" (TODO.md asks Ben for the ones behind paywalls; find the free ones first).
+- **Waiting on Ben (TODO.md, Phase 6):** the apple papers. MSU won't share its newer code or database tables (they told Ben they're too busy), so every table missing from the dump is rebuilt from its published source.
 - **Read first in a new session:** this handoff and part B; `docs/enviroweather-models.md`'s "What we found" and "Priorities"; CLAUDE.md's model rules ("One model, one file", "Legacy code", "Evaluate ported logic critically", "Gaps"); PLAN.md D31 (model docs as Markdown), D33 (disease gated by crop stage), D36 (insect phenology as curves), D37 (each model counts degree days by its source's method), D45 (gaps), D46 (versions 0.x until launch), D93 (crop ids), D94 (events on model results).
 
 ---
@@ -22,7 +22,9 @@ From PLAN.md step 4 and CLAUDE.md:
 - Each model is ported or built as Phase 3's were: the published source found and the code checked against it (a port's numbers are what to look for, not the authority), citations with DOIs checked against Crossref (`test_citations --network`), a version (0.x, D46), status, region, season and sweep, tests against the source's own numbers, and intended differences recorded in its part here and in its changelog.
 - One model, one file in `agmodels`, a pure function run the same on a point and the grid; degree days by its source's method (D37); missing data stays missing, and estimates are named and flagged (D45).
 - Crops by id from `agmodels.croplist` (D93); a new crop is added there with its model.
-- **Credit Enviroweather** on every model that draws on their code (Ben has their permission, 2026-11-17; the wording follows the terms Ben keeps on record, TODO.md). Until then: an acknowledgment in the model's front matter, "Adapted from MSU Enviroweather's model", with their URL.
+- **NEWA is the standard where sources conflict** (D95, Ben 2026-11-17): where NEWA (Cornell) runs a model of the same pest, crop or disease, its method and thresholds win over Enviroweather's, VDIFN's and the Crop Risk Tool's, unless a newer published source shows NEWA's wrong; a difference we keep is recorded with its reason. Wisconsin's fruit growers use NEWA, so our numbers should agree with it on the same weather.
+- **Credit Enviroweather** on every model that draws on their code by citing their website as a source (Ben has their permission, 2026-11-17; no further terms): a `Citation` with the model page's URL on enviroweather.msu.edu, beside the published sources.
+- **Validate ourselves:** reviews by colleagues are welcome but uncertain (Ben: mixed results getting feedback from UW colleagues), so each model is checked against independent results: NEWA's on the same station weather where it has the model, then observations (scouting reports, trap catches).
 - Public text (model descriptions, messages) follows CLAUDE.md's "Writing for the public".
 
 ## Process for each part
@@ -40,6 +42,9 @@ From PLAN.md step 4 and CLAUDE.md:
 - **Enviroweather's code** (inventory): almost nothing cited; single sine with no upper from a fixed March 1 nearly everywhere; missing days add 0; several tables are in MSU's database, not the dump; a list of likely bugs in the inventory's "What we found".
 - **The apple scab sources:** MacHardy and Gadoury (1989), "A revision of Mills's criteria for predicting apple scab infection periods", Phytopathology 79:304–310, doi:10.1094/Phyto-79-304 (ascospore infection about 3 h shorter than Mills; night rain counted from 07:00); Stensvand et al. (1997), Phytopathology 87:1046 (low temperatures; conidia like ascospores at 2–8 °C); Gadoury and MacHardy (1982), "A model to estimate the maturity of ascospores of Venturia inaequalis", Phytopathology 72:901–904, doi:10.1094/Phyto-72-901 (probit of maturity linear in degree days base 0 °C; MSU's 2.51 + 0.01 × DD°C is this). None read in full yet.
 - **Fire blight sources:** Steiner (1990), "Predicting apple blossom infections by Erwinia amylovora using the MARYBLYT model", Acta Horticulturae 273:139–148 (EIP ≥ 100; a mean of at least 15.6 °C; OMAFRA describes the trigger as 110 degree hours above 18.3 °C from first open bloom, which makes MSU's divisor of 1.95 for °F degree-hours worth checking); Smith's Cougarblight (WSU): the 2010 version sums hourly risk values over 4 days (96 hours, a flower's susceptible life), its lower threshold lowered from 60 to 50 °F, thresholds from 30 years of Washington and Oregon infections ([WSU overview](https://extension.wsu.edu/chelan-douglas/agriculture/treefruit/pestmanagement/cougarblightmodeloverview), [CougarBlight 2010](https://extension.wsu.edu/chelan-douglas/agriculture/treefruit/pestmanagement/cb2010fireblightriskmodel)).
+- **WSU's Decision Aid System (DAS)** ([WSU](https://treefruit.wsu.edu/tools-resources/wsu-das/)) runs 11 insect, 7 horticultural and 5 disease models for Washington tree fruit: apple maggot, campylomma, codling moth, lacanobia fruitworm, obliquebanded and pandemis leafrollers, oriental fruit moth, peach twig borer, San Jose scale, western cherry fruit fly; apple scab, fire blight (Cougarblight), cherry powdery mildew; bloom and fruit growth by variety; sunburn and storage scald. Its codling moth model (Jones et al.) is the source of D36-style emergence and hatch curves. Added to `docs/landscape.md` (missed in Phase 3's survey). Where NEWA has no model of a pest (codling moth curves, obliquebanded leafroller, apple maggot), DAS is the next reference, with care: it's fitted in central Washington.
+- **Leaf wetness from weather data:** RH ≥ 90 % hours (our proxy, as in late blight and TOMCAST) and dew point depression (Gillespie et al. 1993: wetness when air temperature less dew point falls below a threshold, about 2 °C for onset in their model, with separate onset and drying limits) are the two published empirical estimates; Sentelhas et al. (2008, Agricultural and Forest Meteorology 148:392–400, "Suitability of relative humidity as an estimator of leaf wetness duration") compared RH ≥ 90 %, dew point depression and an extended RH threshold, and Montone et al. (2016) compared CART, dew point depression, RH hours and Penman–Monteith across four US states. Neither read yet. Our hourly data has dew point, and the catalog already rolls up dew point depression.
+- **NEWA's data:** no public API documentation found; a third-party R package reads NEWA 3.0's hourly station data from NRCC (`hrly.nrcc.cornell.edu/stnHrly`), and RCC-ACIS serves station data. Whether NEWA's model results can be read the same way is B5's first question.
 - **Codling moth:** base 50 °F, upper 88 °F, single sine with a horizontal cutoff, from a biofix at first sustained trap catch (Riedl and Croft 1974; Riedl, Croft and Howitt 1976, developed at Michigan State); UC IPM's biofix needs catches on two successive nights with sunset temperatures above 62 °F. MSU's code uses no upper, and counts generation 2 from March 1, not the biofix (likely a bug). Washington's newer model (Jones et al.) gives cumulative egg hatch curves, which would fit D36.
 
 ---
@@ -68,7 +73,7 @@ Apples are Wisconsin's main tree fruit (about 4,000 acres in nearly 300 commerci
 - Source to find: a published table of McIntosh (or general apple) stages by degree days. Candidates: the NEWA/Cornell table behind its stage predictions, Michigan's (MSU's numbers), Penn State's phenology reports.
 - Outputs: `stage` (index) and its code, `dd_total`. Maps from the stored degree days, as `corn-stages`. A stage anchors other apple models (`biofix_stage`, as early blight starts at potato emergence): green tip for scab, first bloom to petal fall for fire blight.
 - Checked against observed stage dates in UW's Wisconsin fruit crop scouting reports (2025 and 2026 give DD43 and stages by site).
-- Left out: MSU's harvest maturity for McIntosh, Jonathan and Red Delicious (one of its three McIntosh formulas has its temperature sign reversed since 2008, a question for MSU; no publication). A later part if growers want it.
+- Left out: MSU's harvest maturity for McIntosh, Jonathan and Red Delicious (Ben: beyond AgWeather's scope; one of its three McIntosh formulas also has its temperature sign reversed since 2008, with no publication).
 
 **B2. `apple-scab`** (primary season: from green tip until the season's ascospores are all discharged).
 
@@ -83,7 +88,7 @@ Apples are Wisconsin's main tree fruit (about 4,000 acres in nearly 300 commerci
 
 - **Cougarblight 2010** (Smith, WSU) as the risk: hourly risk values from temperature, summed over the last 96 hours, against thresholds that depend on the orchard's fire blight history (an option: none nearby, nearby last year, in the orchard last year, active now), with wetting (rain or dew) needed for infection. Maps from a daily ingredient (the day's hourly risk sum); the 4-day total is a running window.
 - **MaryBlyt's EIP** (Steiner 1990) as a second output: degree hours above 65 °F over the blossoms' life (80 DD°F base 40), with its cold-day carry-overs, EIP ≥ 100 as a condition, and the four conditions (blossoms open, EIP ≥ 100, wetting, mean ≥ 60 °F). EIP carries state from day to day, so it's points first; maps if it can be written as a kernel over the window.
-- **Wetting:** rain ≥ 0.01 in that day (or ≥ 0.10 in the day before, MaryBlyt's); dew can't be observed, so RH ≥ 90 % hours as a proxy only if the source allows it (question 3).
+- **Wetting:** rain ≥ 0.01 in that day (or ≥ 0.10 in the day before, MaryBlyt's), or dew estimated from the weather (Ben: dew point depression as well as RH; the leaf wetness estimate shared with scab, above).
 - **Bloom window:** from `apple-stages` (first bloom to petal fall; MSU uses pink to first cover, which runs ~240 DD past petal fall) or the grower's first blossom date at points.
 - Left out: trauma blight (a grower's event: hail, a storm); the symptom date (103 DD°F base 55 after infection) can be an output if Steiner gives it.
 - Checked against NEWA's Cougarblight and EIP at Wisconsin stations, and MSU's.
@@ -93,15 +98,29 @@ Apples are Wisconsin's main tree fruit (about 4,000 acres in nearly 300 commerci
 - Degree days base 50 °F, upper 88 °F, single sine with a horizontal cutoff, from a biofix at first sustained trap catch (Riedl et al. 1976); without one, an estimated biofix (MSU: 200 DD°F base 50 from March 1; find a published estimate).
 - Stages from the biofix: first generation egg laying, first hatch, 20 % hatch, peak egg laying; second generation from the same biofix (MSU counts it from March 1, likely a bug; check its numbers against the source).
 - **D36 curves or a stage table:** Washington's model (Jones et al.) gives cumulative egg hatch and adult emergence curves, which fit D36's life stages with action windows (first hatch to 20 %, the usual spray window); MSU's is a stage table (question 4).
-- Checked against UW's codling moth trap reports where they give biofix and flights.
+- Checked against UW's codling moth trap reports where they give biofix and flights, and WSU DAS's curves on the same weather.
 
 **Sources to get** (Ben, for those behind paywalls; into `tmp/references/apple/`): MacHardy and Gadoury 1989; Stensvand et al. 1997; Gadoury and MacHardy 1982; the "Jones" ascospore discharge paper; Steiner 1990 and its companion (Acta Hort. 273:149–158); Smith's Cougarblight 2010 documentation (WSU, free); Riedl and Croft 1974, Riedl et al. 1976; Jones et al.'s codling moth model; a published apple stage table at base 43 °F (or 42).
 
 **Risks:** the papers (tables have to be read from them exactly); hourly wetness rules on the grid (the rollup's lookback); Wisconsin users comparing with NEWA station by station (differences have to be explainable); fire blight's thresholds come from the Pacific Northwest (Cougarblight) and the mid-Atlantic (MaryBlyt).
 
+**Sources to get (added 2026-11-17):** Gillespie, Srivastava and Pitblado (1993) on dew point depression; Sentelhas et al. (2008); Montone et al. (2016); WSU DAS's documentation of its codling moth, fire blight and scab models.
+
 **Alternatives weighed:** follow MSU's code throughout (simplest to port, but base 42 °F and MaryBlyt only would differ from what Wisconsin growers see in NEWA); points only for every model (simpler, but the grid between stations is our reason to exist for fruit growers).
 
-**Questions for Ben:**
+**Ben's answers (2026-11-17):**
+
+- NEWA is the gold standard where sources conflict, above Enviroweather's code and even above VDIFN (Ben's own): recorded as D95 and in this plan's rules. So: base 43 °F stages, Revised Mills, Cougarblight with EIP, as NEWA runs them.
+- Fire blight's wetting: look at dew point depression (air temperature against dew point) as well as RH to identify likely leaf wetness; find what's published (above: Gillespie et al. 1993, Sentelhas et al. 2008, Montone et al. 2016). Plan: estimate wet hours by the method the comparisons favour for humid continental climates, use the same estimate in scab and fire blight, and check it against leaf wetness sensors if any Wisconsin network has them (Wisconet, NEWA's stations).
+- Codling moth by smooth emergence curves (D36), from WSU's model.
+- Harvest dates: out of scope.
+- Review: ask UW's fruit team, but don't depend on it; validate against NEWA ourselves (B5).
+- MSU won't share tables or newer code: rebuild from the papers.
+- Credit Enviroweather by citing its website as a source.
+
+**B5. Validation against NEWA** (first, since it decides what "right" means for B1–B4): find whether NEWA's hourly station data and model results for Wisconsin's ~30 stations can be read (NRCC's hourly service, NEWA's pages, or asking NRCC); if so, run each of our models on a station's own hours (`POST /models/{id}/run` takes station weather) and compare with NEWA's results there for 2024–2026, then compare our grid's results at the station's cell. Differences on the same weather are ours to explain or fix; differences between station and grid are the weather's (the validation docs' kind). Recorded in `docs/validation-apple.md`.
+
+**Questions for Ben (answered above):**
 
 1. **NEWA or MSU where they differ:** recommend NEWA's methods (base 43 °F stages, Revised Mills, Cougarblight with EIP) since Wisconsin growers and UW Extension use NEWA, with MSU's code as the structure and credit where we use it.
 2. **Scab on maps:** a daily ingredient with a bounded lookback in this part (recommended), or points first?
