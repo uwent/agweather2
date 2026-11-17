@@ -33,7 +33,7 @@ from agdata.series import MAX_RUN_AGE
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
 from agmodels.runner import crop_models
-from agmodels.spec import Citation, Input, ModelSpec, Option, Quantity
+from agmodels.spec import Citation, Group, Input, ModelSpec, Option, Quantity
 from api import clock
 from api.envelope import Result, etag_for, not_modified, respond
 from api.errors import ApiError
@@ -497,13 +497,22 @@ def _detail(spec: ModelSpec) -> ModelDetail:
     )
 
 
+class ModelsQuery(Schema):
+    group: Group | None = None
+
+
 @router.get("/models", response=responses(ModelsResponse), summary="Every model")
-def models(request: HttpRequest) -> HttpResponse:
-    etag, unchanged = _cached(request, {})
+def models(request: HttpRequest, query: Query[ModelsQuery]) -> HttpResponse:
+    computed = {"group": query.group}
+    etag, unchanged = _cached(request, computed)
     if unchanged is not None:
         return unchanged
-    found = [ModelSummary(**_summary(m.SPEC)).model_dump() for _, m in sorted(all_models().items())]
-    return respond(request, Result(request={}, data=found, etag=etag))
+    found = [
+        ModelSummary(**_summary(m.SPEC)).model_dump()
+        for _, m in sorted(all_models().items())
+        if query.group is None or m.SPEC.group == query.group
+    ]
+    return respond(request, Result(request=computed, data=found, etag=etag))
 
 
 @router.get("/models/{model_id}", response=responses(ModelResponse), summary="One model's spec")

@@ -191,6 +191,9 @@ def test_degree_day_presets_give_each_setting_in_both_unit_systems(client):
     assert corn["dd"] == {"us": "modified_50_86", "metric": "modified_10_30"} and corn["stored"]
     assert corn["base"] == {"us": 50.0, "metric": 10.0} and corn["model"] == "corn-stages"
     assert not found["spring-wheat"]["stored"]  # 32/95 modified: computed when asked
+    weevil = found["alfalfa-weevil"]
+    assert weevil["group"] == "insect" and weevil["dd"]["us"] == "sine_48p2_86" and weevil["biofix"] == "01-01"
+    assert corn["group"] == "crop" and corn["crops"] == ["Corn"] and corn["biofix"] is None
     for preset in found.values():
         # The °C text names the same °F thresholds as the °F text (7.22 °C is 45 °F's, not 44.996's)
         us, metric = (degree_day_settings(preset["dd"][s], s, []) for s in ("us", "metric"))
@@ -238,3 +241,13 @@ def test_variables_and_model_inputs_name_their_sources_and_corrections(client):
     assert found["cumulative", "dd_sine_50"]["sources"] == [] and found["hourly", "air_temperature"]["gap_fill"] is None
     inputs = {i["name"]: i for i in client.get("/api/v2/models/botrytis-onion-botcast").json()["data"]["inputs"]}
     assert "gridded-rh-90" in inputs["hours_rh_over_90_from_6pm"]["corrections"]
+
+
+def test_models_can_be_listed_by_group(client):
+    insects = client.get("/api/v2/models", {"group": "insect"}).json()
+    assert insects["data"] and {m["group"] for m in insects["data"]} == {"insect"}
+    assert insects["meta"]["request"] == {"group": "insect"}
+    every = client.get("/api/v2/models").json()["data"]
+    assert len(every) > len(insects["data"])
+    wrong = client.get("/api/v2/models", {"group": "insects"})
+    assert wrong.status_code == 422 and wrong.json()["errors"][0]["param"] == "group"

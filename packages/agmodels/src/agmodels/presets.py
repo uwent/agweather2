@@ -1,19 +1,22 @@
-"""Degree-day presets: each crop's usual growing degree-day setting (method, base, upper threshold), when the count
-starts, and the temperature that kills the crop in fall, each with its source (PLAN.md Phase 6 step 2).
+"""Degree-day presets: the usual degree-day setting (method, base, upper threshold) for each crop and insect, when the
+count starts, and for a crop the temperature that kills it in fall, each with its source (PLAN.md Phase 6 step 2).
 
-They serve the degree-day calculator and the crop GDD outlook (`/degree-days/presets`). Where we run a crop's stage
-model, its preset is that model's setting, so a calculator total matches the stage page (a test checks they agree);
-elsewhere the setting comes from the literature or extension practice, checked against HPRCC's CliGrow list, and
-`notes` says where sources differ.
+They serve the degree-day calculator and the crop GDD outlook (`/degree-days/presets`). Crops' are written here:
+where we run a crop's stage model, its preset is that model's setting, so a calculator total matches the stage page
+(a test checks they agree); elsewhere the setting comes from the literature or extension practice, checked against
+HPRCC's CliGrow list, and `notes` says where sources differ. Insects' are made from the insect models' own settings
+and biofix dates (`insect_presets`), so they can't drift from the models.
 """
 
 from dataclasses import dataclass
+from functools import cache
 from typing import Literal
 
 from agmodels.ingredients import DegreeDays
 from agmodels.spec import Citation
 
-Start = Literal["planting", "january_1"]
+Start = Literal["planting", "january_1", "biofix"]
+Group = Literal["crop", "insect"]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -28,11 +31,13 @@ class Freeze:
 @dataclass(frozen=True, kw_only=True)
 class DegreeDayPreset:
     id: str
-    crop: str
-    label: str  # public: the crop and what the count is for
+    group: Group = "crop"
+    crops: tuple[str, ...]  # the crop, or the crops an insect attacks (the models' crop names)
+    label: str  # public: the crop or insect and what the count is for
     setting: DegreeDays
     starts: Start  # when the count usually starts
-    model: str | None = None  # the stage model whose setting this is
+    biofix: str | None = None  # MM-DD: the default start of a count from a biofix
+    model: str | None = None  # the stage or insect model whose setting this is
     notes: str = ""  # public: where sources differ, what the count is used for
     citations: tuple[Citation, ...]
     freeze: Freeze | None = None
@@ -49,7 +54,7 @@ NDSU_A1995 = Citation(
 
 CORN = DegreeDayPreset(
     id="corn",
-    crop="Corn",
+    crops=("Corn",),
     label="Corn (field)",
     setting=DegreeDays(method="modified", base_f=50, upper_f=86),
     starts="planting",
@@ -71,7 +76,7 @@ CORN = DegreeDayPreset(
 )
 ALFALFA = DegreeDayPreset(
     id="alfalfa",
-    crop="Alfalfa",
+    crops=("Alfalfa",),
     label="Alfalfa",
     setting=DegreeDays(method="sine", base_f=41, upper_f=86),
     starts="january_1",
@@ -97,7 +102,7 @@ ALFALFA = DegreeDayPreset(
 )
 POTATO = DegreeDayPreset(
     id="potato",
-    crop="Potato",
+    crops=("Potato",),
     label="Potato (to emergence)",
     setting=DegreeDays(method="average", base_f=39.2),
     starts="planting",
@@ -114,7 +119,7 @@ POTATO = DegreeDayPreset(
 )
 SPRING_WHEAT = DegreeDayPreset(
     id="spring-wheat",
-    crop="Wheat",
+    crops=("Wheat",),
     label="Spring wheat",
     setting=DegreeDays(method="modified", base_f=32, upper_f=95),
     starts="planting",
@@ -135,7 +140,7 @@ SPRING_WHEAT = DegreeDayPreset(
 
 BARLEY = DegreeDayPreset(
     id="barley",
-    crop="Barley",
+    crops=("Barley",),
     label="Barley",
     setting=DegreeDays(method="modified", base_f=32, upper_f=95),
     starts="planting",
@@ -150,7 +155,7 @@ BARLEY = DegreeDayPreset(
 )
 SOYBEAN = DegreeDayPreset(
     id="soybean",
-    crop="Soybean",
+    crops=("Soybean",),
     label="Soybean",
     setting=DegreeDays(method="modified", base_f=50, upper_f=86),
     starts="planting",
@@ -166,7 +171,7 @@ SOYBEAN = DegreeDayPreset(
 )
 DRY_BEAN = DegreeDayPreset(
     id="dry-bean",
-    crop="Dry bean",
+    crops=("Dry bean",),
     label="Dry (edible) bean",
     setting=DegreeDays(method="modified", base_f=50, upper_f=86),
     starts="planting",
@@ -188,7 +193,7 @@ DRY_BEAN = DegreeDayPreset(
 )
 SORGHUM = DegreeDayPreset(
     id="sorghum",
-    crop="Sorghum",
+    crops=("Sorghum",),
     label="Grain sorghum",
     setting=DegreeDays(method="modified", base_f=50, upper_f=100),
     starts="planting",
@@ -214,7 +219,7 @@ SORGHUM = DegreeDayPreset(
 )
 SUGARBEET = DegreeDayPreset(
     id="sugarbeet",
-    crop="Sugarbeet",
+    crops=("Sugarbeet",),
     label="Sugarbeet",
     setting=DegreeDays(method="modified", base_f=34, upper_f=86),
     starts="planting",
@@ -233,7 +238,7 @@ SUGARBEET = DegreeDayPreset(
 )
 SUNFLOWER = DegreeDayPreset(
     id="sunflower",
-    crop="Sunflower",
+    crops=("Sunflower",),
     label="Sunflower",
     setting=DegreeDays(method="modified", base_f=44),
     starts="planting",
@@ -255,7 +260,7 @@ SUNFLOWER = DegreeDayPreset(
 )
 SWEET_CORN = DegreeDayPreset(
     id="sweet-corn",
-    crop="Sweet corn",
+    crops=("Sweet corn",),
     label="Sweet corn (processing)",
     setting=DegreeDays(method="modified", base_f=50, upper_f=86),
     starts="planting",
@@ -271,7 +276,7 @@ SWEET_CORN = DegreeDayPreset(
 )
 PEA = DegreeDayPreset(
     id="pea",
-    crop="Pea",
+    crops=("Pea",),
     label="Green pea (processing)",
     setting=DegreeDays(method="average", base_f=40),
     starts="planting",
@@ -291,7 +296,7 @@ PEA = DegreeDayPreset(
 )
 SNAP_BEAN = DegreeDayPreset(
     id="snap-bean",
-    crop="Snap bean",
+    crops=("Snap bean",),
     label="Snap bean",
     setting=DegreeDays(method="sine", base_f=40, upper_f=90),
     starts="planting",
@@ -305,7 +310,7 @@ SNAP_BEAN = DegreeDayPreset(
     ),
 )
 
-PRESETS: tuple[DegreeDayPreset, ...] = (
+CROP_PRESETS: tuple[DegreeDayPreset, ...] = (
     CORN,
     SOYBEAN,
     ALFALFA,
@@ -320,3 +325,40 @@ PRESETS: tuple[DegreeDayPreset, ...] = (
     PEA,
     SNAP_BEAN,
 )
+
+
+@cache
+def insect_presets() -> tuple[DegreeDayPreset, ...]:
+    """One preset per insect model, from its degree-day setting and biofix; a model whose id extends another's with
+    the same setting and start (`colorado-potato-beetle-adults` beside `colorado-potato-beetle`) is left out."""
+    from agmodels.registry import all_models
+
+    found: list[DegreeDayPreset] = []
+    for model_id, module in sorted(all_models().items()):
+        spec = module.SPEC
+        settings = [i.degree_days for i in spec.ingredients if i.degree_days is not None]
+        if spec.group != "insect" or len(settings) != 1 or spec.status == "retired":
+            continue
+        biofix = spec.biofix.default if spec.biofix is not None else None
+        same = [p for p in found if model_id.startswith(p.id + "-") and p.setting == settings[0] and p.biofix == biofix]
+        if same:
+            continue
+        found.append(
+            DegreeDayPreset(
+                id=model_id,
+                group="insect",
+                crops=spec.crops,
+                label=spec.name,
+                setting=settings[0],
+                starts="biofix" if biofix is not None else "january_1",
+                biofix=biofix,
+                model=model_id,
+                notes=spec.summary,
+                citations=spec.citations,
+            )
+        )
+    return tuple(found)
+
+
+def all_presets() -> tuple[DegreeDayPreset, ...]:
+    return (*CROP_PRESETS, *insect_presets())

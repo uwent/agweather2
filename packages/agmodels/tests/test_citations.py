@@ -6,10 +6,12 @@ import re
 import pytest
 import requests
 
-from agmodels.presets import PRESETS
+from agmodels.presets import CROP_PRESETS
 from agmodels.registry import all_models
 
-PRESET_CITATIONS = [c for p in PRESETS for c in (*p.citations, *(p.freeze.citations if p.freeze is not None else ()))]
+PRESET_CITATIONS = [
+    c for p in CROP_PRESETS for c in (*p.citations, *(p.freeze.citations if p.freeze is not None else ()))
+]
 EVERY = [*(c for m in all_models().values() for c in m.SPEC.citations), *PRESET_CITATIONS]
 CITATIONS = sorted({c for c in EVERY if c.doi}, key=lambda c: c.doi)
 

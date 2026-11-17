@@ -27,7 +27,7 @@ from agdata.timezones import day_bounds
 from agmodels import chill
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
-from agmodels.presets import PRESETS, DegreeDayPreset
+from agmodels.presets import DegreeDayPreset, all_presets
 from agmodels.scenarios import first_days, reached, spread
 from api import clock, points, rolled
 from api.envelope import Column, Result, catalog_column, etag_for, not_modified, respond
@@ -759,7 +759,8 @@ class FreezeInfo(Schema):
 
 class PresetInfo(Schema):
     id: str
-    crop: str
+    group: str  # crop, insect
+    crops: list[str]
     label: str
     method: str
     base: Temperature
@@ -767,6 +768,7 @@ class PresetInfo(Schema):
     dd: SettingText
     stored: bool
     starts: str
+    biofix: str | None  # MM-DD
     model: str | None
     notes: str
     citations: list[CitationInfo]
@@ -800,7 +802,8 @@ def _preset(p: DegreeDayPreset) -> PresetInfo:
         )
     return PresetInfo(
         id=p.id,
-        crop=p.crop,
+        group=p.group,
+        crops=list(p.crops),
         label=p.label,
         method=s.method,
         base=base,
@@ -808,6 +811,7 @@ def _preset(p: DegreeDayPreset) -> PresetInfo:
         dd=SettingText(us=text("us"), metric=text("metric")),
         stored=cube_terms(s.method, s.base_f, s.upper_f) is not None,
         starts=p.starts,
+        biofix=p.biofix,
         model=p.model,
         notes=p.notes,
         citations=[citation_info(c) for c in p.citations],
@@ -815,10 +819,12 @@ def _preset(p: DegreeDayPreset) -> PresetInfo:
     )
 
 
-@router.get("/degree-days/presets", response=responses(PresetsResponse), summary="Degree-day settings for common crops")
+@router.get(
+    "/degree-days/presets", response=responses(PresetsResponse), summary="Degree-day settings for crops and insects"
+)
 def presets(request: HttpRequest) -> HttpResponse:
     etag = etag_for(request, {}, None)
     if (unchanged := not_modified(request, etag)) is not None:
         return unchanged
-    found = [_preset(p).model_dump() for p in PRESETS]
+    found = [_preset(p).model_dump() for p in all_presets()]
     return respond(request, Result(request={}, data=found, etag=etag))

@@ -21,7 +21,7 @@ ModelResponse = "One model's full description."
 LocateResponse = "What the service knows about a location."
 LayersResponse = "Every layer that can be shown as a map."
 DownloadsResponse = "The yearly data files available for download."
-PresetsResponse = "The usual degree-day settings for common crops."
+PresetsResponse = "The usual degree-day settings for common crops and the insects we model."
 MethodsResponse = "Where the data come from, and the corrections we apply to them."
 CorrectionResponse = "One correction, with its fitted values."
 
@@ -135,6 +135,9 @@ radius = "Average the weather over the area around each location instead of usin
 date = "A single day of the year, as YYYY-MM-DD, in place of `start` and `end`."
 start = "The first day, as YYYY-MM-DD. The default is January 1. The start and end must be in the same calendar year."
 end = "The last day, as YYYY-MM-DD. The default is December 31 of this year, or of the year of `start`."
+
+[discovery_models]
+group = "Only the models of one group: `disease`, `insect`, `crop` (growth stages), `agronomic` (field management, such as volunteer plants) or `degree_days`. Leave it out for every model."
 
 [degree_days_daily]
 targets = "Running totals to watch for, in degree days in the request's units, separated by commas (as `1400,2000`). For each setting, `meta.summary.targets` gives the day each total is reached, or is expected to be reached when the forecast or a projection is included."

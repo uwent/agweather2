@@ -1147,6 +1147,9 @@ export interface ModelSummary {
    */
   citations: CitationInfo[]
 }
+export interface ModelsQuery {
+  group?: ('disease' | 'insect' | 'crop' | 'agronomic' | 'degree_days') | null
+}
 /**
  * Every model the service runs.
  */
@@ -1203,9 +1206,13 @@ export interface PresetInfo {
    */
   id: string
   /**
-   * The crop.
+   * `crop` for a crop's growing degree days, `insect` for an insect model's.
    */
-  crop: string
+  group: string
+  /**
+   * The crop, or the crops the insect attacks.
+   */
+  crops: string[]
   /**
    * The preset's name, as a menu shows it.
    */
@@ -1225,15 +1232,19 @@ export interface PresetInfo {
    */
   stored: boolean
   /**
-   * When the count usually starts: `planting` or `january_1`. `notes` says when a crop is counted from another day too, such as alfalfa from its last cutting.
+   * When the count usually starts: `planting`, `january_1`, or `biofix` (a date set by an event in the insect's season, such as the first moths caught in a trap; `biofix` gives the date we use unless you set one). `notes` says when a crop is counted from another day too, such as alfalfa from its last cutting.
    */
   starts: string
   /**
-   * The id of the growth stage model that uses this setting, which `/models/{model_id}` describes. Null when there is none.
+   * For a count from a biofix: the day we use unless you set one, as `MM-DD`. Null otherwise.
+   */
+  biofix: string | null
+  /**
+   * The id of the growth stage or insect model that uses this setting, which `/models/{model_id}` describes. Null when there is none.
    */
   model: string | null
   /**
-   * How the setting is used, and where sources differ.
+   * How the setting is used, and where sources differ. For an insect, what its model predicts.
    */
   notes: string
   /**
@@ -1256,12 +1267,12 @@ export interface SettingText {
   metric: string
 }
 /**
- * The usual degree-day settings for common crops.
+ * The usual degree-day settings for common crops and the insects we model.
  */
 export interface PresetsResponse {
   meta: Meta
   /**
-   * Each preset, by crop.
+   * Each preset: the crops first, then the insects.
    */
   data: PresetInfo[]
 }
