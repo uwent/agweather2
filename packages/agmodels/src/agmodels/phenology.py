@@ -513,11 +513,11 @@ def severity(dd_total: np.ndarray, insect: Insect) -> np.ndarray:
         index = stage_index(total, insect.stages)
         levels = np.array([0.0] + [s.severity for s in insect.stages])
         return np.where(np.isnan(index), np.nan, levels[np.nan_to_num(index, nan=-1).astype(int) + 1])
-    level = np.zeros_like(total)
+    level = np.zeros(total.shape, dtype=np.int8)
     for start, peak, end in insect.generations:
         within = (total >= start) & (total <= end)
         level = np.where(within, _sine_ramp(total, start, peak, end), level)
-    return np.where(np.isnan(total), np.nan, level)
+    return np.where(np.isnan(total), np.nan, level.astype(float))
 
 
 def freeze_reduction(tmin_c: np.ndarray, day_of_year: np.ndarray) -> np.ndarray:
@@ -528,8 +528,27 @@ def freeze_reduction(tmin_c: np.ndarray, day_of_year: np.ndarray) -> np.ndarray:
     return np.where(doy > SEASON_END_DAY, freezing, 0.0)
 
 
+# Where VDIFN's ramp steps up a level, as a share of the way from start to peak: its height (1 − cos πx) / 2, times 4
+# and rounded up, passes 0, 1/4, 2/4 and 3/4 at x = arccos(1 − k/2) / π
+RAMP_STEPS = (0.0, 1 / 3, 1 / 2, 2 / 3)
+
+
 def _sine_ramp(total: np.ndarray, start: float, peak: float, end: float) -> np.ndarray:
-    """VDIFN's `sev_ramp`: 0–4 along a half sine up from start to peak and down from peak to end, rounded up."""
+    """VDIFN's `sev_ramp`: 0–4 along a half sine up from start to peak and down from peak to end, rounded up, and 0
+    outside start..end. The rounded sine is a step function of the total, so it's counted from the four totals where
+    it steps on each side (`_sine_ramp_reference` computes the sine, ~6× slower over a season's map)."""
+    total = np.asarray(total, dtype=float)
+    rising = total <= peak
+    level = np.zeros(total.shape, dtype=np.int8)
+    for k in RAMP_STEPS:
+        up, down = start + k * (peak - start), end - k * (end - peak)
+        with np.errstate(invalid="ignore"):
+            level += np.where(rising, total > up, total < down)
+    return level
+
+
+def _sine_ramp_reference(total: np.ndarray, start: float, peak: float, end: float) -> np.ndarray:
+    """VDIFN's `sev_ramp` term for term, the reference `_sine_ramp` is tested against."""
 
     def half(value, a, b):
         x = (value - a) / (b - a)

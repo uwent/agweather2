@@ -43,9 +43,10 @@ from agdata.planting import planting_crop, planting_map
 from agdata.rolling import Roll
 from agdata.store import CUMULATIVE, DAILY
 from agmodels import seasons
+from agmodels.registry import model as find_model
 from agmodels.seasons import Season
 from agmodels.spec import ModelSpec
-from api import climatemaps, counts, events
+from api import climatemaps, counts, events, modelevents
 from api.envelope import SYSTEMS, Column, shown_unit, unit_overrides
 from api.errors import ApiError, day_text, hour_text, quoted
 from api.maptitles import layer_title
@@ -392,10 +393,15 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         q, roll, roll_day = _roll_range(found, q, observed)
     if q.count is not None and q.stat is None:
         q = q.model_copy(update={"stat": "count"})  # a count is a statistic of the range
-    event = events.asked(q.first, q.last, q.since)
-    if event is not None:
-        _check_event(found, q, event)
-        q = q.model_copy(update={"stat": event.kind})  # as a count: a statistic of the range
+    wanted = events.given(q.first, q.last, q.since)
+    event = None
+    if wanted is not None:
+        if found.source != "model":  # a model's is read once its output is known
+            event = events.parse(kind=wanted[0], text=wanted[1])
+        _check_event(found, q, wanted[0], event)
+        q = q.model_copy(update={"stat": wanted[0]})  # as a count: a statistic of the range
+        if found.source == "model" and wanted[0] != "since" and q.end is None and q.date is None:
+            q = q.model_copy(update={"end": _model_event_end(data_dir, observed, now).isoformat()})
     elif q.stat in events.KINDS:
         raise ApiError(
             "missing",
@@ -405,6 +411,8 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
     first, last = span(found, q, observed)
     if event is not None and q.start is None:
         first = event.default_start(last)  # a `below` event's season from July 1, else the year
+    elif wanted is not None and q.start is None:
+        first = _model_event_start(found, last)
     stat = q.stat or ("sum" if q.biofix is not None else None)  # a biofix starts a total
     if stat == "count":
         _check_count(found, q)
@@ -428,6 +436,8 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
             "stat",
         )
     model = model_request(request, found, q, warnings) if found.source == "model" else None
+    if model is not None and wanted is not None:
+        event = _model_event(model, wanted)
     if model is None and (q.output is not None or q.planting is not None):
         param = "output" if q.output is not None else "planting"
         raise ApiError(
@@ -503,9 +513,11 @@ def ask(request: HttpRequest, layer_id: str, q: LayerQuery, units: str, now: dat
         model=model,
     )
     if event is not None:
-        column = Column(name=found.id, values=[], unit=found.unit, step=found.step, variable=found.variable or found.id)
+        base_unit = model.output.unit if model is not None else found.unit
+        base_step = model.output.step if model is not None else found.step
+        column = Column(name=found.id, values=[], unit=base_unit, step=base_step, variable=found.variable or found.id)
         shown = shown_unit(column, SYSTEMS.get(units, "imperial"), unit_overrides(request))
-        bounds = event.bounds(shown, found.unit, found.step)
+        bounds = event.bounds(shown, base_unit, base_step)
     # Only what the layer reads: an open checks every variable it's given (~3 ms each)
     opened = [*hourly_of(found), *stored_names(found)]
     if found.id == DEGREE_DAYS:
@@ -669,10 +681,10 @@ def _roll_rules(
     return values, notes
 
 
-def _check_event(layer: Layer, q: LayerQuery, event: "events.Event") -> None:
-    """first=, last= and since= take a daily weather layer whose values can be compared, a window (not one date),
-    and a named threshold only on a temperature."""
-    kind = event.kind
+def _check_event(layer: Layer, q: LayerQuery, kind: "events.Kind", event: "events.Event | None") -> None:
+    """first=, last= and since= take a daily weather layer whose values can be compared or a model's (`event` None
+    until its output is known, `_model_event`), a window (not one date), and a named threshold only on a
+    temperature."""
     if q.stat is not None and q.stat != kind:
         raise ApiError(
             "conflict",
@@ -681,7 +693,7 @@ def _check_event(layer: Layer, q: LayerQuery, event: "events.Event") -> None:
         )
     if q.count is not None:
         raise ApiError("conflict", f"Give 'count' or {quoted(kind)}, not both: one map shows one of them.", kind)
-    if layer.source != "daily" or not layer.stats:
+    if layer.source != "model" and (layer.source != "daily" or not layer.stats):
         why = (
             "it's hourly; ask for the daily layer"
             if layer.time_axis == "hour"
@@ -696,12 +708,51 @@ def _check_event(layer: Layer, q: LayerQuery, event: "events.Event") -> None:
             f"{quoted(kind)} looks over a range of days. Give 'end' for the last day (default the latest), and 'start' if the range should begin elsewhere than its default.",
             "date",
         )
-    if event.named is not None and layer.unit != "degC":
+    if event is not None and event.named is not None and layer.unit != "degC":
         raise ApiError(
             "invalid",
             f"{event.name.replace('_', ' ')} is a temperature, and {layer_title(layer)} isn't one. Give bounds such as {quoted(f'{kind}=below_10')}.",
             kind,
         )
+
+
+def _model_event_end(data_dir, observed: datetime, now: datetime) -> date:
+    """A model's event looks through the forecast: its last whole day, or the last observed day without one."""
+    run = series.current_forecast(data_dir, now)
+    closed = series.last_closed_day(observed)
+    if run.path is None or run.last_hour is None:
+        return closed
+    return max(closed, series.last_closed_day(run.last_hour))
+
+
+def _model_event_start(layer: Layer, last: date) -> date:
+    """A model's event looks from its season's start (`ModelSpec.season`) or default biofix in `last`'s year, else
+    from January 1: the days before give it no results to look at."""
+    spec = modelgrid.mapped()[layer.id].SPEC
+    month_day = spec.season[0] if spec.season is not None else spec.biofix.default if spec.biofix is not None else None
+    if month_day is None:
+        return date(last.year, 1, 1)
+    month, day = (int(p) for p in month_day.split("-"))
+    return min(date(last.year, month, day), last)
+
+
+def _model_event(model: "ModelRequest", wanted: "tuple[events.Kind, str]") -> "events.Event":
+    """A model map's `first=`, `last=` or `since=` on the output it shows (`api.modelevents.map_event`)."""
+    kind, text = wanted
+    if model.spec.seasonal is not None:
+        raise ApiError(
+            "not_applicable",
+            f"{model.spec.name} is counted over a season, and its map takes no {quoted(kind)}. To find days in its results at a location, use GET /api/v2/models/{model.spec.id}/run with {quoted(f'{kind}=')}.",
+            kind,
+        )
+    event = modelevents.map_event(find_model(model.spec.id), model.output.name, kind, text)
+    if event.named is not None and model.output.unit != "degC":
+        raise ApiError(
+            "invalid",
+            f"{event.name.replace('_', ' ')} is a temperature, and {model.output.label.lower()} isn't one. Give bounds such as {quoted(f'{kind}=above_2')}.",
+            kind,
+        )
+    return event
 
 
 def _check_count(layer: Layer, q: LayerQuery) -> None:
@@ -1228,7 +1279,10 @@ def _model_compute(
         warnings.append(
             f"The season starts at the biofix, {_day_or(found.biofix[-1])}, so nothing has accumulated yet."
         )
-    if stat == "count":
+    if stat in events.KINDS:
+        value, found_day, missing = events.find(values, low=bounds[0], high=bounds[1], kind=stat, first_day=first)
+        values, extra = value[None], {"found": found_day, "missing_days": missing}
+    elif stat == "count":
         values, extra = _counted(values, bounds, "day")
     elif stat is not None:
         value, _, missing = reduce(values, stat, None)

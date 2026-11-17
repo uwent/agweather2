@@ -47,7 +47,10 @@ class Event:
     low: float | None
     high: float | None
     named: str | None  # frost, hard_freeze, killing_freeze
-    name: str  # `below_32`, `frost`
+    name: str  # `below_32`, `frost`, a model's `high` or `r1`
+    # A model's named value (`api.modelevents`): the bounds already in the stored unit, and what's found in words
+    stored: tuple[float | None, float | None] | None = None
+    title: str | None = None
 
     @property
     def unit(self) -> str | None:
@@ -59,6 +62,8 @@ class Event:
 
     def bounds(self, shown: str, stored: str, step: float) -> tuple[float | None, float | None]:
         """The bounds in the stored unit (`api.counts.stored_bounds`), from the request's unit or the name's °F."""
+        if self.stored is not None:
+            return self.stored
         return counts.stored_bounds(self.low, self.high, self.unit or shown, stored, step)
 
     def default_start(self, end: date) -> date:
@@ -72,6 +77,8 @@ class Event:
     def words(self, shown: str) -> str:
         """`first frost (32 °F)`, `first day at or above 50 °F`, `days since the last hard freeze (28 °F)`, with a
         named threshold in the request's units (`shown`: its temperature unit)."""
+        if self.title is not None:
+            return self.title
         if self.named is not None:
             assert self.high is not None
             value = float(agunits.convert(self.high, "degF", shown))
@@ -102,15 +109,21 @@ def parse(kind: Kind, text: str) -> Event:
     return Event(kind=kind, low=low, high=high, named=None, name=given.replace(".", "p"))
 
 
-def asked(first: str | None, last: str | None, since: str | None) -> Event | None:
-    """The one event a request asks for, if any; ApiError for more than one."""
-    given: list[tuple[Kind, str]] = [
+def given(first: str | None, last: str | None, since: str | None) -> tuple[Kind, str] | None:
+    """The one event a map asks for, as (kind, text), if any; ApiError for more than one."""
+    found: list[tuple[Kind, str]] = [
         (kind, text) for kind, text in zip(KINDS, (first, last, since), strict=True) if text is not None
     ]
-    if len(given) > 1:
-        names = " and ".join(quoted(kind) for kind, _ in given)
-        raise ApiError("conflict", f"A map finds one kind of day. Give {names} in separate requests.", given[1][0])
-    return parse(kind=given[0][0], text=given[0][1]) if given else None
+    if len(found) > 1:
+        names = " and ".join(quoted(kind) for kind, _ in found)
+        raise ApiError("conflict", f"A map finds one kind of day. Give {names} in separate requests.", found[1][0])
+    return found[0] if found else None
+
+
+def asked(first: str | None, last: str | None, since: str | None) -> Event | None:
+    """The one event a request asks for, if any; ApiError for more than one."""
+    wanted = given(first, last, since)
+    return parse(kind=wanted[0], text=wanted[1]) if wanted else None
 
 
 def find(values: np.ndarray, low: float | None, high: float | None, kind: str, first_day: date):

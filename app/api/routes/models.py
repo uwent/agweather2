@@ -32,12 +32,12 @@ from agmodels.runner import ModelRun, default_biofix
 from agmodels.scenarios import milestones, spread
 from agmodels.seasons import Season
 from agmodels.spec import Model
-from api import clock, points, runs, stations
+from api import clock, modelevents, points, runs, stations
 from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_modified, respond, table
 from api.errors import ApiError, day_text, quoted
 from api.locations import describe, describe_days
 from api.params import AreaQuery, DaysQuery, OutputQuery, PointsQuery, SeriesQuery, resolve_biofix
-from api.routes.weather import FORECAST_DAYS, MAX_DAYS, check_size, envelope_parts, located
+from api.routes.weather import FORECAST_DAYS, MAX_DAYS, EventsQuery, check_size, envelope_parts, located
 from api.schemas import TableResponse, responses
 from ops.points import day_zone, models_at_point, models_at_points, projected_at_point
 
@@ -90,6 +90,7 @@ def run(
     options: Query[SeriesQuery],
     output: Query[OutputQuery],
     area: Query[AreaQuery],
+    found_days: Query[EventsQuery],
     biofix: str | None = None,
     planting_date: str | None = None,
     projection: str | None = None,
@@ -101,7 +102,9 @@ def run(
     `projection=true` carries it past the forecast to `end` (default: the season's end) once per earlier archive year
     (D63): projected days have kind `projection`, each number column their P50, with `<name>_p10` and `<name>_p90`
     beside it and `projection_years`; `projection=years` gives each year's path instead (a `year` column). When
-    stages, risk levels and action windows come is in `meta.summary.projection.milestones`.
+    stages, risk levels and action windows come is in `meta.summary.projection.milestones`; without a projection,
+    `meta.summary.milestones` gives the day each was first reached through the forecast. `first=`, `last=` and
+    `since=` find days in the results (`api.modelevents`), answered in `meta.summary.events`.
     `planting_date` (YYYY-MM-DD, or `early`, `mid`, `late` for the point's typical dates, or `all`) runs the crop's
     stages for a disease's susceptible window and a stage biofix; without it there's no window. The model's options
     and its crop model's are plain parameters (`GET /models/{id}` lists them); `all` runs every choice. With several
@@ -110,6 +113,7 @@ def run(
     sites = where.locations()
     several = where.points is not None
     mode = projection_mode(projection)
+    asked_events = modelevents.asked(m, request, output.units)
     if mode and len(sites) > MAX_PROJECTED_POINTS:
         raise ApiError(
             "too_many",
@@ -161,6 +165,7 @@ def run(
         **({"season": the_season.name} if the_season is not None else {}),
         **options.echo(),
         **area.echo(),
+        **_events_echo(asked_events),
     }
     around = area.ask(output.units)
     etag, unchanged, needed = _revalidate(
@@ -199,6 +204,7 @@ def run(
         notes, plan_warnings = f.notes, the_plan.warnings
         if f.projection is not None:
             summary["projection"] = f.projection
+        summary |= _found_days(m, f, asked_events, since_end=when.end or today)
     warnings = [*notes, *warnings]
     if trim_end and any(f.projection is None for f in found):
         ends = [f.results[0].dates[f.kept - 1] for f in found if f.projection is None and f.results and f.kept]
@@ -213,6 +219,7 @@ def run(
             summary["option_sets"] = the_plan.option_sets
         summary["points"] = [
             _site_summary(p, f, single_run, with_sets=not same_sets, with_planting=planting_date is not None)
+            | _found_days(m, f, asked_events, since_end=when.end or today)
             for p, f in zip(plans, found, strict=True)
         ]
     elif the_plan.option_sets:
@@ -518,6 +525,9 @@ POST_FIELDS = (
     "biofix",
     "planting_date",
     "day_basis",
+    "first",
+    "last",
+    "since",
 )
 
 
@@ -626,6 +636,15 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
             f"The start date ({day_text(first)}) is after the end date ({day_text(last)}). Choose a start date on or before the end date.",
             "start",
         )
+    given = {kind: body[kind] for kind in ("first", "last", "since") if body.get(kind) not in (None, "", [])}
+    if given and not single:
+        kind = next(iter(given))
+        raise ApiError(
+            "not_applicable",
+            f"{quoted(kind)} finds days in one model's results. Send the request to POST /api/v2/models/{{model_id}}/run for the model you want.",
+            kind,
+        )
+    asked_events = modelevents.asked(chosen[0], request, units, given) if single else []
     sent_biofix = options.pop("biofix", None)
     biofix = resolve_biofix(None if sent_biofix is None else str(sent_biofix), last if end else now.date())
     planting = options.pop("planting_date", None)
@@ -713,7 +732,10 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
         if the_plan.option_sets:
             summary["option_sets"] = the_plan.option_sets
         summary |= counts
-        computed |= the_plan.request
+        summary |= _found_days(
+            the_plan.model, SiteRun(results=results, kept=kept), asked_events, since_end=end or now.date()
+        )
+        computed |= the_plan.request | _events_echo(asked_events)
         if len(results) == 1 and results[0].biofix is not None:
             computed["biofix"] = results[0].biofix
         return respond(
@@ -1097,6 +1119,7 @@ class SiteRun:
     bands: list[Band] | None = None
     projection: dict[str, Any] | None = None
     notes: list[str] = field(default_factory=list)
+    paths: list[list[ModelRun]] | None = None  # with a projection, each option set's paths (one a year)
 
     def row_labels(self) -> list[dict[str, Any]]:
         return self.labels or [{} for _ in self.results]
@@ -1131,6 +1154,7 @@ def _run_site(
             bands=found[0].bands,
             projection=found[0].summary,
             notes=notes,
+            paths=found[0].paths,
         )
     results = _execute([the_plan], lat, lng, first, last, now, zone, area)[0]
     kept = max(points.keep(r.kinds, forecast, trim_end) for r in results)
@@ -1200,6 +1224,7 @@ class Projected:
     labels: list[dict[str, Any]] | None
     bands: list[Band] | None
     summary: dict[str, Any]
+    paths: list[list[ModelRun]] = field(default_factory=list)  # each option set's paths, one per year
 
 
 def projection_mode(raw: str | None) -> str | None:
@@ -1262,6 +1287,7 @@ def _projected(
                     labels=_labels([a for a, _ in pairs]),
                     bands=[b for _, b in pairs],
                     summary=info,
+                    paths=groups,
                 )
             )
         else:
@@ -1272,8 +1298,51 @@ def _projected(
                     labels.append(
                         {**({"option_set": s_index} if sets else {}), **({"year": year} if found.years else {})}
                     )
-            out.append(Projected(results=results, labels=labels if any(labels) else None, bands=None, summary=info))
+            out.append(
+                Projected(
+                    results=results, labels=labels if any(labels) else None, bands=None, summary=info, paths=groups
+                )
+            )
     return out, warnings
+
+
+def _events_echo(asked: list[modelevents.ModelEvent]) -> dict[str, list[str]]:
+    """`meta.request`'s `first`, `last` and `since`, as given, for those asked."""
+    out: dict[str, list[str]] = {}
+    for e in asked:
+        out.setdefault(e.kind, []).append(e.asked.split("=", 1)[1])
+    return out
+
+
+def _found_days(m: Model, f: SiteRun, asked: list[modelevents.ModelEvent], since_end: date | None) -> dict[str, Any]:
+    """`meta.summary.events` (each `first=`, `last=` and `since=`) and, without a projection, `milestones` (each
+    stage, risk level and action window first reached through the forecast), per option set where there are several."""
+    out: dict[str, Any] = {}
+    # With a projection, each set's paths (its milestones are in `projection`); else each set's run
+    projected = [(rs, len(rs[0].dates)) for rs in f.paths or [] if rs]
+    groups = projected if f.paths else [([r], f.kept) for r in f.results]
+    if not groups:
+        return out
+    sets = len(groups) > 1
+    if asked:
+        found = [[modelevents.answer(e, rs, n, since_end) for e in asked] for rs, n in groups]
+        out["events"] = found if sets else found[0]
+    if not f.paths:
+        reached = [_milestones_now(m, rs[0], n) for rs, n in groups]
+        out["milestones"] = reached if sets else reached[0]
+    return out
+
+
+def _milestones_now(m: Model, run: ModelRun, n: int) -> list[dict[str, Any]]:
+    """Each stage, risk level and action window's first day in the run's first `n` rows (None if not reached)."""
+    if not run.dates or n == 0:
+        return []
+    shown = replace(run, dates=run.dates[:n], kinds=run.kinds[:n])
+    out = []
+    for r in milestones(m, [run]):
+        within = r.p50 is not None and r.p50 <= shown.dates[-1]
+        out.append(modelevents.milestone_now(r if within else replace(r, p50=None), shown))
+    return out
 
 
 def _milestone(r) -> dict[str, Any]:

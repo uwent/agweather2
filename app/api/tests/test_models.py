@@ -153,7 +153,13 @@ def test_several_points_are_one_long_table_matching_each_points_own_run(client, 
         rows = [n for n, p in enumerate(data["point"]) if p == k]
         for name, values in alone["data"].items():
             assert [data[name][n] for n in rows] == values, name
-        assert meta["summary"]["points"][k] == {"biofix": "2025-07-02"}
+        assert meta["summary"]["points"][k]["biofix"] == "2025-07-02"
+        assert [m["name"] for m in meta["summary"]["points"][k]["milestones"]] == [
+            "Low",
+            "Moderate",
+            "High",
+            "Very high",
+        ]
     assert meta["request"]["points"] == [[LAT, LNG], list(OTHER)] and "biofix" in meta["request"]
     assert meta["summary"]["days_returned"] == 16
 

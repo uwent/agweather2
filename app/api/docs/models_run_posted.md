@@ -22,7 +22,7 @@ Columns are named as in `/variables`. Each hourly value is for the hour ending a
 
 Values outside the range a station could plausibly record are treated as missing, with a warning. With `"fill": "grid"`, gaps in your data are filled from our archive for the location's grid cell. With `"extend": "forecast"`, the model continues past your last day using our forecast. By default, the answer depends only on the data you send.
 
-The result has the same columns as `GET /models/{model_id}/run`, with each day's `kind` saying whether its data were `provided`, `estimated`, filled from the `grid` or `forecast`. If your data can't supply what the model needs, the response says which variables are missing. A request can include about two years of hourly data.
+The result has the same columns as `GET /models/{model_id}/run`, with each day's `kind` saying whether its data were `provided`, `estimated`, filled from the `grid` or `forecast`. As with `GET /models/{model_id}/run`, `"first"`, `"last"` and `"since"` (a string, or a list of them) find days in the results, such as `"first": "high"` or `"first": "dd_total:above_450"`. If your data can't supply what the model needs, the response says which variables are missing. A request can include about two years of hourly data.
 
 ## In meta.summary
 
@@ -33,4 +33,6 @@ The result has the same columns as `GET /models/{model_id}/run`, with each day's
 - `estimated_by_input`: For each input the model needed an estimate for, the number of rows on which it was estimated.
 - `days_projected`: With `projection`, the number of rows past the forecast.
 - `windows`: For an insect, each action window's periods as pairs of first and last days, by window name. With several locations, option sets or projected years, each entry names its `point`, `option_set` or `year`.
+- `milestones`: Without `projection`, for each crop stage, risk level above the lowest and action window (`what` and `name`), the first day it was reached (`date`) through the forecast, or null if it wasn't, the kind of that day (`day_kind`: `observed`, `forecast` and so on), and `before_start`, true when it was reached on the first day returned and may have been reached earlier. With several option sets, a list for each.
+- `events`: For each `first`, `last` and `since` sent, what was found, as `GET /models/{model_id}/run` gives it: the `event`, its `kind`, the result it looks at (`output`), the `date` found (or `days` since it, for `since`), its `day_kind`, `before_start` and `missing_days`. With several option sets, a list for each.
 - `option_sets`: When an option is given as `all`, the option values of each `option_set`.

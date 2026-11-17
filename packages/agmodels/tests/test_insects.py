@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from agmodels.models import oak_wilt
-from agmodels.phenology import Insect, InsectModel, severity, stage_index
+from agmodels.phenology import Insect, InsectModel, _sine_ramp, _sine_ramp_reference, severity, stage_index
 from agmodels.registry import all_insects, all_models, model
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -20,6 +20,20 @@ VDIFN_ARRAYS = {  # as in make_vdifn_fixtures.rb
 def vdifn(name):
     with (FIXTURES / name).open() as f:
         return list(csv.DictReader(f))
+
+
+def test_the_sine_ramp_by_its_steps_matches_the_sine():
+    """The ramp found from its steps equals VDIFN's sine rounded up, at every 0.01 °F·d (the steps themselves
+    included) and at random totals, for every insect's generations and the fixtures'."""
+    spans = {g for i in all_insects() for g in i.generations} | {g for a in VDIFN_ARRAYS.values() for g in a}
+    rng = np.random.default_rng(seed=1)
+    for start, peak, end in sorted(spans):
+        total = np.concatenate([np.round(np.arange(start, end + 0.005, 0.01), 2), rng.uniform(start, end, 2000)])
+        np.testing.assert_array_equal(
+            _sine_ramp(total, start, peak, end),
+            _sine_ramp_reference(total, start, peak, end),
+            err_msg=str((start, peak, end)),
+        )
 
 
 @pytest.mark.parametrize("array", list(VDIFN_ARRAYS))
