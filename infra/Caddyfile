@@ -11,6 +11,13 @@ handle_path /static/* {
 	file_server
 }
 
+# Browsers ask for /favicon.ico wherever a page doesn't link an icon (the API docs, a JSON answer)
+handle /favicon.ico {
+	root * /srv/static
+	header Cache-Control "public, max-age=86400"
+	file_server
+}
+
 # The yearly NetCDF downloads (ops.downloads), built by the worker in the data volume; rebuilt in place, so clients
 # revalidate (Caddy sends an ETag and Last-Modified)
 handle_path /downloads/* {

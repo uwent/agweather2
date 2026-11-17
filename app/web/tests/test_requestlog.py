@@ -1,4 +1,4 @@
-"""The development request log (`web.requestlog`) and the API root's redirect."""
+"""The development request log (`web.requestlog`), and the redirects at the API root and `/favicon.ico`."""
 
 import asyncio
 import logging
@@ -34,3 +34,8 @@ def test_the_api_root_redirects_to_its_docs(client):
     assert response.status_code == 302 and response["Location"] == "/api/v2/docs"
     assert client.get("/api/v2/docs").status_code == 200
     assert client.get("/api/v2/nothing-here").json()["errors"][0]["code"] == "not_found"
+
+
+def test_favicon_ico_at_the_root_is_the_static_icon(client):
+    response = client.get("/favicon.ico")
+    assert response.status_code == 302 and response["Location"] == "/static/favicon.ico"
