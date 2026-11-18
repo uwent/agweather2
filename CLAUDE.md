@@ -164,4 +164,4 @@ Working here:
 - `tmp/herbie`, `tmp/urma`: downloaded GRIB for exploring; the fixture makers in `packages/agdata/tests/fixtures/make_*.py` rebuild the committed fixtures.
 - **Checking CI on GitHub:** filter by workflow (`gh run list --workflow CI`, `gh run watch <id>`). GitHub's "Dependency Graph" runs on every push too, and the newest run is often that one.
 - **GitHub Actions versions:** some actions (setup-uv) publish only exact tags, no floating major; check with `gh api repos/<owner>/<repo>/git/ref/tags/<tag>` before pinning.
-- `pkill -f` with a pattern that's also in the command line kills the shell running it; stop dev servers by port or PID.
+- `pkill -f` with a pattern that's also in the command line kills the shell running it; stop dev servers by port or PID. `pgrep -f` matches its own shell the same way, so an `until ! pgrep -f …` wait never ends: wait on a background command's own notification instead.
