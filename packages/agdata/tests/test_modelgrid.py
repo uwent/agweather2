@@ -21,7 +21,16 @@ HOLE = (date(2025, 6, 10), date(2025, 6, 12))  # a gap the runner's estimate bri
 DAYS = (date(2025, 5, 20), date(2025, 6, 18), date(2025, 7, 30))
 # How far a map may be from the point, by unit: the stores' rounding (degree days to 0.5 °F·d a total, an
 # accumulated index to its total's step, RH means to 0.01 %); counts and levels are compared separately
-ATOL = {"degF_day": 1.0, "degC_day": 0.6, "index": 0.25, "percent": 0.5, "hour": 0.5, "mm": 0.1, "degC": 0.05}
+ATOL = {
+    "degF_day": 1.0,
+    "degC_day": 0.6,
+    "degC_hour": 0.5,
+    "index": 0.25,
+    "percent": 0.5,
+    "hour": 0.5,
+    "mm": 0.1,
+    "degC": 0.05,
+}
 DISCRETE = ("stage", "risk_level")
 
 

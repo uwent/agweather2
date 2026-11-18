@@ -87,6 +87,9 @@ def _daily_at_point_day_by_day(
             )
         if "chill" in groups:
             values |= features.chill_features(segment("air_temperature", begin, end))
+        if "fireblight" in groups:
+            h = humid(begin, end)
+            values |= features.fire_blight_features(h["temperature"], h["rh"], segment("precipitation", begin, end))
         if "livestock" in groups:
             h = humid(begin, end)
             wind, sun = segment("wind_speed", begin, end), segment("shortwave_radiation", begin, end)

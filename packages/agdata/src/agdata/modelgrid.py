@@ -58,6 +58,7 @@ OUTPUT_STEPS = {
     "percent": 0.1,
     "degF_day": 0.1,
     "degC_day": 0.1,
+    "degC_hour": 0.1,
     "hour": 0.1,
     "mm": 0.1,
     "degC": 0.01,
@@ -326,8 +327,8 @@ def _stored_days(data_dir, sown: _Planting, first: date, last: date, now, stores
 
 
 # Models with neither ingredients nor stored outputs, computed on request from the days around their biofix (red crown
-# rot from R1; apple scab from green tip, a state carried day to day)
-ON_REQUEST = ("red-crown-rot", "apple-scab")
+# rot from R1; apple scab from green tip and fire blight from January 1, states carried day to day)
+ON_REQUEST = ("red-crown-rot", "apple-scab", "fire-blight")
 
 
 def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Window, now, stores, cell_biofix):
@@ -360,6 +361,11 @@ def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Win
             k0 = max(0, (biofix - a).days - reach)
             given = {name: v[k0:, group] for name, v in filled.items()}
             given |= {f"{name}_estimated": np.isnan(series_[name][k0:, group]) for name in filled}
+            context = {
+                "day_of_year": np.array([d.timetuple().tm_yday for d in days[k0:]], dtype=float),
+                "year": np.array([d.year for d in days[k0:]], dtype=float),
+            }
+            given |= {name: context[name] for name in spec.context if name in context}
             found = m.outputs(given, biofix_index=(biofix - a).days - k0)
             shown = (first - a).days - k0
             for name, v in found.items():

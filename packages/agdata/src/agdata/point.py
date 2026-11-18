@@ -126,6 +126,11 @@ def daily_at_point(
             )
         if "chill" in groups:
             values |= features.chill_features(stacked("air_temperature", begin, length, count))
+        if "fireblight" in groups:
+            h = humid(begin, length, count)
+            values |= features.fire_blight_features(
+                h["temperature"], h["rh"], stacked("precipitation", begin, length, count)
+            )
         if "livestock" in groups:
             h = humid(begin, length, count)
             values |= features.livestock_features(

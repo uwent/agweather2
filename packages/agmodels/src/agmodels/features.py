@@ -31,7 +31,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels import chill, livestock
-from agmodels.models import apple_scab
+from agmodels.models import apple_scab, fire_blight
 
 # Windows within a day, by the clock hour each ends at (readings stamped after the hour the day before, through it)
 EVENING_HOUR = 18  # the day from 6 pm
@@ -217,6 +217,28 @@ def scab_features(
         "precipitation_7am_to_7pm": total(day),
         "precipitation_8pm_to_6am": total(night),
         "temperature_mean_rain_7am_to_7pm": mean_where(np.where(day, t, 0.0), rainy),
+    }
+
+
+def fire_blight_features(
+    temperature_c: np.ndarray, rh_percent: np.ndarray, precipitation_mm: np.ndarray
+) -> dict[str, np.ndarray]:
+    """Fire blight's features over a calendar day's hours: Cougarblight's hourly values summed, MaryBlyt's degree
+    hours above 65 °F (as °C·h), and hours estimated wet (RH ≥ 90 % or 0.01 in of rain: apple scab's estimate, models-plan
+    B5). Any hour missing makes them missing."""
+    t = np.asarray(temperature_c, dtype=float)
+    rh = np.asarray(rh_percent, dtype=float)
+    rain = np.asarray(precipitation_mm, dtype=float)
+    missing_t = np.isnan(t).any(axis=0)
+    missing_wet = missing_t | np.isnan(rh).any(axis=0) | np.isnan(rain).any(axis=0)
+    t_f = np.nan_to_num(t) * 1.8 + 32
+    wet = (np.nan_to_num(rh) >= apple_scab.WET_RH) | (np.nan_to_num(rain) >= apple_scab.RAIN_MM)
+    return {
+        "cougarblight_risk_values": np.where(missing_t, np.nan, np.nansum(fire_blight.cougarblight_values(t), axis=0)),
+        "degree_hours_over_65f": np.where(
+            missing_t, np.nan, np.maximum(t_f - fire_blight.DH_BASE_F, 0).sum(axis=0) / 1.8
+        ),
+        "hours_wet": np.where(missing_wet, np.nan, wet.sum(axis=0)),
     }
 
 

@@ -39,6 +39,9 @@ UNITS: dict[str, Unit] = {
         # degree days and other temperature-time sums (base °C·d)
         Unit(symbol="degC_day", label="°C·d", dimension="degree_days", digits=0),
         Unit(symbol="degF_day", label="°F·d", dimension="degree_days", factor=5 / 9, digits=0),
+        # degree hours (base °C·h): MaryBlyt's above 65 °F
+        Unit(symbol="degC_hour", label="°C·h", dimension="degree_hours", digits=0),
+        Unit(symbol="degF_hour", label="°F·h", dimension="degree_hours", factor=5 / 9, digits=0),
         # depth of water: precipitation, ET (base mm; kg/m² of water is 1 mm)
         Unit(symbol="mm", label="mm", dimension="depth", digits=1),
         Unit(symbol="kg_m2", label="kg/m²", dimension="depth", digits=1),
@@ -86,6 +89,7 @@ DISPLAY: dict[System, dict[str, str]] = {
         "temperature": "degC",
         "temperature_difference": "delta_degC",
         "degree_days": "degC_day",
+        "degree_hours": "degC_hour",
         "depth": "mm",
         "speed": "km_h",
         "pressure": "kPa",
@@ -98,6 +102,7 @@ DISPLAY: dict[System, dict[str, str]] = {
         "temperature": "degF",
         "temperature_difference": "delta_degF",
         "degree_days": "degF_day",
+        "degree_hours": "degF_hour",
         "depth": "in",
         "speed": "mph",
         "pressure": "inHg",

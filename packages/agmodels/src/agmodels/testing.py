@@ -51,6 +51,9 @@ def year_of_weather() -> dict[str, np.ndarray]:
         "scab_infection": (rng.random(DAYS) < 0.1).astype(float),
         "scab_wet_hours": np.round(np.clip(rng.exponential(5, DAYS), 0, 60)),
         "scab_wet_temperature": mean - 2,
+        "cougarblight_risk_values": np.clip(np.where(mean > 10, (mean - 10) * 12, 0) + rng.normal(0, 5, DAYS), 0, None),
+        "degree_hours_over_65f": np.clip((mean + 6 - 18.3) * 4, 0, None),
+        "hours_wet": hours_humid,
     }
 
 

@@ -138,7 +138,10 @@ _LEFT_OUT = {"shortwave_radiation_hrrr", "et0_sum_estimate"} | {
     "precipitation_7am_to_7pm",
     "precipitation_8pm_to_6am",
     "temperature_mean_rain_7am_to_7pm",
-}  # apple scab's inputs (D96): what its map shows
+    "cougarblight_risk_values",
+    "degree_hours_over_65f",
+    "hours_wet",
+}  # apple scab's (D96) and fire blight's inputs: what their maps show
 
 
 def use_for(name: str) -> str:

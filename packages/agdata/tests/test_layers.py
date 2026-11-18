@@ -5,8 +5,9 @@ from agdata.layers import DEGREE_DAYS, LAYERS
 
 def test_every_variable_is_a_layer_but_the_internal_ones():
     variables = {layer.variable for layer in LAYERS.values()}
-    scab = {n for n in DAILY_VARIABLES if n.startswith("scab_") or n.endswith(("7am_to_7pm", "8pm_to_6am"))}
-    assert set(DAILY_VARIABLES) - variables == {"et0_sum_estimate"} | scab  # apple scab's inputs (D96)
+    apples = {n for n in DAILY_VARIABLES if n.startswith("scab_") or n.endswith(("7am_to_7pm", "8pm_to_6am"))}
+    apples |= {"cougarblight_risk_values", "degree_hours_over_65f", "hours_wet"}
+    assert set(DAILY_VARIABLES) - variables == {"et0_sum_estimate"} | apples  # apple scab's and fire blight's inputs
     assert set(VARIABLES) - variables == {"shortwave_radiation_hrrr"}
     totals = {n for n in CUMULATIVE_VARIABLES if not n.endswith(("_days", "_hours"))}
     assert totals - variables == {"chill_state"}  # the Dynamic model's carried intermediate

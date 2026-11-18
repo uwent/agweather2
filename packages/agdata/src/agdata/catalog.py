@@ -480,6 +480,28 @@ DAILY_FEATURES: dict[str, Variable] = {
             long_name="Apple scab: the day's wet period may have begun before its 120 hours",
             **_FLAG,
         ),
+        # Fire blight (`agmodels.models.fire_blight`), calendar days
+        Variable(
+            name="cougarblight_risk_values",
+            long_name="Cougarblight's hourly temperature risk values, daily total",
+            unit="index",
+            scale=0.05,
+            valid_min=0,
+            valid_max=1500,
+            derived=True,
+            gap_fill="interpolate",
+        ),
+        Variable(
+            name="degree_hours_over_65f",
+            long_name="Degree hours above 65 °F (18.3 °C)",
+            unit="degC_hour",
+            scale=0.1,
+            valid_min=0,
+            valid_max=600,
+            derived=True,
+            gap_fill="interpolate",
+        ),
+        Variable(name="hours_wet", long_name="Hours estimated wet: RH at or above 90% or 0.01 in of rain", **_HOURS),
         Variable(name="precipitation_7am_to_7pm", long_name="Precipitation, 7 am to 7 pm", **_RAIN),
         Variable(name="precipitation_8pm_to_6am", long_name="Precipitation, 8 pm the day before to 6 am", **_RAIN),
         Variable(

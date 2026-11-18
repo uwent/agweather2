@@ -138,6 +138,7 @@ def _probe_groups() -> dict[str, str]:
         "evening": features.evening_features(t, rh, np.arange(24)),
         "overnight": features.overnight_features(t),
         "scab": features.scab_features(t, rh, np.zeros(24), np.arange(1, 25) % 24),
+        "fireblight": features.fire_blight_features(t, rh, np.zeros(24)),
     }
     return {name: group for group, values in made.items() for name in values}
 
@@ -152,6 +153,7 @@ _GROUP_HOURS = {
     "evening": ("air_temperature", "dew_point"),
     "overnight": ("air_temperature",),
     "scab": ("air_temperature", "dew_point", "precipitation"),
+    "fireblight": ("air_temperature", "dew_point", "precipitation"),
 }
 _ET0_ESTIMATE = "et0_sum_estimate"
 
@@ -216,7 +218,7 @@ def _features(
 ):
     """The wanted feature groups' daily features from the hours they read."""
     out: dict[str, np.ndarray] = {}
-    day_groups = groups & {"calendar", "soil", "chill", "livestock"}
+    day_groups = groups & {"calendar", "soil", "chill", "livestock", "fireblight"}
     if day_groups:
 
         def on_calendar_days(h: dict[str, np.ndarray], _) -> dict[str, np.ndarray]:
@@ -229,6 +231,8 @@ def _features(
                 )
             if "chill" in day_groups:
                 found |= features.chill_features(h["air_temperature"])
+            if "fireblight" in day_groups:
+                found |= features.fire_blight_features(h["air_temperature"], h["rh"], h["precipitation"])
             if "livestock" in day_groups:
                 found |= features.livestock_features(
                     h["air_temperature"], h["rh"], h["wind_speed"], h["shortwave_radiation"]
