@@ -23,7 +23,8 @@ AgWeather v2: one Django app replacing the AgWeather API (`../ag-weather`), the 
 bin/dev                          # Django (uvicorn :8000) + Vite (:5173) + Procrastinate worker, via honcho
 bin/ci                           # full CI: ruff, prettier/eslint, pyright, svelte-check, generated types, migrations, pytest, vitest, Playwright
 uv run pytest packages/agmodels  # one package's tests
-uv run pytest -n auto --dist loadfile  # the whole suite in parallel, as bin/ci runs it (~2.5 min; ~10 serial)
+uv run pytest -n auto --dist loadfile  # the whole suite in parallel, as bin/ci runs it (~3.5 min)
+bin/test                         # only the packages a branch's changes reach (agmodels → agdata → app); `bin/test all`
 uv run ruff format . && uv run ruff check --fix .
 pnpm typecheck:py                # pyright (installed from npm, not a uv dev dependency: there's no `uv run pyright`)
 pnpm check                       # svelte-check + tsc
@@ -124,6 +125,7 @@ Django and tests:
 - **inertia-django's middleware sets a CSRF cookie and `Vary: Cookie` on every response**; `web.middleware.InertiaMiddleware` skips `/api/` so shared caches can store API answers.
 - **pytest-django runs every database test first**, so a module mixing `django_db` tests with others is split in two and its module-scoped fixtures are built twice. Build an expensive archive at session scope (`app/conftest.py`'s `_built_archive`, the root conftest's `winters_dir`) and give a test that changes it a copy, or link the stores it only reads.
 - **Test archives cost per chunk, not per cell:** a daily store is a chunk a day per variable whatever the window, and zarr spends ~1 ms on each, so a test's archive costs its days × variables. Write only the variables and days a test reads. The root conftest keeps zarr to one thread under pytest (its pool burned ~1.7 cores of system time per worker for no gain).
+- **Test archives live in /dev/shm** (the root conftest sets `PYTEST_DEBUG_TEMPROOT` when there's 6 GB free): on WSL's disk the suite's small zarr files cost more system time than the tests (6.0 → 3.5 min). Only failed tests' temp folders are kept (`tmp_path_retention_policy`). The app's archives are built once for all xdist workers (`agdata.testing.built_once`, a lock in the run's shared temp folder) and copied per worker; write a new expensive session fixture the same way.
 - **Tests never see `data/`:** under pytest `DATA_DIR` defaults to a folder that doesn't exist; fixtures point it at their own archive. A module that follows a setting at call time (`regions.use_terrain`) takes a function, not a value.
 - **pytest-socket** blocks the network; only localhost (Postgres) is allowed. Tests run in importlib mode with `app/` on the path. A test that must read a real service is marked `@pytest.mark.network` and `@pytest.mark.enable_socket`, and runs only with `uv run pytest --network` (not in CI).
 

@@ -4,6 +4,7 @@ import shutil
 
 import pytest
 
+from agdata.testing import built_once
 from api.tests import fixture_archive
 
 
@@ -27,10 +28,20 @@ def _public_text_quotes_identifiers():
 
 @pytest.fixture(scope="session")
 def _built_archive(tmp_path_factory):
-    """The fixture archive (`api.tests.fixture_archive`), built once per session (~13 s) and never handed to a test:
-    `archive_dir` and `projection_archive_dir` are copies, so maps and run records one test leaves don't reach the
-    other."""
-    return fixture_archive.build(tmp_path_factory.mktemp("built-archive"))
+    """The fixture archive (`api.tests.fixture_archive`), built once for every worker (~13 s; `built_once`) and never
+    handed to a test: `archive_dir` and the others are each worker's copies, so maps and run records one test leaves
+    don't reach another."""
+    return built_once(tmp_path_factory, "archive", fixture_archive.build)
+
+
+def _with(built, add):
+    """A build step for `built_once`: the fixture archive copied into the folder, then `add` run on it."""
+
+    def build(folder):
+        shutil.copytree(built, folder, dirs_exist_ok=True)
+        add(folder)
+
+    return build
 
 
 @pytest.fixture(scope="session")
@@ -49,9 +60,10 @@ def archive(archive_dir, settings, monkeypatch):
 
 @pytest.fixture(scope="session")
 def projection_archive_dir(_built_archive, tmp_path_factory):
-    """The fixture archive with two earlier years (`fixture_archive.add_past_years`), built once."""
-    path = shutil.copytree(_built_archive, tmp_path_factory.mktemp("projection") / "archive")
-    return fixture_archive.add_past_years(path)
+    """The fixture archive with two earlier years (`fixture_archive.add_past_years`, ~35 s), built once for every
+    worker and copied for each."""
+    built = built_once(tmp_path_factory, "projection", _with(_built_archive, fixture_archive.add_past_years))
+    return shutil.copytree(built, tmp_path_factory.mktemp("projection") / "archive")
 
 
 @pytest.fixture
@@ -64,9 +76,10 @@ def projection_archive(projection_archive_dir, settings, monkeypatch):
 
 @pytest.fixture(scope="session")
 def climate_archive_dir(_built_archive, tmp_path_factory):
-    """The fixture archive with five gridMET years for `last5` (`fixture_archive.add_climate_years`), built once."""
-    path = shutil.copytree(_built_archive, tmp_path_factory.mktemp("climate") / "archive")
-    return fixture_archive.add_climate_years(path)
+    """The fixture archive with five gridMET years for `last5` (`fixture_archive.add_climate_years`), built once for
+    every worker and copied for each."""
+    built = built_once(tmp_path_factory, "climate", _with(_built_archive, fixture_archive.add_climate_years))
+    return shutil.copytree(built, tmp_path_factory.mktemp("climate") / "archive")
 
 
 @pytest.fixture

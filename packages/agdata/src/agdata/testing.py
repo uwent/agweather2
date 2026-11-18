@@ -15,6 +15,8 @@ from agdata.sources.nbm import HORIZON_HOURS, HourlyRun
 from agdata.store import DAILY, HOURLY, GridStore
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     import pytest
 
 WINDOW = Window(j0=900, j1=902, i0=1400, i1=1403)  # 2 x 3 cells near Madison
@@ -82,6 +84,30 @@ def central(monkeypatch: "pytest.MonkeyPatch | None" = None) -> SimpleNamespace:
 WINTER_RATES = {2023: 1.0, 2024: 2.0, 2025: 3.0}
 WINTER_LAST = date(2025, 12, 15)  # the archive's last day: 2025-26 is open
 SOIL = ("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm")
+
+
+def built_once(tmp_path_factory: "pytest.TempPathFactory", name: str, build) -> "Path":
+    """A test archive built once for the whole run and shared by pytest-xdist's workers (each worker would otherwise
+    build its own session fixture): the first worker to ask builds it under a lock in the run's shared temp folder,
+    the rest wait and get the same folder. `build(folder)` fills the empty folder. Treat the result as read only;
+    a fixture whose tests write copies it (`shutil.copytree`)."""
+    import fcntl
+    import os
+    import shutil
+    from pathlib import Path
+
+    base = Path(tmp_path_factory.getbasetemp())
+    shared = base.parent if os.environ.get("PYTEST_XDIST_WORKER") else base
+    target, done = shared / f"built-{name}", shared / f"built-{name}.done"
+    with open(shared / f"built-{name}.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if not done.exists():
+            if target.exists():  # a worker stopped half way
+                shutil.rmtree(target)
+            target.mkdir()
+            build(target)
+            done.touch()
+    return target
 
 
 def winters(root, last: date = WINTER_LAST):

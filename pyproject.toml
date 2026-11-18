@@ -58,6 +58,9 @@ known-first-party = ["agmodels", "agdata", "config", "web", "ops", "api", "pilot
 # Tests never use the network (CLAUDE.md); fixtures are recorded. Postgres on localhost is the exception.
 addopts = "--import-mode=importlib --disable-socket --allow-unix-socket --allow-hosts=127.0.0.1,::1,localhost"
 testpaths = ["packages/agmodels/tests", "packages/agdata/tests", "app"]
+# Keep only the last run's temp folders, and of those only failed tests' (a run writes ~2 GB, in memory: conftest.py)
+tmp_path_retention_count = 1
+tmp_path_retention_policy = "failed"
 pythonpath = ["app"]
 DJANGO_SETTINGS_MODULE = "config.settings"
 

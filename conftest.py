@@ -1,4 +1,23 @@
+import os
+import shutil
+from pathlib import Path
+
 import pytest
+
+
+def _temp_in_memory() -> None:
+    """Test archives under /dev/shm (memory) rather than /tmp when there's room: the suite writes thousands of small
+    zarr chunk files, and on WSL's disk the file system's system time was most of its run (6.0 min with 13.8 min of
+    system time on 8 workers; 3.4 min and 4.6 with the same tests in memory, 2026-11-18). pytest reads the variable
+    when it first makes a temp folder, so setting it here, before any, moves them all (numbered per run as under
+    /tmp, so runs at the same time don't collide). Set PYTEST_DEBUG_TEMPROOT yourself to put them elsewhere."""
+    shm = Path("/dev/shm")
+    usable = "PYTEST_DEBUG_TEMPROOT" not in os.environ and shm.is_dir() and os.access(shm, os.W_OK)
+    if usable and shutil.disk_usage(shm).free > 6e9:  # a run takes ~2 GB while it runs; failed tests' are kept
+        os.environ["PYTEST_DEBUG_TEMPROOT"] = str(shm)
+
+
+_temp_in_memory()
 
 
 def pytest_addoption(parser):
@@ -30,7 +49,10 @@ def pytest_collection_modifyitems(config, items):
 @pytest.fixture(scope="session")
 def winters_dir(tmp_path_factory):
     """Potato volunteer's winter archive (`agdata.testing.winters`), built once for agdata's and the app's tests
-    (~27 s). Read only: a test that changes it works on a copy."""
+    and every worker (~27 s; `built_once`). Read only: a test that changes it works on a copy."""
+    import shutil
+
     from agdata import testing
 
-    return testing.winters(tmp_path_factory.mktemp("winters"))
+    built = testing.built_once(tmp_path_factory, "winters", testing.winters)
+    return shutil.copytree(built, tmp_path_factory.mktemp("winters") / "archive")  # each worker's own

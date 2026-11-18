@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# The Python tests for what changed since this branch left main (committed or not), by package: the import
+# direction is agmodels → agdata → app, so a change to agmodels runs all three, one to agdata runs agdata's and the
+# app's, one to app/ or content/ only the app's. Docs alone run nothing (but docs/validation/, which agmodels'
+# test_checks reads); anything else unrecognized runs everything. Arguments go to pytest; `bin/test all` runs the
+# whole suite (as bin/ci does).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+base=${BASE:-$(git merge-base HEAD main 2>/dev/null || echo HEAD)}  # BASE=HEAD: uncommitted changes only
+changed=$( (git diff --name-only "$base"; git diff --name-only; git ls-files --others --exclude-standard) | sort -u)
+
+agmodels=0 agdata=0 app=0
+if [[ "${1:-}" == "all" ]]; then
+  shift
+  agmodels=1
+else
+  while IFS= read -r path; do
+    case "$path" in
+      "") ;;
+      packages/agmodels/* | docs/validation/*) agmodels=1 ;;
+      packages/agdata/*) agdata=1 ;;
+      app/* | content/*) app=1 ;;
+      docs/* | tmp/* | *.md | scripts/* | bin/* | frontend/* | infra/* | .github/*) ;;
+      *) agmodels=1 ;;  # conftest.py, pyproject.toml, uv.lock and the rest: everything
+    esac
+  done <<< "$changed"
+fi
+
+paths=()
+((agmodels)) && paths+=(packages/agmodels/tests packages/agdata/tests app)
+((agdata && !agmodels)) && paths+=(packages/agdata/tests app)
+((app && !agmodels && !agdata)) && paths+=(app)
+if ((${#paths[@]} == 0)); then
+  echo "No Python changes since $(git rev-parse --short "$base"): nothing to test (bin/test all runs everything)."
+  exit 0
+fi
+echo "Testing ${paths[*]}"
+exec uv run pytest -n auto --dist loadfile "${paths[@]}" "$@"
