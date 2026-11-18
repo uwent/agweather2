@@ -19,3 +19,6 @@ packages/*/tests/fixtures/**/*.json
 # fitted forecast calibration: one line of 29,000 numbers
 packages/agdata/src/agdata/data/nbm_rh_map.json
 packages/agdata/src/agdata/data/openmeteo_rh_map.json
+
+# validation data, kept as written (indent 1)
+docs/validation/data

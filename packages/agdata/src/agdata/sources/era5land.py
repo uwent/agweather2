@@ -4,7 +4,7 @@ ECMWF's land reanalysis on a 0.1° latitude/longitude grid, hourly, about 5 days
 are 0–7, 7–28 and 28–100 cm (`soil_temperature_level_1` … `_3`, GRIB `stl1` … `stl3`, K), taken to the catalog's
 4, 10 and 30 cm as Open-Meteo's IFS layers are (`openmeteo.soil_at_depths`); snow depth is `snow_depth` (`sde`, m
 of snow, not water). Against 80 Wisconet stations it matched their soil best of HRRR, IFS and ERA5-Land
-(docs/validation-soil.md).
+(docs/validation/weather/soil.md).
 
 Checked 2026-10-31 (`reanalysis-era5-land`, GRIB, `download_format: unarchived`):
 - Soil comes as GRIB1 and snow depth as GRIB2, both `regular_ll` scanning north to south; snow depth's longitudes

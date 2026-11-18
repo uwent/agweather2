@@ -179,6 +179,13 @@ risk = "How the model's results become risk levels. Null when the model gives no
 explorer = "The model's inputs as numbers you can set yourself with `POST /models/{model_id}/evaluate`, with their usual ranges. Their values are in the units shown here; the request takes them in its own units."
 explorer_outputs = "What `POST /models/{model_id}/evaluate` returns beyond `outputs`, such as a daily rate."
 changelog = "The model's versions, oldest first, and what changed in each."
+checks = "How we checked the model against results it wasn't built from: its sources' own numbers, other forecasting systems on the same weather, and observations in the field. Empty while the model's checks are being written up."
+
+[CheckInfo]
+kind = "What the model was checked against: `published` (the numbers in its sources), `system` (another forecasting system run on the same weather) or `observations` (measurements in the field, such as trap catches)."
+against = "What the model was compared with."
+result = "What the comparison found, in a sentence or two."
+report = "The section of our technical report that gives the comparison in full, with the data and how to repeat it."
 
 [CitationInfo]
 text = "The reference, in full."

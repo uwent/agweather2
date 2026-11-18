@@ -20,7 +20,7 @@ years both sources have (2016–2025 at first), pairing days by their label (gri
   smoothing, or none.
 
 Every variable gridMET gives is adjusted (D84). Wind and ET0 joined once the archive's wind was checked against
-anemometers (`docs/validation-wind.md`: within 3% of 70 airport stations at 10 m, where gridMET's is 1.5×). Changing
+anemometers (`docs/validation/weather/wind.md`: within 3% of 70 airport stations at 10 m, where gridMET's is 1.5×). Changing
 `ADJUST` asks for a new fit (`ops.climatology.plan`); a new fit makes every year out of date (`status`), and
 `derive` writes it again from the kept files, without a download.
 """
@@ -70,7 +70,7 @@ RATIO_MIN_TOTAL = {
 }
 # gridMET's values left out as wrong, by variable: years written as missing (Q38, decided 2026-11-11). Its maximum
 # for 2011–2013 runs 3–6 °F above every station checked in summer (other years within ~0.5 °F;
-# `docs/validation-normals.md` §4), and its ET0 is computed from it. The fit's overlap (2016 on) holds none of them.
+# `docs/validation/weather/normals.md` §4), and its ET0 is computed from it. The fit's overlap (2016 on) holds none of them.
 LEFT_OUT: dict[str, tuple[int, ...]] = {
     "air_temperature_max": (2011, 2012, 2013),
     "et0_sum": (2011, 2012, 2013),

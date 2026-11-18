@@ -2,7 +2,7 @@
 
 uv run python scripts/compare_v1_grid.py --start 2026-04-01 --end 2026-10-27 [--every 7] [--out FILE]
 
-(FILE defaults to docs/validation-v1-grid.md.)
+(FILE defaults to docs/validation/legacy/v1-grid.md.)
 
 v1's `/api/weather/grid?date=` (Ben's alfalfa Shiny app, about once a day) returns each 0.1° point's daily values.
 v2 answers the same question with one general request per variable: `/grids/{variable}?date=&grid=latlon&res=0.1&
@@ -56,7 +56,7 @@ def main() -> int:
     parser.add_argument("--start", required=True)
     parser.add_argument("--end", required=True, help="last day, inclusive")
     parser.add_argument("--every", type=int, default=7, help="compare every nth day (default 7)")
-    parser.add_argument("--out", default="docs/validation-v1-grid.md")
+    parser.add_argument("--out", default="docs/validation/legacy/v1-grid.md")
     parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
     report = Reporter(quiet=args.quiet)
@@ -127,7 +127,7 @@ def _report(first: date, last: date, every: int, differences: dict, points: list
             "| --- | --- | ---: | ---: | ---: | ---: | ---: |",
             *rows,
             "",
-            "Expected sources of difference: v1 reads RTMA, v2 URMA; v1's day is the Central-time hours 00–23, following daylight saving, v2's midnight to midnight CST all year (D74), so from March to November v2's day ends an hour later (maps have no `day_basis=local`; at DATCP's points, asking v2 for v1's days brings the minimum's MAE back to about 0.5 °F, `validation-v1.md`); v2's hours over 90% count RH ≥ 88% (D50), the threshold that matches in-field sensors. v1's `avg_temp_rh_over_90`, `vapor_pressure`, `frost` and `freezing` have no v2 layer: the first is the disease models' (v2 keeps it for the day from 6 pm), the others follow from the temperatures and dew point.",
+            "Expected sources of difference: v1 reads RTMA, v2 URMA; v1's day is the Central-time hours 00–23, following daylight saving, v2's midnight to midnight CST all year (D74), so from March to November v2's day ends an hour later (maps have no `day_basis=local`; at DATCP's points, asking v2 for v1's days brings the minimum's MAE back to about 0.5 °F, `docs/validation/legacy/v1.md`); v2's hours over 90% count RH ≥ 88% (D50), the threshold that matches in-field sensors. v1's `avg_temp_rh_over_90`, `vapor_pressure`, `frost` and `freezing` have no v2 layer: the first is the disease models' (v2 keeps it for the day from 6 pm), the others follow from the temperatures and dew point.",
             "",
         ]
     )

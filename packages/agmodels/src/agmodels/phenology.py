@@ -28,8 +28,9 @@ The insects, one module each, are in `agmodels.insects`.
 
 import math
 import re
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from datetime import date
 from functools import cache
 from typing import Literal
 
@@ -42,6 +43,7 @@ from agmodels.spec import (
     SEVERITY_LEVELS,
     Biofix,
     Change,
+    Check,
     Citation,
     ExplorerInput,
     Input,
@@ -115,6 +117,32 @@ class ActionWindow:
 
 
 @dataclass(frozen=True, kw_only=True)
+class EstimatedBiofix:
+    """The biofix event's expected degree days from January 1 (°F, by the insect's method) at a latitude (D36). Where
+    the biofix is left at its default of January 1, the life stages are timed from the day each place reaches it;
+    a grower's own date replaces the estimate. Codling moth's first catch (Jones et al. 2013)."""
+
+    event: str  # e.g. "first catch": names the outputs (`dd_after_first_catch`, `first_catch_estimated`)
+    dd_at: Callable[[np.ndarray], np.ndarray]  # latitude (°N) → degree days from January 1
+
+    @property
+    def key(self) -> str:
+        return slug(self.event)
+
+
+@dataclass(frozen=True, kw_only=True)
+class GenerationSize:
+    """How much of a generation develops the same season rather than entering diapause, as a class by the degree
+    days from January 1 on the date diapause begins (Riedl and Croft 1978 for codling moth): class 1 below the first
+    bound, 2 from it, and so on. An output only: every generation still counts alike in risk (D37)."""
+
+    name: str
+    label: str
+    on: str  # MM-DD, the date the degree days are read (blank before it)
+    bounds: tuple[float, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
 class Insect:
     id: str
     name: str
@@ -135,8 +163,12 @@ class Insect:
     generation_sd: float | None = None  # SD of a generation's time; None: the first stage's first-generation SD
     action_windows: tuple[ActionWindow, ...] = ()
     risk_thresholds: tuple[float, ...] = RISK_THRESHOLDS
+    max_generations: int | None = None  # None: generations repeat until the season ends
+    estimated_biofix: EstimatedBiofix | None = None  # the biofix event by latitude where the biofix is January 1
+    generation_size: GenerationSize | None = None
     version: str = "0.1"
     changelog: tuple[Change, ...] = ()  # after the port (1.0)
+    checks: tuple[Check, ...] = ()  # D98
 
     def __post_init__(self):
         stages = {s.label for s in self.life_stages}
@@ -149,6 +181,12 @@ class Insect:
         for w in self.action_windows:
             if w.stage not in stages:
                 raise ValueError(f"{self.id}: action window {w.label!r} follows an unknown stage {w.stage!r}")
+        if self.max_generations is not None and self.max_generations < 1:
+            raise ValueError(f"{self.id}: max_generations must be at least 1")
+        if (self.estimated_biofix or self.generation_size) and not self.life_stages:
+            raise ValueError(f"{self.id}: an estimated biofix or generation size needs life stages")
+        if self.estimated_biofix and self.biofix != "01-01":
+            raise ValueError(f"{self.id}: an estimated biofix replaces a January 1 biofix")
 
 
 class InsectModel:
@@ -190,11 +228,12 @@ class InsectModel:
             explorer_outputs=self._explored(),
             sweep={"dd_total": tuple(float(d) for d in range(0, 4001, 100))},
             biofix=Biofix(default=insect.biofix, label=insect.biofix_label),
-            context=("day_of_year",),  # the freeze reduction; without it there's none
+            context=self._context(),
             changelog=(
                 Change(version="0.1", date="2026-10-28", note=f"Ported from {insect.source}."),
                 *insect.changelog,
             ),
+            checks=insect.checks,
             ingredients=(
                 Ingredient(
                     name="dd",
@@ -203,7 +242,24 @@ class InsectModel:
                 ),
                 Ingredient(name=self.FREEZE, unit="index", shared=self.FREEZE, running_minimum=self.HELD),
             ),
-            accumulations=(Accumulation(name="dd_total", of="dd"),),
+            accumulations=(
+                Accumulation(name="dd_total", of="dd"),
+                *(
+                    (Accumulation(name=GENERATION_SIZE_DD, of="dd", until=insect.generation_size.on),)
+                    if insect.generation_size
+                    else ()
+                ),
+            ),
+        )
+
+    def _context(self) -> tuple[str, ...]:
+        """The freeze reduction reads the day of year (without it there's none); an estimated biofix the latitude,
+        and a generation size the year (its date's day of year in leap years)."""
+        i = self.insect
+        return (
+            "day_of_year",
+            *(("latitude",) if i.estimated_biofix else ()),
+            *(("year",) if i.generation_size else ()),
         )
 
     # The shared freeze ingredient: the days in the last 14 at or below −2 °C after day 250 (the legacy reduction)
@@ -283,6 +339,22 @@ class PhenologyModel(InsectModel):
                 )
             ),
             *(Quantity(name=f"window_{w.key}", label=w.label, unit="index") for w in i.action_windows),
+            *(
+                (
+                    Quantity(name=f"dd_after_{e.key}", label=f"Degree days since the {e.event}", unit="degF_day"),
+                    Quantity(
+                        name=f"{e.key}_dd_estimate",
+                        label=f"Expected degree days from January 1 to the {e.event} here",
+                        unit="degF_day",
+                    ),
+                    Quantity(
+                        name=f"{e.key}_estimated", label=f"The {e.event} is estimated (1) or given (0)", unit="index"
+                    ),
+                )
+                if (e := i.estimated_biofix)
+                else ()
+            ),
+            *((Quantity(name=g.name, label=g.label, unit="index"),) if (g := i.generation_size) else ()),
             Quantity(name="freeze_factor", label="Share left after fall freezes", unit="index"),
             Quantity(name="season_complete", label="Season ended by freezes", unit="index"),
         )
@@ -305,15 +377,45 @@ class PhenologyModel(InsectModel):
         total, factor = values["dd_total"], values[self.FREEZE]
         alive = factor > 0
         out = {"dd_total": total, "dd": values["dd"]}
-        for name, value in evaluate(insect=self.insect, dd_total=total).items():
+        timed, extra = self._timed(values, total)
+        for name, value in evaluate(insect=self.insect, dd_total=timed).items():
             if name.startswith("activity_"):
                 value = value * factor
             elif name.startswith("window_"):
                 value = np.where(alive | np.isnan(value), value, 0.0)
             out[name] = value
+        out |= extra
         out["freeze_factor"] = np.where(np.isnan(total), np.nan, factor)
         out["season_complete"] = np.where(np.isnan(total), np.nan, (~alive).astype(float))
         return out
+
+    def _timed(self, values: Mapping[str, np.ndarray], total: np.ndarray) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+        """The degree days the curves are read at, and the outputs of an estimated biofix and a generation size.
+        With an estimated biofix and the default biofix (January 1, or no day of year given), the curves start where
+        the total reaches the estimate at the place's latitude; with a grower's date, at that date."""
+        i, extra = self.insect, {}
+        timed, event_dd, estimated = total, None, None
+        if (e := i.estimated_biofix) is not None:
+            if "latitude" not in values:
+                raise KeyError(f"{i.id} needs the place's latitude to estimate its {e.event}")
+            event_dd = np.asarray(e.dd_at(np.asarray(values["latitude"], dtype=float)), dtype=float)
+            biofix_doy = np.asarray(values.get("biofix_day_of_year", 1.0), dtype=float)
+            estimated = np.isnan(biofix_doy) | (biofix_doy == 1)
+            timed = np.where(estimated, total - event_dd, total)
+            blank = np.isnan(total)
+            extra[f"dd_after_{e.key}"] = np.where(blank, np.nan, np.maximum(timed, 0.0))
+            extra[f"{e.key}_dd_estimate"] = np.where(blank, np.nan, event_dd)
+            extra[f"{e.key}_estimated"] = np.where(blank, np.nan, estimated.astype(float))
+        if (g := i.generation_size) is not None:
+            dd_from_january = np.asarray(values[GENERATION_SIZE_DD], dtype=float)
+            if event_dd is not None and estimated is not None:  # from a grower's date: add the days before it
+                dd_from_january = np.where(estimated, dd_from_january, dd_from_january + event_dd)
+            size = 1.0 + np.sum([dd_from_january >= b for b in g.bounds], axis=0)
+            reached = _on_or_after(g.on, values["day_of_year"], values["year"])
+            if reached.ndim == 1 and total.ndim > 1:  # a series of days against a grid's days × cells
+                reached = reached.reshape(-1, *([1] * (total.ndim - 1)))
+            extra[g.name] = np.where(np.isnan(total) | ~reached, np.nan, size)
+        return timed, extra
 
     def risk(self, outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
         """The sum of each stage's weight times its activity: 1 at a weight-1 stage's first-generation peak."""
@@ -324,6 +426,18 @@ class PhenologyModel(InsectModel):
         values = evaluate(insect=self.insect, dd_total=np.array([dd_total]))
         values["risk"] = self.risk(values)
         return {k: float(v[0]) for k, v in values.items()}
+
+
+GENERATION_SIZE_DD = "dd_to_generation_size_date"  # the accumulation a generation size reads
+
+
+def _on_or_after(month_day: str, day_of_year: np.ndarray, year: np.ndarray) -> np.ndarray:
+    """Whether each day is on or after MM-DD in its year."""
+    month, day = (int(p) for p in month_day.split("-"))
+    doy, years = np.asarray(day_of_year, dtype=float), np.asarray(year, dtype=float)
+    leap = (years % 4 == 0) & ((years % 100 != 0) | (years % 400 == 0))
+    first = date(2001, month, day).timetuple().tm_yday + (leap & (month > 2))
+    return doy >= first
 
 
 def model_for(insect: Insect, summary: str) -> InsectModel:
@@ -384,7 +498,8 @@ def generation_densities(insect: Insect, stage: LifeStage) -> list[np.ndarray]:
     first_f = np.fft.rfft(first, size)
     densities = [first]
     n = 2
-    while stage.start + (n - 1) * mean - 4 * math.sqrt(n - 1) * sd < DD_MAX:  # until a generation's tail is past
+    last = insect.max_generations or math.inf
+    while n <= last and stage.start + (n - 1) * mean - 4 * math.sqrt(n - 1) * sd < DD_MAX:  # until a tail is past
         # n − 1 gamma generation times sum to a gamma with n − 1 times the shape
         delay = gamma_pdf(x, shape=(n - 1) * mean**2 / sd**2, scale=sd**2 / mean)
         density = np.fft.irfft(first_f * np.fft.rfft(delay, size), size)[: len(x)] * DD_STEP
@@ -471,10 +586,15 @@ def phenology_criteria(insect: Insect) -> str:
         if insect.generation_dd
         else ""
     )
+    if insect.max_generations:
+        repeat += f" At most {insect.max_generations} generations."
     levels = ", ".join(
         f"{word} from {t:g}" for word, t in zip(SEVERITY_LEVELS[1:], insect.risk_thresholds, strict=True)
     )
-    return f"{method} degree days (base {insect.base_f:g} °F, {upper}) since the biofix time each life stage's first generation ({stages}).{repeat} Risk is the sum of each stage's weight times its activity (1 at the first generation's peak): {levels}. After day 250, fall freezes end the season."
+    since = "the biofix"
+    if (e := insect.estimated_biofix) is not None:
+        since = f"the {e.event} (a grower's date, or where none is given the day the total from January 1 reaches the {e.event} expected at the place's latitude)"
+    return f"{method} degree days (base {insect.base_f:g} °F, {upper}) since {since} time each life stage's first generation ({stages}).{repeat} Risk is the sum of each stage's weight times its activity (1 at the first generation's peak): {levels}. After day 250, fall freezes end the season."
 
 
 def _stage_words(stage: LifeStage | DerivedStage) -> str:

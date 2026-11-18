@@ -68,7 +68,7 @@ SCAB_C = (70 - 32) / 1.8
 # The disease models' RH ≥ 90% comes from in-field stations (Wallin, TOMCAST, Windels, BOTCAST, Webster's fits).
 # Gridded RH reads a little low where it matters: against 80 Wisconet stations (2025–2026, May–September), the
 # archive's RH ≥ 88% counts as many hours as the stations' RH ≥ 90%, and as their leaf-wet hours (D50;
-# docs/validation-humidity.md). So the "RH ≥ 90%" features are counted at 88% on our hourly data, and keep their
+# docs/validation/weather/humidity.md). So the "RH ≥ 90%" features are counted at 88% on our hourly data, and keep their
 # names: they mean what a station would have counted at 90%. Pecan scab's threshold is the Oklahoma Mesonet's,
 # not checked against its stations, so it stays at 90%.
 STATION_RH_90_AS_GRIDDED = 88.0

@@ -14,7 +14,7 @@ and minimum (June–August) are compared beside it, to say which end of the day 
 
     uv run python scripts/compare_station_normals.py "tmp/DATCP Climate Normals 1991-2020.xlsx"
 
-Reads ACIS (cached in tmp/d5/acis); writes docs/validation-normals.md.
+Reads ACIS (cached in tmp/d5/acis); writes docs/validation/weather/normals.md.
 """
 
 import argparse
@@ -33,7 +33,7 @@ from agmodels.degree_days import degree_days_modified
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
-OUT = ROOT / "docs" / "validation-normals.md"
+OUT = ROOT / "docs" / "docs/validation/weather/normals.md"
 CACHE = ROOT / "tmp" / "d5" / "acis"
 
 # The spreadsheet's "All" sheet column → COOP id (its "All site reports" sheet)

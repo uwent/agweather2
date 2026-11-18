@@ -1,6 +1,6 @@
 """Phase 2 H: v2's archive against the old AgWeather API, with v2 reduced the way the old API reduces RTMA.
 
-uv run python scripts/compare_legacy.py --start 2025-01-01 --end 2025-03-29 [--out docs/validation-archive.md]
+uv run python scripts/compare_legacy.py --start 2025-01-01 --end 2025-03-29 [--out docs/validation/legacy/archive.md]
 
 The old API (`../ag-weather`) averages, each hour, every 2.5 km cell whose lat/lon rounds to a 0.1° point, and
 makes a day from the Central-time hours at 00:00 … 23:00 (for precip, the hours ending then). This reduces v2's
@@ -41,7 +41,7 @@ def main():
     parser.add_argument("--end", required=True, help="last day, inclusive")
     parser.add_argument("--box", default="wisconsin")
     parser.add_argument("--data", default="data")
-    parser.add_argument("--out", default="docs/validation-archive.md")
+    parser.add_argument("--out", default="docs/validation/legacy/archive.md")
     parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
     report = Reporter(quiet=args.quiet)

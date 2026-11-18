@@ -46,7 +46,7 @@ def main():
     parser.add_argument("--box", default="wisconsin")
     parser.add_argument("--data", default="data")
     parser.add_argument("--version", type=int, default=1)
-    parser.add_argument("--out", default="docs/validation-shortwave-correction.md")
+    parser.add_argument("--out", default="docs/validation/weather/shortwave-correction.md")
     parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
     report = Reporter(quiet=args.quiet)

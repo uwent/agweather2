@@ -2,7 +2,7 @@
 
 gridMET is a daily 1/24° (~4 km) grid over the lower 48 from 1979, PRISM's monthly climate given NLDAS-2's
 day-to-day weather, from the University of Idaho's Northwest Knowledge Network. Its day runs 12Z to 12Z, labelled
-by its start, so a minimum and a day's rain take in some of our next morning (D2, `docs/validation-climate.md`).
+by its start, so a minimum and a day's rain take in some of our next morning (D2, `docs/validation/weather/climate.md`).
 
 Each variable's year is a whole-CONUS netCDF-4 file (`<var>_<year>.nc`, 60–150 MB), chunked 61 days × 98 × 231
 and served with byte ranges, so `fetch` reads only the chunks over the box (Wisconsin's year of one variable:

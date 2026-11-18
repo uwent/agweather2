@@ -95,7 +95,7 @@ HRRR_SHORTWAVE = Correction(
     applies_to="Every archive hour; ET0 and daily sums derive from the corrected value",
     raw_kept="`shortwave_radiation_hrrr` in the hourly store",
     decision="D48",
-    evidence="docs/validation-shortwave-correction.md",
+    evidence="docs/validation/weather/shortwave-correction.md",
     table=shortwave.TABLE_PATH,
 )
 NBM_SHORTWAVE = Correction(
@@ -127,7 +127,7 @@ NBM_SHORTWAVE = Correction(
     applies_to="Every forecast hour (`forecast.adjust_hours`)",
     raw_kept="Not stored (the backtest keeps its raw hours)",
     decision="D48",
-    evidence="docs/validation-forecast-shortwave.md",
+    evidence="docs/validation/weather/forecast-shortwave.md",
     table=shortwave.NBM_TABLE_PATH,
 )
 NBM_MAX = Correction(
@@ -152,7 +152,7 @@ NBM_MAX = Correction(
     applies_to="Every forecast day (`forecast.adjust_hours`)",
     raw_kept="Not stored",
     decision="D39, D49",
-    evidence="docs/validation-forecast-calibration.md",
+    evidence="docs/validation/weather/forecast-calibration.md",
     table=calibration.MAX_OFFSET_PATH,
 )
 NBM_NIGHT_MIN = Correction(
@@ -184,7 +184,7 @@ NBM_NIGHT_MIN = Correction(
     applies_to="Every forecast night (`forecast.adjust_hours`)",
     raw_kept="Not stored",
     decision="D39, D49",
-    evidence="docs/validation-forecast-calibration.md",
+    evidence="docs/validation/weather/forecast-calibration.md",
     table=calibration.NIGHT_MIN_PATH,
 )
 NBM_RH = Correction(
@@ -216,7 +216,7 @@ NBM_RH = Correction(
     applies_to="Every forecast hour (`forecast.adjust_hours`)",
     raw_kept="Not stored",
     decision="D49",
-    evidence="docs/validation-forecast-calibration.md",
+    evidence="docs/validation/weather/forecast-calibration.md",
     table=calibration.RH_MAP_PATH,
 )
 OPENMETEO_SHORTWAVE = Correction(
@@ -248,7 +248,7 @@ OPENMETEO_SHORTWAVE = Correction(
     applies_to="The historical-forecast and forecast endpoints, as hours are read from the cache; not ERA5 (the archive endpoint, unchecked). Fitted in Wisconsin, applied everywhere until other mesonets are compared (Phase 9)",
     raw_kept="`Hours.raw` (the cache keeps Open-Meteo's values)",
     decision="D51",
-    evidence="docs/validation-openmeteo.md",
+    evidence="docs/validation/weather/openmeteo.md",
     table=shortwave.OPENMETEO_TABLE_PATH,
 )
 OPENMETEO_RH = Correction(
@@ -273,7 +273,7 @@ OPENMETEO_RH = Correction(
     applies_to="As for Open-Meteo's shortwave",
     raw_kept="`Hours.raw` (the cache keeps Open-Meteo's values)",
     decision="D51",
-    evidence="docs/validation-openmeteo.md",
+    evidence="docs/validation/weather/openmeteo.md",
     table=calibration.OPENMETEO_RH_MAP_PATH,
 )
 GRIDDED_RH_90 = Correction(
@@ -295,7 +295,7 @@ GRIDDED_RH_90 = Correction(
     applies_to="The six disease models whose 90% comes from field stations",
     raw_kept="The hourly RH itself is unchanged",
     decision="D50",
-    evidence="docs/validation-humidity.md",
+    evidence="docs/validation/weather/humidity.md",
     version="2",
     fitted="2026-10-31",
 )
@@ -328,7 +328,7 @@ IFS_SOIL_SEAM = Correction(
     applies_to="IFS's hours after ERA5-Land's last (`ops.ifs`); replaced by ERA5-Land's as it arrives. Not points outside the box, whose recent days and forecast are all IFS",
     raw_kept="Each cell's offset in `ifs/latest.zarr` (raw = value − offset × weight)",
     decision="Q23",
-    evidence="docs/validation-soil.md",
+    evidence="docs/validation/weather/soil.md",
     table=soil_seam.TABLE_PATH,
 )
 GRIDMET_BASIS = Correction(
@@ -343,7 +343,7 @@ GRIDMET_BASIS = Correction(
     applies_to="gridMET's years in the 30-year normal (`agdata.climatestore`); refitted by `manage.py climatology`",
     raw_kept="gridMET's files as received in `data/gridmet/` (the fit in `data/climate/gridmet-fit.zarr`)",
     decision="D84, Q38",
-    evidence="docs/validation-climate.md, docs/validation-wind.md, docs/validation-normals.md",
+    evidence="docs/validation/weather/climate.md, docs/validation/weather/wind.md, docs/validation/weather/normals.md",
     version=str(climatestore.FIT_VERSION),
     fitted="each `manage.py climatology` fit (its `fitted` attribute)",
 )
@@ -381,7 +381,7 @@ def markdown() -> str:
     for c in CORRECTIONS:
         table = f" (`{c.table.relative_to(c.table.parents[2])}`)" if c.table is not None else ""
         rows.append(
-            f"| `{c.id}`{table} | {c.source} | `{c.variable}` | {c.method} | {c.fitted_against} | {c.applies_to} | {c.raw_kept} | {c.current_version} | {c.fitted_on} | {c.decision} | [{Path(c.evidence).name}]({Path(c.evidence).name}) |"
+            f"| `{c.id}`{table} | {c.source} | `{c.variable}` | {c.method} | {c.fitted_against} | {c.applies_to} | {c.raw_kept} | {c.current_version} | {c.fitted_on} | {c.decision} | [{Path(c.evidence).name}]({Path(c.evidence).relative_to('docs')}) |"
         )
     return "\n".join(rows) + "\n"
 

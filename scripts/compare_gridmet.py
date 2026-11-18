@@ -1,6 +1,6 @@
 """gridMET against the archive, 2.5 km cell by cell (PLAN.md Phase 6 D2; D82).
 
-uv run python scripts/compare_gridmet.py --start 2016 --end 2025 [--out docs/validation-climate.md]
+uv run python scripts/compare_gridmet.py --start 2016 --end 2025 [--out docs/validation/weather/climate.md]
 
 gridMET (Abatzoglou 2013, doi:10.1002/joc.3413) is the 30-year normals' source (D82); our archive is URMA/RTMA with
 HRRR and ERA5-Land, rolled up to midnight-to-midnight CST days. Before the 30 years are stored (D3), this measures
@@ -93,7 +93,7 @@ def main() -> int:
     parser.add_argument("--start", type=int, required=True)
     parser.add_argument("--end", type=int, required=True)
     parser.add_argument("--data", default=str(REPO / "data"))
-    parser.add_argument("--out", default=str(REPO / "docs" / "validation-climate.md"))
+    parser.add_argument("--out", default=str(REPO / "docs" / "docs/validation/weather/climate.md"))
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
     report = Reporter(quiet=args.quiet)

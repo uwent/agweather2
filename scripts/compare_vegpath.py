@@ -1,7 +1,7 @@
 """Veg Path's v1 query against v2 (PLAN.md Phase 5 C and D): v1's `/api/pest_forecasts/vegpath` at the 7 points
 Veg Path's site asks for, against v2's `/weather/daily` and `/models/run` (early blight P-days, late blight DSVs).
 
-uv run python scripts/compare_vegpath.py --end 2026-09-30 [--out docs/validation-vegpath.md] [--quiet]
+uv run python scripts/compare_vegpath.py --end 2026-09-30 [--out docs/validation/legacy/vegpath.md] [--quiet]
 
 v1 answers a window from May 1 (or a month back, if earlier) to `--end`: daily min, max and mean temperature (°F) and
 RH, precipitation (in), insolation (kWh/m²), ET (in), and each day's late blight DSV and P-days with their running
@@ -65,7 +65,7 @@ MODELS = "early-blight-pdays,late-blight-dsv"
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--end", required=True, help="last day, inclusive (v1's window starts May 1)")
-    parser.add_argument("--out", default="docs/validation-vegpath.md")
+    parser.add_argument("--out", default="docs/validation/legacy/vegpath.md")
     parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
     report = Reporter(quiet=args.quiet)

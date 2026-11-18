@@ -1,7 +1,7 @@
 """IFS's soil temperature shifted to meet ERA5-Land's at the seam (Q23, PLAN.md Phase 4 I).
 
 The archive's soil is ERA5-Land's up to its last hour (~5 days behind), then IFS's: the provisional hours and the
-forecast. In winter IFS reads 1.6–2.7 °C below ERA5-Land at 10 cm (docs/validation-soil.md), so without this the soil
+forecast. In winter IFS reads 1.6–2.7 °C below ERA5-Land at 10 cm (docs/validation/weather/soil.md), so without this the soil
 steps down at the seam. Each cell's IFS soil is shifted by the difference in ERA5-Land's last hour, times a weight
 that fades with the hours since it: how much of the difference at the seam is still there that much later, fitted on
 the archive (ERA5-Land) against Open-Meteo's IFS at 80 Wisconet stations (`scripts/compare_soil_wisconet.py

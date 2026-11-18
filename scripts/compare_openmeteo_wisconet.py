@@ -81,7 +81,7 @@ def main():
     parser.add_argument("--fit-year", type=int, default=2025)
     parser.add_argument("--box", default="wisconsin")
     parser.add_argument("--data", default="data")
-    parser.add_argument("--out", default="docs/validation-openmeteo.md")
+    parser.add_argument("--out", default="docs/validation/weather/openmeteo.md")
     parser.add_argument("--fit", action="store_true", help="write the corrections' tables to agdata/data")
     parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()

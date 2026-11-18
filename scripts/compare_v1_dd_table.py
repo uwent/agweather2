@@ -1,6 +1,6 @@
 """v1's `dd_table` caller against v2 (PLAN.md Phase 5 C): the Waunakee lawn notifier's query.
 
-uv run python scripts/compare_v1_dd_table.py --start 2026-01-01 --end 2026-10-31 [--out docs/validation-v1-dd-table.md]
+uv run python scripts/compare_v1_dd_table.py --start 2026-01-01 --end 2026-10-31 [--out docs/validation/legacy/v1-dd-table.md]
 
 The old server's log (2026-10-19 to 11-02) has it twice a day at one point:
 
@@ -45,7 +45,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--start", required=True)
     parser.add_argument("--end", required=True, help="last day, inclusive")
-    parser.add_argument("--out", default="docs/validation-v1-dd-table.md")
+    parser.add_argument("--out", default="docs/validation/legacy/v1-dd-table.md")
     parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
     report = Reporter(quiet=args.quiet)
@@ -176,7 +176,7 @@ def _report(first, last, rain_first, v1, v2_dd, v1_rain, v2_rain) -> str:
         "",
         "Daily temperatures behind them, v2 − v1 (°F). v1's day is midnight to midnight Central time, following",
         "daylight saving; v2's is midnight to midnight CST all year (D74), an hour later from March to November,",
-        "which accounts for most of the minimum's spread (`validation-v1.md` compares both day bases;",
+        "which accounts for most of the minimum's spread (`docs/validation/legacy/v1.md` compares both day bases;",
         "`day_basis=local` gives v1's days):",
         "",
         "| | mean | MAE | 5th–95th percentile |",

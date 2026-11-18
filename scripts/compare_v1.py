@@ -1,6 +1,6 @@
 """v1's point callers against v2 (PLAN.md Phase 5 C): DATCP's degree-day report, ET and precip at points.
 
-uv run python scripts/compare_v1.py --start 2026-01-01 --end 2026-10-31 [--out docs/validation-v1.md]
+uv run python scripts/compare_v1.py --start 2026-01-01 --end 2026-10-31 [--out docs/validation/legacy/v1.md]
 
 At DATCP's 23 points (from the old server's logs), over the window:
 
@@ -62,7 +62,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--start", required=True)
     parser.add_argument("--end", required=True, help="last day, inclusive")
-    parser.add_argument("--out", default="docs/validation-v1.md")
+    parser.add_argument("--out", default="docs/validation/legacy/v1.md")
     parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
     report = Reporter(quiet=args.quiet)

@@ -94,7 +94,7 @@ def test_crop_risk_tool_insects_match_over_a_year(crt, crt_id, model_id):
 
 def test_every_insect_is_a_model_with_a_severity_rule():
     insects = [m for m in all_models().values() if isinstance(m, InsectModel)]
-    assert len(insects) == len(all_insects()) == 26
+    assert len(insects) == len(all_insects()) == 27
     for m in insects:
         assert m.insect.life_stages or m.insect.stages or m.insect.generations, m.insect.id
         assert m.SPEC.crops, m.insect.id

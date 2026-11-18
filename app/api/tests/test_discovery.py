@@ -218,7 +218,7 @@ def test_methods_list_the_sources_and_corrections(client):
     assert shortwave["version"] == "2" and shortwave["fitted"] == "2026-10-31"
     assert shortwave["scores"][0]["units"] == {"us": "MJ/m²", "metric": "MJ/m²"}
     assert shortwave["evidence"] == [
-        "https://github.com/uwent/agweather2/blob/main/docs/validation-shortwave-correction.md"
+        "https://github.com/uwent/agweather2/blob/main/docs/validation/weather/shortwave-correction.md"
     ]
     assert found["gridmet-basis"]["fitted"] is None and len(found["gridmet-basis"]["evidence"]) == 3
 

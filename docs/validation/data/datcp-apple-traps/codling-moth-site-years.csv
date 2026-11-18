@@ -1,0 +1,165 @@
+year,site,mating_disruption,weeks_read,first_week_with_catch,first_week_5_or_more,lat,lon
+2020,Bayfield Keystone,0,May 20–Aug 26 (14),Jun 24 (5),Jun 24 (5),46.84,-90.87
+2020,Bayfield Orienta,0,Jun 17–Aug 26 (10),none,none,46.76,-91.49
+2020,Brown Oneida,0,May 20–Aug 26 (13),May 27 (3),Jun 3 (10),44.51,-88.17
+2020,Columbia Rio,0,May 20–Aug 26 (11),May 27 (3),Jun 10 (8),43.44,-89.19
+2020,Crawford Gays Mills,1,Jun 17–Aug 19 (9),Jun 17 (1),Jul 29 (6),43.32,-90.85
+2020,Dane McFarland,0,May 20–Aug 19 (12),Jun 3 (8),Jun 3 (8),43.01,-89.29
+2020,Dane Mt. Horeb,0,May 20–Aug 26 (14),May 27 (3),Jun 10 (5),42.87,-89.83
+2020,Dane Stoughton,0,May 13–Aug 26 (14),May 27 (5),May 27 (5),42.92,-89.22
+2020,Fond du Lac Campbellsport,0,May 13–Aug 19 (13),none,none,43.6,-88.28
+2020,Fond du Lac Malone,0,May 13–Aug 26 (15),May 27 (5),May 27 (5),43.88,-88.34
+2020,Fond du Lac Rosendale,0,May 13–Aug 26 (15),May 27 (1),Jun 10 (14),43.78,-88.63
+2020,Green Brodhead,0,May 20–Aug 26 (12),May 27 (2),Jun 10 (6),42.59,-89.41
+2020,Iowa Mineral Point,1,May 20–Aug 26 (14),May 27 (21),May 27 (21),42.84,-89.96
+2020,Jackson Hixton,0,May 13–Aug 26 (15),May 27 (1),Jun 10 (6),44.4,-91.01
+2020,Kenosha Burlington,0,May 13–Aug 26 (15),May 27 (6),May 27 (6),42.64,-88.16
+2020,Lafayette Belmont,1,Jun 3–Aug 19 (5),Jun 3 (1),none,42.78,-90.33
+2020,Marathon Edgar,0,May 20–Aug 26 (14),May 27 (1),Jun 3 (5),44.8,-89.95
+2020,Marinette Niagara,1,Jun 3–Aug 26 (12),Jun 10 (1),none,45.73,-87.9
+2020,Marquette Montello,0,May 13–Aug 26 (15),Jun 10 (6),Jun 10 (6),43.74,-89.42
+2020,Ozaukee Mequon,0,May 13–Aug 26 (15),Jun 3 (3),Jun 10 (7),43.24,-88.03
+2020,Pierce Beldenville,0,May 13–Aug 5 (10),Jun 3 (6),Jun 3 (6),44.77,-92.53
+2020,Pierce Spring Valley,1,May 20–Aug 26 (13),none,none,44.81,-92.33
+2020,Racine Raymond,0,May 27–Aug 26 (13),Jun 3 (19),Jun 3 (19),42.8,-88.02
+2020,Racine Rochester,0,May 27–Aug 26 (13),May 27 (7),May 27 (7),42.74,-88.24
+2020,Richland Hill Point,0,May 27–Aug 26 (10),May 27 (10),May 27 (10),43.38,-90.2
+2020,Sheboygan Plymouth,1,May 27–Jul 29 (9),none,none,43.71,-87.99
+2020,Walworth East Troy,1,May 13–Aug 26 (9),none,none,42.81,-88.43
+2020,Walworth Elkhorn,1,May 13–Aug 26 (9),none,none,42.73,-88.55
+2020,Waukesha New Berlin,0,May 27–Aug 26 (13),Jun 3 (16),Jun 3 (16),42.96,-88.07
+2021,Bayfield Keystone,0,May 12–Sep 1,Jun 9 (5),Jun 9 (5),46.84,-90.87
+2021,Bayfield Orienta,0,Jun 9–Sep 8,none,none,46.76,-91.49
+2021,Brown Oneida,0,May 12–Aug 18,May 19 (2),May 26 (9),44.51,-88.17
+2021,Columbia Rio,0,May 26–Aug 25,Jun 9 (7),Jun 9 (7),43.44,-89.19
+2021,Crawford Gays Mills,1,Jun 2–Aug 25,Jul 21 (1),none,43.32,-90.85
+2021,Dane DeForest,0,May 19–Jul 21,Jun 16 (1),none,43.25,-89.34
+2021,Dane Mt. Horeb,0,May 12–Sep 1,May 26 (4),Jun 9 (10),42.87,-89.83
+2021,Dane Stoughton,0,May 26–Sep 1,May 26 (6),May 26 (6),42.92,-89.22
+2021,Fond du Lac Campbellsport,0,May 12–Sep 1,none,none,43.6,-88.28
+2021,Fond du Lac Malone,0,May 12–Aug 4,May 26 (3),Jun 9 (5),43.88,-88.34
+2021,Fond du Lac Rosendale,0,May 12–Sep 1,Jun 2 (4),Jun 9 (6),43.78,-88.63
+2021,Green Brodhead,0,Jun 2–Aug 25,Jun 2 (4),Jun 9 (7),42.59,-89.41
+2021,Iowa Mineral Point,0,May 12–Sep 1,May 19 (26),May 19 (26),42.84,-89.96
+2021,Jackson Hixton,1,May 12–Sep 1,May 19 (10),May 19 (10),44.4,-91.01
+2021,Kenosha Burlington,0,May 19–Sep 1,May 19 (4),May 26 (17),42.64,-88.16
+2021,Lafayette Belmont,1,May 19–Sep 1,Jun 30 (1),none,42.78,-90.33
+2021,Marathon Edgar,0,Jun 2–Jul 14,Jun 9 (12),Jun 9 (12),44.8,-89.95
+2021,Marinette Niagara,1,Jun 2–Sep 1,none,none,45.73,-87.9
+2021,Marquette Montello,0,May 5–Sep 1,Jun 2 (4),Jun 9 (10),43.74,-89.42
+2021,Ozaukee Mequon,1,May 5–Sep 1,May 26 (1),Jun 9 (11),43.24,-88.03
+2021,Pierce Spring Valley,1,Jun 2–Sep 1,none,none,44.81,-92.33
+2021,Racine Raymond,0,May 26–Sep 1,May 26 (16),May 26 (16),42.8,-88.02
+2021,Racine Rochester,0,May 12–Sep 1,May 19 (21),May 19 (21),42.74,-88.24
+2021,Richland Hill Point,0,May 19–Jun 16,May 19 (14),May 19 (14),43.38,-90.2
+2021,Sheboygan Plymouth,1,May 12–Jul 28,none,none,43.71,-87.99
+2021,Walworth East Troy,1,May 19–Aug 18,none,none,42.81,-88.43
+2021,Walworth Elkhorn,1,May 19–Aug 18,none,none,42.73,-88.55
+2021,Waukesha New Berlin,0,May 26–Sep 1,May 26 (30),May 26 (30),42.96,-88.07
+2022,Bayfield Keystone,0,May 19–Sep 22,May 26 (1),Jun 30 (5),46.84,-90.87
+2022,Bayfield Orienta,0,Jun 16–Sep 15,none,none,46.76,-91.49
+2022,Brown Oneida,0,May 26–Sep 1,May 26 (12),May 26 (12),44.51,-88.17
+2022,Columbia Rio,0,May 19–Aug 11,Jun 2 (4),Jul 28 (9),43.44,-89.19
+2022,Crawford Gays Mills,1,May 26–Sep 8,Jun 2 (1),Jul 28 (7),43.32,-90.85
+2022,Dane Mt. Horeb,0,May 26–Aug 25,Jun 2 (1),none,42.87,-89.83
+2022,Dane Stoughton,0,Jun 9–Sep 1,Jun 9 (6),Jun 9 (6),42.92,-89.22
+2022,Fond du Lac Campbellsport,0,May 19–Aug 18,Jun 16 (3),none,43.6,-88.28
+2022,Fond du Lac Malone,0,May 19–Sep 1,Jun 2 (2),Jun 16 (5),43.88,-88.34
+2022,Fond du Lac Rosendale,0,May 26–Sep 1,Jun 2 (2),Jun 30 (5),43.78,-88.63
+2022,Green Brodhead,0,Jun 2–Aug 4,Jun 2 (5),Jun 2 (5),42.59,-89.41
+2022,Iowa Mineral Point,1,May 26–Sep 8,May 26 (7),May 26 (7),42.84,-89.96
+2022,Jackson Hixton,0,May 26–Sep 8,Jun 2 (4),Jun 9 (17),44.4,-91.01
+2022,Kenosha Burlington,0,May 19–Aug 25,May 19 (1),May 26 (14),42.64,-88.16
+2022,Lafayette Belmont,1,May 26–Sep 8,Jun 2 (1),none,42.78,-90.33
+2022,Marathon Edgar,0,May 19–Aug 18,Jun 2 (2),Jun 16 (7),44.8,-89.95
+2022,Marinette Niagara,1,Jun 16–Sep 8,Jul 7 (1),none,45.73,-87.9
+2022,Marquette Montello,0,May 19–Sep 8,Jun 2 (1),none,43.74,-89.42
+2022,Ozaukee Mequon,1,May 19–Sep 8,May 19 (3),Aug 4 (6),43.24,-88.03
+2022,Pierce Spring Valley,1,Jun 9–Sep 8,none,none,44.81,-92.33
+2022,Racine Raymond,1,May 26–Aug 4,Jun 2 (1),none,42.8,-88.02
+2022,Racine Rochester,0,May 19–Sep 1,May 19 (1),May 26 (5),42.74,-88.24
+2022,Richland Hill Point,0,May 26–Sep 1,May 26 (1),Jun 2 (17),43.38,-90.2
+2022,Sheboygan Plymouth,1,Jun 2–Aug 18,Jun 30 (1),none,43.71,-87.99
+2022,Walworth East Troy,1,May 19–Aug 18,none,none,42.81,-88.43
+2022,Walworth Elkhorn,1,May 19–Aug 18,none,none,42.73,-88.55
+2022,Waukesha New Berlin,0,May 26–Aug 4,May 26 (2),Jun 2 (14),42.96,-88.07
+2023,Bayfield Keystone,0,May 25–Aug 10,Jun 22 (5),Jun 22 (5),46.84,-90.87
+2023,Bayfield Orienta,0,Jun 8–Sep 21,none,none,46.76,-91.49
+2023,Brown Oneida,0,May 18–Aug 31,May 25 (9),May 25 (9),44.51,-88.17
+2023,Columbia Rio,0,May 11–Jul 13,Jun 1 (7),Jun 1 (7),43.44,-89.19
+2023,Crawford Gays Mills,1,Jun 8–Aug 24,Jun 8 (10),Jun 8 (10),43.32,-90.85
+2023,Dane Mt. Horeb,0,May 11–Aug 10,Jun 1 (7),Jun 1 (7),42.87,-89.83
+2023,Dane Stoughton,0,Jun 29–Aug 31,Jun 29 (5),Jun 29 (5),42.92,-89.22
+2023,Fond du Lac Malone,0,May 11–Aug 31,May 25 (1),Jun 1 (6),43.88,-88.34
+2023,Fond du Lac Rosendale,0,May 11–Aug 31,May 25 (1),Jun 8 (5),43.78,-88.63
+2023,Iowa Mineral Point,1,May 18–Aug 31,May 18 (1),May 25 (6),42.84,-89.96
+2023,Jackson Hixton,0,May 18–Aug 31,Jun 15 (1),none,44.4,-91.01
+2023,Kenosha Burlington,0,May 25–Aug 31,May 25 (29),May 25 (29),42.64,-88.16
+2023,Lafayette Belmont,1,May 25–Aug 31,Jun 15 (1),none,42.78,-90.33
+2023,Marathon Edgar,0,May 18–Aug 17,Jun 8 (3),Jun 29 (6),44.8,-89.95
+2023,Marinette Niagara,1,May 25–Aug 31,none,none,45.73,-87.9
+2023,Marquette Montello,0,May 11–Sep 7,Jun 8 (8),Jun 8 (8),43.74,-89.42
+2023,Ozaukee Mequon,1,May 11–Aug 31,May 25 (2),Jun 8 (5),43.24,-88.03
+2023,Pierce Spring Valley,1,May 18–Aug 31,none,none,44.81,-92.33
+2023,Racine Raymond,0,May 25–Aug 3,Jun 1 (5),Jun 1 (5),42.8,-88.02
+2023,Racine Rochester,0,May 18–Aug 31,May 18 (1),May 25 (14),42.74,-88.24
+2023,Richland Hill Point,0,May 11–Aug 31,May 25 (8),May 25 (8),43.38,-90.2
+2023,Sheboygan Plymouth,1,May 18–Aug 3,Jun 8 (2),none,43.71,-87.99
+2023,Walworth East Troy,1,May 11–Aug 17,May 18 (1),none,42.81,-88.43
+2023,Walworth Elkhorn,1,May 11–Aug 17,none,none,42.73,-88.55
+2023,Waukesha New Berlin,0,May 25–Aug 3,May 25 (6),May 25 (6),42.96,-88.07
+2024,Bayfield Keystone,0,May 30–Sep 5,May 30 (2),Jun 27 (6),46.84,-90.87
+2024,Bayfield Orienta,0,Jun 20–Sep 12,none,none,46.76,-91.49
+2024,Brown Oneida,0,May 9–Aug 29,May 23 (13),May 23 (13),44.51,-88.17
+2024,Columbia Merrimac,0,May 23–Aug 29,May 23 (15),May 23 (15),43.45,-89.57
+2024,Columbia Rio,0,May 16–Jul 18,May 23 (5),May 23 (5),43.44,-89.19
+2024,Crawford Gays Mills,0,May 23–Sep 5,May 23 (7),May 23 (7),43.32,-90.85
+2024,Dane Mt. Horeb,0,May 9–Aug 22,May 16 (1),Aug 22 (5),42.87,-89.83
+2024,Dane Stoughton,0,May 30–Aug 1,May 30 (4),none,42.92,-89.22
+2024,Fond du Lac Campbellsport,0,May 16–Aug 15,May 23 (12),May 23 (12),43.6,-88.28
+2024,Fond du Lac Malone,0,May 9–Aug 29,May 23 (5),May 23 (5),43.88,-88.34
+2024,Fond du Lac Rosendale,0,May 16–Aug 29,May 23 (2),Jun 6 (9),43.78,-88.63
+2024,Iowa Mineral Point,1,May 9–Aug 29,May 16 (6),May 16 (6),42.84,-89.96
+2024,Jackson Hixton,0,May 9–Aug 1,Jun 6 (1),none,44.4,-91.01
+2024,Kenosha Burlington,0,May 9–Aug 29,May 9 (1),May 16 (16),42.64,-88.16
+2024,La Crosse St. Joseph,0,May 9–Aug 29,May 23 (6),May 23 (6),43.78,-91.03
+2024,Lafayette Belmont,1,May 9–Aug 29,Jun 27 (1),none,42.78,-90.33
+2024,Marathon Edgar,0,May 9–Aug 8,May 30 (2),Jun 6 (6),44.8,-89.95
+2024,Marinette Niagara,1,May 16–Aug 29,Jun 27 (1),none,45.73,-87.9
+2024,Marquette Montello,0,May 2–Sep 5,May 23 (6),May 23 (6),43.74,-89.42
+2024,Ozaukee Mequon,1,May 9–Aug 29,May 23 (1),Jun 20 (8),43.24,-88.03
+2024,Pierce Spring Valley,1,May 9–Aug 29,Aug 1 (1),none,44.81,-92.33
+2024,Racine Raymond,0,May 23–Aug 1,May 23 (2),none,42.8,-88.02
+2024,Racine Rochester,0,May 9–Aug 29,May 9 (1),May 16 (11),42.74,-88.24
+2024,Richland Hill Point,0,May 9–Aug 29,May 16 (8),May 16 (8),43.38,-90.2
+2024,Sheboygan Plymouth,1,May 9–Aug 1,none,none,43.71,-87.99
+2024,Walworth East Troy,1,May 16–Aug 1,none,none,42.81,-88.43
+2024,Walworth Elkhorn,1,May 16–Aug 1,none,none,42.73,-88.55
+2024,Waukesha New Berlin,0,May 23–Aug 1,May 23 (1),Jun 13 (6),42.96,-88.07
+2025,Bayfield Keystone,0,May 15–Sep 11,Jul 3 (1),Jul 10 (8),46.84,-90.87
+2025,Bayfield Orienta,0,May 29–Sep 11,none,none,46.76,-91.49
+2025,Brown Oneida,0,May 15–Aug 7,Jun 5 (6),Jun 5 (6),44.51,-88.17
+2025,Columbia Merrimac,0,May 15–Aug 28,May 22 (4),Jun 19 (16),43.45,-89.57
+2025,Columbia Rio,0,May 8–Aug 28,May 22 (1),Jun 12 (6),43.44,-89.19
+2025,Crawford Gays Mills,1,May 29–Aug 28,May 29 (2),Jun 5 (13),43.32,-90.85
+2025,Dane Mt. Horeb,0,May 8–Aug 28,May 15 (1),Jun 5 (8),42.87,-89.83
+2025,Fond du Lac Campbellsport,0,Jun 5–Aug 7,Jun 5 (4),Jun 19 (17),43.6,-88.28
+2025,Fond du Lac Malone,0,May 15–Aug 28,May 29 (2),Jun 5 (12),43.88,-88.34
+2025,Fond du Lac Rosendale,0,May 8–Aug 28,May 22 (2),Jun 12 (14),43.78,-88.63
+2025,Green Brodhead,0,May 22–Aug 14,Jun 5 (5),Jun 5 (5),42.59,-89.41
+2025,Iowa Mineral Point,1,May 15–Aug 28,May 15 (1),none,42.84,-89.96
+2025,Jackson Hixton,0,May 8–Aug 21,Jun 5 (2),Aug 7 (5),44.4,-91.01
+2025,Kenosha Burlington,0,May 15–Aug 28,May 15 (5),May 15 (5),42.64,-88.16
+2025,Lafayette Belmont,1,May 15–Aug 28,May 15 (1),none,42.78,-90.33
+2025,Marathon Edgar,0,May 15–Aug 28,Jun 5 (5),Jun 5 (5),44.8,-89.95
+2025,Marinette Niagara,1,May 15–Aug 21,none,none,45.73,-87.9
+2025,Marquette Montello,0,May 8–Sep 11,May 29 (1),Jun 12 (22),43.74,-89.42
+2025,Ozaukee Mequon,1,May 15–Aug 28,May 15 (1),none,43.24,-88.03
+2025,Pierce Spring Valley,1,May 22–Aug 28,none,none,44.81,-92.33
+2025,Racine Raymond,1,May 15–Aug 21,Jun 5 (2),none,42.8,-88.02
+2025,Racine Rochester,0,May 8–Aug 28,May 15 (1),May 22 (5),42.74,-88.24
+2025,Richland Hill Point,0,May 15–Aug 28,May 15 (2),Jun 5 (10),43.38,-90.2
+2025,Sheboygan Plymouth,1,May 22–Jun 12,none,none,43.71,-87.99
+2025,Walworth East Troy,1,May 15–Aug 7,none,none,42.81,-88.43
+2025,Walworth Elkhorn,1,May 15–Aug 14,May 29 (1),none,42.73,-88.55
+2025,Waukesha New Berlin,1,May 15–Aug 28,Jun 5 (1),Aug 21 (8),42.96,-88.07

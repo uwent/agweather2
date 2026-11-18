@@ -75,6 +75,24 @@ export interface ChangeInfo {
    */
   note: string
 }
+export interface CheckInfo {
+  /**
+   * What the model was checked against: `published` (the numbers in its sources), `system` (another forecasting system run on the same weather) or `observations` (measurements in the field, such as trap catches).
+   */
+  kind: string
+  /**
+   * What the model was compared with.
+   */
+  against: string
+  /**
+   * What the comparison found, in a sentence or two.
+   */
+  result: string
+  /**
+   * The section of our technical report that gives the comparison in full, with the data and how to repeat it.
+   */
+  report: string
+}
 export interface Choice {
   /**
    * The value to send.
@@ -1116,6 +1134,10 @@ export interface ModelDetail {
    * The model's versions, oldest first, and what changed in each.
    */
   changelog: ChangeInfo[]
+  /**
+   * How we checked the model against results it wasn't built from: its sources' own numbers, other forecasting systems on the same weather, and observations in the field. Empty while the model's checks are being written up.
+   */
+  checks: CheckInfo[]
 }
 export interface QuantityInfo {
   /**

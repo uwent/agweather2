@@ -378,6 +378,13 @@ class ChangeInfo(Schema):
     note: str
 
 
+class CheckInfo(Schema):
+    kind: str  # published, system, observations
+    against: str
+    result: str
+    report: str  # the validation report's section on GitHub, at the running version
+
+
 class ModelDetail(ModelSummary):
     lookback_days: int
     inputs: list[InputInfo]
@@ -393,6 +400,7 @@ class ModelDetail(ModelSummary):
     explorer: list[ExplorerInputInfo]
     explorer_outputs: list[QuantityInfo]  # what POST /models/{id}/evaluate gives beyond `outputs`
     changelog: list[ChangeInfo]
+    checks: list[CheckInfo]
 
 
 class ModelResponse(Schema):
@@ -497,7 +505,18 @@ def _detail(spec: ModelSpec) -> ModelDetail:
         ],
         explorer_outputs=[QuantityInfo(**_quantity(q)) for q in spec.explorer_outputs],
         changelog=[ChangeInfo(version=c.version, date=c.date, note=c.note) for c in spec.changelog],
+        checks=[
+            CheckInfo(kind=c.kind, against=c.against, result=c.result, report=report_link(c.report))
+            for c in spec.checks
+        ],
     )
+
+
+def report_link(path: str) -> str:
+    """A validation report's section on GitHub, at the running version (`main` in development), as `/methods` links
+    its evidence (D92)."""
+    ref = "main" if settings.APP_VERSION == "dev" else settings.APP_VERSION
+    return f"{settings.REPOSITORY_URL}/blob/{ref}/{path}"
 
 
 class ModelsQuery(Schema):

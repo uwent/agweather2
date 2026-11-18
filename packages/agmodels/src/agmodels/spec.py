@@ -136,6 +136,19 @@ class Change:
 
 
 @dataclass(frozen=True, kw_only=True)
+class Check:
+    """One check of a model against results it wasn't built from (D98), summarized for the public: its source's own
+    numbers, another system on the same weather, or observations in the field. The evidence is a section of the
+    model's validation report (`docs/validation/models/<id>.md`); every number in `result` must appear in that
+    section, so a copying slip or a rerun that changed the numbers fails a test (`test_checks`)."""
+
+    kind: Literal["published", "system", "observations"]
+    against: str  # what it was compared with, e.g. "Wisconsin's apple pest trap network (DATCP), 2020–2025"
+    result: str  # one or two plain sentences, with the numbers
+    report: str  # the report's path and section anchor, "docs/validation/models/codling-moth.md#first-catch"
+
+
+@dataclass(frozen=True, kw_only=True)
 class ModelSpec:
     id: str
     name: str
@@ -166,6 +179,7 @@ class ModelSpec:
     seasonal: Seasonal | None = None  # a once-a-season product (`agmodels.seasons`); None: a daily model
     biofix: Biofix | None = None
     changelog: tuple[Change, ...] = ()
+    checks: tuple[Check, ...] = ()  # how the model was checked (D98); empty only for models listed in `test_checks`
     # What the outputs are finished from (`agmodels.ingredients`, D66): the module then defines `ingredients()` and
     # `finish()`, and a map combines them per cell. Empty: no ingredients (a state machine such as soybean stages)
     ingredients: tuple[Ingredient, ...] = ()

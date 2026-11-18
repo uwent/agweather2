@@ -6,7 +6,7 @@ Checked 2026-10-27:
   instantaneous values at 15, 30, 45 and 60 min; their mean stands in (it shifts the hour about 7.5 minutes late,
   which doesn't change daily sums). `wrfsfc`'s DSWRF is instantaneous only.
 - Soil temperature (TSOIL in `wrfprs`) was read here until D52: under its own snow HRRR's shallow soil swings
-  with the air (docs/validation-soil.md), so soil and snow now come from ERA5-Land and IFS.
+  with the air (docs/validation/weather/soil.md), so soil and snow now come from ERA5-Land and IFS.
 HRRR's grid is a 3 km Lambert conformal grid in its own projection, so fields are interpolated (`agdata.regrid`),
 not offset.
 """

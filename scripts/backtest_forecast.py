@@ -94,7 +94,7 @@ def main():
     parser.add_argument(
         "--refresh-observed", action="store_true", help="reread the archive's side of cached runs (after a rebuild)"
     )
-    parser.add_argument("--out", default="docs/validation-forecast.md")
+    parser.add_argument("--out", default="docs/validation/weather/forecast.md")
     parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
     report = Reporter(quiet=args.quiet)
@@ -132,11 +132,11 @@ def main():
             report.fail("cache", f"no cached runs between {first} and {last} (run the backtest without --fit first)")
             sys.exit(1)
         if args.fit_shortwave:
-            doc = Path("docs/validation-forecast-shortwave.md")
+            doc = Path("docs/validation/weather/forecast-shortwave.md")
             doc.write_text(fit_shortwave(cycles, report))
             report.step(f"wrote {doc} and the NBM table {NBM_TABLE_PATH}")
         else:
-            doc = Path("docs/validation-forecast-calibration.md")
+            doc = Path("docs/validation/weather/forecast-calibration.md")
             doc.write_text(fit_calibration(Path(args.data), cycles, window, report))
             report.step(f"wrote {doc} and the calibration tables")
         if not report.finish(f"fitted from {len(usable)} cached runs"):

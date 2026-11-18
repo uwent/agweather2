@@ -31,7 +31,7 @@ Running totals from January 1, °F·d, on the last day both have, and each day's
 
 Daily temperatures behind them, v2 − v1 (°F). v1's day is midnight to midnight Central time, following
 daylight saving; v2's is midnight to midnight CST all year (D74), an hour later from March to November,
-which accounts for most of the minimum's spread (`validation-v1.md` compares both day bases;
+which accounts for most of the minimum's spread (`v1.md` compares both day bases;
 `day_basis=local` gives v1's days):
 
 |         | mean  | MAE  | 5th–95th percentile |

@@ -1,9 +1,9 @@
 """The correction of HRRR's shortwave against ground pyranometers (D48).
 
-HRRR's hourly mean shortwave reads ~18% high against 80 Wisconet stations (docs/validation-pyranometers.md), and
+HRRR's hourly mean shortwave reads ~18% high against 80 Wisconet stations (docs/validation/weather/pyranometers.md), and
 more under cloud: about 1.10 in clear sky, 1.54 overcast. Each hour is scaled by a factor that depends on its
 clearness (HRRR's value over the FAO-56 clear-sky Rso, `agdata.gaps`), from a table fitted on one year of Wisconet
-and tested on the next (`scripts/fit_shortwave_correction.py`, docs/validation-shortwave-correction.md).
+and tested on the next (`scripts/fit_shortwave_correction.py`, docs/validation/weather/shortwave-correction.md).
 
 The archive keeps HRRR's raw value (`shortwave_radiation_hrrr`) and derives `shortwave_radiation` from it, so a
 refit only bumps the version and re-derives (`correct_archive`). The table was fitted in Wisconsin; check it

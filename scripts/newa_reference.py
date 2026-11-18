@@ -568,6 +568,45 @@ def maryblyt(*, rows: list[dict], first_doy: int) -> None:
         day["risk"] = ["low", "moderate", "high", "infection"][count]
 
 
+# --- Codling moth -------------------------------------------------------------------------------------------------
+
+# NEWA's codling moth page (codling-moth.json, as read from its live page 2026-11-17): DD50 by its sine, no upper,
+# from January 1; first catch (biofix 1) where the rounded total reaches 404, the second generation's first catch
+# (biofix 2) 1501 after biofix 1; its management guide's stages in degree days after each biofix.
+CM_BIOFIX1, CM_BIOFIX2 = 404, 1501
+CM_AFTER_BIOFIX1 = {"first hatch": 220, "first spray": 250, "first flight over": 592, "second flight": 771}
+CM_AFTER_BIOFIX2 = {"second hatch": 0, "second flight over": 351}
+
+
+def codling_moth(days: list[Day], biofix1: int | None = None) -> dict:
+    """NEWA's codling moth: each day's totals from January 1, biofix 1 and biofix 2 (rounded as its page rounds them:
+    the January 1 total once, totals from a biofix as sums of each day's rounded DD), the biofix days and the first
+    day of each stage of its management guide. `biofix1` is a grower's first catch (a day index)."""
+    jan1 = accumulate(days, base=50, start=0, method=sine_dd_newa)
+    if biofix1 is None:
+        biofix1 = next((k for k, (_, total) in enumerate(jan1) if total >= CM_BIOFIX1), None)
+    after1: list[int | None] = [None] * len(days)
+    after2: list[int | None] = [None] * len(days)
+    biofix2 = None
+    if biofix1 is not None:
+        total1 = total2 = 0
+        for k in range(biofix1, len(days)):
+            dd = jan1[k][0]
+            total1 += dd
+            after1[k] = total1
+            if biofix2 is None and total1 >= CM_BIOFIX2:
+                biofix2 = k
+            if biofix2 is not None:
+                total2 += dd
+                after2[k] = total2
+    events: dict[str, int | None] = {"first catch": biofix1, "second catch": biofix2}
+    for name, dd in CM_AFTER_BIOFIX1.items():
+        events[name] = next((k for k, t in enumerate(after1) if t is not None and t >= dd), None)
+    for name, dd in CM_AFTER_BIOFIX2.items():
+        events[name] = next((k for k, t in enumerate(after2) if t is not None and t >= dd), None)
+    return {"jan1": [t for _, t in jan1], "after1": after1, "after2": after2, "events": events}
+
+
 # --- Checking against NEWA's exports ------------------------------------------------------------------------------
 
 

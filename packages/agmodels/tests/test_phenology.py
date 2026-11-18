@@ -210,3 +210,11 @@ def test_the_average_method_caps_both_temperatures():
     m = PhenologyModel(insect=DERIVED, summary="")
     out = m.outputs({"air_temperature_min": np.array([0.0, 20]), "air_temperature_max": np.array([10.0, 40])})
     np.testing.assert_allclose(out["dd"], [max((32 + 50) / 2 - 39, 0), (68 + 84.2) / 2 - 39])
+
+
+def test_max_generations_stops_the_repeats_and_is_checked():
+    one = replace(INSECT, max_generations=1)
+    assert len(generation_densities(insect=one, stage=FLIGHT)) == 1
+    assert len(generation_densities(insect=replace(INSECT, max_generations=3), stage=FLIGHT)) == 3
+    with pytest.raises(ValueError, match="max_generations"):
+        replace(INSECT, max_generations=0)

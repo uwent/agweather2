@@ -60,7 +60,7 @@ def main():
     parser.add_argument("--end", required=True, help="last day, inclusive")
     parser.add_argument("--box", default="wisconsin")
     parser.add_argument("--data", default="data")
-    parser.add_argument("--out", default="docs/validation-soil.md")
+    parser.add_argument("--out", default="docs/validation/weather/soil.md")
     parser.add_argument(
         "--fit-seam",
         action="store_true",

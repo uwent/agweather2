@@ -231,7 +231,7 @@ def test_a_grid_gives_every_cell_what_its_point_series_gives(model_id):
 # missing days (ModelRun.missing) for the interface to say so. Potato volunteer reads no killing hours as survival.
 NO_DATA_GIVES_A_LEVEL = {
     "alfalfa-weevil", "aphid-pvy-vectors", "black-cutworm", "botrytis-onion-botcast", "cabbage-looper",
-    "cabbage-maggot", "carrot-foliar-dsv", "cercospora-beet-div", "colorado-potato-beetle",
+    "cabbage-maggot", "carrot-foliar-dsv", "cercospora-beet-div", "codling-moth", "colorado-potato-beetle",
     "colorado-potato-beetle-adults", "colorado-potato-beetle-larvae", "common-asparagus-beetle", "corn-earworm",
     "corn-rootworm", "crucifer-flea-beetle", "early-blight-pdays", "european-corn-borer", "imported-cabbageworm",
     "japanese-beetle", "late-blight-dsv", "mint-flea-beetle", "mint-root-borer", "oak-wilt-vectors", "onion-maggot",
