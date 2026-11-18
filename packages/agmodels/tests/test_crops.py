@@ -18,6 +18,7 @@ from agmodels.crops import (
     susceptibility,
 )
 from agmodels.degree_days import degree_days_modified
+from agmodels.models import apple_stages as apple
 from agmodels.models import corn_stages as corn
 from agmodels.models import soybean_stages as soy
 from agmodels.registry import all_models
@@ -288,3 +289,74 @@ def test_spring_wheat_over_a_season():
     out = wheat.outputs({"air_temperature_min": lo, "air_temperature_max": hi}, biofix_index=20)  # Apr 21
     flowering = first_day(doy, out["stage"], wheat.STAGES, "H11.4")
     assert 160 < flowering < 200  # mid-June to mid-July
+
+
+# Apple
+
+
+def newa_sine(lo, hi, base):
+    """NEWA's single sine as its site computes it (`sin` for `asin`, π as 3.14; models-plan B5), for comparison."""
+    out = []
+    for tmin, tmax in zip(lo, hi, strict=True):
+        if tmin >= base:
+            dd = (tmax + tmin) / 2 - base
+        elif tmax <= base:
+            dd = 0.0
+        else:
+            avg, amt = (tmax + tmin) / 2, (tmax - tmin) / 2
+            t1 = np.sin((base - avg) / amt)
+            dd = 0.0 if avg < 0 else abs((amt * np.cos(t1) - (base - avg) * (3.14 / 2 - t1)) / 3.14)
+        out.append(max(dd, 0.0))
+    return np.array(out)
+
+
+def test_apple_thresholds_sit_in_scaffolds_ranges():
+    # Scaffolds Fruit Journal (2015), McIntosh at Geneva NY, normal ± 1 SD, DD43 from January 1
+    scaffolds = {
+        "ST": (61, 109),
+        "GT": (97, 145),
+        "HIG": (136, 221),
+        "TC": (176, 282),
+        "P": (271, 317),
+        "B": (345, 417),
+        "PF": (448, 524),
+        "FS": (510, 598),
+    }
+    for stage, threshold in zip(apple.STAGES, apple.THRESHOLDS, strict=True):
+        lo, hi = scaffolds[stage.code]
+        assert lo <= threshold <= hi, stage.code
+    assert list(apple.THRESHOLDS) == sorted(apple.THRESHOLDS)
+
+
+def test_apple_stages_against_dd_totals():
+    out = apple.explore
+    assert out(dd_total=74)["stage"] == -1
+    assert [s.code for s in apple.STAGES][int(out(dd_total=101)["stage"])] == "GT"
+    assert [s.code for s in apple.STAGES][int(out(dd_total=400)["stage"])] == "B"
+
+
+@pytest.mark.parametrize("year", [1999, 2000, 2001, 2002, 2004, 2005])
+def test_apple_stage_dates_within_a_day_of_newas_sine(year):
+    # Our sine is Baskerville–Emin's; NEWA's has `sin` for `asin`. On the same days a stage moves a day at most.
+    doy, lo, hi, _ = season("lincoln", year)
+    lo_f, hi_f = lo * 1.8 + 32, hi * 1.8 + 32
+    ours = apple.outputs({"air_temperature_min": lo, "air_temperature_max": hi})["stage"]
+    newa = stage_reached(np.cumsum(newa_sine(lo_f, hi_f, 43)), apple.THRESHOLDS)
+    for k, stage in enumerate(apple.STAGES):
+        if (ours >= k).any():
+            assert (
+                abs(first_day(doy, ours, apple.STAGES, stage.code) - first_day(doy, newa, apple.STAGES, stage.code))
+                <= 1
+            )
+
+
+def test_apple_on_the_grid_and_through_gaps():
+    doy, lo, hi, _ = season("lincoln", 2000)
+    grid = {
+        k: np.repeat(v[:, None, None], 2, axis=2) for k, v in (("air_temperature_min", lo), ("air_temperature_max", hi))
+    }
+    grid["air_temperature_max"][10:14, 0, 1] = np.nan  # missing days add nothing
+    out = apple.outputs(grid)
+    assert out["stage"].shape == (len(doy), 1, 2)
+    assert (out["dd_total"][20:, 0, 1] <= out["dd_total"][20:, 0, 0]).all()
+    assert (out["stage"][-1] == len(apple.STAGES) - 1).all()

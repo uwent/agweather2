@@ -80,6 +80,7 @@ CROPS: dict[str, Crop] = {
         Crop(id="squash", name="Squash", category="vegetable"),
         Crop(id="sweet-corn", name="Sweet corn", category="vegetable"),
         Crop(id="tomato", name="Tomato", category="vegetable"),
+        Crop(id="apple", name="Apple", category="fruit"),
         Crop(id="blackberry", name="Blackberry", category="fruit"),
         Crop(id="raspberry", name="Raspberry", category="fruit"),
         Crop(id="cherry", name="Cherry", category="fruit"),

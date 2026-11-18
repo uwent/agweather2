@@ -34,6 +34,9 @@ AgWeather v2 replaces six sites with one: the AgWeather website, VDIFN, the Crop
 - **One model, one answer.** A model's value is the same on the map, the site page, the email and the API, because they all read `agmodels` through `/api/v2` (D57: the frontend is the API's first client).
 - **Show where each number came from.** Observed, forecast, projected, estimated and missing look different everywhere (D45, D56), with a count ("includes 3 estimated days").
 - **Guidance, not a guarantee.** Each model's output comes with what it predicts, its valid region and season, and what to do at each risk level, with the research behind it.
+- **Intuitive and plain to read.** A clean layout a first-time visitor understands without help: one clear purpose per page, labels in the reader's words, and nothing that needs a manual.
+- **The answer first, the detail one step away.** Each page opens with what the reader can act on (today's risk, the stage reached, the next action and when), and the charts, tables and downloads behind it sit a click or a short scroll below, never buried in menus or separate pages.
+- **No hidden rules.** A model shows its whole season, whatever date is picked; a blank or out-of-season value says why ("Before green tip: ascospores aren't mature yet") rather than disappearing; and every table or chart has its data as a download. What to avoid: tables appear or vanish depending on the selected date against green tip, bloom or petal fall, and some results exist only as a chart.
 - **Shareable state.** The URL holds the view (layer, date, settings, location), so a link reproduces what the sender saw.
 - **No account needed** to use anything except email and synced sites (Phase 7). Saved sites live in the browser until the reader signs in.
 - **Fast on a phone in a field.** Pages work at 320 px wide and over a slow connection; the map's colors change in the browser without new requests.

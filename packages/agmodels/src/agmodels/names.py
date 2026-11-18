@@ -76,6 +76,7 @@ CumulativeName = Literal[
     "dd_sine_39p2",
     "dd_sine_41",
     "dd_sine_42p8",
+    "dd_sine_43",
     "dd_sine_45",
     "dd_sine_48p2",
     "dd_sine_50",
