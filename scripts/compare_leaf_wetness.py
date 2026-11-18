@@ -44,6 +44,9 @@ CACHE = Path("tmp/newa")
 HOUR = timedelta(hours=1)
 CST = timedelta(hours=-6)
 WET_MINUTES = 30
+# A station whose gauge caught less than this share of the archive's April–June rain is left out: a failed or blocked
+# tipping bucket reads zero with an "observed" flag (Gays Mills 2025 recorded 0.26 in against the archive's 14)
+GAUGE_MIN_RATIO = 0.4
 RAIN_MM = 0.254  # 0.01 in
 MPH = 0.44704
 FIELDS = ["prcp", "temp", "rhum", "dwpt", "lwet", "wspd", "wdir", "srad"]  # NEWA's flag characters, in order
@@ -121,6 +124,7 @@ def main():
         sys.exit(1)
     report.step(f"leaf wetness: {len(files)} station-seasons; writing {args.out}")
     seasons: list[Season] = []
+    gauge_failures: list[str] = []
     stores: dict[int, GridStore] = {}
     for n, path in enumerate(files, start=1):
         name, year_text = path.stem.rsplit("_", 1)
@@ -132,15 +136,31 @@ def main():
             continue
         if season is None:
             report.detail(f"{sid} {year}: no observed hours with a wetness reading")
+        elif (gauge := gauge_ratio(season)) is not None and gauge < GAUGE_MIN_RATIO:
+            report.warn(
+                f"{sid} {year}: left out, its rain gauge caught {gauge:.0%} of the archive's rain at its cell in April–June (a failed or blocked gauge)"
+            )
+            gauge_failures.append(f"{sid} {year} ({gauge:.0%})")
         else:
             report.detail(f"{sid} {year}: {int(np.isfinite(season.truth).sum())} observed hours")
             seasons.append(season)
         report.progress("station-seasons", n, len(files))
     report.step(f"scoring {len(candidates())} estimates on {len(seasons)} station-seasons")
     text = build_report(seasons=seasons, report=report)
+    if gauge_failures:
+        text += f"\nLeft out for a failed rain gauge (observed April–June rain under {GAUGE_MIN_RATIO:.0%} of the archive's at the cell): {', '.join(gauge_failures)}. The truth's scab events need the station's rain, so a gauge reading near zero would hide them.\n"
     Path(args.out).write_text(text)
     report.step(f"wrote {args.out}")
     sys.exit(0 if report.finish(f"{len(seasons)} station-seasons") else 1)
+
+
+def gauge_ratio(season: Season) -> float | None:
+    """The station's observed April–June rain as a share of the archive's at its cell over the same hours, or None
+    when the archive had under an inch (too little to judge)."""
+    months = np.array([h.month in (4, 5, 6) for h in season.hours])
+    hours = months & season.observed & np.isfinite(season.station_inputs.rain) & np.isfinite(season.grid_inputs.rain)
+    grid = season.grid_inputs.rain[hours].sum()
+    return None if grid < 25.4 else float(season.station_inputs.rain[hours].sum() / grid)
 
 
 def load(path: Path, station: dict, year: int, stores: dict[int, GridStore], data: Path) -> Season | None:
