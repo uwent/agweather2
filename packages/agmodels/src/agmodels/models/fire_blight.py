@@ -281,31 +281,34 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
     out["wetting"] = np.where(bloom >= 0, wetting.astype(float), np.nan)
     out["infection_possible"] = np.where(in_bloom, (wetting & (level(four, history) >= 1)).astype(float), np.nan)
 
-    # MaryBlyt: the blossoms' degree hours, day by day from first blossom
+    # MaryBlyt: the blossoms' degree hours, day by day from first blossom. A day's row is set only on that day and
+    # afterwards only scaled or zeroed, so once a row is zero in every cell it stays zero: the loop works on the rows
+    # from the oldest still non-zero (`lo`), which keeps a season's map linear in its days rather than quadratic
     window = np.zeros((n, *shape))  # each day's degree hours still counted (scaled by cuts)
     age = np.zeros((n, *shape))  # DD40 from each day through yesterday
     cool_run = np.zeros(shape)
     since = np.full(shape, np.nan)  # DD55 since the latest infection
+    lo = biofix_index
     for d in range(biofix_index, n):
+        upto, before = slice(lo, d + 1), slice(lo, d)
         on = in_bloom[d]
         first_day = on & ~(in_bloom[d - 1] if d > biofix_index else np.zeros(shape, dtype=bool))
-        window[: d + 1] = np.where(first_day, 0.0, window[: d + 1])
-        age[: d + 1] = np.where(first_day, 0.0, age[: d + 1])
+        window[upto] = np.where(first_day, 0.0, window[upto])
+        age[upto] = np.where(first_day, 0.0, age[upto])
         if d > 0:
-            age[:d] = age[:d] + dd40[d - 1]  # yesterday's DD40 ages every earlier day
-        window[:d] = np.where(age[:d] >= WINDOW_DD40, 0.0, window[:d])
+            age[before] = age[before] + dd40[d - 1]  # yesterday's DD40 ages every earlier day
+        window[before] = np.where(age[before] >= WINDOW_DD40, 0.0, window[before])
         window[d] = np.where(on, dh[d], 0.0)
-        total = window[: d + 1].sum(axis=0)
         hard_freeze = lo_f[d] <= HARD_FREEZE_F
-        window[: d + 1] = np.where(hard_freeze, 0.0, window[: d + 1])
-        below_stop = window[: d + 1].sum(axis=0) < CUT_STOPS_F_HOURS
+        window[upto] = np.where(hard_freeze, 0.0, window[upto])
+        below_stop = window[upto].sum(axis=0) < CUT_STOPS_F_HOURS
         freeze = (lo_f[d] <= FREEZE_F) & below_stop
-        window[: d + 1] = np.where(freeze, 0.0, window[: d + 1])
+        window[upto] = np.where(freeze, 0.0, window[upto])
         cool = hi_f[d] < DH_BASE_F
         cool_run = np.where(cool, cool_run + 1, 0)
         factor = np.where(cool_run == 1, 2 / 3, np.where(cool_run == 2, 0.5, 0.0))
-        window[: d + 1] = np.where(cool & below_stop & ~freeze, window[: d + 1] * factor, window[: d + 1])
-        total = window[: d + 1].sum(axis=0)
+        window[upto] = np.where(cool & below_stop & ~freeze, window[upto] * factor, window[upto])
+        total = window[upto].sum(axis=0)
         eip = 100 * total / EIP_FULL_F_HOURS
         yesterday = rain[d - 1] if d > 0 else np.zeros(shape)
         wet = (rain[d] >= WET_RAIN_MM) | (yesterday >= YESTERDAY_RAIN_MM) | (wet_hours[d] >= DEW_HOURS)
@@ -317,6 +320,8 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
         since = np.where(np.isfinite(since), since + dd55[d], since)
         since = np.where(on & (count == 3), 0.0, since)
         out["symptoms_dd"][d] = since
+        while lo < d and not window[lo].any():
+            lo += 1
     return out
 
 

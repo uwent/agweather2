@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from agdata.places import DATA, counties, county_at, county_ids
-from agdata.planting import CROPS, typical_planting
+from agdata.planting import CROPS, planting_crop, typical_planting
 from agmodels.registry import all_models
 
 
@@ -86,3 +86,11 @@ def test_crop_models_have_planting_dates():
         biofix = model.SPEC.biofix
         if model.SPEC.group == "crop" and biofix is not None and biofix.label.startswith("Planting"):
             assert model.SPEC.topics[0] in CROPS, model.SPEC.id
+
+
+def test_a_perennials_models_take_no_planting():
+    """Apple's models count its stages from January 1: no planting tier, so a map doesn't ask for apple's planting
+    dates (apple scab's map failed on it)."""
+    for model_id in ("apple-scab", "fire-blight", "apple-stages"):
+        assert planting_crop(all_models()[model_id].SPEC) is None, model_id
+    assert planting_crop(all_models()["late-blight-dsv"].SPEC) == ("potato-stages", "potato")

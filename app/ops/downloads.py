@@ -28,6 +28,7 @@ import numpy as np
 
 from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, FILL
 from agdata.grid import NDFD
+from agdata.layers import NOT_LAYERS
 from agdata.pastyears import years_on_disk
 from agdata.store import DAILY, GridStore
 from agdata.timezones import window_timezones
@@ -89,7 +90,7 @@ def wanted(data_dir: Path, now: datetime, variables: list[str] | None = None) ->
     """(variable, year, why) for each file to build: missing, or built from an older write of its store; the current
     year's only if it's also older than CURRENT_EVERY."""
     known = {(e.variable, e.year): e for e in read_index(data_dir)}
-    names = variables or list(DAILY_VARIABLES)
+    names = variables or [n for n in DAILY_VARIABLES if n not in NOT_LAYERS]  # models' inputs aren't downloads
     found = []
     for year in years_on_disk(data_dir, DAILY):
         store = GridStore.open(data_dir, DAILY, year, [DAILY_VARIABLES[n] for n in names], add_missing=False)

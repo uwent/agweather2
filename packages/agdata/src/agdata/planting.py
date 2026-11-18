@@ -117,7 +117,9 @@ def planting_crop(spec: "ModelSpec") -> tuple[str, str] | None:
     a disease's gating or anchoring crop model, or a crop model itself when its biofix is the planting."""
     crops = crop_models(spec)
     if crops:
-        return crops[0], crops[0].removesuffix("-stages")
+        crop = crops[0].removesuffix("-stages")
+        # a perennial's stages (apple) count from January 1, not from a planting
+        return (crops[0], crop) if crop in CROPS else None
     if spec.group == "crop" and spec.biofix is not None and spec.biofix.label.lower().startswith("planting"):
         return spec.id, spec.topics[0]
     return None

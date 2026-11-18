@@ -130,7 +130,7 @@ _USES = (
 )
 # Internal variables that aren't layers: HRRR's shortwave before correction, the daily ET0 estimate the running
 # totals use for days missing hours, and the running counts of estimated and missing days
-_LEFT_OUT = {"shortwave_radiation_hrrr", "et0_sum_estimate"} | {
+NOT_LAYERS = {"shortwave_radiation_hrrr", "et0_sum_estimate"} | {
     "scab_infection",
     "scab_wet_hours",
     "scab_wet_temperature",
@@ -175,7 +175,7 @@ def _layers() -> list[Layer]:
             climate=("normal", "departure") if v.name in NORMAL_DAILY else (),
         )
         for v in [*DAILY_VARIABLES.values(), *(c.variable for c in DAILY_COMPUTED.values())]
-        if v.name not in _LEFT_OUT
+        if v.name not in NOT_LAYERS
     ]
     found += [
         Layer(
@@ -191,7 +191,7 @@ def _layers() -> list[Layer]:
             stats=_hourly_stats(v),
         )
         for v in [*VARIABLES.values(), *(c.variable for c in HOURLY_COMPUTED.values())]
-        if v.name not in _LEFT_OUT
+        if v.name not in NOT_LAYERS
     ]
     found += [
         Layer(
