@@ -75,7 +75,7 @@ INSECT = Insect(
         ),
         Check(
             kind="system",
-            against="NEWA's codling moth model on the weather of 67 Wisconsin orchard stations, 2024 and 2025",
+            against="NEWA's codling moth model on the weather of 34 Wisconsin orchard stations, 2024 and 2025",
             result="Given the same first catch, our egg hatch window opens on NEWA's first spray date or the day after. Without a trap date, our estimated first catch comes a median of 6 days before NEWA's default.",
             report="docs/validation/models/codling-moth.md#against-newa-on-the-same-weather",
         ),

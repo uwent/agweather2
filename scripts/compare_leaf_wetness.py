@@ -109,11 +109,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--years", type=int, nargs="+", required=True)
     parser.add_argument("--data", default="data")
-    parser.add_argument(
-        "--out",
-        default="tmp/newa/validation-leaf-wetness.md",
-        help="kept out of docs/ until NEWA agrees to a published comparison",
-    )
+    parser.add_argument("--out", default="docs/validation/weather/leaf-wetness.md")
     parser.add_argument("--quiet", action="store_true", help="print only warnings, failures and the summary")
     args = parser.parse_args()
     report = Reporter(quiet=args.quiet)
@@ -146,7 +142,7 @@ def main():
             seasons.append(season)
         report.progress("station-seasons", n, len(files))
     report.step(f"scoring {len(candidates())} estimates on {len(seasons)} station-seasons")
-    text = build_report(seasons=seasons, report=report)
+    text = build_report(seasons=seasons, years=args.years, report=report)
     if gauge_failures:
         text += f"\nLeft out for a failed rain gauge (observed April–June rain under {GAUGE_MIN_RATIO:.0%} of the archive's at the cell): {', '.join(gauge_failures)}. The truth's scab events need the station's rain, so a gauge reading near zero would hide them.\n"
     Path(args.out).write_text(text)
@@ -375,11 +371,13 @@ class Score:
     scab: tuple[set[int], set[int], list[int]] | None = None
 
 
-def build_report(seasons: list[Season], report: Reporter) -> str:
+def build_report(seasons: list[Season], years: list[int], report: Reporter) -> str:
     methods = candidates()
     lines = ["# Leaf wetness estimated from weather, against NEWA's orchard sensors", ""]
     lines += [
-        "Written by `scripts/compare_leaf_wetness.py` (docs/models-plan.md part B5). The truth is each NEWA station's leaf wetness sensor (an hour wet at 30 minutes or more); only hours the station observed are scored. Each estimate runs on the station's own hours and on the archive's hours at the station's cell. Event scores are Cohen's kappa over station-days: apple scab infection events by NEWA's rules (both sides use the station's rain and temperature on station inputs, the archive's on grid inputs; the truth always uses the sensor with the station's rain and temperature) and fire blight wetting days (2 wet hours or more).",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_leaf_wetness.py` (docs/models-plan.md part B5), on the hours of {min(years)}–{max(years)}. Apple scab and fire blight need the hours a leaf is wet, which the archive has no sensor for, so the models estimate wetness from humidity, dew point, wind and rain. This compares {len(methods)} candidate estimates with the leaf wetness sensors at the Wisconsin orchard stations of NEWA (the Network for Environment and Weather Applications, Cornell University; hourly station data from newa.cornell.edu), to choose the estimate the models use and to measure its errors.",
+        "",
+        "The truth is each NEWA station's leaf wetness sensor (an hour wet at 30 minutes or more); only hours the station observed are scored. Each estimate runs on the station's own hours and on the archive's hours at the station's cell. Event scores are Cohen's kappa over station-days: apple scab infection events by NEWA's rules (both sides use the station's rain and temperature on station inputs, the archive's on grid inputs; the truth always uses the sensor with the station's rain and temperature) and fire blight wetting days (2 wet hours or more).",
         "",
         f"{len(seasons)} station-seasons: {', '.join(sorted({s.station.split()[0] for s in seasons}))}.",
         "",

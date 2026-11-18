@@ -39,7 +39,7 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 
 ### Against NEWA on the same weather
 
-`scripts/check_codling_moth.py`; full tables in [codling-moth/newa-and-wisconsin.md](codling-moth/newa-and-wisconsin.md). NEWA's results are recomputed from its model's published rules (`scripts/newa_reference.py`, which reproduces NEWA's apple scab and fire blight pages exactly on twelve page exports) on the hours of 67 Wisconsin NEWA orchard stations, 2024 and 2025. Ours run on the same daily max and min, and on the archive at each station's cell.
+`scripts/check_codling_moth.py`; full tables in [codling-moth/newa-and-wisconsin.md](codling-moth/newa-and-wisconsin.md). NEWA's results are recomputed from its model's published rules (`scripts/newa_reference.py`, which reproduces NEWA's apple scab and fire blight pages exactly, row for row, on the page exports Ben made for four station-seasons) on the hours of 34 Wisconsin NEWA orchard stations, 2024 and 2025 (67 station-seasons). Ours run on the same daily max and min, and on the archive at each station's cell.
 
 | Ours − NEWA's, days | Median | 10th–90th percentile |
 | --- | --- | --- |

@@ -6,7 +6,7 @@ scripts/check_apple_scab.py does. Compared during NEWA's bloom (first blossom at
 15): first blossom, Cougarblight's four-day total (ours counts hours from 50 °F, NEWA's from 60; NEWA's risk level
 by the default history), MaryBlyt's EIP, and its Infection days.
 
-    uv run python scripts/check_fire_blight.py [--out tmp/newa/validation-fire-blight.md]
+    uv run python scripts/check_fire_blight.py [--out docs/validation/models/fire-blight/newa.md]
 """
 
 import argparse
@@ -51,7 +51,7 @@ def newa_bloom(rows: list[dict], year: int) -> tuple[int, int] | None:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default="tmp/newa/validation-fire-blight.md")
+    parser.add_argument("--out", default="docs/validation/models/fire-blight/newa.md")
     parser.add_argument("--data", default="data")
     args = parser.parse_args()
     stations = {s["id"]: s for s in json.loads((CACHE / "stations.json").read_text())}
@@ -146,6 +146,7 @@ def main():
         lines.append(
             f"- {kind} hours: Cougarblight on NEWA's level {same} of {days} bloom days ({same / max(days, 1):.0%}); EIP median absolute difference {np.median(eips[kind]):.0f}; NEWA's {n_inf} Infection days, {matched} matched within a day, {extra} of ours not in NEWA's"
         )
+    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text("\n".join(lines) + "\n")
     print("\n".join(lines[-3:]))
 

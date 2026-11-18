@@ -36,7 +36,7 @@ from collections.abc import Mapping
 
 import numpy as np
 
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk
+from agmodels.spec import Biofix, Change, Check, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk
 
 # NEWA's Revised Mills table: the period's mean temperature (°F, rounded) → wet hours an infection needs. MacHardy and
 # Gadoury (1989)'s Mills/a − 3 curve as NEWA tabulates it (newa.cornell.edu, apple scab, 2026).
@@ -73,6 +73,26 @@ SPEC = ModelSpec(
     summary="Primary apple scab infection periods from wet hours and temperature, with the share of the season's ascospores mature and released, from green tip until they're released.",
     topics=("apple-scab",),
     crops=("apple",),
+    checks=(
+        Check(
+            kind="published",
+            against="The ascospore maturity curve (Gadoury and MacHardy 1982; Stensvand et al. 2005) and the Revised Mills table (MacHardy and Gadoury 1989, as NEWA tabulates it)",
+            result="Estimated ascospore maturity follows the published curve (Gadoury and MacHardy 1982): half the season's spores are mature by 250 degree days (base 0 °C) and 95 percent by 420. The wet hours needed for infection follow NEWA's Revised Mills table, such as 8 hours at 55 °F.",
+            report="docs/validation/models/apple-scab.md#against-its-sources-numbers",
+        ),
+        Check(
+            kind="system",
+            against="NEWA's apple scab model on the weather of 63 Wisconsin orchard station-seasons, 2024 and 2025",
+            result="On the stations' own weather, our model found 669 of NEWA's 786 infection periods (85 percent), and 648 (82 percent) on our map's weather at the same places. We checked first that we reproduce NEWA's own results exactly from its published rules.",
+            report="docs/validation/models/apple-scab.md#against-newa-on-the-same-weather",
+        ),
+        Check(
+            kind="observations",
+            against="Leaf wetness sensors at NEWA's Wisconsin orchard stations, 2024–2026",
+            result="From April through June, wetness estimated from our map's weather gave 560 of the 750 infection events the sensors gave, and 299 the sensors didn't. So the model tends to show more infection periods than a sensor in the orchard would.",
+            report="docs/validation/models/apple-scab.md#the-wetness-estimate-against-orchard-sensors",
+        ),
+    ),
     citations=(
         Citation(
             text="Gadoury, D. M. and MacHardy, W. E. (1982). A model to estimate the maturity of ascospores of Venturia inaequalis. Phytopathology 72, 901–904.",

@@ -10,7 +10,7 @@ Compared, from green tip through June: green tip, the day ascospores reach 95 %,
 infection days. A NEWA infection (a merged wet period) is matched when one of ours falls from its first day to its
 last; one of ours unmatched is a false alarm against NEWA.
 
-    uv run python scripts/check_apple_scab.py [--out tmp/newa/validation-apple-scab.md]
+    uv run python scripts/check_apple_scab.py [--out docs/validation/models/apple-scab/newa.md]
 """
 
 import argparse
@@ -132,7 +132,7 @@ def match(newa_events, our_days):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default="tmp/newa/validation-apple-scab.md")
+    parser.add_argument("--out", default="docs/validation/models/apple-scab/newa.md")
     parser.add_argument("--data", default="data")
     args = parser.parse_args()
     stations = {s["id"]: s for s in json.loads((CACHE / "stations.json").read_text())}
@@ -140,7 +140,7 @@ def main():
     lines = [
         "# Apple scab: ours against NEWA's on Wisconsin's orchard stations",
         "",
-        "Written by `scripts/check_apple_scab.py`. NEWA: its rules on the station's hours and leaf wetness sensor (`scripts/newa_reference.py`). Ours: the station's own hours with wetness estimated (RH ≥ 90 % or rain), and the archive's hours at the station's cell. Green tip through June 30. Days: NEWA's on the local clock, ours on CST.",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/check_apple_scab.py`, on the hourly data of NEWA's Wisconsin orchard stations (the Network for Environment and Weather Applications, Cornell University; newa.cornell.edu), 2024–2025. NEWA: its rules on the station's hours and leaf wetness sensor (`scripts/newa_reference.py`). Ours: the station's own hours with wetness estimated (RH ≥ 90 % or rain), and the archive's hours at the station's cell. Green tip through June 30. Days: NEWA's on the local clock, ours on CST.",
         "",
         "| Station | Year | Green tip NEWA / station / grid | 95 % mature | Season over | NEWA infections | Station: hit / missed / extra | Grid: hit / missed / extra |",
         "| --- | --- | --- | --- | --- | --- | --- | --- |",

@@ -39,7 +39,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels.degree_days import degree_days_sine
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity, Risk
+from agmodels.spec import Biofix, Change, Check, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity, Risk
 
 # Cougarblight's hourly value by the hour's temperature, rounded to a whole °F (Smith's table, 2019 sheet and NEWA)
 COUGARBLIGHT_F: dict[int, float] = {
@@ -88,6 +88,26 @@ SPEC = ModelSpec(
     summary="Fire blight blossom infection risk during bloom, by Cougarblight 2010's four-day temperature risk and MaryBlyt's infection potential, with wetting and expected symptoms.",
     topics=("fire-blight",),
     crops=("apple",),
+    checks=(
+        Check(
+            kind="published",
+            against="The worked examples published with MaryBlyt 7.1 (Turechek and Biggs 2015)",
+            result="Given the same daily weather, our infection potential reproduces all 38 daily degree-hour totals in the program's three example seasons.",
+            report="docs/validation/models/fire-blight.md#against-its-sources-numbers",
+        ),
+        Check(
+            kind="system",
+            against="NEWA's fire blight model on the weather of 34 Wisconsin orchard stations, 2024 and 2025",
+            result="On the stations' weather, our Cougarblight risk level matched NEWA's on 95% of bloom days, and our MaryBlyt infection days matched 130 of NEWA's 146 within a day. On our map's weather at the same places, the risk level matched on 89% of days.",
+            report="docs/validation/models/fire-blight.md#against-newa-on-the-same-weather",
+        ),
+        Check(
+            kind="published",
+            against="A field evaluation of an early version of MaryBlyt in 11 Michigan orchard-years (Jones 1992)",
+            result="Blight appeared 1 to 2 days after the predicted symptom dates, but infection warnings included false alarms and missed light blight. Neither model has been tested against fire blight in Wisconsin orchards.",
+            report="docs/validation/models/fire-blight.md#field-evidence-from-michigan",
+        ),
+    ),
     citations=(
         Citation(
             text="Smith, T. J. and Pusey, P. L. (2011). CougarBlight 2010, a significant update of the CougarBlight fire blight infection risk model. Acta Horticulturae 896, 331–336.",
@@ -100,6 +120,10 @@ SPEC = ModelSpec(
         Citation(
             text="Turechek, W. W. and Biggs, A. R. (2015). Maryblyt v. 7.1 for Windows: an improved fire blight forecasting program for apples and pears. Plant Health Progress 16, 16–22.",
             doi="10.1094/PHP-RS-14-0046",
+        ),
+        Citation(
+            text="Jones, A. L. (1992). Evaluation of the computer model MARYBLYT for predicting fire blight blossom infection on apple in Michigan. Plant Disease 76, 344–347.",
+            doi="10.1094/PD-76-0344",
         ),
         Citation(
             text="Biggs, A. R. and Turechek, W. W. (2018). Maryblyt 7.1.1 for Windows: a predictive program for forecasting fire blight disease in apples and pears. User manual, West Virginia University and USDA-ARS.",

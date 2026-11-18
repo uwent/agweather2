@@ -10,12 +10,13 @@ January 1; 2015 issues): silver tip 61–109, green tip 97–145, half-inch gree
 set, the name used here.
 
 NEWA's own single sine has `sin` where Baskerville and Emin's method has `asin` (and π as 3.14); this model uses the
-method as published, which puts a stage a day earlier or later than NEWA's at most (models-plan B5). Earlier
-cultivars (Gala, Honeycrisp) and later ones run a few days either side of McIntosh; a grower's own stage
-observations are the better guide in the orchard.
+method as published, which puts a stage on NEWA's day in 95–102 of 103 Wisconsin station-seasons and at most two days
+off (docs/validation/models/apple-stages.md). Early cultivars (Zestar, Paula Red) run a few days ahead of McIntosh and late ones behind
+(Wisconsin observations: early cultivars a mean 2.8 days ahead); a grower's own stage observations are the better guide in the orchard.
 
 Not modelled: harvest maturity (MSU's McIntosh, Jonathan and Red Delicious formulas; out of scope), MSU's base
-42 °F stage table from March 1 (NEWA's wins, D95), and the cover-spray intervals after fruit set.
+42 °F stage table (Enviroweather's code counts it from January 1; NEWA's wins, D95), and the cover-spray intervals
+after fruit set.
 """
 
 from collections.abc import Mapping
@@ -25,7 +26,7 @@ import numpy as np
 from agmodels.crops import CropStage, stage_reached
 from agmodels.degree_days import degree_days_sine
 from agmodels.ingredients import Accumulation, DegreeDays, Ingredient, finished
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity
+from agmodels.spec import Biofix, Change, Check, Citation, ExplorerInput, Input, ModelSpec, Quantity
 
 BASE_F = 43.0
 # Degree days (base 43 °F, from January 1) at which each stage begins: NEWA's stage table
@@ -56,6 +57,26 @@ SPEC = ModelSpec(
     summary="Apple's stages from silver tip to fruit set, by degree days (base 43 °F) from January 1, at the thresholds NEWA uses.",
     topics=("apple",),
     crops=("apple",),
+    checks=(
+        Check(
+            kind="published",
+            against="McIntosh stages at Geneva, New York, over about 26 years (Cornell's Scaffolds Fruit Journal)",
+            result="Each of the eight stages begins at a degree-day total inside the range in which McIntosh reached that stage at Geneva. Bloom, for example, begins at 346 degree days (base 43 °F from January 1), against Geneva's range of 345 to 417.",
+            report="docs/validation/models/apple-stages.md#against-its-sources-numbers",
+        ),
+        Check(
+            kind="system",
+            against="NEWA's apple stages on the weather of 36 Wisconsin orchard stations, 2024–2026",
+            result="On the same weather, each stage begins on the same day as NEWA's in 95 to 102 of 103 station-seasons, and never more than 2 days apart. The small differences come from NEWA's slightly different degree-day formula.",
+            report="docs/validation/models/apple-stages.md#against-newa-on-the-same-weather",
+        ),
+        Check(
+            kind="observations",
+            against="Apple stages observed at research stations and orchards in Wisconsin, 2023–2026 (UW–Madison's fruit program, growers)",
+            result="The model gave the observed stage on 41 of 57 dated observations, and was within 3 days on 46. Early cultivars such as Zestar ran a mean of 2.8 days ahead of the model, which follows McIntosh's timing.",
+            report="docs/validation/models/apple-stages.md#against-stages-observed-in-wisconsin",
+        ),
+    ),
     citations=(
         Citation(
             text="NEWA, Network for Environment and Weather Applications, Cornell University: apple phenological stages (base 43 °F, Baskerville–Emin, from January 1).",
