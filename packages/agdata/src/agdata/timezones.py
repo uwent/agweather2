@@ -18,7 +18,7 @@ import numpy as np
 from timezonefinder import TimezoneFinder
 
 from agdata.grid import NDFD, Window
-from agmodels.features import EVENING_HOUR, OVERNIGHT_HOUR
+from agmodels.features import EVENING_HOUR, OVERNIGHT_HOUR, SCAB_HOURS
 
 GRID_ZONE = "Etc/GMT+6"  # CST all year (POSIX sign: west is +)
 DayBasis = Literal["central", "local"]
@@ -81,9 +81,15 @@ def overnight_bounds(day: date, zone: str) -> tuple[datetime, datetime]:
     return window_bounds(day, zone, OVERNIGHT_HOUR)
 
 
+def scab_bounds(day: date, zone: str) -> tuple[datetime, datetime]:
+    """Apple scab's window: the SCAB_HOURS readings through the day's last (01:00 four days before … 24:00), D96."""
+    end = day_bounds(day, zone)[1]
+    return end - (SCAB_HOURS - 1) * HOUR, end
+
+
 def first_reading(day: date, zone: str) -> datetime:
-    """The earliest reading any of a day's windows reads (the overnight window's first)."""
-    return overnight_bounds(day, zone)[0]
+    """The earliest reading any of a day's windows reads (apple scab's window's first)."""
+    return scab_bounds(day, zone)[0]
 
 
 def _fixed_zone(lon: float) -> str:

@@ -12,7 +12,7 @@ import pytest
 from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES
 from agdata.daily import daily_statistic, feature_groups
 from agdata.point import daily_at_point
-from agdata.timezones import GRID_ZONE, day_bounds, evening_bounds, overnight_bounds
+from agdata.timezones import GRID_ZONE, day_bounds, evening_bounds, overnight_bounds, scab_bounds
 from agmodels import features
 from agmodels.weather import relative_humidity_percent
 
@@ -98,6 +98,13 @@ def _daily_at_point_day_by_day(
             values |= features.evening_features(h["temperature"], h["rh"], local_hour, rh_90_at=rh_90_at)
         if "overnight" in groups:
             values |= features.overnight_features(segment("air_temperature", *overnight_bounds(day, zone)))
+        if "scab" in groups:
+            begin, end = scab_bounds(day, zone)
+            h = humid(begin, end)
+            local_hour = np.array([(begin + n * HOUR).astimezone(tz).hour for n in range(len(h["rh"]))])
+            values |= features.scab_features(
+                h["temperature"], h["rh"], segment("precipitation", begin, end), local_hour
+            )
         for name, value in values.items():
             out.setdefault(name, []).append(np.broadcast_to(np.asarray(value, dtype=float), rest))
     return {name: np.array(series) for name, series in out.items()}

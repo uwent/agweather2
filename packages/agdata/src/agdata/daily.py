@@ -23,7 +23,7 @@ from agdata.catalog import DAILY_MIN_HOURS, DAILY_STATISTICS, DAILY_VARIABLES, V
 from agdata.gaps import estimate_et0_hourly_mm
 from agdata.grid import NDFD, Window
 from agdata.store import DAILY, HOURLY, GridStore
-from agdata.timezones import GRID_ZONE, day_bounds, evening_bounds, overnight_bounds
+from agdata.timezones import GRID_ZONE, day_bounds, evening_bounds, overnight_bounds, scab_bounds
 from agmodels import features
 from agmodels.weather import relative_humidity_percent
 
@@ -123,7 +123,7 @@ Span = tuple[datetime, datetime]  # a window's first and last readings (hour end
 
 def feature_groups() -> dict[str, str]:
     """Which feature function makes each daily feature (`calendar`, `soil`, `chill`, `livestock`, `evening`,
-    `overnight`), from one call of each on a day of probe hours, so the table always says what the code does."""
+    `overnight`, `scab`), from one call of each on a day of probe hours, so the table always says what the code does."""
     return dict(_FEATURE_GROUP)
 
 
@@ -137,6 +137,7 @@ def _probe_groups() -> dict[str, str]:
         "livestock": features.livestock_features(t, rh, t, t),
         "evening": features.evening_features(t, rh, np.arange(24)),
         "overnight": features.overnight_features(t),
+        "scab": features.scab_features(t, rh, np.zeros(24), np.arange(1, 25) % 24),
     }
     return {name: group for group, values in made.items() for name in values}
 
@@ -150,6 +151,7 @@ _GROUP_HOURS = {
     "livestock": ("air_temperature", "dew_point", "wind_speed", "shortwave_radiation"),
     "evening": ("air_temperature", "dew_point"),
     "overnight": ("air_temperature",),
+    "scab": ("air_temperature", "dew_point", "precipitation"),
 }
 _ET0_ESTIMATE = "et0_sum_estimate"
 
@@ -176,8 +178,9 @@ def _rolled(
     calendar = [day_bounds(day, GRID_ZONE) for day in days]
     evenings = [evening_bounds(day, GRID_ZONE) for day in days]
     overnights = [overnight_bounds(day, GRID_ZONE) for day in days]
+    scabs = [scab_bounds(day, GRID_ZONE) for day in days]
     span_start, span_stop = calendar[0][0], calendar[-1][1] + HOUR
-    feature_start = min(span_start, evenings[0][0], overnights[0][0])
+    feature_start = min(span_start, evenings[0][0], overnights[0][0], scabs[0][0])
     for band in _bands(window):
         out: dict[str, np.ndarray] = {}
         for name in VARIABLES:
@@ -204,11 +207,13 @@ def _rolled(
             hours = {name: hourly.read(name, feature_start, span_stop, band) for name in read}
             if "dew_point" in hours:
                 hours["rh"] = relative_humidity_percent(hours["air_temperature"], hours["dew_point"])
-            out |= _features(groups, hours, feature_start, calendar, evenings, overnights)
+            out |= _features(groups, hours, feature_start, calendar, evenings, overnights, scabs)
         yield band, {name: values for name, values in out.items() if name in wanted}
 
 
-def _features(groups: set[str], hours: dict[str, np.ndarray], first_hour: datetime, calendar, evenings, overnights):
+def _features(
+    groups: set[str], hours: dict[str, np.ndarray], first_hour: datetime, calendar, evenings, overnights, scabs
+):
     """The wanted feature groups' daily features from the hours they read."""
     out: dict[str, np.ndarray] = {}
     day_groups = groups & {"calendar", "soil", "chill", "livestock"}
@@ -241,6 +246,13 @@ def _features(groups: set[str], hours: dict[str, np.ndarray], first_hour: dateti
     if "overnight" in groups:
         out |= _each_window(
             hours, first_hour, overnights, lambda h, _: features.overnight_features(h["air_temperature"])
+        )
+    if "scab" in groups:
+        out |= _each_window(
+            hours,
+            first_hour,
+            scabs,
+            lambda h, local_hour: features.scab_features(h["air_temperature"], h["rh"], h["precipitation"], local_hour),
         )
     return out
 

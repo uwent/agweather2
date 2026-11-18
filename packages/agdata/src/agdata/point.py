@@ -16,7 +16,7 @@ import numpy as np
 from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES
 from agdata.computed import DAILY_COMPUTED, expand
 from agdata.daily import daily_statistic, feature_groups
-from agdata.timezones import day_bounds, evening_bounds, overnight_bounds
+from agdata.timezones import day_bounds, evening_bounds, overnight_bounds, scab_bounds
 from agmodels import features
 from agmodels.weather import relative_humidity_percent
 
@@ -143,6 +143,19 @@ def daily_at_point(
     if "overnight" in groups:
         for k0, k1, begin, length in runs(lambda day: overnight_bounds(day, zone)):
             put(k0, k1, features.overnight_features(stacked("air_temperature", begin, length, k1 - k0)))
+    if "scab" in groups:
+        # Overlapping windows (120 hours each), so day by day rather than reshaped runs
+        for k, day in enumerate(days):
+            begin, end = scab_bounds(day, zone)
+            temperature, dew_point = segment("air_temperature", begin, end), segment("dew_point", begin, end)
+            local_hour = np.array([(begin + n * HOUR).astimezone(tz).hour for n in range((end - begin) // HOUR + 1)])
+            values = features.scab_features(
+                temperature,
+                relative_humidity_percent(temperature, dew_point),
+                segment("precipitation", begin, end),
+                local_hour,
+            )
+            put(k, k + 1, values)
     for name in names or ():
         c = DAILY_COMPUTED.get(name)
         if c is not None and all(each in out for each in c.inputs):
@@ -168,7 +181,8 @@ def hourly_sources() -> dict[str, tuple[str, ...]]:
     by rolling up one probe day with every hourly variable, then with each left out in turn, and seeing which daily
     values go missing. So the table always says what the rollup does (`GET /models/{id}`'s `derivable_from_hourly`,
     and which station variables a POSTed run needs, D58)."""
-    day, first_hour, n = date(2025, 7, 15), datetime(2025, 7, 14, tzinfo=UTC), 72  # the day, with a day either side
+    # The day, with apple scab's four days before it (D96) and a day after
+    day, first_hour, n = date(2025, 7, 15), datetime(2025, 7, 10, tzinfo=UTC), 168
 
     def roll_up(left_out: str | None) -> dict[str, np.ndarray]:
         hours = {

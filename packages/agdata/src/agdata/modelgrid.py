@@ -42,7 +42,7 @@ from agmodels.crops import CropModel, disease_susceptibility
 from agmodels.ingredients import Accumulation, Ingredient, until_day
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
-from agmodels.runner import default_biofix
+from agmodels.runner import default_biofix, january_crop_start
 from agmodels.spec import Model, ModelSpec
 
 # Models with ingredients that aren't model layers, and why
@@ -258,6 +258,8 @@ def model_map(
         cell_biofix = sown
     elif sown is not None and spec.biofix_stage is not None:
         cell_biofix = _stage_reached(data_dir, sown, spec.biofix_stage[1], last, now)
+    elif spec.biofix_stage is not None and january_crop_start(spec, first) is not None:
+        cell_biofix = _january_stage_reached(data_dir, spec.biofix_stage, window, last, now, stores)
     if model_id in ON_REQUEST:
         found = _anchored_days(data_dir, model_id, first, last, window, now, stores, cell_biofix)
     else:
@@ -323,8 +325,9 @@ def _stored_days(data_dir, sown: _Planting, first: date, last: date, now, stores
     return _finished(spec, base, dates, outputs, None, None, reader, cells=planted)
 
 
-# Models with neither ingredients nor stored outputs, computed on request from the days around their biofix
-ON_REQUEST = ("red-crown-rot",)
+# Models with neither ingredients nor stored outputs, computed on request from the days around their biofix (red crown
+# rot from R1; apple scab from green tip, a state carried day to day)
+ON_REQUEST = ("red-crown-rot", "apple-scab")
 
 
 def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Window, now, stores, cell_biofix):
@@ -403,6 +406,27 @@ def _stage_reached(data_dir, sown: _Planting, code: str, last: date, now):
             else:
                 # As `update` kept them: a day after the request's last counts as not reached yet
                 seasons[day.year] = np.where(stored[k] > last.toordinal(), np.inf, stored[k])
+        return seasons[day.year]
+
+    return biofix
+
+
+def _january_stage_reached(data_dir, anchor: tuple[str, str], window: Window, last: date, now, stores):
+    """Each cell's first day at a stage of a crop model counted from January 1 (apple stages' green tip), as date
+    ordinals (inf if not reached by `last`): `cell_biofix(day)` for the season `day` falls in, from the crop's map."""
+    crop_id, code = anchor
+    crop = cast(CropModel, find_model(crop_id))
+    k = [s.code for s in crop.stages()].index(code)
+    seasons: dict[int, np.ndarray] = {}
+
+    def biofix(day: date) -> np.ndarray:
+        if day.year not in seasons:
+            january = date(day.year, 1, 1)
+            end = min(last, date(day.year, 12, 31))
+            stage = model_days(data_dir, crop_id, january, end, window, now=now, stores=stores).outputs["stage"]
+            passed = stage >= k
+            first = np.argmax(passed, axis=0)
+            seasons[day.year] = np.where(passed.any(axis=0), january.toordinal() + first, np.inf).astype(float)
         return seasons[day.year]
 
     return biofix

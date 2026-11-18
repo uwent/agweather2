@@ -139,6 +139,14 @@ def test_a_maps_cell_is_the_model_run_at_that_cell(built, model_id):
                         )
 
 
+def test_apple_scabs_map_starts_at_each_cells_green_tip(built):
+    # The parity test above, with something to compare: green tip comes from apple stages' map in May
+    root, _ = built
+    found = modelgrid.model_map(root, "apple-scab", DAYS[0], DAYS[1], WINDOW, tier=None)
+    maturity = found.outputs["maturity"]
+    assert np.isfinite(maturity[-1]).all() and (maturity[-1] > 0).all()
+
+
 def test_days_before_a_models_biofix_are_missing(built):
     root, _ = built
     found = modelgrid.model_days(root, "corn-earworm", date(2025, 7, 30), date(2025, 7, 31), WINDOW)  # biofix 08-01

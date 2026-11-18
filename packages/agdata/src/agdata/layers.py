@@ -130,7 +130,15 @@ _USES = (
 )
 # Internal variables that aren't layers: HRRR's shortwave before correction, the daily ET0 estimate the running
 # totals use for days missing hours, and the running counts of estimated and missing days
-_LEFT_OUT = {"shortwave_radiation_hrrr", "et0_sum_estimate"}
+_LEFT_OUT = {"shortwave_radiation_hrrr", "et0_sum_estimate"} | {
+    "scab_infection",
+    "scab_wet_hours",
+    "scab_wet_temperature",
+    "scab_period_truncated",
+    "precipitation_7am_to_7pm",
+    "precipitation_8pm_to_6am",
+    "temperature_mean_rain_7am_to_7pm",
+}  # apple scab's inputs (D96): what its map shows
 
 
 def use_for(name: str) -> str:

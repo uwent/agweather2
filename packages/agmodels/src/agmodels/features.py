@@ -12,7 +12,11 @@ between A and B. Clock hours are the day basis's: CST all year on the grid, a po
 - tar spot's night (`_7pm_to_6am`): 7 pm to 6 am (readings 20:00–06:00, 11 hours), the window Webster et al.'s
   coefficients were fitted on as the Crop Risk Tool counts it;
 - overnight (`_overnight`): noon the day before to noon (readings 13:00–12:00), for the night's minimum, which on a
-  winter morning can come after 7 am.
+  winter morning can come after 7 am;
+- apple scab's (`scab_…`, and the day's rain by day and night): the 120 hours to the day's end (readings 01:00 four
+  days before through 24:00), in which `apple_scab.infection_periods` finds the wet periods reaching into the day, so
+  a period that began days earlier is counted whole (D96). The day's rain 7 am to 7 pm is readings 07:00–19:00, the
+  night's 8 pm to 6 am readings 20:00 the day before through 06:00 (NEWA's).
 
 The reducers take one window's hours on axis 0 (a point (hours,) or the grid (hours, y, x)). A count with any hour
 missing is missing (D25), and so is a mean over hours none of which qualify (there's nothing to average).
@@ -27,6 +31,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels import chill, livestock
+from agmodels.models import apple_scab
 
 # Windows within a day, by the clock hour each ends at (readings stamped after the hour the day before, through it)
 EVENING_HOUR = 18  # the day from 6 pm
@@ -172,6 +177,47 @@ def overnight_features(temperature_c: np.ndarray) -> dict[str, np.ndarray]:
     """The overnight minimum, over noon the day before to noon (readings 13:00–12:00); missing with fewer than
     MIN_HOURS of them (D25)."""
     return {"air_temperature_min_overnight": daily_statistics("air_temperature", temperature_c)["air_temperature_min"]}
+
+
+SCAB_HOURS = apple_scab.WINDOW_HOURS  # the scab window's length (hours ending at the day's last reading)
+DAY_RAIN = (6, 19)  # readings after 06:00 through 19:00
+NIGHT_RAIN = (19, 6)  # readings after 19:00 the day before through 06:00
+
+
+def scab_features(
+    temperature_c: np.ndarray, rh_percent: np.ndarray, precipitation_mm: np.ndarray, local_hour: np.ndarray
+) -> dict[str, np.ndarray]:
+    """Apple scab's daily features from the SCAB_HOURS hours ending at a day's last reading (axis 0; `local_hour`
+    each reading's clock hour): its infection periods (`apple_scab.infection_periods`), the day's rain from 7 am to 7
+    pm and the night's from 8 pm to 6 am (NEWA's discharge windows), and the mean temperature of the day's rainy
+    hours (0.01 in or more) from 7 am to 7 pm. Sums need all their hours; a mean with no rainy hour is missing."""
+    t = np.asarray(temperature_c, dtype=float)
+    rain = np.asarray(precipitation_mm, dtype=float)
+    shape = (-1, *([1] * (t.ndim - 1)))
+    hour = np.asarray(local_hour)
+    n = t.shape[0]
+    position = np.arange(n)
+    today = position >= n - 24
+    day = (today & (hour > DAY_RAIN[0]) & (hour <= DAY_RAIN[1])).reshape(shape)
+    # Readings 20:00 the day before (29 hours before the day's last) through 06:00 (18 before)
+    night = ((position >= n - 29) & (position <= n - 19) & in_hours(hour, *NIGHT_RAIN)).reshape(shape)
+    periods = apple_scab.infection_periods(t, rh_percent, rain)
+
+    def total(where: np.ndarray) -> np.ndarray:
+        picked = np.where(where, rain, 0.0)
+        missing = (np.isnan(rain) & where).any(axis=0)
+        return np.where(missing, np.nan, np.nansum(picked, axis=0))
+
+    rainy = np.where(day, np.where(np.isnan(rain), np.nan, rain >= apple_scab.RAIN_MM), 0.0)
+    return {
+        "scab_infection": periods["infection"],
+        "scab_wet_hours": periods["wet_hours"],
+        "scab_wet_temperature": periods["wet_temperature"],
+        "scab_period_truncated": periods["truncated"],
+        "precipitation_7am_to_7pm": total(day),
+        "precipitation_8pm_to_6am": total(night),
+        "temperature_mean_rain_7am_to_7pm": mean_where(np.where(day, t, 0.0), rainy),
+    }
 
 
 def across_days(daily: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:

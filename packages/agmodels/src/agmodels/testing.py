@@ -45,6 +45,12 @@ def year_of_weather() -> dict[str, np.ndarray]:
         "soil_temperature_4cm_min": soil - 4,
         "soil_temperature_10cm_min": soil - 2,
         "soil_temperature_30cm_min": soil,
+        "precipitation_7am_to_7pm": np.where(rng.random(DAYS) < 0.2, rng.exponential(4, DAYS), 0.0),
+        "precipitation_8pm_to_6am": np.where(rng.random(DAYS) < 0.2, rng.exponential(4, DAYS), 0.0),
+        "temperature_mean_rain_7am_to_7pm": mean - 1,
+        "scab_infection": (rng.random(DAYS) < 0.1).astype(float),
+        "scab_wet_hours": np.round(np.clip(rng.exponential(5, DAYS), 0, 60)),
+        "scab_wet_temperature": mean - 2,
     }
 
 

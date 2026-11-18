@@ -85,6 +85,8 @@ def first_day_needed(m: Model, start: date, biofix: date | None = None, planting
     """The first day `run` needs for outputs from `start`: the earliest of start less the lookback, the biofix and
     the planting date (for a gated or stage-anchored model)."""
     first = start - timedelta(days=m.SPEC.lookback_days)
+    if planting is None and crop_models(m.SPEC):
+        planting = january_crop_start(m.SPEC, start)
     for anchor in (biofix or default_biofix(m.SPEC, start), planting if crop_models(m.SPEC) else None):
         if anchor is not None:
             first = min(first, anchor)
@@ -184,9 +186,21 @@ def crop_models(spec: ModelSpec) -> list[str]:
     return ids
 
 
+def january_crop_start(spec: ModelSpec, start: date | None) -> date | None:
+    """January 1 of `start`'s year when the crop model a model is gated by or anchored to counts from January 1 rather
+    than a planting (apple stages): nothing to plant, so it always runs. None otherwise, or without a start."""
+    crops = crop_models(spec)
+    if not crops or start is None:
+        return None
+    crop = find_model(crops[0]).SPEC
+    return date(start.year, 1, 1) if crop.biofix is not None and crop.biofix.default == "01-01" else None
+
+
 def _crop_stage(spec, dates, daily, context, planting, crop_options) -> np.ndarray | None:
     """The gating or anchoring crop model's stage each day from `planting` (NaN before), or None."""
     crops = crop_models(spec)
+    if crops and planting is None:
+        planting = january_crop_start(spec, dates[0] if dates else None)
     if not crops or planting is None:
         return None
     k = _index(dates, planting)

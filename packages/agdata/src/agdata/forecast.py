@@ -52,7 +52,7 @@ SOURCE_OF = {
     "relative_humidity": "derived",
     "et0": "derived",
 }
-STITCH_HOURS_BEFORE = 48  # archive hours copied before the first forecast hour: the run's first day and its windows
+STITCH_HOURS_BEFORE = 144  # archive hours copied before the first forecast hour: the run's first day and its windows (apple scab's reach 120 hours back, D96)
 CALIBRATION = calibration.fitted()  # read when adjust_hours runs, so tests can swap it
 
 
@@ -341,7 +341,7 @@ def stitch(data_dir: Path, path: Path, window: Window) -> datetime | None:
     copy_from = first_forecast - STITCH_HOURS_BEFORE * HOUR
     if observed is not None and observed >= copy_from:
         _copy_archive_hours(data_dir, path, window, copy_from, observed)
-    # The first grid day whose every window (back to noon the day before) is copied in. The last day may be partial
+    # The first grid day whose every window (back to apple scab's 120 hours) is copied in. The last day may be partial
     # (the rollup leaves its incomplete statistics missing).
     first_day = copy_from.date()
     while first_reading(first_day, GRID_ZONE) < copy_from:

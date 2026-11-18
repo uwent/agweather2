@@ -145,6 +145,13 @@ _ALL = [
     ),
     # Levels picked from ColorBrewer RdYlBu's 11 classes for distinct lightness under color-vision deficiencies
     _listed(
+        id="BuRd_2",
+        kind="categorical",
+        colors=["#4575b4", "#d73027"],
+        description="Blue, red",
+        source="ColorBrewer RdYlBu, 2 of its 11 classes",
+    ),
+    _listed(
         id="BuYlRd_3",
         kind="categorical",
         colors=["#4575b4", "#fee090", "#d73027"],
@@ -251,6 +258,7 @@ USES: dict[str, Use] = {
     "risk_value": Use(palette="viridis"),  # insects' activity (Ben, 2026-11-06)
     "chance": Use(palette="magma", day=(0, 100), bounded=True),
     "crop_stage": Use(palette="viridis"),
+    "risk_2": Use(palette="BuRd_2"),  # apple scab: low or infection
     "risk_3": Use(palette="BuYlRd_3"),
     "risk_4": Use(palette="BuYlRd_4"),
     "risk_5": Use(palette="BuYlRd_5"),

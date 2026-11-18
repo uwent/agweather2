@@ -768,8 +768,8 @@ class RunSpec:
 def with_planting(run: RunSpec, latitude: float, longitude: float, start: date) -> RunSpec:
     """The run with the typical planting date (D34) for a stage-gated model given none, where one is published."""
     crops = runner.crop_models(find_model(run.model_id).SPEC)
-    if run.planting is not None or not crops:
-        return run
+    if run.planting is not None or not crops or runner.january_crop_start(find_model(run.model_id).SPEC, start):
+        return run  # a crop counted from January 1 (apple) has nothing planted
     typical = typical_planting(crops[0].removesuffix("-stages"), latitude, longitude)
     if typical is None:
         return run

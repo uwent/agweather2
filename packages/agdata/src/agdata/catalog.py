@@ -366,6 +366,18 @@ _TEMPERATURE = {
 _DEPRESSION = {**_TEMPERATURE, "unit": "delta_degC"}  # a difference of temperatures: °F is ×1.8, no offset
 # THI is unitless, about 1.8 T + 32 in humid air: −45 at −40 °C, 120 at 50 °C and saturated
 _INDEX = {"unit": "index", "scale": 0.1, "valid_min": -80, "valid_max": 140, "derived": True, "gap_fill": "interpolate"}
+# A missing day's scab period counts as none, as a missing day's rain does (D45); the runner flags the day estimated
+_FLAG = {"unit": "index", "scale": 1, "valid_min": 0, "valid_max": 1, "derived": True, "gap_fill": "zero"}
+_PERIOD_HOURS = {"unit": "hour", "scale": 1, "valid_min": 0, "valid_max": 130, "derived": True, "gap_fill": "zero"}
+_RAIN = {
+    "unit": "mm",
+    "scale": 0.02,
+    "offset": 655.34,
+    "valid_min": 0,
+    "valid_max": 1300,
+    "derived": True,
+    "gap_fill": "zero",
+}
 DAILY_FEATURES: dict[str, Variable] = {
     v.name: v
     for v in [
@@ -450,6 +462,31 @@ DAILY_FEATURES: dict[str, Variable] = {
         Variable(name="hours_thi_over_68", long_name="Hours with a temperature humidity index of 68 or more", **_HOURS),
         Variable(name="hours_thi_over_72", long_name="Hours with a temperature humidity index of 72 or more", **_HOURS),
         Variable(name="cci_max", long_name="Cattle comfort index, daily max", **_TEMPERATURE),
+        # Apple scab (`agmodels.models.apple_scab`): wet periods found in the 120 hours to the day's end (D96), and
+        # the day's and night's rain for ascospore release
+        Variable(
+            name="scab_infection", long_name="Apple scab infection period reaching the Revised Mills table", **_FLAG
+        ),
+        Variable(
+            name="scab_wet_hours", long_name="Apple scab: wet hours of the day's latest wet period", **_PERIOD_HOURS
+        ),
+        Variable(
+            name="scab_wet_temperature",
+            long_name="Apple scab: mean temperature of the day's latest wet period",
+            **_TEMPERATURE,
+        ),
+        Variable(
+            name="scab_period_truncated",
+            long_name="Apple scab: the day's wet period may have begun before its 120 hours",
+            **_FLAG,
+        ),
+        Variable(name="precipitation_7am_to_7pm", long_name="Precipitation, 7 am to 7 pm", **_RAIN),
+        Variable(name="precipitation_8pm_to_6am", long_name="Precipitation, 8 pm the day before to 6 am", **_RAIN),
+        Variable(
+            name="temperature_mean_rain_7am_to_7pm",
+            long_name="Mean temperature of hours with 0.01 in of rain or more, 7 am to 7 pm",
+            **_TEMPERATURE,
+        ),
     ]
 }
 DAILY_VARIABLES.update(DAILY_FEATURES)
