@@ -29,8 +29,6 @@ def test_methods_options_and_biofix():
     no_upper = cdd.outputs(INPUTS, method="sine", base="41", upper="none")["dd"]
     assert no_upper[2] > cdd.outputs(INPUTS, method="sine", base="41", upper="86")["dd"][2]
     assert np.isnan(cdd.outputs(INPUTS, biofix_index=2)["dd_total"][:2]).all()
-    with pytest.raises(ValueError, match="upper"):
-        cdd.outputs(INPUTS, method="average", upper="86")
     with pytest.raises(ValueError, match="base"):
         cdd.outputs(INPUTS, base="warm")
 
@@ -41,6 +39,17 @@ def test_the_simple_average_without_an_upper_matches_its_function():
     out = cdd.outputs(INPUTS, method="average", base="50", upper="none", unit="F")["dd"]
     np.testing.assert_allclose(out[:3], degree_days_average(LO[:3] * 1.8 + 32, HI[:3] * 1.8 + 32, 50))
     assert np.isnan(out[3])
+
+
+def test_the_simple_average_with_an_upper_caps_both_temperatures():
+    from agmodels.degree_days import degree_days_average
+
+    out = cdd.outputs(INPUTS, method="average", base="50", upper="86", unit="F")["dd"]
+    np.testing.assert_allclose(out[:3], degree_days_average(LO[:3] * 1.8 + 32, HI[:3] * 1.8 + 32, 50, 86))
+    # A day of 60 and 100 °F: (60 + 86) / 2 − 50 = 23, not the uncapped 30
+    one = {"air_temperature_min": np.array([(60 - 32) / 1.8]), "air_temperature_max": np.array([(100 - 32) / 1.8])}
+    assert cdd.outputs(one, method="average", base="50", upper="86")["dd"][0] == pytest.approx(23)
+    assert cdd.outputs(one, method="average", base="50", upper="none")["dd"][0] == pytest.approx(30)
 
 
 def test_an_unknown_method_is_refused():

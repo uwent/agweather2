@@ -14,7 +14,7 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 ## Choices and differences
 
 - **Units:** thresholds may be given in °F or °C; degree days are linear in the temperature scale, so they're computed in °F with the thresholds converted and returned in °F·d (°C·d are 5/9 of them, converted for display).
-- **Upper threshold:** the simple average takes none (the modified average is the one with a cutoff); asking for one is refused with a message saying so.
+- **Upper threshold:** every method takes one. The simple average caps both the minimum and the maximum at it before averaging (Funderburk et al. 1984's seedcorn maggot thermal units, and the API's degree-day calculator); the modified average also raises a minimum below the base to the base. Until 0.2 the model refused an upper threshold with the simple average, so its default (86 °F) made the simple average fail, while the API's calculator accepted one.
 - **Missing days:** a missing day has no value and adds nothing to the running total.
 - **Days:** midnight to midnight CST in the grid's box (D74); the old API's followed daylight saving time.
 
@@ -27,7 +27,7 @@ Run in CI (`packages/agmodels/tests/test_degree_days.py`, `test_custom_degree_da
 - `test_sine_matches_the_numerical_integral_of_its_curve`: the closed-form sine against a 200,000-step integral of Baskerville and Emin's (1969) curve, in 8 cases (below the base, crossing it, above the upper, crossing both, with no daily range, and in °C): within 0.0002 degree days. `test_sine_day_crossing_the_base_by_hand`: a day of 45 and 65 °F at base 50 gives 6.0899, worked by hand.
 - `test_modified_average_by_hand` and `test_simple_average_by_hand`: the averages' rules at the base and upper threshold.
 - `test_matches_the_old_api`: all three methods against the old API's calculator (recorded by `packages/agmodels/tests/fixtures/make_degree_days_legacy.rb`) at 17 threshold pairs × 231 minimum and maximum pairs from −10 to 110 °F, 11,781 cases: within 0.000001 degree days in every one. The old API is a reference, not the truth (D54).
-- `test_custom_degree_days.py`: °C thresholds give the same °F·d as their °F equivalents, each method and option reaches the right function, and the simple average refuses an upper threshold.
+- `test_custom_degree_days.py`: °C thresholds give the same °F·d as their °F equivalents, each method and option reaches the right function, and the simple average with an upper threshold caps both temperatures (a day of 60 and 100 °F at 50/86 gives 23, without the upper 30). The old API's simple average had no upper threshold, so the comparison with it covers the simple average without one.
 
 ### On the archive's weather
 

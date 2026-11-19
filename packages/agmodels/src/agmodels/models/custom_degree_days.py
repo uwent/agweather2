@@ -1,7 +1,9 @@
 """Custom degree days: any base and upper threshold, method, unit and biofix.
 
 The same functions as every other model (`agmodels.degree_days`): single sine with a horizontal cutoff
-(Baskerville and Emin 1969), simple average, or modified average (the corn GDD method). Thresholds are given in the
+(Baskerville and Emin 1969), simple average, or modified average (the corn GDD method). An upper threshold caps
+the minimum and maximum before averaging in both averages, as the API's calculator does; the modified average also
+raises a minimum below the base to it. Thresholds are given in the
 unit chosen (°F, as the legacy models are, or °C); degree days are linear in the temperature scale for all three
 methods, so they're computed in °F with the thresholds converted and always come out in °F·d, the declared unit
 (°C·d are 5/9 of them, converted for display like any other value). In the box, a sine
@@ -39,7 +41,7 @@ SPEC = ModelSpec(
     id="custom-degree-days",
     name="Custom degree days",
     group="degree_days",
-    version="0.1",
+    version="0.2",
     checks=(
         Check(
             kind="published",
@@ -98,7 +100,14 @@ SPEC = ModelSpec(
     },
     options=(METHOD, UNIT, BASE, UPPER),
     biofix=Biofix(default="01-01", label="January 1, or any date (planting, an insect's first catch)"),
-    changelog=(Change(version="0.1", date="2026-10-28", note="First version."),),
+    changelog=(
+        Change(version="0.1", date="2026-10-28", note="First version."),
+        Change(
+            version="0.2",
+            date="2026-11-19",
+            note="The simple average takes an upper threshold (both temperatures capped at it before averaging), as the API's degree-day calculator does; it was refused, so the model's default upper of 86 °F made the simple average fail.",
+        ),
+    ),
 )
 
 
@@ -109,9 +118,7 @@ def daily(min_temp, max_temp, method: str, base: float, upper: float | None) -> 
     if method == "modified":
         return degree_days_modified(min_temp, max_temp, base, upper)
     if method == "average":
-        if upper is not None:
-            raise ValueError("the simple average has no upper threshold; use the modified average")
-        return degree_days_average(min_temp, max_temp, base)
+        return degree_days_average(min_temp, max_temp, base, upper)
     raise ValueError(f"unknown method {method!r}")
 
 
