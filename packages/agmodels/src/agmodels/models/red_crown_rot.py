@@ -1,25 +1,27 @@
 """Red crown rot of soybean: predicted field-level incidence (beta).
 
-Ochi et al. (2026) fitted logistic models of field-level incidence to weather around the beginning of flowering
-(R1): mean temperature over the 31 days from R1 and precipitation over the 31 days before and after it. Their
-ensemble weighs each by its R² (0.66, 0.16, 0.18). Until the 31 days from R1 are complete, the running mean
-temperature is used and precipitation is prorated to a full window, as the Crop Risk Tool does; after, the final
-values hold. The biofix is the R1 date.
+Ochi et al. (2026) fitted three separate single-variable logistic models of field-level incidence (in Japan, in
+fields nearly all infested) to weather around the beginning of flowering (R1): mean temperature over the 31 days
+from R1 (R² 0.33), and precipitation over the 31 days before it (0.08) and from it (0.09). The Crop Protection
+Network's algorithm (ver. 1.0, 2026-08-12) combines them, weighted by each one's share of the summed R² (0.66,
+0.16, 0.18), and sets no risk levels ("no color code for threshold can be set yet"), so this model has none: it gives
+the predicted incidence. The biofix is the R1 date.
 
-Precipitation is the sum of the known days, with days without data counted as no rain and reported in
-`precipitation_days_missing`. The Crop Risk Tool took the mean of the known days times 31, which fills missing days
-with an estimate (precipitation is never estimated here); without gaps the two agree.
+The incidence is given once the 31 days from R1 are complete (R1 + 30) and held after; until then it has no value.
+The Crop Risk Tool showed a running value with the rain so far prorated to a full window, an estimate of rain not yet
+fallen that swung the result widely (D45: rain is never estimated). Precipitation is the sum of the known days, with
+days without data counted as no rain and reported in `precipitation_days_missing` (a missing day before R1 lowers
+the incidence, one after raises it: read the result with care when more than about 3 are missing).
 
-Ported from the Crop Risk Tool (`predict_red_crown_rot`, `build_red_crown_rot`) with parity tests.
+Ported from the Crop Risk Tool (`predict_red_crown_rot`, `build_red_crown_rot`) with parity tests; changed in 0.3
+after the audit (`tmp/crt-model-audit-2-wheat-rcr.md`).
 """
 
 from collections.abc import Mapping
 
 import numpy as np
 
-from agmodels.probability import risk_level
 from agmodels.spec import (
-    PROBABILITY_LEVELS,
     Biofix,
     Change,
     Check,
@@ -28,7 +30,6 @@ from agmodels.spec import (
     Input,
     ModelSpec,
     Quantity,
-    Risk,
 )
 
 WINDOW = 31
@@ -37,7 +38,7 @@ SPEC = ModelSpec(
     id="red-crown-rot",
     name="Red crown rot incidence",
     group="disease",
-    version="0.2",
+    version="0.3",
     status="beta",
     summary="Predicted share of soybean plants with red crown rot, from temperature and rain in the month either side of the beginning of flowering (R1).",
     topics=("red-crown-rot",),
@@ -70,7 +71,7 @@ SPEC = ModelSpec(
         Quantity(name="incidence", label="Predicted incidence", unit="percent"),
         Quantity(name="temperature_mean_reproductive", label="Mean temperature from R1", unit="degC"),
         Quantity(name="precipitation_vegetative", label="Precipitation, 31 days before R1", unit="mm"),
-        Quantity(name="precipitation_reproductive", label="Precipitation from R1 (prorated to 31 days)", unit="mm"),
+        Quantity(name="precipitation_reproductive", label="Precipitation from R1 so far", unit="mm"),
         Quantity(
             name="precipitation_days_missing",
             label="Days without precipitation data",
@@ -78,10 +79,7 @@ SPEC = ModelSpec(
             description="In the 31 days before R1 and the days from R1 so far, counted as no rain",
         ),
     ),
-    risk=Risk(
-        levels=PROBABILITY_LEVELS,
-        criteria="Provisional: Very low below 5%, Low from 5%, Moderate from 30%, High from 60%.",
-    ),
+    risk=None,  # the authors' algorithm sets no levels yet
     explorer=(
         ExplorerInput(
             name="temperature_reproductive",
@@ -126,12 +124,17 @@ SPEC = ModelSpec(
             date="2026-10-30",
             note="Precipitation sums the known days and counts missing days as no rain, reporting how many; the tool's mean of the known days times 31 estimated them. Unchanged without gaps.",
         ),
+        Change(
+            version="0.3",
+            date="2026-11-19",
+            note="The incidence is given once the 31 days from R1 are complete (rain is no longer prorated over the window's first days), and the provisional risk levels (5, 30 and 60 %) are gone: the authors' algorithm sets none. Final values are unchanged.",
+        ),
     ),
     checks=(
         Check(
             kind="system",
             against="The Crop Risk Tool, which AgWeather's red crown rot model was ported from, on the tool's own 2025 weather for Eau Claire, Wisconsin",
-            result="With flowering (R1) on July 1, 2025, our predicted incidence matched the tool's on every day of the year. This shows that we reproduce the tool, not that its predictions are right: the model was developed in Japan and hasn't been tested against red crown rot in the United States.",
+            result="With flowering (R1) on July 1, 2025, our predicted incidence matched the tool's from July 31 (R1 + 30), when the 31 days from R1 are complete and we give it, and the rain and temperature behind it matched on every day of the year. This shows that we reproduce the tool, not that its predictions are right: the model was developed in Japan and hasn't been tested against red crown rot in the United States.",
             report="docs/validation/models/red-crown-rot.md#against-the-crop-risk-tool-on-the-same-weather",
         ),
     ),
@@ -171,7 +174,7 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
     rep_elapsed = np.cumsum(in_rep, axis=0)
     with np.errstate(invalid="ignore", divide="ignore"):
         rep_running = np.cumsum(np.where(in_rep, known, 0), axis=0)
-        precipitation_rep = np.where(rep_elapsed > 0, rep_running / rep_elapsed * WINDOW, np.nan)
+        precipitation_rep = np.where(rep_elapsed > 0, rep_running, np.nan)  # so far, not prorated
 
     veg_missing = missing[veg_start:r1].sum(axis=0) + before_series
     days_missing = np.where(
@@ -183,17 +186,19 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
             veg_missing + np.cumsum(in_rep & missing, axis=0),
         ),
     )
+    final = r1 + WINDOW - 1  # the last day of the window from R1
+    if final < n:
+        complete = incidence(temperature_rep[final], veg_total, precipitation_rep[final])
+        incidence_final = np.where(day >= final, complete, np.nan)
+    else:
+        incidence_final = np.full(temperature.shape, np.nan)
     return {
-        "incidence": incidence(temperature_rep, veg_total, precipitation_rep),
+        "incidence": incidence_final,
         "temperature_mean_reproductive": temperature_rep,
         "precipitation_vegetative": precipitation_vegetative,
         "precipitation_reproductive": precipitation_rep,
         "precipitation_days_missing": days_missing,
     }
-
-
-def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
-    return risk_level(outputs["incidence"], 5, 30, 60)
 
 
 def explore(temperature_reproductive: float, precipitation_vegetative: float, precipitation_reproductive: float):

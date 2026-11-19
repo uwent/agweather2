@@ -110,7 +110,10 @@ def test_wheat_scab_levels_are_the_national_tools():
 def test_red_crown_rot_matches_from_r1(crt, inputs):
     theirs = crt("red_crown_rot_r1_2025_07_01_eau_claire_2025")
     out = red_crown_rot.outputs(inputs, biofix_index=181)  # July 1
-    np.testing.assert_allclose(out["incidence"], theirs["incidence"], atol=1e-9, equal_nan=True)
+    # 0.3 gives the incidence once the 31 days from R1 are complete (the tool prorated rain before then)
+    final = 181 + red_crown_rot.WINDOW - 1
+    np.testing.assert_allclose(out["incidence"][final:], theirs["incidence"][final:], atol=1e-9)
+    assert np.isnan(out["incidence"][:final]).all()
     np.testing.assert_allclose(out["precipitation_vegetative"], theirs["precipitation_veg"], atol=1e-9, equal_nan=True)
     np.testing.assert_allclose(
         out["temperature_mean_reproductive"], theirs["temperature_mean_rep"], atol=1e-9, equal_nan=True

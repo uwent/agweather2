@@ -51,9 +51,9 @@ def test_the_sweep_runs_the_explorer_inputs_through_explore(model_id, m: Model):
 @pytest.mark.parametrize(("model_id", "m"), MODELS, ids=IDS)
 def test_risk_and_options_are_consistent(model_id, m: Model):
     spec = m.SPEC
-    assert (spec.risk is None) == (spec.group in ("crop", "degree_days")), (
-        f"{model_id}: only growth-stage and degree-day models have no risk"
-    )
+    # Red crown rot's authors set no levels yet (its algorithm, 2026-08-12): it gives the predicted incidence only
+    riskless = spec.group in ("crop", "degree_days") or model_id == "red-crown-rot"
+    assert (spec.risk is None) == riskless, f"{model_id}: only growth-stage and degree-day models have no risk"
     for option in spec.options:
         if option.choices:
             assert option.default in {value for value, _ in option.choices}, f"{model_id}: {option.name}"

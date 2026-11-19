@@ -167,7 +167,8 @@ def test_gaps_in_the_inputs_are_estimated_and_reported():
     assert result.estimated["air_temperature_mean"].nonzero()[0].tolist() == [3]
     assert "precipitation_sum" not in result.estimated  # its filled days are before the days shown
     assert result.outputs["precipitation_days_missing"][0] == 2
-    assert np.isfinite(result.outputs["incidence"][: red_crown_rot.WINDOW]).all()
+    assert np.isnan(result.outputs["incidence"][: red_crown_rot.WINDOW - 1]).all()  # until the window is complete
+    assert np.isfinite(result.outputs["incidence"][red_crown_rot.WINDOW - 1 :]).all()
 
     assert result.missing == {}  # every gap was filled
 
@@ -248,8 +249,9 @@ def test_a_model_without_any_weather_gives_no_risk_but_its_documented_level(mode
     inputs |= {k: v for k, v in _model_inputs(m).items() if k in m.SPEC.context}
     out = m.outputs(inputs)
     if m.SPEC.risk is None:
-        # a crop model's stage, with no weather, stays at its "not emerged" value
-        assert all(len(np.unique(v[np.isfinite(v)])) <= 1 for v in out.values()), model_id
+        # a crop model's stage, with no weather, stays at its "not emerged" value (a count of missing days varies)
+        shown = {k: v for k, v in out.items() if not k.endswith("_days_missing")}
+        assert all(len(np.unique(v[np.isfinite(v)])) <= 1 for v in shown.values()), model_id
         return
     level = m.risk(out)
     known = level[np.isfinite(level)]

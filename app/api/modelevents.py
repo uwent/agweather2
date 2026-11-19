@@ -43,7 +43,10 @@ class ModelEvent:
 
 
 def default_output(m: Model) -> str:
-    return RISK_LEVEL if m.SPEC.risk is not None else "stage"
+    """The risk level; a crop model's stage; else (a model without levels, such as red crown rot) its first output."""
+    if m.SPEC.risk is not None:
+        return RISK_LEVEL
+    return "stage" if m.SPEC.group == "crop" else m.SPEC.outputs[0].name
 
 
 def outputs(m: Model) -> dict[str, str]:

@@ -9,7 +9,7 @@ summary: A soilborne fungal disease that rots soybean roots and reddens the lowe
 image: null
 image_credit: null
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: cpn-rcr
     text: 'Red Crown Rot of Soybean. Crop Protection Network, reviewed by B. X. Camiletti and D. Telenko.'
@@ -89,4 +89,4 @@ For products and current registrations, see UW–Madison's [Pest Management in W
 
 ## AgWeather's models
 
-The [red crown rot model](/models/red-crown-rot) estimates the share of plants in a field that will show symptoms from the weather around flowering: the average temperature in the month after R1, and the rain in the month before and the month after. It starts at R1 from the [soybean stages model](/models/soybean-stages), or at your own date at a location.[^agweather-rcr] It comes from the Japanese field study above and hasn't been tested in the United States, so its risk levels are provisional. Its lowest level, Very low, can't be reached in any weather. It doesn't know a field's history, which the study also found important: the model's risk matters most in fields where red crown rot has been found or is suspected.[^agweather-rcr]
+The [red crown rot model](/models/red-crown-rot) estimates the share of plants in a field that will show symptoms from the weather around flowering: the average temperature in the month after R1, and the rain in the month before and the month after. It starts at R1 from the [soybean stages model](/models/soybean-stages), or at your own date at a location.[^agweather-rcr] It gives a value once the month after R1 is complete. It comes from the Japanese field study above, in fields nearly all infested and in warmer summers than Wisconsin's, and hasn't been tested in the United States, so it shows the predicted incidence without a risk level: the model's authors haven't set levels yet. It doesn't know a field's history, which the study found the strongest factor, and it applies only where the pathogen is in the field. Since nothing can be done in season, read it for awareness and planning (rotation, variety, seed treatment), not as a spray decision.[^agweather-rcr]
