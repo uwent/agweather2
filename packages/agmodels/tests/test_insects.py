@@ -61,9 +61,10 @@ def test_oak_wilt_matches_vdifn():
 
 
 @pytest.mark.parametrize(
-    # Seedcorn maggot left the tool's step table in 0.2 (D36, D37), so only these two still match it
+    # Seedcorn maggot left the tool's step table in 0.2 (D36, D37) and Colorado potato beetle in its 0.2 (its fits),
+    # so only alfalfa weevil still matches it
     ("crt_id", "model_id"),
-    [("afw", "alfalfa-weevil"), ("cpb", "colorado-potato-beetle")],
+    [("afw", "alfalfa-weevil")],
 )
 def test_crop_risk_tool_insects_match_over_a_year(crt, crt_id, model_id):
     daily, theirs = crt("daily_eau_claire_2025"), crt(f"insect_{crt_id}_eau_claire_2025")

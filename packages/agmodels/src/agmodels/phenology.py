@@ -11,6 +11,9 @@ declared one of three ways:
   first generation's peak; risk is the sum of each stage's weight times its activity, continuous, with words from
   `risk_thresholds`. Action windows are the days a stage is between two fractions of complete in some generation
   (10–90% of adult flight: "Avoid planting during adult flight").
+- `life_stages` as `FittedStage`s: each stage's abundance fitted to field counts over degree days, every generation at
+  once (a GAM of log(count + 1), tabulated), read off the fit: the typical count and activity (1 at the fit's peak).
+  Colorado potato beetle (Bradford and Groves, unpublished). No generations, derived stages or action windows.
 - `stages` (legacy, until each insect moves to life stages): a step table of degree-day starts with a severity and a
   life-stage label (the Crop Risk Tool's key);
 - `generations` (legacy): VDIFN's (start, peak, end) per generation, severity rising along a half sine from start to
@@ -80,6 +83,29 @@ class LifeStage:
     def __post_init__(self):
         if not self.start < self.peak < self.end:
             raise ValueError(f"{self.label}: start, peak and end must increase")
+
+    @property
+    def key(self) -> str:
+        return slug(self.label)
+
+
+@dataclass(frozen=True, kw_only=True)
+class FittedStage:
+    """A life stage's abundance as fitted to field counts by degree days (°F) from the biofix, all generations at
+    once: the fit's log(count + 1) at each tabulated total, increasing `dd`. Read off by linear interpolation, below 0
+    taken as 0, and past the last total (the end of the data) held at its last value until fall freezes end the
+    season. Its count is the fit back-transformed, exp(fit) − 1: a typical count (a geometric mean, below the
+    arithmetic mean of counts); its activity is that count over the fit's peak count."""
+
+    label: str
+    count_label: str  # what a count is, e.g. "Adults per 25 sweeps"
+    dd: tuple[float, ...]
+    log_count: tuple[float, ...]
+    weight: float = 1.0
+
+    def __post_init__(self):
+        if len(self.dd) != len(self.log_count) or len(self.dd) < 2 or np.any(np.diff(self.dd) <= 0):
+            raise ValueError(f"{self.label}: dd must increase, one log count each")
 
     @property
     def key(self) -> str:
@@ -157,7 +183,8 @@ class Insect:
     status: str = "beta"
     citations: tuple[Citation, ...] = ()
     topic: str = ""  # the pest's topic page, when several models share one (Colorado potato beetle); default its id
-    life_stages: tuple[LifeStage | DerivedStage, ...] = ()  # the first a LifeStage; it sets the default spread
+    # the first a LifeStage (it sets the default spread), or all FittedStages
+    life_stages: tuple[LifeStage | DerivedStage | FittedStage, ...] = ()
     dd_method: Literal["sine", "average"] = "sine"  # the method its source's thresholds use (D37)
     generation_dd: float | None = None  # degree days between generations; None: one generation
     generation_sd: float | None = None  # SD of a generation's time; None: the first stage's first-generation SD
@@ -173,7 +200,10 @@ class Insect:
     def __post_init__(self):
         stages = {s.label for s in self.life_stages}
         timed = {s.label for s in self.life_stages if isinstance(s, LifeStage)}
-        if self.life_stages and not isinstance(self.life_stages[0], LifeStage):
+        fitted = [isinstance(s, FittedStage) for s in self.life_stages]
+        if any(fitted) and not (all(fitted) and self.generation_dd is None and not self.action_windows):
+            raise ValueError(f"{self.id}: fitted stages stand alone, without other stages, generations or windows")
+        if self.life_stages and not any(fitted) and not isinstance(self.life_stages[0], LifeStage):
             raise ValueError(f"{self.id}: the first life stage needs its own start, peak and end")
         for s in self.life_stages:
             if isinstance(s, DerivedStage) and s.follows not in timed:
@@ -333,7 +363,9 @@ class PhenologyModel(InsectModel):
                 for s in i.life_stages
                 for q in (
                     Quantity(name=f"activity_{s.key}", label=f"{s.label} activity", unit="index"),
-                    Quantity(
+                    Quantity(name=f"count_{s.key}", label=f"{s.count_label} (typical count)", unit="index")
+                    if isinstance(s, FittedStage)
+                    else Quantity(
                         name=f"generations_{s.key}", label=f"Generations of {s.label.lower()} complete", unit="index"
                     ),
                 )
@@ -379,7 +411,7 @@ class PhenologyModel(InsectModel):
         out = {"dd_total": total, "dd": values["dd"]}
         timed, extra = self._timed(values, total)
         for name, value in evaluate(insect=self.insect, dd_total=timed).items():
-            if name.startswith("activity_"):
+            if name.startswith(("activity_", "count_")):
                 value = value * factor
             elif name.startswith("window_"):
                 value = np.where(alive | np.isnan(value), value, 0.0)
@@ -516,6 +548,11 @@ def curves(insect: Insect) -> dict[str, np.ndarray]:
     tables: dict[str, np.ndarray] = {}
     complete: dict[str, list[np.ndarray]] = {}
     for stage in insect.life_stages:
+        if isinstance(stage, FittedStage):
+            count = np.expm1(np.maximum(np.interp(dd_grid(), stage.dd, stage.log_count), 0.0))
+            tables[f"activity_{stage.key}"] = count / count.max()
+            tables[f"count_{stage.key}"] = count
+            continue
         if isinstance(stage, LifeStage):
             present = generation_densities(insect=insect, stage=stage)
             complete[stage.label] = [np.minimum(np.cumsum(d) * DD_STEP, 1.0) for d in present]
@@ -578,6 +615,8 @@ def window_periods(open_: np.ndarray) -> list[tuple[int, int]]:
 
 def phenology_criteria(insect: Insect) -> str:
     """How life stages become risk, in words."""
+    if insect.life_stages and isinstance(insect.life_stages[0], FittedStage):
+        return _fitted_criteria(insect)
     upper = "no upper threshold" if insect.upper_f is None else f"upper {insect.upper_f:g} °F"
     method = "Single-sine" if insect.dd_method == "sine" else "Average"
     stages = "; ".join(_stage_words(s) for s in insect.life_stages)
@@ -597,9 +636,22 @@ def phenology_criteria(insect: Insect) -> str:
     return f"{method} degree days (base {insect.base_f:g} °F, {upper}) since {since} time each life stage's first generation ({stages}).{repeat} Risk is the sum of each stage's weight times its activity (1 at the first generation's peak): {levels}. After day 250, fall freezes end the season."
 
 
-def _stage_words(stage: LifeStage | DerivedStage) -> str:
+def _fitted_criteria(insect: Insect) -> str:
+    upper = "no upper threshold" if insect.upper_f is None else f"upper {insect.upper_f:g} °F"
+    stages = [s for s in insect.life_stages if isinstance(s, FittedStage)]
+    peaks = "; ".join(f"{s.label.lower()} peaking at {s.dd[int(np.argmax(s.log_count))]:,g}" for s in stages)
+    weighted = " plus ".join(f"{s.weight:g} × {s.label.lower()}" for s in stages if s.weight) or "none"
+    levels = ", ".join(
+        f"{word} from {t:g}" for word, t in zip(SEVERITY_LEVELS[1:], insect.risk_thresholds, strict=True)
+    )
+    return f"Single-sine degree days (base {insect.base_f:g} °F, {upper}) since {'January 1' if insect.biofix == '01-01' else 'the biofix'} read each life stage's typical count off a curve fitted to field scouting counts ({peaks}). Activity is a stage's count over its curve's peak; risk is {weighted}: {levels}. After day 250, fall freezes end the season."
+
+
+def _stage_words(stage: LifeStage | DerivedStage | FittedStage) -> str:
     if isinstance(stage, LifeStage):
         when = f"start, peak and end {stage.start:,g}, {stage.peak:,g} and {stage.end:,g}"
+    elif isinstance(stage, FittedStage):
+        when = f"fitted, peaking at {stage.dd[int(np.argmax(stage.log_count))]:,g}"
     else:
         when = f"from {stage.lag:,g} after {stage.follows.lower()} for {stage.duration:,g}"
     return f"{stage.label.lower()}: {when}, weight {stage.weight:g}"

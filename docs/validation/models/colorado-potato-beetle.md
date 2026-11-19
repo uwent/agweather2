@@ -1,56 +1,84 @@
 # Colorado potato beetle (`colorado-potato-beetle`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/insects/colorado_potato_beetle.py`, a stage table run by the insect engine (`agmodels.phenology`, `InsectModel`); its page: `colorado_potato_beetle.md` beside it. Ported from the Crop Risk Tool on 2026-10-28 (PLAN.md Phase 3 D3; the tool's `insect_models$cpb` in `tmp/shiny/crop-risk-tool/src/models.R`). Two other models predict the same beetle from VDIFN's generation curves, `colorado-potato-beetle-adults` and `colorado-potato-beetle-larvae`, with their own reports.
+Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/insects/colorado_potato_beetle.py`, four fitted stages (D36) run by the insect engine (`agmodels.phenology.FittedStage`), reading `colorado_potato_beetle_fit.csv` beside it; its page: `colorado_potato_beetle.md`. Version 0.1 (2026-10-28 to 2026-11-18) was the Crop Risk Tool's step table; its report is in git history. The separate `colorado-potato-beetle-adults` and `-larvae` models (VDIFN's) are retired in favor of this one's outputs.
 
-**In short:** the model reproduces the Crop Risk Tool on the same weather: at Eau Claire in 2025 the level agrees on 363 of 365 days, and on the other 2 a stage begins a day later than in the tool. Its thresholds come from an unpublished analysis of 10 years of scouting data in Wisconsin's Central Sands (Bradford and Groves, UW–Madison Vegetable Entomology), which isn't in the project, so there is nothing published to reproduce and no comparison with observations beyond the fit's own data. The numbers on the model's page don't match its stage table (below).
+**In short:** the model reads adults, egg masses and larvae, and adults and larvae together, off GAM curves fitted to a decade of Wisconsin field scouting counts (Bradford and Groves, unpublished). It reproduces the fits' own critical points to within the 10 degree days the predictions are tabulated at. The fit is the model, so these checks show it was carried over faithfully, not that it predicts fields it wasn't fitted on; no held-out years or fields have been compared. Checking the predicted values for slips found one question for the analysis: the adults and larvae curve runs below the adults curve alone and near the average of the two log counts, so it looks like a fit to the two stages' rows pooled rather than to their sum (below).
 
 ## Sources and what we took from each
 
 <!-- prettier-ignore -->
 | Source | What it gives | What we took |
 | --- | --- | --- |
-| The Crop Risk Tool (`src/models.R`, `cpb`; doc page `docs/insects/cpb.md`) | Single sine 10/30 °C from January 1, in °F·d; a stage table: 1st generation adult colonization 200, egg hatch 350, peak adults 600, peak larvae 800, pupation 935; 2nd generation adult emergence 1100, peak adults 1470, feeding continues 1800, adults begin dispersing 1970, mostly dispersed 2265, with severities 1, 2, 3, 4, 2, 3, 4, 3, 2, 1; the end-of-season freeze rule | All of it: the model |
-| Bradford and Groves, unpublished analysis (cited on the model) | The tool's text: "derived from 10 years of scouting data in the Central Sands"; the risk score "represents the estimated total abundance of adults and larvae"; first colonization around 265, first-generation peak around 895, a decline through 1115, a second peak around 1375 | The citation; the analysis and its data aren't in the project |
-| VDIFN, `cpb` (`../ag-vdifn/db/seeds.rb`) | Two sine-ramped generations, (265, 895, 1115) and (1115, 1375, 2500), 50/86 °F from January 1, with the same text | Not used for this model: these are the numbers the text describes (below) |
-| VDIFN, `cpb-old` (`db/seeds.rb`) | An older model: 52 °F from May 1 or first egg masses; peak egg hatch 120 after first egg laying, larval instars to 400, second-generation adults from about 800 | Not used |
-| Enviroweather (MSU), ColoradoPotatoBeetle (`docs/enviroweather-models.md`) | Single sine 52 °F, no upper, from March 1: generation 1 adults from 372 (peak 607), eggs from 459 (peak 699), larvae from 699 (peak 930); generation 2 adults peak 1376, flight ends 1780; abundance tables; no source cited | Compared only: its base and start differ, so its numbers aren't directly comparable with ours |
+| Bradford and Groves, unpublished analysis (Vegetable Entomology Lab, UW–Madison): figure `tmp/cpb/CPB GAM fit - all.png`, predictions `tmp/cpb/cpb_gam_predictions.csv` (2026-11-18) | GAMs (`y ~ s(x, bs = "cs")`, k = 13; egg masses k = 11) of log(count + 1) on degree days 52/86 °F, single sine from January 1, on Pest Pros' field scouting data, 2014–2025. Adults and larvae per 25 sweeps of a standard net in the canopy; egg masses per 10 plants (per plant in the figure); each a field's mean of several sites on a date. Critical points by local maxima, minima and axis crossings. Predicted values every 10 degree days, 0–2,400 | The four curves, to 2,310 (the data end at 2,311) |
+| The Crop Risk Tool (`tmp/shiny/crop-risk-tool/src/models.R`, `cpb`) | A step table of the same analysis, rounded (colonization 200, egg hatch 350, first-generation adult peak 600, larval peak 800, pupation 935, second-generation emergence 1,100 and peak 1,470, …), with severities 1–4, on 50/86 °F | Compared only (below); it was version 0.1 |
+| VDIFN's `cpb`, `cpbad` and `cpbl` (`../ag-vdifn/db/seeds.rb`) | Sine-ramped generations on 50/86 °F: total (265, 895, 1115) and (1115, 1375, 2500), adults, larvae | Nothing now; the old page's numbers were these |
 
 ## Choices and differences
 
-- **Degree days:** single sine, 50 °F, cutoff 86 °F, from January 1: the tool's thresholds. Which method and thresholds the scouting analysis used isn't recorded (`docs/insect-models.md`, a question for Ben).
-- **One intended difference from the tool:** its `gdd_sine` skips the upper cutoff on days whose minimum is above the base; v2 keeps the Baskerville–Emin formula (PLAN.md Phase 3 D3).
-- **Risk:** the stage table's step severities, less the shared end-of-season freeze reduction (after day 250, the number of days in the last 14 at or below −2 °C; the tool's rule, PLAN.md Phase 3 D3). The table's last stage (severity 1 from 2265) has no end (at Eau Claire in 2025 it began on September 9), so the reduction is what takes the level to 0 in fall.
-- **Three models of one beetle:** this one (total adults and larvae as one score), and VDIFN's adults and larvae separately. Crop presets show this one and leave out the adults model beside it (`test_presets.py`).
+- **Degree days:** single sine, 52 °F, cutoff 86 °F, from January 1, the analysis's own (the tool and VDIFN ran the same thresholds' events on 50/86, so their events came early).
+- **Reading the fits:** linear between the predictions every 10 degree days; a fitted log(count + 1) below 0 (before colonization) is 0; past 2,310, the end of the data, each curve holds its last value until fall freezes end the season (the shared D36 freeze factor, which scales every count).
+- **Counts:** each curve back-transformed, exp(fit) − 1, a typical count in the data's units. A mean of log(count + 1) back-transformed is a geometric-type mean, below the arithmetic mean of the counts, so it reads low against a field's average.
+- **Risk:** adults and larvae together, as the tool's score was: its count over its curve's peak (3.19 per 25 sweeps at 1,340), Low from 0.05, Moderate from 0.25, High from 0.5, Very high from 0.75 (the D36 defaults). The other three curves are outputs with weight 0.
+- **One model, not three:** VDIFN and the Crop Risk Tool split adults and larvae into separate models because of how their engines worked (Ben, 2026-11-18); `colorado-potato-beetle-adults` and `-larvae` are retired.
 
 ## Checks
 
+### Against the analysis's own critical points
+
+`packages/agmodels/tests/test_colorado_potato_beetle.py`, run in CI: the critical points found on the predictions the model reads (upward axis crossings, local maxima and minima), against the labels on the analysis's figure, within 10 degree days:
+
+| Curve | Point | Figure | Predictions |
+| --- | --- | --- | --- |
+| Adults | Colonization | 210 | 210 |
+| Adults | First-generation peak | 588 | 590 |
+| Adults | Minimum between generations | 957 | 960 |
+| Adults | Second-generation peak | 1,477 | 1,480 |
+| Adults | Partial third generation | 1,983 | 1,980 |
+| Larvae | Egg hatch (the low point before the rise) | 374 | 370 |
+| Larvae | Peak | 795 | 790 |
+| Adults and larvae | Colonization | 221 | 230 |
+| Adults and larvae | First-generation peak | 778 | 780 |
+| Adults and larvae | Minimum | 1,005 | 1,010 |
+| Adults and larvae | Second-generation peak | 1,340 | 1,340 |
+| Egg masses | First eggs | 239 | 240 |
+| Egg masses | Peak | 565 (per plant) | 580 (per 10 plants) |
+
+The egg peak moved 15 degree days with the change of count basis, as a refit on a different scale can: log(10x + 1) isn't a fixed multiple of log(x + 1). The adults' curve also has an unlabelled low at 1,880 before the partial third generation.
+
 ### Against the Crop Risk Tool on the same weather
 
-`packages/agmodels/tests/test_insects.py::test_crop_risk_tool_insects_match_over_a_year[cpb-colorado-potato-beetle]`, run in CI, on fixtures made by the tool's own R code (`make_crt_fixtures.R`) for one cell at Eau Claire, Wisconsin, through 2025 (365 days: `crt_daily_eau_claire_2025.csv`, `crt_insect_cpb_eau_claire_2025.csv`):
+The same test, on the tool's 2025 weather for Eau Claire, Wisconsin (`crt_daily_eau_claire_2025.csv`). The tool's step dates (its rounded numbers, on 50/86 °F) against the date our total (52/86 °F) reaches the fit's own value:
 
-- Each day's degree days equal the tool's (to 1e-9) on all but 14 days. On those 14 the minimum is above the base and the maximum above 86 °F; the tool's value is (min + max) / 2 − base, without the cutoff, and ours is lower, as the test asserts.
-- Given the tool's own running totals, our severity, freeze reduction and stage label equal the tool's on all 365 days.
-- End to end (computed from the same two fixtures; the test asserts the parts above, not this): the tool's season total runs ahead of ours by 4.3 degree days by June 30 and 7.7 by August 31, and stays 7.7 ahead. Two stages begin a day later in ours: first-generation peak larvae (800) on June 25 against the tool's June 24, and "2nd gen adults mostly dispersed" (2265) on September 9 against September 8. The level differs on those 2 days only, and agrees on the other 363.
+| Event | The tool | Ours | Days later |
+| --- | --- | --- | --- |
+| Colonization | May 12 | May 15 | 3 |
+| Egg hatch | May 30 | June 6 | 7 |
+| First-generation adult peak | June 17 | June 21 | 4 |
+| Larval peak | June 24 | July 1 | 7 |
+| Second-generation adult peak | July 25 | August 3 | 9 |
 
-The tool is the system v2 replaces, a reference rather than the truth (D54): this shows the port is faithful, not that the model is right.
+The season's total from January 1 was 2,515 on 52/86 °F against the tool's 2,861 on 50/86 °F. The tool is the system this model replaces, a reference rather than the truth (D54); the differences are the base temperature the tool used.
 
-### Against its sources and observations
+### Checking the predictions for slips
 
-None. The source is an unpublished analysis whose results and data aren't in the project, so there are no published numbers to reproduce, and no scouting or trap data outside the fit has been compared.
+Ben asked for the predicted values to be checked (2026-11-18). Done on `cpb_gam_predictions.csv`:
+
+- 241 rows, every 10 degree days from 0 to 2,400; no gaps. Every critical point matches the figure (above).
+- Values below 0 at both ends (to −0.35 at 0 degree days; egg masses −0.06 at 2,400): a GAM's extrapolation of log(count + 1), which can't be negative. Taken as 0.
+- Past 2,311 (the figure's end of season, the data's last total) the predictions are extrapolation; the model stops reading them there.
+- **The adults and larvae curve isn't the sum of the other two.** If it were fitted to log(adults + larvae + 1) on the same field dates, it would run at or above each part: at 800 degree days the parts give 0.89 (adults) and 1.80 (larvae), which (1.4 and 5.0 per 25 sweeps) sum to log(1.4 + 5.0 + 1) = 2.01, but the curve gives 1.35; at 1,480, 1.57 and 1.16 sum to 1.94 against 1.37. Everywhere it sits near the average of the two log counts (800: 1.345 against 1.35; 1,480: 1.365 against 1.37), which is what a fit to both stages' rows stacked in one column gives. If that's how it was fitted, its count is a typical count per stage rather than of both together, and the risk score built on it (as the tool's was) is about half the combined count on a log scale. Fitting to each field date's sum, or computing the combined count from the adults and larvae curves, would fix it; for now the model uses the curve as given.
 
 ## Limits and open questions
 
-- **The page doesn't match the model:** the model's page (and the tool's text it was copied from) gives first colonization around 265, a first-generation peak around 895, a decline through 1115 and a second peak around 1375. Those are VDIFN's `cpb` generations, (265, 895, 1115) and (1115, 1375, 2500). The stage table this model runs puts colonization at 200, the first-generation peak (severity 4) at 800, the gap at 935–1100 and the second peak at 1470. Which numbers the scouting analysis gave is a question for Ben; the page is rewritten in part I2.
-- **Unknown method:** the analysis's degree-day method, base and start aren't recorded, so the model may count degree days differently from the fit.
-- **Region:** fitted to the Central Sands, Wisconsin's main potato region; elsewhere the timing is untested.
-- **What the score means:** the tool calls it estimated total abundance of adults and larvae, but the table is steps of severity, not a fitted abundance curve, and doesn't say how many beetles to expect.
-- **Cheapest independent comparison:** the Vegetable Entomology Lab's Central Sands scouting records for years the fit didn't use (later years, or years held out of a refit), compared with the stage dates on the archive's weather at each field. The fit itself, if it can be recovered, would also settle the method and the page's numbers.
+- **In sample:** the curves are fitted to the data they describe, so these checks show the port, not the prediction. A test needs years or fields the fit didn't use (2026's scouting, or a fit leaving each year out).
+- **The adults and larvae curve** (above): a question for the analysis.
+- **Typical counts** are geometric-type means and run below fields' average counts; the analysis's scatter shows the spread around them (log counts of 0 to 4 at the same degree days).
+- **The fits are for the Central Sands' commercial potato fields** (Pest Pros' clients); other regions and crops (tomato, eggplant) take them on trust.
+- Degree days from January 1 for every field, whatever its planting date: colonization depends on when the crop emerges near overwintering sites, which the curves average over.
+- **Cheapest independent comparison:** this season's (2026) scouting counts, or a leave-one-year-out refit of the same data, against the curves.
 
 ## Reproducing
 
 ```bash
-uv run pytest packages/agmodels/tests/test_insects.py -k crop_risk_tool   # the parity test
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # rebuild the fixtures from the tool (PLAN.md Phase 3 F)
+uv run pytest packages/agmodels/tests/test_colorado_potato_beetle.py
 ```
-
-The end-to-end figures: run `model("colorado-potato-beetle").outputs()` on `crt_daily_eau_claire_2025.csv`'s minimum and maximum (with the day of year) and compare `dd_total` and `risk()` with `crt_insect_cpb_eau_claire_2025.csv`'s `cum_gdd` and `severity`.

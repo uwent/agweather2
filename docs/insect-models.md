@@ -22,8 +22,8 @@ The work list for PLAN.md Phase 3 D8 step 4: moving each insect from its legacy 
 | Black cutworm | 50/86, May 15, (300, 700, 1000) | USPest `bcw` (UC Davis; MSU events); Luckmann et al. 1976; Story et al. 1984 | Sine 50/86 °F; **biofix: peak pheromone-trap captures** | 🔎 |
 | Cabbage looper | 50/90, May 15, 2 gens 790 apart | USPest `cbl` from Toba et al. 1973 | Sine 50/90 °F; **biofix: first pheromone-trap catch** | 🔎 |
 | Cabbage maggot | 42.8/86, Jan 1, 2 gens | USPest `cm1` (OSU cards, UC Extension); Eckenrode & Chapman 1971, 1972 (WI) | USPest: sine 39.7/86 °F; Wisconsin: **modified max-min**, 43 °F | 🔎 which one? |
-| Colorado potato beetle (CRT) | 50/86, Jan 1, stage table | Bradford & Groves, unpublished analysis (cited): 10 years of Central Sands scouting | as fitted | Ben: method used in the fit |
-| CPB adults / larvae (VDIFN) | 50/86, Jan 1 | Bradford & Groves, unpublished analysis (cited); the spreadsheet's CPB is an older 52 °F/May 1 model | as fitted | Ben: confirm |
+| Colorado potato beetle | 52/86, Jan 1, the analysis's GAM fits (0.2, 2026-11-18) | Bradford & Groves, unpublished: Pest Pros scouting 2014–2025 | as fitted | settled (Ben, 2026-11-18) |
+| CPB adults / larvae (VDIFN) | retired 2026-11-18: outputs of `colorado-potato-beetle` | | | |
 | Common asparagus beetle | 50/86, Jan 1, (105, 250, 405) | Spreadsheet links only UW vegento; Taylor & Harcourt 1978 | lab rates | 🔎 |
 | Corn earworm | 55/92, Aug 1, (70, 275, 440) | USPest `cew` from Hartstack et al. 1976; UC IPM `ma-h_zea` | Sine 55/92 °F; **biofix: first silk** | 🔎 |
 | Corn rootworm | 52/none, Jan 1, (329, 472, 636) | UC IPM `ma-n_corn_rootworm` (events with 90% ranges) | ? (UC IPM page to read) | 🔎 |

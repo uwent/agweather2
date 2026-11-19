@@ -1,5 +1,7 @@
 # Colorado potato beetle, adults (`colorado-potato-beetle-adults`): validation
 
+**Retired 2026-11-18 (version 0.2):** `colorado-potato-beetle` now gives adults as one of its outputs, from the analysis's own fits on degree days 52/86 °F; see [its report](colorado-potato-beetle.md). What follows is the report as written for version 0.1.
+
 Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/insects/colorado_potato_beetle_adults.py`, run by the insect engine (`agmodels.phenology`, VDIFN's generations); its page: `colorado_potato_beetle_adults.md` beside it. Ported from VDIFN in Phase 3 (PLAN.md Phase 3 D step 3); its sources are listed for review in `docs/insect-models.md`.
 
 **In short:** VDIFN's adult abundance curve, fitted by UW–Madison's Vegetable Entomology lab to 10 years of scouting in Wisconsin's Central Sands (Bradford and Groves, unpublished), reproduced exactly, including the day the two generations meet. The fit hasn't been published or checked on years it wasn't fitted to.

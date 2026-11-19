@@ -1,10 +1,10 @@
 ---
 id: colorado-potato-beetle-larvae
 status: draft
-updated: 2026-10-29
-summary: Our Colorado potato beetle larval abundance model was derived from 10 years of scouting data in the Central Sands and uses a base 50°F degree day model. First egg hatch is typically around 485 FDD with peak larval populations reached during the first generation at around 905 FDD. Larval populations then decline steadily through the end of the season (around 2500 FDD).
+updated: 2026-11-18
+summary: Retired. The Colorado potato beetle model now shows larvae as one of its outputs.
 sources:
   - VDIFN db/seeds.rb (cpbl)
 ---
 
-Our Colorado potato beetle larval abundance model was derived from 10 years of scouting data in the Central Sands and uses a base 50°F degree day model. First egg hatch is typically around 485 FDD with peak larval populations reached during the first generation at around 905 FDD. Larval populations then decline steadily through the end of the season (around 2500 FDD).
+This model is retired. The [Colorado potato beetle model](/models/colorado-potato-beetle) now shows larvae, along with egg masses and the other stages, from curves fitted to Wisconsin scouting counts.

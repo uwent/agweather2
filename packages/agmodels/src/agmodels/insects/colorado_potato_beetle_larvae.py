@@ -1,7 +1,7 @@
 """Colorado Potato Beetle (Larvae), from VDIFN."""
 
 from agmodels.phenology import Insect
-from agmodels.spec import Check, Citation
+from agmodels.spec import Change, Check, Citation
 
 INSECT = Insect(
     id="colorado-potato-beetle-larvae",
@@ -12,6 +12,15 @@ INSECT = Insect(
     biofix="01-01",
     generations=((485, 905, 2500),),
     topic="colorado-potato-beetle",
+    status="retired",
+    version="0.2",
+    changelog=(
+        Change(
+            version="0.2",
+            date="2026-11-18",
+            note="Retired: `colorado-potato-beetle` now gives larvae as one of its outputs, from the scouting fits on degree days 52/86 °F.",
+        ),
+    ),
     citations=(
         Citation(text="VDIFN (UW–Madison Vegetable Entomology)."),
         Citation(text="Bradford, B. Z. and Groves, R. L. Vegetable Entomology Lab, UW–Madison, unpublished analysis."),
