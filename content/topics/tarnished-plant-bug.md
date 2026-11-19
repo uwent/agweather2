@@ -3,10 +3,13 @@ id: tarnished-plant-bug
 title: Tarnished Plant Bug (Lygus Bug)
 kind: insect
 crops:
+  - beans
   - celery
   - leafy-greens
+  - pepper
   - potato
   - raspberry
+  - tomato
 scientific_name: Lygus lineolaris
 summary: A small, mottled plant bug that feeds on the buds, flowers, young fruit and tender stems of strawberries, beans, peppers, celery, raspberries and many other crops; it is managed by weed control, scouting from early spring and insecticides aimed at the nymphs.
 image: images/tarnished-plant-bug.jpg

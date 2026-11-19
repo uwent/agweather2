@@ -58,6 +58,10 @@ SPEC = ModelSpec(
             doi="10.1016/0378-4290(79)90031-5",
         ),
         Citation(
+            text="Pscheidt, J. W. and Stevenson, W. R. (1986). Comparison of forecasting methods for control of potato early blight in Wisconsin. Plant Disease 70, 915–920.",
+            doi="10.1094/PD-70-915",
+        ),
+        Citation(
             text="Pscheidt, J. W. and Stevenson, W. R. (1988). The critical period for control of early blight (Alternaria solani) of potato. American Potato Journal 65, 425–438.",
             doi="10.1007/BF02854357",
         ),

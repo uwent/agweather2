@@ -6,7 +6,7 @@ from agmodels.spec import Check
 INSECT = Insect(
     id="tarnished-plant-bug",
     name="Tarnished Plant Bug (Lygus Bug)",
-    crops=("celery", "leafy-greens", "potato", "raspberry"),
+    crops=("beans", "celery", "leafy-greens", "pepper", "potato", "raspberry", "tomato"),
     base_f=52,
     upper_f=None,
     biofix="01-01",

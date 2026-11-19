@@ -42,6 +42,14 @@ Sensitivity of the peak to the analysis's choices: the catch at its collection d
 
 VDIFN, the system this model replaces (a reference, not the truth, D54), rated risk from 1,838 to 3,228 degree days, peaking at 2,515. The 2024 fit's figure shows 2,515 is where the curve crossed its sample mean on the way up and its own peak was 3,266, so VDIFN's risk fell while the fitted risk was still rising and ended before it peaked. On the refitted curve, risk at 2,515 is 63 % of the peak (0.633 in the test) and still rising.
 
+### Base temperature and timing on years left out (2026-11-19)
+
+`tmp/R/pvy-model/pvy-base-profile.R` (findings in `base-profile.md` there) refitted the v2 model at bases 0–10 °C (upper 30 °C, single sine, from January 1; 198 fits, all converged; at 4 °C it reproduces the v2 fit's critical points) and scored each base on years and traps left out, predicting a held-out season from the shared curve alone:
+
+- **Base:** 0–6 °C can't be told apart. Timing errors stay within 0.5 day of 4 °C's, while a single year's error varies by 6–11 days; held-out likelihood favors 10 °C leaving years out and 0 °C leaving traps out, both weakly. Above about 7 °C the fit and timing get worse. The model keeps 4 °C.
+- **Degree days against the calendar:** across 45 trap-seasons (June 4 to September 27), the date the season's catch passed 10 % was predicted about 2 days better by degree days (17.1 days RMSE at 4 °C) than by the calendar date (18.8). At 50 % and 90 % of the catch and at the peak week, degree days did no better than the calendar (curve: 16.9, 10.0 and 35.1 days; calendar 17.0, 11.5 and 33.0). The catch is mostly migrant and host-alternating aphids, whose arrival local warmth doesn't time. The curve is read as typical pressure through the season plus an onset signal, not a forecast of a season's peak date (Ben, 2026-11-19).
+- The peak week is a poor event: catches are often bimodal, and the observed peak moves between the two flights (SD about 30 days across seasons). At 4 °C the curve puts the 10 % and 50 % points about 6 and 4 days early on held-out years.
+
 ## Limits and open questions
 
 - **In sample, and years vary:** the curve is the typical year's; single years peak from about 1,720 to 4,760 degree days. Trap catches in the current season are a better guide than the curve.

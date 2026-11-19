@@ -9,7 +9,8 @@ Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 | Source | What it gives | What we took |
 | --- | --- | --- |
 | Sands, Hackett and Nix 1979 (Field Crops Research 2) | Potato development rate P(T): 0 below 7 °C, 10 at 21 °C, 0 from 30 °C, two parabolas; a day's P-days from P at four temperatures between the low and the high, weighted 5, 8, 8 and 3 | The rate and the day's sum, with the last term at the high |
-| Pscheidt and Stevenson 1988 (American Potato Journal 65) | The critical period for early blight control in Wisconsin, timed by P-days from emergence | The first-spray threshold of 300 P-days (via the tool and UW Vegetable Pathology; the paper isn't in `tmp/references/`) |
+| Pscheidt and Stevenson 1986 (Plant Disease 70, 915–920) | Forecasting methods for early blight control compared in Wisconsin; first sprays at 300 P-days controlled the disease on cultivars of different maturity (as the 1988 paper summarizes it) | The first-spray threshold of 300 P-days |
+| Pscheidt and Stevenson 1988 (American Potato Journal 65; in `tmp/references/diseases/`, read 2026-11-19) | The critical period for control on Russet Burbank, 1980–1984: it came after 400 P-days each year, with spores trapped and favorable weather; sprays could wait until 400 on that variety (about four fewer a year), and earlier varieties such as Superior need their own study | Background: why 400 isn't used for all varieties. UW Vegetable Pathology keeps 300 (its specialist, 2026-11-19, per Ben), and a student there is re-examining it |
 | The Crop Risk Tool (`calc_pdays`, `risk_for_early_blight`) | The same P-days with P(Tmin) in the last term; risk from the total until 400, then from the 7-day mean | The risk levels; parity tests below |
 | VDIFN (`../ag-vdifn/app/models/diseases/early_blight.rb`) | The same levels, with Very high above (not at) a 7-day mean of 9 | Compared only |
 | Old AgWeather API (`../ag-weather/app/models/pest_models.rb`) | P-days with P(Tmin) in the last term; 0 for a day without data | Compared on the same places (below) |
@@ -58,7 +59,6 @@ The old API is a reference, not the truth (D54).
 - **No field comparison:** the 300 P-day threshold and the levels around it haven't been compared with early blight onset in Wisconsin in this round; Pscheidt and Stevenson 1988's own numbers aren't checked in a test.
 - **The rate curve:** P(T)'s 7, 21 and 30 °C points are Sands et al.'s for potato development in Australia; they aren't refitted to Wisconsin cultivars.
 - **Emergence sets the start:** a default emergence (May 15, or `potato-stages`' from a planting date) can be off by days; a grower's emergence date is better.
-- The model's docstring cites "Pscheidt and Stevenson 1986, 1988" but the spec cites only the 1988 paper.
 - **Cheapest independent comparison:** UW Vegetable Pathology's early blight trials or scouting at Hancock (first symptoms and the emergence date of the field) against the date P-days from that emergence reached 300; P-days on Wisconet's station temperatures against the archive's at the same places would check the weather side.
 
 ## Reproducing

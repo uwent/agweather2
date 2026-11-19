@@ -5,7 +5,8 @@ updated: 2026-11-19
 summary: Adds up potato physiological days (P-days) from daily high and low temperatures, starting at crop emergence, to show when temperatures have favored early blight of potato and the first fungicide spray is due (about 300 P-days).
 sources:
   - Sands, Hackett and Nix 1979 (potato physiological days)
-  - Pscheidt and Stevenson 1988 (the critical period for early blight control, by P-days in Wisconsin)
+  - Pscheidt and Stevenson 1986 (first sprays at 300 P-days controlled early blight on cultivars of different maturity, Wisconsin)
+  - Pscheidt and Stevenson 1988 (the critical period for early blight control on Russet Burbank, after about 400 P-days)
   - UW Vegetable Pathology's potato early blight page (300 P-days from emergence; the weekly average after)
   - The Crop Risk Tool's early blight model (the risk levels; compared)
   - The old AgWeather service at UW Vegetable Pathology's forecast locations (compared)
@@ -23,7 +24,7 @@ Early blight of potato builds through midsummer, first on the older leaves. Its 
 
 - **P-days.** Sands, Hackett and Nix (1979) built P-days to follow how fast potato plants develop. Development is fastest at 70 °F (21 °C) and stops below 45 °F (7 °C) and above 86 °F (30 °C). Each day's P-days weigh that rate at four temperatures between the day's low and high, so a day held at 70 °F earns the full 10, and a hot or a cold day earns little.
 - **The start.** The count starts at crop emergence, when about half the plants are up. If you give a planting date, emergence comes from the [potato emergence model](/models/potato-stages); you can also enter your own emergence date at a location. Otherwise the count starts on May 15. The model runs from May 1 to September 30.
-- **The threshold.** UW Vegetable Pathology times the first spray at about 300 P-days from emergence. Timing early blight control by P-days comes from Pscheidt and Stevenson's research in Wisconsin on the critical period for control (1988).
+- **The threshold.** UW Vegetable Pathology times the first spray at about 300 P-days from emergence. The threshold comes from Pscheidt and Stevenson's research in Wisconsin: in their 1986 comparison, starting sprays at 300 P-days controlled early blight on cultivars of different maturity. Their 1988 study found that for Russet Burbank, a late-maturing variety, the critical period for control came after about 400 P-days, so first sprays on that variety could wait until then; they said earlier varieties such as Superior would need their own study first. The model keeps 300, the threshold UW uses for all varieties.
 - **Risk levels** follow the Crop Risk Tool. Until the total reaches 400 P-days, the total sets the level: **Low** from 200, **Moderate** from 250, **High** from 300 and **Very high** from 350. From 400, the last 7 days' average does: **Very low** below 1 P-day a day, **Low** from 1, **Moderate** from 3, **High** from 5 and **Very high** from 9.
 
 ## How to read it
@@ -36,7 +37,7 @@ Early blight of potato builds through midsummer, first on the older leaves. Its 
 
 - Draft (model version 0.2, beta). From the Crop Risk Tool's own inputs for 2025 at a location near Eau Claire, the model's daily P-days and risk levels match the tool's on every day when it weighs the day's temperatures as the tool does. We weigh the day's high in the last of the four terms, as Sands and colleagues wrote it, where the tool weighs the low. On that season this lowered the total from May 15 to September 30 by under 1 % (1,098 P-days against 1,107), and both reached 300 P-days on June 27.
 - Against the old AgWeather service at UW Vegetable Pathology's seven forecast locations in Wisconsin, from May 1 to September 30, 2026, our season totals were within 4 % of the old service's at every location.
-- The 300 P-day threshold and the levels around it haven't been compared with when early blight appears in Wisconsin fields. The published summary of Pscheidt and Stevenson's 1988 paper points to about 400 P-days as the start of the critical period; we haven't yet read the full paper to see how that relates to the 300 P-day threshold UW Vegetable Pathology uses. The P-day curve was developed for potatoes in Australia and isn't adjusted for Wisconsin varieties.
+- The 300 P-day threshold and the levels around it haven't been compared with when early blight appears in Wisconsin fields. The P-day curve was developed for potatoes in Australia and isn't adjusted for Wisconsin varieties.
 - The risk switches from the total to the weekly average at 400 P-days, as the Crop Risk Tool and VDIFN did. UW Vegetable Pathology's page describes the weekly average taking over at 300. Between 300 and 400 the model shows High and then Very high by the total, and at 400 the level can drop, from Very high to High in a typical week or lower in a cool one. Treat 300 as the point at which protection should start, whatever the level after it.
 - The model is for potato. UW–Madison also times early blight on tomato, pepper and eggplant by P-days, counted from transplanting, but this model lists potato only and hasn't been set up or checked for those crops.
 - An estimated emergence date can be off by several days; your own emergence date is better.

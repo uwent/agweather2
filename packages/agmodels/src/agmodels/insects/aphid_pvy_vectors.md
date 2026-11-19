@@ -1,7 +1,7 @@
 ---
 id: aphid-pvy-vectors
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 summary: Estimates the risk of potato virus Y spread by winged aphids through the season from degree days, using a curve fitted to Wisconsin's suction trap catches.
 sources:
   - Bradford and Groves, unpublished analysis of Wisconsin suction trap catches, 2016–2023 (UW–Madison Vegetable Entomology), refitted 2026
@@ -12,7 +12,7 @@ sources:
 
 ## What it predicts
 
-Potato virus Y (PVY) is spread from plant to plant by winged aphids probing leaves as they move through a field, mostly by species that don't colonize potato, such as the soybean aphid. The model estimates how much PVY-spreading aphid flight a typical Wisconsin season has at each point, as a share of the season's peak.
+Potato virus Y (PVY) is spread from plant to plant by winged aphids probing leaves as they move through a field, mostly by species that don't colonize potato, such as the soybean aphid. The model estimates how much PVY-spreading aphid flight a typical Wisconsin season has at each point, as a share of the season's peak. It shows typical pressure for the time of the season and when the flight usually begins; it doesn't forecast when this year's flight will peak.
 
 ## How it works
 
@@ -24,7 +24,8 @@ Degree days are counted from January 1 by the single-sine method, base 39.2 °F 
 
 ## How to read it
 
-- Risk levels compare the day's value with the season's peak. Very high means aphid vector flight is near its typical peak.
+- Risk levels compare the day's value with the season's peak. Very high means aphid vector flight is usually near its peak at this point in the season.
+- The model's early-season rise is its most useful signal: in tests on years left out of the fit, degree days timed the start of the season's catch about two days better than the calendar alone. Later in the season they did no better than the calendar, since most of these aphids fly in from elsewhere, on weather far from your field. Read midsummer and late-season levels as typical pressure for the time of year.
 - Seasons differ widely: in single years the peak has come anywhere from about 1,700 to 4,800 degree days. Current trap catches are the better guide when they're available.
 
 ## What it means for seed potato production
@@ -38,6 +39,6 @@ The model shows when vector pressure builds. As risk rises toward High, increase
 
 ## Validation and caveats
 
-- Draft (model version 0.2, beta). The curve describes the trap catches it was fitted to and hasn't been tested on other years.
+- Draft (model version 0.2, beta). The curve describes the trap catches it was fitted to. Refitted with each year or each trap left out, it timed a held-out season's catch about as well as the calendar date did, except at the start, where it did about two days better; a single season was often two weeks or more off the typical timing. Base temperatures from 32 to 43 °F (0 to 6 °C) fitted the catches equally well, so the model keeps 39.2 °F.
 - The trap records include weeks with aphids but not weeks with none, so the start and end of the season may show more risk than they should.
 - VDIFN's version of this model put the peak at 2,515 degree days and ended at 3,228, before the actual peak; this version corrects that.
