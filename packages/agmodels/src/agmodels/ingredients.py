@@ -53,7 +53,7 @@ class Ingredient:
     # The grid reads this ingredient's running total from the shared degree-day totals for this setting
     # (`agdata.cumulative`) rather than keeping one per model
     degree_days: DegreeDays | None = None
-    # Or the grid's running total of this catalog variable (rye's fall rain from `precipitation`)
+    # Or the grid's running total of this catalog variable (rye's fall rain used it until rye-biomass 0.3; none now)
     cumulative: CumulativeName | None = None
     # Kept once under this name for every model that declares it (the insects' freeze factor)
     shared: str = ""
@@ -72,7 +72,7 @@ class Ingredient:
 class Accumulation:
     """An ingredient accumulated from the biofix (NaN before it), as `agmodels.accumulate` does: `total` over the
     season, `sum` or `mean` over the last `days` days (not before the biofix; a mean is over the days with values).
-    `until` (MM-DD): the total stops growing after the first such day from the biofix (rye's fall rain at December
+    `until` (MM-DD): the total stops growing after the first such day from the biofix (rye's fall degree days at December
     31, potato volunteer's winter at March 31); it needs `day_of_year` in the inputs, and `year` but for 12-31."""
 
     name: str

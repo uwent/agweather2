@@ -1,17 +1,11 @@
-"""Parity with the Crop Risk Tool for pecan scab, cotton planting and rye biomass (D6), and intended differences."""
+"""Parity with the Crop Risk Tool for pecan scab and cotton planting (D6), and intended differences. Rye biomass left
+the tool's model in 0.3 (`test_rye_biomass.py`)."""
 
 import numpy as np
 
 from agmodels import features as f
 from agmodels.models import cotton_planting as cotton
 from agmodels.models import pecan_scab as pecan
-from agmodels.models import rye_biomass as rye
-
-
-def day_of_year(dates) -> np.ndarray:
-    d = np.asarray(dates, dtype="datetime64[D]")
-    return (d - d.astype("datetime64[Y]")).astype(int) + 1
-
 
 # Pecan scab
 
@@ -157,42 +151,3 @@ def test_cotton_risk_levels():
     stands = np.array([14999, 15000, 18749, 18750, np.nan])
     assert np.array_equal(cotton.risk({"stand": stands}), [2, 1, 1, 0, np.nan], equal_nan=True)
     assert cotton.risk({"stand": np.array([19999, 24999, 25000])}, limiting_population="20000").tolist() == [2, 1, 0]
-
-
-# Rye biomass
-
-
-def test_rye_biomass_matches_the_tool(crt):
-    s = crt("rye_biomass_sweep")
-    np.testing.assert_allclose(rye.biomass(s["gdd"], s["plant_doy"], s["precip_fall"]), s["biomass"], rtol=1e-12)
-
-
-def test_rye_season_from_a_fall_planting(crt):
-    daily, theirs = crt("daily_eau_claire_2025"), crt("rye_biomass_eau_claire_2025_09_15")
-    start = int(np.flatnonzero(daily["date"] == theirs["date"][0])[0])
-    inputs = {
-        "air_temperature_min": daily["temperature_min"][start:],
-        "air_temperature_max": daily["temperature_max"][start:],
-        "precipitation_sum": daily["precipitation_daily"][start:],
-        "day_of_year": day_of_year(daily["date"][start:]),
-    }
-    out = rye.outputs(inputs)
-    np.testing.assert_allclose(out["gdd_total"], theirs["gdd_total"], atol=1e-6)  # no fall day over 35 °C
-    np.testing.assert_allclose(out["precipitation_fall"], theirs["precip_fall"], atol=1e-6)
-    np.testing.assert_allclose(out["biomass"], theirs["biomass"], rtol=1e-9)
-
-
-def test_rye_fall_precip_stops_at_new_year():
-    days = 120  # Oct 1 to late January
-    doy = (np.arange(days) + 273) % 365 + 1
-    out = rye.outputs(
-        {
-            "air_temperature_min": np.zeros(days),
-            "air_temperature_max": np.full(days, 10.0),
-            "precipitation_sum": np.ones(days),
-            "day_of_year": doy,
-        }
-    )
-    new_year = int(np.flatnonzero(doy == 1)[0])
-    assert out["precipitation_fall"][new_year - 1] == new_year and out["precipitation_fall"][-1] == new_year
-    assert rye.risk({"biomass": np.array([1999, 2000, 4500])}).tolist() == [0, 1, 2]

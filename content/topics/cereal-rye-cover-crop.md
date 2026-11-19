@@ -26,6 +26,12 @@ sources:
   - key: huddell-2024
     text: 'Predicting cover crop biomass from early-season biomass and weather. CSA News, 2024, on Huddell, A. et al. Early-season biomass and weather enable robust cereal rye cover crop biomass predictions. Agricultural & Environmental Letters 9:e20121, 2024.'
     url: https://www.sciencesocieties.org/publications/csa-news/2024/june/predicting-cover-crop-biomass-from-early-season-biomass-and-weather
+  - key: colet-2026
+    text: 'Colet, F., B. Bradford, S. Mourtzinis, T. Severo Silva, D. L. Smith, G. Chudzik, M. A. Kendall, M. D. Ruark, A. Kurth, J. J. Nunes, D. H. Smith, R. Werle and S. P. Conley. Prediction of cereal rye biomass accumulation in Wisconsin based on weather and agronomic management. Crop, Forage & Turfgrass Management 12:e70157, 2026.'
+    url: https://doi.org/10.1002/cft2.70157
+  - key: crespo-2024
+    text: "Crespo, C., P. L. O'Brien, S. J. Ruis, J. L. Kovar and T. C. Kaspar. Thermal time and precipitation dictate cereal rye shoot biomass production. Field Crops Research 315:109473, 2024."
+    url: https://doi.org/10.1016/j.fcr.2024.109473
   - key: agweather-rye-biomass
     text: 'AgWeather. Winter rye cover crop biomass model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/rye-biomass.md
@@ -69,6 +75,6 @@ For details, see UW–Madison's [Biomass Thresholds for Cereal Rye Cover Crop Go
 
 ## AgWeather's models
 
-The [winter rye cover crop biomass model](/models/rye-biomass) estimates a fall-planted rye's biomass through the spring. It grows with growing degree days since planting (base 32 °F, capped at 95 °F, by the single-sine method), and it is lower after a later planting or a wetter fall (rain from planting through December 31). It rates the estimate Low below 2,000 lb/acre, Moderate from 2,000, and High from 4,500, the weed suppression goal. Its Moderate level starts above UW–Madison's goal for erosion control (1,500 lb/acre), so a Low estimate near 2,000 may already meet that goal.[^agweather-rye-biomass][^elmquist-2026]
+The [winter rye cover crop biomass model](/models/rye-biomass) estimates a fall-planted rye's biomass in spring, from March 1. It grows with growing degree days since planting (base 32 °F, by the single-sine method), with the fall's degree days counted up to 1,440 °F-days (800 °C-days), past which fall warmth no longer added to final biomass in an Iowa study.[^crespo-2024] It rates the estimate Low below 2,000 lb/acre, Moderate from 2,000, and High from 4,500, the weed suppression goal. Its Moderate level starts above UW–Madison's goal for erosion control (1,500 lb/acre), so a Low estimate near 2,000 may already meet that goal.[^agweather-rye-biomass][^elmquist-2026]
 
-The model is an unpublished fit to Wisconsin data, carried over from the Crop Risk Tool, and it reproduces that tool exactly. We don't know its error or the planting dates and rainfall its data covered, and it hasn't been compared with biomass measured in fields, so treat its numbers as a rough guide and clip your own rye before relying on them. It doesn't know your seeding rate, soil or nitrogen. It runs in Wisconsin, Minnesota, Iowa, Illinois and Michigan, from September through June. Maps assume planting on October 1; at a location, enter your own planting date.[^agweather-rye-biomass]
+We fitted the model to rye biomass that UW–Madison researchers and their partners clipped in Wisconsin fields and research plots, 138 sites and years in all from falls 2015 through 2024, modifying their model to use degree days alone.[^colet-2026] For fields left out of the fit, a typical miss was about 1,200 lb/acre: about 600 lb/acre below 2,000, about 1,300 from 2,000 to 4,500, and 2,000 or more above 4,500, where it tends to estimate too low. About 7 in 10 of them landed in the right level, so clip your own rye before relying on a number. It doesn't know your seeding rate, soil, nitrogen or previous crop. The data came mostly from southern and central Wisconsin, with plantings from late August to November 10 and terminations into mid-June; the model runs in Wisconsin, Minnesota, Iowa, Illinois and Michigan, and flags plantings and spring dates outside its data. Maps assume planting on October 1; at a location, enter your own planting date.[^agweather-rye-biomass]

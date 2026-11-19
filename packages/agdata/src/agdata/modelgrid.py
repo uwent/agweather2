@@ -4,7 +4,7 @@ A model with ingredients (`agmodels.ingredients`) is finished day by day, so a m
 those days of each ingredient and a few of its running totals (`agdata.modelmaps`, and `agdata.cumulative` for
 degree days and rain):
 
-- an ingredient's daily values are read as stored; one the running totals stand in for (degree days, rye's rain)
+- an ingredient's daily values are read as stored; one the running totals stand in for (degree days, a catalog variable)
   is the change in its total over the day;
 - an accumulation from the biofix `b` to day `d` is a difference of running totals from January 1,
   `T(d) − T(b − 1)` (zero before January 1), summed year by year when the season crosses New Year (rye); a `sum`

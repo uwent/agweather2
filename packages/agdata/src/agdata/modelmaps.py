@@ -9,7 +9,7 @@ and cumulative ones (`data/ingredients/{year}.zarr`):
 - for one that's accumulated, its running total from local January 1 (`….total`), and for one averaged, the
   running count of days with a value (`….known`), so a total, sum or mean over any days is `cum[d] − cum[b − 1]`.
 
-Degree days and rye's rain aren't kept here: the cumulative store's running totals stand in (`degree_days`,
+Degree days and catalog variables' totals aren't kept here: the cumulative store's running totals stand in (`degree_days`,
 `cumulative` on the ingredient). The forecast run keeps its own in its directory, continuing the archive's.
 
 An accumulated ingredient's daily values are kept at its total's step (P-days to 0.2; severity values and hour

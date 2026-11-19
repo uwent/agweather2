@@ -96,8 +96,8 @@ for (id in names(insect_models)) {
   )
 }
 
-# Southern and cover-crop prototypes: pecan scab hours from the hourly weather, the cotton stand model over a sweep
-# and the year (forward windows), and rye biomass over a sweep and a fall planting
+# Southern prototypes: pecan scab hours from the hourly weather, the cotton stand model over a sweep and the year
+# (forward windows); rye biomass left the tool's model in v2's 0.3
 write(build_pecan_scab(wx) |> select(date, daily_scab_hours, scab_hours), "pecan_scab_eau_claire_2025")
 write(
   expand_grid(
@@ -110,13 +110,4 @@ write(
   build_cotton_planting(daily, pythium = TRUE, planting_pop = 45000, limiting_pop = 15000) |>
     select(date, precip_3day_forward, mean_min_temp_9day_forward, probability),
   "cotton_planting_eau_claire_2025"
-)
-write(
-  expand_grid(plant_doy = seq(250, 320, 10), precip_fall = seq(0, 300, 50), gdd = seq(0, 3000, 100)) |>
-    mutate(biomass = predict_rye_biomass(plant_doy, precip_fall, gdd)),
-  "rye_biomass_sweep"
-)
-write(
-  build_rye_biomass(daily |> filter(date >= as.Date("2025-09-15"))) |> select(date, gdd_0C, gdd_total, precip_fall, biomass),
-  "rye_biomass_eau_claire_2025_09_15"
 )
