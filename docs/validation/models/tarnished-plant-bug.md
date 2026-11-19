@@ -9,7 +9,7 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 | Source | What it gives | What we took |
 | --- | --- | --- |
 | VDIFN's `db/seeds.rb` (`../ag-vdifn`) | Base 52 °F, no upper, January 1; one span (275, 1000, 2000); the text; a link to UW Vegetable Entomology's pest list | Everything |
-| The VDIFN Models spreadsheet (`tmp/references/insects/VDIFN Models v20210407.xlsx`) and the USPest.org model it links, as summarized in `docs/insect-models.md` | USPest's `lyg` model from Simko 2000: single sine 52 °F, for the western tarnished plant bug (*Lygus hesperus*) on alfalfa grown for seed in eastern Oregon and southwestern Idaho | Nothing: a different species |
+| The VDIFN Models spreadsheet (`tmp/references/insects/VDIFN Models v20210407.xlsx`) and the USPest.org model it links, as summarized in `docs/insect-models.md` | USPest's `lyg` model from Simko 2000 ("Lygus bug [alfalfa seed]", eastern Oregon and southwestern Idaho, partly validated): single sine 52 °F from January 1, with one event, 275 (peak 1st and 2nd instar nymphs); it names no species, and the region's main lygus bug is *L. hesperus* (an inference). Read on USPest 2026-11-19 | The base, start and 275 only; VDIFN's 1,000 and 2,000 aren't in it |
 | Fleischer and Gaylor 1988 | Nymphal development of *Lygus lineolaris*, Wisconsin's tarnished plant bug | Nothing yet: a candidate source |
 
 ## Choices and differences

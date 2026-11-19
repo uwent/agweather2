@@ -37,7 +37,7 @@ The work list for PLAN.md Phase 3 D8 step 4: moving each insect from its legacy 
 | Spotted wing drosophila | 45/86, Jan 1, (1276, 3180, 4000) | Kamiyama et al. 2020 (VDIFN's link); Tochen et al. 2014 | see paper | 🔎 (open access) |
 | Squash vine borer | 50/none, Jan 1, (750, 900, 1000) | Spreadsheet links only UW vegento | ? | ❓ |
 | Stalk borer | 41/86, Jan 1, (1110, 1400, 1700) | Old UW AgWeather thermal model; Levine 1983 | 5 °C | 🔎 |
-| Tarnished plant bug | 52/none, Jan 1, (275, 1000, 2000) | USPest `lyg` from Simko 2000 (alfalfa seed, E. Oregon and SW Idaho), for **_Lygus hesperus_** | Sine 52 °F | ⚠ wrong species for WI |
+| Tarnished plant bug | 52/none, Jan 1, (275, 1000, 2000) | USPest `lyg` from Simko 2000 (alfalfa seed, E. Oregon and SW Idaho; names no species, likely **_Lygus hesperus_**; only 52 °F, Jan 1 and 275 match) | Sine 52 °F | ⚠ wrong species for WI |
 | Variegated cutworm | 45/80.1, May 1, (900, 1450, 2100) | USPest `vcw` from Coop & Berry 1987 (peppermint) | Sine **41/88** °F | ⚠ events at 41/88, run at 45/80.1 |
 | Western bean cutworm | 50/none, May 1, (1320, 1420, 1535) | USPest `wbc` (Nebraska IPM); UNL CropWatch 2016; UW A3856; Hanson et al. 2015 | **Simple average**, 50 °F | 🔎 |
 | Western flower thrips | 45/none, Jan 1, 4 gens 670 apart | USPest `wft` (OSU analysis, "under development") | Sine 45/104 °F | ❓ paper |
@@ -48,7 +48,7 @@ The work list for PLAN.md Phase 3 D8 step 4: moving each insect from its legacy 
 `tmp/references/insects/VDIFN Models v20210407.xlsx` lists each model's thresholds, biofix, events and links. Most links are to **USPest.org** degree-day models (Oregon State IPPC, Len Coop). Their pages (`uspest.org/cgi-bin/ddmodel2.pl?spp=<code>`) give each model's source, method, thresholds, biofix and region, but no full citation. They show several insects whose current definitions don't match their own source:
 
 - **Variegated cutworm:** the events (900, 1450, 2100) are Coop and Berry's (1987), defined at 41/88 °F. VDIFN runs them at 45/80.1 °F, credited to Simonet et al. (1981), who give 45 °F with no upper threshold, from January 1 (re-read 2026-11-18; the 80.1 °F cap has no known source; Simonet's flight peaks of 900 and 2,160 from January 1 are near the model's 900 and 2,100 from May 1), which UC IPM pairs with different events. One of the two has to go.
-- **Tarnished plant bug:** the model is Simko's (2000) for _Lygus hesperus_ on alfalfa seed in eastern Oregon and southwestern Idaho. Wisconsin's pest is _L. lineolaris_ (Fleischer and Gaylor 1988 is a candidate).
+- **Tarnished plant bug:** the base, start and 275 match Simko's (2000) lygus bug model for alfalfa seed in eastern Oregon and southwestern Idaho (USPest `lyg`, whose one event is 275; 1,000 and 2,000 aren't in it); it names no species, but the region's main one is _Lygus hesperus_. Wisconsin's pest is _L. lineolaris_ (Fleischer and Gaylor 1988 is a candidate).
 - **Biofixes that stand in for events:**
   - black cutworm (May 15): peak pheromone-trap captures;
   - cabbage looper (May 15): first trap catch;
