@@ -33,7 +33,7 @@ sources:
     text: 'Brambles: Insects. New England Small Fruit Management Guide, UMass Extension.'
     url: https://www.umass.edu/agriculture-food-environment/fruit/ne-small-fruit-management-guide/brambles/insects
   - key: ncsu-tpb
-    text: 'Burrack, H. and A. Toennisson. Tarnished Plant Bug in Strawberries. NC State Extension (read in its December 2024 archived copy; the live page was unreachable when checked).'
+    text: 'Burrack, H. and A. Toennisson. Tarnished Plant Bug in Strawberries. NC State Extension.'
     url: https://content.ces.ncsu.edu/tarnished-plant-bug-in-strawberries
   - key: agweather-tpb
     text: 'AgWeather. Tarnished plant bug model: validation report. UW–Madison, 2026.'
