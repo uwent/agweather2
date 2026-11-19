@@ -66,7 +66,7 @@ Wheat planted after corn generally has more scab, because the residue carries th
 ## Monitoring
 
 - Know when each field flowers. Check heads in several places across the field, since heads emerge unevenly.[^kriss-2016][^smith-2022]
-- Check a risk forecast in the days before flowering. The national [Fusarium head blight risk tool](https://www.wheatscab.psu.edu/) estimates the risk of a scab epidemic for wheat at flowering from the humidity of the previous 15 days, for winter or spring wheat and your variety's resistance. It doesn't predict DON.[^kriss-2016][^harbach-2018][^fhb-risk-tool]
+- Check a risk forecast in the days before flowering. The national [Fusarium head blight risk tool](https://www.wheatscab.psu.edu/) estimates the risk of a scab epidemic for wheat at flowering from the humidity of the days before (15 days in some extension articles; the model's authors' current document uses 14), for winter or spring wheat and your variety's resistance. It doesn't predict DON.[^kriss-2016][^harbach-2018][^fhb-risk-tool]
 - Before harvest, look for bleached heads, and have grain from fields with scab tested for DON before you feed or sell it.[^friskop-2021]
 
 ## Management
@@ -89,7 +89,7 @@ For products, see UW–Madison's [Pest Management in Wisconsin Field Crops (A364
 
 ## AgWeather's models
 
-The [wheat scab model](/models/wheat-scab) gives the probability of a severe Fusarium head blight epidemic, with 10 % or more of the heads diseased, for wheat flowering on the day shown, from the average relative humidity of the 14 days before. It does this for four classes of variety resistance (very susceptible, susceptible, moderately susceptible and moderately resistant; susceptible unless you choose another). Risk is Low below 24 %, Moderate from 24 % and High from 32 %, the national risk tool's levels.[^agweather-wheat-scab][^shah-2013]
+The [wheat scab model](/models/wheat-scab) gives the probability of a severe Fusarium head blight epidemic, one in which, averaged over the heads, symptoms cover 10 % or more of a head's surface, for wheat flowering on the day shown, from the average relative humidity of the 14 days before. It does this for four classes of variety resistance (very susceptible, susceptible, moderately susceptible and moderately resistant; susceptible unless you choose another). Risk is Low below 24 %, Moderate from 24 % and High from 32 %, the levels the model's authors set for the national risk tool.[^agweather-wheat-scab][^shah-2013]
 
 The model is one of the U.S. scab prediction models of Shah, Paul, De Wolf and Madden, with the coefficients their team refit for 2026. We copied it from the Crop Protection Network's Crop Risk Tool, which uses the same equation; ours ends the two weeks of humidity the day before flowering, as the model team describes it. It hasn't been compared with scab in Wisconsin fields.[^agweather-wheat-scab][^shah-2013]
 
