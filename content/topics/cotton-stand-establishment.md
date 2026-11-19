@@ -1,33 +1,73 @@
 ---
 id: cotton-stand-establishment
-title: Cotton Planting Risk Model
+title: Cotton stand establishment
 kind: agronomic
 crops:
   - cotton
-scientific_name: ''
-summary: ''
+scientific_name: Gossypium hirsutum
+summary: Getting enough cotton seedlings up and growing after planting; cold soil and rain in the first days after planting, and the seedling diseases they favor, are the main weather risks to a stand in the southern cotton states.
 image: images/cotton-stand-establishment.jpg
-image_credit: to confirm
+image_credit: 'Cotton seedlings in a field in Texas. Photo by USDA Natural Resources Conservation Service, Texas, via Wikimedia Commons (File:Cotton seedlings in the 2010 crop year. (25023825111).jpg), public domain (work of the U.S. government); resized.'
 status: draft
-updated: 2026-11-17
+updated: 2026-11-19
 sources:
-  - Crop Risk Tool docs/cotton-planting.md
+  - key: adams-2019
+    text: 'Adams, C., S. Thapa and E. Kimura. Determination of a plant population density threshold for optimizing cotton lint yield: a synthesis. Field Crops Research 230:11–16, 2019.'
+    url: https://doi.org/10.1016/j.fcr.2018.10.005
+  - key: rothrock-2012
+    text: 'Rothrock, C. S., S. A. Winters, P. K. Miller and others. Importance of fungicide seed treatment and environment on seedling diseases of cotton. Plant Disease 96:1805–1817, 2012.'
+    url: https://doi.org/10.1094/PDIS-01-12-0031-SR
+  - key: uga-2023
+    text: 'A few reminders for planting cotton. University of Georgia Cooperative Extension, Tift County, 2023.'
+    url: https://site.extension.uga.edu/tiftcoag/2023/04/a-few-reminders-for-planting-cotton/
+  - key: uga-2016
+    text: 'Cotton Preparation and Planting. University of Georgia Cooperative Extension, Plow Points, 2016.'
+    url: https://site.extension.uga.edu/plowpoints/2016/04/cotton-preparation-and-planting/
+  - key: msstate-soil
+    text: 'What should be the soil temperature at planting time? Mississippi State University Extension.'
+    url: https://extension.msstate.edu/agriculture/crops/cotton/what-should-be-the-soil-temperature-planting-time
+  - key: edmisten-2021
+    text: 'Edmisten, K. Thoughts on Cotton Planting: Soil Temperatures. NC State Extension, 2021.'
+    url: https://cotton.ces.ncsu.edu/2021/04/thoughts-on-cotton-planting
+  - key: faske-2023
+    text: 'Faske, T., T. Allen, T. Price and T. Spurlock. Pythium Seedling Disease of Cotton. Crop Protection Network, 2023.'
+    url: https://cropprotectionnetwork.org/encyclopedia/pythium-seedling-disease-of-cotton
+  - key: whitaker-2019
+    text: 'Whitaker, J. and R. Kemerait. Seedling Diseases and Management in Cotton. University of Georgia Cooperative Extension, 2019.'
+    url: https://site.extension.uga.edu/benhillcoag/2019/05/seedling-diseases-and-management-in-cotton/
+  - key: agweather-cotton-planting
+    text: 'AgWeather. Cotton planting stand risk model: validation report. UW–Madison, 2026.'
+    url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/cotton-planting.md
 ---
 
-Maintaining uniform seedling emergence within the first 40 days after planting is often considered one of the most critical factors influencing cotton yield (Stewart and Faircloth 2007). Although acceptable yields can be achieved with uniformly spaced stands as low as 15,000 plants per acre, recommended final stands typically range from 20,000 to 50,000 plants per acre. Recommended seeding rates depend on row spacing, soil conditions, and seedling disease pressure (Adams et al. 2019).
+Cotton (_Gossypium hirsutum_) is grown across the southern United States, from Virginia to California, and planted in spring. A field's yield starts with its stand: enough seedlings coming up evenly after planting. Cold soil, rain soon after planting and the seedling diseases they favor are the main weather risks to a stand, and a poor one may have to be replanted.[^msstate-soil][^rothrock-2012] This page explains how weather affects stand establishment and how growers time planting around it. Cotton isn't grown in Wisconsin; AgWeather's model for it serves the cotton states.
 
-This model estimates the probability that a planting population will fall below a user-defined stand threshold. The model is based on planting population, Pythium presence, minimum air temperatures occurring within 9 days after planting, and cumulative rainfall during the first 3 days after planting. The model does not account for reduced seed viability, planting errors, soil crusting, rapid soil drying, insect pressure, or other factors that may limit vigorous seedling growth.
+## How many plants a field needs
 
-The model was built assuming no seed treatments were used. Utilization of seed treatments containing fungicides active against _Pythium_ spp., _Rhizoctonia solani_, _Fusarium_ spp., and _Thielaviopsis basicola_ can support higher plant stands (Faske et al. 2025; Rothrock et al. 2012).
+Cotton makes up for thin stands well. A synthesis of population studies found that lint yield holds steady across a wide range of plant densities and falls steeply only below about 35,000 plants per hectare (about 14,000 per acre). The common recommendation, 81,000 plants per hectare (about 33,000 per acre), and the higher seeding rates many growers use leave room for losses.[^adams-2019] A stand that comes up near the low end is the one at risk, which is why the weather in the first days after planting matters.
 
-The model was developed by Zachary Noel, Assistant Professor of Plant Health and Microbiomes, Auburn University, with funding provided by Cotton Incorporated.
+## How weather affects the stand
 
-## More information
+- **Cold soon after planting.** In the first three days after planting, temperatures of 41 °F or lower can kill seed that has absorbed water, and chilling temperatures, below 50 °F but above freezing, can kill or badly injure a germinating seedling.[^uga-2016][^uga-2023] Planting into cold soil raises the risk of chilling injury.[^msstate-soil]
+- **Slow emergence gives disease a head start.** Cool, wet soil, or a cold rain just after planting, slows germination and growth, which gives seedling disease fungi time to attack seeds and seedlings.[^whitaker-2019]
+- **Seedling disease.** _Pythium_ species, _Rhizoctonia solani_ and _Fusarium_ species infect seeds and seedlings, and can kill a seed before it emerges (preemergence damping-off). _Pythium_ thrives in cool, saturated soils, especially heavier clay soils, while _Rhizoctonia_ depends less on the weather and is the most common cause in Georgia.[^faske-2023][^whitaker-2019] In a series of standardized seed treatment trials from 1993 to 2004, stands lost to seedling disease rose sharply as the minimum soil temperature in the first three days after planting fell from about 77 °F (25 °C) to 54 °F (12 °C) and as rain increased, and _Pythium_'s share of the losses grew most.[^rothrock-2012]
 
-- Adams, C., Thapa, S., and Kimura, E. 2019. Determination of a plant population density threshold for optimizing cotton lint yield: A synthesis. Field Crop. Res. 230:11-16.
+## Timing planting and protecting the stand
 
-- Faske, T. R., Kirkpatrick, T. L., Rothrock, C. S., and Woodward, J. E. 2025. Part I: infectious diseases. Pages 8-22. in: Compendium of Cotton Diseases and Pests, 3rd ed. Faske, T.R., Kirkpatrick, T.L., Rothrock C.S., J.E. Woodward, ed. St. Paul, MN: The American Phytopathological Society. https://doi.org/10.1094/9780890546949.002
+**Wait for warm soil and a warm forecast.** Guidelines differ by state, but they agree on the idea:
 
-- Rothrock, C. S., Winters, S. A., Miller, P. K., Gbur, E., Verhalen, L. M., Greenhagen, B. E., Isakeit, T. S., Batson, W. E., Jr., Bourland, F. M., Colyer, P. D., Wheeler, T. A., Kaufman, H. W., Sciumbato, G. L., Thaxton, P. M., Lawrence, K. S., Gazaway, W. S., Chambers, A. Y., Newman, M. A., Kirkpatrick, T. L., Barham, J. D., Phipps, P. M., Shokes, F. M., Littlefield, L. J., Padgett, G. B., Hutmacher, R. B., Davis, R. M., Kemerait, R. C., Sumner, D. R., Seebold, K. W., Jr., Mueller, J. D., and Garber, R. H. 2012. Importance of fungicide seed treatment and environment on seedling diseases of cotton. Plant Dis. 96:1805-1817.
+- Georgia: plant when the soil is 65 °F or warmer at 4 inches for three days in a row and the forecast gives at least 50 DD60s in the five days after planting.[^uga-2016][^uga-2023] A DD60 is a degree day above 60 °F: the day's average temperature minus 60.[^uga-2023]
+- Mississippi: a seedbed at least 68 °F at 2 inches, with dry weather and at least 50 DD60s expected over the next five days.[^msstate-soil]
+- North Carolina: 65 °F or more at 10 a.m. is the target, though there's no hard rule. Knowing your seed's cool germination test result, seed size, planting depth, soil moisture and drainage helps you judge how much risk to take.[^edmisten-2021]
 
-- Stewart, S., and Faircloth, J. 2007. The First Forty Days™ Through Fruiting to Finish™. Pages 579-586 in: Proc. of Beltwide Cotton Production Conference. National Cotton Council of America.
+**Use good seed and fungicide seed treatments.** Plant high-quality seed with a strong germination rate.[^faske-2023][^whitaker-2019] In those trials, fungicide seed treatments improved stands in more than half of the trials; metalaxyl, which controls _Pythium_, and PCNB, which controls _Rhizoctonia_, each helped in many of them, and newer azoxystrobin and triazole treatments improved on the old standard.[^rothrock-2012] PCNB doesn't control _Pythium_, and metalaxyl, mefenoxam and etridiazole don't control _Rhizoctonia_, so seed is treated with more than one fungicide. In Georgia, all commercial seed comes with at least two.[^whitaker-2019]
+
+**Add protection where the risk is high.** Extra seed treatments or an in-furrow fungicide are worth considering in fields with a history of seedling disease, when cool, wet weather is likely after planting, with poor seed or low seeding rates, and in conservation tillage, though yield benefits have been hard to show in trials, so they aren't needed in every field.[^whitaker-2019] Raised beds warm and drain the soil, which helps against _Pythium_.[^faske-2023]
+
+For planting dates, seeding rates and products in your area, see your state's cotton production guide and extension cotton team, such as the University of Georgia's, Mississippi State's and NC State's.
+
+## AgWeather's models
+
+The [cotton planting stand risk model](/models/cotton-planting) treats each day as a possible planting date and estimates the probability that the stand that emerges falls below a yield-limiting population (15,000 or 20,000 plants per acre), for a seeding rate of 30,000, 40,000 or 50,000 seeds per acre. The share of seeds that emerge depends on whether _Pythium_ is present in the field, the rain over the 3 days from planting and the average minimum temperature over the 9 days from planting: more rain lowers emergence and warmer nights raise it. The model rates the probability Very low below 1 %, Low from 1 %, Moderate from 20 % and High from 35 %. For planting dates in the coming days, it uses the forecast for the days after planting.[^agweather-cotton-planting]
+
+The model was developed by Zachary Noel at Auburn University with funding from Cotton Incorporated, and it applies to the 17 cotton-growing states, not to Wisconsin. Our maps don't yet reach the South, so it runs at a location you choose, on weather from Open-Meteo. It reproduces the Crop Risk Tool's results exactly, but the fit is unpublished: we don't know its error or the years, rain and temperatures behind it, and it hasn't been compared with stands counted in fields. It includes a small yearly trend that raises predicted emergence each year past the fit, which may not hold. Apart from whether _Pythium_ is present, it doesn't account for seed quality, seed treatments, soil moisture or crusting, so use it alongside the planting guidelines above.[^agweather-cotton-planting]
