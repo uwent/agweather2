@@ -17,6 +17,9 @@ sources:
   - key: a3422-2026
     text: 'Commercial Vegetable Production in Wisconsin (A3422). UW–Madison Division of Extension, 2026.'
     url: https://vegpath.plantpath.wisc.edu/resources/a3422/
+  - key: a3803-2004
+    text: 'Delahaut, K. and W. Stevenson. Onion Disorders: Botrytis Leaf Blight, Leaf Fleck, and Neck Rot (A3803). University of Wisconsin–Extension, 2004.'
+    url: https://vegpath.plantpath.wisc.edu/wp-content/uploads/sites/342/2026/05/A3803-Onion-Disorders.pdf
   - key: latin-2001
     text: 'Latin, R. and K. Helms. Diagnosis and Control of Onion Diseases (BP-23-W). Purdue University Cooperative Extension Service, reviewed 2001.'
     url: https://www.extension.purdue.edu/extmedia/bp/bp-23-w.html
@@ -34,18 +37,19 @@ sources:
     url: https://doi.org/10.1016/0167-8809(86)90136-2
 ---
 
-Botrytis leaf blight, also called Botrytis leaf spot or blast, is a disease of onion and other alliums caused by the fungus _Botrytis squamosa_.[^vegpath-onion] It is a common leaf disease in the onion-growing regions of the eastern and Midwestern states, and it favors long wet periods in mild weather.[^latin-2001]
+Botrytis leaf blight, also called Botrytis leaf spot or blast, is a disease of onion and other alliums caused by the fungus _Botrytis squamosa_.[^vegpath-onion][^a3803-2004] It is a common leaf disease in the onion-growing regions of the eastern and Midwestern states, and it favors long wet periods in mild weather.[^latin-2001]
 
 ## Identification
 
 - **Spots** are small, white and oval, up to about ¼ inch long, and may be ringed by a pale green or silvery border that looks water-soaked. They are usually the first sign of the disease.[^vegpath-onion][^latin-2001][^swett-2019]
 - **Tip dieback** follows as spots multiply: leaf tips dry and wither, and many spots on a leaf can kill the whole leaf and, in severe cases, the whole top.[^vegpath-onion][^latin-2001][^swett-2019] Leaves often blight partly or wholly within 5 to 12 days after the first spots appear.[^aafc-2021]
+- **Look-alike:** Botrytis leaf fleck, caused by _Botrytis cinerea_, also makes small spots, but they stay on the leaf surface, while leaf blight spots go through the leaf: slice a leaf open to tell them apart. Leaf fleck is rarely serious.[^a3803-2004]
 
 ## Life cycle
 
 The fungus survives the winter as sclerotia, small hard resting bodies, in onion debris left in the field, in cull piles, in stored and volunteer bulbs, and in soil.[^vegpath-onion] Sclerotia can last in soil for months to years.[^swett-2019] In late spring and summer they produce spores that the wind carries to onion leaves.[^latin-2001][^aafc-2021] Spots on infected leaves then produce more spores, so the disease can spread again and again through the season.[^vegpath-onion]
 
-Long periods of leaf wetness drive the disease. Spores form mainly at night, on dead leaf tissue that stays wet for 12 hours or more.[^aafc-2021] Mild weather favors the disease, at about 55 to 75 °F.[^latin-2001] Spores infect most readily at about 64 to 68 °F (18 to 20 °C) on leaves wet for at least 6 hours, by Agriculture and Agri-Food Canada's account; University of California guidelines say leaves must stay wet from dew or rain for 20 hours or more for spots to develop.[^aafc-2021][^swett-2019] Older leaves are more susceptible than young ones, so the disease tends to build as the season goes on.[^latin-2001][^aafc-2021] Crowded plantings and still, humid air in the canopy also favor it.[^vegpath-onion][^swett-2019]
+Long periods of leaf wetness drive the disease. Spores form mainly at night, on dead leaf tissue that stays wet for 12 hours or more.[^aafc-2021] Mild weather favors the disease, at about 55 to 75 °F.[^latin-2001] Spores infect most readily at about 64 to 68 °F (18 to 20 °C) on leaves wet for at least 6 hours, by Agriculture and Agri-Food Canada's account; University of California guidelines say leaves must stay wet from dew or rain for 20 hours or more for spots to develop.[^aafc-2021][^swett-2019] Older leaves are more susceptible than young ones, so the disease tends to build as the season goes on; spots show first on the oldest leaves, and onions are most susceptible early in bulbing.[^latin-2001][^aafc-2021][^a3803-2004] Crowded plantings and still, humid air in the canopy also favor it.[^vegpath-onion][^swett-2019]
 
 ## Damage
 
@@ -66,7 +70,7 @@ When leaves die early, the bulbs stay smaller and yield drops.[^swett-2019][^veg
 - Space plants so the canopy dries, and time overhead irrigation so leaves dry between waterings.[^swett-2019][^vegpath-onion]
 - Avoid working in fields while plants are wet, and clean tools and machinery to limit spread.[^vegpath-onion]
 
-No onion varieties are fully resistant, and these steps only partly control the disease, so commercial growers depend on fungicides.[^aafc-2021][^latin-2001]
+No onion varieties are fully resistant, and these steps only partly control the disease, so commercial growers depend on fungicides.[^aafc-2021][^latin-2001][^a3803-2004]
 
 **Fungicides** can be timed by scouting and a forecast rather than on a fixed schedule, which can save unneeded sprays.[^vegpath-onion][^aafc-2021]
 

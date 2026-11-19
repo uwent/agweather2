@@ -32,6 +32,12 @@ sources:
   - key: egel-2022
     text: 'Egel, D. Alternaria Leaf Blight (Picture of the Week). Purdue University Botany and Plant Pathology, 2022.'
     url: https://ag.purdue.edu/department/btny/ppdl/potw-dept-folder/2022/alternaria-leaf-blight.html
+  - key: uw-carrot-trial-2022
+    text: 'Jordan, S. A. and A. J. Gevens. Evaluation of varietal resistance to foliar diseases of carrot, 2022 (Hancock, Wisconsin). UW–Madison Vegetable Pathology field trial report, 2023.'
+    url: https://vegpath.plantpath.wisc.edu/wp-content/uploads/sites/342/2023/06/2022-Gevens-Carrot-Foliar-Variety-Trial-Hancock-WI.pdf
+  - key: uw-carrot-trial-2024
+    text: 'Jordan, S. A. and A. J. Gevens. Evaluation of varietal resistance to foliar diseases of carrot, 2024 (Hancock, Wisconsin). UW–Madison Vegetable Pathology field trial report, 2026.'
+    url: https://vegpath.plantpath.wisc.edu/wp-content/uploads/sites/342/2026/01/1_Gevens_Carrot-Foliar-Variety-Trial-2024.pdf
   - key: gevens-xht1211
     text: 'Gevens, A. Home Vegetable Garden Fungicides (XHT1211). UW–Madison Plant Pathology.'
     url: https://vegpath.plantpath.wisc.edu/wp-content/uploads/sites/342/2021/02/XHT1211-Home-Vegetable-Garden-Fungicides.pdf
@@ -74,7 +80,7 @@ Losses come from leaf area lost and from roots left behind at harvest. They can 
 
 - Plant clean seed. Hot-water seed treatment (122 °F for 20 minutes) can reduce seedborne infection.[^mwvg-2026][^umass-2013]
 - Rotate out of carrots for at least 2 to 3 years, and work crop debris into the soil promptly after harvest so it breaks down.[^uw-vegpath][^mwvg-2026][^cornell-2021]
-- Choose tolerant varieties; several are available.[^uw-vegpath][^cornell-2021]
+- Choose tolerant varieties; several are available.[^uw-vegpath][^cornell-2021] In UW–Madison trials at Hancock in 2022 and 2024, which rated Alternaria and Cercospora together, Naval, Belgrado and Canberra were among the varieties with the least leaf blight.[^uw-carrot-trial-2022][^uw-carrot-trial-2024]
 - Plant in well-drained fields, and irrigate early in the day so leaves dry quickly.[^uw-vegpath] Keep plants vigorous with good fertility and avoid injuring them.[^cornell-2021]
 
 **Fungicides** work best started early: begin when you first find spots, or when a forecast calls for a spray.[^uw-vegpath][^mwvg-2026]

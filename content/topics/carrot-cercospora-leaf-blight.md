@@ -35,6 +35,12 @@ sources:
   - key: umn-carrot
     text: "University of Minnesota Extension. What's Wrong With My Plant? Carrot: spots on leaves."
     url: https://apps.extension.umn.edu/garden/diagnose/plant/vegetable/carrot/leavesspots.html
+  - key: uw-carrot-trial-2022
+    text: 'Jordan, S. A. and A. J. Gevens. Evaluation of varietal resistance to foliar diseases of carrot, 2022 (Hancock, Wisconsin). UW–Madison Vegetable Pathology field trial report, 2023.'
+    url: https://vegpath.plantpath.wisc.edu/wp-content/uploads/sites/342/2023/06/2022-Gevens-Carrot-Foliar-Variety-Trial-Hancock-WI.pdf
+  - key: uw-carrot-trial-2024
+    text: 'Jordan, S. A. and A. J. Gevens. Evaluation of varietal resistance to foliar diseases of carrot, 2024 (Hancock, Wisconsin). UW–Madison Vegetable Pathology field trial report, 2026.'
+    url: https://vegpath.plantpath.wisc.edu/wp-content/uploads/sites/342/2026/01/1_Gevens_Carrot-Foliar-Variety-Trial-2024.pdf
   - key: gevens-xht1211
     text: 'Gevens, A. Home Vegetable Garden Fungicides (XHT1211). UW–Madison Plant Pathology.'
     url: https://vegpath.plantpath.wisc.edu/wp-content/uploads/sites/342/2021/02/XHT1211-Home-Vegetable-Garden-Fungicides.pdf
@@ -73,7 +79,7 @@ Heavy blight kills leaves, and badly damaged plants may have smaller roots.[^umn
 **Nonchemical controls:**
 
 - Buy clean seed; hot water treatment (122 °F for 20 minutes) can reduce seedborne infection.[^midwest-veg-guide-2026]
-- Plant tolerant cultivars. In Wisconsin trials, the more resistant cultivar Bolero needed fewer sprays than a susceptible one to control both blights.[^rogers-2006][^uw-vegpath-carrot]
+- Plant tolerant cultivars. In Wisconsin trials, the more resistant cultivar Bolero needed fewer sprays than a susceptible one to control both blights.[^rogers-2006][^uw-vegpath-carrot] In UW–Madison trials at Hancock in 2022 and 2024, which rated the two blights together, Naval, Belgrado and Canberra were among the cultivars with the least leaf blight.[^uw-carrot-trial-2022][^uw-carrot-trial-2024]
 - Rotate away from carrot for at least 2 to 3 years, and work crop debris into the soil soon after harvest.[^uw-vegpath-carrot][^cornell-carrot-2021]
 - Help leaves dry: choose well-drained fields, irrigate early in the day, and consider wider rows or raised beds.[^uw-vegpath-carrot][^cornell-carrot-2021]
 
