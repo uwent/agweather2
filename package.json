@@ -32,7 +32,7 @@
     "vitest": "^5.0.3"
   },
   "scripts": {
-    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
+    "check": "svelte-check --tsconfig ./tsconfig.json --config ./svelte.config.js && tsc -p tsconfig.node.json",
     "typecheck:py": "pyright",
     "test": "vitest run",
     "build": "vite build",
