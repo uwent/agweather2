@@ -41,9 +41,6 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 - [ ] **The PVY index's weighting** (2026-11-18, optional): the refit kept log(1 + count) × asin(√efficiency); weighting by efficiency or counts × efficiency moves the peak (3,488 or 3,226 DD). Your choice before publishing (`tmp/R/pvy-model/pvy-model-v2.R`, `docs/validation/models/aphid-pvy-vectors.md`).
 
 - [ ] **Rebuild the models' stored inputs on the dev archive** (2026-11-19): white mold 0.2 dropped one, DON 0.2 added one, and other models changed today; `uv run app/manage.py ingredients --check` lists 19 stale per year (2016–2026). Run `uv run app/manage.py ingredients --background` when the machine is free (maps of those models read the stale ones until then).
-- [ ] **Onion thrips data** (2026-11-19, for the planned model in `docs/models-plan.md` part G): your lab's untreated-check onion thrips counts by date and site, with spray dates and irrigation records, to fit a base and test a heavy-rain term.
-- [ ] **Spotted wing drosophila refit** (2026-11-19): check three trap-seasons that look copied (P Mulch and P Plant Path 2016 and 2018; P Fence and Seaq Hiland 2017) against the field sheets; decide whether the model holds at its peak after it (rather than the fitted decline, which rests on 2015 alone); newer trap counts (berries, into October, outside Door County) when you find them.
-
 - [ ] **Wisconsin codling moth trap records** (optional now): DATCP's trap network (weekly counts at 25–29 orchards, 2020–2025, in its published summaries) already checks the default first catch; UW's records would add daily-checked sites, if the fruit program has them.
 - [ ] **Email NEWA** (newa@cornell-ipm.org) as a courtesy: our validation reports (`docs/validation/models/`) publish comparisons with its models on its stations' public data, with credit (D98). Worth telling them too, as a courtesy: some Wisconsin stations' rain gauges recorded almost nothing in 2024–2025 while the archive had a normal spring (Gays Mills about 10 % of the archive's April–June rain in 2024 and 2 % in 2025, Genoa City 2025 about 1 %, Fort Atkinson 2024 about 26 %), which keeps their apple scab season open. The request: we'd like to read the Wisconsin stations' hours (one request per station-season, 2024–2026, kept) to validate AgWeather's apple models against NEWA's, and publish the comparison with credit. Ask them to confirm the points we read from their site's code: the single sine uses `Math.sin` where Baskerville–Emin has `asin`; Cougarblight counts no hour below 60 °F though Smith's 2010 version starts at 50 °F; fire blight's default first blossom is 230 DD43 though their stage table puts bloom at 346; Cougarblight's "no blight nearby" threshold of 300 (Smith and Pusey 2011 give 500, WSU 400); and codling moth's default first catch at 404 DD and second flight at 1501 DD (published first catches in the Northeast and Michigan run 230–280 DD°F).
 - [ ] **Optional: check chill against chillR itself** (2026-11-10). The Dynamic model is tested against a line-by-line port of chillR's code; Claude wasn't allowed to run code it downloaded, so a direct comparison waits for you. chillR needn't be installed: its model functions are plain R.
@@ -57,6 +54,11 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
   ```
 
   Commit the CSV if it passes.
+
+## Backburner (time-consuming; not soon)
+
+- [ ] **Onion thrips data** (2026-11-19, for the planned model in `docs/models-plan.md` part G): your lab's untreated-check onion thrips counts by date and site, with spray dates and irrigation records, to fit a base and test a heavy-rain term.
+- [ ] **Spotted wing drosophila refit** (2026-11-19): check three trap-seasons that look copied (P Mulch and P Plant Path 2016 and 2018; P Fence and Seaq Hiland 2017) against the field sheets; decide whether the model holds at its peak after it (rather than the fitted decline, which rests on 2015 alone); newer trap counts (berries, into October, outside Door County) when you find them.
 
 ## Phase 8: On the server, and launch
 
