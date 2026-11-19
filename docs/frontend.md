@@ -206,6 +206,7 @@ WISP 3's frontend is the source to port (CLAUDE.md, Gotchas). This section says 
 - Errors and warnings from the API's `meta.warnings` and `errors` shown in its words (they're written for the public, CLAUDE.md).
 - Outside the box or before the archive, say where the data comes from (Open-Meteo) and what differs.
 - Stale data: a banner when `/status` shows a source behind.
+- A model that's blank by design on some days says why where the blank shows, not as missing data: an output's `description` in the spec carries the reason (rye biomass: winter-sown rye, a prediction of spring biomass only, so nothing from planting until March 1; Ben, 2026-11-19). Flag outputs such as rye's `planting_outside_data` become a note beside the chart until the API has a model-declared warning (`meta.warnings`).
 
 ### Words
 

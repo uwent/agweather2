@@ -78,7 +78,7 @@ SPEC = ModelSpec(
             name="biomass",
             label="Predicted biomass",
             unit="lb_ac",
-            description="From March 1 after planting; none in the fall and winter",
+            description="Spring biomass only, from March 1 after planting: the model was fitted to biomass measured at spring termination, so it gives no fall or winter values",
         ),
         Quantity(name="gdd_total", label="GDD (base 32 °F) since planting", unit="degC_day"),
         Quantity(name="gdd_fall", label="GDD (base 32 °F) from planting through December 31", unit="degC_day"),

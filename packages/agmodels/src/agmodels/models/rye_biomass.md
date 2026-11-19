@@ -18,7 +18,7 @@ The model estimates the above-ground dry biomass of a cereal rye cover crop, in 
 - **Moderate:** from 2,000 lb/acre. Rye may also reduce soil erosion and phosphorus runoff.
 - **High:** from 4,500 lb/acre, the upper end of UW–Madison's goal for weed suppression.
 
-The estimate starts on March 1. Growing degree days since planting show from the planting date.
+The model is for winter-sown cereal rye: planted in late summer or fall, growing through the winter and terminated in spring. It predicts spring biomass, not fall growth: the measurements it was fitted to were all taken at spring termination, from April 10 to June 17, so it says nothing reliable about how much rye there is in the fall. For that reason the estimate is blank from planting until March 1 and starts on March 1. Growing degree days since planting show from the planting date.
 
 ## How it works
 
