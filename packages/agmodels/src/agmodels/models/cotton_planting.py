@@ -1,17 +1,24 @@
-"""Cotton planting risk: the probability that the emerged stand falls below a yield-limiting population.
+"""Cotton planting: the predicted emerged stand for each planting date, against a yield-limiting population.
 
 Zachary Noel's model (Auburn University, for Cotton Incorporated; as given to the Crop Risk Tool): each day is a
 possible planting date, and the proportion of seed that emerges is a logistic function of Pythium presence, the year,
 the rain over the 3 days from planting and the mean minimum temperature over the 9 days from planting. The fit's
-variance–covariance matrix gives the prediction a standard error (the delta method on the response scale); with
-emergence taken as normal, the risk is the probability that planting population × emergence falls below the
-limiting population. Risk levels: Very low below 1%, Low from 1%, Moderate from 20%, High from 35%.
+variance–covariance matrix gives the prediction a standard error (the delta method on the response scale), and so a
+95% confidence interval of the mean emergence. The outputs are the predicted stand (emergence × seeding rate, plants
+per acre) and that interval; risk compares the predicted stand with the limiting population: High below it,
+Moderate within 25% above it, Low otherwise.
 
-Ported from the Crop Risk Tool (`cotton_planting_model`, `build_cotton_planting`) with parity tests. Intended
-difference: where the series ends before a window does (the tool's forward windows shrink there), or rain is
-missing in it, there's no value; with the forecast (Phase 4) the windows reach 9 days ahead. Open: the year term
-(0.0112 a year) extrapolates the fit's trend to later years; ask Noel which years it was fitted on. Southern,
-beta.
+Ported from the Crop Risk Tool (`cotton_planting_model`, `build_cotton_planting`) with parity tests of the
+emergence model through the tool's probability (`probability_below`). Intended differences: where the series ends
+before a window does (the tool's forward windows shrink there), rain is missing in it, or fewer than 7 of its 9
+minimum temperatures are known, there's no value; with the forecast (Phase 4) the windows reach 9 days ahead.
+
+0.2 (audit round 2, `tmp/crt-model-audit-2-cotton-pecan-rye.md`): the tool's risk, the probability that the stand
+falls below the limit, comes from the standard error of the *mean* emergence, not the spread of stands between
+fields, so it is nearly all-or-nothing and set by the options rather than the weather. Until the beta regression's
+precision φ comes from the authors (then the beta predictive distribution gives a field-level probability), the
+model shows the predicted stand and its interval instead, and the year term is held at LAST_FIT_YEAR. No
+seed-treatment option yet (the authors' documents disagree on whether the fit has a term for it). Southern, beta.
 """
 
 import math
@@ -21,9 +28,8 @@ import numpy as np
 
 from agmodels.crops import number_option
 from agmodels.ingredients import Ingredient, finished
-from agmodels.probability import logistic, risk_level
+from agmodels.probability import logistic
 from agmodels.spec import (
-    PROBABILITY_LEVELS,
     Change,
     Check,
     Citation,
@@ -36,6 +42,13 @@ from agmodels.spec import (
 )
 
 RAIN_DAYS, COLD_DAYS = 3, 9
+MIN_COLD_DAYS = 7  # minimum temperatures needed of the 9 for a mean (the gaps rule: a mostly missing window is missing)
+# The fit's last year: the year term (0.0112 a year on the logit scale) isn't carried past it. Provisional: the
+# authors haven't said which years the fit covers (the covariance centres it near 2006); 2025 is the last full season
+# their March 2026 document could have used.
+LAST_FIT_YEAR = 2025
+Z_95 = 1.959964  # the authors' 95% interval
+MODERATE_MARGIN = 1.25  # Moderate: a predicted stand within 25% above the limit
 COEFFICIENTS = (-22.4611, -0.3359, 0.01118, -0.00750, 0.03929)  # intercept, Pythium, year, rain (mm), min temp (°C)
 COVARIANCE = np.array(
     [
@@ -68,17 +81,17 @@ SPEC = ModelSpec(
     id="cotton-planting",
     name="Cotton planting stand risk",
     group="agronomic",
-    version="0.1",
+    version="0.2",
     checks=(
         Check(
             kind="system",
             against="The Crop Risk Tool's cotton stand model, which AgWeather replaces",
-            result="Our probabilities match the tool's in all 2,704 combinations of rain, temperature, Pythium, seeding rate and year tested, and on 357 planting dates through 2025. This shows that we reproduce the tool; the model hasn't been compared with stands counted in the field.",
+            result="Our emergence model and its uncertainty reproduce the tool's results in all 2,704 combinations of rain, temperature, Pythium, seeding rate and year tested, and on 357 planting dates through 2025. This shows that we reproduce the tool; the model hasn't been compared with stands counted in the field.",
             report="docs/validation/models/cotton-planting.md#against-the-crop-risk-tool",
         ),
     ),
     status="beta",
-    summary="For each possible planting date, the probability that the emerged cotton stand falls below a yield-limiting population, from the rain over the next 3 days and the minimum temperatures over the next 9.",
+    summary="For each possible planting date, the predicted emerged cotton stand in plants per acre, with its 95% confidence interval, from the rain over the next 3 days and the minimum temperatures over the next 9, compared with a yield-limiting stand.",
     topics=("cotton-stand-establishment",),
     crops=("cotton",),
     citations=(
@@ -109,10 +122,25 @@ SPEC = ModelSpec(
         ),
     ),
     outputs=(
-        Quantity(name="probability", label="Probability of a stand below the limit", unit="percent"),
+        Quantity(name="stand", label="Predicted stand", unit="plants_ac"),
+        Quantity(
+            name="stand_low",
+            label="Predicted stand, low end",
+            unit="plants_ac",
+            description="Lower end of the 95% confidence interval of the predicted stand",
+        ),
+        Quantity(
+            name="stand_high",
+            label="Predicted stand, high end",
+            unit="plants_ac",
+            description="Upper end of the 95% confidence interval of the predicted stand",
+        ),
         Quantity(name="emergence", label="Predicted emergence", unit="percent"),
     ),
-    risk=Risk(levels=PROBABILITY_LEVELS, criteria="Very low below 1%, Low from 1%, Moderate from 20%, High from 35%."),
+    risk=Risk(
+        levels=("Low", "Moderate", "High"),
+        criteria="The predicted stand against the yield-limiting stand: High below it, Moderate from it to less than 25% above it, Low from 25% above it.",
+    ),
     explorer=(
         ExplorerInput(
             name="rain_3day",
@@ -155,20 +183,42 @@ SPEC = ModelSpec(
             ahead_days=COLD_DAYS - 1,
         ),
     ),
-    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    changelog=(
+        Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),
+        Change(
+            version="0.2",
+            date="2026-11-19",
+            note="The predicted stand and its 95% confidence interval replace the probability of a stand below the limit, which measured the uncertainty of the mean emergence rather than the spread between fields; risk is the predicted stand against the limit (High below it, Moderate within 25% above it). The year term is held at 2025, and the 9-day mean needs 7 of its minimum temperatures.",
+        ),
+    ),
 )
 
 
+def emergence_interval(rain_3day, min_temp_9day, pythium, year):
+    """Noel's model: (predicted emergence, its 95% confidence interval's low and high ends), as fractions."""
+    emergence, se = _emergence_and_error(rain_3day=rain_3day, min_temp_9day=min_temp_9day, pythium=pythium, year=year)
+    return emergence, np.clip(emergence - Z_95 * se, 0, 1), np.clip(emergence + Z_95 * se, 0, 1)
+
+
 def probability_below(rain_3day, min_temp_9day, pythium, planting, limiting, year):
-    """Noel's model: (probability the stand is below `limiting`, predicted emergence), both as fractions."""
-    x = np.broadcast_arrays(*(np.asarray(v, dtype=float) for v in (1.0, pythium, year, rain_3day, min_temp_9day)))
-    x = np.stack(x, axis=-1)
-    emergence = logistic(x @ np.array(COEFFICIENTS))
-    # Delta method: g = p(1 − p)·x, so var = p²(1 − p)² · xᵀΣx and se = p(1 − p)·√(xᵀΣx)
-    se = emergence * (1 - emergence) * np.sqrt(np.einsum("...i,ij,...j->...", x, COVARIANCE, x))
+    """The Crop Risk Tool's risk, kept for the parity tests and not shown: (the probability that the stand is below
+    `limiting`, predicted emergence), both as fractions, with emergence taken as normal around the prediction with the
+    standard error of the mean. It measures how sure the fit is of the mean stand, not how stands vary between fields
+    (audit round 2), so it is near 0 or 1 almost everywhere."""
+    emergence, se = _emergence_and_error(rain_3day=rain_3day, min_temp_9day=min_temp_9day, pythium=pythium, year=year)
     sd = np.asarray(planting, dtype=float) * se  # the CI's half-width over 1.96, on the plants scale
     z = (np.asarray(limiting, dtype=float) - emergence * planting) / sd
     return _normal_cdf(z), emergence
+
+
+def _emergence_and_error(rain_3day, min_temp_9day, pythium, year) -> tuple[np.ndarray, np.ndarray]:
+    """Predicted emergence and its standard error (the delta method on the response scale), as fractions."""
+    x = np.broadcast_arrays(*(np.asarray(v, dtype=float) for v in (1.0, pythium, year, rain_3day, min_temp_9day)))
+    x = np.stack(x, axis=-1)
+    emergence = logistic(x @ np.array(COEFFICIENTS))
+    # g = p(1 − p)·x, so var = p²(1 − p)² · xᵀΣx and se = p(1 − p)·√(xᵀΣx)
+    se = emergence * (1 - emergence) * np.sqrt(np.einsum("...i,ij,...j->...", x, COVARIANCE, x))
+    return emergence, se
 
 
 def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
@@ -180,12 +230,10 @@ def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
 
 def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
     rain, cold = values["precipitation_3_day_ahead"], values["air_temperature_min_9_day_ahead"]
-    year = np.asarray(values["year"], dtype=float).reshape((-1,) + (1,) * (rain.ndim - 1))
+    year = np.minimum(np.asarray(values["year"], dtype=float), LAST_FIT_YEAR)
+    year = year.reshape((-1,) + (1,) * (rain.ndim - 1))
     pythium = 1.0 if options.get(PYTHIUM.name, PYTHIUM.default) == "present" else 0.0
-    p, emergence = probability_below(
-        rain, cold, pythium, number_option(options, PLANTING), number_option(options, LIMITING), year
-    )
-    return {"probability": p * 100, "emergence": emergence * 100}
+    return _stands(rain=rain, cold=cold, pythium=pythium, planting=number_option(options, PLANTING), year=year)
 
 
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
@@ -200,12 +248,29 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
-    return risk_level(np.asarray(outputs["probability"], dtype=float) / 100, 1, 20, 35)
+    """High (2) where the predicted stand is below the limit, Moderate (1) up to 25% above it, Low (0) beyond."""
+    stand = np.asarray(outputs["stand"], dtype=float)
+    limit = number_option(options, LIMITING)
+    level = (stand < MODERATE_MARGIN * limit).astype(float) + (stand < limit)
+    return np.where(np.isnan(stand), np.nan, level)
 
 
 def explore(rain_3day: float, min_temp_9day: float) -> dict[str, float]:
-    p, emergence = probability_below(rain_3day, min_temp_9day, 1.0, 40000, 15000, 2025)
-    return {"probability": float(p) * 100, "emergence": float(emergence) * 100}
+    """With Pythium present, 40,000 seeds per acre and the year at LAST_FIT_YEAR."""
+    found = _stands(
+        rain=rain_3day, cold=min_temp_9day, pythium=1.0, planting=float(PLANTING.default), year=LAST_FIT_YEAR
+    )
+    return {name: float(v) for name, v in found.items()}
+
+
+def _stands(rain, cold, pythium: float, planting: float, year) -> dict[str, np.ndarray]:
+    emergence, low, high = emergence_interval(rain_3day=rain, min_temp_9day=cold, pythium=pythium, year=year)
+    return {
+        "stand": emergence * planting,
+        "stand_low": low * planting,
+        "stand_high": high * planting,
+        "emergence": emergence * 100,
+    }
 
 
 def _forward(values, days: int, reduce) -> np.ndarray:
@@ -218,9 +283,10 @@ def _forward(values, days: int, reduce) -> np.ndarray:
 
 
 def _mean_of_present(window: np.ndarray, axis: int = 0) -> np.ndarray:
+    """The mean of the days with values, if at least MIN_COLD_DAYS have them (else NaN)."""
     count = np.isfinite(window).sum(axis=axis)
     with np.errstate(invalid="ignore"):
-        return np.where(count > 0, np.nansum(window, axis=axis) / np.maximum(count, 1), np.nan)
+        return np.where(count >= MIN_COLD_DAYS, np.nansum(window, axis=axis) / np.maximum(count, 1), np.nan)
 
 
 _normal_cdf = np.vectorize(lambda z: 0.5 * (1 + math.erf(z / math.sqrt(2))) if math.isfinite(z) else math.nan)

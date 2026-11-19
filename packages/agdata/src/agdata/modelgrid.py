@@ -64,6 +64,7 @@ OUTPUT_STEPS = {
     "degC": 0.01,
     "day": 1,
     "lb_ac": 1,
+    "plants_ac": 1,
 }
 
 

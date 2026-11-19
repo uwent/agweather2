@@ -150,6 +150,12 @@
       "from": "lb_ac",
       "to": "kg_ha",
       "expected": 1120.851156194
+    },
+    {
+      "value": 40000,
+      "from": "plants_ac",
+      "to": "plants_ha",
+      "expected": 98842.152586866
     }
   ],
   "display": [
@@ -242,6 +248,16 @@
       "stored": "lb_ac",
       "system": "imperial",
       "unit": "lb_ac"
+    },
+    {
+      "stored": "plants_ac",
+      "system": "metric",
+      "unit": "plants_ha"
+    },
+    {
+      "stored": "plants_ac",
+      "system": "imperial",
+      "unit": "plants_ac"
     }
   ]
 }

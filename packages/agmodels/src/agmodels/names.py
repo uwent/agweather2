@@ -150,4 +150,6 @@ UnitSymbol = Literal[
     "mm",
     "mph",
     "percent",
+    "plants_ac",
+    "plants_ha",
 ]

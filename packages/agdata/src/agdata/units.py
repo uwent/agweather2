@@ -68,6 +68,8 @@ UNITS: dict[str, Unit] = {
         Unit(symbol="lb_ac", label="lb/ac", dimension="areal_mass", factor=0.45359237 / 0.40468564224, digits=0),
         Unit(symbol="m", label="m", dimension="elevation", digits=0),  # terrain (D6), apart from depth's mm and in
         Unit(symbol="ft", label="ft", dimension="elevation", factor=0.3048, digits=0),
+        Unit(symbol="plants_ha", label="plants/ha", dimension="plant_density", digits=0),
+        Unit(symbol="plants_ac", label="plants/ac", dimension="plant_density", factor=1 / 0.40468564224, digits=0),
         Unit(symbol="km2", label="km²", dimension="area", digits=0),
         Unit(symbol="mi2", label="sq mi", dimension="area", factor=2.589988110336, digits=0),
         # fractions and angles (no conversion)
@@ -95,6 +97,7 @@ DISPLAY: dict[System, dict[str, str]] = {
         "pressure": "kPa",
         "radiant_exposure": "MJ_m2",
         "areal_mass": "kg_ha",
+        "plant_density": "plants_ha",
         "area": "km2",
         "elevation": "m",
     },
@@ -108,6 +111,7 @@ DISPLAY: dict[System, dict[str, str]] = {
         "pressure": "inHg",
         "radiant_exposure": "MJ_m2",
         "areal_mass": "lb_ac",
+        "plant_density": "plants_ac",
         "area": "mi2",
         "elevation": "ft",
     },

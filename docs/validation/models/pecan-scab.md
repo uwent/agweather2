@@ -1,22 +1,26 @@
 # Pecan scab hours (`pecan-scab`): validation
 
-Model version 0.1 (beta), written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/pecan_scab.py`, reading the daily feature `hours_rh_over_90_temperature_over_70f` (`agmodels.features`, counted from the hours over the calendar day); its page: `pecan_scab.md` beside it. The notes this condenses are PLAN.md Phase 3 (step 6, "Southern models prototyped") and D50.
+Model version 0.2 (beta), written 2026-11-18 (D98), updated 2026-11-19 for 0.2 (audit round 2, `tmp/crt-model-audit-2-cotton-pecan-rye.md` section 2). The model: `packages/agmodels/src/agmodels/models/pecan_scab.py`, reading the daily feature `hours_rh_over_90_temperature_over_70f` (`agmodels.features`, counted from the hours over the calendar day); its page: `pecan_scab.md` beside it. The notes this condenses are PLAN.md Phase 3 (step 6, "Southern models prototyped") and D50.
 
-**In short:** the Oklahoma Mesonet's Pecan Scab Advisor as the Crop Risk Tool carries it: hours with RH at or above 90 % and temperature at or above 70 °F, summed from March 1 or the last spray, against the Mesonet's spray thresholds of 10, 20 and 30 hours for highly, moderately and low susceptible varieties. At the tool's own thresholds v2 reproduces its daily and running scab hours exactly; v2 counts at the Mesonet's thresholds instead, where the tool's code differs from its own docs. The model is beta: pecans grow outside the data's box, so it runs only at points through Open-Meteo, and nothing compares it with the Mesonet's own advisor or with scab in orchards.
+**In short:** the Oklahoma Mesonet's Pecan Scab Advisor: hours with RH at or above 90 % and temperature at or above 70 °F, summed from March 1 or the last spray, against the Mesonet's spray threshold for the variety (10, 20 or 30 hours for highly, moderately and low susceptible varieties) and its waiting period (30 days after March 1, or the chosen 5 to 14 days after a spray), since 0.2. At the tool's own thresholds v2 reproduces its daily and running scab hours exactly; v2 counts at the Mesonet's thresholds instead, where the tool's code differs from its own docs. The model is beta: pecans grow outside the data's box, so it runs only at points through Open-Meteo, and nothing compares it with the Mesonet's own advisor or with scab in orchards.
 
 ## Sources and what we took from each
 
 | Source | What it gives | What we took |
 | --- | --- | --- |
 | Oklahoma Mesonet's Pecan Scab Advisor (mesonet.org) | Scab hours (RH ≥ 90 % and ≥ 70 °F) from March 1 to August 31; spray once 10, 20 or 30 have accrued, by variety susceptibility, and 30 days after March 1 or 5 to 14 days after the last spray | The definition, the season and the thresholds (as quoted in the tool's docs; checked on 2026-11-19 against the Mesonet's "How to use" document of June 12, 2023, https://content.prod.mesonet.org/learn/ag/tools_documentation/pecan-scab-advisor-202306-tagged.pdf: every number matches) |
-| University of Arkansas, pecan scab (pecanscab.uada.edu) | Background on the disease | Background |
+| University of Arkansas, pecan scab (pecanscab.uada.edu) | Background on the disease; the same scab hours counted since the last spray, with a fungicide assumed to protect 10–14 days | Background; the 14-day default protection |
+| Payne and Smith 2012, Plant Disease 96:1358–1364, doi:10.1094/PDIS-03-11-0202-RE (Crossref checked 2026-11-19; the corrected republication of 96:117–123) | Logistic models (GEE) of scab severity ≥ 25 % on fruit at five Oklahoma locations, 1994–96 and 2009–10 (eight site-years); the scab hour as average temperature ≥ 21.1 °C and RH ≥ 90 %; field studies found the thresholds "viable, but a modification of the relative humidity component should be considered" (abstract; full text not read) | Cited as the only published evaluation of the scab hour; nothing taken into the code |
+| LSU AgCenter (2025) | The same rule; two or more 14-day windows reaching 50–90 % of the threshold signal rising risk | Moderate from half the threshold |
 | The Crop Risk Tool (`build_pecan_scab`, `tmp/R/crop-risk-tool/docs/pecan-scab.md`) | Its docs give the Mesonet's 90 % and 70 °F and the variety lists; its code counts RH ≥ 92 % and temperature above 21.1 °C | The risk levels and variety examples; parity at its thresholds below |
 
 ## Choices and differences
 
 - **Thresholds:** RH at or above 90 % and temperature at or above 70 °F (21.11 °C), the Mesonet's and the tool's docs', not the tool's code (92 % and above 21.1 °C). An hour at 21.1 °C doesn't count in v2 and does in the tool; the RH difference matters more (more hours count from 90 %). The tool's 92 % was Ben's trial-and-error adjustment to bring its Open-Meteo scab hours toward the Mesonet's (2026-11-19); v2 handles its weather's humidity bias in its own corrections (Ben), so it keeps the Mesonet's 90 %. The research behind the Mesonet's advisor (its thresholds' origin) is still to be read.
 - **No shift for gridded humidity:** unlike the other humid-hour models, the 90 % isn't counted from 88 % (D50): the Mesonet's threshold hasn't been checked against its stations.
-- **Risk:** Low below 10 scab hours since March 1 or the last spray, Moderate from 10, High from 20, Very high from 30. The Mesonet's timing conditions (30 days after March 1, or 5 to 14 days after the last spray) are stated with the levels but not modelled.
+- **Risk (0.2), the Mesonet's spray decision:** options `susceptibility` (`high` 10 hours, the default, since Desirable, Pawnee and Wichita are the most planted susceptible cultivars; `moderate` 20; `low` 30) and `protection_days` (5, 7, 10 or 14; default 14, as Arkansas and LSU assume). The wait is 30 days when the count starts on March 1 (the biofix's default; the 30 days stand for the start of susceptible growth, budbreak in Oklahoma being early April), `protection_days` when it starts on a spray. Three levels: Low below half the threshold; Moderate from half (LSU's 50–90 % caution), or at the threshold within the wait; High, spray advised, at the threshold once the wait has passed. A spray entered on March 1 itself counts as the season's start (30 days). New outputs: `days_since_start` and `wait_days_left` (0 once the wait has passed); the count runs within one calendar year, as the season does.
+- **Why (audit round 2):** without the wait, a count since March 1 says "spray" in late March in a warm wet spring, before shoots and nuts are susceptible, and a count since a spray two days ago says "spray" again; and without a reset the season's total passes 30 by early June and 0.1's top level lasted to August 31. On the Mesonet's 2025 station data at Okmulgee (OKMU), the rule (threshold since the last spray, a 10-day protection) calls for 10 sprays at 10 hours from May 19 and 9 at 30 hours from June 6; in a wet June and July the waiting period, not the hours, sets the interval.
+- **0.1's risk:** Low below 10 scab hours, Moderate from 10, High from 20, Very high from 30, the tool's; the timing conditions were stated but not modelled.
 - **The day:** the calendar day; a day with a missing hour has no count.
 - **Region:** 16 pecan states; runs at points through Open-Meteo until the gridded data reach the South.
 
@@ -28,15 +32,30 @@ Model version 0.1 (beta), written 2026-11-18 (D98). The model: `packages/agmodel
 
 - **At the tool's thresholds** (RH ≥ 92 % and above 21.1 °C, over each calendar day), the daily scab hours and their running total match the tool's on all 365 days of 2025.
 - **At the Mesonet's** (RH ≥ 90 % and ≥ 70 °F, as v2 counts), the season counts more hours than the tool's, and of hours at 21.1 °C and 95 %, 21.2 °C and 95 %, and 25 °C and 89.9 %, only the second counts.
-- The risk levels step at 10, 20 and 30 scab hours.
+- 0.1's risk levels stepped at 10, 20 and 30 scab hours, as the tool's do; 0.2 replaces them with the spray decision below.
 
 The tool is the model v2 replaces: this shows the arithmetic is the tool's, not that the advisor is right (D54).
+
+### The spray decision
+
+`test_southern_and_cover.py`, run in CI, on constructed series from March 1, 2025 (the audit's cases):
+
+- From March 1, with highly susceptible varieties: a series that reaches 5 hours on day 15 and 10 on day 20 is Low before day 15, Moderate from day 15 through day 29 (half the threshold, then the threshold within the 30-day wait), and High from day 30.
+- From a spray: with 2 scab hours a day, the threshold is reached on the spray's fifth day, and High (spray advised) starts exactly `protection_days` after the spray for each of 5, 7, 10 and 14.
+- The susceptibility option moves the threshold to 10, 20 or 30 hours and Moderate to half of it.
+
+These test the rule as the Mesonet states it, not that the rule predicts scab.
+
+### On real weather
+
+From the audit (scratch scripts on the Mesonet's 5-minute observations at Okmulgee, OKMU, March 1 to August 31, 2025, against Open-Meteo at the same point; not run in CI): the station counts 516 scab hours at 90 % and 70 °F, Open-Meteo's historical forecast 347 (254 at the tool's 92 % and above 21.1 °C) and ERA5 374. In warm hours Open-Meteo's RH runs 3.0 points below the station's (ERA5 1.6), with temperature within 0.4 °C, so 92 % moves the wrong way there; matching the station would take about 86–88 %, close to D50's 88 % for gridded RH in Wisconsin. One station and one season: the threshold stays 90 % until a check at 3–5 Mesonet pecan-area stations over two or three seasons.
 
 ## Limits and open questions
 
 - **No comparison with the Mesonet's advisor or with orchards:** nothing checks our scab hours against the Mesonet's at its stations, or the thresholds against scab outbreaks.
 - **Open-Meteo's humidity:** the hours at or above 90 % depend on its RH, which hasn't been compared with stations in the South (the D50 study compared the archive, not Open-Meteo, with Wisconsin stations).
-- **The Mesonet's timing conditions** (30 days after March 1, 5 to 14 days after a spray) aren't in the risk.
+- **The thresholds' evidence:** the scab hour's only published evaluation is Payne and Smith's eight site-years in Oklahoma; the 10, 20 and 30 hour thresholds themselves have no published validation we found. The research behind them (Driever 1996; von Broembsen et al. 1998) wasn't retrieved.
+- **The waiting periods** are the Mesonet's rule, not a fitted quantity: 30 days from March 1 everywhere in the region, though budbreak comes earlier in the Gulf states than in Oklahoma.
 - **Cheapest independent comparison:** the Oklahoma Mesonet's Pecan Scab Advisor at a few Oklahoma pecan-area stations for one season, against our scab hours at the same points through Open-Meteo.
 
 ## Reproducing
