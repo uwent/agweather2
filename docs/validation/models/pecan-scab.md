@@ -8,7 +8,7 @@ Model version 0.1 (beta), written 2026-11-18 (D98). The model: `packages/agmodel
 
 | Source | What it gives | What we took |
 | --- | --- | --- |
-| Oklahoma Mesonet's Pecan Scab Advisor (mesonet.org) | Scab hours (RH ≥ 90 % and ≥ 70 °F) from March 1 to August 31; spray once 10, 20 or 30 have accrued, by variety susceptibility, and 30 days after March 1 or 5 to 14 days after the last spray | The definition, the season and the thresholds (as quoted in the tool's docs; the page wasn't reread in this round) |
+| Oklahoma Mesonet's Pecan Scab Advisor (mesonet.org) | Scab hours (RH ≥ 90 % and ≥ 70 °F) from March 1 to August 31; spray once 10, 20 or 30 have accrued, by variety susceptibility, and 30 days after March 1 or 5 to 14 days after the last spray | The definition, the season and the thresholds (as quoted in the tool's docs; checked on 2026-11-19 against the Mesonet's "How to use" document of June 12, 2023, https://content.prod.mesonet.org/learn/ag/tools_documentation/pecan-scab-advisor-202306-tagged.pdf: every number matches) |
 | University of Arkansas, pecan scab (pecanscab.uada.edu) | Background on the disease | Background |
 | The Crop Risk Tool (`build_pecan_scab`, `tmp/R/crop-risk-tool/docs/pecan-scab.md`) | Its docs give the Mesonet's 90 % and 70 °F and the variety lists; its code counts RH ≥ 92 % and temperature above 21.1 °C | The risk levels and variety examples; parity at its thresholds below |
 

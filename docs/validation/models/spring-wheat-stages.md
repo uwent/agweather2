@@ -1,6 +1,6 @@
 # Spring wheat growth stages (`spring-wheat-stages`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/spring_wheat_stages.py`, run through `agmodels.crops` (D32–D34); its page: `spring_wheat_stages.md` beside it. Built in Phase 3 (PLAN.md, Phase 3's wheat growth stages, step 7).
+Model version 0.2, written 2026-11-18 (D98); 0.2 (2026-11-19) stopped capping the daily minimum, which NDAWN doesn't cap. The model: `packages/agmodels/src/agmodels/models/spring_wheat_stages.py`, run through `agmodels.crops` (D32–D34); its page: `spring_wheat_stages.md` beside it. Built in Phase 3 (PLAN.md, Phase 3's wheat growth stages, step 7).
 
 **In short:** Bauer et al.'s (1984) Haun stages by growing degree days, as North Dakota's NDAWN runs them: the degree-day rule and NDAWN's stage table are reproduced exactly. Nothing else has been checked: there is no published error for the dates, no comparison with observed stages, and no legacy tool.
 

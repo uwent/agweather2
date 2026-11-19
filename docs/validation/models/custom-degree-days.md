@@ -1,6 +1,6 @@
 # Custom degree days (`custom-degree-days`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/custom_degree_days.py`, over the degree-day functions every model uses (`packages/agmodels/src/agmodels/degree_days.py`); its page: `custom_degree_days.md` beside it. Built in Phase 3 (PLAN.md, "Custom degree days").
+Model version 0.2, written 2026-11-18 (D98); 0.2 (2026-11-19) lets the simple average take an upper threshold. The model: `packages/agmodels/src/agmodels/models/custom_degree_days.py`, over the degree-day functions every model uses (`packages/agmodels/src/agmodels/degree_days.py`); its page: `custom_degree_days.md` beside it. Built in Phase 3 (PLAN.md, "Custom degree days").
 
 **In short:** degree days by single sine (Baskerville and Emin 1969), simple average or modified average, with any base, upper threshold and start date. The sine's closed form matches a numerical integral of its own curve, and all three methods match the old AgWeather API's calculator to within 0.000001 degree days on 11,781 cases. On the archive's weather, a season's total at Waunakee came within 0.6 % of the old API's. There's nothing further to check against: a degree-day total is a definition, not a prediction.
 

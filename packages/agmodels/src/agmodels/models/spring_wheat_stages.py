@@ -47,7 +47,7 @@ SPEC = ModelSpec(
     id="spring-wheat-stages",
     name="Spring wheat growth stages",
     group="crop",
-    version="0.1",
+    version="0.2",
     checks=(
         Check(
             kind="published",
@@ -87,7 +87,14 @@ SPEC = ModelSpec(
     sweep={"gdd_total": tuple(float(g) for g in range(0, 2001, 10))},
     season=("03-15", "09-15"),
     biofix=Biofix(default="04-25", label="Planting date"),
-    changelog=(Change(version="0.1", date="2026-10-28", note="First version."),),
+    changelog=(
+        Change(version="0.1", date="2026-10-28", note="First version."),
+        Change(
+            version="0.2",
+            date="2026-11-19",
+            note="The daily minimum is no longer capped (NDAWN caps only the maximum); it mattered only on a night above 70 °F before Haun 2.0.",
+        ),
+    ),
 )
 
 
@@ -102,7 +109,7 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
     running = np.zeros(lo.shape[1:])
     for d in range(biofix_index, lo.shape[0]):
         cap = np.where(running < EARLY_UNTIL_GDD, EARLY_CAP_F, LATE_CAP_F)  # the cap changes once Haun 2.0 is reached
-        day = (np.clip(hi[d], BASE_F, cap) + np.clip(lo[d], BASE_F, cap)) / 2 - BASE_F
+        day = (np.clip(hi[d], BASE_F, cap) + np.maximum(lo[d], BASE_F)) / 2 - BASE_F  # NDAWN caps only the maximum
         gdd[d] = day
         running = running + np.nan_to_num(day)  # a missing day adds nothing
         total[d] = running
