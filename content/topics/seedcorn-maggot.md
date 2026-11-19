@@ -10,54 +10,81 @@ crops:
   - melon
   - pumpkin-squash
 scientific_name: Delia platura
-summary: A fly whose maggots feed on germinating seed and seedlings of many vegetable and field crops in spring; damage can be prevented but not treated.
+summary: A small fly whose maggots feed on germinating seeds and seedlings of beans, corn, cucurbits and many other crops in spring; damage can only be prevented, by timing planting, speeding emergence and using treated seed.
 image: images/seedcorn-maggot.jpg
-image_credit: to confirm
+image_credit: 'Bean seedling destroyed below ground by seedcorn maggots. Photo by Howard F. Schwartz, Colorado State University, Bugwood.org (image 5357169), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/), via Wikimedia Commons.'
 status: draft
-updated: 2026-11-17
+updated: 2026-11-18
 sources:
-  - Crop Risk Tool docs/insects/scm.md
-  - VDIFN db/seeds.rb (seedcorn-maggot)
-  - UW Vegetable Entomology, seedcorn maggot (vegento.russell.wisc.edu, updated 2026-08-12)
-  - University of Minnesota Extension, seedcorn maggot (Potter, reviewed 2018)
-  - Throne and Eckenrode 1985; Funderburk, Higley and Pedigo 1984
+  - key: uw-vegento-scm
+    text: 'Seedcorn Maggot. UW–Madison Vegetable Entomology, updated 2026.'
+    url: https://vegento.russell.wisc.edu/pests/seedcorn-maggot/
+  - key: a3422-2026
+    text: 'Bradford, B. Z., J. B. Colquhoun, S. A. Chapman, A. J. Gevens and others. Commercial Vegetable Production in Wisconsin (A3422). UW–Madison Division of Extension, 2026.'
+    url: https://vegpath.plantpath.wisc.edu/resources/a3422/
+  - key: cullen-2013
+    text: 'Cullen, E. Seedcorn Maggot Degree Days and Corn and Soybean Risk in Cool, Wet Soils. UW–Madison Integrated Pest and Crop Management, 2013.'
+    url: https://ipcm.wisc.edu/blog/2013/05/seedcorn-maggot-degree-days-and-corn-and-soybean-risk-in-cool-wet-soils
+  - key: dean-2026
+    text: 'Dean, A. and E. Hodgson. Seedcorn Maggot. Iowa State University Extension and Outreach, Integrated Crop Management, reviewed 2026.'
+    url: https://crops.extension.iastate.edu/encyclopedia/seedcorn-maggot
+  - key: salgado-2025
+    text: 'Salgado, L. D. and B. A. Nault. Onion Maggot and Seedcorn Maggot (Delia antiqua and Delia platura), Vegetable IPM Fact Sheet. Cornell University, 2025.'
+    url: https://cals.cornell.edu/integrated-pest-management/outreach-education/fact-sheets/onion-maggot-and-seedcorn-maggot-delia-antiqua-and-delia-platura
+  - key: hazzard-2015
+    text: 'Hazzard, R. Seedcorn Maggot. UMass Extension Vegetable Program, 2015.'
+    url: https://www.umass.edu/agriculture-food-environment/vegetable/fact-sheets/seedcorn-maggot
+  - key: agweather-scm
+    text: 'AgWeather. Seedcorn maggot model: validation report. UW–Madison, 2026.'
+    url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/seedcorn-maggot.md
+  - key: midwest-veg-guide
+    text: 'Midwest Vegetable Production Guide for Commercial Growers. Land-grant universities of the Midwest, current edition.'
+    url: https://mwveguide.org/guide
 ---
 
-The seedcorn maggot (_Delia platura_) attacks the germinating seeds and young seedlings of a wide range of vegetable and field crops: beans (snap, lima, dry), peas, sweet and field corn, soybeans, cucumbers, melons, pumpkins and squash, onions, beets, carrots, cabbage and other crucifers, lettuce, tomatoes and more. In high numbers it can wipe out a stand, and it's often worse where susceptible crops are planted one after another.
+The seedcorn maggot (_Delia platura_) is a small fly whose maggots feed on germinating seeds and young seedlings. It attacks a wide range of crops: beans of all kinds, peas, sweet and field corn, soybeans, cucumbers, melons, pumpkins and squash, onions, beets, carrots, cabbage and its relatives, lettuce and tomatoes. Beans are its favorite host, and in Wisconsin it is the most serious pest of all beans. In large numbers it can wipe out a stand.[^uw-vegento-scm][^a3422-2026][^salgado-2025]
 
 ## Identification
 
-- **Adults** look like small houseflies: dark gray, 4–5 mm long, with the wings held flat over the body.
-- **Larvae** are cream-colored, legless, wedge-shaped maggots with a pointed head, about 7 mm long when grown. They live in the soil.
-- **Pupae** are dark brown, 5 mm long and rounded at both ends.
+- **Adults** look like small houseflies: dark gray, about 3/16 inch (4 to 5 mm) long, with the wings held flat over the back at rest.[^uw-vegento-scm][^dean-2026]
+- **Larvae** are cream-colored, legless maggots about ¼ inch (7 mm) long when grown, wedge-shaped with a pointed head. They live in the soil.[^uw-vegento-scm]
+- **Pupae** are dark brown, about 3/16 inch (5 mm) long and rounded at both ends, like a grain of wheat.[^uw-vegento-scm][^dean-2026]
+
+The adults look almost identical to cabbage maggot flies, and the eggs, larvae and pupae can't be told apart from those of the bean seed maggot.[^a3422-2026][^salgado-2025]
 
 ## Life cycle
 
-Seedcorn maggots spend the winter as pupae in the soil. Flies start emerging in April, and most of the over-wintered generation emerges by early to mid May in Wisconsin. Females lay eggs within a few days of emerging, in moist soil near germinating or decaying seeds, crop residue, incorporated green manure or recently applied manure. Eggs hatch in 2–4 days, and the maggots feed for a few weeks before pupating. A generation takes as little as 16–21 days in warm weather, and Wisconsin has 3–5 a year. Flies are most numerous in spring; in hot summers many pass the summer as dormant pupae, and flies emerge from over-wintered pupae over a long period, so a few can be found all season.
+Seedcorn maggots spend the winter as pupae in the soil. Flies begin to emerge in spring, and the first generation's flight peaks in early to mid-May in Wisconsin. Flies gather over freshly tilled ground and lay eggs near germinating or decaying seeds, crop residue, a recently worked-in cover crop or green manure, or recently applied manure.[^uw-vegento-scm][^dean-2026] Eggs hatch in 2 to 4 days, depending on soil temperature, and the maggots feed for 2 to 3 weeks before pupating. A generation takes about 16 to 21 days in a typical season, longer in cool weather, and Wisconsin has three to five a year.[^uw-vegento-scm][^dean-2026]
+
+Flies develop at a lower temperature than many insects, so [degree days](/topics/degree-days) for this pest use a base of 39 °F.[^hazzard-2015] UW–Madison puts Wisconsin's flight peaks at about 360, 1,080 and 1,800 degree days for the first three generations.[^uw-vegento-scm][^a3422-2026] Damage is most severe in May and June: the spring generations are usually the largest, and later ones seldom threaten plants that are already up.[^a3422-2026][^cullen-2013][^salgado-2025]
 
 ## Damage
 
-Maggots tunnel into germinating seed and feed on the sprout, so seeds fail to emerge or seedlings come up weak, stunted or with scarred, malformed seed leaves (bean "snakeheads"). Look for gaps in the row and thin, uneven stands. Cool, wet soils that slow germination make damage worse, and the uneven emergence can look like _Pythium_ seed rot, so dig up missing seeds to check. By the time a stand loss is noticed, often only pupae or empty pupal cases are left.
+Only the maggots do damage. They burrow into germinating seeds and feed on the sprout, the seed leaves and the stem below ground, so seeds fail to come up or seedlings emerge weak, yellow or wilted. Seedlings may come up with damaged first leaves or none at all, a bare stem called a "snakehead".[^uw-vegento-scm][^a3422-2026] Look for gaps in the row and thin stands.[^dean-2026]
 
-## What raises the risk
-
-- Fresh manure, an incorporated cover crop or green manure, or a heavy stand of weeds turned under.
-- Freshly tilled soil, which attracts egg-laying flies.
-- Planting during a flight: AgWeather's model marks these windows.
-- Slow emergence: cool, wet soil, or seed planted deep.
-- Planting susceptible crops in succession in the same area.
+Damage is worst when emergence is slow: in cool, wet springs, in heavy or high-organic soils, in seed planted too early, and after peak flights.[^a3422-2026][^cullen-2013] Stand gaps can look like damping-off caused by _Pythium_ in cool, wet soil, so dig up seeds that didn't emerge and check for maggots and feeding.[^uw-vegento-scm][^hazzard-2015]
 
 ## Monitoring
 
-- The degree-day model shows when each generation of flies is active.
-- Yellow sticky traps, yellow pans of soapy water along field edges (three or four, about 100 ft apart, checked every 4–6 days) or cone traps baited with molasses show whether flies are active locally, especially after tillage and before planting.
-- After planting, dig up seeds that haven't emerged and check for maggots and feeding.
+- Follow degree days to know when each generation's flight peaks. UW–Madison calls forecasting flights effective for most growers.[^uw-vegento-scm]
+- To see whether flies are active in your own field before planting, set three or four yellow dishpans of soapy water along the field edge, about 100 feet apart. Count and empty them every 4 to 6 days; a running record shows when fly numbers are rising or falling. Yellow sticky cards or cone traps baited with fermenting molasses also work.[^uw-vegento-scm]
+- After planting, dig up seeds that haven't come up to look for maggots.[^uw-vegento-scm]
 
 ## Management
 
-There's no economic threshold and no rescue treatment: once maggots are feeding, it's too late. Management is about avoiding exposure and protecting the seed.
+There is no rescue treatment: once maggots are feeding, it is too late to act. So there's no economic threshold, and management is all prevention.[^uw-vegento-scm][^dean-2026]
 
-- **Timing:** where you can, plant susceptible crops outside the flight windows, and wait at least 2–3 weeks (about 450 degree days) after working in manure or green material before planting.
-- **Fast emergence:** plant into warm soil (at least 50 °F for most crops; peas and radishes from 40 °F), as shallow as is practical.
-- **Seed treatments:** insecticide seed treatments protect seed and seedlings in high-risk fields and plantings. In field corn and soybeans, routine treatment isn't usually needed because damaging populations are sporadic and fairly predictable. Check current registrations in _Commercial Vegetable Production in Wisconsin_ (A3422).
-- **Natural enemies:** ground beetles eat eggs, larvae and pupae, and fungal diseases can kill many flies in humid weather. Avoid broadcast insecticides that kill the beetles.
+**Nonchemical controls:**
+
+- **Field choice and timing:** don't plant susceptible crops soon after working in manure, a cover crop or a heavy weed stand. Iowa State suggests waiting two weeks, or about 450 degree days, after tillage or manure; UMass suggests incorporating cover crops at least four weeks before seeding.[^uw-vegento-scm][^dean-2026][^hazzard-2015]
+- **Planting outside flights:** where you can, plant between flight peaks, when few flies are laying eggs. With several overlapping generations this isn't always possible.[^dean-2026][^cullen-2013][^a3422-2026]
+- **Fast emergence:** wait for soil of at least 50 °F before planting most crops (40 °F for peas and radishes), plant as shallow as you can, and soak untreated pea and bean seed in water for 2 hours before planting. A higher seeding rate can make up for some loss.[^uw-vegento-scm][^a3422-2026][^dean-2026]
+- **Natural enemies:** ground beetles eat eggs, larvae and pupae, and fungal diseases can kill many flies in humid weather. Broadcast insecticides kill the beetles too.[^uw-vegento-scm]
+
+**Insecticides** for seedcorn maggot go on the seed or in the furrow at planting. Many vegetable, corn and soybean seeds come with an insecticide seed treatment; neonicotinoids (IRAC group 4A) and spinosad (group 5) are used. Rotate seed treatment groups from year to year to slow resistance.[^uw-vegento-scm][^salgado-2025][^cullen-2013] Use treated seed, or an in-furrow insecticide, in fields with a history of damage or other high-risk conditions, and when planting during a flight can't be avoided.[^dean-2026][^a3422-2026]
+
+For products, rates and current registrations, see UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/), or in neighboring states the [Midwest Vegetable Production Guide](https://mwveguide.org/guide). UW Vegetable Entomology's [seedcorn maggot page](https://vegento.russell.wisc.edu/pests/seedcorn-maggot/), Iowa State's [seedcorn maggot page](https://crops.extension.iastate.edu/encyclopedia/seedcorn-maggot) for corn and soybeans, and Cornell's [onion and seedcorn maggot fact sheet](https://cals.cornell.edu/integrated-pest-management/outreach-education/fact-sheets/onion-maggot-and-seedcorn-maggot-delia-antiqua-and-delia-platura) explain the choices in more detail.
+
+## AgWeather's models
+
+The [seedcorn maggot model](/models/seedcorn-maggot) follows each generation's flight and the larval feeding that follows, and marks the days from 10 % to 90 % of each flight as windows to avoid planting. It counts degree days from January 1 by the method its research sources used: the day's average temperature above 39 °F, with highs and lows capped at about 84 °F. Half the overwintered flight has emerged at about 345 degree days, a value set from Wisconsin field records and close to UW–Madison's 360. Later flights are placed 720 degree days apart, from laboratory development times. Against the later flights in the same Wisconsin records, from one published study, the next flight's midpoint comes within about 15 degree days and the one after that about 125 degree days early.[^agweather-scm] The model hasn't been compared with current Wisconsin trap catches or with NEWA's seedcorn maggot model. It treats every generation as being as large as the first, so it probably overstates risk in summer, when the windows are the better guide. Because the insects develop in soil cooler than the air, later flights may come later than shown.[^agweather-scm]
