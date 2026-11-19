@@ -30,7 +30,7 @@ Winter cold limits where apples do well in Wisconsin. Where winter lows routinel
 
 Spring frost is the other limit: below 28 °F, flower buds, open flowers and young fruit can be killed. Cold air is heavy and pools in low ground, so on a calm, frosty night a valley or coulee can be several degrees colder than the hillside above it. A site raised above the land around it, on a slope, lets cold air drain away from the trees.
 
-Spring warmth builds at different rates across the state. By April 23, 2026, degree days (base 43 °F from January 1) had reached 378 at Verona in Dane County but only 111 at Sturgeon Bay in Door County. On April 22 that year in southern Wisconsin, early cultivars such as Zestar were at king bloom, while Fuji, Honeycrisp and McIntosh were at tight cluster to early pink.
+Spring warmth builds at different rates across the state. Southern Wisconsin usually warms well ahead of Door County and the north, so each stage comes later there. Within an orchard, early cultivars such as Zestar reach bloom a few days ahead of later ones such as Fuji, Honeycrisp and McIntosh.
 
 ## Growth stages
 

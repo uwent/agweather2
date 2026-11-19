@@ -223,7 +223,7 @@ _2026-10-30._ Precipitation over a window sums the known days, counts missing da
 
 ### D46. Model versions are 0.x until launch
 
-_2026-10-30._ (Ben): nothing is settled until the app launches, so every model starts at 0.1 and counts up by changelog entry; all go to 1.0 at launch. Renumbered 2026-10-30 (1.0 → 0.1; 1.1 and seedcorn maggot's 2.0 → 0.2)
+_2026-10-30._ (Ben): nothing is settled until the app launches, so every model starts at 0.1 and counts up by changelog entry; all go to 1.0 at launch. Renumbered 2026-10-30 (1.0 → 0.1; 1.1 and seedcorn maggot's 2.0 → 0.2). Status too (Ben, 2026-11-18): every model is `beta` until it is validated and the app launches; `stable` comes with 1.0 (`test_specs`).
 
 ### D47. Model maps are precomputed from ingredients
 

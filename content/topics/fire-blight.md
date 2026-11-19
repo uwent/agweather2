@@ -31,7 +31,7 @@ Fire blight is a disease caused by the bacterium _Erwinia amylovora_. It is the 
 
 The bacteria survive the winter at the edges of cankers. As spring warms, they multiply and the cankers ooze. Rain splash and insects carry the ooze, and bees and other pollinators bring the bacteria to open flowers. The bacteria multiply on the blossoms and enter through the nectaries, the flower's nectar glands; rain or heavy dew washes them in. They grow over a wide range of temperatures, fastest at about 70 to 77 °F.
 
-So the riskiest time is bloom, when warm days come with rain or heavy dew. Early cultivars bloom first and are at risk first: in southern Wisconsin in late April 2026, warm, wet weather during early bloom made fire blight a concern for those cultivars. From the blossoms, the bacteria spread quickly through the tree's vascular (sap-conducting) tissue. After bloom, they also enter young shoots through wounds. Hail, wind storms and piercing insects make these wounds, and blight that follows such injury is called trauma blight. Symptoms usually show one to three weeks after infection.
+So the riskiest time is bloom, when warm days come with rain or heavy dew. Early cultivars bloom first and are at risk first: warm, wet weather early in bloom can threaten them while later cultivars are still in bud. From the blossoms, the bacteria spread quickly through the tree's vascular (sap-conducting) tissue. After bloom, they also enter young shoots through wounds. Hail, wind storms and piercing insects make these wounds, and blight that follows such injury is called trauma blight. Symptoms usually show one to three weeks after infection.
 
 ## Damage
 

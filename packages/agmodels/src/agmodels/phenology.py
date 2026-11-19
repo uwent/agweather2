@@ -154,7 +154,7 @@ class Insect:
     generations: tuple[tuple[float, float, float], ...] = ()
     biofix_label: str = "January 1, or the biofix event named in the description"
     source: str = "VDIFN"
-    status: str = "stable"
+    status: str = "beta"
     citations: tuple[Citation, ...] = ()
     topic: str = ""  # the pest's topic page, when several models share one (Colorado potato beetle); default its id
     life_stages: tuple[LifeStage | DerivedStage, ...] = ()  # the first a LifeStage; it sets the default spread

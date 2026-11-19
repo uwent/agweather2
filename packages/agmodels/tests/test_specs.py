@@ -17,7 +17,9 @@ def test_a_spec_has_its_required_elements(model_id, m: Model):
     spec = m.SPEC
     assert spec.id == model_id and re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", spec.id)
     assert re.fullmatch(r"0\.\d+", spec.version), f"{model_id}: versions stay 0.x until launch (D46)"
-    assert spec.status in ("beta", "stable", "retired")
+    assert spec.status in ("beta", "retired"), (
+        f"{model_id}: every model is beta until it is validated and the app launches (D46)"
+    )
     assert spec.name and spec.summary and spec.outputs and spec.inputs
     assert spec.citations, f"{model_id} cites nothing"
     assert all(c.text for c in spec.citations)

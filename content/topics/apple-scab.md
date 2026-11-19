@@ -19,7 +19,7 @@ sources:
   - "Midwest Fruit Pest Management Guide 2026–2027 (ID-465). Purdue Extension and partner universities, 2026. https://edustore.purdue.edu/id-465-w.html"
 ---
 
-Apple scab is a disease caused by the fungus _Venturia inaequalis_. It infects apple, crabapple, hawthorn and mountain-ash; pear gets a similar disease from a related fungus. Scab is most severe in cool, wet springs, and it was widespread in Wisconsin in 2024.
+Apple scab is a disease caused by the fungus _Venturia inaequalis_. It infects apple, crabapple, hawthorn and mountain-ash; pear gets a similar disease from a related fungus. Scab is most severe in cool, wet springs, and in such years it can be widespread across Wisconsin.
 
 ## Identification
 
@@ -32,7 +32,7 @@ The fungus spends the winter in infected leaves on the orchard floor. Small frui
 
 An ascospore infects only if the leaf or fruit stays wet long enough. Cooler weather needs longer: about 28 hours of wetness at 39 °F, but only 6 hours at 61 to 75 °F. Spots appear 9 to 17 days later, sooner in warm weather. Each spot then produces a second kind of spore, called conidia, which rain and wind spread to new leaves and fruit. These secondary infections can repeat all summer.
 
-The weather while the leaves unfold does much to decide how bad a year's scab will be: cold, wet weather then favors it, and dry, warm weather doesn't. In late April 2026, frequent rain and warm days during bloom in southern Wisconsin raised the risk of both scab and fire blight at the same time.
+The weather while the leaves unfold does much to decide how bad a year's scab will be: cold, wet weather then favors it, and dry, warm weather doesn't. Wet, mild weather at bloom can raise the risk of scab and fire blight at the same time.
 
 ## Damage
 

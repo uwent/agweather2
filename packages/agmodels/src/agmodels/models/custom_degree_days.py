@@ -60,7 +60,7 @@ SPEC = ModelSpec(
             report="docs/validation/models/custom-degree-days.md#on-the-archives-weather",
         ),
     ),
-    status="stable",
+    status="beta",
     summary="Degree days since a biofix, with any base and upper threshold, method and unit.",
     topics=("degree-days",),
     crops=(),
