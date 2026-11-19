@@ -8,8 +8,15 @@ of the 14 days before (ending the day before flowering), shifted for four resist
 Ported from the Crop Risk Tool (`predict_wheat_scab`, `build_wheat_scab`) with parity tests, then (0.2, audit round
 2, `tmp/crt-model-audit-2-wheat-rcr.md`): shown May 1 to July 31 (the tool showed every day of the year, High on
 winter days); the national FHB Risk Tool's three levels (Low below 24 %); the window ends the day before and needs
-12 of its 14 days. A gate on flowering waits for a per-crop susceptibility (spring wheat's stages; winter wheat has
-no stage model yet).
+12 of its 14 days.
+
+0.3: gated at a point by flowering (D33). The map isn't gated: it's the risk for wheat flowering on each day, as on
+the national tool, for winter and spring wheat alike. At a point, a spring wheat planting date the user gives runs
+`spring-wheat-stages` and shows the risk from heading (Haun 10.2) through the end of flowering (11.6); a flowering
+date the user gives (`flowering_date`, the only gate for winter wheat, which has no stage model yet) replaces that
+estimate and shows it from that day through 7 days after, the fungicide window from early flowering (Feekes 10.5.1).
+Either way the gate is `susceptibility` beside the probability, which stays as computed: muted for 3 days either
+side, greyed outside. A typical planting date is never assumed, since `wheat` covers winter wheat too.
 """
 
 from collections.abc import Mapping
@@ -30,6 +37,8 @@ from agmodels.spec import (
     Option,
     Quantity,
     Risk,
+    StageDate,
+    Susceptibility,
 )
 
 RESISTANCE = {  # option value: (label, intercept shift)
@@ -43,7 +52,7 @@ SPEC = ModelSpec(
     id="wheat-scab",
     name="Wheat scab (Fusarium head blight) probability",
     group="disease",
-    version="0.2",
+    version="0.3",
     status="beta",
     summary="The probability of severe Fusarium head blight (scab) for wheat flowering on the day shown, from the mean humidity of the two weeks before, for the variety's resistance class.",
     topics=("wheat-scab",),
@@ -97,6 +106,27 @@ SPEC = ModelSpec(
             choices=tuple((k, v[0]) for k, v in RESISTANCE.items()),
             default="s",
         ),
+        Option(
+            name="flowering_date",
+            label="Date your wheat began flowering",
+            choices=(),
+            default="",
+        ),
+    ),
+    susceptible=Susceptibility(
+        crop="spring-wheat-stages",
+        first="H10.2",
+        last="H11.6",
+        source="Heading begins (Haun 10.2) through the end of flowering (Haun 11.6): the days before and at flowering for which the model's risk applies (Shah et al. 2013's prediction at anthesis)",
+        note="For spring wheat, from a planting date you give. A flowering date you give, for winter or spring wheat, replaces it: the risk then shows from that day through 7 days after. Maps aren't gated: they show the risk for wheat flowering on each day.",
+        planting_given_only=True,
+        stage_date=StageDate(
+            option="flowering_date",
+            first=0,
+            last=7,
+            margin_days=3,
+            source="The fungicide window, from the start of flowering (Feekes 10.5.1) to about 7 days after (Friskop et al. 2021, Crop Protection Network; Smith 2022, Wisconsin Crop Manager)",
+        ),
     ),
     lookback_days=15,
     season=("05-01", "07-31"),
@@ -107,6 +137,11 @@ SPEC = ModelSpec(
             version="0.2",
             date="2026-11-19",
             note="Cites Shah et al. 2013 and 2021 (model M6, refit for 2026); the probability of severe head blight for wheat flowering on the day; shown May 1 to July 31; Low below 24 % as in the national FHB Risk Tool; the 14-day window ends the day before and needs 12 known days.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-19",
+            note="Gated by flowering at a location: for spring wheat from a planting date you give (heading through the end of flowering, by the spring wheat stages model), or from a flowering date you give for any wheat (that day through 7 days after). Maps stay ungated, the risk for wheat flowering on each day. The probabilities are unchanged.",
         ),
     ),
     checks=(

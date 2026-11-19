@@ -3,7 +3,7 @@
 The caller reads the days (`agdata.series`): `required_inputs` says which, `first_day_needed` from when (the
 biofix or planting, less the model's lookback). `run` supplies the context (day of year, latitude, year), places
 the biofix (a date, the spec's default for the season, or a crop stage's predicted date), runs the outputs and
-risk, gates the risk by crop stage (D33), finds the action windows' dates (D36) and which days are in season, and
+risk, gates the risk by crop stage or a stage date the user gives (D33), finds the action windows' dates (D36) and which days are in season, and
 returns it all with each day's kind (observed, partial, forecast) and the model's id and version.
 
 Missing days in the inputs are estimated first, by each variable's method (`gap_fill`, from the catalog: D45,
@@ -21,11 +21,11 @@ from typing import cast
 
 import numpy as np
 
-from agmodels.crops import CropModel, disease_susceptibility, stage_days
+from agmodels.crops import CropModel, date_susceptibility, disease_susceptibility, stage_days
 from agmodels.gaps import GapFill, fill_inputs
 from agmodels.phenology import PhenologyModel, window_periods
 from agmodels.registry import model as find_model
-from agmodels.spec import Model, ModelSpec
+from agmodels.spec import Model, ModelSpec, StageDate, Susceptibility
 
 CONTEXT = ("day_of_year", "latitude", "year")
 
@@ -110,7 +110,8 @@ def run(
 ) -> ModelRun:
     """Runs a model over consecutive `dates` (with `daily[name]` for each, as `required_inputs` lists) and returns
     the days from `start` (default the first). `planting` is the crop's planting date, for stage gating and for a
-    biofix at a crop stage; without it, gated models aren't gated. `gap_fill` gives each input's estimate for
+    biofix at a crop stage; without it, gated models aren't gated, unless the options give the gate's stage date
+    (`stage_date`, which replaces the crop's stages when given). `gap_fill` gives each input's estimate for
     missing days (the catalog's `GAP_FILL`); inputs without one are passed as they are."""
     m = find_model(m) if isinstance(m, str) else m
     spec = m.SPEC
@@ -167,6 +168,15 @@ def run(
     if crop_stage is not None and spec.susceptible is not None:
         gate = disease_susceptibility(spec, crop_stage, **(crop_options or {}))
         result.susceptibility = None if gate is None else gate[shown:]
+    given = stage_date(spec, opts)
+    if given is not None:  # the user's own date replaces the crop model's estimate
+        window = cast(StageDate, cast(Susceptibility, spec.susceptible).stage_date)
+        result.susceptibility = date_susceptibility(
+            np.array([(d - given).days for d in result.dates]),
+            first=window.first,
+            last=window.last,
+            margin_days=window.margin_days,
+        )
     if spec.season is not None:
         result.in_season = np.array([_in_season(spec, d) for d in result.dates])
     if isinstance(m, PhenologyModel) and next(iter(result.outputs.values())).ndim == 1:  # scenarios: per year
@@ -174,6 +184,27 @@ def run(
             periods = window_periods(result.outputs[f"window_{w.key}"])
             result.windows[w.label] = [(result.dates[a], result.dates[b]) for a, b in periods]
     return result
+
+
+def stage_date_option(spec: ModelSpec) -> str | None:
+    """The name of the option giving the date for the model's susceptible window (`spec.StageDate`), or None."""
+    gate = spec.susceptible
+    return None if gate is None or gate.stage_date is None else gate.stage_date.option
+
+
+def stage_date(spec: ModelSpec, options: Mapping[str, str] | None) -> date | None:
+    """The date the user gave for the model's susceptible window (`spec.StageDate`), or None if it takes none or none
+    was given; ValueError if it isn't a date (YYYY-MM-DD)."""
+    name = stage_date_option(spec)
+    if name is None:
+        return None
+    value = (options or {}).get(name, "")
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        raise ValueError(f"{name} must be a date (YYYY-MM-DD), got {value!r}") from None
 
 
 def crop_models(spec: ModelSpec) -> list[str]:

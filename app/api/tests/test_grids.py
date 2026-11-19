@@ -414,6 +414,17 @@ def test_without_typical_planting_dates_a_map_warns_and_takes_the_defaults(clien
     assert body["meta"]["request"]["planting"] == "mid"
 
 
+def test_wheat_scab_map_is_not_gated_by_spring_wheat(client, archive):
+    """Wheat scab's map is the risk for wheat flowering on each day, winter and spring wheat alike: its gate on
+    spring wheat's stages, or on a flowering date, applies only at a point."""
+    body = get(client, "wheat-scab", date="2025-07-08").json()
+    assert "planting" not in body["meta"]["request"] and "planting" not in body["meta"]["summary"]
+    assert "flowering_date" not in body["meta"]["request"]["options"]
+    for params in ({"planting": "mid"}, {"flowering_date": "2025-07-01"}):
+        error = get(client, "wheat-scab", date="2025-07-08", **params).json()["errors"][0]
+        assert error["code"] == "not_applicable" and error["param"] == next(iter(params)), params
+
+
 def test_soybean_maps_take_a_tier(client, archive):
     """Soybean's stages are stored per tier (`agdata.croptiers`); the fixture's July has none written, so the map is
     missing, but the request is answered with the tier's dates."""

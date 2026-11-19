@@ -125,6 +125,15 @@ def planting_crop(spec: "ModelSpec") -> tuple[str, str] | None:
     return None
 
 
+def map_crop(spec: "ModelSpec") -> tuple[str, str] | None:
+    """`planting_crop` for a model's map: None for a gate that runs only from a planting date the user gives
+    (`Susceptibility.planting_given_only`: wheat scab's map is for all wheat, its gate spring wheat's stages)."""
+    gate = spec.susceptible
+    if gate is not None and gate.planting_given_only and spec.biofix_stage is None:
+        return None
+    return planting_crop(spec)
+
+
 def planting_map(crop: str, tier: str, window: "Window", season: int) -> np.ndarray:
     """Each cell's typical planting date for `crop` at `tier` (early, mid, late) in `season`, as date ordinals
     (float, NaN where there's none): its county's, else its state's; potato's from the nearest Veg Path place within

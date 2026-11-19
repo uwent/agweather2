@@ -8,6 +8,7 @@ from typing import cast
 import numpy as np
 import pytest
 
+from agmodels import croplist
 from agmodels.crops import (
     MARGIN,
     SUSCEPTIBLE,
@@ -224,7 +225,8 @@ def test_gated_models_name_real_stages():
         crop = cast(CropModel, all_models()[gate.crop])
         codes = [s.code for s in crop.stages()]
         assert codes.index(gate.first) <= codes.index(gate.last)
-        assert set(crop.SPEC.crops) & set(spec.crops)
+        # the crop model's crop, or a member of the model's (wheat scab's wheat holds spring wheat)
+        assert any(croplist.related(c) & set(spec.crops) for c in crop.SPEC.crops), spec.id
     anchored = all_models()["red-crown-rot"].SPEC.biofix_stage
     assert anchored is not None and anchored[1] in [s.code for s in soy.STAGES]
 

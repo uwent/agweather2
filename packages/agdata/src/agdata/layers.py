@@ -341,7 +341,7 @@ def _model_layers() -> list[Layer]:
             if spec.risk.thresholds:
                 risk.append(LayerOutput(name=RISK_VALUE, label="Risk", unit="index", step=0.001, use="risk_value"))
             outputs = [*risk, *outputs]
-        if spec.susceptible is not None and spec.susceptible.crop in models:
+        if spec.susceptible is not None and spec.susceptible.crop in models and tiered(spec.id) is not None:
             outputs.append(
                 LayerOutput(
                     name=SUSCEPTIBILITY, label="Crop susceptibility", unit="index", step=1, use="susceptibility"

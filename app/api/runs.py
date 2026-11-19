@@ -22,6 +22,7 @@ from agdata.planting import CROPS, TIERS, PlantingDate, planting_crop, typical_p
 from agdata.series import RunSpec
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
+from agmodels.runner import stage_date_option
 from agmodels.spec import Model, ModelSpec, Option
 from api.errors import ApiError, quoted
 
@@ -62,14 +63,15 @@ def plan(
     lenient: bool = False,
 ) -> Plan:
     """The runs a request asks for. `season` is the year a typical planting date falls in. `lenient` (several models
-    in one request): a planting date is ignored by a model without a crop, and a crop without typical dates here
-    runs without one, with a warning."""
+    in one request): a planting date is ignored by a model without a crop or whose gate's crop is only some of its
+    own (`Susceptibility.planting_given_only`), and a crop without typical dates here runs without one, with a
+    warning."""
     spec = m.SPEC
     warnings: list[str] = []
     crop = planting_crop(spec)
     if lenient and planting:
-        if crop is None:
-            planting = None
+        if crop is None or (spec.susceptible is not None and spec.susceptible.planting_given_only):
+            planting = None  # wheat scab's gate is spring wheat's: a date given for several models isn't its
         elif planting in (*TIERS, ALL) and (crop[1] not in CROPS or typical_planting(crop[1], lat, lng) is None):
             warnings.append(
                 f"We have no typical {crop[1]} planting dates for this location, so it runs without a planting date."
@@ -77,6 +79,7 @@ def plan(
             planting = None
     crop_spec = find_model(crop[0]).SPEC if crop and crop[0] != spec.id else None
     own = {o.name: option_values(o, params.get(o.name), warnings) for o in spec.options}
+    _check_stage_date(spec, own, season)
     crop_opts = (
         {} if crop_spec is None else {o.name: option_values(o, params.get(o.name), warnings) for o in crop_spec.options}
     )
@@ -133,6 +136,22 @@ def plan(
             "options": {name: values if len(values) > 1 else values[0] for name, values in crop_opts.items()},
         }
     return Plan(model=m, runs=runs, option_sets=sets if len(runs) > 1 else [], request=request, warnings=warnings)
+
+
+def _check_stage_date(spec: ModelSpec, own: dict[str, list[str]], season: int) -> None:
+    """The date for a susceptible window (wheat scab's flowering date) must be a date, if given."""
+    name = stage_date_option(spec)
+    for value in own.get(name, []) if name is not None else []:
+        if not value:
+            continue
+        try:
+            date.fromisoformat(value)
+        except ValueError:
+            raise ApiError(
+                "invalid",
+                f"Give {quoted(name)} as a date (YYYY-MM-DD), such as {quoted(f'{season}-06-10')}.",
+                name,
+            ) from None
 
 
 def option_values(option: Option, raw: str | None, warnings: list[str]) -> list[str]:

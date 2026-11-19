@@ -94,3 +94,20 @@ def test_a_perennials_models_take_no_planting():
     for model_id in ("apple-scab", "fire-blight", "apple-stages"):
         assert planting_crop(all_models()[model_id].SPEC) is None, model_id
     assert planting_crop(all_models()["late-blight-dsv"].SPEC) == ("potato-stages", "potato")
+
+
+def test_a_gate_from_a_given_planting_only_has_no_map_tier_or_typical_date():
+    """Wheat scab's gate is spring wheat's stages, but its crop is all wheat: a point takes a spring wheat planting
+    date the user gives, while its map and a point without one aren't gated (no typical date is assumed)."""
+    from datetime import date
+
+    from agdata.planting import map_crop
+    from agdata.series import RunSpec, with_planting
+
+    spec = all_models()["wheat-scab"].SPEC
+    assert planting_crop(spec) == ("spring-wheat-stages", "spring-wheat") and map_crop(spec) is None
+    assert map_crop(all_models()["tar-spot"].SPEC) == ("corn-stages", "corn")
+    run = RunSpec(model_id="wheat-scab")
+    assert with_planting(run, latitude=46.9, longitude=-97.0, start=date(2025, 6, 1)).planting is None
+    tar = with_planting(RunSpec(model_id="tar-spot"), latitude=43.0, longitude=-89.4, start=date(2025, 6, 1))
+    assert tar.planting is not None

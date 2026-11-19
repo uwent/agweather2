@@ -187,7 +187,7 @@ def read_names(model_id: str) -> list[str]:
     """Every store variable a model's map reads: its stored ingredients, their totals and counts, and the running
     totals that stand in for the rest."""
     spec = find_model(model_id).SPEC
-    crop = planting.planting_crop(spec)
+    crop = planting.map_crop(spec)
     tiers = (
         [
             modelmaps.tier_key(crop[0], q.name, t)
@@ -212,8 +212,8 @@ def read_names(model_id: str) -> list[str]:
 
 
 def tiered(model_id: str) -> tuple[str, str] | None:
-    """(crop model, crop) whose planting tier a model's map takes (`agdata.planting.planting_crop`), or None."""
-    found = planting.planting_crop(find_model(model_id).SPEC)
+    """(crop model, crop) whose planting tier a model's map takes (`agdata.planting.map_crop`), or None."""
+    found = planting.map_crop(find_model(model_id).SPEC)
     return found if found is not None and found[0] in mapped() else None
 
 

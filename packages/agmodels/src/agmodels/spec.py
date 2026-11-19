@@ -117,15 +117,34 @@ class Biofix:
 
 
 @dataclass(frozen=True, kw_only=True)
+class StageDate:
+    """A susceptible window from a date the user gives (the day their crop reached a stage), which replaces the crop
+    model's estimate, or stands in for it where there's none (winter wheat). The date is one of the model's
+    options (no choices; YYYY-MM-DD, empty for none), refused on maps (D66)."""
+
+    option: str  # the option's name
+    first: int  # the window's first and last days, counted from the date (inclusive)
+    last: int
+    margin_days: int  # days muted either side, as a crop model's MARGIN_DAYS
+    source: str  # where the window comes from
+
+
+@dataclass(frozen=True, kw_only=True)
 class Susceptibility:
     """The crop stages a disease affects (D33): its risk shows only from `first` through `last` (inclusive: until
-    the stage after `last`), muted for the crop model's margin either side, grey elsewhere."""
+    the stage after `last`), muted for the crop model's margin either side, grey elsewhere. A `stage_date` given
+    replaces the stages with days around that date."""
 
     crop: str  # the crop model's id
     first: str  # stage codes in that model's list
     last: str
     source: str  # where the window comes from
     note: str = ""
+    # True when the crop model covers only some of the model's crops (wheat scab: spring wheat's stages, not winter
+    # wheat's): the gate then runs only from a planting date the user gives, never from a typical one, and maps
+    # aren't gated (they show the risk for the crop at the window's stage on each day)
+    planting_given_only: bool = False
+    stage_date: StageDate | None = None  # a date the user gives instead of the crop model's estimate
 
 
 @dataclass(frozen=True, kw_only=True)

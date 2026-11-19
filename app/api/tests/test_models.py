@@ -113,6 +113,17 @@ def test_planting_dates_that_cannot_apply_are_refused(client, archive):
     assert bad.status_code == 422 and bad.json()["errors"][0]["param"] == "planting_date"
 
 
+def test_wheat_scab_is_gated_by_a_flowering_date_the_user_gives(client, archive):
+    plain = get(client, "wheat-scab", start="2025-07-05", end="2025-07-08").json()
+    assert "susceptibility" not in plain["data"]  # no typical spring wheat planting date is assumed
+    given = get(client, "wheat-scab", flowering_date="2025-07-06", start="2025-07-02", end="2025-07-08").json()
+    assert given["data"]["susceptibility"] == ["not susceptible", "margin", "margin", "margin"] + ["susceptible"] * 3
+    assert given["meta"]["request"]["options"]["flowering_date"] == "2025-07-06"
+    bad = get(client, "wheat-scab", flowering_date="July 6")
+    error = bad.json()["errors"][0]
+    assert bad.status_code == 422 and error["param"] == "flowering_date" and "YYYY-MM-DD" in error["message"]
+
+
 def test_a_crop_model_shows_its_stage_codes(client, archive):
     data = get(client, "corn-stages", planting_date="2025-07-01", end="2025-07-05").json()["data"]
     assert data["date"][0] == "2025-07-01" and "stage_code" in data and "risk_level" not in data
@@ -272,6 +283,11 @@ def test_a_planting_date_applies_to_models_with_a_crop(client, archive):
     ).json()
     assert "susceptibility" in body["data"]["tar-spot"]["data"]
     assert body["data"]["custom-degree-days"]["meta"]["request"]["planting_date"] is None
+    several_wheat = several(
+        client, models="wheat-scab,tar-spot", planting_date="mid", start="2025-07-05", end="2025-07-06"
+    )
+    scab = several_wheat.json()["data"]["wheat-scab"]  # spring wheat's gate takes only its own planting date
+    assert scab["meta"]["request"]["planting_date"] is None and "susceptibility" not in scab["data"]
     assert any("no typical potato" in w for w in body["data"]["late-blight-dsv"]["meta"]["warnings"])
 
 

@@ -43,7 +43,9 @@ from agdata.planting import planting_crop, planting_map
 from agdata.rolling import Roll
 from agdata.store import CUMULATIVE, DAILY
 from agmodels import seasons
+from agmodels.registry import all_models
 from agmodels.registry import model as find_model
+from agmodels.runner import stage_date_option
 from agmodels.seasons import Season
 from agmodels.spec import ModelSpec
 from api import climatemaps, counts, events, modelevents
@@ -1140,8 +1142,13 @@ def _cubes(layer: Layer, setting, stat, gaps: str, first, last) -> tuple[str, st
 
 # --- Model layers --------------------------------------------------------------------------------------------------
 
-# A user's own dates and settings apply at points, not on maps (D66)
-POINT_ONLY = ("biofix", "planting_date")
+# A user's own dates and settings apply at points, not on maps (D66): the biofix, the planting date and the date
+# for a susceptible window (wheat scab's flowering date)
+POINT_ONLY = (
+    "biofix",
+    "planting_date",
+    *sorted({name for m in all_models().values() if (name := stage_date_option(m.SPEC)) is not None}),
+)
 
 
 @dataclass(kw_only=True)
@@ -1171,7 +1178,9 @@ def model_request(request: HttpRequest, layer: Layer, query: LayerQuery, warning
     if query.planting is not None and crop is None:
         later = planting_crop(spec)
         message = f"The {spec.name} model has no crop, so its map takes no 'planting'. Leave out 'planting'."
-        if later is not None:
+        if later is not None and spec.susceptible is not None and spec.susceptible.planting_given_only:
+            message = f"The {spec.name} map shows the risk for a crop at its susceptible stage on each day, so it takes no 'planting'. Leave out 'planting'. To use your own planting date at a location, use GET /api/v2/models/{spec.id}/run with 'planting_date'."
+        elif later is not None:
             message = f"The crop stages {spec.name} uses aren't mapped yet, so its map takes no 'planting'. Leave out 'planting'."
         raise ApiError("not_applicable", message, "planting")
     tier = None if crop is None or query.planting == "none" else (query.planting or "mid")
@@ -1193,7 +1202,7 @@ def model_request(request: HttpRequest, layer: Layer, query: LayerQuery, warning
         )
     options = {}
     for o in spec.options:
-        if o.name in modelgrid.PLACE_OPTIONS:
+        if o.name in modelgrid.PLACE_OPTIONS or o.name in POINT_ONLY:
             continue
         if request.GET.get(o.name) == "all":
             raise ApiError(

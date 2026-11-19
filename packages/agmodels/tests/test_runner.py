@@ -1,11 +1,12 @@
-from datetime import date
+from datetime import date, timedelta
 
 import numpy as np
 import pytest
 
 from agmodels import runner
-from agmodels.crops import SUSCEPTIBLE
+from agmodels.crops import MARGIN, NOT_SUSCEPTIBLE, SUSCEPTIBLE
 from agmodels.gaps import GapFill
+from agmodels.models import spring_wheat_stages
 from agmodels.registry import all_models, model
 from agmodels.testing import DATES, DAYS, FIRST, LATITUDE, WEATHER
 
@@ -270,3 +271,77 @@ def test_a_planting_date_outside_the_series_leaves_the_stage_gate_off():
     # Planted before the series begins: its stage can't be known, so the gated disease isn't gated (as with no planting)
     run = runner.run("tar-spot", dates=DATES, daily=WEATHER, latitude=LATITUDE, planting=date(2024, 5, 1))
     assert run.susceptibility is None and run.reason is None
+
+
+# Wheat scab's flowering gate (0.3): spring wheat's stages from a planting date the user gives, or a flowering date
+WHEAT_DATES = [date(2025, 4, 1) + timedelta(days=k) for k in range(153)]  # April 1 to August 31
+WHEAT_WEATHER = {
+    "relative_humidity_mean": np.full(153, 80.0),
+    "air_temperature_min": np.full(153, 10.0),
+    "air_temperature_max": np.full(153, 26.0),
+}
+
+
+def _wheat_scab(**kwargs):
+    return runner.run(
+        "wheat-scab", dates=WHEAT_DATES, daily=WHEAT_WEATHER, latitude=LATITUDE, start=date(2025, 5, 1), **kwargs
+    )
+
+
+def test_wheat_scab_is_ungated_without_a_planting_or_flowering_date():
+    plain = _wheat_scab()
+    assert plain.susceptibility is None
+    assert np.isfinite(plain.outputs["probability"][14:]).all()
+
+
+def test_wheat_scab_gate_follows_spring_wheat_stages_from_heading_through_flowering():
+    planting = date(2025, 4, 20)
+    gated, plain = _wheat_scab(planting=planting), _wheat_scab()
+    for name, values in plain.outputs.items():  # the gate leaves the probability as it is
+        np.testing.assert_array_equal(gated.outputs[name], values)
+    stage = spring_wheat_stages.outputs(
+        {k: WHEAT_WEATHER[k] for k in ("air_temperature_min", "air_temperature_max")},
+        biofix_index=(planting - WHEAT_DATES[0]).days,
+    )["stage"][(date(2025, 5, 1) - WHEAT_DATES[0]).days :]
+    codes = [s.code for s in spring_wheat_stages.STAGES]
+    heading, ripe = codes.index("H10.2"), codes.index("H12.0")
+    first, after = int(np.argmax(stage >= heading)), int(np.argmax(stage >= ripe))
+    assert 0 < first < after
+    gate = gated.susceptibility
+    assert gate is not None
+    np.testing.assert_array_equal(gate[first:after], SUSCEPTIBLE)
+    np.testing.assert_array_equal(gate[first - 3 : first], MARGIN)
+    np.testing.assert_array_equal(gate[after : after + 3], MARGIN)
+    assert (gate[: first - 3] == NOT_SUSCEPTIBLE).all() and (gate[after + 3 :] == NOT_SUSCEPTIBLE).all()
+
+
+@pytest.mark.parametrize("planting", [None, date(2025, 4, 20)])
+def test_wheat_scab_flowering_date_gives_that_day_through_7_days_after(planting):
+    gated = _wheat_scab(planting=planting, options={"flowering_date": "2025-06-10"})  # replaces spring wheat's stages
+    gate = gated.susceptibility
+    assert gate is not None
+    k = gated.dates.index(date(2025, 6, 10))
+    np.testing.assert_array_equal(gate[k : k + 8], SUSCEPTIBLE)  # June 10 through 17
+    np.testing.assert_array_equal(gate[k - 3 : k], MARGIN)
+    np.testing.assert_array_equal(gate[k + 8 : k + 11], MARGIN)
+    assert (gate[: k - 3] == NOT_SUSCEPTIBLE).all() and (gate[k + 11 :] == NOT_SUSCEPTIBLE).all()
+    assert _wheat_scab(options={"flowering_date": ""}).susceptibility is None  # empty: none given
+    with pytest.raises(ValueError, match="flowering_date must be a date"):
+        _wheat_scab(options={"flowering_date": "June 10"})
+
+
+def test_wheat_scab_gate_keeps_missing_days_missing():
+    rh = WHEAT_WEATHER["relative_humidity_mean"].copy()
+    rh[(date(2025, 5, 25) - WHEAT_DATES[0]).days : (date(2025, 6, 20) - WHEAT_DATES[0]).days] = np.nan
+    gated = runner.run(
+        "wheat-scab",
+        dates=WHEAT_DATES,
+        daily={**WHEAT_WEATHER, "relative_humidity_mean": rh},
+        latitude=LATITUDE,
+        start=date(2025, 5, 1),
+        options={"flowering_date": "2025-06-10"},
+    )
+    k = gated.dates.index(date(2025, 6, 10))
+    assert gated.susceptibility is not None and (gated.susceptibility[k : k + 8] == SUSCEPTIBLE).all()
+    assert gated.level is not None
+    assert np.isnan(gated.outputs["probability"][k]) and np.isnan(gated.level[k])  # not 0, not Low

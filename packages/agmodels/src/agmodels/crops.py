@@ -97,6 +97,16 @@ def susceptibility(stage, stages: tuple[CropStage, ...], first: str, last: str, 
     return np.where(np.isnan(s), np.nan, level)
 
 
+def date_susceptibility(days_from: np.ndarray, first: int, last: int, margin_days: int) -> np.ndarray:
+    """`susceptibility` from a date the user gives (`spec.StageDate`): each day's offset from that date in
+    `days_from`; SUSCEPTIBLE from `first` through `last` days after it, MARGIN within `margin_days` of those days,
+    NOT_SUSCEPTIBLE otherwise."""
+    d = np.asarray(days_from, dtype=float)
+    inside = (d >= first) & (d <= last)
+    near = (d >= first - margin_days) & (d <= last + margin_days)
+    return np.where(inside, SUSCEPTIBLE, np.where(near, MARGIN, NOT_SUSCEPTIBLE))
+
+
 def disease_susceptibility(spec: ModelSpec, crop_stage: np.ndarray, **crop_options: str) -> np.ndarray | None:
     """`susceptibility` for a disease model from its crop model's `stage` output; None if the model isn't gated."""
     if spec.susceptible is None:

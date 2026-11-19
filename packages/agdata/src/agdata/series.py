@@ -766,10 +766,14 @@ class RunSpec:
 
 
 def with_planting(run: RunSpec, latitude: float, longitude: float, start: date) -> RunSpec:
-    """The run with the typical planting date (D34) for a stage-gated model given none, where one is published."""
-    crops = runner.crop_models(find_model(run.model_id).SPEC)
-    if run.planting is not None or not crops or runner.january_crop_start(find_model(run.model_id).SPEC, start):
+    """The run with the typical planting date (D34) for a stage-gated model given none, where one is published (not
+    for a gate that runs only from a planting date the user gives, `Susceptibility.planting_given_only`)."""
+    spec = find_model(run.model_id).SPEC
+    crops = runner.crop_models(spec)
+    if run.planting is not None or not crops or runner.january_crop_start(spec, start):
         return run  # a crop counted from January 1 (apple) has nothing planted
+    if spec.susceptible is not None and spec.susceptible.planting_given_only and spec.biofix_stage is None:
+        return run  # the crop model covers only some of the model's crops (wheat scab's spring wheat)
     typical = typical_planting(crops[0].removesuffix("-stages"), latitude, longitude)
     if typical is None:
         return run
