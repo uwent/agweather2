@@ -10,7 +10,7 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 | --- | --- | --- |
 | VDIFN's `db/seeds.rb` (`../ag-vdifn`) | Base 50 °F, no upper, from May 1; one span (1320, 1420, 1535); the text; a link to UW Vegetable Entomology's black cutworm page | Everything |
 | The VDIFN Models spreadsheet (`tmp/references/insects/VDIFN Models v20210407.xlsx`) and the USPest.org model it links, as summarized in `docs/insect-models.md` | USPest's `wbc` model (Nebraska IPM): simple average, 50 °F; UNL CropWatch 2016; UW publication A3856 | Nothing yet: the method differs (below) |
-| Hanson et al. 2015 (`tmp/references/insects/`) | Degree-day prediction models of the moth's flight, compared by their concordance with observed flight | Nothing yet; not read against the table |
+| Hanson et al. 2015 (`tmp/references/insects/`) | Degree-day prediction models of the moth's flight, compared by their concordance with observed flight | Read 2026-11-19: Ahmad's (1979) 25, 50 and 75 % flight at 733, 790 and 853 °C·d (1,319, 1,422 and 1,535 °F·d), from the daily average with no upper threshold; on 36 Nebraska site-years (1981–2009) Ahmad's model ran 3 days late on average (7 early to 12 late), and a model from March 1 did better. The table's 1,319 to 1,535 are these points |
 
 ## Choices and differences
 

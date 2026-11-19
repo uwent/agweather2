@@ -36,7 +36,7 @@ Not compared: v2 and VDIFN on the same days' weather (VDIFN's maps against v2's)
 
 ## Limits and open questions
 
-- The 791.5 egg-to-adult figure comes from the review notes, which took it from USPest's summary; confirm it in Toba et al.'s tables before using it as a check.
+- The 791.5 egg-to-adult figure is the mean of Toba et al.'s Table 1 egg-to-adult times converted to degree days above 50 °F (73.5 days at 16.6 °C: 873; 42.2 at 21.0 °C: 836; 21.5 at 27.2 °C: 666), checked 2026-11-19; constant-temperature times, not field degree days.
 - Moving to D36's life-stage curves with the source's own degree-day method is part H's review (`docs/insect-models.md`); this report describes the model as ported (version 0.1).
 - **Cheapest independent comparison:** Wisconsin pheromone-trap first catches of cabbage looper (UW Vegetable Entomology's or DATCP's records, if they keep them: to find) against May 15, then larval scouting against the windows.
 

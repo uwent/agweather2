@@ -17,7 +17,7 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 - **Degree days:** single sine (Baskerville–Emin), 50 °F, no upper threshold, from January 1: VDIFN's thresholds, computed as the old AgWeather API did.
 - **Risk:** VDIFN's: one generation, (970, 1600, 2150) degree days (°F) as (start, peak, end); severity rises along a half sine from start to peak and falls from peak to end, rounded up to the 0–4 levels, and is 0 outside. VDIFN's text: adults emerge from about 970 degree days (°F), feeding peaks about 1,600 and ends about 2,150.
 - **Freezes:** after day 250 (early September), severity is lowered by the number of days in the last 14 at or below −2 °C (28.4 °F), the Crop Risk Tool's rule, used for every insect still on a legacy table; VDIFN subtracted freezing days only from November (PLAN.md Phase 3 D, step 3).
-- **Upper threshold:** none, as in VDIFN. USPest's model caps at 92 °F and the spreadsheet at 100 °F; a cap counts fewer degree days on hot days, so the source's own method would put the events later in a hot summer. By how much on Wisconsin weather hasn't been measured.
+- **Upper threshold:** none, as in VDIFN. USPest's model caps at 92 °F and the spreadsheet at 100 °F; a cap counts fewer degree days on hot days, so the source's own method would put the events later in a hot summer. By how much on Wisconsin weather is small: in the 1996–2025 normals (each year's own total, averaged) a 92 °F cap removes about 0.5 degree days a year at Arlington and Hancock and none at Rhinelander (checked 2026-11-19).
 
 ## Checks
 
