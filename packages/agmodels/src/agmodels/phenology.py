@@ -180,7 +180,7 @@ class Insect:
     biofix: str  # MM-DD
     stages: tuple[Stage, ...] = ()
     generations: tuple[tuple[float, float, float], ...] = ()
-    biofix_label: str = "January 1, or the biofix event named in the description"
+    biofix_label: str | None = None  # None: the default date, "or your own date" (`default_biofix_label`)
     source: str = "VDIFN"
     status: str = "beta"
     citations: tuple[Citation, ...] = ()
@@ -259,7 +259,7 @@ class InsectModel:
             ),
             explorer_outputs=self._explored(),
             sweep={"dd_total": tuple(float(d) for d in range(0, 4001, 100))},
-            biofix=Biofix(default=insect.biofix, label=insect.biofix_label),
+            biofix=Biofix(default=insect.biofix, label=insect.biofix_label or default_biofix_label(insect.biofix)),
             context=self._context(),
             changelog=(
                 Change(version="0.1", date="2026-10-28", note=f"Ported from {insect.source}."),
@@ -739,3 +739,9 @@ def _sine_ramp_reference(total: np.ndarray, start: float, peak: float, end: floa
 
     with np.errstate(invalid="ignore", divide="ignore"):
         return np.where(total <= peak, half(total, start, peak), half(-total, -end, -peak))
+
+
+def default_biofix_label(biofix: str) -> str:
+    """'05-15' → 'May 15, or your own date' (the insect's default start, which a grower can replace)."""
+    month, day = (int(part) for part in biofix.split("-"))
+    return f"{date(2001, month, day):%B} {day}, or your own date"
