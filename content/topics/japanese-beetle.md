@@ -20,22 +20,89 @@ crops:
   - pumpkin-squash
   - raspberry
   - tomato
-scientific_name: ''
-summary: ''
+scientific_name: Popillia japonica
+summary: A metallic green and copper beetle whose adults skeletonize the leaves and eat the flowers and fruit of hundreds of plants in midsummer, while its grubs feed on grass roots; adults are managed by scouting from late June and treating when feeding threatens the crop.
 image: images/japanese-beetle.jpg
-image_credit: to confirm
+image_credit: 'Japanese beetle adult on a clover flower. Photo by Bruce Marlin, via Wikimedia Commons (File:Popillia japonica.jpg), CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/); resized.'
 status: draft
-updated: 2026-11-17
+updated: 2026-11-18
 sources:
-  - VDIFN db/seeds.rb (japanese-beetle)
+  - key: uw-vegento-jb
+    text: 'Japanese Beetle. UW–Madison Vegetable Entomology, updated 2026.'
+    url: https://vegento.russell.wisc.edu/pests/japanese-beetle/
+  - key: uw-hort-jb
+    text: 'Williamson, R. C., P. J. Liesch and V. Pandian. Japanese Beetle (XHT1062). UW–Madison Division of Extension, Wisconsin Horticulture, revised 2026.'
+    url: https://hort.extension.wisc.edu/articles/japanese-beetle/
+  - key: umn-jb
+    text: 'Hahn, J., J. Weisenhorn, W. Hutchison and S. Bugeja. Japanese beetles in yards and gardens. University of Minnesota Extension, reviewed 2025.'
+    url: https://extension.umn.edu/yard-and-garden-insects/japanese-beetles
+  - key: uspest-jb
+    text: 'Coop, L. and B. Barker. Japanese beetle phenology and degree-day model, version 2. Oregon IPM Center, Oregon State University, 2024.'
+    url: https://uspest.org/wea/japanese_beetle_model.pdf
+  - key: ebbenga-2022
+    text: 'Ebbenga, D. N., A. A. Hanson, E. C. Burkness and W. D. Hutchison. A degree-day model for forecasting adult phenology of Popillia japonica (Coleoptera: Scarabaeidae) in a temperate climate. Frontiers in Insect Science 2:1075807, 2022.'
+    url: https://doi.org/10.3389/finsc.2022.1075807
+  - key: uw-vegento-modeling
+    text: 'Predictive Modeling. UW–Madison Vegetable Entomology, updated 2026.'
+    url: https://vegento.russell.wisc.edu/ipm/predictive-modeling/
+  - key: uw-vegento-cpb-management
+    text: 'Colorado Potato Beetle Management. UW–Madison Vegetable Entomology, updated 2026.'
+    url: https://vegento.russell.wisc.edu/resources/colorado-potato-beetle-management/
+  - key: a3422-2026
+    text: 'Bradford, B. Z., J. B. Colquhoun, S. A. Chapman, A. J. Gevens and others. Commercial Vegetable Production in Wisconsin (A3422). UW–Madison Division of Extension, 2026.'
+    url: https://vegpath.plantpath.wisc.edu/resources/a3422/
+  - key: midwest-veg-guide
+    text: 'Midwest Vegetable Production Guide for Commercial Growers. Land-grant universities of the Midwest, current edition.'
+    url: https://mwveguide.org/guide
+  - key: agweather-jb
+    text: 'AgWeather. Japanese beetle model: validation report. UW–Madison, 2026.'
+    url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/japanese-beetle.md
 ---
 
-Japanese beetle (_Popillia japonica_) adults are slightly less than 1/2 inch long, and are shiny, metallic green. They have coppery-brown wing covers that do not entirely cover the abdomen. There are six pairs of patches of white hairs along the sides and back of the body, under the edges of the wings. Males and females have the same markings, but females are typically slightly larger. Newly hatched larvae are approximately 1/8 inch long and a translucent, creamy white. Once feeding begins, the hindguts of larvae appears gray to black. The typical C-shape of Japanese beetle larvae is similar to that of other white grub species.
+The Japanese beetle (_Popillia japonica_) is a scarab beetle native to Japan. It was first found in the United States in New Jersey in 1916 and has spread west since.[^uw-hort-jb][^umn-jb] Adults feed on the leaves and flowers of more than 300 kinds of plants, including fruits, vegetables, ornamentals and field crops. The grubs feed on the roots of turf and other grasses. In Wisconsin it is a destructive pest in many areas, and adults are usually active from July.[^uw-hort-jb][^uw-vegento-jb]
 
-Japanese beetle adults do not damage turf, but are an important pest of many other plants. They feed on foliage or flowers, and are a major pest of over 350 species of plants, including fruits, vegetables, ornamentals, field and forage crops, and weeds. Norway and Japanese maple, birch, crabapple, purple-leaf plum, rose, mountain ash, and linden are highly preferred ornamental hosts. Adults feed on the upper surface of the foliage of most plants, consuming soft tissues (mesophyll) between the veins, and leaving a lace-like skeleton. Often the upper canopy is defoliated first or most severely. Trees with extensive feeding damage turn brown and become partially defoliated.
+## Identification
 
-Japanese beetle grubs feed below ground and chew on the roots of turf and ornamentals. As a result, they reduce a plant's ability to take up enough water and nutrients to withstand stresses of hot, dry weather. The first evidence of grub injury in turf is the development of localized-patches of pale, dying grass that displays symptoms of drought stress. As grubs develop further and feeding increases, damaged areas rapidly enlarge and coalesce (merge) to a point where the turf is not well-anchored and can be rolled back like carpet.
+- **Adults** are slightly less than ½ inch long, with a shiny metallic green head and thorax and coppery brown wing covers. The wing covers don't reach the tip of the abdomen, and tufts of white hair line each side, with two more at the tip. Males and females look alike; females are a little larger.[^uw-vegento-jb][^umn-jb]
+- **Grubs** are C-shaped and creamy white with a tan head, from ⅛ inch at hatch to about 1 inch when grown. They look like other white grubs, such as those of May and June beetles, and can be told apart only by the pattern of spines and hairs on the underside of the tip of the abdomen.[^umn-jb][^uw-hort-jb]
 
-Our Japanese beetle feeding risk model uses a base 50F degree day model.
+## Life cycle
 
-- More: <https://vegento.russell.wisc.edu/pests/japanese-beetle/>
+Japanese beetles have one generation a year. Grubs spend the winter in the soil under lawns, pastures and other grassy areas, usually 2 to 8 inches down, sometimes deeper. They are inactive below about 50 °F. When the soil warms to about 50 °F in spring, they move up to feed on roots for several weeks, then pupate in the soil.[^uw-vegento-jb][^uw-hort-jb][^umn-jb]
+
+Adults begin to emerge in late June or early July, at about 1,000 [degree days](/topics/degree-days) (a running total of warmth above a base temperature, here 50 °F), and can be found into September.[^uw-hort-jb] Most feeding is in July and August and is largely over by mid to late August.[^umn-jb] Adults are most active on warm, sunny afternoons. Damaged leaves give off odors that draw in more beetles, which is why they cluster on some plants and leave others nearby alone.[^uw-hort-jb][^umn-jb]
+
+After mating, females burrow 2 to 4 inches into moist soil, usually under turf, to lay small batches of eggs. The eggs hatch in about two weeks, and the grubs feed on roots and are nearly grown by fall. Eggs and young grubs dry out easily, so a dry summer can mean fewer beetles the next year.[^uw-hort-jb][^umn-jb][^uw-vegento-jb]
+
+## Damage
+
+Adults eat the leaf between the veins, leaving only a lacy network of veins, and feed on flowers and fruit. They often start in the upper canopy, and badly damaged leaves turn brown and drop.[^uw-vegento-jb][^umn-jb] Raspberries, grapes, basil, apples and roses are among the preferred hosts, and on corn the beetles feed on the silks.[^umn-jb][^uw-hort-jb]
+
+Well-established plants can tolerate a good deal of leaf feeding. Severe feeding can stunt young or weak plants and reduce the growth and yield of fruits and vegetables, and blossoms and ripe fruit are often ruined.[^umn-jb] Grubs damage turf by eating its roots. Controlling them doesn't prevent damage from adults, which fly in from elsewhere.[^uw-hort-jb][^umn-jb]
+
+## Monitoring
+
+- Look for beetles from late June and early July, and start control as soon as they appear: a few beetles feeding draws in many more.[^umn-jb]
+- Keep checking until numbers fall. Adults feed for six to eight weeks.[^umn-jb]
+- Pheromone traps show when beetles are flying, but don't use them for control: they draw in more beetles than they catch, and damage near traps can increase.[^uw-vegento-jb][^umn-jb][^uw-hort-jb]
+
+## Management
+
+**Nonchemical controls:**
+
+- **Hand-picking** into a bucket of soapy water works on small plantings when numbers are low. It is easiest in the morning or evening, when beetles are sluggish.[^umn-jb][^uw-vegento-jb]
+- **Fine netting** keeps beetles off plants, but don't cover crops in bloom that need pollinators.[^umn-jb]
+- **Harvesting often** during July and August reduces feeding on the parts you sell.[^umn-jb]
+- **Natural enemies:** the fly _Istocheta aldrichi_, which lays white eggs on adult beetles, and the wasp _Tiphia vernalis_, which attacks grubs, have been released in Minnesota. Leave beetles with white eggs on their backs alone.[^umn-jb]
+
+**Insecticides** for adults protect the leaves, flowers and fruit they cover. Treat foliage thoroughly; spraying in the afternoon, when beetles are most active, gives the best control.[^uw-vegento-jb] Pyrethroids (IRAC group 3A; such as bifenthrin and lambda-cyhalothrin) protect foliage for about two weeks but are toxic to bees and other pollinators. Chlorantraniliprole (a diamide, group 28) is a reduced-risk choice that lasts two to four weeks. For organic production, _Bacillus thuringiensis_ subspecies _galleriae_ and azadirachtin have little effect on beneficial insects; apply them late in the evening, after bees stop foraging. Carbaryl gives one to two weeks of protection but is toxic to bees. Insecticidal soaps and oils do little against Japanese beetles.[^uw-hort-jb][^umn-jb][^uw-vegento-cpb-management] Don't spray insecticides toxic to bees on plants in bloom; wait until flowering is over.[^umn-jb]
+
+For products and current registrations in Wisconsin, see [Commercial Vegetable Production in Wisconsin](https://vegpath.plantpath.wisc.edu/resources/a3422/) (A3422); in neighboring states, the [Midwest Vegetable Production Guide](https://mwveguide.org/guide). See also UW–Madison Vegetable Entomology's [Japanese beetle page](https://vegento.russell.wisc.edu/pests/japanese-beetle/) and the University of Minnesota's [Japanese beetle page](https://extension.umn.edu/yard-and-garden-insects/japanese-beetles); for home gardens and lawns, see UW–Madison's [Japanese beetle article](https://hort.extension.wisc.edu/articles/japanese-beetle/).
+
+## AgWeather's models
+
+The [Japanese beetle model](/models/japanese-beetle) follows adult feeding from degree days at a base of 50 °F with no upper threshold, counted from January 1. Its window opens at 970 degree days, peaks at 1,600 and closes at 2,150. It was carried over unchanged from the earlier Wisconsin forecasting tool, VDIFN, and its timing hasn't been checked against field counts in Wisconsin; where its numbers came from isn't documented.[^agweather-jb]
+
+They fit the guides fairly well. In AgWeather's long-term averages for 1996–2025, 970 degree days comes around July 2 at Arlington and July 6 at Hancock, close to UW–Madison's late June or early July, and 2,150 comes around August 28 at Arlington. In northern Wisconsin, at Rhinelander, the window opens around mid-July, and an average season there doesn't reach 2,150, so the window stays open until fall freezes. UW–Madison Vegetable Entomology's page puts the first adults earlier, in mid-June.[^uw-vegento-jb] Oregon State's model, built on lab and field studies, has 2 % of adults out at 1,000 degree days, half at 1,540 and 90 % at 1,985, close to our window.[^uspest-jb]
+
+The upper threshold is unsettled: our model has none, Oregon State's uses 92 °F, and UW–Madison's table of degree-day models gives 100 °F.[^uspest-jb][^uw-vegento-modeling] In AgWeather's long-term averages, a cap at 92 °F changes the totals by less than one degree day, because few days pass 92 °F; in a hot summer it would put the dates a little later. A Minnesota trap study found that a different method, a simple average with thresholds of 59 and 71 °F from January 1, best predicted when the first 10 % of the season's beetles were caught.[^ebbenga-2022] Scout from late June whatever the model shows.
