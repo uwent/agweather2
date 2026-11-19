@@ -41,7 +41,7 @@ SPEC = ModelSpec(
     group="disease",
     version="0.4",
     status="beta",
-    summary="Daily disease severity values (0–4) from hours of leaf wetness and their temperature; the last 7 days' total times fungicide sprays for Alternaria and Cercospora leaf blights of carrot.",
+    summary="Daily disease severity values (0–4) from hours of leaf wetness and their temperature, for Alternaria and Cercospora leaf blights of carrot: the total since planting or the last spray times fungicide sprays, and the last 7 days' total sets the risk level.",
     topics=("carrot-alternaria-leaf-blight", "carrot-cercospora-leaf-blight"),
     crops=("carrot",),
     checks=(
@@ -85,7 +85,7 @@ SPEC = ModelSpec(
     outputs=(
         Quantity(name="dsv", label="Disease severity values", unit="index"),
         Quantity(name="dsv_7_day", label="DSVs in the last 7 days", unit="index"),
-        Quantity(name="dsv_total", label="DSVs since planting", unit="index"),
+        Quantity(name="dsv_total", label="DSVs since planting or the last spray", unit="index"),
     ),
     risk=Risk(
         levels=SEVERITY_LEVELS,

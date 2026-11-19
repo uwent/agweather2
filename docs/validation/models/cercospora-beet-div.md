@@ -20,7 +20,7 @@ Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 - **The day:** humid hours and their temperature both from the day from 6 pm (readings 19:00–18:00 CST, D74), as for late blight; the tool counts the hours over the calendar day and their temperature from 8 pm. Gridded RH is counted from 88 % (D50; on the archive at Eau Claire, May 15–September 30, 2025, this raised the season's DIVs from 124 to 158, PLAN.md Phase 4's humidity note).
 - **No humid hours give 0.** The tool's table starts its warm bands at 1, so with 0 humid hours at a warm temperature it gives 1; that can't happen in its own runs (no humid hours, no temperature), and v2 gives 0.
 - **Risk:** the tool's and VDIFN's levels: Very high when the last 7 days average 5 or more or the last 2 days 5.5; High from 3 or 3.5; Moderate from 1.5 or 2; Low from 0.5 or 1. Days count from planting (June 1 by default).
-- **Crops:** the spec lists sugar beet only, though the summary and the tool's page speak of table and sugar beet.
+- **Crops:** sugar beet and table beet (from 2026-11-19; until then sugar beet only, though the summary and the tool's page spoke of both). The same fungus attacks both; the table was developed for sugar beet.
 
 ## Checks
 

@@ -4,6 +4,9 @@ Each day earns 0–7 DIV from the hours with RH ≥ 90% and their mean temperatu
 (1998) table, which is in °F. Risk follows the Crop Risk Tool: the higher of the last 2 days' and last 7 days'
 mean DIV.
 
+The same fungus (Cercospora beticola) attacks table beet and sugar beet, so both are listed; the table was
+developed for sugar beet in Minnesota and North Dakota and hasn't been tested on table beet (Ben, 2026-11-19).
+
 Ported from the Crop Risk Tool (`calc_cercospora_div`, `risk_for_cercospora`) with parity tests. Intended
 difference, as for late blight: humid hours and their temperature both come from the day from 6 pm.
 
@@ -37,7 +40,7 @@ SPEC = ModelSpec(
     status="beta",
     summary="Daily infection values (0–7) from hours of high humidity and their temperature; their 2- and 7-day means time fungicide sprays for Cercospora leaf spot of table and sugar beet.",
     topics=("beet-cercospora-leaf-spot",),
-    crops=("sugarbeet",),
+    crops=("sugarbeet", "beet"),
     checks=(
         Check(
             kind="system",
