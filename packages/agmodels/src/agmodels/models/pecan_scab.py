@@ -8,7 +8,9 @@ Scab hours are counted from hourly values as a daily feature (`hours_rh_over_90_
 day), so the model itself reads days.
 
 Ported from the Crop Risk Tool (`build_pecan_scab`), whose code counts RH at or above 92% and temperature above
-21.1 °C, where its docs and the Mesonet say 90% and 70 °F: v2 follows the Mesonet (intended difference). Southern,
+21.1 °C, where its docs and the Mesonet say 90% and 70 °F: v2 follows the Mesonet (intended difference). The tool's
+92% was Ben's trial-and-error adjustment to match the Mesonet's scab hours on Open-Meteo's weather (2026-11-19); v2
+corrects its own weather separately, so it counts at the Mesonet's 90%. Southern,
 beta: run at points through Open-Meteo until the box reaches the South.
 """
 

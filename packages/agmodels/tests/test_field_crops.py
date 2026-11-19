@@ -43,19 +43,42 @@ def inputs(crt):
         (tar_spot, "tar_spot_eau_claire_2025", {}),
         (gray_leaf_spot, "gray_leaf_spot_eau_claire_2025", {}),
         (frogeye, "frogeye_eau_claire_2025", {}),
-        (white_mold, "white_mold_dry_eau_claire_2025", {"irrigation": "dry"}),
-        (white_mold, "white_mold_irrigated_30_eau_claire_2025", {"irrigation": "irrigated", "row_spacing": "30"}),
-        (white_mold, "white_mold_irrigated_15_eau_claire_2025", {"irrigation": "irrigated", "row_spacing": "15"}),
     ],
 )
 def test_probability_matches(crt, inputs, module, fixture, options):
     np.testing.assert_allclose(module.outputs(inputs, **options)["probability"], crt(fixture)["probability"], atol=1e-9)
 
 
+@pytest.mark.parametrize(
+    ("fixture", "options"),
+    [
+        ("white_mold_irrigated_30_eau_claire_2025", {"irrigation": "irrigated", "row_spacing": "30"}),
+        ("white_mold_irrigated_15_eau_claire_2025", {"irrigation": "irrigated", "row_spacing": "15"}),
+    ],
+)
+def test_white_mold_irrigated_matches_while_active(crt, inputs, fixture, options):
+    # 0.2 gates on the 30-day mean maximum (the 2025 algorithm), which the tool doesn't: compare the days it's above
+    # 10 °C. The non-irrigated model differs by design (its third logit's −0.56; the tool has −0.86), so it's checked
+    # by hand in test_logistic_by_hand.py.
+    ours = white_mold.outputs(inputs, **options)["probability"]
+    active = white_mold.ingredients(inputs)["air_temperature_max_30_day"] > 10
+    assert active.sum() > 150
+    np.testing.assert_allclose(ours[active], crt(fixture)["probability"][active], atol=1e-9)
+    assert (ours[~active & np.isfinite(ours)] == 0).all()
+
+
 def test_don_matches_after_its_lag(crt, inputs):
     ours = don.outputs(inputs)["probability"]
     assert np.isnan(ours[:7]).all()  # the 21-to-7-day window doesn't exist yet (the tool drops those rows)
-    np.testing.assert_allclose(ours[7:], crt("don_eau_claire_2025")["probability"], atol=1e-9)
+    # 0.2 counts humid days at RH >= 80 % (the authors' algorithm); the tool counts > 80 %. Compare the days whose
+    # 14-day window holds no day at exactly 80 %.
+    from agmodels.accumulate import rolling_sum
+
+    at_80 = rolling_sum((np.asarray(inputs["relative_humidity_mean"]) == 80).astype(float), 14) > 0
+    same = ~at_80[7:]
+    assert same.sum() > 300
+    np.testing.assert_allclose(ours[7:][same], crt("don_eau_claire_2025")["probability"][same], atol=1e-9)
+    assert (don.outputs(inputs)["precipitation_days_missing"][7:] == 0).all()  # the tool's year has every day's rain
 
 
 def test_soybean_cercospora_species_match(crt, inputs):

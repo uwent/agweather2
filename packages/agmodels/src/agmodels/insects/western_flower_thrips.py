@@ -6,7 +6,7 @@ from agmodels.spec import Check
 INSECT = Insect(
     id="western-flower-thrips",
     name="Western Flower Thrips",
-    crops=("cucumber", "eggplant", "onion", "pepper", "tomato"),
+    crops=("cucumber", "eggplant", "pepper", "tomato"),
     base_f=45,
     upper_f=None,
     biofix="01-01",

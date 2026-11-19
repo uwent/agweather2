@@ -20,11 +20,11 @@ def test_white_mold_dry_averages_three_logistic_models():
     # 30-day mean max 25 °C, max wind 3 m/s, max RH 90 %: the three logits worked out by hand
     m1 = -0.47 * 25 - 1.01 * 3 + 16.65  # 1.87
     m2 = -0.68 * 25 + 17.19  # 0.19
-    m3 = -0.86 * 25 + 0.1 * 90 - 0.75 * 3 + 8.2  # -6.55
-    assert (m1, m2, m3) == pytest.approx((1.87, 0.19, -6.55))
+    m3 = -0.56 * 25 + 0.1 * 90 - 0.75 * 3 + 8.2  # 0.95 (the 2025 algorithm's −0.56; the tool's −0.86 gave −6.55)
+    assert (m1, m2, m3) == pytest.approx((1.87, 0.19, 0.95))
     expected = (sigmoid(m1) + sigmoid(m2) + sigmoid(m3)) / 3
     assert float(white_mold.probability_dry(25, 3, 90)) == pytest.approx(expected)
-    assert expected == pytest.approx(0.4717, abs=1e-4)
+    assert expected == pytest.approx(0.712, abs=1e-3)
 
 
 @pytest.mark.parametrize(("spacing", "row"), [("30", 1), ("15", 0)])
@@ -34,21 +34,19 @@ def test_white_mold_irrigated_by_hand(spacing, row):
     assert sigmoid(logit) == pytest.approx(0.2092 if row else 0.7408, abs=1e-4)
 
 
-def test_white_mold_in_a_cold_spell_is_scaled_down_by_the_21_day_minimum():
-    # A warm, humid 30 days whose 21-day mean minimum is 4 °C: the probability is multiplied by 4 / 10
+def test_white_mold_is_inactive_unless_the_30_day_mean_maximum_is_above_10_c():
+    # The 2025 algorithm's gate, for both settings: a 30-day mean maximum of 10 °C or less gives 0, above it the model
     n = 40
     inputs = {
         "air_temperature_max": np.full(n, 25.0),
-        "air_temperature_min": np.full(n, 4.0),
         "relative_humidity_max": np.full(n, 90.0),
         "wind_speed_max": np.full(n, 3.0),
     }
-    raw = float(white_mold.probability_dry(25, 3, 90))
-    out = white_mold.outputs(inputs)["probability"]
-    assert out[-1] == pytest.approx(raw * 0.4)
-    colder = white_mold.outputs(inputs | {"air_temperature_min": np.full(n, -2.0)})["probability"]
-    assert colder[-1] == 0  # at or under 0 °C nothing
-    assert float(attenuate_for_cold(0.5, 12)) == 0.5  # over 10 °C unscaled
+    assert white_mold.outputs(inputs)["probability"][-1] == pytest.approx(float(white_mold.probability_dry(25, 3, 90)))
+    cold = inputs | {"air_temperature_max": np.full(n, 10.0)}
+    assert white_mold.outputs(cold)["probability"][-1] == 0
+    assert white_mold.outputs(cold, irrigation="irrigated")["probability"][-1] == 0
+    assert float(attenuate_for_cold(0.5, 12)) == 0.5  # tar spot keeps the tool's cold scaling
 
 
 def test_white_mold_irrigated_risk_uses_its_own_cutoffs():

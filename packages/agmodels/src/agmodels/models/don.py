@@ -2,10 +2,12 @@
 
 A logistic model (Paul and Nesi, Ohio State, as in the Crop Risk Tool) of two windows around silking: 21 to 7
 days before (mean maximum and minimum temperature, days with mean temperature ≥ 25 °C, days with rain) and the
-last 14 days (mean RH, days with mean RH > 80%). Corn is susceptible during silking.
+last 14 days (mean RH, days with mean RH ≥ 80%). Corn is susceptible during silking.
 
-Ported from the Crop Risk Tool (`predict_don`, `build_don`) with parity tests. Difference: the tool counts a day
-with missing precip as dry; here it isn't counted either way (the windows count the days that have data).
+Ported from the Crop Risk Tool (`predict_don`, `build_don`) with parity tests. A day with missing precipitation
+counts as a day without rain, as in the tool (D45: rain is never estimated); `precipitation_days_missing` says how
+many of the rain window's days had no data. 0.2 counts humid days at RH ≥ 80 %, as the authors' algorithm does (the
+tool counts > 80 %; `tmp/crt-model-audit.md`).
 """
 
 from collections.abc import Mapping
@@ -32,7 +34,7 @@ SPEC = ModelSpec(
     id="gibberella-ear-rot-don",
     name="Gibberella ear rot DON probability",
     group="disease",
-    version="0.1",
+    version="0.2",
     status="beta",
     summary="The probability of DON above 1 ppm from Gibberella ear rot, from temperature and rain 21 to 7 days before and humidity over the last 14 days; corn is susceptible during silking.",
     topics=("gibberella-ear-rot",),
@@ -76,7 +78,15 @@ SPEC = ModelSpec(
             description="14-day mean, and days above 80%",
         ),
     ),
-    outputs=(Quantity(name="probability", label="Probability of DON > 1 ppm", unit="percent"),),
+    outputs=(
+        Quantity(name="probability", label="Probability of DON > 1 ppm", unit="percent"),
+        Quantity(
+            name="precipitation_days_missing",
+            label="Days without precipitation data",
+            unit="day",
+            description="In the window 21 to 7 days before, counted as days without rain",
+        ),
+    ),
     risk=Risk(levels=PROBABILITY_LEVELS, criteria="Very low below 1%, Low from 1%, Moderate from 20%, High from 40%."),
     explorer=(
         ExplorerInput(
@@ -126,7 +136,7 @@ SPEC = ModelSpec(
         ),
         ExplorerInput(
             name="w0_days_rh_over_80",
-            label="Days with mean RH > 80%, last 14 days",
+            label="Days with mean RH ≥ 80%, last 14 days",
             unit="day",
             minimum=0,
             maximum=14,
@@ -157,19 +167,25 @@ SPEC = ModelSpec(
         Ingredient(name="days_with_precipitation_14_day_lag_7", unit="day"),
         Ingredient(name="relative_humidity_mean_14_day", unit="percent"),
         Ingredient(name="days_rh_over_80_14_day", unit="day"),
+        Ingredient(name="days_precipitation_missing_14_day_lag_7", unit="day"),
     ),
     changelog=(
         Change(
             version="0.1",
             date="2026-10-28",
-            note="Ported from the Crop Risk Tool; missing precip isn't counted as dry.",
+            note="Ported from the Crop Risk Tool.",
+        ),
+        Change(
+            version="0.2",
+            date="2026-11-19",
+            note="Humid days are those with mean RH ≥ 80 %, as the authors' algorithm has it (the tool counts > 80 %). The days without precipitation data in the rain window are counted and shown; they count as days without rain, as before (0.1's note said otherwise).",
         ),
     ),
     checks=(
         Check(
             kind="system",
             against="The Crop Risk Tool, which AgWeather's Gibberella ear rot model was ported from, on the tool's own 2025 weather for Eau Claire, Wisconsin",
-            result="Given the tool's daily weather, our probability of DON above 1 ppm matched the tool's on all 358 days the tool gives, January 8 to December 31, 2025. This shows that we reproduce the tool, not that its predictions are right: the model's fit is unpublished, and it hasn't been compared with DON in harvested grain.",
+            result="Given the tool's daily weather, our probability of DON above 1 ppm matched the tool's on 344 of the 358 days the tool gives, January 8 to December 31, 2025; on the other 14, where we count a day at exactly 80 percent humidity as humid, as the model's authors do, it differs by at most 4e-8. This shows that we reproduce the tool, not that its predictions are right: the model's fit is unpublished, and it hasn't been compared with DON in harvested grain.",
             report="docs/validation/models/gibberella-ear-rot-don.md#against-the-crop-risk-tool-on-the-same-weather",
         ),
     ),
@@ -202,12 +218,26 @@ def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
         "days_temperature_over_25c_14_day_lag_7": lag(count(np.asarray(inputs["air_temperature_mean"]) >= 25)),
         "days_with_precipitation_14_day_lag_7": lag(count(np.asarray(inputs["precipitation_sum"]) > 0)),
         "relative_humidity_mean_14_day": moving_mean(rh, 14),
-        "days_rh_over_80_14_day": count(rh > 80),
+        "days_rh_over_80_14_day": count(rh >= 80),
+        "days_precipitation_missing_14_day_lag_7": lag(
+            count(np.isnan(np.asarray(inputs["precipitation_sum"], dtype=float)))
+        ),
     }
 
 
 def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
-    return {"probability": probability(*(values[i.name] for i in SPEC.ingredients))}
+    names = (
+        "air_temperature_max_14_day_lag_7",
+        "air_temperature_min_14_day_lag_7",
+        "days_temperature_over_25c_14_day_lag_7",
+        "days_with_precipitation_14_day_lag_7",
+        "relative_humidity_mean_14_day",
+        "days_rh_over_80_14_day",
+    )
+    return {
+        "probability": probability(*(values[name] for name in names)),
+        "precipitation_days_missing": values["days_precipitation_missing_14_day_lag_7"],
+    }
 
 
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:

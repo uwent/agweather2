@@ -14,7 +14,7 @@ Model version 0.1 (beta), written 2026-11-18 (D98). The model: `packages/agmodel
 
 ## Choices and differences
 
-- **Thresholds:** RH at or above 90 % and temperature at or above 70 °F (21.11 °C), the Mesonet's and the tool's docs', not the tool's code (92 % and above 21.1 °C). An hour at 21.1 °C doesn't count in v2 and does in the tool; the RH difference matters more (more hours count from 90 %).
+- **Thresholds:** RH at or above 90 % and temperature at or above 70 °F (21.11 °C), the Mesonet's and the tool's docs', not the tool's code (92 % and above 21.1 °C). An hour at 21.1 °C doesn't count in v2 and does in the tool; the RH difference matters more (more hours count from 90 %). The tool's 92 % was Ben's trial-and-error adjustment to bring its Open-Meteo scab hours toward the Mesonet's (2026-11-19); v2 handles its weather's humidity bias in its own corrections (Ben), so it keeps the Mesonet's 90 %. The research behind the Mesonet's advisor (its thresholds' origin) is still to be read.
 - **No shift for gridded humidity:** unlike the other humid-hour models, the 90 % isn't counted from 88 % (D50): the Mesonet's threshold hasn't been checked against its stations.
 - **Risk:** Low below 10 scab hours since March 1 or the last spray, Moderate from 10, High from 20, Very high from 30. The Mesonet's timing conditions (30 days after March 1, or 5 to 14 days after the last spray) are stated with the levels but not modelled.
 - **The day:** the calendar day; a day with a missing hour has no count.

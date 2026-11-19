@@ -5,7 +5,6 @@ kind: insect
 crops:
   - cucumber
   - eggplant
-  - onion
   - pepper
   - tomato
 scientific_name: Frankliniella occidentalis
