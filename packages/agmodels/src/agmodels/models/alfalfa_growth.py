@@ -7,8 +7,9 @@ ready to cut at 900–1100 GDD. The tool's single-sine GDD subtract the upper th
 no day reaches.
 
 Fall cutting (the tool's other guidance, and its cut scheduling) depends on the first killing freeze still ahead: a
-last cut should leave either under 360 or over 900 GDD (base 41 °F) before it (Newell, from Quebec work reported in
-base 5 °C; the older 500 and 200 were a misquote of it; the tool's text says 800). That needs the climatology and the
+last cut should leave either under 360 or over 900 GDD (base 41 °F) before it (Newell, from Canadian research reported in
+base 5 °C; the older 500 and 200 were a misquote of it; the tool's text says 800). The 900–1100 cutting window
+is the tool's own; no published source for it has been found (Newell's article gives only the fall rule). That needs the climatology and the
 projection to the end of the year (Phase 3 C, Phase 6), so it waits for them.
 """
 
@@ -59,7 +60,7 @@ SPEC = ModelSpec(
     crops=("alfalfa",),
     citations=(
         Citation(
-            text="Newell, S. Managing fall alfalfa cutting for persistence. UW–Madison Extension Crops and Soils (written with the UW alfalfa cutting tool, whose 900–1100 GDD cutting window this follows).",
+            text="Newell, S. Managing fall alfalfa cutting for persistence. UW–Madison Extension Crops and Soils (the fall cutting rule, 900 and 360 GDD base 41 °F).",
             url="https://cropsandsoils.extension.wisc.edu/articles/managing-fall-alfalfa-cutting-for-persistence/",
         ),
         Citation(

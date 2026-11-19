@@ -34,6 +34,8 @@ The tool is what this model replaces: a reference, not the truth (D54). Its outp
 - The fit is unpublished: its data, error and range of years, rain and temperatures aren't known to us.
 - The year term raises the predicted emergence a little with every year past the fit, a trend that may not hold.
 - Seed quality, seed treatment, soil moisture and crusting aren't inputs beyond Pythium's presence.
+- The fit assumed untreated seed: the author's model description (`ModelDescription.docx` in the authors' documents) says it "was built assuming no seed treatments were used". Nearly all commercial seed is treated (in Georgia, all of it, per UGA), so the model may overstate the risk for the seed growers plant.
+- The author's documents call the risk levels' boundaries arbitrary for now, to be tied to economics later; their edges (Low above 0 %, under 19, over 20, from 35) leave gaps, and the tool and v2 start Low at 1 %.
 - **Cheapest independent comparison:** stand counts from cotton planting-date trials in the Southeast (the trials behind the fit, or later years of the same trials, asked of Noel), against Open-Meteo's weather at each site.
 
 ## Reproducing

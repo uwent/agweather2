@@ -1,6 +1,7 @@
-"""Oak wilt: the risk of transmission by its sap beetle vectors (Colopterus truncatus, then Carpophilus sayi).
+"""Oak wilt: the risk of transmission by its sap beetle vectors, by the flight of Colopterus truncatus.
 
-Vector flight from degree days (base 41 °F, from January 1; Jagemann et al. 2018), with risk reduced from July
+Vector flight from degree days (base 41 °F, from January 1; Jagemann et al. 2018's Table 4 percentiles for
+C. truncatus, °C·d × 1.8; Carpophilus sayi flies later and isn't followed), with risk reduced from July
 15 as the wounds that let beetles carry the fungus become rare (two levels down, at most Low, and one more a week
 later). Ported from VDIFN (`app/models/insects/oak_wilt.rb`) with parity tests; VDIFN's freeze reduction (from
 November) never applies, since risk is already Very low by then.
