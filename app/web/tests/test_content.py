@@ -4,6 +4,7 @@ from pathlib import Path
 
 from agmodels import insects as insect_modules
 from agmodels import models as model_modules
+from agmodels.pages import source_problems
 from agmodels.registry import all_models, page_path
 from web.content import CONTENT, STATUSES, TOPIC_FIELDS, TOPIC_KINDS, model_pages, topics
 
@@ -37,3 +38,10 @@ def test_model_page_front_matter():
 def test_colorado_potato_beetle_is_one_topic_with_three_models():
     cpb = [k for k, m in all_models().items() if m.SPEC.topics == ("colorado-potato-beetle",)]
     assert len(cpb) == 3
+
+
+def test_sources_and_citations():
+    """Keyed sources are each cited, by a marker or a link, and every marker names one (`agmodels.pages`)."""
+    pages = [*topics().values(), *model_pages().values()]
+    problems = [f"{p.id}: {problem}" for p in pages for problem in source_problems(p)]
+    assert not problems, "\n".join(problems)

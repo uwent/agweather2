@@ -88,10 +88,10 @@ Priorities follow project-plan.md's launch table (P0 for April 1, 2027; P1 durin
 <!-- prettier-ignore -->
 | Feature | Replaces or from | API |
 | --- | --- | --- |
-| Catalog: by crop, then disease, insect or crop stage; one-line summary each; status badges; beta models shown only when opted in | VDIFN, Enviroweather crop menus, NEWA tool list | ✓ `/models` |
+| Catalog: by crop, then disease, insect or crop stage; one-line summary each; status badges; beta models shown only when opted in (every model is beta until launch, D46, so this waits for 1.0 or changes) | VDIFN, Enviroweather crop menus, NEWA tool list | ✓ `/models` |
 | Model page: what it predicts, how to read it, what to do at each risk level, valid region and season, inputs (their catalog definitions, D48–D50 corrections), version and changelog, citations with DOIs, link to its map and to run it at a location, its source at the running version | NEWA's More Info, Acknowledgments and References tabs | ✓ `/models/{id}`; content in `agmodels/models/*.md` |
 | Explorer: sliders over a model's inputs and its response | — | ✓ `POST /models/{id}/evaluate` |
-| Topic pages: identification, life cycle, damage, management, photos (49 drafted in `content/topics`) | v1 pest pages, VDIFN pest info | — content |
+| Topic pages: identification, life cycle, damage, management, photos (49 drafted in `content/topics`); citations rendered from footnote markers, `[^key]`, as numbered links to the front matter's keyed sources (`agmodels.pages.source_problems`; Ben, 2026-11-18) | v1 pest pages, VDIFN pest info | — content |
 | Methods page generated from the catalog, the corrections and the sources (PLAN.md Phase 6) | — | ✓ `/variables`; ✗ corrections and sources by date aren't served yet |
 
 ### Tools (P0 unless noted)

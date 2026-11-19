@@ -1,7 +1,8 @@
 """Topic and model pages (PLAN.md Phase 3 E, D31, D35): Markdown with YAML front matter.
 
 - `content/topics/<id>.md`: a disease, insect, crop or other subject (front matter: id, title, kind, crops,
-  scientific_name, summary, image, image_credit, status, sources); its models are the specs naming the topic, so the
+  scientific_name, summary, image, image_credit, status, sources, keyed and cited with `[^key]` markers once a page is
+  rewritten: `agmodels.pages.source_problems`); its models are the specs naming the topic, so the
   page never lists them by hand.
 - A model's page is the `.md` beside its module in `agmodels` (`agmodels.registry.page_path`): its prose (how it
   works, how to read it, validation, caveats; front matter: id, status, sources, and an insect's summary). Inputs,

@@ -3,7 +3,7 @@
 import pytest
 
 from agmodels import registry
-from agmodels.pages import read_page
+from agmodels.pages import Page, read_page, source_problems
 from agmodels.registry import all_models, model, page_path
 
 
@@ -51,3 +51,24 @@ def test_a_page_needs_front_matter_with_its_own_id(tmp_path):
     right.write_text("---\nid: right\nsummary: S\n---\n\nBody text\n")
     page = read_page(right)
     assert page.id == "right" and page.front == {"id": "right", "summary": "S"} and page.body == "Body text"
+
+
+def _page(sources, body):
+    return Page(id="x", front={"sources": sources}, body=body)
+
+
+def test_a_pages_citations_name_its_keyed_sources():
+    keyed = [
+        {"key": "smith-2020", "text": "Smith 2020."},
+        {"key": "guide", "text": "A guide.", "url": "https://g.example"},
+    ]
+    assert source_problems(_page(keyed, "Said.[^smith-2020] See the [guide](https://g.example).")) == []
+    assert source_problems(_page(keyed, "Said.[^smith-2020][^jones]")) == [
+        "cites [^jones], which isn't a listed source",
+        "lists 'guide' but never cites it",
+    ]
+    assert source_problems(_page(["Smith 2020"], "Plain sources, no markers.")) == []
+    assert source_problems(_page(["Smith 2020"], "Said.[^smith-2020]")) == [
+        "cites ['smith-2020'] but its sources aren't keyed"
+    ]
+    assert source_problems(_page([{"key": "Bad Key", "text": "x"}], "[^Bad Key]"))[0].startswith("source key")
