@@ -13,7 +13,7 @@ Model version 0.3, written 2026-11-18 (D98), rewritten 2026-11-19 for 0.3 (Ben's
 | UW–Madison Extension, "Biomass thresholds for cereal rye cover crop goals" | Biomass needed for each goal: nitrate leaching, erosion and runoff phosphorus, weed suppression | The levels: Low below 2,000 lb/ac, Moderate from 2,000, High from 4,500 |
 | Badger Crop Network, "How much cereal rye cover crop biomass is needed to suppress troublesome weeds in Wisconsin?" | Weed suppression by biomass | Background for the High level |
 
-The published paper (Crossref, online September 11, 2026) has a different title and author list (Ben added) from the draft in the folder, and its abstract's best model is a logistic with latitude, not the draft's linear model. We haven't read the published text; its model wasn't compared here.
+The published paper (Crossref, online September 11, 2026; `tmp/references/crops/`) has a different title and author list (Ben added) from the draft in the folder, and its best model (Eq. 1, NLS-3) is a logistic with latitude, not the draft's linear model: compared below ("Against the published model").
 
 ## The model
 
@@ -62,6 +62,17 @@ The page's rounded summary ("about 1,200 lb/acre; about 600 below 2,000, about 1
 
 Run in CI (`packages/agmodels/tests/test_rye_biomass.py`): the formula on known values and the levels' degree days, the fall cap, the bound, a synthetic season (blank before March 1, March 1 in a leap year, never falling), fall degree days stopping at New Year, missing data, the planting flag at its edges (leap years too) and the season's end.
 
+### Against the published model
+
+Colet et al. 2026, Eq. 1 (NLS-3, their best of ten by leave-one-site-year-out, CV-RMSE 1,870 lb/ac): √biomass = (1116 − 6.41 × fall rain (in, all precipitation, planting to December 31) − 1.12 × planting day of year − 15.38 × latitude) / (1 + exp(−0.001926 × (season GDD − 1810))), GDD in °F-days base 32 °F from planting (the paper doesn't name the method; its range and mean match single sine with no upper on the tool's weather: 910–3,538, mean 1,950 against our 909.9–3,537.8, mean 1,958). It is the Crop Risk Tool's logistic plus latitude, fed all precipitation (Ben's R project fitted rain on days above freezing in mm). Leave-one-site-year-out keeps the same location's other plantings and the same fall in training, so it overstates accuracy for a new farm or year. Scripts and outputs: `tmp/rye-study/published/`.
+
+- Published coefficients on our site-years (in sample for about 135 of them): RMSE 1,624 (tool's weather) and 1,712 (archive), against 0.3's 1,767 and 1,842; 69 % in the right class either way.
+- Refitted under the grouped cross-validation (RMSE leaving out a location / fall / source; MAE leaving out a location), the published form (6 parameters) against 0.3 (2): tool's weather 1,919 / 1,817 / 1,958, MAE 1,229, against 1,811 / 1,891 / 1,934, MAE 1,154; archive 1,988 / 1,994 / 2,046, MAE 1,290, against 1,887 / 1,966 / 2,014, MAE 1,182. Group bootstrap (2,000) of the RMSE difference: every 90 % interval includes 0; 0.3's MAE is lower in 5 of 6 cases. Without latitude the published form scores about the same; latitude's coefficient moves from −15.4 (paper) to −11.6 (refit, tool's weather) to −6.2 (archive), and added to 0.3 (on √ceiling) it's about −1 and every grouped error rises.
+- On real weather (8 Wisconsin points × falls 2016–2025 × 4 plantings, 320 springs per case) the published model passes 14,000 lb/ac by June 15 in 21 springs (89 after a dry fall), reaching 19,700–29,300; after a wet fall its numerator turns negative in 28 springs and squares back to positive biomass (up to 26,500); fall rain alone moves its June 1 median from 5,184 (dry) to 879 (wet). 0.3 stays below 12,000 in every case.
+- Latitude outside 42.6–45.3° N: its ceiling for an October 1 planting is 16,500–33,000 lb/ac in Iowa and Illinois (38–41.5° N) and 1,930 at 47° N, falling to zero near 49–50° N (46° N after a wet fall and a November planting); it counts a shorter northern season twice, on top of the degree days. June 1 medians at Spooner, Ashland and near Cotton, MN run 40–80 % below 0.3's.
+
+So 0.3 keeps degree days alone, as Ben chose before this comparison (2026-11-19), and the comparison supports it: the published form is no more accurate for a location, fall or source left out, and it leaves the measured range on real weather and outside the data's latitudes.
+
 ## Limits and open questions
 
 - **Jose_WeedWisc's plots** (10 site-years at site_06 and Arlington, 2019–2022): every model underpredicts them by 3,400 to 4,000 lb/ac (this one by 4,015 on average); at site_06 they run about 4,000 above Guilherme's plots at the same site. That points to management (previous crop, manure, nitrogen, plot size), not weather, but we don't know; kept in the fit.
@@ -69,7 +80,7 @@ Run in CI (`packages/agmodels/tests/test_rye_biomass.py`): the formula on known 
 - **Heavy stands:** above 4,500 lb/ac the model underpredicts by about 1,500 to 1,850 lb/ac on average; early plantings (August 27 to September 27) by about 1,900.
 - **The ceiling and the fall cap** are choices the data can't confirm (above).
 - Seeding rate, soil, nitrogen and the previous crop aren't inputs (the data hold nitrogen rate; nearly all seeding was 60 lb/ac).
-- **The published paper:** its logistic with latitude hasn't been compared; once read, check its form and error against this one.
+- **The published model's data:** its per-fall counts (135 site-years) differ from the 144 here (2018 8 vs 9, 2020 15 vs 17, 2021 18 vs 20, 2023 36 vs 40), and its biomass range leaves out our three lowest and two highest means; its exclusions aren't documented.
 - **Cheapest independent comparison:** biomass clipped in later seasons (2025 falls on) or outside the authors' sources, such as northern Wisconsin or Minnesota on-farm trials, on the archive at each field's cell.
 
 ## Reproducing
