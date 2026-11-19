@@ -7,6 +7,7 @@ sources:
   - Bradford and Groves, unpublished analysis of Wisconsin suction trap catches, 2016–2023 (UW–Madison Vegetable Entomology), refitted 2026
   - Suction trap aphid records via EDDMapS (Doris Lagos-Kutz, University of Illinois Urbana-Champaign)
   - VDIFN's PVY vector model (compared)
+  - UW–Madison Vegetable Entomology, Potato Virus Y Management (https://vegento.russell.wisc.edu/resources/potato-virus-y-management/)
 ---
 
 ## What it predicts
@@ -25,6 +26,15 @@ Degree days are counted from January 1 by the single-sine method, base 39.2 °F 
 
 - Risk levels compare the day's value with the season's peak. Very high means aphid vector flight is near its typical peak.
 - Seasons differ widely: in single years the peak has come anywhere from about 1,700 to 4,800 degree days. Current trap catches are the better guide when they're available.
+
+## What it means for seed potato production
+
+Seed growers manage two kinds of aphids all season (UW–Madison Vegetable Entomology):
+
+- **Colonizing aphids**, such as the green peach aphid, settle and reproduce on potato. After the early-season protection of a neonicotinoid seed or at-plant treatment wears off, scout weekly for small colonies of wingless aphids and treat with systemic foliar aphicides when they appear, rotating modes of action.
+- **Non-colonizing aphids**, such as the soybean aphid, spread most PVY but only pass through the field, and systemic insecticides don't stop them from transmitting the virus. Paraffinic oils, which interfere with transmission, are applied weekly through the season from about two weeks after full emergence.
+
+The model shows when vector pressure builds. As risk rises toward High, increase the frequency of aphicide and oil sprays, and keep coverage up through the season. In the north, risk is still rising when the season ends, so killing vines early, before the late-season surge of aphids, is one of the most effective ways to keep PVY out of a seed lot.
 
 ## Validation and caveats
 
