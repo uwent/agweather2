@@ -388,7 +388,8 @@ DAILY_FEATURES: dict[str, Variable] = {
         Variable(name="hours_rh_over_90", long_name=_RH90.format("Hours"), version=2, **_HOURS),
         Variable(
             name="hours_rh_over_90_temperature_over_70f",
-            long_name="Hours with RH at or above 90% and at least 70 °F",
+            long_name=_RH90.format("Hours") + " and at least 70 °F",
+            version=2,  # counted at 88% since D100
             **_HOURS,
         ),
         Variable(name="hours_rh_over_80_from_6pm", long_name="Hours with RH at or above 80%, day from 6 pm", **_HOURS),

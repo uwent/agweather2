@@ -16,6 +16,11 @@ Ported from the Crop Risk Tool (`build_pecan_scab`), whose code counts RH at or 
 corrects its own weather separately, so it counts at the Mesonet's 90% (at Okmulgee in 2025 Open-Meteo ran drier than
 the Mesonet's station, so 92% moved the wrong way: audit round 2). 0.1 rated the total against all three thresholds
 and left the waits out; 0.2 models the advisor's decision (audit round 2, `tmp/crt-model-audit-2-cotton-pecan-rye.md`).
+0.3 (D100): the scab hour's 90% is counted at 88% (D50's `STATION_RH_90_AS_GRIDDED`), and Open-Meteo's RH is no
+longer mapped by D51 outside the Upper Midwest: at five Oklahoma Mesonet stations, March–August 2023–2025, raw
+Open-Meteo at 90% counted 0.68 of the stations' hours, matched them at 87.5–88.2%, and at 88% gave the advisor's
+spray count (10.0 a season against 9.7); D51's map had made spring 2–4 times too humid there (1.12 times the hours at
+90%, thresholds reached a median 15 days early). `tmp/pecan-check/report.md`.
 Southern, beta: run at points through Open-Meteo until the box reaches the South.
 """
 
@@ -51,7 +56,7 @@ SPEC = ModelSpec(
     id="pecan-scab",
     name="Pecan scab hours",
     group="disease",
-    version="0.2",
+    version="0.3",
     status="beta",
     summary="Hours warm (70 °F or more) and humid (RH 90% or more) since March 1 or the last fungicide spray, and whether a spray is advised: the total has reached the threshold for your variety's susceptibility and the waiting period after March 1 or the last spray has passed.",
     topics=("pecan-scab",),
@@ -60,7 +65,7 @@ SPEC = ModelSpec(
         Check(
             kind="system",
             against="The Crop Risk Tool, which this model replaces, on its recorded 2025 weather at one Wisconsin location, used only to test the arithmetic",
-            result="Counted at the tool's own thresholds (92 percent humidity and above 21.1 °C), our daily and running scab hours match the tool's on all 365 days. We count at the Oklahoma Mesonet's 90 percent and 70 °F, as the tool's documentation says, so more hours count.",
+            result="Counted at the tool's own thresholds (92 percent humidity and above 21.1 °C), our daily and running scab hours match the tool's on all 365 days. We count at the Oklahoma Mesonet's 90 percent and 70 °F, as the tool's documentation says, with the 90 percent read as 88 percent on our weather (as a station measures it), so more hours count.",
             report="docs/validation/models/pecan-scab.md#against-the-crop-risk-tool",
         ),
     ),
@@ -159,6 +164,11 @@ SPEC = ModelSpec(
             version="0.2",
             date="2026-11-19",
             note="The Mesonet's spray decision: options for the variety's susceptibility (10, 20 or 30 hours) and the days a spray protects (5, 7, 10 or 14); a wait of 30 days from March 1 or the protection period from a spray; three levels (Low, Moderate, High = spray advised) in place of four steps at 10, 20 and 30 hours. New outputs: the days since March 1 or the last spray, and the days left in the wait. Cites Payne and Smith 2012.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-19",
+            note="Scab hours are counted at 88% humidity on our weather, which matches the Oklahoma Mesonet stations' 90%: at five stations in pecan country, March to August 2023 to 2025, Open-Meteo at 90% counted about two-thirds of the stations' hours, and at 88% it matched them and gave the same number of sprays. Open-Meteo's humidity is no longer adjusted by the Wisconsin-fitted correction here, which had made spring too humid.",
         ),
     ),
 )

@@ -62,6 +62,7 @@ Things only you can do, by phase. Details are in [PLAN.md](PLAN.md). In progress
 
 ## Phase 8: On the server, and launch
 
+- [ ] **Pecan scab's daily feature at 88 %** (2026-11-19, D100): `hours_rh_over_90_temperature_over_70f` went to version 2, so `uv run app/manage.py rebuild --check`, then `uv run app/manage.py rebuild --stale --background` until nothing is stale (one daily variable in every year).
 - [ ] **The apple models' daily features** (2026-11-18, D96): after the code is deployed, `uv run app/manage.py rebuild --check`, then `uv run app/manage.py rebuild --stale --background` until nothing is stale (ten new daily variables for apple scab and fire blight in every year; over an hour and a half a pass on the dev archive over Wisconsin, so much longer over the launch box).
 - [ ] **Copernicus key:** put `COPERNICUS_API_KEY` in the server's `infra/.env` before the ERA5-Land job runs there.
 - [ ] **The season-read copy:** run `uv run app/manage.py timecopy` once after the archive is copied to the server.

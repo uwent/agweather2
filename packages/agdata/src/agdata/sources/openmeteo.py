@@ -274,12 +274,23 @@ def _stamps(start: datetime, n: int) -> np.ndarray:
 
 CORRECTED_ENDPOINTS = ("historical", "forecast")  # the ones fitted (D51); ERA5's archive endpoint wasn't checked
 OPENMETEO_RH_MAP = json.loads(calibration.OPENMETEO_RH_MAP_PATH.read_text())
+# Where the RH map applies (D100): it was fitted in Wisconsin, and in Oklahoma it made April 3.7 and May 2.2 times too
+# humid (`tmp/pecan-check/report.md`), so only the Upper Midwest's points take it (Wisconsin, Minnesota, Michigan, Iowa,
+# northern Illinois: south, north, west, east); elsewhere RH stays Open-Meteo's, which there matches stations' 90% at
+# about 88%, D50's threshold
+RH_MAP_AREA = (40.0, 49.5, -97.5, -82.0)
+
+
+def rh_map_applies(cell: "Cell") -> bool:
+    """Whether D51's RH map applies at a cell: inside `RH_MAP_AREA` (D100)."""
+    south, north, west, east = RH_MAP_AREA
+    return south <= cell.latitude <= north and west <= cell.longitude <= east
 
 
 def correct(hours: Hours, cell: Cell, endpoint: str) -> Hours:
     """Open-Meteo's hours with D51's corrections (`agdata.corrections`): shortwave by the hour's clearness against
-    Wisconet's pyranometers, and RH mapped onto the archive's (the dew point recomputed, temperature kept), then RH
-    and ET0 derived again. The values before are kept in `raw`, and the corrections applied in `corrections`.
+    Wisconet's pyranometers, and RH mapped onto the archive's (the dew point recomputed, temperature kept) inside
+    `RH_MAP_AREA` only (D100), then RH and ET0 derived again. The values before are kept in `raw`, and the corrections applied in `corrections`.
     Hours from an endpoint not fitted come back as they are, and a correction whose inputs are missing is left
     out."""
     if endpoint not in CORRECTED_ENDPOINTS or not hours.count or "air_temperature" not in hours.values:
@@ -299,7 +310,7 @@ def correct(hours: Hours, cell: Cell, endpoint: str) -> Hours:
             shortwave.OPENMETEO_TABLE,
         )
         applied.append(corrections.OPENMETEO_SHORTWAVE.label)
-    if "dew_point" in values:
+    if "dew_point" in values and rh_map_applies(cell):
         raw["dew_point"] = values["dew_point"]
         values["dew_point"] = calibration.map_humidity(  # one lead group, so the "cycle" doesn't matter
             hours.start, times, cell.longitude, values["air_temperature"], raw["dew_point"], OPENMETEO_RH_MAP

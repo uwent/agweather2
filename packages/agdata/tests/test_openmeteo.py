@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -107,8 +108,17 @@ def test_the_archive_takes_weather_from_era5_and_soil_and_snow_from_era5_land():
 def test_corrections_keep_the_raw_values_and_say_what_they_did():
     from agdata import corrections
 
-    cell = openmeteo.cell_for(36.12, -97.07)
-    hours, _ = openmeteo.fetch("historical", cell, date(2025, 6, 1), date(2025, 6, 3), session=Recorded("historical"))  # type: ignore[arg-type]
+    oklahoma = openmeteo.cell_for(36.12, -97.07)
+    session = Recorded("historical")
+    hours, _ = openmeteo.fetch("historical", oklahoma, date(2025, 6, 1), date(2025, 6, 3), session=session)  # type: ignore[arg-type]
+    # outside the RH map's area (D100) only shortwave is corrected; RH stays Open-Meteo's
+    south = openmeteo.correct(hours, oklahoma, "historical")
+    assert south.corrections == (corrections.OPENMETEO_SHORTWAVE.label,)
+    np.testing.assert_array_equal(south.values["dew_point"], hours.values["dew_point"])
+    np.testing.assert_allclose(south.values["relative_humidity"], hours.values["relative_humidity"])
+    assert not openmeteo.rh_map_applies(oklahoma) and openmeteo.rh_map_applies(openmeteo.cell_for(44.5, -89.5))
+    # the same hours at a cell inside it (the fixture's weather, read as if it were Wisconsin's)
+    cell = replace(oklahoma, latitude=44.5, longitude=-89.5)
     fixed = openmeteo.correct(hours, cell, "historical")
     assert fixed.corrections == (corrections.OPENMETEO_SHORTWAVE.label, corrections.OPENMETEO_RH.label)
     np.testing.assert_array_equal(fixed.raw["shortwave_radiation"], hours.values["shortwave_radiation"])

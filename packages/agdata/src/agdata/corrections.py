@@ -254,7 +254,7 @@ OPENMETEO_SHORTWAVE = Correction(
 OPENMETEO_RH = Correction(
     id="openmeteo-rh",
     title="Humidity outside our area",
-    summary="Open-Meteo's humidity gives fewer humid hours than our archive and the stations. We map each hour's relative humidity onto the archive's, by season and hour of the day, and compute the dew point from it, keeping the temperature, so disease models outside our area read humidity like the archive's. It closes about half of the gap; Open-Meteo's humidity also changes from year to year.",
+    summary="Open-Meteo's humidity gives fewer humid hours than our archive and the stations. We map each hour's relative humidity onto the archive's, by season and hour of the day, and compute the dew point from it, keeping the temperature, so disease models outside our area read humidity like the archive's. It closes about half of the gap; Open-Meteo's humidity also changes from year to year. We apply it only in the Upper Midwest, where it was fitted: at five Oklahoma stations it made spring several times too humid, so farther south we use Open-Meteo's humidity as it comes.",
     variables=("dew_point", "relative_humidity"),
     scores=(
         Score(
@@ -270,7 +270,7 @@ OPENMETEO_RH = Correction(
     variable="dew_point",
     method="Hourly RH quantile-mapped by season and solar hour; dew point recomputed, temperature kept",
     fitted_against="The archive's hourly RH at 80 Wisconet stations' cells (2025–2026)",
-    applies_to="As for Open-Meteo's shortwave",
+    applies_to="The historical-forecast and forecast endpoints, at points in the Upper Midwest only (Wisconsin, Minnesota, Michigan, Iowa and northern Illinois, latitude 40–49.5° N and longitude 97.5–82° W; D100): in Oklahoma the map made spring several times too humid, so elsewhere humidity stays Open-Meteo's",
     raw_kept="`Hours.raw` (the cache keeps Open-Meteo's values)",
     decision="D51",
     evidence="docs/validation/weather/openmeteo.md",
@@ -279,7 +279,7 @@ OPENMETEO_RH = Correction(
 GRIDDED_RH_90 = Correction(
     id="gridded-rh-90",
     title="Humid hours for disease models",
-    summary="Several disease models count hours with relative humidity at or above 90%, as measured at a field weather station. Gridded humidity is an average over a 2.5 km cell, so it reaches 90% less often than a station does. We count those hours at 88% instead, the threshold at which the archive has as many humid hours as 80 Wisconet stations and as many as their leaf wetness sensors, May to September 2025 and 2026.",
+    summary="Several disease models count hours with relative humidity at or above 90%, as measured at a field weather station. Gridded humidity is an average over a 2.5 km cell, so it reaches 90% less often than a station does. We count those hours at 88% instead, the threshold at which the archive has as many humid hours as 80 Wisconet stations and as many as their leaf wetness sensors, May to September 2025 and 2026. Open-Meteo's humidity, which we use outside our area, matched five Oklahoma Mesonet stations' hours at 90% at about the same threshold, 88%, from March to August 2023 to 2025, so pecan scab's hours are counted the same way.",
     variables=(
         "hours_rh_over_90",
         "hours_rh_over_90_temperature_over_70f",
@@ -290,13 +290,13 @@ GRIDDED_RH_90 = Correction(
     ),
     source="Any hourly RH (the archive, the forecast, Open-Meteo)",
     variable="hours_rh_over_90 and the other RH ≥ 90% features",
-    method="Counted at RH ≥ 88% (`agmodels.features.STATION_RH_90_AS_GRIDDED`); not pecan scab's",
-    fitted_against="80 Wisconet stations' RH ≥ 90% hours and leaf-wet hours, May–September 2025–2026",
-    applies_to="The six disease models whose 90% comes from field stations",
+    method="Counted at RH ≥ 88% (`agmodels.features.STATION_RH_90_AS_GRIDDED`); pecan scab's too since D100",
+    fitted_against="80 Wisconet stations' RH ≥ 90% hours and leaf-wet hours, May–September 2025–2026; for pecan scab, five Oklahoma Mesonet stations' RH ≥ 90% hours on raw Open-Meteo, March–August 2023–2025 (matched at 87.5–88.2%)",
+    applies_to="The seven disease models whose 90% comes from field stations",
     raw_kept="The hourly RH itself is unchanged",
     decision="D50",
     evidence="docs/validation/weather/humidity.md",
-    version="2",
+    version="3",
     fitted="2026-10-31",
 )
 IFS_SOIL_SEAM = Correction(

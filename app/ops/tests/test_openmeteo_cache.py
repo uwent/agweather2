@@ -3,7 +3,6 @@ from datetime import UTC, date, datetime, timedelta
 import numpy as np
 import pytest
 
-from agdata import corrections
 from agdata.sources import openmeteo as source
 from ops import openmeteo, points
 from ops.models import WeatherCellCache
@@ -52,7 +51,7 @@ def test_the_cache_fetches_each_span_once_and_expires_the_forecast(fake_fetch):
     start, end = datetime(2026, 6, 28, tzinfo=UTC), datetime(2026, 7, 20, tzinfo=UTC)
     values, kinds, applied = openmeteo.cell_hours(*STILLWATER, start, end, NOW)
     assert [f[0] for f in fake_fetch] == ["historical", "historical", "forecast"]
-    assert applied == (corrections.OPENMETEO_RH.label,)  # the fake hours have no shortwave to correct
+    assert applied == ()  # no shortwave in the fake hours, and Stillwater is outside the RH map's area (D100)
     assert values["air_temperature"][0] == 20 and values["air_temperature"][-1] == 25
     assert kinds[0] == "observed" and kinds[-1] == "forecast"
     assert kinds[(NOW - start) // timedelta(hours=1)] == "observed"

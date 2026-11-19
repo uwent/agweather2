@@ -1,4 +1,4 @@
-{"version": "0.2", "rows": [
+{"version": "0.3", "rows": [
 {"inputs":{"scab_hours_total":0.0,"wait_days_left":0.0},"outputs":{"risk_high":0.0,"risk_moderate":0.0,"risk_low":0.0}},
 {"inputs":{"scab_hours_total":0.0,"wait_days_left":1.0},"outputs":{"risk_high":0.0,"risk_moderate":0.0,"risk_low":0.0}},
 {"inputs":{"scab_hours_total":0.0,"wait_days_left":14.0},"outputs":{"risk_high":0.0,"risk_moderate":0.0,"risk_low":0.0}},

@@ -69,8 +69,8 @@ SCAB_C = (70 - 32) / 1.8
 # Gridded RH reads a little low where it matters: against 80 Wisconet stations (2025–2026, May–September), the
 # archive's RH ≥ 88% counts as many hours as the stations' RH ≥ 90%, and as their leaf-wet hours (D50;
 # docs/validation/weather/humidity.md). So the "RH ≥ 90%" features are counted at 88% on our hourly data, and keep their
-# names: they mean what a station would have counted at 90%. Pecan scab's threshold is the Oklahoma Mesonet's,
-# not checked against its stations, so it stays at 90%.
+# names: they mean what a station would have counted at 90%. Pecan scab's too since D100: raw Open-Meteo matched five
+# Oklahoma Mesonet stations' 90% at about 88% (2023–2025, `tmp/pecan-check/report.md`).
 STATION_RH_90_AS_GRIDDED = 88.0
 
 
@@ -104,7 +104,7 @@ def calendar_features(
         "hours_rh_under_70": hours_below(rh_percent, 70),
         "hours_rh_over_80": hours_at_or_above(rh_percent, 80),
         "hours_rh_over_90": hours_at_or_above(rh_percent, rh_90),
-        "hours_rh_over_90_temperature_over_70f": hours_humid_and_warm(temperature_c, rh_percent, 90, SCAB_C),
+        "hours_rh_over_90_temperature_over_70f": hours_humid_and_warm(temperature_c, rh_percent, rh_90, SCAB_C),
     }
 
 
