@@ -11,7 +11,7 @@ summary: A striped leaf beetle whose adults and larvae strip the leaves of potat
 image: images/colorado-potato-beetle.jpg
 image_credit: 'Late-instar Colorado potato beetle larvae and their feeding on potato leaves. Photo: Ben Bradford, UW–Madison Vegetable Entomology.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: uw-vegento-cpb
     text: 'Colorado Potato Beetle. UW–Madison Vegetable Entomology, updated 2026.'
@@ -48,7 +48,7 @@ The Colorado potato beetle (_Leptinotarsa decemlineata_) is a leaf beetle that f
 
 Adults spend the winter in the soil, about 4 to 12 inches down, mostly at field edges, in grassy borders and near trees. They come out at about the time potatoes emerge, usually in May, and colonize the nearest host plants, usually less than a mile away, so the first beetles show up along field edges.[^uw-vegento-cpb][^a3422-2026][^schuh-2026]
 
-Eggs hatch in 4 to 9 days, depending on temperature. Larvae pass through four stages (instars) over 2 to 3 weeks, then drop to the soil to pupate, and new adults come out 10 to 14 days later. South-central Wisconsin usually has two generations a year and northern Wisconsin one; summer adults appear from about mid-July, and some lay eggs for a partial further generation before they leave for their winter sites as the crop dies back.[^uw-vegento-cpb]
+Eggs hatch in 4 to 9 days, depending on temperature. Larvae pass through four stages (instars) over 2 to 3 weeks, then drop to the soil to pupate, and new adults come out 10 to 14 days later. South-central Wisconsin usually has two generations a year and northern Wisconsin one; first-generation adults, the summer adults, appear from about mid-July, and some lay eggs for a partial second generation before they leave for their winter sites as the crop dies back.[^uw-vegento-cpb]
 
 Because the beetles develop faster in warm weather, [degree days](/topics/degree-days) predict their stages better than the calendar. UW–Madison uses a base of 52 °F and an upper limit of 86 °F, counting from the first egg mass: eggs take about 120 degree days to hatch, larvae reach the pupal stage at about 400 and new adults appear at about 675.[^uw-vegento-cpb][^a3422-2026]
 
@@ -63,7 +63,7 @@ How much feeding potatoes can stand depends on their growth stage. Plants before
 - Start in early May, once potatoes emerge or eggplant is transplanted, with the border rows next to last year's solanaceous crops and unmanaged ground.[^uw-vegento-cpb]
 - Scan plants and the soil beneath them for adults, which drop when disturbed, and turn leaves for egg masses. Count both on a set number of plants to follow the trend.[^uw-vegento-cpb]
 - Once adults or eggs are found, part the new leaves at the plant tops to look for small larvae. Scattered shot holes with no larvae nearby are usually flea beetle feeding.[^uw-vegento-cpb]
-- UW–Madison's scouting calendar has the first generation from early May through June, both generations in July, and the second from August to mid-September. Since the generations overlap, keep looking for every stage all season.[^uw-vegento-cpb][^a3422-2026]
+- UW–Madison's scouting calendar has the overwintered adults and their offspring from early May through June, both broods in July, and the first-generation adults and their offspring from August to mid-September. Since the generations overlap, keep looking for every stage all season.[^uw-vegento-cpb][^a3422-2026]
 
 ## Management
 

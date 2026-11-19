@@ -1,7 +1,7 @@
 ---
 id: colorado-potato-beetle
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 summary: Follows Colorado potato beetle adults, egg masses and larvae through the season from degree days, using curves fitted to a decade of scouting counts in Wisconsin potato fields.
 sources:
   - Bradford and Groves, unpublished analysis of Pest Pros' scouting counts, 2014–2025 (UW–Madison Vegetable Entomology)
@@ -25,8 +25,8 @@ Degree days are counted from January 1 by the single-sine method, base 52 °F wi
 
 - **Colonization:** overwintered adults begin to appear in fields at about 210 degree days.
 - **First eggs** at about 240, with egg masses most numerous around 580.
-- **Egg hatch** at about 375; larvae peak around 795.
-- **Adults** peak around 590 (the overwintered generation), fall to a low around 960, then peak again around 1,480 as the summer generation emerges. A partial third generation shows around 1,980 in some years.
+- **Egg hatch** at about 375; first-generation larvae peak around 795.
+- **Adults** peak around 590 (the overwintered adults), fall to a low around 960, then peak again around 1,480 as first-generation adults emerge. Some of them lay eggs before leaving for their winter sites, and a partial second generation shows around 1,980 in some years.
 - **Adults and larvae together** rise from about 220, peak around 810, dip slightly around 1,040 and peak again around 1,350. Between the peaks they stay near their highest, so risk stays high through midsummer.
 
 The timing is much the same from year to year, but the numbers vary: fits by year show some years' counts well below others' at the same degree days. The scouting data end at about 2,310 degree days; after that the counts stay where they were until fall freezes end the season.

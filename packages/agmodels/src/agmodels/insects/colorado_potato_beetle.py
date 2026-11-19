@@ -65,7 +65,7 @@ INSECT = Insect(
         Check(
             kind="published",
             against="The critical points of the scouting analysis behind the model (Bradford and Groves, unpublished)",
-            result="Every critical point of the four curves the model reads (first appearance, peaks and lows) falls within 10 degree days of the analysis's own: colonization at 210 and the second-generation adult peak at 1,480 against 1,477, for example. The curves are fitted to the same scouting data, so this shows the model carries the analysis over faithfully, not how well it predicts other years.",
+            result="Every critical point of the four curves the model reads (first appearance, peaks and lows) falls within 10 degree days of the analysis's own: colonization at 210 and the first-generation adult peak at 1,480 against 1,477, for example. The curves are fitted to the same scouting data, so this shows the model carries the analysis over faithfully, not how well it predicts other years.",
             report="docs/validation/models/colorado-potato-beetle.md#against-the-analysiss-own-critical-points",
         ),
         Check(

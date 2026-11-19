@@ -30,20 +30,20 @@ Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 | Curve | Point | Figure | Predictions |
 | --- | --- | --- | --- |
 | Adults | Colonization | 210 | 210 |
-| Adults | First-generation peak | 588 | 590 |
+| Adults | Overwintered adults' peak | 588 | 590 |
 | Adults | Minimum between generations | 957 | 960 |
-| Adults | Second-generation peak | 1,477 | 1,480 |
-| Adults | Partial third generation | 1,983 | 1,980 |
+| Adults | First-generation peak | 1,477 | 1,480 |
+| Adults | Partial second generation (the figure's "partial third") | 1,983 | 1,980 |
 | Larvae | Egg hatch (the low point before the rise) | 374 | 370 |
 | Larvae | Peak | 795 | 790 |
 | Adults and larvae | Colonization | 220 | 220 |
-| Adults and larvae | First-generation peak | 811 | 810 |
+| Adults and larvae | First peak | 811 | 810 |
 | Adults and larvae | Minimum | 1,038 | 1,040 |
-| Adults and larvae | Second-generation peak | 1,354 | 1,350 |
+| Adults and larvae | Second peak | 1,354 | 1,350 |
 | Egg masses | First eggs | 239 | 240 |
 | Egg masses | Peak | 565 (per plant) | 580 (per 10 plants) |
 
-The egg peak moved 15 degree days with the change of count basis, as a refit on a different scale can: log(10x + 1) isn't a fixed multiple of log(x + 1). The adults' curve also has an unlabelled low at 1,880 before the partial third generation.
+The egg peak moved 15 degree days with the change of count basis, as a refit on a different scale can: log(10x + 1) isn't a fixed multiple of log(x + 1). The adults' curve also has an unlabelled low at 1,880 before the partial second generation.
 
 ### Against the Crop Risk Tool on the same weather
 
@@ -53,9 +53,9 @@ The same test, on the tool's 2025 weather for Eau Claire, Wisconsin (`crt_daily_
 | --- | --- | --- | --- |
 | Colonization | May 12 | May 15 | 3 |
 | Egg hatch | May 30 | June 6 | 7 |
-| First-generation adult peak | June 17 | June 21 | 4 |
+| Overwintered adults' peak (the tool's "first-generation adult peak") | June 17 | June 21 | 4 |
 | Larval peak | June 24 | July 1 | 7 |
-| Second-generation adult peak | July 25 | August 3 | 9 |
+| First-generation adult peak (the tool's "second-generation") | July 25 | August 3 | 9 |
 
 The season's total from January 1 was 2,515 on 52/86 °F against the tool's 2,861 on 50/86 °F. The tool is the system this model replaces, a reference rather than the truth (D54); the differences are the base temperature the tool used.
 
@@ -72,7 +72,7 @@ Ben asked for the predicted values to be checked (2026-11-18). Done on `cpb_gam_
 
 - **In sample:** the curves are fitted to the data they describe, so these checks show the port, not the prediction. A test needs years or fields the fit didn't use (2026's scouting, or a fit leaving each year out).
 - **Years differ in size, not much in timing:** fits by year show the same shape each year, with the earliest years' counts (about 2014–2016) well below later years' at the same degree days. A typical count is a middle value across years, so in a given field and year the counts can run well above or below it; the risk levels, a share of the curve's peak, follow its timing, not a field's numbers.
-- **Long Very high spells:** adults and larvae stay near their peak from the first generation through the second (the low between them is 84 % of the peak), so at Eau Claire in 2025 the risk was Very high on 48 days, June 24 to August 10.
+- **Long Very high spells:** adults and larvae stay near their peak from the overwintered adults and first-generation larvae through the first-generation adults (the low between them is 84 % of the peak), so at Eau Claire in 2025 the risk was Very high on 48 days, June 24 to August 10.
 - **Typical counts** are geometric-type means and run below fields' average counts; the analysis's scatter shows the spread around them (log counts of 0 to 4 at the same degree days).
 - **Fitted on gridMET, run on AgWeather's archive:** the curves' degree days came from gridMET's daily temperatures, the model's from the archive, so a bias between the two moves every event. Not yet measured at the fields' cells; `docs/validation/weather/normals.md` (section 4) shows gridMET's summer maximum within about 1 °F of Wisconsin stations in 2014–2015 at Hancock, and the archive within about 1 °F after (both small against the curves' spread). gridMET's warm 2011–2013 (summer maxima 2–7 °F above stations) fall before the scouting data begin. A refit on the archive's weather is the option once its corrections are published.
 - **The fits are for the Central Sands' commercial potato fields** (Pest Pros' clients); other regions and crops (tomato, eggplant) take them on trust.
