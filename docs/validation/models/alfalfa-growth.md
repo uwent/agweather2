@@ -1,6 +1,6 @@
 # Alfalfa growth since cutting (`alfalfa-growth`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/alfalfa_growth.py`, run through `agmodels.crops`; its page: `alfalfa_growth.md` beside it. Ported in Phase 3 (PLAN.md, Phase 3 step 5) from the UW alfalfa tool (an R Shiny app; copy in `tmp/shiny/alfalfa-tool/`), which it replaces.
+Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/alfalfa_growth.py`, run through `agmodels.crops`; its page: `alfalfa_growth.md` beside it. Ported in Phase 3 (PLAN.md, Phase 3 step 5) from the UW alfalfa tool (an R Shiny app; copy in `tmp/R/alfalfa-tool/`), which it replaces.
 
 **In short:** growing degree days (single sine, 41/86 °F) from January 1 or the last cutting, with the tool's cutting window of 900–1100 GDD. The degree days are the tool's formula exactly. Neither the window nor the degree days has been compared with alfalfa growth or forage quality measured in Wisconsin fields.
 
@@ -8,7 +8,7 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 
 | Source | What it gives | What we took |
 | --- | --- | --- |
-| The UW alfalfa tool (`tmp/shiny/alfalfa-tool/app/global.R`) | GDD base 41 °F as `gdd_sine(41) − gdd_sine(86)` from the old AgWeather API's daily minimum and maximum; cut at 900–1100 GDD since January 1 or the last cutting; fall guidance (under 360 GDD, or enough to reach maturity again, before a killing freeze); cut scheduling on climate averages | The degree days and the cutting window |
+| The UW alfalfa tool (`tmp/R/alfalfa-tool/app/global.R`) | GDD base 41 °F as `gdd_sine(41) − gdd_sine(86)` from the old AgWeather API's daily minimum and maximum; cut at 900–1100 GDD since January 1 or the last cutting; fall guidance (under 360 GDD, or enough to reach maturity again, before a killing freeze); cut scheduling on climate averages | The degree days and the cutting window |
 | Newell, "Managing fall alfalfa cutting for persistence" (UW–Madison Extension), written with the tool | The 900–1100 window and the fall rule: a last cut should leave under 360 or over 900 GDD before the killing freeze (from Quebec work in base 5 °C) | The window; the fall rule waits (below) |
 | Iowa State University Extension, "Should I take a late fall alfalfa cutting?" | The 900 and 360 GDD fall rule | Cited for the fall rule |
 | UW–Madison Extension, "Timing of fall alfalfa harvest can impact long-term viability of the stand" | Fall cutting and stand persistence | Background |

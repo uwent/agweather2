@@ -2,7 +2,7 @@
 Crop Risk Tool's docs and VDIFN's seed texts, and copy their images. Pages that exist are left alone (rewrites
 happen in place in Phase 6); pass --force to rebuild them all. `--quiet` prints only warnings, failures and the summary.
 
-Sources: `tmp/shiny/crop-risk-tool/docs/` (Markdown: the text before "Model details" seeds the topic, the model
+Sources: `tmp/R/crop-risk-tool/docs/` (Markdown: the text before "Model details" seeds the topic, the model
 sections the model page, "References"/"More information" go to the topic) and VDIFN's `db/seeds.rb`, dumped to JSON
 by `scripts/dump_vdifn_seeds.rb` (HTML `info` seeds the topic, `severity_info` the model page).
 

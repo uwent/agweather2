@@ -1,6 +1,6 @@
 # Gray leaf spot (`gray-leaf-spot`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/gray_leaf_spot.py`, with its risk levels from `agmodels.probability`; gated by `corn-stages` (V10 to R3, D33); its page: `gray_leaf_spot.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/shiny/crop-risk-tool/src/models.R`, `predict_gls`, `build_gray_leaf_spot`) in Phase 3 (PLAN.md Phase 3 D step 2).
+Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/gray_leaf_spot.py`, with its risk levels from `agmodels.probability`; gated by `corn-stages` (V10 to R3, D33); its page: `gray_leaf_spot.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_gls`, `build_gray_leaf_spot`) in Phase 3 (PLAN.md Phase 3 D step 2).
 
 **In short:** the port reproduces the Crop Risk Tool exactly: given the tool's daily weather for 2025 at Eau Claire, the probability matches on all 365 days. The fit is credited to Damon Smith (UW–Madison) and Richard Webster (NDSU) with no published paper, so there is no source to check its numbers against. In a Wisconsin summer it barely moves: at Eau Claire it was High on every day of the 2025 season, between 99.0 and 99.9 %.
 
@@ -47,5 +47,5 @@ From the tool's fixture (computed for this report; no test holds it): over the s
 
 ```bash
 uv run pytest packages/agmodels/tests/test_field_crops.py packages/agmodels/tests/test_logistic_by_hand.py
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/shiny/crop-risk-tool, PLAN.md Phase 3 F)
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, PLAN.md Phase 3 F)
 ```

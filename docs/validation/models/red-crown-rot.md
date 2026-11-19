@@ -1,6 +1,6 @@
 # Red crown rot (`red-crown-rot`): validation
 
-Model version 0.2 (beta), written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/red_crown_rot.py`, anchored to R1 (beginning flowering) from `soybean-stages` or the grower's date (`biofix_stage`, D33); on the map computed on request from each cell's R1 (`modelgrid.ON_REQUEST`; PLAN.md Phase 5 step 2b); its page: `red_crown_rot.md` beside it (the tool's text, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/shiny/crop-risk-tool/src/models.R`, `predict_red_crown_rot`, `build_red_crown_rot`, "CPN CRT ver. 1.0, 2026-08-12") in Phase 3 (PLAN.md Phase 3 D step 2).
+Model version 0.2 (beta), written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/red_crown_rot.py`, anchored to R1 (beginning flowering) from `soybean-stages` or the grower's date (`biofix_stage`, D33); on the map computed on request from each cell's R1 (`modelgrid.ON_REQUEST`; PLAN.md Phase 5 step 2b); its page: `red_crown_rot.md` beside it (the tool's text, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_red_crown_rot`, `build_red_crown_rot`, "CPN CRT ver. 1.0, 2026-08-12") in Phase 3 (PLAN.md Phase 3 D step 2).
 
 **In short:** the port reproduces the Crop Risk Tool exactly: given the tool's daily weather for 2025 at Eau Claire and R1 on July 1, incidence, rain before R1 and mean temperature from R1 match on every day of the year. Where rain is missing v2 sums the known days and says how many are missing, where the tool filled them with the mean of the others (tested). The model comes from field surveys in northern Japan (Ochi et al. 2026) and hasn't been tested in the United States; its risk levels are provisional, and the lowest, Very low, can't be reached in any weather.
 
@@ -50,5 +50,5 @@ From the tool's fixture (computed for this report; no test holds it), with R1 on
 
 ```bash
 uv run pytest packages/agmodels/tests/test_field_crops.py
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/shiny/crop-risk-tool, PLAN.md Phase 3 F)
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, PLAN.md Phase 3 F)
 ```

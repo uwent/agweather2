@@ -252,7 +252,7 @@ Visited 2026-11-06 with a headless browser (Playwright), late-blight-db added th
 - Take: Save image for every map, with sites or counties as labels; the feed's sections by recency; Share as an explicit button showing the link; the detail dialog's plain label/value list. Its time-since-detection coloring is a model for any "how recent" layer (the last freeze, the last rain over an inch).
 - API: — (all browser-side); maps ✓.
 
-**[Crop Risk Tool](https://connect.doit.wisc.edu/cpn-risk-tool/)** (Shiny, `tmp/shiny/crop-risk-tool`): hourly weather anywhere, crop risk and insect models, several sites, no grids.
+**[Crop Risk Tool](https://connect.doit.wisc.edu/cpn-risk-tool/)** (Shiny, `tmp/R/crop-risk-tool`): hourly weather anywhere, crop risk and insect models, several sites, no grids.
 
 - Layout: sites and dates left, map center, results right. Adding a site by coordinates asks for a name in a dialog. Risk tab: model groups (Field crops, Vegetable, Cover, Tree, Insects), a model select with a paragraph on when the crop is susceptible, a warning box ("only valid between V10 and R3"), "All" or "Last 30 days", "Show additional variables", then one card per site with a sentence ("Tar spot for Nov 06, 2026: 66% (High risk)") over a risk-colored area chart with a Today line and the forecast shaded. Charts tab: Hourly, Daily, Moving averages, Growing degree days, All; variables as removable chips; metric and forecast switches; CSV.
 - Take: the per-site risk sentence and sparkline (the dashboard card), the susceptibility warning, the quick date ranges (Past week to Last season), the CSV upload and export of sites, "Everything up to date" status.

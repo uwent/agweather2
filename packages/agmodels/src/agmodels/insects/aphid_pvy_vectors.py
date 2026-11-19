@@ -1,7 +1,7 @@
 """Aphid vectors of potato virus Y: the risk of PVY spread by winged aphids, read off a curve fitted to Wisconsin's
 suction trap catches (Bradford and Groves, unpublished; D36's fitted stages).
 
-The fit (`tmp/R/pvy_model/pvy-model-v2.R`, refitted 2026-11-18 at Ben's request, replacing the 2019/2024 two-stage
+The fit (`tmp/R/pvy-model/pvy-model-v2.R`, refitted 2026-11-18 at Ben's request, replacing the 2019/2024 two-stage
 method): each trap-week's risk index is the sum over PVY vector species of log(1 + count) × asin(√efficiency), the
 species' transmission efficiency from the literature; a Tweedie GAM of that index on degree days 39.2/86 °F (single
 sine, from January 1) at the midpoint of each collection week, with each year's own curve, trap and trap-season

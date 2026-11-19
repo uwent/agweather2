@@ -1,6 +1,6 @@
 # Winter rye cover crop biomass (`rye-biomass`): validation
 
-Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/rye_biomass.py`; its page: `rye_biomass.md` beside it. Ported in Phase 3 (PLAN.md, Phase 3 step 6) from the Crop Risk Tool (`predict_rye_biomass`, `build_rye_biomass`; copy in `tmp/shiny/crop-risk-tool/`), which it replaces.
+Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/rye_biomass.py`; its page: `rye_biomass.md` beside it. Ported in Phase 3 (PLAN.md, Phase 3 step 6) from the Crop Risk Tool (`predict_rye_biomass`, `build_rye_biomass`; copy in `tmp/R/crop-risk-tool/`), which it replaces.
 
 **In short:** an unpublished logistic fit on Wisconsin data, reproduced exactly from the Crop Risk Tool on a sweep of its inputs and over a fall at Eau Claire. We don't have the fit's data, its error or the range of planting dates and rain it covers, and it hasn't been compared with measured biomass.
 
@@ -42,5 +42,5 @@ The season covers the fall only; spring, when the levels are read, is covered by
 
 ```bash
 uv run pytest packages/agmodels/tests/test_southern_and_cover.py packages/agmodels/tests/test_rye_biomass.py
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's outputs (needs its copy in tmp/shiny/crop-risk-tool)
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's outputs (needs its copy in tmp/R/crop-risk-tool)
 ```

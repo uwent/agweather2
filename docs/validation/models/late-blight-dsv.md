@@ -11,7 +11,7 @@ Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 | Wallin 1962 (American Potato Journal 39) | Disease severity values (0–4) from hours of RH ≥ 90 % and their mean temperature, three temperature bands | The table, as the Crop Risk Tool and the old API carry it (not checked against the paper this round) |
 | Krause, Massie and Hyre 1975 (BLITECAST, Plant Disease Reporter 59) | The computerized forecast built on Wallin's values, with spray recommendations from season and recent totals | The method's name and the season and recent totals |
 | UC IPM's potato late blight page | Wallin's table in °F and °C | The table the old API's code cites |
-| The Crop Risk Tool (`calc_late_blight_dsv`, `risk_for_late_blight`; `tmp/shiny/crop-risk-tool`) | The table in code, the 14-day and season totals, and five risk levels (18 season DSVs as the first-spray threshold) | The table, totals and risk levels; parity tests below |
+| The Crop Risk Tool (`calc_late_blight_dsv`, `risk_for_late_blight`; `tmp/R/crop-risk-tool`) | The table in code, the 14-day and season totals, and five risk levels (18 season DSVs as the first-spray threshold) | The table, totals and risk levels; parity tests below |
 | VDIFN (`../ag-vdifn/app/models/diseases/late_blight.rb`) | Its own risk levels (Medium from 3 DSVs in the selected window or 30 in the season; a freeze ends the season) | Compared only |
 | Old AgWeather API (`../ag-weather/app/models/pest_models.rb`) | The same table over the calendar day; 0 for a day without data | Compared on the same places (below) |
 
@@ -69,5 +69,5 @@ The old API is a reference, not the truth (D54): this explains the difference Ve
 ```bash
 uv run pytest packages/agmodels/tests/test_late_blight.py
 uv run python scripts/compare_vegpath.py --end 2026-09-30   # needs the archive in data/ and the old API (or tmp/v1-cache)
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures; needs tmp/shiny/crop-risk-tool
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures; needs tmp/R/crop-risk-tool
 ```

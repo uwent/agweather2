@@ -75,7 +75,7 @@ On a server, settings go in `infra/.env` (gitignored): `SECRET_KEY`, `DATABASE_U
 
 ## 5. Scratch and data
 
-- `tmp/` is gitignored scratch (downloads, one-off scripts). The Shiny apps used for model parity are in `tmp/shiny/`.
+- `tmp/` is gitignored scratch (downloads, one-off scripts). The Shiny apps used for model parity are in `tmp/R/`.
 - `data/` (gitignored, or `DATA_DIR`) holds the local Zarr archive and GRIB downloads, the write lock (`write.lock`, `write.waiting/`) and the data commands' run records and logs (`runs/`).
 
 ## 6. Managing data from the console

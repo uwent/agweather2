@@ -45,5 +45,5 @@ The tool is the model v2 replaces: this shows the port is faithful where intende
 
 ```bash
 uv run pytest packages/agmodels/tests/test_vegetable_diseases.py -k botcast
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures; needs tmp/shiny/crop-risk-tool
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures; needs tmp/R/crop-risk-tool
 ```

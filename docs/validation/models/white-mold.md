@@ -1,6 +1,6 @@
 # White mold (`white-mold`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/white_mold.py`, with its cold scaling and risk levels from `agmodels.probability`; gated by `soybean-stages` (R1 to R3, D33); its page: `white_mold.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/shiny/crop-risk-tool/src/models.R`, `predict_white_mold_dry`, `predict_white_mold_irrig`, `build_white_mold`) in Phase 3 (PLAN.md Phase 3 D step 2).
+Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/white_mold.py`, with its cold scaling and risk levels from `agmodels.probability`; gated by `soybean-stages` (R1 to R3, D33); its page: `white_mold.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_white_mold_dry`, `predict_white_mold_irrig`, `build_white_mold`) in Phase 3 (PLAN.md Phase 3 D step 2).
 
 **In short:** the port reproduces the Crop Risk Tool exactly in all three settings (non-irrigated, and irrigated in 30- and 15-inch rows): given the tool's daily weather for 2025 at Eau Claire, the probability matches on all 365 days. The equations are Willbur et al. 2018's, as the tool has them; this project hasn't checked the coefficients against the paper or compared the model with apothecia counts or white mold in fields.
 
@@ -60,5 +60,5 @@ From the tool's fixtures (computed for this report; no test holds it), over the 
 
 ```bash
 uv run pytest packages/agmodels/tests/test_field_crops.py packages/agmodels/tests/test_logistic_by_hand.py
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/shiny/crop-risk-tool, PLAN.md Phase 3 F)
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, PLAN.md Phase 3 F)
 ```

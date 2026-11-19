@@ -1,6 +1,6 @@
 # Tar spot (`tar-spot`): validation
 
-Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/tar_spot.py`, with its humid night hours from `agmodels.features` (`hours_rh_over_90_7pm_to_6am`) and its cold scaling and risk levels from `agmodels.probability`; gated by `corn-stages` (V10 to R3, D33); its page: `tar_spot.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/shiny/crop-risk-tool/src/models.R`, `predict_tarspot`, `build_tar_spot`) in Phase 3 (PLAN.md Phase 3 D step 2).
+Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/tar_spot.py`, with its humid night hours from `agmodels.features` (`hours_rh_over_90_7pm_to_6am`) and its cold scaling and risk levels from `agmodels.probability`; gated by `corn-stages` (V10 to R3, D33); its page: `tar_spot.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_tarspot`, `build_tar_spot`) in Phase 3 (PLAN.md Phase 3 D step 2).
 
 **In short:** the port reproduces the Crop Risk Tool exactly: given the tool's daily weather for 2025 at Eau Claire, the probability matches on all 365 days. That shows a faithful port, not a right model: the model hasn't been compared with tar spot observations. Read against the paper (2026-11-18), the two equations and their coefficients are its LR4 and LR6, and more humid weather lowering the probability is what the paper found; but the paper's response is an increase in tar spot severity between two ratings, not spore presence, so version 0.3 renamed the model and its output (below).
 
@@ -56,5 +56,5 @@ From the tool's fixture (computed for this report; no test holds it): over the s
 
 ```bash
 uv run pytest packages/agmodels/tests/test_field_crops.py packages/agmodels/tests/test_features.py packages/agmodels/tests/test_logistic_by_hand.py packages/agmodels/tests/test_crops.py
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/shiny/crop-risk-tool, PLAN.md Phase 3 F)
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, PLAN.md Phase 3 F)
 ```

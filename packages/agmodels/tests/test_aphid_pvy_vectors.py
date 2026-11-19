@@ -1,5 +1,5 @@
 """Aphid PVY vectors (0.2): the refitted suction trap curve read as a fitted stage (D36), against the fit's own
-critical points (`tmp/R/pvy_model/pvy_critical_points_v2.csv`) and VDIFN's window it replaces."""
+critical points (`tmp/R/pvy-model/pvy_critical_points_v2.csv`) and VDIFN's window it replaces."""
 
 import numpy as np
 import pytest

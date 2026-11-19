@@ -1,6 +1,6 @@
 # Cercospora leaf blight of soybean (`soybean-cercospora`): validation
 
-Model version 0.1 (beta), written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/soybean_cercospora.py`, with its humid hours from `agmodels.features` and its risk levels from `agmodels.probability`; gated by `soybean-stages` (R3 to R6, provisional, D33); its page: `soybean_cercospora.md` beside it (a one-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/shiny/crop-risk-tool/src/models.R`, `predict_soybean_cercospora`, `build_soybean_cercospora`) in Phase 3 (PLAN.md Phase 3 D step 2).
+Model version 0.1 (beta), written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/soybean_cercospora.py`, with its humid hours from `agmodels.features` and its risk levels from `agmodels.probability`; gated by `soybean-stages` (R3 to R6, provisional, D33); its page: `soybean_cercospora.md` beside it (a one-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_soybean_cercospora`, `build_soybean_cercospora`) in Phase 3 (PLAN.md Phase 3 D step 2).
 
 **In short:** the port reproduces the Crop Risk Tool exactly: given the tool's daily weather for 2025 at Eau Claire, each of the three species' probabilities matches on all 365 days. The fits are Richard Webster's (NDSU), unpublished; their weather, the unit of wind in one of them and the crop stages they apply to are open questions for him. Nothing beyond the port has been checked.
 
@@ -45,5 +45,5 @@ From the tool's fixture (computed for this report; no test holds it), the year's
 
 ```bash
 uv run pytest packages/agmodels/tests/test_field_crops.py
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/shiny/crop-risk-tool, PLAN.md Phase 3 F)
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, PLAN.md Phase 3 F)
 ```

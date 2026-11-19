@@ -9,7 +9,7 @@ Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 <!-- prettier-ignore -->
 | Source | What it gives | What we took |
 | --- | --- | --- |
-| Bradford and Groves, unpublished analysis (Vegetable Entomology Lab, UW–Madison), refitted 2026-11-18: `tmp/R/pvy_model/pvy-model-v2.R`, figure `pvy-model-v2.png`, predictions `pvy_predictions_v2.csv` | Each trap-week's risk index, the sum over PVY vector species of log(1 + count) × asin(√efficiency) (transmission efficiencies from the literature, `data/pvy-vectors.csv`); a Tweedie GAM (log link, REML) on degree days 39.2/86 °F at the midpoint of each collection week, with each year's own curve, trap and trap-season effects; 955 trap-dates at 8 Wisconsin traps, 2016–2023, on AgWeather v2's weather. Deviance explained 47 % | The typical year's curve (random effects at zero), every 10 degree days from 290 to 5,490 |
+| Bradford and Groves, unpublished analysis (Vegetable Entomology Lab, UW–Madison), refitted 2026-11-18: `tmp/R/pvy-model/pvy-model-v2.R`, figure `pvy-model-v2.png`, predictions `pvy_predictions_v2.csv` | Each trap-week's risk index, the sum over PVY vector species of log(1 + count) × asin(√efficiency) (transmission efficiencies from the literature, `data/pvy-vectors.csv`); a Tweedie GAM (log link, REML) on degree days 39.2/86 °F at the midpoint of each collection week, with each year's own curve, trap and trap-season effects; 955 trap-dates at 8 Wisconsin traps, 2016–2023, on AgWeather v2's weather. Deviance explained 47 % | The typical year's curve (random effects at zero), every 10 degree days from 290 to 5,490 |
 | Suction trap records, 2016–2023 (EDDMapS, submitted by Doris Lagos-Kutz, University of Illinois Urbana-Champaign) | Weekly catches by species at Wisconsin's traps | Through the fit |
 | VDIFN's `pvy-vectors` (`../ag-vdifn/db/seeds.rb`) and UW Vegetable Entomology's Potato Virus Y Management page | A window from 1,838 to 3,228 peaking at 2,515 (base 39.2 °F); the page's figure, from the 2024 fit, labels 1,452, 1,838, 2,515 (its zero line) and 3,266 | Compared only (below) |
 
@@ -34,7 +34,7 @@ Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 | 90 % of peak, falling | 3,994 | 3,993 |
 | 50 % of peak, falling | 4,985 | 4,984 |
 
-The fit's own checks (`tmp/R/pvy_model/out/v2/`): converged (gradient 1e-4, Hessian positive definite); the degree-day smooth uses 6.5 of 19 degrees of freedom (k-index 0.95, p = 0.48); observed over fitted 0.92–1.19 in 500-degree-day bins. Refitting with each year left out moved the peak between 3,370 and 3,788, 50 % rising between 1,887 and 2,385, and 90 % rising between 2,870 and 3,241. The years differ a great deal: each year's own curve peaks anywhere from 1,720 (2023) to 4,757 degree days (2021).
+The fit's own checks (`tmp/R/pvy-model/out/v2/`): converged (gradient 1e-4, Hessian positive definite); the degree-day smooth uses 6.5 of 19 degrees of freedom (k-index 0.95, p = 0.48); observed over fitted 0.92–1.19 in 500-degree-day bins. Refitting with each year left out moved the peak between 3,370 and 3,788, 50 % rising between 1,887 and 2,385, and 90 % rising between 2,870 and 3,241. The years differ a great deal: each year's own curve peaks anywhere from 1,720 (2023) to 4,757 degree days (2021).
 
 Sensitivity of the peak to the analysis's choices: the catch at its collection date's total rather than the week's midpoint, 3,711; gap weeks as zero, 3,612; efficiency itself as the weight rather than asin(√efficiency), 3,488; year intercepts only rather than each year's curve, 3,177.
 
@@ -55,5 +55,5 @@ VDIFN, the system this model replaces (a reference, not the truth, D54), rated r
 
 ```bash
 uv run pytest packages/agmodels/tests/test_aphid_pvy_vectors.py
-cd tmp/R/pvy_model && Rscript pvy-model-v2.R   # the fit (about 2.5 minutes); needs data/weather-v2.csv
+cd tmp/R/pvy-model && Rscript pvy-model-v2.R   # the fit (about 2.5 minutes); needs data/weather-v2.csv
 ```

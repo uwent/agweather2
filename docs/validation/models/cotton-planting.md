@@ -1,6 +1,6 @@
 # Cotton planting stand risk (`cotton-planting`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/cotton_planting.py`; its page: `cotton_planting.md` beside it. Ported in Phase 3 (PLAN.md, Phase 3 step 6) from the Crop Risk Tool (`cotton_planting_model`, `build_cotton_planting`; copy in `tmp/shiny/crop-risk-tool/`), which it replaces. A southern model: it runs at points through Open-Meteo until the archive's box reaches the cotton states.
+Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/cotton_planting.py`; its page: `cotton_planting.md` beside it. Ported in Phase 3 (PLAN.md, Phase 3 step 6) from the Crop Risk Tool (`cotton_planting_model`, `build_cotton_planting`; copy in `tmp/R/crop-risk-tool/`), which it replaces. A southern model: it runs at points through Open-Meteo until the archive's box reaches the cotton states.
 
 **In short:** Zachary Noel's (Auburn University) emergence model and its standard error, reproduced from the Crop Risk Tool to within a relative 1e-9 on a sweep of 2,704 input combinations and over a year of daily weather. We don't have the fit's data or the years it covers, and it hasn't been compared with stands counted in the field.
 
@@ -40,5 +40,5 @@ The tool is what this model replaces: a reference, not the truth (D54). Its outp
 
 ```bash
 uv run pytest packages/agmodels/tests/test_southern_and_cover.py
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's outputs (needs its copy in tmp/shiny/crop-risk-tool)
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's outputs (needs its copy in tmp/R/crop-risk-tool)
 ```

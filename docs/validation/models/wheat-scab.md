@@ -1,6 +1,6 @@
 # Wheat scab (`wheat-scab`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/wheat_scab.py`, with its risk levels from `agmodels.probability`; not gated by crop stage yet (wheat's stages wait for papers, PLAN.md Phase 3 D step 7); its page: `wheat_scab.md` beside it (a stub, "To write", rewritten in part I2). Ported from the Crop Risk Tool (`tmp/shiny/crop-risk-tool/src/models.R`, `predict_wheat_scab`, `build_wheat_scab`) in Phase 3 (PLAN.md Phase 3 D step 2).
+Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/wheat_scab.py`, with its risk levels from `agmodels.probability`; not gated by crop stage yet (wheat's stages wait for papers, PLAN.md Phase 3 D step 7); its page: `wheat_scab.md` beside it (a stub, "To write", rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_wheat_scab`, `build_wheat_scab`) in Phase 3 (PLAN.md Phase 3 D step 2).
 
 **In short:** the port reproduces the Crop Risk Tool exactly: given the tool's daily weather for 2025 at Eau Claire, the probability of a Fusarium head blight epidemic matches on all 365 days for each of the four resistance classes. The model is meant to be read at flowering, but neither the tool nor v2 knows when wheat flowers, so it shows a value every day of the year, High on many winter days for susceptible cultivars. Its source paper isn't cited (the tool's page names Shah, Paul, De Wolf and Madden), and it hasn't been compared with scab in fields.
 
@@ -44,5 +44,5 @@ From the tool's fixture (computed for this report; no test holds it), for the de
 
 ```bash
 uv run pytest packages/agmodels/tests/test_field_crops.py
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/shiny/crop-risk-tool, PLAN.md Phase 3 F)
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, PLAN.md Phase 3 F)
 ```
