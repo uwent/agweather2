@@ -2,7 +2,7 @@
 
 from agmodels.insects import CRT
 from agmodels.phenology import Insect, Stage
-from agmodels.spec import Citation
+from agmodels.spec import Check, Citation
 
 INSECT = Insect(
     id="colorado-potato-beetle",
@@ -24,6 +24,14 @@ INSECT = Insect(
         Stage(start=2265, severity=1, label="2nd gen adults mostly dispersed"),
     ),
     source=CRT,
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which this model replaces, on the weather of Eau Claire, Wisconsin, 2025",
+            result="The risk level matched the Crop Risk Tool's on 363 of 365 days; on the other 2, a stage began one day later than in the tool, which skips the upper temperature limit on some hot days. The tool's thresholds come from an unpublished analysis of scouting data that we haven't been able to check.",
+            report="docs/validation/models/colorado-potato-beetle.md#against-the-crop-risk-tool-on-the-same-weather",
+        ),
+    ),
     citations=(
         Citation(text="The Crop Risk Tool (UW–Madison Vegetable Entomology)."),
         Citation(text="Bradford, B. Z. and Groves, R. L. Vegetable Entomology Lab, UW–Madison, unpublished analysis."),

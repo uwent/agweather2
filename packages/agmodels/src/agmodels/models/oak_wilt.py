@@ -12,7 +12,18 @@ import numpy as np
 
 from agmodels.degree_days import degree_days_sine
 from agmodels.ingredients import Accumulation, DegreeDays, Ingredient, finished
-from agmodels.spec import SEVERITY_LEVELS, Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk
+from agmodels.spec import (
+    SEVERITY_LEVELS,
+    Biofix,
+    Change,
+    Check,
+    Citation,
+    ExplorerInput,
+    Input,
+    ModelSpec,
+    Quantity,
+    Risk,
+)
 
 # Degree-day bounds of each flight level (C. truncatus, C. sayi)
 FLIGHT = ((180, 0), (231, 1), (283, 2), (388, 3), (913, 4), (1792, 3), (2172, 2), (np.inf, 1))
@@ -81,6 +92,14 @@ SPEC = ModelSpec(
             version="0.2",
             date="2026-11-01",
             note="The July 15 and July 22 reductions apply to runs, not only the explorer (the spec didn't ask the runner for the day of the year), and fall on those dates in leap years too.",
+        ),
+    ),
+    checks=(
+        Check(
+            kind="system",
+            against="VDIFN's oak wilt model, which this model replaces",
+            result="Given the same degree days and date, our risk level matches VDIFN's exactly in all 1,757 cases tested in a common year. In leap years our July 15 and July 22 reductions fall on those dates, where VDIFN's came a day early. The flight timing hasn't yet been checked against its source's trap data.",
+            report="docs/validation/models/oak-wilt-vectors.md#against-vdifn",
         ),
     ),
 )

@@ -39,7 +39,7 @@ The model counts degree days from January 1 by the method its sources use: the d
 
 ## Validation and caveats
 
-- Draft (model version 2.0, beta). The degree-day numbers come from laboratory development times and field flight peaks in Wisconsin, Iowa and New York, not from a fit to Wisconsin trap data. Wisconsin DATCP trap captures could check it (PLAN.md, model review).
+- Draft (model version 0.2, beta). The degree-day numbers come from laboratory development times and field flight peaks in Wisconsin, Iowa and New York, not from a fit to Wisconsin trap data. Wisconsin DATCP trap captures could check it (PLAN.md, model review).
 - Air temperature runs ahead of the soil where the insects develop: Iowa's field generations took about 490 °C·d against the lab's 392 (Funderburk et al. 1984). Later generations may come later than shown.
 - Later generations are often smaller than the first, and some flies enter a summer or winter dormancy instead of emerging; the model doesn't predict population size.
 - Flies emerge from over-wintered pupae over a long period (Throne and Eckenrode 1985), so a few can be active outside the windows.

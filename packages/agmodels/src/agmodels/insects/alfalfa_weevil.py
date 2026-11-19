@@ -2,6 +2,7 @@
 
 from agmodels.insects import CRT
 from agmodels.phenology import Insect, Stage
+from agmodels.spec import Check
 
 INSECT = Insect(
     id="alfalfa-weevil",
@@ -20,4 +21,18 @@ INSECT = Insect(
         Stage(start=1000, severity=0, label="Adult diapause"),
     ),
     source=CRT,
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which this model replaces, on the weather of Eau Claire, Wisconsin, 2025",
+            result="The risk level matched the Crop Risk Tool's on all 365 days. The tool's degree days ran up to 7.7 higher by late summer, because it skips the upper temperature limit on some hot days, but no stage began on a different day.",
+            report="docs/validation/models/alfalfa-weevil.md#against-the-crop-risk-tool-on-the-same-weather",
+        ),
+        Check(
+            kind="published",
+            against="Development times of alfalfa weevil larvae in Wisconsin (Litsinger and Apple 1973) and a degree-day model from southern Ontario (Harcourt 1981)",
+            result="After egg hatch, each larval stage begins within 3 degree days of the Wisconsin study's development times, and adult emergence at 815 degree days is within 2 of Ontario's 817. We found no published source for egg hatch at 300 degree days from January 1.",
+            report="docs/validation/models/alfalfa-weevil.md#against-its-sources-numbers",
+        ),
+    ),
 )

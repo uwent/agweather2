@@ -2,7 +2,7 @@
 
 from agmodels.insects import CRT
 from agmodels.phenology import ActionWindow, DerivedStage, Insect, LifeStage
-from agmodels.spec import Change, Citation
+from agmodels.spec import Change, Check, Citation
 
 INSECT = Insect(
     id="seedcorn-maggot",
@@ -38,6 +38,26 @@ INSECT = Insect(
         ),
     ),
     source=CRT,
+    checks=(
+        Check(
+            kind="published",
+            against="Seedcorn maggot flights in Wisconsin fields (Sanborn 1981, as reported by Funderburk et al. 1984)",
+            result="Half of each flight has emerged at 345, 1,065 and 1,785 degree days, against 347, 1,051 and 1,912 in Wisconsin fields. The first flight was set from these field data; the later two follow from laboratory development times and were not fitted to them.",
+            report="docs/validation/models/seedcorn-maggot.md#against-its-sources-numbers",
+        ),
+        Check(
+            kind="published",
+            against="Seedcorn maggot trap catches near Ames, Iowa, 1980 and 1981 (Funderburk et al. 1984)",
+            result="Half of the over-wintered flight had emerged at 342 degree days, against our 345. The next flight's midpoint came at 1,228, 163 degree days after ours: the authors found the insects developed more slowly in the field than air temperatures predict.",
+            report="docs/validation/models/seedcorn-maggot.md#against-its-sources-numbers",
+        ),
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which this model replaces, on the weather of Eau Claire, Wisconsin, 2025",
+            result="Our flight peaks came 6 days after the tool's in spring and 3 days after in summer, mostly because we count degree days by the method our sources used.",
+            report="docs/validation/models/seedcorn-maggot.md#against-the-crop-risk-tool-on-the-same-weather",
+        ),
+    ),
     citations=(
         Citation(text="The Crop Risk Tool (UW–Madison Vegetable Entomology)."),
         Citation(

@@ -61,7 +61,7 @@ def test_oak_wilt_matches_vdifn():
 
 
 @pytest.mark.parametrize(
-    # Seedcorn maggot left the tool's step table in 2.0 (D36, D37), so only these two still match it
+    # Seedcorn maggot left the tool's step table in 0.2 (D36, D37), so only these two still match it
     ("crt_id", "model_id"),
     [("afw", "alfalfa-weevil"), ("cpb", "colorado-potato-beetle")],
 )
