@@ -9,7 +9,7 @@ summary: The caterpillar of the cabbage white butterfly, the most important cate
 image: images/imported-cabbageworm.jpg
 image_credit: 'Imported cabbageworm caterpillar on a leaf. Photo by James K. Lindsey, via Wikimedia Commons (File:Pieris.rapae.caterpillar.jpg), CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Imported Cabbageworm. Updated 2026.'
@@ -32,6 +32,9 @@ sources:
   - key: agweather-imported-cabbageworm
     text: 'AgWeather. Imported cabbageworm model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/imported-cabbageworm.md
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The imported cabbageworm (_Pieris rapae_) is the caterpillar of the cabbage white butterfly, and the most important insect pest of cole crops in Wisconsin. It feeds on cabbage, broccoli, Brussels sprouts, cauliflower, rutabaga and the other cole crops.[^uw-hort] With the [cabbage looper](/topics/cabbage-looper) and the diamondback moth, it makes up the caterpillar complex that growers scout for together.[^uw-vegento][^a3422-2026] It came to North America from Europe in the mid-1800s and has spread across the continent.[^umn-vegedge]
@@ -69,7 +72,7 @@ Caterpillars chew large, irregular holes between the large veins, and older larv
 - **Natural enemies:** predators such as paper wasps and parasitic wasps and flies often keep numbers down. The parasitic wasp _Cotesia glomerata_ typically parasitizes 20 to 30 % of caterpillars in south-central Minnesota. Broad-spectrum insecticides kill these allies.[^umn-caterpillars][^umn-vegedge][^uw-hort]
 - **Row covers or netting** keep butterflies from laying eggs and suit small plantings; in gardens, caterpillars can also be picked off by hand.[^uw-hort][^umn-caterpillars]
 
-**Insecticides** work best on small caterpillars, with good coverage of the leaves.[^uw-hort] Selective products spare natural enemies: _Bacillus thuringiensis_ (Bt; IRAC group 11) subspecies _kurstaki_ or _aizawai_, which caterpillars must eat, spinosyns (group 5; spinosad, which is listed for organic production, and spinetoram) and insect growth regulators (group 18; methoxyfenozide, tebufenozide).[^a3422-2026][^mwvg-2026][^uw-vegento] Other classes listed for the caterpillar complex include diamides (group 28; chlorantraniliprole, cyantraniliprole), avermectins (group 6; emamectin benzoate), indoxacarb (group 22) and pyrethroids (group 3), which also kill natural enemies.[^a3422-2026][^umn-caterpillars] Resistance is a concern with all caterpillars on cole crops, most of all the diamondback moth, so rotate classes.[^uw-hort][^uw-vegento]
+**Insecticides** work best on small caterpillars, with good coverage of the leaves.[^uw-hort] Selective products spare natural enemies: _Bacillus thuringiensis_ (Bt; IRAC group 11A) subspecies _kurstaki_ or _aizawai_, which caterpillars must eat, spinosyns (group 5; spinosad, which is listed for organic production, and spinetoram) and insect growth regulators (group 18; methoxyfenozide, tebufenozide).[^a3422-2026][^mwvg-2026][^uw-vegento] Other classes listed for the caterpillar complex include diamides (group 28; chlorantraniliprole, cyantraniliprole), avermectins (group 6; emamectin benzoate), indoxacarb (group 22A) and pyrethroids (group 3A), which also kill natural enemies.[^a3422-2026][^umn-caterpillars][^irac-moa] Resistance is a concern with all caterpillars on cole crops, most of all the diamondback moth, so rotate classes.[^uw-hort][^uw-vegento]
 
 For products, rates and current registrations, see UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/), or in neighboring states the [Midwest Vegetable Production Guide](https://mwveguide.org/guide). UW Vegetable Entomology's [imported cabbageworm page](https://vegento.russell.wisc.edu/pests/imported-cabbageworm/) and the University of Minnesota's [VegEdge imported cabbageworm page](https://vegedge.umn.edu/node/16) explain the choices in more detail; for home gardens, see UW–Madison's [imported cabbageworm fact sheet](https://hort.extension.wisc.edu/articles/imported-cabbageworm).
 

@@ -29,6 +29,9 @@ sources:
   - key: agweather-common-asparagus-beetle
     text: 'AgWeather. Common asparagus beetle model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/common-asparagus-beetle.md
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The common asparagus beetle (_Crioceris asparagi_) is a leaf beetle that feeds on asparagus. It and the spotted asparagus beetle (_Crioceris duodecimpunctata_) are pests of asparagus every year in Wisconsin, but the common asparagus beetle is found more often and is the only one of the two that consistently causes economic damage.[^uw-hort][^umn] Adults scar the spears during harvest, and adults and larvae strip the ferns in summer, which weakens the planting for the following year.[^uw-hort]
@@ -67,7 +70,7 @@ Like other insects, asparagus beetles develop faster in warm weather, so their s
 - **Row covers** keep beetles off spears in early spring; take them off when harvest is over.[^uw-hort][^uw-vegento]
 - **In home gardens,** hand-pick adults or knock them into soapy water, and crush the eggs.[^uw-hort][^umn]
 
-**Insecticides:** you don't need to treat a whole planting; spot-treat the areas over threshold.[^uw-hort] During harvest, choose a product with a short preharvest interval, and spray when beetles are active on sunny afternoons. Spears that come up after a spray aren't protected, so keep scouting.[^umn] Commercial Vegetable Production in Wisconsin lists carbamates (IRAC group 1A; carbaryl, methomyl), organophosphates (group 1B; malathion, and dimethoate after the last harvest) and a pyrethroid (group 3; permethrin). Spinosyns (group 5; spinetoram, and spinosad on ferns only) have preharvest intervals of 60 days, so they suit the ferns rather than the spears.[^a3422-2026] In home gardens, neem, insecticidal soap, pyrethrins and spinosad are organic options.[^uw-hort] Rotate classes, and protect bees: asparagus ferns in flower attract them.[^umn]
+**Insecticides:** you don't need to treat a whole planting; spot-treat the areas over threshold.[^uw-hort] During harvest, choose a product with a short preharvest interval, and spray when beetles are active on sunny afternoons. Spears that come up after a spray aren't protected, so keep scouting.[^umn] Commercial Vegetable Production in Wisconsin lists carbamates (IRAC group 1A; carbaryl, methomyl), organophosphates (group 1B; malathion, and dimethoate after the last harvest) and a pyrethroid (group 3A; permethrin). Spinosyns (group 5; spinetoram, and spinosad on ferns only) have preharvest intervals of 60 days, so they suit the ferns rather than the spears.[^a3422-2026] In home gardens, neem (azadirachtin, group UN, mode of action uncertain), insecticidal soap, pyrethrins (group 3A) and spinosad (group 5) are organic options.[^uw-hort][^irac-moa] Rotate classes, and protect bees: asparagus ferns in flower attract them.[^umn]
 
 For products, rates and current registrations, see UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/), or in neighboring states the [Midwest Vegetable Production Guide](https://mwveguide.org/guide). UW Vegetable Entomology's [asparagus beetle page](https://vegento.russell.wisc.edu/pests/asparagus-beetle/) and the University of Minnesota's [asparagus beetle page](https://extension.umn.edu/yard-and-garden-insects/asparagus-beetles) explain the choices in more detail; for home gardens, see UW–Madison's [asparagus beetle fact sheet](https://hort.extension.wisc.edu/articles/asparagus-beetle/).
 

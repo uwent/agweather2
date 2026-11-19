@@ -22,7 +22,7 @@ summary: A climbing cutworm that eats the leaves, buds and fruit of many vegetab
 image: images/variegated-cutworm.jpg
 image_credit: 'A variegated cutworm caterpillar, with the pale spots down its back. Photo by Ryan Hodnett, via Wikimedia Commons (File:Variegated Cutworm Moth (Peridroma saucia) - Thunder Bay, Ontario 2012-06-29.jpg), CC BY-SA 4.0.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cutworms. University of Wisconsin–Madison, updated 2026.'
@@ -66,6 +66,9 @@ sources:
   - key: agweather-vcw
     text: 'AgWeather. Variegated cutworm model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/variegated-cutworm.md
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The variegated cutworm (_Peridroma saucia_) is the caterpillar of the pearly underwing moth.[^baker-2019] It feeds on a wide range of vegetables, including asparagus, beans, carrots, celery, corn, cucumbers, lettuce, peas, peppers, potatoes, radishes and tomatoes, as well as fruit trees and ornamentals.[^umn-vcw] Like other cutworms it can cut seedlings at the soil line, but it also climbs plants to eat leaves, buds and fruit.[^umn-vcw][^umn-garden] It is also a pest of peppermint in the Pacific Northwest.[^pnw-mint] Outbreaks are sporadic and hard to predict from one year to the next.[^simonet-1981] UW Vegetable Entomology has no page of its own for it yet; its [cutworms page](https://vegento.russell.wisc.edu/pests/cutworms/) shows it among the common cutworms.[^uw-vegento]
@@ -104,7 +107,7 @@ In 15 years of black light trap catches at Wooster, Ohio, moth flights peaked at
 - **Natural enemies:** ground beetles, parasitic flies and wasps and other predators help keep numbers down.[^umass-vcw]
 - **Home gardens:** remove debris, which exposes caterpillars to predators; collars around transplants and hand-picking also help.[^baker-2019][^umn-garden]
 
-**Insecticides:** a rescue treatment when scouting finds caterpillars works better than a preventive soil insecticide. Because the caterpillars feed above ground at night, sprays work best applied then.[^umass-vcw] Caterpillars are easiest to kill in their second to fourth instars. The Pacific Northwest guide for mint lists chlorantraniliprole, indoxacarb, methoxyfenozide, tebufenozide, spinosad, spinetoram, acephate and methomyl, among others; _Bacillus thuringiensis_ (Bt) products haven't worked against these cutworms in peppermint. Don't spray while bees are working blooming mint.[^pnw-mint]
+**Insecticides:** a rescue treatment when scouting finds caterpillars works better than a preventive soil insecticide. Because the caterpillars feed above ground at night, sprays work best applied then.[^umass-vcw] Caterpillars are easiest to kill in their second to fourth instars. The Pacific Northwest guide for mint lists chlorantraniliprole (IRAC group 28), indoxacarb (group 22A), methoxyfenozide and tebufenozide (group 18), spinosad and spinetoram (group 5), acephate (group 1B) and methomyl (group 1A), among others; _Bacillus thuringiensis_ (Bt, group 11A) products haven't worked against these cutworms in peppermint. Don't spray while bees are working blooming mint.[^pnw-mint][^irac-moa]
 
 For products, rates and current registrations, see UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/), or in neighboring states the [Midwest Vegetable Production Guide](https://mwveguide.org/guide). The [Pacific Northwest guide's mint page](https://pnwhandbooks.org/insect/agronomic/mint/mint-armyworm-cutworm) and NC State's [variegated cutworm page](https://content.ces.ncsu.edu/variegated-cutworm-on-ornamentals) explain the choices in more detail; for home gardens, see the University of Minnesota's [cutworms page](https://extension.umn.edu/yard-and-garden-insects/cutworms).
 

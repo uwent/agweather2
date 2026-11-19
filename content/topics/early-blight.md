@@ -9,7 +9,7 @@ summary: A fungal leaf spot of potato and tomato that builds through midsummer o
 image: images/early-blight.jpg
 image_credit: 'Early blight spots with target-like rings on potato leaves, Rupert, Idaho. Photo by Gerald Holmes, Strawberry Center, Cal Poly San Luis Obispo, Bugwood.org (image 5606706), CC BY-NC 3.0 US (https://creativecommons.org/licenses/by-nc/3.0/us/).'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: uw-potato-eb
     text: 'Gevens, A., A. Abbrescia, R. Groves and B. Bradford. Potato Early Blight. UW–Madison Vegetable Pathology, updated 2026.'
@@ -50,6 +50,9 @@ sources:
   - key: uw-vegpath-brown-spot
     text: 'Gevens, A., A. Abbrescia, R. Groves and B. Bradford. Potato Brown Spot and Black Pit. UW–Madison Vegetable Pathology, updated 2026.'
     url: https://vegpath.plantpath.wisc.edu/diseases/potato-brown-spot-and-black-pit/
+  - key: frac-2026
+    text: 'Fungicide Resistance Action Committee. FRAC Code List 2026: Fungal Control Agents Sorted by Cross-Resistance Pattern and Mode of Action. CropLife International, 2026.'
+    url: https://www.frac.info/media/s1zfrjqa/frac-code-list-2026.pdf
 ---
 
 Early blight is a fungal disease of potato and tomato that also affects pepper, eggplant and nightshade weeds. On potato it is caused by _Alternaria solani_; on tomato, mainly by _Alternaria linariae_ (also called _A. tomatophila_), formerly classed as _A. solani_. It is a key potato disease in Wisconsin: the state's summer weather favors it, and all potato varieties are susceptible.[^hudelson-2026][^schuh-2024][^meadows-2025][^colquhoun-2026]
@@ -92,10 +95,10 @@ Early blight cuts the leaf area that feeds the tubers, reducing yield and tuber 
 
 **Fungicides** work best applied early, and several applications are usually needed through the season.[^uw-potato-eb]
 
-- **Protectants** that act at many sites (FRAC group M), such as chlorothalonil, mancozeb and metiram, are the base of most programs and also protect against late blight. Under heavy disease pressure, they may not be enough alone.[^a3422-2026][^shrestha-2025]
+- **Protectants** that act at many sites (FRAC's M groups), such as chlorothalonil (group M05) and mancozeb and metiram (group M03), are the base of most programs and also protect against late blight. Under heavy disease pressure, they may not be enough alone.[^a3422-2026][^shrestha-2025][^frac-2026]
 - **Single-site fungicides** are rotated or tank-mixed with protectants: succinate dehydrogenase inhibitors (SDHIs, group 7; fluopyram, pydiflumetofen), anilinopyrimidines (group 9; pyrimethanil) and demethylation inhibitors (DMIs, group 3; difenoconazole, mefentrifluconazole).[^a3422-2026][^shrestha-2025]
 - **Resistance** is widespread. Most _A. solani_ in Wisconsin potato fields carry a mutation that makes quinone outside inhibitors (QoIs, group 11; azoxystrobin, pyraclostrobin) less effective, the brown spot fungus is resistant to them too, and North Dakota State no longer recommends the SDHI boscalid because of resistance.[^ding-2019][^uw-vegpath-brown-spot][^shrestha-2025] Wisconsin's guide advises no more than one group 11 application, or two of group 7 or 9, in a row before switching groups.[^a3422-2026]
-- **In gardens**, copper or chlorothalonil can help if started early and reapplied on a schedule, but most gardeners don't need them: early blight seldom cuts a tomato plant's harvest much.[^hudelson-2026][^schuh-2024]
+- **In gardens**, copper (group M01) or chlorothalonil (group M05) can help if started early and reapplied on a schedule, but most gardeners don't need them: early blight seldom cuts a tomato plant's harvest much.[^hudelson-2026][^schuh-2024]
 
 For products and current registrations, see the [Midwest Vegetable Production Guide](https://mwveguide.org/) and UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/). UW–Madison's [potato](https://vegpath.plantpath.wisc.edu/diseases/potato-early-blight/) and [tomato](https://vegpath.plantpath.wisc.edu/diseases/tomato-early-blight/) early blight pages and North Dakota State's [Early Blight of Potato](https://www.ndsu.edu/agriculture/ag-hub/publications/early-blight-potato) explain the choices in more detail; for gardens, see UW–Madison's [early blight fact sheet](https://pddc.wisc.edu/2015/07/23/early-blight/).
 

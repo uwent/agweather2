@@ -10,7 +10,7 @@ summary: A fast-moving disease of potato and tomato that kills leaves, stems, fr
 image: images/late-blight.jpg
 image_credit: 'Late blight spots on potato leaves. Photo by Mary Ann Hansen, Virginia Polytechnic Institute and State University, Bugwood.org (image 5333045), CC BY 3.0 US.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: vegpath-potato
     text: 'Potato Late Blight. UW Vegetable Pathology (Gevens lab), UW–Madison, updated 2026.'
@@ -45,6 +45,9 @@ sources:
   - key: atcp-21-15
     text: 'Wisconsin Administrative Code ATCP 21.15, Potato late blight. Wisconsin Department of Agriculture, Trade and Consumer Protection.'
     url: https://docs.legis.wisconsin.gov/code/admin_code/atcp/020/21/15
+  - key: frac-2026
+    text: 'Fungicide Resistance Action Committee. FRAC Code List 2026: Fungal Control Agents Sorted by Cross-Resistance Pattern and Mode of Action. CropLife International, 2026.'
+    url: https://www.frac.info/media/s1zfrjqa/frac-code-list-2026.pdf
 ---
 
 Late blight is a disease of potato and tomato caused by _Phytophthora infestans_, a water mold rather than a true fungus. It also infects other plants in the nightshade family, such as pepper, petunia and nightshade weeds.[^vegpath-potato][^gevens-2024] It appears in Wisconsin in some years and not others, when cool, wet weather and a source of spores come together, and in those years it can destroy a planting within days.[^a3422-2026][^umass-2017] It is a regulated disease in Wisconsin: the state's rules require potato cull piles to be disposed of by May 20 each year and volunteer potatoes to be killed as soon as they appear.[^a3422-2026][^atcp-21-15][^gevens-2025]
@@ -87,7 +90,7 @@ In cool, wet weather, whole plants can collapse and die within 7 to 10 days.[^ge
 
 **Fungicides** work only if they are on the plant before infection, and they won't control late blight once it is widespread in a field.[^vegpath-tomato][^johnson-2020]
 
-- **Protectants** are the base of a program: chlorothalonil (FRAC group M5), mancozeb (group M3) and fixed copper. They also control early blight.[^a3422-2026] Include one in every spray, and shorten the interval when disease pressure is high.[^umass-2017]
+- **Protectants** are the base of a program: chlorothalonil (FRAC group M05), mancozeb (group M03) and fixed copper (group M01). They also control early blight.[^a3422-2026][^frac-2026] Include one in every spray, and shorten the interval when disease pressure is high.[^umass-2017]
 - **Fungicides aimed at water molds** include cyazofamid (group 21), mandipropamid and dimethomorph (group 40), oxathiapiprolin (group 49), fluazinam (group 29), propamocarb (group 28) and cymoxanil (group 27). Tank-mix them with a protectant and rotate groups.[^a3422-2026][^fronk-2026] Mefenoxam (group 4) controls only some strains.[^a3422-2026]
 - **Organic growers** rely mainly on copper, and home gardeners can use chlorothalonil or copper products labeled for tomato or potato.[^fronk-2026][^gevens-2024]
 

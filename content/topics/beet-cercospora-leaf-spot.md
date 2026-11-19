@@ -10,7 +10,7 @@ summary: A fungal disease that spots and kills the leaves of table beet and suga
 image: images/beet-cercospora-leaf-spot.jpg
 image_credit: 'Cercospora leaf spot on a sugar beet leaf. Photo by Howard F. Schwartz, Colorado State University, Bugwood.org (image 5365246), CC BY 3.0 US.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: cornell-beet-2021
     text: 'Koenick, L., J. Kikkert and S. Pethybridge, revised by P. Sharma. Cercospora Leaf Spot of Table Beet. Cornell University, 2021.'
@@ -45,6 +45,9 @@ sources:
   - key: agweather-cercospora-beet-div
     text: 'AgWeather. Cercospora leaf spot model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/cercospora-beet-div.md
+  - key: frac-2026
+    text: 'Fungicide Resistance Action Committee. FRAC Code List 2026: Fungal Control Agents Sorted by Cross-Resistance Pattern and Mode of Action. CropLife International, 2026.'
+    url: https://www.frac.info/media/s1zfrjqa/frac-code-list-2026.pdf
 ---
 
 Cercospora leaf spot is a disease of beet leaves caused by the fungus _Cercospora beticola_. It attacks table beet, sugar beet, Swiss chard and spinach. It is the most destructive leaf disease of table beet in Wisconsin, and the most damaging leaf disease of sugar beet in Minnesota and North Dakota.[^cornell-beet-2021][^dixon-2023][^ndsu-cls]
@@ -86,7 +89,7 @@ Infection needs a warm, wet day: leaves wet (or humidity above 90 %) for more th
 
 - **Use mixtures and rotate.** In sugar beet, mixtures that include a multisite fungicide, used in a rotation, are most effective. _C. beticola_ has become resistant or less sensitive to most fungicides used against it in Minnesota and North Dakota, and most New York populations resist quinone outside inhibitors (QoIs, FRAC group 11).[^ndsu-cls][^cornell-beet-2021]
 - **Classes:** demethylation inhibitors (DMIs, group 3; propiconazole, tebuconazole), succinate dehydrogenase inhibitors (SDHIs, group 7; penthiopyrad, fluxapyroxad, pydiflumetofen), QoIs (group 11; azoxystrobin, pyraclostrobin, trifloxystrobin) and copper (group M01).[^a3422-2026][^cornell-beet-2021]
-- **Organic options** are limited: two OMRI-listed treatments failed in Wisconsin trials, while in New York copper octanoate tank-mixed with a _Bacillus_ biofungicide beat either alone.[^dixon-2023][^cornell-beet-2021]
+- **Organic options** are limited: two OMRI-listed treatments failed in Wisconsin trials, while in New York copper octanoate (group M01) tank-mixed with a _Bacillus_ biofungicide (group BM02) beat either alone.[^dixon-2023][^cornell-beet-2021][^frac-2026]
 
 For products, rates and current registrations, see UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/), or in neighboring states the [Midwest Vegetable Production Guide](https://mwveguide.org/guide); sugar beet growers should also follow their cooperative's agronomists. Cornell's [table beet fact sheet](https://www.vegetables.cornell.edu/pest-management/disease-factsheets/cercospora-leaf-spot-of-table-beet/) and NDSU's [sugar beet page](https://www.ndsu.edu/agriculture/ag-hub/ag-topics/crop-production/crops/sugarbeets/cercospora-leaf-spot-sugarbeet) explain the choices in more detail; for home gardens, see the University of Minnesota's [beet leaf spot guide](https://apps.extension.umn.edu/garden/diagnose/plant/vegetable/beet/leavesspots.html).
 

@@ -26,6 +26,9 @@ sources:
   - key: agweather-mint-flea-beetle
     text: 'AgWeather. Mint flea beetle model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/mint-flea-beetle.md
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The mint flea beetle (_Longitarsus waterhousei_) is a small leaf beetle that feeds on peppermint and spearmint. The adults chew small holes in the leaves, but the larvae do the real harm, feeding on the roots and rhizomes in spring.[^pnw] UW–Madison's Vegetable Entomology lab counts it among the major pests of mint in Wisconsin, where mint is grown on muck and other high-organic soils or on fine-textured soils.[^uw-vegento-crops] Much of the published guidance on it comes from the Pacific Northwest's mint, so timings from there may not fit Wisconsin exactly.[^pnw][^uspest-mfb]
@@ -62,7 +65,7 @@ Infestations usually begin at field edges, and adults tend to be spotty and loca
 - **Clean rootstock:** plant new fields with rootstock dug from fields free of the beetle.[^pnw]
 - **Field practices:** Wisconsin growers usually plow mint shallowly once the first killing frost has come, partly to control pests that would otherwise survive the winter on the stubble, and mint is grown in short rotations of about three years in mint and three in another crop.[^uw-vegento-crops]
 
-**Insecticides** are aimed at the adults, because no product is registered for the larvae in the soil. The goal is to spray after most adults have emerged but before females start laying eggs.[^a3422-2026][^pnw] Commercial Vegetable Production in Wisconsin lists an organophosphate (IRAC group 1B; malathion), a carbamate (group 1A; methomyl) and a neonicotinoid (group 4A; thiamethoxam).[^a3422-2026] The Pacific Northwest handbook also lists azadirachtin, with some formulations allowed in organic production, and suggests spraying in the early morning, when the beetles are on the foliage.[^pnw]
+**Insecticides** are aimed at the adults, because no product is registered for the larvae in the soil. The goal is to spray after most adults have emerged but before females start laying eggs.[^a3422-2026][^pnw] Commercial Vegetable Production in Wisconsin lists an organophosphate (IRAC group 1B; malathion), a carbamate (group 1A; methomyl) and a neonicotinoid (group 4A; thiamethoxam).[^a3422-2026] The Pacific Northwest handbook also lists azadirachtin (group UN, mode of action uncertain), with some formulations allowed in organic production, and suggests spraying in the early morning, when the beetles are on the foliage.[^pnw][^irac-moa]
 
 For products, rates and current registrations, see UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/). The Pacific Northwest Insect Management Handbook's [mint flea beetle page](https://pnwhandbooks.org/insect/agronomic/mint/mint-mint-flea-beetle) has more detail, and UW Vegetable Entomology's [Pests by Crop](https://vegento.russell.wisc.edu/crops/) covers mint growing in Wisconsin.
 

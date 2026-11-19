@@ -9,7 +9,7 @@ summary: A fungal disease that spots apple leaves and fruit in cool, wet springs
 image: images/apple-scab.jpg
 image_credit: 'Scab spots on an apple. Photo by Bill Kasman, via Wikimedia Commons (File:Diseased apple.jpg), CC0 1.0 (public domain dedication).'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: hudelson-2026
     text: 'Hudelson, B. Apple Scab (UW Plant Disease Facts D0004). UW–Madison Plant Pathology, revised 2026.'
@@ -32,6 +32,9 @@ sources:
   - key: midwest-guide-2026
     text: 'Midwest Fruit Pest Management Guide 2026–2027 (ID-465). Purdue Extension and partner universities, 2026.'
     url: https://edustore.purdue.edu/id-465-w.html
+  - key: frac-2026
+    text: 'Fungicide Resistance Action Committee. FRAC Code List 2026: Fungal Control Agents Sorted by Cross-Resistance Pattern and Mode of Action. CropLife International, 2026.'
+    url: https://www.frac.info/media/s1zfrjqa/frac-code-list-2026.pdf
 ---
 
 Apple scab is a disease caused by the fungus _Venturia inaequalis_. It infects apple, crabapple, hawthorn and mountain-ash; pear gets a similar disease from a related fungus. Scab is most severe in cool, wet springs, and in such years it can be widespread across Wisconsin.[^ayer-2020][^hudelson-2026][^spangenberg-2025]
@@ -69,9 +72,9 @@ Leaf loss weakens trees, reduces yield and can reduce the next year's bloom.[^ay
 
 **Fungicides** protect new growth but don't cure leaves already infected. On susceptible cultivars, sprays may be needed from green tip until the primary season ends.[^spangenberg-2025][^ayer-2020]
 
-- **Protectants** such as captan and mancozeb are the base of a program. Apply them before rain and keep new growth covered through the primary season.[^holland-2026]
+- **Protectants** such as captan (FRAC group M04) and mancozeb (group M03) are the base of a program. Apply them before rain and keep new growth covered through the primary season.[^holland-2026][^frac-2026]
 - **Single-site fungicides** are best tank-mixed with a protectant: demethylation inhibitors (DMIs, FRAC group 3; fenbuconazole, myclobutanil, mefentrifluconazole), succinate dehydrogenase inhibitors (SDHIs, group 7; penthiopyrad, pydiflumetofen) and anilinopyrimidines (group 9; cyprodinil, pyrimethanil). Quinone outside inhibitors (QoIs, group 11) are also among the most effective. Rotate groups, and pair them with a protectant, to slow the spread of resistant strains. DMIs and anilinopyrimidines give only limited control after an infection; if you find spots, lean on protectants.[^holland-2026][^ayer-2020]
-- **Organic programs** rely on sulfur and lime sulfur, with potassium bicarbonate. They wash off easily and act little after an infection, so spray before rain at short intervals. Lime sulfur can injure leaves in hot weather.[^holland-2026]
+- **Organic programs** rely on sulfur and lime sulfur (group M02), with potassium bicarbonate, which FRAC doesn't assign to a group.[^frac-2026] They wash off easily and act little after an infection, so spray before rain at short intervals. Lime sulfur can injure leaves in hot weather.[^holland-2026]
 
 For products, timing and current registrations, see the [Midwest Fruit Pest Management Guide](https://edustore.purdue.edu/id-465-w.html). UW–Madison's [Wisconsin apple disease update](https://cropsandsoils.extension.wisc.edu/wisconsin-apple-disease-update-high-risk-conditions-in-wisconsin/) and Cornell's [apple scab fact sheet](https://cals.cornell.edu/integrated-pest-management/outreach-education/fact-sheets/apple-scab-fruit-fact-sheet) explain the choices in more detail; for home trees, see UW–Madison's [apple scab fact sheet](https://pddc.wisc.edu/2018/11/19/apple-scab/).
 

@@ -9,7 +9,7 @@ summary: A small fly whose maggots tunnel into the roots and bulbs of onions and
 image: images/onion-maggot.jpg
 image_credit: 'Onion maggots in a damaged onion set. Photo by Rasbak, via Wikimedia Commons (File:Uienvlieg maden.jpg), CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: uw-vegento-om
     text: 'Onion Maggot. UW–Madison Vegetable Entomology, updated 2026.'
@@ -35,6 +35,9 @@ sources:
   - key: midwest-veg-guide
     text: 'Midwest Vegetable Production Guide for Commercial Growers. Land-grant universities of the Midwest, current edition.'
     url: https://mwveguide.org/guide
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The onion maggot (_Delia antiqua_) is a small fly whose maggots feed below ground on onions and their relatives: leeks, shallots, garlic and chives. It feeds on nothing else. It is often the most serious insect pest of onions, especially where onions are grown on the same ground year after year, and problems tend to build after a run of cool, wet springs.[^uw-vegento-om][^a3422-2026][^salgado-2025]
@@ -78,7 +81,7 @@ Later generations tunnel into larger bulbs. Bulbs damaged late in the season are
 - **Planting time:** delaying planting can let young onions miss the first flight, though it costs bulb size. UW–Madison notes that onion sets planted a week before flies are expected to emerge are damaged less. Transplants withstand attack better than seeded onions.[^salgado-2025][^schuh-2022][^uw-vegento-om]
 - **Row covers:** in gardens, cover onions by early to mid-May and keep the cover on until egg-laying ends. Don't use covers where onions grew the year before, since flies can emerge underneath.[^schuh-2022]
 
-**Insecticides** work only as prevention at planting: on the seed, as a drench for transplant trays or applied in the furrow. Seed treatments include spinosad (IRAC group 5), cyromazine (group 17) and neonicotinoids (group 4A); rotate between groups from year to year.[^salgado-2025][^a3422-2026] Sprays against adult flies are usually not successful, because the flies move between fields and avoid exposure.[^uw-vegento-om][^a3422-2026][^salgado-2025] Onion maggots have become resistant to some insecticides, including the organophosphate diazinon in other Midwest states.[^uw-vegento-om][^a3422-2026] Home gardeners have no insecticides for use at planting and rely on the nonchemical controls above.[^schuh-2022]
+**Insecticides** work only as prevention at planting: on the seed, as a drench for transplant trays or applied in the furrow. Seed treatments include spinosad (IRAC group 5), cyromazine (group 17) and neonicotinoids (group 4A); rotate between groups from year to year.[^salgado-2025][^a3422-2026] Sprays against adult flies are usually not successful, because the flies move between fields and avoid exposure.[^uw-vegento-om][^a3422-2026][^salgado-2025] Onion maggots have become resistant to some insecticides, including the organophosphate diazinon (group 1B) in other Midwest states.[^uw-vegento-om][^a3422-2026][^irac-moa] Home gardeners have no insecticides for use at planting and rely on the nonchemical controls above.[^schuh-2022]
 
 For products, rates and current registrations, see UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/), or in neighboring states the [Midwest Vegetable Production Guide](https://mwveguide.org/guide). UW Vegetable Entomology's [onion maggot page](https://vegento.russell.wisc.edu/pests/onion-maggot/) and Cornell's [onion and seedcorn maggot fact sheet](https://cals.cornell.edu/integrated-pest-management/outreach-education/fact-sheets/onion-maggot-and-seedcorn-maggot-delia-antiqua-and-delia-platura) explain the choices in more detail; for home gardens, see the University of Minnesota's [cabbage and onion maggot page](https://extension.umn.edu/garden-and-home/yard-and-garden/yard-and-garden-insects/root-maggots).
 

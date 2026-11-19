@@ -29,6 +29,12 @@ sources:
   - key: agweather-rye-biomass
     text: 'AgWeather. Winter rye cover crop biomass model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/rye-biomass.md
+  - key: wssa-hrac
+    text: 'Global Herbicide Resistance Action Committee. HRAC Mode of Action Classification 2026. HRAC, 2026.'
+    url: https://hracglobal.com/tools/2026-hrac-global-herbicide-moa-classification
+  - key: take-action-herbicides
+    text: 'Take Action. Herbicide Classification Chart, 2027 edition (site of action groups as numbered by the Weed Science Society of America). United Soybean Board, 2026.'
+    url: https://growiwm.org/wp-content/uploads/2026/11/2027-Herbicide-Classification-Poster-GROW-2026-Nov-16.pdf
 ---
 
 Cereal rye (_Secale cereale_), also called winter rye, is a cover crop planted in fall after corn, soybean or another crop is harvested. It survives the winter, grows quickly in spring, and is ended (terminated) before or soon after the next crop is planted.[^elmquist-2026] What a rye cover crop can do depends on how much it grows: a little rye holds nitrogen, more protects the soil, and a heavy stand suppresses weeds. This page explains how much growth each goal needs, how weather drives that growth, and how to manage rye for your goal.
@@ -57,7 +63,7 @@ Rye grows when it's warm enough, so its growth follows growing degree days from 
 - **Before soybean,** high-biomass rye fits better.[^chudzik-werle-2026] In Wisconsin research, planting soybean green and ending the rye within a few days of planting had little effect on yield in years with normal rain.[^smith-2022] For weed control, rye about 3 feet tall is a good time to terminate.[^chudzik-werle-2026]
 - **In a dry spring,** end rye early, especially if no rain is forecast before planting.[^smith-2022][^chudzik-werle-2026]
 
-**Termination methods.** Glyphosate at standard burndown rates controls rye. Spray while it's actively growing, with temperatures of about 55 °F by day and 40 °F at night for three days before and after. Roller-crimping works only once rye reaches full flowering (anthesis), usually late May in Wisconsin; crimping earlier often fails to kill it.[^smith-2022] Check with your crop insurance agent: in Wisconsin, cover crops generally must be terminated before the cash crop emerges.[^smith-2022]
+**Termination methods.** Glyphosate (WSSA group 9) at standard burndown rates controls rye.[^wssa-hrac][^take-action-herbicides] Spray while it's actively growing, with temperatures of about 55 °F by day and 40 °F at night for three days before and after. Roller-crimping works only once rye reaches full flowering (anthesis), usually late May in Wisconsin; crimping earlier often fails to kill it.[^smith-2022] Check with your crop insurance agent: in Wisconsin, cover crops generally must be terminated before the cash crop emerges.[^smith-2022]
 
 For details, see UW–Madison's [Biomass Thresholds for Cereal Rye Cover Crop Goals](https://cropsandsoils.extension.wisc.edu/articles/biomass-thresholds-for-cereal-rye-cover-crop-goals/) and [Spring Cover Crop Termination Considerations](https://cropsandsoils.extension.wisc.edu/articles/spring-cover-crop-termination-considerations), and Iowa State's [Terminating cover crops ahead of corn](https://crops.extension.iastate.edu/post/terminating-cover-crops-ahead-corn).
 

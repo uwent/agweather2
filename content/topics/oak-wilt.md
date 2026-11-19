@@ -35,6 +35,9 @@ sources:
   - key: agweather-oak-wilt
     text: 'AgWeather. Oak wilt vector flight model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/oak-wilt-vectors.md
+  - key: frac-2026
+    text: 'Fungicide Resistance Action Committee. FRAC Code List 2026: Fungal Control Agents Sorted by Cross-Resistance Pattern and Mode of Action. CropLife International, 2026.'
+    url: https://www.frac.info/media/s1zfrjqa/frac-code-list-2026.pdf
 ---
 
 Oak wilt is a fatal disease of oak trees caused by the fungus _Bretziella fagacearum_. It spreads underground from tree to tree through grafted roots, and overland when small sap beetles (family Nitidulidae) carry its spores to fresh wounds. In Wisconsin it is common across the central and southern parts of the state and less common in the north.[^dnr-fact-sheet] Two sap beetles, _Colopterus truncatus_ and _Carpophilus sayi_, are its main known carriers here. These very small beetles fly mainly in spring and early summer, when a fresh wound puts an oak most at risk.[^jagemann-2018][^dnr-guidelines] Oak bark beetles can carry the fungus too.[^pddc-oak-wilt]
@@ -75,7 +78,7 @@ Each year the disease kills thousands of Wisconsin's oaks, vigorous ones as well
 - **Break root grafts** around an infected pocket with a vibratory plow or trencher, placed correctly, then remove the dead and living oaks inside the pocket.[^dnr-fact-sheet]
 - **Keep firewood local.** Cover wood from a tree that died of oak wilt with 4-mil plastic, sealed to the ground, until the bark is loose, or use it before April 1 of the next year.[^dnr-guidelines][^dnr-fact-sheet]
 
-**Fungicide:** propiconazole, injected into the trunk by a qualified arborist, can protect a healthy oak for up to two years. It works best before infection, and on red oaks already showing symptoms it often fails. It doesn't stop spread through the roots.[^umn-oak-wilt][^pddc-oak-wilt]
+**Fungicide:** propiconazole (a demethylation inhibitor, FRAC group 3), injected into the trunk by a qualified arborist, can protect a healthy oak for up to two years. It works best before infection, and on red oaks already showing symptoms it often fails. It doesn't stop spread through the roots.[^umn-oak-wilt][^pddc-oak-wilt][^frac-2026]
 
 For the rules on harvesting and the current county map, see Wisconsin's [Oak Harvesting Guidelines](https://embed.widencdn.net/pdf/download/widnr/aqszuho7ee/Oak-Harvesting-Guidelines-Web-version.pdf?u=lhzbht&showinbrowser=true) and the Department of Natural Resources' [oak wilt page](https://dnr.wisconsin.gov/topic/foresthealth/oakwilt). The University of Minnesota's [oak wilt page](https://extension.umn.edu/plant-diseases/oak-wilt-minnesota) covers root graft barriers and injections in more detail; for yard trees, see UW–Madison's [oak wilt fact sheet](https://pddc.wisc.edu/2015/07/30/oak-wilt/).
 

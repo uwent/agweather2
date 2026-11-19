@@ -9,7 +9,7 @@ summary: A small fly whose maggots feed on the roots of cabbage, broccoli, radis
 image: images/cabbage-maggot.jpg
 image_credit: 'Cabbage maggot larvae at the base of a cauliflower stem. Photo by Rasbak, via Wikimedia Commons (File:Koolvlieg bloemkool.jpg), CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cabbage Maggot. Updated 2026.'
@@ -41,6 +41,9 @@ sources:
   - key: agweather-cabbage-maggot
     text: 'AgWeather. Cabbage maggot model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/cabbage-maggot.md
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The cabbage maggot (_Delia radicum_) is a small fly whose larvae feed on the roots and lower stems of cabbage, broccoli, cauliflower, Brussels sprouts, kohlrabi, radish, turnip, rutabaga and cruciferous weeds such as wild mustard. Early transplants and spring root crops suffer most.[^uw-hort] It came from Europe in the early 1800s and does more damage in the northern United States and Canada than farther south.[^umn-vegedge]
@@ -81,7 +84,7 @@ Maggots tunnel on and inside roots. Seedlings may lose the growing point of the 
 - **Sanitation and rotation:** work crop residue into the soil right after harvest, rotate away from last year's brassica fields and cover crops, and control brassica weeds that can carry later generations.[^uw-hort][^mwvg-2026]
 - **Natural enemies:** ground beetles and rove beetles eat eggs, larvae and pupae, and soil fungi and parasitic wasps also kill maggots.[^umn-vegedge][^umass]
 
-**Insecticides** work only as prevention, applied to the soil before eggs hatch; nothing controls maggots already in the roots.[^uw-hort][^umn-root-maggots] Commercial Vegetable Production in Wisconsin lists soil treatments at or just before planting (in the furrow, in a band, in transplant water or worked into the soil) with a diamide (IRAC group 28; cyantraniliprole), a pyrethroid (group 3; bifenthrin) or an organophosphate (group 1B; diazinon). Treatments last only four to five days, so they must go on while flies are laying eggs.[^a3422-2026] Cabbage maggots have shown resistance to diazinon, and spinetoram (a spinosyn, group 5) is labeled for suppression only.[^mwvg-2026] Applying insecticide in a band at the base of the plants, rather than broadcast, spares the ground beetles that prey on maggots.[^uw-hort][^umass]
+**Insecticides** work only as prevention, applied to the soil before eggs hatch; nothing controls maggots already in the roots.[^uw-hort][^umn-root-maggots] Commercial Vegetable Production in Wisconsin lists soil treatments at or just before planting (in the furrow, in a band, in transplant water or worked into the soil) with a diamide (IRAC group 28; cyantraniliprole), a pyrethroid (group 3A; bifenthrin) or an organophosphate (group 1B; diazinon). Treatments last only four to five days, so they must go on while flies are laying eggs.[^a3422-2026][^irac-moa] Cabbage maggots have shown resistance to diazinon, and spinetoram (a spinosyn, group 5) is labeled for suppression only.[^mwvg-2026] Applying insecticide in a band at the base of the plants, rather than broadcast, spares the ground beetles that prey on maggots.[^uw-hort][^umass]
 
 For products, rates and current registrations, see UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/), or in neighboring states the [Midwest Vegetable Production Guide](https://mwveguide.org/guide). UW Vegetable Entomology's [cabbage maggot page](https://vegento.russell.wisc.edu/pests/cabbage-maggot/) and the University of Minnesota's [VegEdge cabbage maggot page](https://vegedge.umn.edu/cabbage-maggot) explain the choices in more detail; for home gardens, see UW–Madison's [cabbage maggot fact sheet](https://hort.extension.wisc.edu/articles/cabbage-maggot/).
 

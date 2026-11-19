@@ -9,7 +9,7 @@ summary: A small moth whose larvae tunnel to the core of apples and pears; spray
 image: images/codling-moth.jpg
 image_credit: 'Gravenstein apples tunneled by codling moth larvae, with the cores eaten away. Photo by Richard Wilde, via Wikimedia Commons (File:Gravenstein apples with codling moth.JPG), released into the public domain.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: van-zoeren-2018
     text: 'van Zoeren, J. and C. Guédot. Codling Moth: Management Options for Commercial and Backyard Growers (A4172). University of Wisconsin–Extension, 2018.'
@@ -29,6 +29,9 @@ sources:
   - key: midwest-guide-2026
     text: 'Midwest Fruit Pest Management Guide 2026–2027 (ID-465). Purdue Extension and partner universities, 2026.'
     url: https://edustore.purdue.edu/id-465-w.html
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The codling moth (_Cydia pomonella_) is a small moth whose larvae tunnel into apples and pears, and occasionally quince and walnuts. It is well established in Wisconsin. Left uncontrolled, it can cause severe losses, and it has become resistant to a number of common insecticides.[^van-zoeren-2018]
@@ -71,7 +74,7 @@ Larvae are exposed only briefly between hatching and boring in, so control depen
 - **Codling moth granulosis virus** kills larvae that eat it and is approved for organic use. Larvae die slowly, so some stings still occur; it is reapplied every 10 to 14 days.[^van-zoeren-2018]
 - **On backyard trees**, bagging fruit soon after petal fall or coating it with kaolin clay helps keep larvae out.[^van-zoeren-2018]
 
-**Insecticides** are timed to egg hatch. For the first generation, larvicides go on about 250 to 300 degree days after the biofix, and egg-killing products such as methoxyfenozide at about 150; for the second, larvicides go on at about 1,250. Two or three sprays may be needed for each generation. Effective classes include diamides, spinosyns, insect growth regulators, neonicotinoids, pyrethroids and organophosphates, with spinosad and kaolin clay for organic production. Broad-spectrum products such as pyrethroids also kill natural enemies of other pests. Rotate classes to slow resistance, and don't spray insecticides during bloom or while bees are foraging.[^van-zoeren-2018]
+**Insecticides** are timed to egg hatch. For the first generation, larvicides go on about 250 to 300 degree days after the biofix, and egg-killing products such as methoxyfenozide (IRAC group 18) at about 150; for the second, larvicides go on at about 1,250. Two or three sprays may be needed for each generation. Effective classes include diamides (group 28), spinosyns (group 5), insect growth regulators (several groups, among them methoxyfenozide's), neonicotinoids (group 4A), pyrethroids (group 3A) and organophosphates (group 1B), with spinosad and kaolin clay for organic production.[^irac-moa] Broad-spectrum products such as pyrethroids also kill natural enemies of other pests. Rotate classes to slow resistance, and don't spray insecticides during bloom or while bees are foraging.[^van-zoeren-2018]
 
 For products and current registrations, see the [Midwest Fruit Pest Management Guide](https://edustore.purdue.edu/id-465-w.html). See also UW–Madison's [codling moth publication](https://fruit.wisc.edu/wp-content/uploads/sites/36/2022/01/A4172-Codling-moth.pdf), Penn State's [codling moth page](https://extension.psu.edu/tree-fruit-insect-pest-codling-moth) and, for home trees, the University of Minnesota's [codling moth page](https://extension.umn.edu/yard-and-garden-insects/codling-moths).
 

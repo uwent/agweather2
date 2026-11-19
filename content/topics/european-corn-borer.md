@@ -14,7 +14,7 @@ summary: A moth whose caterpillars bore into the stalks and ears of corn and int
 image: images/european-corn-borer.jpg
 image_credit: 'European corn borer caterpillar on a corn leaf. Photo by Keith Weller, USDA Agricultural Research Service (image k7834-3), via Wikimedia Commons (File:Corn borer.jpg), public domain.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. European Corn Borer. University of Wisconsin–Madison, updated 2026.'
@@ -49,6 +49,9 @@ sources:
   - key: agweather-ecb
     text: 'AgWeather. European corn borer model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/european-corn-borer.md
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The European corn borer (_Ostrinia nubilalis_) is a moth whose caterpillars bore into the stalks, ear shanks and ears of field and sweet corn.[^iowa-ecb][^uw-vegento] It also attacks snap beans, peppers and potatoes.[^cornell-ecb] Before Bt corn it was among the costliest corn pests, known as "the billion-dollar bug." Since Bt hybrids came into wide use after 1996, its numbers have been held low across large areas.[^iowa-ecb][^umn-ecb] Corn without Bt protection, sweet corn and vegetable crops still need scouting.[^umn-ecb][^uw-vegento]
@@ -89,7 +92,7 @@ Caterpillars that mature early in the season pupate in the stalk, and their moth
 - **Natural controls:** weather, predators, parasitic insects and diseases can kill 80 to 90 % of eggs and young caterpillars, and UW–Madison credits them with the 5 to 7 years of low numbers that usually separate outbreaks. Spraying only when needed conserves them.[^uw-vegento]
 - **Crop residue:** cutting corn for silage, shredding stalks and plowing under stubble kill many overwintering borers; dry-stalk shredding may kill 80 %. Plowing raises the risk of soil erosion, though.[^a3646-2025]
 - **Bt corn:** field and sweet corn hybrids with Bt proteins control corn borers for the life of the plant.[^cornell-ecb][^a3646-2025] Federal rules require a refuge of non-Bt corn, 5 to 20 % depending on the product, often mixed in the bag.[^a3646-2025][^iowa-ecb] Resistant corn borers have been found in Canada and Connecticut, so scout Bt fields too.[^iowa-ecb]
-- **Bt sprays** (_Bacillus thuringiensis_; IRAC group 11) kill young caterpillars, spare natural enemies and include products approved for organic use, but last only a few days.[^a3646-2025]
+- **Bt sprays** (_Bacillus thuringiensis_; IRAC group 11A) kill young caterpillars, spare natural enemies and include products approved for organic use, but last only a few days.[^a3646-2025][^irac-moa]
 
 **Insecticides** work only before caterpillars bore into the plant: for the first generation, while they are in the whorl, and for the second, when most egg masses are at the black-head stage or starting to hatch.[^a3646-2025] UW–Madison's field corn guide lists pyrethroids (group 3A, such as lambda-cyhalothrin and bifenthrin), diamides (group 28, chlorantraniliprole) and carbamates (group 1A, carbaryl), as well as Bt.[^a3646-2025]
 

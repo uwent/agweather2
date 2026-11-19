@@ -9,7 +9,7 @@ summary: A fungal disease that kills soybean plants in patches in cool, wet summ
 image: images/white-mold.jpg
 image_credit: 'White mold on soybean stems, with white fungal growth and black sclerotia. Photo by Daren Mueller, Iowa State University, Bugwood.org (image 5465746), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/).'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: smith-2026
     text: 'Smith, D., C. Bradley, M. Chilvers and others. An Overview of White Mold (CPN-1005). Crop Protection Network, revised 2026.'
@@ -38,6 +38,15 @@ sources:
   - key: agweather-white-mold
     text: 'AgWeather. White mold model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/white-mold.md
+  - key: frac-2026
+    text: 'Fungicide Resistance Action Committee. FRAC Code List 2026: Fungal Control Agents Sorted by Cross-Resistance Pattern and Mode of Action. CropLife International, 2026.'
+    url: https://www.frac.info/media/s1zfrjqa/frac-code-list-2026.pdf
+  - key: wssa-hrac
+    text: 'Global Herbicide Resistance Action Committee. HRAC Mode of Action Classification 2026. HRAC, 2026.'
+    url: https://hracglobal.com/tools/2026-hrac-global-herbicide-moa-classification
+  - key: take-action-herbicides
+    text: 'Take Action. Herbicide Classification Chart, 2027 edition (site of action groups as numbered by the Weed Science Society of America). United Soybean Board, 2026.'
+    url: https://growiwm.org/wp-content/uploads/2026/11/2027-Herbicide-Classification-Poster-GROW-2026-Nov-16.pdf
 ---
 
 White mold, also called Sclerotinia stem rot, is a disease of soybean caused by the fungus _Sclerotinia sclerotiorum_. It is a major soybean disease in the northern United States and Canada, and it is worst in cool, wet summers, in high-yielding fields with dense canopies. The same fungus attacks most broadleaf crops, including potato, snap bean, carrot, pea and the cabbage family, as well as many broadleaf weeds.[^smith-2026][^watson-smith-2026]
@@ -76,13 +85,13 @@ White mold reduces yield through fewer and lighter seeds. Sclerotia mixed in har
 - **Open the canopy in high-risk fields.** Moving from 15-inch to 30-inch rows can cut white mold by up to about half, though yield potential may drop. For fields at high risk of white mold, UW–Madison's guide suggests 100,000 to 140,000 seeds per acre in 15- or 30-inch rows.[^smith-2026][^a3646-2025]
 - **Irrigate less often before and during flowering:** infrequent, heavy watering is better than frequent, light watering.[^smith-2026]
 - **Keep sclerotia out:** plant clean seed, and harvest infested fields last so the combine doesn't carry sclerotia to other fields.[^watson-smith-2026]
-- **Biological control:** a soil fungus, _Coniothyrium minitans_, attacks sclerotia. It is applied to the soil at least three months before white mold is likely and worked in about 2 inches deep. It can reduce sclerotia greatly but won't clear a heavy load.[^smith-2026][^a3646-2025]
+- **Biological control:** a soil fungus, _Coniothyrium minitans_ (FRAC group BM02), attacks sclerotia.[^frac-2026] It is applied to the soil at least three months before white mold is likely and worked in about 2 inches deep. It can reduce sclerotia greatly but won't clear a heavy load.[^smith-2026][^a3646-2025]
 
 **Fungicides** reduce white mold but never control it completely: in university trials they cut the disease by anywhere from none to about 60 %. Apply them from beginning bloom (R1) to beginning pod (R3), while flowers are present on the lower half of the stem. Sprays at R4 or later, or after symptoms appear, don't work.[^smith-2026][^watson-smith-2026][^a3646-2025]
 
 - In UW–Madison's ratings, boscalid (an SDHI, FRAC group 7) and fluazinam (group 29) rate highest for white mold. Picoxystrobin (a QoI, group 11) and prothioconazole (a DMI, group 3) rate lower, and tetraconazole (group 3) and thiophanate-methyl (group 1) lower still. Some products are rated only for suppressing white mold, and some need two applications.[^a3646-2025]
 - Thick canopies are hard to cover: use flat-fan nozzles that make droplets of 200 to 400 microns, and more water in dense canopies.[^smith-2026]
-- The herbicide lactofen, applied at or before first bloom, suppresses white mold. It can injure the crop, especially in hot, dry weather.[^a3646-2025][^smith-2026]
+- The herbicide lactofen (WSSA group 14), applied at or before first bloom, suppresses white mold. It can injure the crop, especially in hot, dry weather.[^a3646-2025][^smith-2026][^wssa-hrac][^take-action-herbicides]
 
 For products and current registrations, see UW–Madison's [Pest Management in Wisconsin Field Crops (A3646)](https://cropsandsoils.extension.wisc.edu/files/2025/01/A3646_2025_web.pdf). UW–Madison's [Sclerotinia stem rot fact sheet](https://pddc.wisc.edu/2015/08/16/sclerotinia-stem-rot-of-soybean/) and the Crop Protection Network's [An Overview of White Mold](https://cropprotectionnetwork.org/publications/an-overview-of-white-mold) explain the choices in more detail. White mold of potato and vegetables is caused by the same fungus; for potato, where sprays start at full bloom or row closure, see UW–Madison Vegetable Pathology's [potato white mold page](https://vegpath.plantpath.wisc.edu/diseases/potato-white-mold/).[^uw-vegpath-potato-white-mold]
 

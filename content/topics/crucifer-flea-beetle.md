@@ -9,7 +9,7 @@ summary: A tiny, shiny black beetle that jumps when disturbed and chews small ro
 image: images/crucifer-flea-beetle.jpg
 image_credit: 'Shot-hole damage from crucifer flea beetles on a Chinese cabbage leaf. Photo by Whitney Cranshaw, Colorado State University, Bugwood.org (image 1243031), via Wikimedia Commons (File:Phyllotreta cruciferae (02).jpg), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/).'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Flea Beetles. Updated 2026.'
@@ -29,6 +29,9 @@ sources:
   - key: agweather-crucifer-flea-beetle
     text: 'AgWeather. Crucifer flea beetle model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/crucifer-flea-beetle.md
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The crucifer flea beetle (_Phyllotreta cruciferae_) is a small leaf beetle that feeds on cabbage, broccoli, cauliflower, kale, radish, turnip, mustards, horseradish and the other crucifers.[^uw-vegento][^umass] It is one of several flea beetles common in Wisconsin, most of which feed on a narrow group of crops: the potato flea beetle on potato, tomato, eggplant and pepper, the eggplant flea beetle on eggplant, and the spinach flea beetle on spinach and beets.[^uw-vegento] The crucifer and striped flea beetles are the main species on cole crops in the Midwest.[^mwvg-2026]
@@ -67,7 +70,7 @@ Flea beetles do the most harm in spring. By summer most plants have four or five
 - **Sanitation:** control weeds and destroy crop residue promptly after harvest to remove food and overwintering cover.[^umn][^umass]
 - **Natural enemies,** including a native parasitic wasp, lacewing larvae and other predators, and beneficial nematodes that attack larvae in the soil, give some control, though the parasitic wasp is uncommon.[^umass][^umn][^uw-vegento]
 
-**Insecticides** may be needed as rescue treatments on seedlings and transplants.[^a3422-2026] UW Vegetable Entomology notes that soil-applied insecticides can protect plants through the season, while foliar sprays act quickly but may harm natural enemies of other cole crop pests.[^uw-vegento] Commercial Vegetable Production in Wisconsin lists neonicotinoids (IRAC group 4A; clothianidin, dinotefuran, imidacloprid, thiamethoxam), applied to the soil or the leaves, a diamide (group 28; cyantraniliprole), pyrethroids (group 3; bifenthrin, lambda-cyhalothrin, zeta-cypermethrin and others), a carbamate (group 1A; carbaryl) and tolfenpyrad (group 21A).[^a3422-2026] For organic production, spinosad (group 5) works best and pyrethrins and azadirachtin give some contact control. Use a spreader-sticker on waxy crops, and expect to reapply.[^umass] Kaolin clay gives mixed results.[^umn]
+**Insecticides** may be needed as rescue treatments on seedlings and transplants.[^a3422-2026] UW Vegetable Entomology notes that soil-applied insecticides can protect plants through the season, while foliar sprays act quickly but may harm natural enemies of other cole crop pests.[^uw-vegento] Commercial Vegetable Production in Wisconsin lists neonicotinoids (IRAC group 4A; clothianidin, dinotefuran, imidacloprid, thiamethoxam), applied to the soil or the leaves, a diamide (group 28; cyantraniliprole), pyrethroids (group 3A; bifenthrin, lambda-cyhalothrin, zeta-cypermethrin and others), a carbamate (group 1A; carbaryl) and tolfenpyrad (group 21A).[^a3422-2026] For organic production, spinosad (group 5) works best and pyrethrins (group 3A) and azadirachtin (group UN, mode of action uncertain) give some contact control.[^irac-moa] Use a spreader-sticker on waxy crops, and expect to reapply.[^umass] Kaolin clay gives mixed results.[^umn]
 
 For products, rates and current registrations, see UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/), or in neighboring states the [Midwest Vegetable Production Guide](https://mwveguide.org/guide). UW Vegetable Entomology's [flea beetles page](https://vegento.russell.wisc.edu/pests/flea-beetles/) and UMass's [flea beetle biology page](https://www.umass.edu/agriculture-food-environment/vegetable/fact-sheets/flea-beetle-biology) explain the choices in more detail; for home gardens, see the University of Minnesota's [flea beetles page](https://extension.umn.edu/yard-and-garden-insects/flea-beetles).
 

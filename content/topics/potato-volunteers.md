@@ -41,6 +41,12 @@ sources:
   - key: agweather-potato-volunteer
     text: 'AgWeather. Potato volunteer survival model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/potato-volunteer.md
+  - key: wssa-hrac
+    text: 'Global Herbicide Resistance Action Committee. HRAC Mode of Action Classification 2026. HRAC, 2026.'
+    url: https://hracglobal.com/tools/2026-hrac-global-herbicide-moa-classification
+  - key: take-action-herbicides
+    text: 'Take Action. Herbicide Classification Chart, 2027 edition (site of action groups as numbered by the Weed Science Society of America). United Soybean Board, 2026.'
+    url: https://growiwm.org/wp-content/uploads/2026/11/2027-Herbicide-Classification-Poster-GROW-2026-Nov-16.pdf
 ---
 
 Potato volunteers are potato plants (_Solanum tuberosum_) that grow from tubers left in a field after harvest. Tubers that survive the winter sprout in the next season's crop, often corn, soybean, a small grain or dry beans, where they compete as weeds and carry potato pests and diseases into fields that aren't managed for potato.[^uw-vegento-dsr][^cohen-2024] Whether they survive depends mostly on how cold the soil gets around them over the winter. This page explains why volunteers matter, how winter weather decides their numbers, and how to manage them.
@@ -72,7 +78,7 @@ Prevention is the cheapest control, since no herbicide kills volunteers complete
 
 - Scout fields that grew potatoes the year before, and field edges, as volunteers come up.[^uw-vegento-pvy]
 - Time herbicides to tuber initiation, when the tips of the underground stems start to swell. Earlier, the mother tuber may resprout; later, daughter tubers may already have formed. Most labels promise suppression, not control, and repeated applications or an herbicide followed by cultivation work better than one pass.[^hutchinson-2016][^ozturk-2023]
-- Choose herbicides by the crop the volunteers are in. University of Idaho recommendations include glyphosate in glyphosate-tolerant crops; mesotrione, dicamba, fluroxypyr and atrazine in corn; fluroxypyr, bromoxynil and dicamba in small grains; and imazamox or bentazon in dry beans.[^hutchinson-2016][^cohen-2024] A product must be labeled for the crop or site where the volunteers emerge.[^gevens-2026]
+- Choose herbicides by the crop the volunteers are in. University of Idaho recommendations include glyphosate (WSSA group 9) in glyphosate-tolerant crops; mesotrione (group 27), dicamba and fluroxypyr (group 4) and atrazine (group 5) in corn; fluroxypyr, bromoxynil (WSSA group 6; HRAC groups 6 and 24) and dicamba in small grains; and imazamox (group 2) or bentazon (group 6) in dry beans.[^hutchinson-2016][^cohen-2024][^wssa-hrac][^take-action-herbicides] A product must be labeled for the crop or site where the volunteers emerge.[^gevens-2026]
 - Cultivate repeatedly, starting when volunteers are 3 to 6 inches tall; at least four cultivations are recommended. In research, cultivating four times, each time the volunteers regrew, nearly stopped new tubers from forming, though cultivation doesn't reach volunteers in the crop row.[^ozturk-2023][^hutchinson-2016]
 
 For more, see UW–Madison Vegetable Pathology's [potato volunteer risk article](https://vegpath.plantpath.wisc.edu/2025/04/22/potato-volunteer-risk/) and the University of Maine's [Management of Volunteer Potatoes](https://extension.umaine.edu/publications/1090e/). For the herbicides labeled in Wisconsin field crops, see UW–Madison's [Pest Management in Wisconsin Field Crops (A3646)](https://cropsandsoils.extension.wisc.edu/files/2025/01/A3646_2025_web.pdf), which doesn't rate them on volunteer potato, and always follow the product label.

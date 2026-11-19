@@ -35,6 +35,9 @@ sources:
   - key: agweather-pecan-scab
     text: 'AgWeather. Pecan scab hours model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/pecan-scab.md
+  - key: frac-2026
+    text: 'Fungicide Resistance Action Committee. FRAC Code List 2026: Fungal Control Agents Sorted by Cross-Resistance Pattern and Mode of Action. CropLife International, 2026.'
+    url: https://www.frac.info/media/s1zfrjqa/frac-code-list-2026.pdf
 ---
 
 Pecan scab is a disease of pecan caused by the fungus _Venturia effusa_, which older publications call _Cladosporium caryigenum_. It is the most damaging disease of pecans in the southeastern United States and across most of the crop's range.[^standish-2021][^osu-epp7642] It infects young leaves, green twigs and nut shucks in wet weather, and it can cost a susceptible variety most of its crop.[^msu-p3966][^uada-scab] AgWeather's model for it runs only in the southern pecan-growing states, not in Wisconsin.
@@ -71,8 +74,8 @@ Scab can strip leaves, slow shoot growth and destroy nuts; a severe outbreak can
 
 **Fungicides** protect healthy tissue rather than cure infections, so apply them before or shortly after wet periods.[^msu-p3966][^osu-epp7642] In Oklahoma, a dry season may need only two or three sprays and a wet one as many as six.[^osu-epp7642] In Georgia's humid climate, sprays go on every 10 to 14 days before pollination and every 10 to 21 days after it, depending on the weather, and continue through the summer.[^uga-c1174]
 
-- **Classes used** include demethylation inhibitors (DMIs, FRAC group 3; propiconazole), a quinone outside inhibitor with a succinate dehydrogenase inhibitor (QoI and SDHI, groups 11 and 7; pyraclostrobin and boscalid), phosphorous acid (group P07) and ziram (group M04). Ziram gives fair to good control with a low risk of resistance; sulfur generally controls scab poorly.[^msu-p3966]
-- **Resistance** is a serious problem. Since the 1970s, the fungus has become resistant or less sensitive to benzimidazoles, DMIs, QoIs, organotin fungicides and guanidines.[^standish-2021] Rotate FRAC groups from spray to spray; products that combine two groups lower the risk further.[^msu-p3966]
+- **Classes used** include demethylation inhibitors (DMIs, FRAC group 3; propiconazole), a quinone outside inhibitor with a succinate dehydrogenase inhibitor (QoI and SDHI, groups 11 and 7; pyraclostrobin and boscalid), phosphorous acid (group P07) and ziram (group M03). Ziram gives fair to good control with a low risk of resistance; sulfur (group M02) generally controls scab poorly.[^msu-p3966][^frac-2026]
+- **Resistance** is a serious problem. Since the 1970s, the fungus has become resistant or less sensitive to benzimidazoles (FRAC group 1), DMIs (group 3), QoIs (group 11), organotin fungicides (group 30) and guanidines (group U12).[^standish-2021][^frac-2026] Rotate FRAC groups from spray to spray; products that combine two groups lower the risk further.[^msu-p3966]
 - **Home trees:** spraying a tall tree well takes orchard equipment, so a fungicide program is rarely practical for a homeowner. Choose resistant varieties suited to your area, and give trees sun and airflow.[^msu-p3966]
 
 For products and current registrations, see your state's pecan spray guide, such as the [Arkansas Plant Disease Control Products Guide](https://uaex.uada.edu/publications/mp-154.aspx) (MP154). Oklahoma State's [pecan diseases fact sheet](https://pods.okstate.edu/fact-sheets/EPP-7642pod2013.pdf) and the Oklahoma Mesonet's [Pecan Scab Advisor](https://www.mesonet.org/agriculture/horticulture/pecan/pecan-scab-advisor) explain spray timing in more detail; for home trees, see Mississippi State's [pecan scab publication](https://extension.msstate.edu/publications/pecan-scab-the-home-landscape).

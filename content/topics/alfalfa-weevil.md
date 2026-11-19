@@ -29,6 +29,9 @@ sources:
   - key: agweather-alfalfa-weevil
     text: 'AgWeather. Alfalfa weevil model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/alfalfa-weevil.md
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The alfalfa weevil (_Hypera postica_) is a small snout beetle and one of the main insect pests of alfalfa in Wisconsin. Its larvae feed on the growing tips of the first crop in spring, and in heavy years they can strip plants, cut yield and lower forage quality.[^bick-2025][^a3646-2025] Timely cutting controls it in most fields, so scouting is about deciding whether a field can wait for harvest.
@@ -68,7 +71,7 @@ Minnesota reports a western strain of the weevil that develops 1 to 2 weeks late
 - **Timely cutting** is often the best control. Cutting with a mower conditioner kills many larvae. Some survive under the windrows and feed on the regrowth, so check the stubble.[^bick-2025][^hanson-potter-2023]
 - **Natural enemies**, including parasitic wasps and predatory beetles, help keep weevil numbers down. Insecticides kill them too, so use insecticides only when a field passes the threshold.[^bick-2025]
 
-**Insecticides** are applied to the standing crop when tip feeding passes the threshold. Groups used against the weevil include carbamates (IRAC group 1A; carbaryl, methomyl), organophosphates (group 1B; malathion, phosmet), pyrethroids (group 3A) and indoxacarb (group 22). Spinosad (group 5) is an organic option but gives only partial control. Carbaryl can burn regrowth if applied after cutting, and group 1B products work better in mixtures than alone.[^bick-2025][^hanson-potter-2023] Weevils have become resistant to insecticides where the same ones are used often. Pyrethroid resistance has been confirmed in western states, and reports of control failures in Minnesota have raised concern there. Rotate groups, and if a treatment seems to fail, don't follow it with the same group.[^bick-2025][^hanson-potter-2023]
+**Insecticides** are applied to the standing crop when tip feeding passes the threshold. Groups used against the weevil include carbamates (IRAC group 1A; carbaryl, methomyl), organophosphates (group 1B; malathion, phosmet), pyrethroids (group 3A) and indoxacarb (group 22A). Spinosad (group 5) is an organic option but gives only partial control. Carbaryl can burn regrowth if applied after cutting, and group 1B products work better in mixtures than alone.[^bick-2025][^hanson-potter-2023][^irac-moa] Weevils have become resistant to insecticides where the same ones are used often. Pyrethroid resistance has been confirmed in western states, and reports of control failures in Minnesota have raised concern there. Rotate groups, and if a treatment seems to fail, don't follow it with the same group.[^bick-2025][^hanson-potter-2023]
 
 For products and current registrations, see UW–Madison's [Pest Management in Wisconsin Field Crops (A3646)](https://cropsandsoils.extension.wisc.edu/files/2025/01/A3646_2025_web.pdf). UW–Madison's [Managing Alfalfa Weevil in Wisconsin Alfalfa Fields](https://cropsandsoils.extension.wisc.edu/articles/managing-alfalfa-weevil-in-wisconsin-alfalfa-fields) and the University of Minnesota's [alfalfa weevil recommendations](https://blog-crop-news.extension.umn.edu/2023/05/updated-alfalfa-weevil-management.html) explain scouting and treatment in more detail.
 

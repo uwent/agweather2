@@ -9,7 +9,7 @@ summary: A pink ear mold of corn that infects through the silks and produces deo
 image: images/gibberella-ear-rot.jpg
 image_credit: 'Pink mold of Gibberella ear rot at the tip of a corn ear. Photo by Scot Nelson, via Wikimedia Commons (File:Gibberella ear rot (Gibberella zeae) on Corn (Zea mays) at Waimea, Hawaii.jpg), CC0 1.0 (public domain dedication); resized.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: a3646-2025
     text: 'Dewerff, R., E. Bick, P. J. Liesch, G. Nice, M. Renz, D. Smith, R. Werle and J. Kampa. Pest Management in Wisconsin Field Crops (A3646). UW–Madison Division of Extension, 2025.'
@@ -47,6 +47,9 @@ sources:
   - key: agweather-don
     text: 'AgWeather. Gibberella ear rot DON model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/gibberella-ear-rot-don.md
+  - key: frac-2026
+    text: 'Fungicide Resistance Action Committee. FRAC Code List 2026: Fungal Control Agents Sorted by Cross-Resistance Pattern and Mode of Action. CropLife International, 2026.'
+    url: https://www.frac.info/media/s1zfrjqa/frac-code-list-2026.pdf
 ---
 
 Gibberella ear rot is a disease of corn ears caused by the fungus _Fusarium graminearum_, also known by the name of its sexual stage, _Gibberella zeae_. With Fusarium ear rot, it is one of the two most common ear rots in Wisconsin.[^a3646-2025] The fungus produces toxins in the grain, chiefly deoxynivalenol (DON, also called vomitoxin) and zearalenone, which harm livestock.[^woloshuk-2010][^cpn-ger][^cpn-mycotoxin-2025] The same fungus causes Gibberella stalk rot of corn and Fusarium head blight (scab) of wheat.[^webster-2021][^woloshuk-2010]
@@ -93,7 +96,7 @@ How moldy the ears look is a poor guide to the toxin. Fields with little visible
 
 - **Timing:** apply in early to mid R1, when most of the field is silking but before the first silks turn brown. Once silks have dried and browned, a fungicide does little; in Ohio State's research, an application 11 days after full silking left as much DON as no spray. If weather threatens to delay you, spraying a little early is better than late.[^hartschuh-2026]
 - **Classes:** products labeled to suppress Gibberella ear rot and DON include demethylation inhibitors (DMIs, FRAC group 3) such as prothioconazole, alone or in premixes.[^hartschuh-2026][^webster-2021][^cpn-efficacy-2026]
-- **Results vary:** in Wisconsin silage trials, prothioconazole and a premix of pyraclostrobin and metconazole applied at silking reduced leaf disease but lowered DON inconsistently.[^webster-2021] A fungicide supports, but doesn't replace, resistant hybrids and testing.
+- **Results vary:** in Wisconsin silage trials, prothioconazole and a premix of pyraclostrobin (a QoI, group 11) and metconazole (a DMI, group 3) applied at silking reduced leaf disease but lowered DON inconsistently.[^webster-2021][^frac-2026] A fungicide supports, but doesn't replace, resistant hybrids and testing.
 
 For products and current registrations, see UW–Madison's [Pest Management in Wisconsin Field Crops (A3646)](https://cropsandsoils.extension.wisc.edu/files/2025/01/A3646_2025_web.pdf). Ohio State's [vomitoxin management article](https://agcrops.osu.edu/newsletter/corn-newsletter/2026-23/vomitoxin-management-and-corn-fungicide-decisions-during) and the Crop Protection Network's [Corn Mycotoxin FAQs](https://cropprotectionnetwork.org/publications/mycotoxin-faqs) and [sampling and testing guide](https://cropprotectionnetwork.org/publications/grain-and-silage-sampling-and-mycotoxin-testing) explain the choices in more detail.
 

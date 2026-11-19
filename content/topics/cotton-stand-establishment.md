@@ -38,6 +38,9 @@ sources:
   - key: agweather-cotton-planting
     text: 'AgWeather. Cotton planting stand risk model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/cotton-planting.md
+  - key: frac-2026
+    text: 'Fungicide Resistance Action Committee. FRAC Code List 2026: Fungal Control Agents Sorted by Cross-Resistance Pattern and Mode of Action. CropLife International, 2026.'
+    url: https://www.frac.info/media/s1zfrjqa/frac-code-list-2026.pdf
 ---
 
 Cotton (_Gossypium hirsutum_) is grown across the southern United States, from Virginia to California, and planted in spring. A field's yield starts with its stand: enough seedlings coming up evenly after planting. Cold soil, rain soon after planting and the seedling diseases they favor are the main weather risks to a stand, and a poor one may have to be replanted.[^msstate-soil][^rothrock-2012] This page explains how weather affects stand establishment and how growers time planting around it. Cotton isn't grown in Wisconsin; AgWeather's model for it serves the cotton states.
@@ -60,7 +63,7 @@ Cotton makes up for thin stands well. A synthesis of population studies found th
 - Mississippi: a seedbed at least 68 °F at 2 inches, with dry weather and at least 50 DD60s expected over the next five days.[^msstate-soil]
 - North Carolina: 65 °F or more at 10 a.m. is the target, though there's no hard rule. Knowing your seed's cool germination test result, seed size, planting depth, soil moisture and drainage helps you judge how much risk to take.[^edmisten-2021]
 
-**Use good seed and fungicide seed treatments.** Plant high-quality seed with a strong germination rate.[^faske-2023][^whitaker-2019] In those trials, fungicide seed treatments improved stands in more than half of the trials; metalaxyl, which controls _Pythium_, and PCNB, which controls _Rhizoctonia_, each helped in many of them, and newer azoxystrobin and triazole treatments improved on the old standard.[^rothrock-2012] PCNB doesn't control _Pythium_, and metalaxyl, mefenoxam and etridiazole don't control _Rhizoctonia_, so seed is treated with more than one fungicide. In Georgia, all commercial seed comes with at least two.[^whitaker-2019]
+**Use good seed and fungicide seed treatments.** Plant high-quality seed with a strong germination rate.[^faske-2023][^whitaker-2019] In those trials, fungicide seed treatments improved stands in more than half of the trials; metalaxyl (FRAC group 4), which controls _Pythium_, and PCNB (group 14), which controls _Rhizoctonia_, each helped in many of them, and newer azoxystrobin (group 11) and triazole (group 3) treatments improved on the old standard.[^rothrock-2012][^frac-2026] PCNB doesn't control _Pythium_, and metalaxyl, mefenoxam (group 4) and etridiazole (group 14) don't control _Rhizoctonia_, so seed is treated with more than one fungicide. In Georgia, all commercial seed comes with at least two.[^whitaker-2019]
 
 **Add protection where the risk is high.** Extra seed treatments or an in-furrow fungicide are worth considering in fields with a history of seedling disease, when cool, wet weather is likely after planting, with poor seed or low seeding rates, and in conservation tillage, though yield benefits have been hard to show in trials, so they aren't needed in every field.[^whitaker-2019] Raised beds warm and drain the soil, which helps against _Pythium_.[^faske-2023]
 

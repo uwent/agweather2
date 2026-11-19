@@ -9,7 +9,7 @@ summary: A fungal disease that spots and kills onion leaves after long wet perio
 image: images/onion-botrytis-leaf-blight.jpg
 image_credit: 'Botrytis leaf blight spots on onion leaves. Photo by David B. Langston, University of Georgia, Bugwood.org (image 5076070), CC BY 3.0 US.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: vegpath-onion
     text: 'Onion Botrytis Leaf Spot/Leaf Blight. UW Vegetable Pathology (Gevens lab), UW–Madison, updated 2026.'
@@ -35,6 +35,9 @@ sources:
   - key: sutton-1986
     text: 'Sutton, J. C., T. D. W. James and P. M. Rowell. BOTCAST: a forecasting system to time the initial fungicide spray for managing botrytis leaf blight of onions. Agriculture, Ecosystems and Environment 18:123–143, 1986.'
     url: https://doi.org/10.1016/0167-8809(86)90136-2
+  - key: frac-2026
+    text: 'Fungicide Resistance Action Committee. FRAC Code List 2026: Fungal Control Agents Sorted by Cross-Resistance Pattern and Mode of Action. CropLife International, 2026.'
+    url: https://www.frac.info/media/s1zfrjqa/frac-code-list-2026.pdf
 ---
 
 Botrytis leaf blight, also called Botrytis leaf spot or blast, is a disease of onion and other alliums caused by the fungus _Botrytis squamosa_.[^vegpath-onion][^a3803-2004] It is a common leaf disease in the onion-growing regions of the eastern and Midwestern states, and it favors long wet periods in mild weather.[^latin-2001]
@@ -74,7 +77,7 @@ No onion varieties are fully resistant, and these steps only partly control the 
 
 **Fungicides** can be timed by scouting and a forecast rather than on a fixed schedule, which can save unneeded sprays.[^vegpath-onion][^aafc-2021]
 
-- **Protectants** such as chlorothalonil (FRAC group M5) and mancozeb (group M3) are sprayed every 7 to 10 days, more often in weather that favors the disease.[^a3422-2026]
+- **Protectants** such as chlorothalonil (FRAC group M05) and mancozeb (group M03) are sprayed every 7 to 10 days, more often in weather that favors the disease.[^a3422-2026][^frac-2026]
 - **Single-site fungicides** include iprodione (group 2), boscalid (group 7), pyrimethanil and cyprodinil (group 9, cyprodinil also mixed with fludioxonil, group 12), fluazinam (group 29), and strobilurins such as azoxystrobin and pyraclostrobin (group 11), often sold mixed with a fungicide from another group.[^a3422-2026] Fungicides aimed at _Botrytis_ are prone to resistance, so rotate groups and limit repeat sprays from one group.[^swett-2019][^a3422-2026] Strains resistant to iprodione have been found in onion fields in Quebec.[^aafc-2021]
 
 For products and current registrations, see UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/). UW Vegetable Pathology's [onion Botrytis page](https://vegpath.plantpath.wisc.edu/diseases/onion-botrytis/) and Purdue's [onion disease guide](https://www.extension.purdue.edu/extmedia/bp/bp-23-w.html) explain the choices in more detail; for home gardens, UW–Madison's [home vegetable garden fungicides fact sheet](https://pddc.wisc.edu/2015/07/24/home-vegetable-garden-fungicides/) lists the active ingredients for onion leaf blight.[^d0062-2026]

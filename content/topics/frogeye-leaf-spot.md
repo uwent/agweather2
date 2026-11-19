@@ -9,7 +9,7 @@ summary: A fungal leaf spot of soybean, favored by warm, humid weather, that has
 image: images/frogeye-leaf-spot.jpg
 image_credit: 'Frogeye leaf spots, with pale centers and dark reddish borders, on a soybean leaf in Iowa. Photo by Daren Mueller, Iowa State University, Bugwood.org (image 5625040), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/).'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: bradley-2016
     text: 'Bradley, C., M. Chilvers, A. Freije and others. An Overview of Frogeye Leaf Spot (CPN-1017). Crop Protection Network, 2016.'
@@ -32,6 +32,12 @@ sources:
   - key: agweather-frogeye
     text: 'AgWeather. Frogeye leaf spot model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/frogeye-leaf-spot.md
+  - key: wssa-hrac
+    text: 'Global Herbicide Resistance Action Committee. HRAC Mode of Action Classification 2026. HRAC, 2026.'
+    url: https://hracglobal.com/tools/2026-hrac-global-herbicide-moa-classification
+  - key: take-action-herbicides
+    text: 'Take Action. Herbicide Classification Chart, 2027 edition (site of action groups as numbered by the Weed Science Society of America). United Soybean Board, 2026.'
+    url: https://growiwm.org/wp-content/uploads/2026/11/2027-Herbicide-Classification-Poster-GROW-2026-Nov-16.pdf
 ---
 
 Frogeye leaf spot is a leaf disease of soybean caused by the fungus _Cercospora sojina_. It occurs across the United States and in Ontario, Canada. Long a disease of the South, it has been reported as far north as southern Wisconsin, and UW–Madison's field crops guide notes that it is becoming more common in the state. Hot, humid weather favors it.[^bradley-2016][^malvick-2018][^a3646-2025]
@@ -42,7 +48,7 @@ Frogeye leaf spot is a leaf disease of soybean caused by the fungus _Cercospora 
 - **Old spots:** the centers may turn white or fall out, leaving a shot-hole look.[^malvick-2018]
 - **Where:** young leaves are the most susceptible, so spots usually show in the upper canopy.[^bradley-2016]
 - **Stems, pods and seed:** stem lesions are long and hard to recognize late in the season; pod lesions are oblong and look like the leaf spots. Infected seed can turn light purple to gray, or show nothing.[^bradley-2016]
-- **Look-alikes:** Phyllosticta leaf spot and injury from PPO herbicides or paraquat can look similar. If you aren't sure, send a sample to a plant disease lab.[^stoetzer-2018]
+- **Look-alikes:** Phyllosticta leaf spot and injury from PPO-inhibiting herbicides (WSSA group 14) or paraquat (group 22) can look similar. If you aren't sure, send a sample to a plant disease lab.[^stoetzer-2018][^wssa-hrac][^take-action-herbicides]
 
 ## Life cycle
 

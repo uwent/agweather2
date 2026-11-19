@@ -17,7 +17,7 @@ summary: A moth that migrates into Wisconsin from the south each summer; its gre
 image: images/cabbage-looper.jpg
 image_credit: 'Cabbage looper caterpillar on a damaged leaf. Photo by Alton N. Sparks, Jr., University of Georgia, Bugwood.org (image 1327034), via Wikimedia Commons (File:Trichoplusia ni larva.jpg), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/).'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cabbage Looper. Updated 2026.'
@@ -40,6 +40,9 @@ sources:
   - key: agweather-cabbage-looper
     text: 'AgWeather. Cabbage looper model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/cabbage-looper.md
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The cabbage looper (_Trichoplusia ni_) is a moth whose caterpillars feed on cabbage, broccoli, Brussels sprouts, cauliflower and the other cole crops, and also on beets, celery, lettuce, peas, potatoes, spinach and tomatoes.[^uw-hort] Commercial Vegetable Production in Wisconsin lists loopers among the insects to control in celery, hops, leafy greens, melon, mint, pea, potato and tomato as well as cole crops.[^a3422-2026] With the [imported cabbageworm](/topics/imported-cabbageworm) and the diamondback moth, it is one of the three main caterpillar pests of Wisconsin cole crops, which growers scout for together.[^uw-vegento][^a3422-2026] It can't survive winters in the upper Midwest; each year's loopers arrive as moths migrating from the south.[^umn-caterpillars][^uw-hort]
@@ -79,7 +82,7 @@ Caterpillars feed between the veins, often on the undersides of lower leaves, an
 - **Sanitation:** turn under crop residue after harvest, rotate cole crops between fields and remove mustard-family weeds.[^uw-vegento][^umn-caterpillars]
 - **Row covers or netting** keep moths from laying eggs in small plantings.[^uw-hort][^mwvg-2026]
 
-**Insecticides** work best on small caterpillars, with good coverage of the leaves.[^uw-hort][^umn-caterpillars] Selective products spare natural enemies: _Bacillus thuringiensis_ (Bt; IRAC group 11) subspecies _kurstaki_ or _aizawai_, spinosyns (group 5; spinosad, which is listed for organic production, and spinetoram) and insect growth regulators (group 18; methoxyfenozide, tebufenozide).[^uw-hort][^a3422-2026][^mwvg-2026] Other classes listed for the caterpillar complex include diamides (group 28; chlorantraniliprole, cyantraniliprole), avermectins (group 6; emamectin benzoate), indoxacarb (group 22) and pyrethroids (group 3), which also kill natural enemies.[^a3422-2026][^umn-caterpillars] Resistance is a concern with all caterpillars on cole crops, so rotate classes.[^uw-hort]
+**Insecticides** work best on small caterpillars, with good coverage of the leaves.[^uw-hort][^umn-caterpillars] Selective products spare natural enemies: _Bacillus thuringiensis_ (Bt; IRAC group 11A) subspecies _kurstaki_ or _aizawai_, spinosyns (group 5; spinosad, which is listed for organic production, and spinetoram) and insect growth regulators (group 18; methoxyfenozide, tebufenozide).[^uw-hort][^a3422-2026][^mwvg-2026] Other classes listed for the caterpillar complex include diamides (group 28; chlorantraniliprole, cyantraniliprole), avermectins (group 6; emamectin benzoate), indoxacarb (group 22A) and pyrethroids (group 3A), which also kill natural enemies.[^a3422-2026][^umn-caterpillars][^irac-moa] Resistance is a concern with all caterpillars on cole crops, so rotate classes.[^uw-hort]
 
 For products, rates and current registrations, see UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/), or in neighboring states the [Midwest Vegetable Production Guide](https://mwveguide.org/guide). UW Vegetable Entomology's [cabbage looper page](https://vegento.russell.wisc.edu/pests/cabbage-looper/) and the University of Minnesota's [caterpillars on cole crops page](https://extension.umn.edu/yard-and-garden-insects/caterpillars-cole-crops) explain the choices in more detail; for home gardens, see UW–Madison's [cabbage looper fact sheet](https://hort.extension.wisc.edu/articles/cabbage-looper/).
 

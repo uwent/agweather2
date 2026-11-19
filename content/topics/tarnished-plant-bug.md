@@ -47,6 +47,9 @@ sources:
   - key: midwest-guide-2026
     text: 'Midwest Fruit Pest Management Guide 2026–2027 (ID-465). Purdue Extension and partner universities, 2026.'
     url: https://edustore.purdue.edu/id-465-w.html
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The tarnished plant bug (_Lygus lineolaris_), also called the lygus bug, is a small plant bug with piercing, sucking mouthparts. It feeds on more than 50 crops. In Wisconsin it does the most harm to strawberries, peppers, tomatoes and beans,[^uw-vegento-tpb] and it also damages celery, lettuce, raspberries and other fruits and vegetables.[^umass-veg-tpb][^umass-brambles] Penn State counts 385 host plants, 130 of them of economic importance.[^psu-tpb]
@@ -90,7 +93,7 @@ The bugs inject a toxic saliva as they feed, which leads to poor fruit set and m
 - **Early varieties:** strawberries that flower early can escape the worst damage.[^uw-fruit-tpb]
 - **Natural enemies,** such as lady beetles, spined soldier bugs and insidious flower bugs, eat nymphs. A parasitic wasp released against the bug in the Northeast can kill up to half of them, but it doesn't keep numbers low enough to prevent damage in key crops.[^umass-veg-tpb]
 
-**Insecticides** work better on nymphs than on adults, and none reach the eggs inside the plant.[^uw-fruit-tpb][^ncsu-tpb][^psu-tpb] Apply them promptly once a threshold is reached.[^uw-fruit-tpb] The New England raspberry guide rates pyrethroids (IRAC group 3A, such as bifenthrin and fenpropathrin) excellent against the bug, and the neonicotinoids thiamethoxam and acetamiprid (group 4A) and the carbamate carbaryl (group 1A) good. Rotate IRAC groups rather than repeat one mode of action, to slow resistance.[^umass-brambles] Pyrethroids and carbamates are also labeled on lettuce, and pyrethrins are an option for organic growers.[^umass-veg-tpb] In raspberries, sprays go on before bloom and again after petal fall. Don't spray insecticides during bloom.[^umass-brambles][^umass-veg-tpb]
+**Insecticides** work better on nymphs than on adults, and none reach the eggs inside the plant.[^uw-fruit-tpb][^ncsu-tpb][^psu-tpb] Apply them promptly once a threshold is reached.[^uw-fruit-tpb] The New England raspberry guide rates pyrethroids (IRAC group 3A, such as bifenthrin and fenpropathrin) excellent against the bug, and the neonicotinoids thiamethoxam and acetamiprid (group 4A) and the carbamate carbaryl (group 1A) good. Rotate IRAC groups rather than repeat one mode of action, to slow resistance.[^umass-brambles] Pyrethroids and carbamates are also labeled on lettuce, and pyrethrins (group 3A) are an option for organic growers.[^umass-veg-tpb][^irac-moa] In raspberries, sprays go on before bloom and again after petal fall. Don't spray insecticides during bloom.[^umass-brambles][^umass-veg-tpb]
 
 For products and current registrations in Wisconsin, see [Commercial Vegetable Production in Wisconsin](https://vegpath.plantpath.wisc.edu/resources/a3422/) (A3422) for vegetables and the [Midwest Fruit Pest Management Guide](https://edustore.purdue.edu/id-465-w.html) for fruit; in neighboring states, the [Midwest Vegetable Production Guide](https://mwveguide.org/guide). See also UW–Madison Vegetable Entomology's [tarnished plant bug page](https://vegento.russell.wisc.edu/pests/tarnished-plant-bug/), UW–Madison's [strawberry article](https://fruit.wisc.edu/2018/05/18/tarnished-plant-bug-a-strawberry-menace/) and Penn State's [tarnished plant bug page](https://extension.psu.edu/tarnished-plant-bug).
 

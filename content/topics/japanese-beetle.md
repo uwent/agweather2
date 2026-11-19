@@ -25,7 +25,7 @@ summary: A metallic green and copper beetle whose adults skeletonize the leaves 
 image: images/japanese-beetle.jpg
 image_credit: 'Japanese beetle adult on a clover flower. Photo by Bruce Marlin, via Wikimedia Commons (File:Popillia japonica.jpg), CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/); resized.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: uw-vegento-jb
     text: 'Japanese Beetle. UW–Madison Vegetable Entomology, updated 2026.'
@@ -57,6 +57,9 @@ sources:
   - key: agweather-jb
     text: 'AgWeather. Japanese beetle model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/japanese-beetle.md
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The Japanese beetle (_Popillia japonica_) is a scarab beetle native to Japan. It was first found in the United States in New Jersey in 1916 and has spread west since.[^uw-hort-jb][^umn-jb] Adults feed on the leaves and flowers of more than 300 kinds of plants, including fruits, vegetables, ornamentals and field crops. The grubs feed on the roots of turf and other grasses. In Wisconsin it is a destructive pest in many areas, and adults are usually active from July.[^uw-hort-jb][^uw-vegento-jb]
@@ -95,7 +98,7 @@ Well-established plants can tolerate a good deal of leaf feeding. Severe feeding
 - **Harvesting often** during July and August reduces feeding on the parts you sell.[^umn-jb]
 - **Natural enemies:** the fly _Istocheta aldrichi_, which lays white eggs on adult beetles, and the wasp _Tiphia vernalis_, which attacks grubs, have been released in Minnesota. Leave beetles with white eggs on their backs alone.[^umn-jb]
 
-**Insecticides** for adults protect the leaves, flowers and fruit they cover. Treat foliage thoroughly; spraying in the afternoon, when beetles are most active, gives the best control.[^uw-vegento-jb] Pyrethroids (IRAC group 3A; such as bifenthrin and lambda-cyhalothrin) protect foliage for about two weeks but are toxic to bees and other pollinators. Chlorantraniliprole (a diamide, group 28) is a reduced-risk choice that lasts two to four weeks. For organic production, _Bacillus thuringiensis_ subspecies _galleriae_ and azadirachtin have little effect on beneficial insects; apply them late in the evening, after bees stop foraging. Carbaryl gives one to two weeks of protection but is toxic to bees. Insecticidal soaps and oils do little against Japanese beetles.[^uw-hort-jb][^umn-jb][^uw-vegento-cpb-management] Don't spray insecticides toxic to bees on plants in bloom; wait until flowering is over.[^umn-jb]
+**Insecticides** for adults protect the leaves, flowers and fruit they cover. Treat foliage thoroughly; spraying in the afternoon, when beetles are most active, gives the best control.[^uw-vegento-jb] Pyrethroids (IRAC group 3A; such as bifenthrin and lambda-cyhalothrin) protect foliage for about two weeks but are toxic to bees and other pollinators. Chlorantraniliprole (a diamide, group 28) is a reduced-risk choice that lasts two to four weeks. For organic production, _Bacillus thuringiensis_ subspecies _galleriae_ (group 11A) and azadirachtin (group UN, mode of action uncertain) have little effect on beneficial insects; apply them late in the evening, after bees stop foraging. Carbaryl (a carbamate, group 1A) gives one to two weeks of protection but is toxic to bees. Insecticidal soaps and oils do little against Japanese beetles.[^uw-hort-jb][^umn-jb][^uw-vegento-cpb-management][^irac-moa] Don't spray insecticides toxic to bees on plants in bloom; wait until flowering is over.[^umn-jb]
 
 For products and current registrations in Wisconsin, see [Commercial Vegetable Production in Wisconsin](https://vegpath.plantpath.wisc.edu/resources/a3422/) (A3422); in neighboring states, the [Midwest Vegetable Production Guide](https://mwveguide.org/guide). See also UW–Madison Vegetable Entomology's [Japanese beetle page](https://vegento.russell.wisc.edu/pests/japanese-beetle/) and the University of Minnesota's [Japanese beetle page](https://extension.umn.edu/yard-and-garden-insects/japanese-beetles); for home gardens and lawns, see UW–Madison's [Japanese beetle article](https://hort.extension.wisc.edu/articles/japanese-beetle/).
 

@@ -29,6 +29,9 @@ sources:
   - key: agweather-mint-root-borer
     text: 'AgWeather. Mint root borer model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/mint-root-borer.md
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The mint root borer (_Fumibotys fumalis_, also listed as _Pyrausta fumalis_) is a small moth whose caterpillars feed inside the rhizomes and on the roots of peppermint and spearmint. Where it builds up, it can severely thin mint stands.[^pnw] It is a recognized pest in most mint-growing areas, and UW–Madison's Vegetable Entomology lab lists a degree-day model for it among Wisconsin's vegetable insects.[^pnw][^uw-vegento-models] In Wisconsin, where mint is grown on muck and other high-organic soils or on fine-textured soils, the pest is little studied: Commercial Vegetable Production in Wisconsin doesn't list it among the insects of mint, and most guidance comes from the Pacific Northwest.[^uw-vegento-crops][^a3422-2026][^pnw]
@@ -57,7 +60,7 @@ The larvae tunnel in the rhizomes and feed on the roots, which can severely thin
 
 **Field practices:** Wisconsin growers usually plow mint shallowly once the first killing frost has come, partly to control pests that would otherwise survive the winter on the stubble, and mint is grown in short rotations of about three years in mint and three in another crop.[^uw-vegento-crops] We found no measure of how much they reduce mint root borer.
 
-**Insecticides:** the Pacific Northwest handbook lists a diamide (IRAC group 28; chlorantraniliprole, which may be applied through irrigation water), a diamide and neonicotinoid premix (groups 28 and 4A), azadirachtin, with some formulations allowed in organic production, and an organophosphate soil treatment (group 1B; ethoprop) applied once, before planting or after the last harvest, and worked into the soil.[^pnw] Check that any product is registered for mint in Wisconsin before you use it.
+**Insecticides:** the Pacific Northwest handbook lists a diamide (IRAC group 28; chlorantraniliprole, which may be applied through irrigation water), a diamide and neonicotinoid premix (groups 28 and 4A), azadirachtin (group UN, mode of action uncertain), with some formulations allowed in organic production, and an organophosphate soil treatment (group 1B; ethoprop) applied once, before planting or after the last harvest, and worked into the soil.[^pnw][^irac-moa] Check that any product is registered for mint in Wisconsin before you use it.
 
 For products, rates and current registrations, see the Pacific Northwest Insect Management Handbook's [mint root borer page](https://pnwhandbooks.org/insect/agronomic/mint/mint-mint-root-borer); for other insects of mint in Wisconsin, see UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/). UW Vegetable Entomology's [Pests by Crop](https://vegento.russell.wisc.edu/crops/) covers mint growing in Wisconsin, and its [Predictive Modeling](https://vegento.russell.wisc.edu/ipm/predictive-modeling/) page lists the mint root borer's degree-day settings.
 

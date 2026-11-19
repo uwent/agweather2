@@ -9,7 +9,7 @@ summary: A bacterial disease that kills apple and pear blossoms, shoots and some
 image: images/fire-blight.jpg
 image_credit: 'A Gala apple branch with scorched leaves after a severe fire blight infection. Photo by Peggy Greb, USDA Agricultural Research Service (image K10805-2), public domain; via Wikimedia Commons (File:Severe fire blight infection on apples.jpg); resized.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: joy-2026
     text: 'Joy, A. and B. Hudelson. Fire Blight (UW Plant Disease Facts D0052). UW–Madison Plant Pathology, revised 2026.'
@@ -26,6 +26,9 @@ sources:
   - key: midwest-guide-2026
     text: 'Midwest Fruit Pest Management Guide 2026–2027 (ID-465). Purdue Extension and partner universities, 2026.'
     url: https://edustore.purdue.edu/id-465-w.html
+  - key: frac-2026
+    text: 'Fungicide Resistance Action Committee. FRAC Code List 2026: Fungal Control Agents Sorted by Cross-Resistance Pattern and Mode of Action. CropLife International, 2026.'
+    url: https://www.frac.info/media/s1zfrjqa/frac-code-list-2026.pdf
 ---
 
 Fire blight is a disease caused by the bacterium _Erwinia amylovora_. It is the most destructive bacterial disease of the rose family and one of the most damaging diseases of apple and pear. It also infects crabapple, quince, hawthorn, mountain-ash, cotoneaster, firethorn and other relatives. It can kill blossoms, shoots, branches and whole trees.[^joy-2026][^wallis-2024]
@@ -66,10 +69,10 @@ Blighted blossoms and fruitlets are lost from the current crop. Shoot blight and
 
 **Sprays** protect but don't cure:
 
-- **Copper** at late dormant or early bloom reduces the bacteria on the tree's surfaces. It can russet fruit.[^wallis-2024]
-- **Antibiotics** protect open blossoms. Streptomycin works best applied within about a day before an infection; reapply after heavy rain, when new flowers open, or after a few days of high risk. Kasugamycin is an alternative where streptomycin resistance is a concern, and oxytetracycline is generally less effective. Rotate among them to slow resistance, and use them against shoot blight only after a trauma event such as hail.[^holland-2026][^wallis-2024]
+- **Copper** (FRAC group M01) at late dormant or early bloom reduces the bacteria on the tree's surfaces. It can russet fruit.[^wallis-2024]
+- **Antibiotics** protect open blossoms. Streptomycin (group 25) works best applied within about a day before an infection; reapply after heavy rain, when new flowers open, or after a few days of high risk. Kasugamycin (group 24) is an alternative where streptomycin resistance is a concern, and oxytetracycline (group 41) is generally less effective.[^frac-2026] Rotate among them to slow resistance, and use them against shoot blight only after a trauma event such as hail.[^holland-2026][^wallis-2024]
 - **Prohexadione-calcium**, a plant growth regulator, slows shoot growth and reduces shoot blight.[^wallis-2024]
-- **Organic programs** use biological products containing the yeast-like fungus _Aureobasidium pullulans_ or _Bacillus_ bacteria, sprayed repeatedly during bloom because they wash off, along with copper early in the season.[^holland-2026]
+- **Organic programs** use biological products containing the yeast-like fungus _Aureobasidium pullulans_ or _Bacillus_ bacteria (group BM02), sprayed repeatedly during bloom because they wash off, along with copper early in the season.[^holland-2026][^frac-2026]
 
 For products, timing and current registrations, see the [Midwest Fruit Pest Management Guide](https://edustore.purdue.edu/id-465-w.html). UW–Madison's [Wisconsin apple disease update](https://cropsandsoils.extension.wisc.edu/wisconsin-apple-disease-update-high-risk-conditions-in-wisconsin/) and Cornell's [fire blight fact sheet](https://cals.cornell.edu/integrated-pest-management/outreach-education/fact-sheets/fire-blight-fact-sheet) explain the choices in more detail; for home trees, see UW–Madison's [fire blight fact sheet](https://pddc.wisc.edu/2015/07/23/fire-blight/).
 

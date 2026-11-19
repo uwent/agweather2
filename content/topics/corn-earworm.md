@@ -11,7 +11,7 @@ summary: A migratory moth whose caterpillars feed in the tips of sweet corn ears
 image: images/corn-earworm.jpg
 image_credit: 'Corn earworm caterpillar feeding in the tip of a corn ear. Photo by Cyndy Sims (cyanocorax), via Wikimedia Commons (File:Helicoverpa zea larva.jpg, from Flickr), CC BY-SA 2.0 (https://creativecommons.org/licenses/by-sa/2.0/).'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Corn Earworm. University of Wisconsin–Madison, updated 2026.'
@@ -46,6 +46,9 @@ sources:
   - key: agweather-cew
     text: 'AgWeather. Corn earworm model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/corn-earworm.md
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The corn earworm (_Helicoverpa zea_) is a moth whose caterpillars feed in the tips of corn ears. It does the most harm in fresh-market and processing sweet corn and in seed corn. On tomatoes it is called the tomato fruitworm, and it also feeds on peppers, snap beans and lettuce.[^uw-vegento] Most moths fly in from the south each summer, so the pressure changes a great deal from year to year.[^uw-vegento][^umn-cew]
@@ -81,7 +84,7 @@ Moths fly mostly at night. Females lay up to 1,000 eggs each, singly on fresh si
 - **Planting dates:** mid-season varieties that mature between the June and late-summer flights escape the worst of the damage.[^uw-hort]
 - **Natural enemies:** _Trichogramma_ and other small wasps parasitize eggs, and minute pirate bugs eat them. Buying and releasing them costs too much to pay, but spraying only when needed and avoiding broad-spectrum products conserves the ones already there.[^uw-vegento]
 - **Bt sweet corn** gives a high level of control.[^umn-cew] Corn earworm has become resistant to most Bt proteins, though: only Vip3A has no widespread documented resistance.[^iowa-cew][^owens-2023]
-- **Silk treatments:** _Bacillus thuringiensis_ in vegetable oil, applied to each ear's silks with a hand applicator, can give 80 to 90 % control when well timed and is used in organic production.[^uw-vegento] In home gardens, about 20 drops of mineral oil on the silks inside the ear tip, 3 to 7 days after silks appear, helps protect the ear.[^uw-hort]
+- **Silk treatments:** _Bacillus thuringiensis_ (Bt; IRAC group 11A) in vegetable oil, applied to each ear's silks with a hand applicator, can give 80 to 90 % control when well timed and is used in organic production.[^uw-vegento][^irac-moa] In home gardens, about 20 drops of mineral oil (group UNM, which acts physically) on the silks inside the ear tip, 3 to 7 days after silks appear, helps protect the ear.[^uw-hort]
 
 **Insecticides** must be on the silks when eggs hatch, because caterpillars inside the ear are out of reach. On sweet corn, spray every 3 to 4 days from first silk until the silks brown, with nozzles aimed at the ear zone.[^uw-vegento] Stop when 90 % of silks are brown.[^iowa-2024] Four classes are labeled for silking sweet corn: pyrethroids (IRAC group 3A), spinosyns (group 5; spinosad and spinetoram), diamides (group 28; chlorantraniliprole) and carbamates (group 1A; methomyl).[^owens-2023] Pyrethroid-resistant earworms are well documented in the South and mid-Atlantic and have been found in Iowa, so don't rely on pyrethroids alone, and rotate classes.[^iowa-2024][^owens-2023]
 

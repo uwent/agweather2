@@ -22,7 +22,7 @@ summary: A moth that flies in from the south each spring; its caterpillars cut o
 image: images/black-cutworm.jpg
 image_credit: 'A black cutworm caterpillar beside the corn seedling it cut. Photo by W.M. Hantsbarger, Bugwood.org (image 5361045), via Wikimedia Commons (File:Agrotis ipsilon larva.jpg), CC BY 3.0 US.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cutworms. University of Wisconsin–Madison, updated 2026.'
@@ -54,6 +54,9 @@ sources:
   - key: agweather-bcw
     text: 'AgWeather. Black cutworm model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/black-cutworm.md
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 The black cutworm (_Agrotis ipsilon_) is a moth whose caterpillars cut off young plants at or just below the soil line, often several in one night. It is the most common cutworm pest of corn in Wisconsin.[^a3646-2025] It also attacks vegetables sown from seed, such as beets, carrots, cucumbers, melons, peas, potatoes, snap beans and sweet corn; left alone, it can destroy about a third of a planting.[^uw-vegento] Outbreaks are sporadic, so fields are scouted and treated only where needed.[^iowa-bcw]
@@ -95,7 +98,7 @@ Development follows [degree days](/topics/degree-days) at a base of 50 °F, coun
 
 **Bt corn:** hybrids with the Cry1F or Vip3A protein are labeled for black cutworm. They reduce the risk, but plants can still be cut under heavy pressure.[^umn-bcw][^iowa-bcw]
 
-**Insecticides:** a rescue treatment once scouting finds damage is more reliable than a preventive one, because outbreaks are hard to predict.[^a3646-2025][^iowa-bcw] Pyrethroids (IRAC group 3A, such as bifenthrin and lambda-cyhalothrin), organophosphates, carbamates and diamides (group 28, chlorantraniliprole) all control the caterpillars well; spot-treat isolated patches.[^umn-bcw][^iowa-bcw][^a3646-2025] In hot, dry weather caterpillars stay deeper in the soil, which makes sprays less effective, and incorporating the insecticide can help. Soil insecticides at planting and seed treatments (diamides, high-rate neonicotinoids) help against light to moderate infestations but not heavy ones.[^a3646-2025][^iowa-bcw]
+**Insecticides:** a rescue treatment once scouting finds damage is more reliable than a preventive one, because outbreaks are hard to predict.[^a3646-2025][^iowa-bcw] Pyrethroids (IRAC group 3A, such as bifenthrin and lambda-cyhalothrin), organophosphates (group 1B), carbamates (group 1A) and diamides (group 28, chlorantraniliprole) all control the caterpillars well; spot-treat isolated patches.[^umn-bcw][^iowa-bcw][^a3646-2025][^irac-moa] In hot, dry weather caterpillars stay deeper in the soil, which makes sprays less effective, and incorporating the insecticide can help. Soil insecticides at planting and seed treatments (diamides, group 28, and neonicotinoids at a high rate, group 4A) help against light to moderate infestations but not heavy ones.[^a3646-2025][^iowa-bcw]
 
 For products, rates and current registrations, see UW–Madison's [Pest Management in Wisconsin Field Crops (A3646)](https://cropsandsoils.extension.wisc.edu/files/2025/01/A3646_2025_web.pdf) for field corn and [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/) for vegetables, or in neighboring states the [Midwest Vegetable Production Guide](https://mwveguide.org/guide). UW Vegetable Entomology's [cutworms page](https://vegento.russell.wisc.edu/pests/cutworms/) and Iowa State's [black cutworm page](https://crops.extension.iastate.edu/encyclopedia/black-cutworm) give more detail; for home gardens, see the University of Minnesota's [cutworms page](https://extension.umn.edu/yard-and-garden-insects/cutworms).
 

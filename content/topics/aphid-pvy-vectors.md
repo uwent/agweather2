@@ -9,7 +9,7 @@ summary: Winged aphids spread potato virus Y as they probe potato leaves on thei
 image: images/aphid-pvy-vectors.jpg
 image_credit: 'A winged green peach aphid, one of the most efficient vectors of potato virus Y. Photo by Scott Bauer, USDA Agricultural Research Service, via Wikimedia Commons (File:Myzus persicae.jpg), public domain.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-19
 sources:
   - key: uw-vegento-pvy
     text: 'Potato Virus Y Management. UW–Madison Vegetable Entomology, updated 2026.'
@@ -47,6 +47,9 @@ sources:
   - key: agweather-pvy
     text: 'AgWeather. Aphid PVY vectors model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/aphid-pvy-vectors.md
+  - key: irac-moa
+    text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
+    url: https://irac-online.org/documents/moa-classification/
 ---
 
 Potato virus Y (PVY) is a virus of potato, tomato, pepper, tobacco and other plants in the nightshade family, spread from plant to plant by aphids. It can cut yields in heavily infected fields and susceptible varieties, and some strains cause tuber necrosis, which lowers storage quality.[^uw-vegpath-pvy] It matters most to seed potato growers: Wisconsin's seed lots are certified only if very few plants carry mosaic viruses such as PVY.[^atcp-156]
@@ -86,7 +89,7 @@ Infected seed pieces grow into infected plants, which aphids spread virus from. 
 
 **Mineral oils** (paraffinic oils) discourage aphids from probing and are the main tool against non-colonizing aphids. UW–Madison suggests starting about two weeks after full emergence and spraying weekly through the season. Apply after irrigation, not before, and in the evening if possible to limit leaf injury. Oils must cover new growth and both leaf surfaces to work.[^uw-vegento-pvy][^cornell-management]
 
-**Insecticides** don't stop a winged aphid from passing on PVY: it does so in seconds, before any product acts, and some insecticides make aphids probe more.[^uw-vegento-aphids][^cornell-vectors] Systemic insecticides at planting protect early-generation seed from colonizing aphids but wear off by midseason.[^uw-vegento-pvy] After that, once scouting finds small colonies of wingless aphids, systemic foliar insecticides slow spread within the field. Effective groups include neonicotinoids (IRAC group 4A), sulfoxaflor (4C), flupyradifurone (4D), pymetrozine (9B), afidopyropen (9D), flonicamid (29), spirotetramat (23) and cyantraniliprole (28). Make no more than two applications in a row of one group before rotating. Green peach and melon aphids resist several insecticides, notably organophosphates.[^uw-vegento-pvy][^uw-vegento-aphids]
+**Insecticides** don't stop a winged aphid from passing on PVY: it does so in seconds, before any product acts, and some insecticides make aphids probe more.[^uw-vegento-aphids][^cornell-vectors] Systemic insecticides at planting protect early-generation seed from colonizing aphids but wear off by midseason.[^uw-vegento-pvy] After that, once scouting finds small colonies of wingless aphids, systemic foliar insecticides slow spread within the field. Effective groups include neonicotinoids (IRAC group 4A), sulfoxaflor (4C), flupyradifurone (4D), pymetrozine (9B), afidopyropen (9D), flonicamid (29), spirotetramat (23) and cyantraniliprole (28). Make no more than two applications in a row of one group before rotating. Green peach and melon aphids resist several insecticides, notably organophosphates (group 1B).[^uw-vegento-pvy][^uw-vegento-aphids][^irac-moa]
 
 **Vine kill.** Plant and kill vines early to escape late-season flights. The risk of spread lasts until vine kill.[^cornell-management][^uw-vegento-pvy]
 
