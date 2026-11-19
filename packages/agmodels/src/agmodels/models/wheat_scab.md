@@ -26,7 +26,7 @@ The model is one of the U.S. Fusarium head blight prediction models developed by
 
 The resistance class often sets the level more than the weather does. A susceptible variety turns Moderate when the two-week average humidity reaches about 65 % and High at about 72 % (70 % gives it about 30 %, 80 % about 41 %). A very susceptible variety is High from about 56 %, a moderately resistant one only from about 92 %.
 
-Values are shown from May 1 to July 31, which covers wheat's flowering in Wisconsin: winter wheat flowers first, spring wheat about a month later.
+Values are shown from May 1 to July 31, which covers wheat's flowering in Wisconsin.
 
 ## How to read it
 
