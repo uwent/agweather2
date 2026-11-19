@@ -92,16 +92,18 @@ class LifeStage:
 @dataclass(frozen=True, kw_only=True)
 class FittedStage:
     """A life stage's abundance as fitted to field counts by degree days (°F) from the biofix, all generations at
-    once: the fit's log(count + 1) at each tabulated total, increasing `dd`. Read off by linear interpolation, below 0
-    taken as 0, and past the last total (the end of the data) held at its last value until fall freezes end the
-    season. Its count is the fit back-transformed, exp(fit) − 1: a typical count (a geometric mean, below the
-    arithmetic mean of counts); its activity is that count over the fit's peak count."""
+    once, tabulated at increasing totals `dd`: the fit's log(count + 1) (`transform="log1p"`, a GAM of log counts), or
+    the log of the fitted mean (`"log"`, a log-link GAM of an index). Read off by linear interpolation; before the
+    first total (before the data begin) it's 0; past the last (the end of the data) held at its last value until fall
+    freezes end the season. Its value is the fit back-transformed: exp(fit) − 1, a typical count (a geometric mean,
+    below counts' arithmetic mean), below 0 taken as 0; or exp(fit). Its activity is that value over its peak."""
 
     label: str
-    count_label: str  # what a count is, e.g. "Adults per 25 sweeps"
+    count_label: str  # what a value is, e.g. "Adults per 25 sweeps (typical count)"
     dd: tuple[float, ...]
-    log_count: tuple[float, ...]
+    log_count: tuple[float, ...]  # the fit on its link scale, by `transform`
     weight: float = 1.0
+    transform: Literal["log1p", "log"] = "log1p"
 
     def __post_init__(self):
         if len(self.dd) != len(self.log_count) or len(self.dd) < 2 or np.any(np.diff(self.dd) <= 0):
@@ -363,7 +365,7 @@ class PhenologyModel(InsectModel):
                 for s in i.life_stages
                 for q in (
                     Quantity(name=f"activity_{s.key}", label=f"{s.label} activity", unit="index"),
-                    Quantity(name=f"count_{s.key}", label=f"{s.count_label} (typical count)", unit="index")
+                    Quantity(name=f"count_{s.key}", label=s.count_label, unit="index")
                     if isinstance(s, FittedStage)
                     else Quantity(
                         name=f"generations_{s.key}", label=f"Generations of {s.label.lower()} complete", unit="index"
@@ -549,7 +551,10 @@ def curves(insect: Insect) -> dict[str, np.ndarray]:
     complete: dict[str, list[np.ndarray]] = {}
     for stage in insect.life_stages:
         if isinstance(stage, FittedStage):
-            count = np.expm1(np.maximum(np.interp(dd_grid(), stage.dd, stage.log_count), 0.0))
+            x = dd_grid()
+            fit = np.interp(x, stage.dd, stage.log_count)
+            count = np.expm1(np.maximum(fit, 0.0)) if stage.transform == "log1p" else np.exp(fit)
+            count = np.where(x < stage.dd[0], 0.0, count)  # before the data begin
             tables[f"activity_{stage.key}"] = count / count.max()
             tables[f"count_{stage.key}"] = count
             continue
@@ -639,12 +644,18 @@ def phenology_criteria(insect: Insect) -> str:
 def _fitted_criteria(insect: Insect) -> str:
     upper = "no upper threshold" if insect.upper_f is None else f"upper {insect.upper_f:g} °F"
     stages = [s for s in insect.life_stages if isinstance(s, FittedStage)]
-    peaks = "; ".join(f"{s.label.lower()} peaking at {s.dd[int(np.argmax(s.log_count))]:,g}" for s in stages)
-    weighted = " plus ".join(f"{s.weight:g} × {s.label.lower()}" for s in stages if s.weight) or "none"
+    peaks = "; ".join(f"{_lower(s.label)} peaking at {s.dd[int(np.argmax(s.log_count))]:,g}" for s in stages)
+    weighted = " plus ".join(f"{s.weight:g} × {_lower(s.label)}" for s in stages if s.weight) or "none"
     levels = ", ".join(
         f"{word} from {t:g}" for word, t in zip(SEVERITY_LEVELS[1:], insect.risk_thresholds, strict=True)
     )
-    return f"Single-sine degree days (base {insect.base_f:g} °F, {upper}) since {'January 1' if insect.biofix == '01-01' else 'the biofix'} read each life stage's typical count off a curve fitted to field scouting counts ({peaks}). Activity is a stage's count over its curve's peak; risk is {weighted}: {levels}. After day 250, fall freezes end the season."
+    since = "January 1" if insect.biofix == "01-01" else "the biofix"
+    return f"Single-sine degree days (base {insect.base_f:g} °F, {upper}) since {since} read each stage's value off a curve fitted to field counts ({peaks}). Activity is a stage's value over its curve's peak; risk is {weighted}: {levels}. After day 250, fall freezes end the season."
+
+
+def _lower(label: str) -> str:
+    """A label mid-sentence: its first letter lowercase unless it starts an acronym ("PVY vector pressure")."""
+    return label if label[:2].isupper() else label[:1].lower() + label[1:]
 
 
 def _stage_words(stage: LifeStage | DerivedStage | FittedStage) -> str:

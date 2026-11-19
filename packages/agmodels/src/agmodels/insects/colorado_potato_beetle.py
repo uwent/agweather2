@@ -43,11 +43,14 @@ INSECT = Insect(
     biofix_label="January 1",
     life_stages=(
         _stage(
-            label="Adults and larvae", count_label="Adults and larvae per 25 sweeps", column="adults_larvae", weight=1
+            label="Adults and larvae",
+            count_label="Adults and larvae per 25 sweeps (typical count)",
+            column="adults_larvae",
+            weight=1,
         ),
-        _stage(label="Adults", count_label="Adults per 25 sweeps", column="adults", weight=0),
-        _stage(label="Egg masses", count_label="Egg masses per 10 plants", column="eggs", weight=0),
-        _stage(label="Larvae", count_label="Larvae per 25 sweeps", column="larvae", weight=0),
+        _stage(label="Adults", count_label="Adults per 25 sweeps (typical count)", column="adults", weight=0),
+        _stage(label="Egg masses", count_label="Egg masses per 10 plants (typical count)", column="eggs", weight=0),
+        _stage(label="Larvae", count_label="Larvae per 25 sweeps (typical count)", column="larvae", weight=0),
     ),
     source="the Crop Risk Tool",
     version="0.2",
