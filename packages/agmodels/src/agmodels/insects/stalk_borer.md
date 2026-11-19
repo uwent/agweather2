@@ -1,10 +1,10 @@
 ---
 id: stalk-borer
 status: draft
-updated: 2026-10-29
-summary: Adult flight begins around 1110 FDD and peaks around 1650 FDD. Control is best between 1400 and 1700 FDD.
+updated: 2026-11-18
+summary: Larvae begin moving from grasses into corn around 1,110 degree days (°F) and their movement peaks around 1,650. Control is best between 1,400 and 1,700, while larvae are moving.
 sources:
   - VDIFN db/seeds.rb (stalk-borer)
 ---
 
-Adult flight begins around 1110 FDD and peaks around 1650 FDD. Control is best between 1400 and 1700 FDD.
+Larvae begin moving from grasses into corn around 1,110 degree days (°F) and their movement peaks around 1,650. Control is best between 1,400 and 1,700, while larvae are moving.
