@@ -17,8 +17,8 @@ Potato virus Y (PVY) is spread from plant to plant by winged aphids probing leav
 
 Degree days are counted from January 1 by the single-sine method, base 39.2 °F (4 °C) with a cutoff at 86 °F. The curve comes from Wisconsin's suction traps from 2016 to 2023. Each week's catch was scored by how many of each aphid species were caught and how well that species transmits PVY, and a smooth curve was fitted to those scores by degree days, allowing for differences between years and traps.
 
-- Risk rises from early summer and stays near its peak from about 2,980 to 3,990 degree days, peaking near 3,580.
-- It falls by half by about 4,980 degree days, but late-season flights still carry some risk.
+- Risk is already Moderate by about 730 degree days (late May in southern Wisconsin, early June in the north), holds near 40 % of the peak through early summer, and turns High at about 2,240 (mid-July in the south, about August 1 near Antigo).
+- It stays near its peak from about 2,980 to 3,990 degree days, peaking near 3,580: late August in southern Wisconsin and late September in the northern seed areas, so in the north risk is still rising through the season.
 - Before about 290 degree days the traps have no data, and the model shows no risk.
 
 ## How to read it
