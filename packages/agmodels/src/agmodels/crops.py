@@ -76,8 +76,11 @@ def number_option(options: dict[str, str], option: Option) -> float:
 NOT_SUSCEPTIBLE, MARGIN, SUSCEPTIBLE = 0.0, 1.0, 2.0
 
 
-def susceptibility(stage, stages: tuple[CropStage, ...], first: str, last: str, margin_days: int) -> np.ndarray:
-    """Each day: SUSCEPTIBLE while the crop is from `first` through `last`, MARGIN within `margin_days` of such a
+def susceptibility(
+    stage, stages: tuple[CropStage, ...], first: str, last: str, margin_days: int, extend_days: int = 0
+) -> np.ndarray:
+    """Each day: SUSCEPTIBLE while the crop is from `first` through `last`, and through `extend_days` days after the
+    day it reaches `last` (a window that ends a set time after a stage begins, not at the next stage), MARGIN within `margin_days` of such a
     day (stage estimates are a few days off either way), NOT_SUSCEPTIBLE otherwise, NaN where the stage is unknown
     (before planting). Days on axis 0; a risk chart greys NOT_SUSCEPTIBLE days and mutes MARGIN ones."""
     s = np.asarray(stage, dtype=float)
@@ -86,10 +89,15 @@ def susceptibility(stage, stages: tuple[CropStage, ...], first: str, last: str, 
     if lo > hi:
         raise ValueError(f"{first} comes after {last}")
     inside = (s >= lo) & (s <= hi)
-    # any susceptible day within margin_days either side: a window count over the padded series
-    count = np.cumsum(np.concatenate([np.zeros((1, *s.shape[1:])), inside.astype(float)]), axis=0)
     n = s.shape[0]
     days = np.arange(n)
+    if extend_days:
+        reached = s >= hi
+        start = np.where(reached.any(axis=0), np.argmax(reached, axis=0), n)  # the day it reaches `last`
+        span = days.reshape(-1, *([1] * (s.ndim - 1)))
+        inside = inside | ((span >= start) & (span <= start + extend_days))
+    # any susceptible day within margin_days either side: a window count over the padded series
+    count = np.cumsum(np.concatenate([np.zeros((1, *s.shape[1:])), inside.astype(float)]), axis=0)
     upper = np.minimum(days + margin_days + 1, n)
     lower = np.maximum(days - margin_days, 0)
     near = (count[upper] - count[lower]) > 0
@@ -115,4 +123,6 @@ def disease_susceptibility(spec: ModelSpec, crop_stage: np.ndarray, **crop_optio
 
     gate = spec.susceptible
     crop = cast(CropModel, model(gate.crop))
-    return susceptibility(crop_stage, crop.stages(**crop_options), gate.first, gate.last, crop.MARGIN_DAYS)
+    return susceptibility(
+        crop_stage, crop.stages(**crop_options), gate.first, gate.last, crop.MARGIN_DAYS, extend_days=gate.extend_days
+    )

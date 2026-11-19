@@ -12,7 +12,7 @@ winter days); the national FHB Risk Tool's three levels (Low below 24 %); the wi
 
 0.3: gated at a point by flowering (D33). The map isn't gated: it's the risk for wheat flowering on each day, as on
 the national tool, for winter and spring wheat alike. At a point, a spring wheat planting date the user gives runs
-`spring-wheat-stages` and shows the risk from heading (Haun 10.2) through the end of flowering (11.6); a flowering
+`spring-wheat-stages` and shows the risk from heading (Haun 10.2) through 7 days after flowering begins (11.4; 0.4, Ben: Haun 11.6, the end of flowering, came only 2–3 days after its start); a flowering
 date the user gives (`flowering_date`, the only gate for winter wheat, which has no stage model yet) replaces that
 estimate and shows it from that day through 7 days after, the fungicide window from early flowering (Feekes 10.5.1).
 Either way the gate is `susceptibility` beside the probability, which stays as computed: muted for 3 days either
@@ -52,7 +52,7 @@ SPEC = ModelSpec(
     id="wheat-scab",
     name="Wheat scab (Fusarium head blight) probability",
     group="disease",
-    version="0.3",
+    version="0.4",
     status="beta",
     summary="The probability of severe Fusarium head blight (scab) for wheat flowering on the day shown, from the mean humidity of the two weeks before, for the variety's resistance class.",
     topics=("wheat-scab",),
@@ -116,8 +116,9 @@ SPEC = ModelSpec(
     susceptible=Susceptibility(
         crop="spring-wheat-stages",
         first="H10.2",
-        last="H11.6",
-        source="Heading begins (Haun 10.2) through the end of flowering (Haun 11.6): the days before and at flowering for which the model's risk applies (Shah et al. 2013's prediction at anthesis)",
+        last="H11.4",
+        extend_days=7,
+        source="Heading begins (Haun 10.2) through 7 days after flowering begins (Haun 11.4): the days before and at flowering for which the model's risk applies (Shah et al. 2013's prediction at anthesis), to the end of the fungicide window from early flowering (Feekes 10.5.1; Friskop et al. 2021, Smith 2022), as for a flowering date you give",
         note="For spring wheat, from a planting date you give. A flowering date you give, for winter or spring wheat, replaces it: the risk then shows from that day through 7 days after. Maps aren't gated: they show the risk for wheat flowering on each day.",
         planting_given_only=True,
         stage_date=StageDate(
@@ -142,6 +143,11 @@ SPEC = ModelSpec(
             version="0.3",
             date="2026-11-19",
             note="Gated by flowering at a location: for spring wheat from a planting date you give (heading through the end of flowering, by the spring wheat stages model), or from a flowering date you give for any wheat (that day through 7 days after). Maps stay ungated, the risk for wheat flowering on each day. The probabilities are unchanged.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-19",
+            note="For spring wheat from a planting date, the window runs through 7 days after flowering begins (Haun 11.4), as for a flowering date you give, rather than ending at the end of flowering (Haun 11.6), which came only 2 to 3 days after its start.",
         ),
     ),
     checks=(

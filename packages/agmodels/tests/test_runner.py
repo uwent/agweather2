@@ -52,7 +52,7 @@ def test_default_biofix_follows_the_season():
     assert runner.default_biofix(potato, date(2026, 1, 15)) == date(2025, 11, 1)
     assert runner.default_biofix(potato, date(2025, 11, 2)) == date(2025, 11, 1)
     assert runner.default_biofix(potato, date(2026, 7, 1)) == date(2026, 11, 1)  # between seasons: the next one
-    rye = model("rye-biomass").SPEC  # Sep 1 to Jun 30, biofix Oct 1
+    rye = model("rye-biomass").SPEC  # Aug 25 to Jun 15, biofix Oct 1
     assert runner.default_biofix(rye, date(2026, 3, 1)) == date(2025, 10, 1)
     assert runner.default_biofix(rye, date(2025, 7, 15)) == date(2025, 10, 1)  # between seasons: the next one
     assert runner.default_biofix(rye, date(2025, 9, 10)) == date(2025, 10, 1)
@@ -294,7 +294,7 @@ def test_wheat_scab_is_ungated_without_a_planting_or_flowering_date():
     assert np.isfinite(plain.outputs["probability"][14:]).all()
 
 
-def test_wheat_scab_gate_follows_spring_wheat_stages_from_heading_through_flowering():
+def test_wheat_scab_gate_follows_spring_wheat_stages_from_heading_to_7_days_after_flowering_begins():
     planting = date(2025, 4, 20)
     gated, plain = _wheat_scab(planting=planting), _wheat_scab()
     for name, values in plain.outputs.items():  # the gate leaves the probability as it is
@@ -304,9 +304,11 @@ def test_wheat_scab_gate_follows_spring_wheat_stages_from_heading_through_flower
         biofix_index=(planting - WHEAT_DATES[0]).days,
     )["stage"][(date(2025, 5, 1) - WHEAT_DATES[0]).days :]
     codes = [s.code for s in spring_wheat_stages.STAGES]
-    heading, ripe = codes.index("H10.2"), codes.index("H12.0")
-    first, after = int(np.argmax(stage >= heading)), int(np.argmax(stage >= ripe))
-    assert 0 < first < after
+    heading, flowering = codes.index("H10.2"), codes.index("H11.4")
+    first, flowers = int(np.argmax(stage >= heading)), int(np.argmax(stage >= flowering))
+    after = flowers + 8  # 7 days after flowering begins, as for a flowering date
+    assert 0 < first < flowers
+    assert int(np.argmax(stage >= codes.index("H12.0"))) < after  # later than the next stage (0.3's end)
     gate = gated.susceptibility
     assert gate is not None
     np.testing.assert_array_equal(gate[first:after], SUSCEPTIBLE)

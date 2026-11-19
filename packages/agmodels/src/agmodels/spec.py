@@ -144,6 +144,9 @@ class Susceptibility:
     # wheat's): the gate then runs only from a planting date the user gives, never from a typical one, and maps
     # aren't gated (they show the risk for the crop at the window's stage on each day)
     planting_given_only: bool = False
+    # The window runs on through this many days after the crop reaches `last` (wheat scab: 7 days from the start of
+    # flowering, the fungicide window), so it ends a set time after a stage begins rather than at the next stage
+    extend_days: int = 0
     stage_date: StageDate | None = None  # a date the user gives instead of the crop model's estimate
 
 
