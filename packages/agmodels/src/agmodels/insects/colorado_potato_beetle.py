@@ -6,7 +6,8 @@ The fits are GAMs (`y ~ s(x, bs = "cs")`, k = 13; egg masses k = 11) of log(coun
 standard net in the canopy, egg masses per 10 plants, each a field's mean over several sites on a date. Their
 predicted values every 10 degree days are `colorado_potato_beetle_fit.csv` (Ben, 2026-11-18); the data end at
 2,311 degree days, so the curves are read to 2,310 and held there until fall freezes end the season. The adults and
-larvae curve is its own fit, not the sum of the other two.
+larvae curve is its own fit to each field date's adults plus larvae (refitted 2026-11-18: the first stacked the two
+stages' rows), so it tracks the log of the other two curves' counts summed.
 """
 
 import csv

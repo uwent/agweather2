@@ -28,9 +28,9 @@ def critical_points(stage: FittedStage) -> dict[str, list[float]]:
         ("adults", "peaks", [588, 1477, 1983]),  # first and second generation peaks, the partial third
         ("adults", "troughs", [957, 1880]),  # between generations; the second unlabelled, before the partial third
         ("larvae", "troughs", [374]),  # egg hatch (the curve's low point before it rises)
-        ("adults_and_larvae", "up", [221]),
-        ("adults_and_larvae", "peaks", [778, 1340]),
-        ("adults_and_larvae", "troughs", [1005]),
+        ("adults_and_larvae", "up", [220]),  # refitted to each date's sum (2026-11-18)
+        ("adults_and_larvae", "peaks", [811, 1354]),
+        ("adults_and_larvae", "troughs", [1038]),
         ("egg_masses", "up", [239]),  # first eggs
     ],
 )
@@ -58,10 +58,19 @@ def test_counts_are_the_fit_back_transformed_and_held_past_the_data():
 
 def test_risk_is_adults_and_larvae_share_of_its_peak():
     m = all_models()["colorado-potato-beetle"]
-    peak = evaluate(insect=INSECT, dd_total=np.array([1340.0]))
-    assert m.explore(dd_total=1340)["risk"] == pytest.approx(1.0, abs=0.01)
+    peak = evaluate(insect=INSECT, dd_total=np.array([1350.0]))
+    assert m.explore(dd_total=1350)["risk"] == pytest.approx(1.0, abs=0.01)
     assert m.explore(dd_total=0)["risk"] == 0
-    assert peak["count_adults_and_larvae"][0] == pytest.approx(np.expm1(1.432), abs=0.01)
+    assert peak["count_adults_and_larvae"][0] == pytest.approx(6.88, abs=0.01)
+
+
+def test_adults_and_larvae_is_the_log_of_their_summed_counts():
+    """The combined curve is fitted to each field date's adults plus larvae (refitted 2026-11-18; the first fit
+    stacked the two stages' rows), so it tracks log(adults + larvae + 1) from the two curves, within 0.1."""
+    table = curves(INSECT)
+    season = (dd_grid() >= 220) & (dd_grid() <= 2310)
+    summed = np.log1p(table["count_adults"] + table["count_larvae"])[season]
+    np.testing.assert_allclose(np.log1p(table["count_adults_and_larvae"])[season], summed, atol=0.1)
 
 
 def test_against_the_crop_risk_tool_at_eau_claire_2025(crt):

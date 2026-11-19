@@ -27,9 +27,9 @@ Degree days are counted from January 1 by the single-sine method, base 52 °F wi
 - **First eggs** at about 240, with egg masses most numerous around 580.
 - **Egg hatch** at about 375; larvae peak around 795.
 - **Adults** peak around 590 (the overwintered generation), fall to a low around 960, then peak again around 1,480 as the summer generation emerges. A partial third generation shows around 1,980 in some years.
-- **Adults and larvae together** peak around 780 and again around 1,340.
+- **Adults and larvae together** rise from about 220, peak around 810, dip slightly around 1,040 and peak again around 1,350. Between the peaks they stay near their highest, so risk stays high through midsummer.
 
-The scouting data end at about 2,310 degree days; after that the counts stay where they were until fall freezes end the season.
+The timing is much the same from year to year, but the numbers vary: fits by year show some years' counts well below others' at the same degree days. The scouting data end at about 2,310 degree days; after that the counts stay where they were until fall freezes end the season.
 
 ## How to read it
 
