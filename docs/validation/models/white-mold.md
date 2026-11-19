@@ -53,7 +53,7 @@ On the tool's 2025 weather (computed for this report with 0.2; no test holds it)
 
 ## Limits and open questions
 
-- **Coefficients and thresholds not checked against the paper here:** they're the tool's; whether its risk thresholds (20 and 35 %, 5 and 10 %) are the paper's own action thresholds hasn't been checked.
+- **Coefficients and thresholds:** checked against the authors' 2025 algorithm (which gives the same bands, 20 and 35 % non-irrigated, 5 and 10 % irrigated), not against Willbur et al. 2018 itself.
 - **No observations:** the model predicts apothecia, not disease; neither has been compared with Wisconsin fields in this project. Willbur et al.'s own validation is the evidence until then.
 - **The gate applies to both settings**, as the 2025 algorithm has it; the tool scaled only non-irrigated fields.
 - **The authors haven't yet confirmed** −0.56 (the 2025 document is unambiguous) or what "inactive" should show.

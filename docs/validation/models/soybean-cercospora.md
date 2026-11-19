@@ -36,7 +36,7 @@ From the tool's fixture (computed for this report; no test holds it), the year's
 
 ## Limits and open questions
 
-- **Wind's unit (open):** by the coefficients, at 6 humid hours a 14-day mean maximum wind of 5 m/s gives *C.* cf. *sigesbeckiae* 5.8 % read as km/h (18 km/h) and 86 % read as m/s, so the choice decides whether this species is ever low. Only the fit's author can say which is right.
+- **Wind's unit (km/h, by the fit's arithmetic):** the authors' 2026 algorithm labels the wind m/s, but read as m/s *C.* cf. *sigesbeckiae* would be 63–89 % on every realistic day (43 % even at 10 m/s with no humid hours), above its 10 % High on all of them, while the algorithm's own appendix reports 78.8 % accuracy at that threshold; read as km/h (at 6 humid hours, 5 m/s is 18 km/h: 5.9 % against 86 %) the predictions straddle the bands as a fitted model's should. The m/s label is inconsistent with the fit unless its data were unusual (`tmp/crt-model-audit.md`); km/h is kept until Webster confirms.
 - **No published source, no risk period:** the fits are unpublished; their region, years, weather and response (spores trapped, or disease) are unknown, and so is the stage window (R3–R6 is our provisional choice). Ask Webster (PLAN.md handoff, "Open questions for Ben or collaborators").
 - **No observations:** not compared with Cercospora leaf blight in fields.
 - **Cheapest independent comparison:** the data behind Webster's fits, if he can share them, run on Open-Meteo's weather at their sites; asking would also settle the wind unit and the risk period.

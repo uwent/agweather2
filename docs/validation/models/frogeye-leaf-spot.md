@@ -39,7 +39,8 @@ From the tool's fixture (computed for this report; no test holds it): over the s
 
 ## Limits and open questions
 
-- **No published source:** the fit is unpublished as far as the tool's documents show; its region, years, weather and response (spores trapped, or disease) are unknown. Ask its authors for the fit and its data (PLAN.md Phase 4's review, "Citations").
+- **The authors' algorithm** ("2024 Soy Frogeye Leaf Spot Model Algorithm", ver. 1.0, May 29, 2024, in `tmp/R/crop-risk-tool-models/`; audited in `tmp/crt-model-audit.md`: the port matches it) gives this equation, hours at RH 80 % or above, a 50 % action threshold (adjustable 40–60 %) and R1–R5.
+- **No published source:** the fit is unpublished; its region, years, weather and response (spores trapped, or disease) are unknown. Ask its authors for the fit and its data (PLAN.md Phase 4's review, "Citations").
 - **No observations:** not compared with frogeye leaf spot in Wisconsin fields.
 - **Cheapest independent comparison:** UW Field Crops Pathology's survey records of frogeye leaf spot against the model's probability during R1–R5 on the archive at those fields.
 
