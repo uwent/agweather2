@@ -1,11 +1,11 @@
 """Topic and model pages (PLAN.md Phase 3 E, D31, D35): Markdown with YAML front matter.
 
 - `content/topics/<id>.md`: a disease, insect, crop or other subject (front matter: id, title, kind, crops,
-  scientific_name, summary, image, image_credit, status, sources, keyed and cited with `[^key]` markers once a page is
+  scientific_name, summary, image, image_credit, status, updated (set on commit by `scripts/stamp_updated.py`), sources, keyed and cited with `[^key]` markers once a page is
   rewritten: `agmodels.pages.source_problems`); its models are the specs naming the topic, so the
   page never lists them by hand.
 - A model's page is the `.md` beside its module in `agmodels` (`agmodels.registry.page_path`): its prose (how it
-  works, how to read it, validation, caveats; front matter: id, status, sources, and an insect's summary). Inputs,
+  works, how to read it, validation, caveats; front matter: id, status, updated, sources, and an insect's summary). Inputs,
   outputs, risk criteria, citations, changelog, region and season come from the spec.
 - `content/images/`: the topics' images.
 
@@ -20,7 +20,18 @@ from agmodels.registry import all_models, page_path
 
 CONTENT = Path(__file__).resolve().parents[2] / "content"
 TOPIC_KINDS = ("disease", "insect", "crop", "agronomic", "weather")
-TOPIC_FIELDS = ("id", "title", "kind", "crops", "scientific_name", "summary", "image", "image_credit", "status")
+TOPIC_FIELDS = (
+    "id",
+    "title",
+    "kind",
+    "crops",
+    "scientific_name",
+    "summary",
+    "image",
+    "image_credit",
+    "status",
+    "updated",
+)
 STATUSES = ("draft", "reviewed")
 
 

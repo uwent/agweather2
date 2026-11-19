@@ -1,6 +1,7 @@
 ---
 id: pecan-scab
 status: draft
+updated: 2026-10-29
 sources:
   - Crop Risk Tool docs/pecan-scab.md
 ---

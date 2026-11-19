@@ -1,6 +1,7 @@
 ---
 id: cotton-planting
 status: draft
+updated: 2026-10-29
 sources:
   - Crop Risk Tool docs/cotton-planting.md
 ---

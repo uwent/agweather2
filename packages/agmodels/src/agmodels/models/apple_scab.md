@@ -1,6 +1,7 @@
 ---
 id: apple-scab
 status: draft
+updated: 2026-11-18
 sources:
   - Gadoury and MacHardy 1982 (ascospore maturity by degree days)
   - Stensvand, Eikemo, Gadoury and Seem 2005 (maturity from green tip, the dry-spell rule, the end of the primary season)

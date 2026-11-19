@@ -1,6 +1,7 @@
 ---
 id: fire-blight
 status: draft
+updated: 2026-11-18
 sources:
   - Smith and Pusey 2011 (Cougarblight 2010)
   - WSU's Cougarblight tables and Decision Aid System (the hourly values in °F, the risk thresholds)

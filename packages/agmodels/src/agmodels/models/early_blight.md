@@ -1,6 +1,7 @@
 ---
 id: early-blight-pdays
 status: draft
+updated: 2026-10-29
 sources:
   - Crop Risk Tool docs/early-blight.md
   - VDIFN db/seeds.rb (early-blight)

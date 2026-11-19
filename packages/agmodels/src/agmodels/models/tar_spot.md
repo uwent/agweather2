@@ -1,6 +1,7 @@
 ---
 id: tar-spot
 status: draft
+updated: 2026-10-29
 sources:
   - Crop Risk Tool docs/tar-spot.md
 ---

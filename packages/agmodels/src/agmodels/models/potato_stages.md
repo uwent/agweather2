@@ -1,6 +1,7 @@
 ---
 id: potato-stages
 status: draft
+updated: 2026-11-03
 sources:
   - UW Vegetable Pathology, Vegetable Crop Updates
 ---

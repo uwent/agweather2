@@ -7,47 +7,48 @@ crops:
 scientific_name: Malus domestica
 summary: Wisconsin's most common tree fruit; its growth stages from silver tip to fruit set time the spring's work against apple scab, fire blight and codling moth.
 image: images/apple.jpg
-image_credit: "Apple blossoms with a honey bee. Photo by Krzysztof Golik, via Wikimedia Commons (File:Flowers of Malus domestica (25).jpg), CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/); resized."
+image_credit: 'Apple blossoms with a honey bee. Photo by Krzysztof Golik, via Wikimedia Commons (File:Flowers of Malus domestica (25).jpg), CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/); resized.'
 status: draft
+updated: 2026-11-18
 sources:
   - key: roper-2004
-    text: "Roper, T. R. and G. G. Frank. Planning and Establishing Commercial Apple Orchards in Wisconsin (A3560). University of Wisconsin–Extension, 2004."
+    text: 'Roper, T. R. and G. G. Frank. Planning and Establishing Commercial Apple Orchards in Wisconsin (A3560). University of Wisconsin–Extension, 2004.'
     url: http://fruit.webhosting.cals.wisc.edu/wp-content/uploads/sites/36/2011/06/Planning-and-Establishing-Commercial-Apple-Orchards-in-Wisconsin-2.pdf
   - key: wisconsin-apples
-    text: "Wisconsin Apples. UW–Madison Division of Extension, Wisconsin Horticulture, validated 2024."
+    text: 'Wisconsin Apples. UW–Madison Division of Extension, Wisconsin Horticulture, validated 2024.'
     url: https://hort.extension.wisc.edu/wisconsin-apples/
   - key: steil-2024
-    text: "Steil, A. Spray Schedule for Home Apple Trees. Iowa State University Extension and Outreach, reviewed 2024."
+    text: 'Steil, A. Spray Schedule for Home Apple Trees. Iowa State University Extension and Outreach, reviewed 2024.'
     url: https://yardandgarden.extension.iastate.edu/how-to/spray-schedule-home-apple-trees
   - key: dillon-2026
-    text: "Dillon, J., A. Atucha and L. Holland. Wisconsin Fruit Crop Scouting Report, April 22, 2026. UW–Madison Division of Extension."
+    text: 'Dillon, J., A. Atucha and L. Holland. Wisconsin Fruit Crop Scouting Report, April 22, 2026. UW–Madison Division of Extension.'
     url: https://cropsandsoils.extension.wisc.edu/wisconsin-fruit-crop-scouting-report-april-22-2026/
   - key: atucha-2024
-    text: "Atucha, A. Unseasonably Warm Weather Effect on Fruit Crops. UW–Madison Fruit Program, 2024."
+    text: 'Atucha, A. Unseasonably Warm Weather Effect on Fruit Crops. UW–Madison Fruit Program, 2024.'
     url: https://fruit.wisc.edu/2024/03/01/unseasonably-warm-weather-effect-on-fruit-crops/
   - key: peter-2026
-    text: "Peter, K. A. and T. Baugher. Tree Fruit Disease: An Apple Scab Review. Penn State Extension, updated 2026."
+    text: 'Peter, K. A. and T. Baugher. Tree Fruit Disease: An Apple Scab Review. Penn State Extension, updated 2026.'
     url: https://extension.psu.edu/tree-fruit-disease-an-apple-scab-review
   - key: ayer-2020
-    text: "Ayer, K., J. Carroll and K. Cox. Apple Scab (Venturia inaequalis), Fruit IPM Fact Sheet. Cornell University, 2020."
+    text: 'Ayer, K., J. Carroll and K. Cox. Apple Scab (Venturia inaequalis), Fruit IPM Fact Sheet. Cornell University, 2020.'
     url: https://cals.cornell.edu/integrated-pest-management/outreach-education/fact-sheets/apple-scab-fruit-fact-sheet
   - key: holland-2026
-    text: "Holland, L. Wisconsin Apple Disease Update: High-Risk Conditions in Wisconsin. UW–Madison Division of Extension, 2026."
+    text: 'Holland, L. Wisconsin Apple Disease Update: High-Risk Conditions in Wisconsin. UW–Madison Division of Extension, 2026.'
     url: https://cropsandsoils.extension.wisc.edu/wisconsin-apple-disease-update-high-risk-conditions-in-wisconsin/
   - key: van-zoeren-2018
-    text: "van Zoeren, J. and C. Guédot. Codling Moth: Management Options for Commercial and Backyard Growers (A4172). University of Wisconsin–Extension, 2018."
+    text: 'van Zoeren, J. and C. Guédot. Codling Moth: Management Options for Commercial and Backyard Growers (A4172). University of Wisconsin–Extension, 2018.'
     url: https://fruit.wisc.edu/wp-content/uploads/sites/36/2022/01/A4172-Codling-moth.pdf
   - key: datcp-traps
-    text: "Wisconsin Department of Agriculture, Trade and Consumer Protection. Apple Orchard Pests (trap network)."
+    text: 'Wisconsin Department of Agriculture, Trade and Consumer Protection. Apple Orchard Pests (trap network).'
     url: https://datcp.wi.gov/Pages/Programs_Services/AppleOrchardPests.aspx
   - key: agweather-apple-stages
-    text: "AgWeather. Apple stages model: validation report. UW–Madison, 2026."
+    text: 'AgWeather. Apple stages model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/apple-stages.md
   - key: agweather-codling-moth
-    text: "AgWeather. Codling moth model: validation report. UW–Madison, 2026."
+    text: 'AgWeather. Codling moth model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/codling-moth.md
   - key: midwest-guide-2026
-    text: "Midwest Fruit Pest Management Guide 2026–2027 (ID-465). Purdue Extension and partner universities, 2026."
+    text: 'Midwest Fruit Pest Management Guide 2026–2027 (ID-465). Purdue Extension and partner universities, 2026.'
     url: https://edustore.purdue.edu/id-465-w.html
 ---
 

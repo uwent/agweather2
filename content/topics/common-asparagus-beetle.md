@@ -9,6 +9,7 @@ summary: ''
 image: images/common-asparagus-beetle.jpg
 image_credit: to confirm
 status: draft
+updated: 2026-11-17
 sources:
   - VDIFN db/seeds.rb (common-asparagus-beetle)
 ---

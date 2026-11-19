@@ -65,6 +65,10 @@
     "*.py": [
       "uv run ruff format",
       "uv run ruff check --fix"
+    ],
+    "{content/topics,packages/agmodels/src/agmodels/models,packages/agmodels/src/agmodels/insects}/*.md": [
+      "uv run python scripts/stamp_updated.py",
+      "prettier --write"
     ]
   },
   "packageManager": "pnpm@12.10.1"

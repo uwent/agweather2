@@ -1,6 +1,7 @@
 ---
 id: late-blight-dsv
 status: draft
+updated: 2026-10-29
 sources:
   - Crop Risk Tool docs/late-blight.md
   - VDIFN db/seeds.rb (late-blight)

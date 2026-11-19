@@ -9,6 +9,7 @@ summary: ''
 image: images/tar-spot.jpg
 image_credit: to confirm
 status: draft
+updated: 2026-11-17
 sources:
   - Crop Risk Tool docs/tar-spot.md
 ---

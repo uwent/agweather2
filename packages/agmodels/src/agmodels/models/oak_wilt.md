@@ -1,6 +1,7 @@
 ---
 id: oak-wilt-vectors
 status: draft
+updated: 2026-10-29
 sources:
   - VDIFN db/seeds.rb (oak-wilt)
 ---

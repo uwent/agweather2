@@ -9,6 +9,7 @@ summary: ''
 image: images/onion-botrytis-leaf-blight.png
 image_credit: to confirm
 status: draft
+updated: 2026-11-17
 sources:
   - Crop Risk Tool docs/botrytis.md
   - VDIFN db/seeds.rb (botrytis-leaf-blight)

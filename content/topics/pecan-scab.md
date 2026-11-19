@@ -9,6 +9,7 @@ summary: ''
 image: images/pecan-scab.jpg
 image_credit: APS / Hoefnagels and Mason
 status: draft
+updated: 2026-11-17
 sources:
   - Crop Risk Tool docs/pecan-scab.md
 ---

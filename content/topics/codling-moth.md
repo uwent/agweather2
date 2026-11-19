@@ -7,26 +7,27 @@ crops:
 scientific_name: Cydia pomonella
 summary: A small moth whose larvae tunnel to the core of apples and pears; sprays and other controls are timed by degree days from the first moths caught in pheromone traps.
 image: images/codling-moth.jpg
-image_credit: "Gravenstein apples tunneled by codling moth larvae, with the cores eaten away. Photo by Richard Wilde, via Wikimedia Commons (File:Gravenstein apples with codling moth.JPG), released into the public domain."
+image_credit: 'Gravenstein apples tunneled by codling moth larvae, with the cores eaten away. Photo by Richard Wilde, via Wikimedia Commons (File:Gravenstein apples with codling moth.JPG), released into the public domain.'
 status: draft
+updated: 2026-11-18
 sources:
   - key: van-zoeren-2018
-    text: "van Zoeren, J. and C. Guédot. Codling Moth: Management Options for Commercial and Backyard Growers (A4172). University of Wisconsin–Extension, 2018."
+    text: 'van Zoeren, J. and C. Guédot. Codling Moth: Management Options for Commercial and Backyard Growers (A4172). University of Wisconsin–Extension, 2018.'
     url: https://fruit.wisc.edu/wp-content/uploads/sites/36/2022/01/A4172-Codling-moth.pdf
   - key: krawczyk-2026
-    text: "Krawczyk, G. Tree Fruit Insect Pest: Codling Moth. Penn State Extension, updated 2026."
+    text: 'Krawczyk, G. Tree Fruit Insect Pest: Codling Moth. Penn State Extension, updated 2026.'
     url: https://extension.psu.edu/tree-fruit-insect-pest-codling-moth
   - key: hahn-2019
-    text: "Hahn, J. Codling Moths in Home Orchards. University of Minnesota Extension, reviewed 2019."
+    text: 'Hahn, J. Codling Moths in Home Orchards. University of Minnesota Extension, reviewed 2019.'
     url: https://extension.umn.edu/yard-and-garden-insects/codling-moths
   - key: datcp-traps
-    text: "Wisconsin Department of Agriculture, Trade and Consumer Protection. Apple Orchard Pests (trap network)."
+    text: 'Wisconsin Department of Agriculture, Trade and Consumer Protection. Apple Orchard Pests (trap network).'
     url: https://datcp.wi.gov/Pages/Programs_Services/AppleOrchardPests.aspx
   - key: agweather-codling-moth
-    text: "AgWeather. Codling moth model: validation report. UW–Madison, 2026."
+    text: 'AgWeather. Codling moth model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/codling-moth.md
   - key: midwest-guide-2026
-    text: "Midwest Fruit Pest Management Guide 2026–2027 (ID-465). Purdue Extension and partner universities, 2026."
+    text: 'Midwest Fruit Pest Management Guide 2026–2027 (ID-465). Purdue Extension and partner universities, 2026.'
     url: https://edustore.purdue.edu/id-465-w.html
 ---
 

@@ -9,6 +9,7 @@ summary: ''
 image: images/soybean-cercospora-leaf-blight.jpg
 image_credit: to confirm
 status: draft
+updated: 2026-11-17
 sources:
   - Crop Risk Tool docs/cercospora-soybean.md
 ---

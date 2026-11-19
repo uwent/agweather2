@@ -7,29 +7,30 @@ crops:
 scientific_name: Venturia inaequalis
 summary: A fungal disease that spots apple leaves and fruit in cool, wet springs; it is managed by protecting new growth from green tip until the season's spring spores are spent.
 image: images/apple-scab.jpg
-image_credit: "Scab spots on an apple. Photo by Bill Kasman, via Wikimedia Commons (File:Diseased apple.jpg), CC0 1.0 (public domain dedication)."
+image_credit: 'Scab spots on an apple. Photo by Bill Kasman, via Wikimedia Commons (File:Diseased apple.jpg), CC0 1.0 (public domain dedication).'
 status: draft
+updated: 2026-11-18
 sources:
   - key: hudelson-2026
-    text: "Hudelson, B. Apple Scab (UW Plant Disease Facts D0004). UW–Madison Plant Pathology, revised 2026."
+    text: 'Hudelson, B. Apple Scab (UW Plant Disease Facts D0004). UW–Madison Plant Pathology, revised 2026.'
     url: https://pddc.wisc.edu/2018/11/19/apple-scab/
   - key: holland-2026
-    text: "Holland, L. Wisconsin Apple Disease Update: High-Risk Conditions in Wisconsin. UW–Madison Division of Extension, 2026."
+    text: 'Holland, L. Wisconsin Apple Disease Update: High-Risk Conditions in Wisconsin. UW–Madison Division of Extension, 2026.'
     url: https://cropsandsoils.extension.wisc.edu/wisconsin-apple-disease-update-high-risk-conditions-in-wisconsin/
   - key: spangenberg-2025
-    text: "Spangenberg, B. Strategies to Manage Apple Scab. UW–Madison Division of Extension, Wisconsin Horticulture, 2025."
+    text: 'Spangenberg, B. Strategies to Manage Apple Scab. UW–Madison Division of Extension, Wisconsin Horticulture, 2025.'
     url: https://hort.extension.wisc.edu/strategies-to-manage-apple-scab/
   - key: ayer-2020
-    text: "Ayer, K., J. Carroll and K. Cox. Apple Scab (Venturia inaequalis), Fruit IPM Fact Sheet. Cornell University, 2020."
+    text: 'Ayer, K., J. Carroll and K. Cox. Apple Scab (Venturia inaequalis), Fruit IPM Fact Sheet. Cornell University, 2020.'
     url: https://cals.cornell.edu/integrated-pest-management/outreach-education/fact-sheets/apple-scab-fruit-fact-sheet
   - key: peter-2026
-    text: "Peter, K. A. and T. Baugher. Tree Fruit Disease: An Apple Scab Review. Penn State Extension, updated 2026."
+    text: 'Peter, K. A. and T. Baugher. Tree Fruit Disease: An Apple Scab Review. Penn State Extension, updated 2026.'
     url: https://extension.psu.edu/tree-fruit-disease-an-apple-scab-review
   - key: dillon-2026
-    text: "Dillon, J., A. Atucha and L. Holland. Wisconsin Fruit Crop Scouting Report, April 22, 2026. UW–Madison Division of Extension."
+    text: 'Dillon, J., A. Atucha and L. Holland. Wisconsin Fruit Crop Scouting Report, April 22, 2026. UW–Madison Division of Extension.'
     url: https://cropsandsoils.extension.wisc.edu/wisconsin-fruit-crop-scouting-report-april-22-2026/
   - key: midwest-guide-2026
-    text: "Midwest Fruit Pest Management Guide 2026–2027 (ID-465). Purdue Extension and partner universities, 2026."
+    text: 'Midwest Fruit Pest Management Guide 2026–2027 (ID-465). Purdue Extension and partner universities, 2026.'
     url: https://edustore.purdue.edu/id-465-w.html
 ---
 

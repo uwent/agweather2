@@ -1,6 +1,7 @@
 ---
 id: gibberella-ear-rot-don
 status: draft
+updated: 2026-10-29
 sources:
   - Crop Risk Tool docs/don.md
 ---

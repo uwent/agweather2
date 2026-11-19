@@ -1,6 +1,7 @@
 ---
 id: seedcorn-maggot
 status: draft
+updated: 2026-11-18
 summary: Times each generation's adult flight and the larval feeding that follows from degree days since January 1, and marks the windows when planting a susceptible crop is most likely to be hit.
 sources:
   - Sanborn, Wyman and Chapman 1982 (development times by stage)

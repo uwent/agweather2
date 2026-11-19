@@ -1,6 +1,7 @@
 ---
 id: western-flower-thrips
 status: draft
+updated: 2026-10-29
 summary: Thrips typically have several overlapping generations per year in Wisconsin, with peaks occurring around 675, 1350, 2025, and 2700 FDD.
 sources:
   - VDIFN db/seeds.rb (western-flower-thrips)

@@ -14,6 +14,7 @@ summary: A fly whose maggots feed on germinating seed and seedlings of many vege
 image: images/seedcorn-maggot.jpg
 image_credit: to confirm
 status: draft
+updated: 2026-11-17
 sources:
   - Crop Risk Tool docs/insects/scm.md
   - VDIFN db/seeds.rb (seedcorn-maggot)

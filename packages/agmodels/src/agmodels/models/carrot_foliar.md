@@ -1,6 +1,7 @@
 ---
 id: carrot-foliar-dsv
 status: draft
+updated: 2026-10-29
 sources:
   - Crop Risk Tool docs/alternaria.md
   - VDIFN db/seeds.rb (carrot-foliar)

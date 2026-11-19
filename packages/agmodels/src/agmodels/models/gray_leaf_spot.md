@@ -1,6 +1,7 @@
 ---
 id: gray-leaf-spot
 status: draft
+updated: 2026-10-29
 sources:
   - Crop Risk Tool docs/gray-leaf-spot.md
 ---

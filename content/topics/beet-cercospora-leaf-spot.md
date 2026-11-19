@@ -9,6 +9,7 @@ summary: ''
 image: images/beet-cercospora-leaf-spot.png
 image_credit: to confirm
 status: draft
+updated: 2026-11-17
 sources:
   - Crop Risk Tool docs/cercospora-beet.md
   - VDIFN db/seeds.rb (cercospora-leaf-spot)

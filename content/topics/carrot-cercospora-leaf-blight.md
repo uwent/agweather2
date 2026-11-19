@@ -9,6 +9,7 @@ summary: ''
 image: images/carrot-cercospora-leaf-blight.png
 image_credit: to confirm
 status: draft
+updated: 2026-11-17
 sources:
   - Crop Risk Tool docs/alternaria.md
   - VDIFN db/seeds.rb (carrot-foliar)

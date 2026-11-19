@@ -9,6 +9,7 @@ summary: ''
 image: images/gray-leaf-spot.jpg
 image_credit: to confirm
 status: draft
+updated: 2026-11-17
 sources:
   - Crop Risk Tool docs/gray-leaf-spot.md
 ---

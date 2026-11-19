@@ -1,6 +1,7 @@
 ---
 id: spring-wheat-stages
 status: draft
+updated: 2026-10-29
 sources:
   - NDAWN wheat growing degree days
 ---

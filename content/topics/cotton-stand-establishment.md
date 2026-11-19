@@ -9,6 +9,7 @@ summary: ''
 image: images/cotton-stand-establishment.jpg
 image_credit: to confirm
 status: draft
+updated: 2026-11-17
 sources:
   - Crop Risk Tool docs/cotton-planting.md
 ---

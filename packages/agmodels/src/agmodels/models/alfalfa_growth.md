@@ -1,6 +1,7 @@
 ---
 id: alfalfa-growth
 status: draft
+updated: 2026-10-29
 sources: []
 ---
 

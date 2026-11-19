@@ -1,6 +1,7 @@
 ---
 id: apple-stages
 status: draft
+updated: 2026-11-18
 sources:
   - NEWA's apple stage table (degree days base 43 °F from January 1)
   - Agnello (ed.) 2015, Scaffolds Fruit Journal (McIntosh stages at Geneva, New York, over about 26 years)

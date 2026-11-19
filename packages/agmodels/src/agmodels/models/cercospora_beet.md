@@ -1,6 +1,7 @@
 ---
 id: cercospora-beet-div
 status: draft
+updated: 2026-10-29
 sources:
   - Crop Risk Tool docs/cercospora-beet.md
   - VDIFN db/seeds.rb (cercospora-leaf-spot)

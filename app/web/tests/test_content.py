@@ -1,5 +1,6 @@
 """Every model has a page and its topics have pages; every page has a model; front matter is whole (D31, D35)."""
 
+from datetime import date
 from pathlib import Path
 
 from agmodels import insects as insect_modules
@@ -25,6 +26,7 @@ def test_topic_front_matter():
         assert set(TOPIC_FIELDS) <= set(f), topic.id
         assert f["kind"] in TOPIC_KINDS and f["status"] in STATUSES, topic.id
         assert f["title"] and topic.body, topic.id
+        assert isinstance(f["updated"], date), f"{topic.id}: 'updated' is the date it last changed (YYYY-MM-DD)"
         if f["image"]:
             assert (CONTENT / f["image"]).is_file(), topic.id
             assert f["image_credit"], f"{topic.id}: an image needs a credit (or 'to confirm')"
@@ -33,6 +35,7 @@ def test_topic_front_matter():
 def test_model_page_front_matter():
     for page in model_pages().values():
         assert page.front["status"] in STATUSES and page.body, page.id
+        assert isinstance(page.front.get("updated"), date), f"{page.id}: 'updated' is the date it last changed"
 
 
 def test_colorado_potato_beetle_is_one_topic_with_three_models():

@@ -9,6 +9,7 @@ summary: ''
 image: images/early-blight.jpg
 image_credit: to confirm
 status: draft
+updated: 2026-11-17
 sources:
   - Crop Risk Tool docs/early-blight.md
   - VDIFN db/seeds.rb (early-blight)

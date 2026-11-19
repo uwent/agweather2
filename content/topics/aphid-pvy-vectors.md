@@ -9,6 +9,7 @@ summary: ''
 image: images/aphid-pvy-vectors.jpg
 image_credit: to confirm
 status: draft
+updated: 2026-11-17
 sources:
   - VDIFN db/seeds.rb (pvy-vectors)
 ---

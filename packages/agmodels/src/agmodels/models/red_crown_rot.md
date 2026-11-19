@@ -1,6 +1,7 @@
 ---
 id: red-crown-rot
 status: draft
+updated: 2026-10-30
 sources:
   - Crop Risk Tool docs/red-crown-rot.md
 ---

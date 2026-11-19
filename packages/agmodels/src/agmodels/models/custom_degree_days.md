@@ -1,6 +1,7 @@
 ---
 id: custom-degree-days
 status: draft
+updated: 2026-11-17
 sources: []
 ---
 

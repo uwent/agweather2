@@ -1,6 +1,7 @@
 ---
 id: botrytis-onion-botcast
 status: draft
+updated: 2026-10-29
 sources:
   - Crop Risk Tool docs/botrytis.md
   - VDIFN db/seeds.rb (botrytis-leaf-blight)

@@ -1,6 +1,7 @@
 ---
 id: codling-moth
 status: draft
+updated: 2026-11-18
 summary: Times codling moth flight and egg hatch in apple orchards from degree days, from your first trap catch or one estimated for your latitude, and marks when to protect fruit during each generation's egg hatch.
 sources:
   - Jones, Doerr and Brunner 2008 (the model from January 1, Washington)
