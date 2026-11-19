@@ -15,7 +15,7 @@ Cercospora leaf blight of soybean, and purple seed stain, are caused by several 
 
 ## How it works
 
-The equations are Richard Webster's (North Dakota State University), written out in his 2026 algorithms for the Crop Protection Network's Crop Risk Tool. The fits haven't been published. For each species his document gives four candidate equations; the algorithm uses the first, and so do we.
+The equations are Wade Webster's (North Dakota State University), written out in his 2026 algorithms for the Crop Protection Network's Crop Risk Tool. The fits haven't been published. For each species his document gives four candidate equations; the algorithm uses the first, and so do we.
 
 - **_C. flagellaris_:** the 5-day averages of the daily low temperature and of the dew point depression (the gap between the temperature and the dew point). Warmer nights and drier air raise the probability. Risk is Moderate from 10 % and High from 15 %.
 - **_C._ cf. _sigesbeckiae_:** the 14-day average of the day's highest wind speed and the 10-day average of the hours each day with relative humidity of 90 % or more. Calmer, more humid weather raises the probability. Risk is Moderate from 5 % and High from 10 %.

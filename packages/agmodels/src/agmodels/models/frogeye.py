@@ -35,7 +35,7 @@ SPEC = ModelSpec(
     topics=("frogeye-leaf-spot",),
     crops=("soybean",),
     citations=(
-        Citation(text="Damon Smith (UW–Madison) and Richard Webster (NDSU), as implemented in the Crop Risk Tool."),
+        Citation(text="Damon Smith (UW–Madison) and Wade Webster (NDSU), as implemented in the Crop Risk Tool."),
         Citation(
             text="Crop Protection Network: Frogeye leaf spot of soybean.",
             url="https://cropprotectionnetwork.org/encyclopedia/frogeye-leaf-spot-of-soybean",

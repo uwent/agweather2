@@ -48,7 +48,7 @@ SPEC = ModelSpec(
     topics=("soybean-cercospora-leaf-blight",),
     crops=("soybean",),
     citations=(
-        Citation(text="Richard Webster (North Dakota State University), as implemented in the Crop Risk Tool."),
+        Citation(text="Wade Webster (North Dakota State University), as implemented in the Crop Risk Tool."),
         Citation(
             text="Crop Protection Network: Cercospora leaf blight of soybean.",
             url="https://cropprotectionnetwork.org/encyclopedia/cercospora-leaf-blight-of-soybean",

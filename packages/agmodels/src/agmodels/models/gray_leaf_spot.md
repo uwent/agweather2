@@ -15,7 +15,7 @@ The model gives a probability, from 0 to 100 %, that gray leaf spot is present, 
 
 ## How it works
 
-The model is one equation, which the Crop Protection Network's Crop Risk Tool credits to Damon Smith (UW–Madison) and Richard Webster (North Dakota State University). A 2024 algorithm document gives the equation and its risk levels; we haven't found the fit itself published. It uses two averages:
+The model is one equation, which the Crop Protection Network's Crop Risk Tool credits to Damon Smith (UW–Madison) and Wade Webster (North Dakota State University). A 2024 algorithm document gives the equation and its risk levels; we haven't found the fit itself published. It uses two averages:
 
 - the 21-day average of the daily low temperature, and
 - the 30-day average of the daily lowest dew point.

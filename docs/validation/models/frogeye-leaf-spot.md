@@ -2,7 +2,7 @@
 
 Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/frogeye.py`, with its risk levels from `agmodels.probability`; gated by `soybean-stages` (R1 to R5, D33); its page: `frogeye.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_fls`, `build_frogeye_leaf_spot`) in Phase 3 (PLAN.md Phase 3 D step 2).
 
-**In short:** the port reproduces the Crop Risk Tool exactly: given the tool's daily weather for 2025 at Eau Claire, the probability matches on all 365 days. The fit is credited to Damon Smith (UW–Madison) and Richard Webster (NDSU) with no published paper, so there is no source to check its numbers against, and it hasn't been compared with frogeye leaf spot in fields.
+**In short:** the port reproduces the Crop Risk Tool exactly: given the tool's daily weather for 2025 at Eau Claire, the probability matches on all 365 days. The fit is credited to Damon Smith (UW–Madison) and Wade Webster (NDSU) with no published paper, so there is no source to check its numbers against, and it hasn't been compared with frogeye leaf spot in fields.
 
 ## Sources and what we took from each
 

@@ -35,7 +35,7 @@ SPEC = ModelSpec(
     topics=("gray-leaf-spot",),
     crops=("corn",),
     citations=(
-        Citation(text="Damon Smith (UW–Madison) and Richard Webster (NDSU), as implemented in the Crop Risk Tool."),
+        Citation(text="Damon Smith (UW–Madison) and Wade Webster (NDSU), as implemented in the Crop Risk Tool."),
         Citation(
             text="Crop Protection Network: Gray leaf spot of corn.",
             url="https://cropprotectionnetwork.org/encyclopedia/gray-leaf-spot-of-corn",

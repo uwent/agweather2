@@ -15,7 +15,7 @@ Frogeye leaf spot is a fungal leaf disease of soybean favored by warm, humid wea
 
 ## How it works
 
-The model is one equation, which the Crop Protection Network's Crop Risk Tool credits to Damon Smith (UW–Madison) and Richard Webster (North Dakota State University). A 2024 algorithm document gives the equation and its risk levels; we haven't found the fit itself published. It uses two 30-day averages:
+The model is one equation, which the Crop Protection Network's Crop Risk Tool credits to Damon Smith (UW–Madison) and Wade Webster (North Dakota State University). A 2024 algorithm document gives the equation and its risk levels; we haven't found the fit itself published. It uses two 30-day averages:
 
 - the daily high temperature, and
 - the hours each day with relative humidity of 80 % or more.
