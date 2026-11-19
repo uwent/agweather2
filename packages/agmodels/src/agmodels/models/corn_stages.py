@@ -30,7 +30,7 @@ import numpy as np
 from agmodels.crops import CropStage, number_option, stage_reached
 from agmodels.degree_days import degree_days_modified
 from agmodels.ingredients import Accumulation, DegreeDays, Ingredient, finished
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity
+from agmodels.spec import Biofix, Change, Check, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity
 
 EMERGENCE_GDD = 110.0
 LEAF_GDD_TO_V10 = 82.0
@@ -92,6 +92,20 @@ SPEC = ModelSpec(
     name="Corn growth stages",
     group="crop",
     version="0.1",
+    checks=(
+        Check(
+            kind="published",
+            against="Purdue's National Corn Handbook stage table for a 2700 GDD hybrid, and Ohio State's leaf stages",
+            result="For a 2700 GDD hybrid, the stages from blister to black layer fall within 2.1% of the handbook's degree days, and the ninth leaf stage within 10 degree days of Ohio State's 838.",
+            report="docs/validation/models/corn-stages.md#against-its-sources-numbers",
+        ),
+        Check(
+            kind="published",
+            against="Four corn seasons in Nebraska and Iowa, 1999–2002, published by Yang et al. (2004)",
+            result="Emergence and silking came within 3 days of the observed dates in all 4 seasons. These seasons were published with the silking equation we use, so they confirm our version of the method rather than test it on new fields.",
+            report="docs/validation/models/corn-stages.md#against-yang-et-als-field-seasons",
+        ),
+    ),
     status="beta",
     summary="Corn's vegetative and reproductive stages from planting, by growing degree days (modified 50/86 °F), for any hybrid maturity.",
     topics=("corn",),

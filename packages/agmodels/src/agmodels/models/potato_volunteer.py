@@ -22,7 +22,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels.ingredients import Accumulation, Ingredient, finished, with_accumulations
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk, Seasonal
+from agmodels.spec import Biofix, Change, Check, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk, Seasonal
 
 KILLING_HOURS = 120  # this many at a depth kills the tubers there (the tool's; MSU says more than 120)
 DEPTHS = {"4cm": "2 in (4 cm)", "10cm": "4 in (10 cm)", "8in": "8 in (10–30 cm interpolated)"}
@@ -32,6 +32,14 @@ SPEC = ModelSpec(
     name="Potato volunteer survival",
     group="agronomic",
     version="0.2",
+    checks=(
+        Check(
+            kind="observations",
+            against="Soil temperature sensors at 80 Wisconet stations, November through March, January 2025 to March 2026",
+            result="Our soil data count more hours below 27 °F than the stations: at 2 inches, 3.15 hours a day against 2.27, and at 8 inches about twice as many. More cold hours mean a lower survival risk, so our risk may run lower than the stations' would.",
+            report="docs/validation/models/potato-volunteer.md#hours-below-27-f-against-wisconets-sensors",
+        ),
+    ),
     status="beta",
     summary="Whether potato tubers left in the field are likely to survive the winter, from the hours of soil below 27 °F at 2, 4 and 8 in; surviving volunteers can carry late blight and insect pests into the next season.",
     topics=("potato-volunteers",),

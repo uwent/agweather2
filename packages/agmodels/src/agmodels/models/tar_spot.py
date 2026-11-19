@@ -19,6 +19,7 @@ from agmodels.probability import attenuate_for_cold, logistic, moving_mean, risk
 from agmodels.spec import (
     PROBABILITY_LEVELS,
     Change,
+    Check,
     Citation,
     ExplorerInput,
     Input,
@@ -119,6 +120,14 @@ SPEC = ModelSpec(
             version="0.2",
             date="2026-11-06",
             note="The same night hours (readings 20:00–06:00, 7 pm to 6 am) on CST all year, an hour later by the clock in summer (D74).",
+        ),
+    ),
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which AgWeather's tar spot model was ported from, on the tool's own 2025 weather for Eau Claire, Wisconsin",
+            result="Given the tool's daily weather, our daily probability matched the tool's on all 365 days of 2025. This shows that we reproduce the tool, not that its predictions are right: the model hasn't yet been compared with tar spot in fields.",
+            report="docs/validation/models/tar-spot.md#against-the-crop-risk-tool-on-the-same-weather",
         ),
     ),
 )

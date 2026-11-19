@@ -22,7 +22,18 @@ import numpy as np
 from agmodels.crops import number_option
 from agmodels.ingredients import Ingredient, finished
 from agmodels.probability import logistic, risk_level
-from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity, Risk
+from agmodels.spec import (
+    PROBABILITY_LEVELS,
+    Change,
+    Check,
+    Citation,
+    ExplorerInput,
+    Input,
+    ModelSpec,
+    Option,
+    Quantity,
+    Risk,
+)
 
 RAIN_DAYS, COLD_DAYS = 3, 9
 COEFFICIENTS = (-22.4611, -0.3359, 0.01118, -0.00750, 0.03929)  # intercept, Pythium, year, rain (mm), min temp (°C)
@@ -58,6 +69,14 @@ SPEC = ModelSpec(
     name="Cotton planting stand risk",
     group="agronomic",
     version="0.1",
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool's cotton stand model, which AgWeather replaces",
+            result="Our probabilities match the tool's in all 2,704 combinations of rain, temperature, Pythium, seeding rate and year tested, and on 357 planting dates through 2025. This shows that we reproduce the tool; the model hasn't been compared with stands counted in the field.",
+            report="docs/validation/models/cotton-planting.md#against-the-crop-risk-tool",
+        ),
+    ),
     status="beta",
     summary="For each possible planting date, the probability that the emerged cotton stand falls below a yield-limiting population, from the rain over the next 3 days and the minimum temperatures over the next 9.",
     topics=("cotton-stand-establishment",),

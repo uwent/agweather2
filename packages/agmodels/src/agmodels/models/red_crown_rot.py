@@ -22,6 +22,7 @@ from agmodels.spec import (
     PROBABILITY_LEVELS,
     Biofix,
     Change,
+    Check,
     Citation,
     ExplorerInput,
     Input,
@@ -124,6 +125,14 @@ SPEC = ModelSpec(
             version="0.2",
             date="2026-10-30",
             note="Precipitation sums the known days and counts missing days as no rain, reporting how many; the tool's mean of the known days times 31 estimated them. Unchanged without gaps.",
+        ),
+    ),
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which AgWeather's red crown rot model was ported from, on the tool's own 2025 weather for Eau Claire, Wisconsin",
+            result="With flowering (R1) on July 1, 2025, our predicted incidence matched the tool's on every day of the year. This shows that we reproduce the tool, not that its predictions are right: the model was developed in Japan and hasn't been tested against red crown rot in the United States.",
+            report="docs/validation/models/red-crown-rot.md#against-the-crop-risk-tool-on-the-same-weather",
         ),
     ),
 )

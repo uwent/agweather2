@@ -19,7 +19,7 @@ import numpy as np
 from agmodels.degree_days import degree_days_sine
 from agmodels.ingredients import Accumulation, DegreeDays, Ingredient, finished
 from agmodels.lookup import level_reached
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk
+from agmodels.spec import Biofix, Change, Check, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk
 
 BASE_C, UPPER_C = 0.0, 35.0
 B0, B_PLANTING, B_FALL_PRECIP, K, X0 = 423.1, -1.031, -0.2878, 0.003663, 1049.0
@@ -30,6 +30,14 @@ SPEC = ModelSpec(
     name="Winter rye cover crop biomass",
     group="agronomic",
     version="0.2",
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool's rye biomass model, which AgWeather replaces",
+            result="Our biomass matches the tool's in all 1,736 combinations of planting date, fall rain and degree days tested, and over a fall at Eau Claire, Wisconsin, in 2025. This shows that we reproduce the tool; the model hasn't been compared with measured biomass.",
+            report="docs/validation/models/rye-biomass.md#against-the-crop-risk-tool",
+        ),
+    ),
     status="beta",
     summary="Spring biomass of a fall-planted cereal rye cover crop, from growing degree days (base 0 °C) since planting, the planting date and fall precipitation, against the biomass cover crop goals need.",
     topics=("cereal-rye-cover-crop",),

@@ -18,6 +18,7 @@ from agmodels.probability import logistic, moving_mean, risk_level
 from agmodels.spec import (
     PROBABILITY_LEVELS,
     Change,
+    Check,
     Citation,
     ExplorerInput,
     Input,
@@ -162,6 +163,14 @@ SPEC = ModelSpec(
             version="0.1",
             date="2026-10-28",
             note="Ported from the Crop Risk Tool; missing precip isn't counted as dry.",
+        ),
+    ),
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which AgWeather's Gibberella ear rot model was ported from, on the tool's own 2025 weather for Eau Claire, Wisconsin",
+            result="Given the tool's daily weather, our probability of DON above 1 ppm matched the tool's on all 358 days the tool gives, January 8 to December 31, 2025. This shows that we reproduce the tool, not that its predictions are right: the model's fit is unpublished, and it hasn't been compared with DON in harvested grain.",
+            report="docs/validation/models/gibberella-ear-rot-don.md#against-the-crop-risk-tool-on-the-same-weather",
         ),
     ),
 )

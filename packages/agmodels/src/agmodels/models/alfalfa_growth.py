@@ -19,7 +19,7 @@ import numpy as np
 from agmodels.crops import CropStage, stage_reached
 from agmodels.degree_days import degree_days_sine
 from agmodels.ingredients import Accumulation, DegreeDays, Ingredient, finished
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity
+from agmodels.spec import Biofix, Change, Check, Citation, ExplorerInput, Input, ModelSpec, Quantity
 
 BASE_F, UPPER_F = 41.0, 86.0
 CUT_FROM, CUT_UNTIL = 900.0, 1100.0
@@ -45,6 +45,14 @@ SPEC = ModelSpec(
     name="Alfalfa growth since cutting",
     group="crop",
     version="0.1",
+    checks=(
+        Check(
+            kind="system",
+            against="The UW alfalfa cutting tool that AgWeather replaces, on the same daily temperatures",
+            result="Our daily degree days are the tool's own formula, and our cutting window is its 900 to 1100 degree days. This shows that we reproduce the tool, not that its window is right for every field.",
+            report="docs/validation/models/alfalfa-growth.md#against-the-uw-alfalfa-tool",
+        ),
+    ),
     status="beta",
     summary="Growing degree days (base 41 °F, upper 86 °F) since spring or the last cutting, and when alfalfa is ready to cut (900–1100 GDD).",
     topics=("alfalfa",),

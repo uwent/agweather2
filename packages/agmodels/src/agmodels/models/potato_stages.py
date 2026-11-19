@@ -20,7 +20,7 @@ import numpy as np
 
 from agmodels.crops import CropStage, stage_reached
 from agmodels.ingredients import Accumulation, DegreeDays, Ingredient, finished
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity
+from agmodels.spec import Biofix, Change, Check, Citation, ExplorerInput, Input, ModelSpec, Quantity
 
 BASE_C = 4.0
 EMERGENCE_DD = 208.0
@@ -37,6 +37,20 @@ SPEC = ModelSpec(
     name="Potato emergence",
     group="crop",
     version="0.1",
+    checks=(
+        Check(
+            kind="observations",
+            against="Planting and emergence dates in UW Vegetable Pathology's newsletters at 7 Wisconsin potato areas, 2020–2026",
+            result="Fitted to 120 dates and tested on each year left out in turn, the model predicts emergence with a mean error of 3.3 days, against 7.5 days for a fixed 24 days after planting. The newsletters' dates are estimates, not counts in the field.",
+            report="docs/validation/models/potato-stages.md#against-wisconsins-newsletter-dates",
+        ),
+        Check(
+            kind="published",
+            against="Heat units from planting to emergence in Washington's Columbia Basin (Holden et al. 2011)",
+            result="At a 45 °F base, the dates the model was fitted to take about 250 degree days, the value Holden et al. use within their range of 200 to 300.",
+            report="docs/validation/models/potato-stages.md#against-holden-et-al",
+        ),
+    ),
     status="beta",
     summary="The date half of a potato planting has emerged, by degree days in air above 4 °C from planting: the start of the early and late blight models.",
     topics=("potato",),

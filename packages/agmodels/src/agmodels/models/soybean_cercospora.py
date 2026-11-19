@@ -21,6 +21,7 @@ from agmodels.probability import logistic, moving_mean, risk_level
 from agmodels.spec import (
     PROBABILITY_LEVELS,
     Change,
+    Check,
     Citation,
     ExplorerInput,
     Input,
@@ -167,6 +168,14 @@ SPEC = ModelSpec(
         Ingredient(name="hours_rh_over_90_14_day", unit="hour"),
     ),
     changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which AgWeather's soybean Cercospora model was ported from, on the tool's own 2025 weather for Eau Claire, Wisconsin",
+            result="Given the tool's daily weather, our spore probability for each of the three species matched the tool's on all 365 days of 2025. This shows that we reproduce the tool, not that its predictions are right: the model's fits are unpublished, and it hasn't been compared with Cercospora leaf blight in fields.",
+            report="docs/validation/models/soybean-cercospora.md#against-the-crop-risk-tool-on-the-same-weather",
+        ),
+    ),
 )
 
 

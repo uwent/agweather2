@@ -14,7 +14,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels.crops import CropStage, stage_reached
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity
+from agmodels.spec import Biofix, Change, Check, Citation, ExplorerInput, Input, ModelSpec, Quantity
 
 BASE_F = 32.0
 EARLY_CAP_F, LATE_CAP_F = 70.0, 95.0
@@ -48,6 +48,14 @@ SPEC = ModelSpec(
     name="Spring wheat growth stages",
     group="crop",
     version="0.1",
+    checks=(
+        Check(
+            kind="published",
+            against="The North Dakota Agricultural Weather Network's wheat growing degree day table, after Bauer et al. (1984)",
+            result="Our stages fall at the table's degree-day totals, from emergence at 180 to the start of flowering at 1739, and our daily degree days follow its rules. No comparison with observed stage dates has been made.",
+            report="docs/validation/models/spring-wheat-stages.md#against-ndawns-table-and-rule",
+        ),
+    ),
     status="beta",
     summary="Spring wheat's Haun stages from planting through flowering and watery-ripe kernels, by growing degree days (base 32 °F).",
     topics=("spring-wheat",),

@@ -12,7 +12,18 @@ import numpy as np
 
 from agmodels.ingredients import Ingredient, finished
 from agmodels.probability import logistic, moving_mean, risk_level
-from agmodels.spec import PROBABILITY_LEVELS, Change, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity, Risk
+from agmodels.spec import (
+    PROBABILITY_LEVELS,
+    Change,
+    Check,
+    Citation,
+    ExplorerInput,
+    Input,
+    ModelSpec,
+    Option,
+    Quantity,
+    Risk,
+)
 
 RESISTANCE = {  # option value: (label, intercept shift)
     "vs": ("Very susceptible", 0.0),
@@ -68,6 +79,14 @@ SPEC = ModelSpec(
     lookback_days=14,
     ingredients=(Ingredient(name="relative_humidity_mean_14_day", unit="percent"),),
     changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which AgWeather's wheat scab model was ported from, on the tool's own 2025 weather for Eau Claire, Wisconsin",
+            result="Given the tool's daily weather, our probability matched the tool's on all 365 days of 2025 for each of the four cultivar resistance classes. This shows that we reproduce the tool, not that its predictions are right: the model hasn't been compared with scab in fields.",
+            report="docs/validation/models/wheat-scab.md#against-the-crop-risk-tool-on-the-same-weather",
+        ),
+    ),
 )
 
 

@@ -34,7 +34,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from agmodels.crops import CropStage, number_option
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity
+from agmodels.spec import Biofix, Change, Check, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity
 from agmodels.weather import day_length_hours
 
 RADICLE_CD = 40.0
@@ -123,6 +123,14 @@ SPEC = ModelSpec(
     name="Soybean growth stages",
     group="crop",
     version="0.1",
+    checks=(
+        Check(
+            kind="published",
+            against="Six soybean seasons at Lincoln, Nebraska, published with the model by Setiyono et al. (2007)",
+            result="Beginning bloom came within 6 days of the observed date and beginning maturity within 3 days in all 6 seasons, close to the 3.6-day error the authors report. These seasons were published with the model, so they confirm our version of it rather than test it on new fields.",
+            report="docs/validation/models/soybean-stages.md#against-setiyono-et-als-seasons",
+        ),
+    ),
     status="beta",
     summary="Soybean's vegetative and reproductive stages from planting, from temperature and day length, for any maturity group (SOYDEV).",
     topics=("soybean",),

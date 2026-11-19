@@ -16,7 +16,7 @@ import numpy as np
 from agmodels.accumulate import running_total
 from agmodels.crops import number_option
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity
+from agmodels.spec import Biofix, Change, Check, Citation, ExplorerInput, Input, ModelSpec, Option, Quantity
 
 METHOD = Option(
     name="method",
@@ -40,6 +40,26 @@ SPEC = ModelSpec(
     name="Custom degree days",
     group="degree_days",
     version="0.1",
+    checks=(
+        Check(
+            kind="published",
+            against="Baskerville and Emin's single-sine method (1969), worked numerically and by hand",
+            result="Our single-sine degree days agree with a numerical integral of the method's own temperature curve within 0.0002 degree days in 8 test cases.",
+            report="docs/validation/models/custom-degree-days.md#against-the-method-and-the-old-api",
+        ),
+        Check(
+            kind="system",
+            against="The old AgWeather service's degree-day calculator, which AgWeather replaces",
+            result="All three methods match the old calculator within 0.000001 degree days in 11,781 combinations of thresholds and temperatures.",
+            report="docs/validation/models/custom-degree-days.md#against-the-method-and-the-old-api",
+        ),
+        Check(
+            kind="system",
+            against="The old AgWeather service at Waunakee, Wisconsin, each on its own weather data",
+            result="From January 1 to October 31, 2026, our single-sine total (base 50 °F, upper 86 °F) was 3,184 degree days against the old service's 3,203, 0.6% lower.",
+            report="docs/validation/models/custom-degree-days.md#on-the-archives-weather",
+        ),
+    ),
     status="stable",
     summary="Degree days since a biofix, with any base and upper threshold, method and unit.",
     topics=("degree-days",),

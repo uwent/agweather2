@@ -17,6 +17,7 @@ from agmodels.probability import attenuate_for_cold, logistic, moving_mean, risk
 from agmodels.spec import (
     PROBABILITY_LEVELS,
     Change,
+    Check,
     Citation,
     ExplorerInput,
     Input,
@@ -141,6 +142,14 @@ SPEC = ModelSpec(
         Ingredient(name="air_temperature_min_21_day", unit="degC", shared="air_temperature_min_21_day"),
     ),
     changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which AgWeather's white mold model was ported from, on the tool's own 2025 weather for Eau Claire, Wisconsin",
+            result="Given the tool's daily weather, our apothecia probability matched the tool's on all 365 days of 2025, for non-irrigated fields and for irrigated fields in 30-inch and 15-inch rows. This shows that we reproduce the tool, not that its predictions are right: the model hasn't yet been compared with white mold in fields.",
+            report="docs/validation/models/white-mold.md#against-the-crop-risk-tool-on-the-same-weather",
+        ),
+    ),
 )
 
 
