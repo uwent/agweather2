@@ -17,7 +17,7 @@ sources:
     url: https://vegpath.plantpath.wisc.edu/diseases/potato-late-blight/
   - key: vegpath-tomato
     text: 'Tomato Late Blight. UW Vegetable Pathology (Gevens lab), UW–Madison, updated 2026.'
-    url: https://vegpath.plantpath.wisc.edu/diseases/tomato-late-blight
+    url: https://vegpath.plantpath.wisc.edu/diseases/tomato-late-blight/
   - key: gevens-2024
     text: 'Gevens, A., A. Seidl and B. Hudelson. Late Blight (UW Plant Disease Facts D0068). UW–Madison Division of Extension, revised 2024.'
     url: https://hort.extension.wisc.edu/articles/late-blight/
@@ -36,9 +36,18 @@ sources:
   - key: vcu-2025
     text: 'Gevens, A. Vegetable Crop Update, June 15, 2025. UW Vegetable Pathology, UW–Madison, 2025.'
     url: https://vegpath.plantpath.wisc.edu/2025/06/15/vegetable-crop-update-jun-15-2025/
+  - key: vegpath-fungicides
+    text: 'Late Blight Fungicides (fungicides registered for potato late blight in Wisconsin). UW Vegetable Pathology, UW–Madison, updated 2026.'
+    url: https://vegpath.plantpath.wisc.edu/resources/late-blight-fungicides/
+  - key: gevens-2025
+    text: 'Gevens, A. Deep frost this winter limits risk of potato volunteers. UW Vegetable Pathology, UW–Madison, April 22, 2025.'
+    url: https://vegpath.plantpath.wisc.edu/2025/04/22/potato-volunteer-risk/
+  - key: atcp-21-15
+    text: 'Wisconsin Administrative Code ATCP 21.15, Potato late blight. Wisconsin Department of Agriculture, Trade and Consumer Protection.'
+    url: https://docs.legis.wisconsin.gov/code/admin_code/atcp/020/21/15
 ---
 
-Late blight is a disease of potato and tomato caused by _Phytophthora infestans_, a water mold rather than a true fungus. It also infects other plants in the nightshade family, such as pepper, petunia and nightshade weeds.[^vegpath-potato][^gevens-2024] It appears in Wisconsin in some years and not others, when cool, wet weather and a source of spores come together, and in those years it can destroy a planting within days.[^a3422-2026][^umass-2017] It is a regulated disease in Wisconsin.[^a3422-2026]
+Late blight is a disease of potato and tomato caused by _Phytophthora infestans_, a water mold rather than a true fungus. It also infects other plants in the nightshade family, such as pepper, petunia and nightshade weeds.[^vegpath-potato][^gevens-2024] It appears in Wisconsin in some years and not others, when cool, wet weather and a source of spores come together, and in those years it can destroy a planting within days.[^a3422-2026][^umass-2017] It is a regulated disease in Wisconsin: the state's rules require potato cull piles to be disposed of by May 20 each year and volunteer potatoes to be killed as soon as they appear.[^a3422-2026][^atcp-21-15][^gevens-2025]
 
 ## Identification
 
@@ -70,7 +79,7 @@ In cool, wet weather, whole plants can collapse and die within 7 to 10 days.[^ge
 **Nonchemical controls** remove the plants the pathogen survives in and slow its spread:
 
 - Plant certified seed potatoes each year, and don't save your own tubers for seed.[^gevens-2024][^johnson-2020]
-- Destroy cull piles, volunteer potatoes and tomatoes, and nightshade weeds.[^vegpath-potato][^johnson-2020]
+- Destroy cull piles, volunteer potatoes and tomatoes, and nightshade weeds. Volunteers matter because they grow where no fungicide is applied.[^vegpath-potato][^johnson-2020][^gevens-2025]
 - Start with healthy tomato transplants, and grow resistant varieties; resistance varies with the strain, so several varieties improve the odds.[^umass-2017][^gevens-2024]
 - Space rows and plants so the canopy dries.[^vegpath-potato]
 - Destroy an infected spot along with a border of healthy-looking plants. In gardens, bag infected plants for the trash, never the compost.[^umass-2017][^gevens-2024]
@@ -82,7 +91,7 @@ In cool, wet weather, whole plants can collapse and die within 7 to 10 days.[^ge
 - **Fungicides aimed at water molds** include cyazofamid (group 21), mandipropamid and dimethomorph (group 40), oxathiapiprolin (group 49), fluazinam (group 29), propamocarb (group 28) and cymoxanil (group 27). Tank-mix them with a protectant and rotate groups.[^a3422-2026][^fronk-2026] Mefenoxam (group 4) controls only some strains.[^a3422-2026]
 - **Organic growers** rely mainly on copper, and home gardeners can use chlorothalonil or copper products labeled for tomato or potato.[^fronk-2026][^gevens-2024]
 
-For products and current registrations, see UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/). UW Vegetable Pathology's [potato](https://vegpath.plantpath.wisc.edu/diseases/potato-late-blight/) and [tomato](https://vegpath.plantpath.wisc.edu/diseases/tomato-late-blight) late blight pages and the University of Maine's [potato late blight bulletin](https://extension.umaine.edu/publications/2441e/) explain the choices in more detail; for home gardens, see UW–Madison's [late blight fact sheet](https://hort.extension.wisc.edu/articles/late-blight/).
+For products and current registrations, see UW Vegetable Pathology's [list of late blight fungicides for potato](https://vegpath.plantpath.wisc.edu/resources/late-blight-fungicides/) and UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/).[^vegpath-fungicides] UW Vegetable Pathology's [potato](https://vegpath.plantpath.wisc.edu/diseases/potato-late-blight/) and [tomato](https://vegpath.plantpath.wisc.edu/diseases/tomato-late-blight/) late blight pages and the University of Maine's [potato late blight bulletin](https://extension.umaine.edu/publications/2441e/) explain the choices in more detail; for home gardens, see UW–Madison's [late blight fact sheet](https://hort.extension.wisc.edu/articles/late-blight/).
 
 ## AgWeather's models
 

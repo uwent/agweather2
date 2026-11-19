@@ -44,18 +44,24 @@ sources:
   - key: midwest-veg-guide
     text: 'Midwest Vegetable Production Guide for Commercial Growers. Michigan State University, Purdue University and other Midwest universities, current edition.'
     url: https://mwveguide.org/
+  - key: uw-vegpath-tomato-eb
+    text: 'Tomato Early Blight. UW–Madison Vegetable Pathology, updated 2026 (adapted from a UW–Madison Extension fact sheet by B. Hudelson).'
+    url: https://vegpath.plantpath.wisc.edu/diseases/tomato-early-blight/
+  - key: uw-vegpath-brown-spot
+    text: 'Gevens, A., A. Abbrescia, R. Groves and B. Bradford. Potato Brown Spot and Black Pit. UW–Madison Vegetable Pathology, updated 2026.'
+    url: https://vegpath.plantpath.wisc.edu/diseases/potato-brown-spot-and-black-pit/
 ---
 
 Early blight is a fungal disease of potato and tomato that also affects pepper, eggplant and nightshade weeds. On potato it is caused by _Alternaria solani_; on tomato, mainly by _Alternaria linariae_ (also called _A. tomatophila_), formerly classed as _A. solani_. It is a key potato disease in Wisconsin: the state's summer weather favors it, and all potato varieties are susceptible.[^hudelson-2026][^schuh-2024][^meadows-2025][^colquhoun-2026]
 
 ## Identification
 
-- **On leaves**, small dark brown to black spots appear first on the older, lower leaves. They grow to about ⅜ to ½ inch across, with dark concentric rings like a target and often a yellow edge. Leaf veins can stop a spot and give it an angular shape. As the disease advances, lower leaves drop and spots appear higher on the plant.[^shrestha-2025][^schuh-2024][^uw-potato-eb]
+- **On leaves**, small dark brown to black spots appear first on the older, lower leaves. They grow to about ⅜ to ½ inch across, with dark concentric rings like a target and often a yellow edge. Leaf veins can stop a spot and give it an angular shape. Spots can merge and destroy much of a leaf. As the disease advances, lower leaves drop and spots appear higher on the plant.[^shrestha-2025][^schuh-2024][^uw-potato-eb][^uw-vegpath-tomato-eb]
 - **On stems**, spots are elongated and brown to black. Tomato seedlings can get a sunken collar rot at the soil line.[^shrestha-2025][^schuh-2024]
 - **On tubers**, spots are dark and sunken, often with a raised border, over dry, corky tissue. They may not show until months into storage, and they are less common in the Midwest than leaf spots.[^shrestha-2025][^uw-potato-eb]
 - **On tomato fruit**, spots are leathery and black with raised rings, usually near the stem.[^schuh-2024]
 
-Brown spot of potato, caused by the related fungus _Alternaria alternata_, is managed together with early blight: Wisconsin's guide lists fungicides for the two diseases together.[^a3422-2026]
+Brown spot of potato, caused by the related fungus _Alternaria alternata_, is easily mistaken for early blight. Its leaf spots are smaller, it favors warmer weather (above 64 °F) and stressed or maturing plants, and on tubers it causes black pit: deep, black, sunken pits that often appear in storage. It is managed together with early blight: Wisconsin's guide lists fungicides for the two diseases together.[^uw-vegpath-brown-spot][^a3422-2026]
 
 ## Life cycle
 
@@ -71,7 +77,7 @@ Early blight cuts the leaf area that feeds the tubers, reducing yield and tuber 
 
 ## Monitoring
 
-- Note the date of 50 % emergence in each potato field, or the transplanting date for tomatoes. UW–Madison times early blight risk from these dates with potato physiological days (P-days), a measure of heat like degree days. Once 300 P-days have accumulated, temperatures have favored infection: scout closely or begin protective sprays.[^uw-potato-eb][^colquhoun-2026]
+- Note the date of 50 % emergence in each potato field, or the transplanting date for tomatoes. UW–Madison times early blight risk from these dates with potato physiological days (P-days), a measure of heat like degree days.[^uw-vegpath-tomato-eb] Once 300 P-days have accumulated, temperatures have favored infection: scout closely or begin protective sprays.[^uw-potato-eb][^colquhoun-2026]
 - Scout regularly once plants are about 12 inches tall. Walk the whole field, including edges next to last year's potato fields, and check the lower leaves first.[^shrestha-2025][^colquhoun-2026]
 
 ## Management
@@ -88,10 +94,10 @@ Early blight cuts the leaf area that feeds the tubers, reducing yield and tuber 
 
 - **Protectants** that act at many sites (FRAC group M), such as chlorothalonil, mancozeb and metiram, are the base of most programs and also protect against late blight. Under heavy disease pressure, they may not be enough alone.[^a3422-2026][^shrestha-2025]
 - **Single-site fungicides** are rotated or tank-mixed with protectants: succinate dehydrogenase inhibitors (SDHIs, group 7; fluopyram, pydiflumetofen), anilinopyrimidines (group 9; pyrimethanil) and demethylation inhibitors (DMIs, group 3; difenoconazole, mefentrifluconazole).[^a3422-2026][^shrestha-2025]
-- **Resistance** is widespread. Most _A. solani_ in Wisconsin potato fields carry a mutation that makes quinone outside inhibitors (QoIs, group 11; azoxystrobin, pyraclostrobin) less effective, and North Dakota State no longer recommends the SDHI boscalid because of resistance.[^ding-2019][^shrestha-2025] Wisconsin's guide advises no more than one group 11 application, or two of group 7 or 9, in a row before switching groups.[^a3422-2026]
+- **Resistance** is widespread. Most _A. solani_ in Wisconsin potato fields carry a mutation that makes quinone outside inhibitors (QoIs, group 11; azoxystrobin, pyraclostrobin) less effective, the brown spot fungus is resistant to them too, and North Dakota State no longer recommends the SDHI boscalid because of resistance.[^ding-2019][^uw-vegpath-brown-spot][^shrestha-2025] Wisconsin's guide advises no more than one group 11 application, or two of group 7 or 9, in a row before switching groups.[^a3422-2026]
 - **In gardens**, copper or chlorothalonil can help if started early and reapplied on a schedule, but most gardeners don't need them: early blight seldom cuts a tomato plant's harvest much.[^hudelson-2026][^schuh-2024]
 
-For products and current registrations, see the [Midwest Vegetable Production Guide](https://mwveguide.org/) and UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/). UW–Madison's [potato early blight page](https://vegpath.plantpath.wisc.edu/diseases/potato-early-blight/) and North Dakota State's [Early Blight of Potato](https://www.ndsu.edu/agriculture/ag-hub/publications/early-blight-potato) explain the choices in more detail; for gardens, see UW–Madison's [early blight fact sheet](https://pddc.wisc.edu/2015/07/23/early-blight/).
+For products and current registrations, see the [Midwest Vegetable Production Guide](https://mwveguide.org/) and UW–Madison's [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/). UW–Madison's [potato](https://vegpath.plantpath.wisc.edu/diseases/potato-early-blight/) and [tomato](https://vegpath.plantpath.wisc.edu/diseases/tomato-early-blight/) early blight pages and North Dakota State's [Early Blight of Potato](https://www.ndsu.edu/agriculture/ag-hub/publications/early-blight-potato) explain the choices in more detail; for gardens, see UW–Madison's [early blight fact sheet](https://pddc.wisc.edu/2015/07/23/early-blight/).
 
 ## AgWeather's models
 
