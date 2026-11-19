@@ -2,7 +2,7 @@
 
 Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/insects/mint_root_borer.py`, VDIFN's generation table run by the insect engine (`agmodels.phenology`; PLAN.md Phase 3 D, step 3); its page: `mint_root_borer.md` beside it (VDIFN's text). The insect review that will replace or confirm the numbers is `docs/models-plan.md` part H, with `docs/insect-models.md` as its work list.
 
-**In short:** ported from VDIFN unchanged. Given the same degree days its risk matches VDIFN's exactly, and its degree days match the old AgWeather API's that VDIFN read. That shows a faithful port, not a right answer: the timing hasn't been checked against its source or against field data in Wisconsin. The source (Berry et al., Oregon State, via USPest) isn't identified; the model was developed in the Pacific Northwest's or California's mint, not Wisconsin's.
+**In short:** ported from VDIFN unchanged. Given the same degree days its risk matches VDIFN's exactly, and its degree days match the old AgWeather API's that VDIFN read. That shows a faithful port, not a right answer: the timing hasn't been checked against its source or against field data in Wisconsin. Its numbers and April 1 start are the events of Oregon State's model on USPest (`mrb`, Berry et al.; partly validated), whose underlying paper isn't identified; the model was developed in the Pacific Northwest's mint, not Wisconsin's.
 
 ## Sources and what we took from each
 
@@ -36,7 +36,7 @@ None yet: no test reproduces a published number for this insect, and it hasn't b
 
 ## Limits and open questions
 
-- The source (Berry et al., Oregon State, via USPest) isn't identified; the model was developed in the Pacific Northwest's or California's mint, not Wisconsin's.
+- Its numbers and April 1 start are the events of Oregon State's model on USPest (`mrb`, Berry et al.; partly validated), whose underlying paper isn't identified; the model was developed in the Pacific Northwest's mint, not Wisconsin's.
 - No check against Wisconsin field data.
 - The 0–4 levels are VDIFN's display rule, not an estimate of numbers: 4 means near the table's peak, and every generation counts alike (D37).
 - **Cheapest independent comparison:** Read Tollerup et al. 2013 (open access) and USPest's source for their degree-day events and biofix, and compare them with the table (reading, no data). No Wisconsin trap records of mint root borer are known to us.
