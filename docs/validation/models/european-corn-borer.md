@@ -39,7 +39,7 @@ Not compared: v2 and VDIFN on the same days' weather (VDIFN's maps against v2's)
 
 ## Limits and open questions
 
-- **A slip in the page's text:** the summary in `european_corn_borer.md` (VDIFN's text) says the first flight starts at 329, peaks at 472 and ends at 636 degree days, which are corn rootworm's numbers; the model's first flight is 550, 740 and 900. Fix the text when the page is rewritten (part I2).
+- **A slip in the page's text:** the summary in `european_corn_borer.md` (VDIFN's text) says the first flight starts at 329, peaks at 472 and ends at 636 degree days, which are corn rootworm's numbers; the model's first flight is 550, 740 and 900. Fixed 2026-11-18 (the page now gives 550, 740 and 900).
 - The source of 550/740/900 and 1660/1950/2190 isn't identified.
 - Moving to D36's life-stage curves with the source's own degree-day method is part H's review (`docs/insect-models.md`); this report describes the model as ported (version 0.1).
 - **Cheapest independent comparison:** DATCP's weekly Pest Bulletin black light trap counts of European corn borer moths, 2020–2026 (both flights, many sites a year), against the flights; then NEWA's European corn borer model on the same weather.

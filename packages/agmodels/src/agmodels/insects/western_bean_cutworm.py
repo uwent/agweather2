@@ -1,30 +1,24 @@
 """Western Bean Cutworm, from VDIFN."""
 
 from agmodels.phenology import Insect
-from agmodels.spec import Check
+from agmodels.spec import Change, Check
 
 INSECT = Insect(
     id="western-bean-cutworm",
     name="Western Bean Cutworm",
-    crops=(
-        "asparagus",
-        "beans",
-        "beet",
-        "carrot",
-        "celery",
-        "corn",
-        "sweet-corn",
-        "cucumber",
-        "hops",
-        "melon",
-        "mint",
-        "potato",
-        "tomato",
-    ),
+    crops=("corn", "sweet-corn", "dry-bean"),
     base_f=50,
     upper_f=None,
     biofix="05-01",
     generations=((1320, 1420, 1535),),
+    version="0.2",
+    changelog=(
+        Change(
+            version="0.2",
+            date="2026-11-18",
+            note="Crops corrected to corn, sweet corn and dry beans (the list had been copied from black cutworm's).",
+        ),
+    ),
     checks=(
         Check(
             kind="system",
