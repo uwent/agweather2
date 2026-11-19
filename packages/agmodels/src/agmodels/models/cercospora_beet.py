@@ -20,6 +20,7 @@ from agmodels.spec import (
     SEVERITY_LEVELS,
     Biofix,
     Change,
+    Check,
     Citation,
     ExplorerInput,
     Input,
@@ -37,6 +38,14 @@ SPEC = ModelSpec(
     summary="Daily infection values (0–7) from hours of high humidity and their temperature; their 2- and 7-day means time fungicide sprays for Cercospora leaf spot of table and sugar beet.",
     topics=("beet-cercospora-leaf-spot",),
     crops=("sugarbeet",),
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which this model replaces, on its recorded 2025 weather at one Wisconsin location",
+            result="Our daily infection values match the tool's in all 12,024 combinations of temperature and humid hours tested, and on the tool's own inputs for 2025 the daily values, 7-day means and risk levels match on all 365 days.",
+            report="docs/validation/models/cercospora-beet-div.md#against-the-crop-risk-tool",
+        ),
+    ),
     citations=(
         Citation(
             text="Windels, C. E., Lamey, H. A., Hilde, D., Widner, J. and Knudsen, T. (1998). A Cercospora leaf spot model for sugar beet: in practice by an industry. Plant Disease 82, 716–726.",

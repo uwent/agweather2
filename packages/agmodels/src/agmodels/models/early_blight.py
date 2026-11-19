@@ -20,6 +20,7 @@ from agmodels.spec import (
     SEVERITY_LEVELS,
     Biofix,
     Change,
+    Check,
     Citation,
     ExplorerInput,
     Input,
@@ -37,6 +38,20 @@ SPEC = ModelSpec(
     summary="Potato physiological days from daily minimum and maximum temperature, accumulated from emergence to time the first fungicide spray for early blight (about 300 P-days).",
     topics=("early-blight",),
     crops=("potato",),
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which this model replaces, on its recorded 2025 weather at one Wisconsin location",
+            result="Weighting the day's low as the tool does, our daily P-days and risk levels match the tool's on all 365 days. Weighting the day's high in the last term, as Sands and colleagues do, gives 1,098 P-days from May 15 to September 30 against the tool's 1,107, and both reach 300 P-days on June 27.",
+            report="docs/validation/models/early-blight-pdays.md#against-the-crop-risk-tool",
+        ),
+        Check(
+            kind="system",
+            against="The old AgWeather service at UW Vegetable Pathology's 7 forecast locations in Wisconsin, May 1 to September 30, 2026",
+            result="Our season P-day totals were within 4 percent of the old service's at all 7 locations.",
+            report="docs/validation/models/early-blight-pdays.md#against-the-old-agweather-service",
+        ),
+    ),
     citations=(
         Citation(
             text="Sands, P. J., Hackett, C. and Nix, H. A. (1979). A model of the development and bulking of potatoes (Solanum tuberosum L.). I. Derivation from well-managed field crops. Field Crops Research 2, 309–331.",

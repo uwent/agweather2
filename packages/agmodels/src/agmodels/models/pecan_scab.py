@@ -18,7 +18,7 @@ import numpy as np
 
 from agmodels.ingredients import Accumulation, Ingredient, finished, with_accumulations
 from agmodels.lookup import level_reached
-from agmodels.spec import Biofix, Change, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk
+from agmodels.spec import Biofix, Change, Check, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk
 
 THRESHOLDS = (10, 20, 30)  # highly, moderately and low susceptible varieties' spray thresholds (scab hours)
 PECAN_STATES = ("AL", "AR", "AZ", "CA", "FL", "GA", "KS", "LA", "MO", "MS", "NC", "NM", "OK", "SC", "TN", "TX")
@@ -32,6 +32,14 @@ SPEC = ModelSpec(
     summary="Hours warm (70 °F or more) and humid (RH 90% or more) since March 1 or the last fungicide spray, against the spray thresholds for highly, moderately and low susceptible pecan varieties.",
     topics=("pecan-scab",),
     crops=("pecan",),
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which this model replaces, on its recorded 2025 weather at one Wisconsin location, used only to test the arithmetic",
+            result="Counted at the tool's own thresholds (92 percent humidity and above 21.1 °C), our daily and running scab hours match the tool's on all 365 days. We count at the Oklahoma Mesonet's 90 percent and 70 °F, as the tool's documentation says, so more hours count.",
+            report="docs/validation/models/pecan-scab.md#against-the-crop-risk-tool",
+        ),
+    ),
     citations=(
         Citation(
             text="Oklahoma Mesonet: Pecan Scab Advisor.",

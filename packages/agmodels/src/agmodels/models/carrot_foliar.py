@@ -26,6 +26,7 @@ from agmodels.spec import (
     SEVERITY_LEVELS,
     Biofix,
     Change,
+    Check,
     Citation,
     ExplorerInput,
     Input,
@@ -43,6 +44,20 @@ SPEC = ModelSpec(
     summary="Daily disease severity values (0–4) from hours of leaf wetness and their temperature; the last 7 days' total times fungicide sprays for Alternaria and Cercospora leaf blights of carrot.",
     topics=("carrot-alternaria-leaf-blight", "carrot-cercospora-leaf-blight"),
     crops=("carrot",),
+    checks=(
+        Check(
+            kind="published",
+            against="FAST's table of disease severity values (Madden, Pennypacker and MacNab 1978)",
+            result="Our daily values follow the published table at every whole hour from 0 to 24 in each of its four temperature bands, and are 0 below 13 °C.",
+            report="docs/validation/models/carrot-foliar-dsv.md#against-its-sources-numbers",
+        ),
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which this model replaces, on its recorded 2025 weather at one Wisconsin location",
+            result="Of 3,775 combinations of temperature and humid hours tested, our daily values match the tool's in every one except where its table is an hour off from the published table or reads a band edge differently; there we follow the published table. On the tool's own inputs for 2025 this changes 2 days of the season, from 99 to 101 values between May 15 and September 30.",
+            report="docs/validation/models/carrot-foliar-dsv.md#against-the-crop-risk-tool",
+        ),
+    ),
     citations=(
         Citation(
             text="Pitblado, R. E. (1992). TOM-CAST: a weather-timed fungicide spray program for field tomatoes. Ridgetown College of Agricultural Technology, Ontario.",

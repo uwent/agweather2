@@ -24,6 +24,7 @@ from agmodels.spec import (
     SEVERITY_LEVELS,
     Biofix,
     Change,
+    Check,
     Citation,
     ExplorerInput,
     Input,
@@ -41,6 +42,14 @@ SPEC = ModelSpec(
     summary="BOTCAST's daily disease severity index from inoculum and infection conditions, accumulated from emergence to time fungicide sprays for Botrytis leaf blight of onion.",
     topics=("onion-botrytis-leaf-blight",),
     crops=("onion",),
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which this model replaces, on its recorded 2025 weather at one Wisconsin location",
+            result="Our inoculum and infection values match the tool's in all 100 and 3,225 combinations tested, and on the tool's own inputs for 2025 our daily index matches the tool's on every day we score. Where an input that decides a day is missing we give no value, where the tool scores the day.",
+            report="docs/validation/models/botrytis-onion-botcast.md#against-the-crop-risk-tool",
+        ),
+    ),
     citations=(
         Citation(
             text="Sutton, J. C., James, T. D. W. and Rowell, P. M. (1986). BOTCAST: a forecasting system to time the initial fungicide spray for managing Botrytis leaf blight of onions. Agriculture, Ecosystems and Environment 18, 123–143.",

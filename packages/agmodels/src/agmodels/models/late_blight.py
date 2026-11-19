@@ -23,6 +23,7 @@ from agmodels.spec import (
     SEVERITY_LEVELS,
     Biofix,
     Change,
+    Check,
     Citation,
     ExplorerInput,
     Input,
@@ -40,6 +41,20 @@ SPEC = ModelSpec(
     summary="Daily disease severity values (0–4) from hours of high humidity and their temperature, accumulated from crop emergence to time fungicide sprays for potato and tomato late blight.",
     topics=("late-blight",),
     crops=("potato", "tomato"),
+    checks=(
+        Check(
+            kind="system",
+            against="The Crop Risk Tool, which this model replaces, on its recorded 2025 weather at one Wisconsin location",
+            result="From the tool's own daily inputs, our daily values, season and 14-day totals and risk levels match the tool's on all 365 days. Taking humid hours and their temperature from the same evening-to-evening day, as Wallin did, changes 31 days, and both versions reach the 18-value spray threshold on July 16.",
+            report="docs/validation/models/late-blight-dsv.md#against-the-crop-risk-tool",
+        ),
+        Check(
+            kind="system",
+            against="The old AgWeather service at UW Vegetable Pathology's 7 forecast locations in Wisconsin, May 1 to September 30, 2026",
+            result="Our season totals ran 30 to 45 percent above the old service's, mostly because we count humid hours from 88 percent relative humidity to make up for gridded humidity reading slightly low. Counted from 90 percent, as before, they ran 5 to 20 percent above, with the same daily value on 83 percent of days.",
+            report="docs/validation/models/late-blight-dsv.md#against-the-old-agweather-service",
+        ),
+    ),
     citations=(
         Citation(
             text="Wallin, J. R. (1962). Summary of recent progress in predicting late blight epidemics in United States and Canada. American Potato Journal 39, 306–312.",

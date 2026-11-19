@@ -16,18 +16,12 @@ REPORTS = ROOT / "docs" / "validation" / "models"
 NOT_YET_REPORTED = frozenset(
     [
         "alfalfa-growth",
-        "botrytis-onion-botcast",
-        "carrot-foliar-dsv",
-        "cercospora-beet-div",
         "corn-stages",
         "cotton-planting",
         "custom-degree-days",
-        "early-blight-pdays",
         "frogeye-leaf-spot",
         "gibberella-ear-rot-don",
         "gray-leaf-spot",
-        "late-blight-dsv",
-        "pecan-scab",
         "potato-stages",
         "potato-volunteer",
         "red-crown-rot",
