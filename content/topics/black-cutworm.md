@@ -17,22 +17,90 @@ crops:
   - pea
   - potato
   - tomato
-scientific_name: ''
-summary: ''
+scientific_name: Agrotis ipsilon
+summary: A moth that flies in from the south each spring; its caterpillars cut off corn and vegetable seedlings at the soil line, so fields are scouted in the weeks after a large moth flight.
 image: images/black-cutworm.jpg
-image_credit: to confirm
+image_credit: 'A black cutworm caterpillar beside the corn seedling it cut. Photo by W.M. Hantsbarger, Bugwood.org (image 5361045), via Wikimedia Commons (File:Agrotis ipsilon larva.jpg), CC BY 3.0 US.'
 status: draft
-updated: 2026-11-17
+updated: 2026-11-18
 sources:
-  - VDIFN db/seeds.rb (black-cutworm)
+  - key: uw-vegento
+    text: 'UW–Madison Vegetable Entomology. Cutworms. University of Wisconsin–Madison, updated 2026.'
+    url: https://vegento.russell.wisc.edu/pests/cutworms/
+  - key: a3646-2025
+    text: 'Dewerff, R., E. Bick, P. J. Liesch, G. Nice, M. Renz, D. Smith, R. Werle and J. Kampa. Pest Management in Wisconsin Field Crops (A3646). UW–Madison Division of Extension, 2025.'
+    url: https://cropsandsoils.extension.wisc.edu/files/2025/01/A3646_2025_web.pdf
+  - key: purdue-2023
+    text: 'Krupke, C. and J. Obermeyer. Timing Black Cutworm Scouting. Pest&Crop Newsletter, Purdue University Extension Entomology, 2023.'
+    url: https://extension.entm.purdue.edu/newsletters/pestandcrop/article/timing-black-cutworm-scouting
+  - key: iowa-bcw
+    text: 'Dean, A. and E. Hodgson. Black Cutworm. Iowa State University Extension and Outreach, reviewed 2026.'
+    url: https://crops.extension.iastate.edu/encyclopedia/black-cutworm
+  - key: umn-bcw
+    text: 'Ostlie, K. and B. Potter. Black Cutworm in Corn. University of Minnesota Extension, reviewed 2022.'
+    url: https://extension.umn.edu/corn-pest-management/black-cutworm-corn
+  - key: umn-garden
+    text: 'Schuh, M., J. Hahn and S. Wold-Burkness. Cutworms in Home Gardens. University of Minnesota Extension, reviewed 2023.'
+    url: https://extension.umn.edu/yard-and-garden-insects/cutworms
+  - key: datcp-traps
+    text: 'Wisconsin Department of Agriculture, Trade and Consumer Protection. Trap Networks.'
+    url: https://datcp.wi.gov/Pages/Programs_Services/TrapNetworks.aspx
+  - key: a3422-2026
+    text: 'Bradford, B. Z., J. B. Colquhoun, S. A. Chapman, A. J. Gevens, R. L. Groves, D. J. Heider, G. R. W. Nice, M. D. Ruark, Y. Wang and R. Dewerff. Commercial Vegetable Production in Wisconsin—2026 (A3422). UW–Madison Division of Extension, 2026.'
+    url: https://vegpath.plantpath.wisc.edu/resources/a3422/
+  - key: mwvg-2026
+    text: 'Midwest Vegetable Production Guide 2026. Land-grant universities of Illinois, Indiana, Iowa, Kansas, Michigan, Minnesota, Missouri and Ohio, 2026.'
+    url: https://mwveguide.org/guide
+  - key: agweather-bcw
+    text: 'AgWeather. Black cutworm model: validation report. UW–Madison, 2026.'
+    url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/black-cutworm.md
 ---
 
-Black cutworm larvae feed on newly emerged vegetable crops. The worms are active feeders, clipping many seedlings at or below the soil line in a single night. They prefer crops sown as seed (rather than transplants); susceptible crops include beets, carrots, cucumber, leafy greens, melons, peas, potato, pumpkin, snap beans, squash, and sweet corn. If not controlled, these pests can destroy approximately a third of planting. Black cutworms are particularly problematic to fresh market growers and home gardeners. As an adult moth, the black cutworm may be referred to as the Dark sword-grass or the Ipsilon dart.
+The black cutworm (_Agrotis ipsilon_) is a moth whose caterpillars cut off young plants at or just below the soil line, often several in one night. It is the most common cutworm pest of corn in Wisconsin.[^a3646-2025] It also attacks vegetables sown from seed, such as beets, carrots, cucumbers, melons, peas, potatoes, snap beans and sweet corn; left alone, it can destroy about a third of a planting.[^uw-vegento] Outbreaks are sporadic, so fields are scouted and treated only where needed.[^iowa-bcw]
 
-The dark gray to black larvae have a greasy appearance and a grainy texture. Mature larvae grow to 1.5 inches long. When disturbed, cutworms curl up into a tight C-shape. Adults are gray moths that have a series of distinctive dark markings on their forewings (including a dagger-shape on each outer forewing) and lighter colored hind wings.
+## Identification
 
-The black cutworm doesn't overwinter in Wisconsin. Instead, the adult moth migrates north on storm fronts in early spring, usually in May and early June. Females lay eggs on low-growing vegetation such as chickweed, curly dock, cruciferous weeds, and plant residue. Larvae hatch about 5-10 days later and over the course of a month will pass through six instars (growth stages) before pupating. Larvae migrate from mature vegetation to seedlings when they're about 0.75 inches long. About 2 weeks after entering the pupal stage, adult moths emerge, mate, and repeat the cycle. In Wisconsin, three generations emerge each year.
+- **Caterpillars** are dark gray to black with a greasy look and grainy skin, and grow to about 1½ to 2 inches. They curl into a tight C when disturbed.[^uw-vegento][^iowa-bcw]
+- **Adults** are moths with dark forewings marked with a dagger-shaped dash, and paler hind wings.[^uw-vegento][^iowa-bcw]
+- **Eggs** are white, round and ribbed, laid in clusters on dense, low plants.[^iowa-bcw]
 
-Our black cutworm feeding risk model uses a base 50F degree day model with an upper threshold of 86F. Biofix should be set to May 15.
+## Life cycle
 
-- More: <https://vegento.russell.wisc.edu/pests/black-cutworm/>
+Black cutworms don't survive Wisconsin's winters; moths ride storm fronts and night winds north from Texas and Mexico each spring, mostly in May and early June in Wisconsin, though some reach Iowa by late March.[^uw-vegento][^iowa-bcw][^umn-bcw] Females lay up to 1,000 eggs each on low weeds such as chickweed, curly dock and mustards, or on crop residue, favoring low, wet, weedy spots and fields with reduced tillage.[^uw-vegento][^iowa-bcw][^umn-bcw]
+
+Eggs hatch in 5 to 10 days; the caterpillars pass through six stages (instars) in about a month, and moths emerge from the soil about two weeks after they pupate. There are three generations a year in Wisconsin,[^uw-vegento] but usually only the first, from the migrating moths, damages corn.[^umn-bcw]
+
+Development follows [degree days](/topics/degree-days) at a base of 50 °F, counted from a large moth flight, the biofix. Iowa State and Minnesota define it as eight or more moths in a pheromone trap over two nights; UW Vegetable Entomology, nine or more a night on two nights in a row in a black light trap.[^iowa-bcw][^umn-bcw][^uw-vegento] After the biofix, eggs hatch at about 90 degree days, and young caterpillars feed on leaves until about 311. Cutting begins with the fourth instar, at about 312, and lasts through the sixth, to about 640; from 641 to 989 the insects are pupae in the soil and don't feed.[^purdue-2023][^iowa-bcw]
+
+## Damage
+
+- **Leaf feeding and cutting:** young caterpillars eat holes in leaves, a sign that cutting may follow.[^uw-vegento][^iowa-bcw] Older ones cut plants at or below the soil surface, and cutting is common in long dry spells.[^uw-vegento] One caterpillar may cut four or five corn plants.[^iowa-bcw]
+- **Corn:** the growing point stays below ground until about the fifth leaf, so plants cut above it usually recover, but caterpillars tunneling into the stem can kill plants up to the five- or six-leaf stage.[^umn-bcw] The loss comes from thinner stands.[^iowa-bcw]
+
+## Monitoring
+
+- Wisconsin's Department of Agriculture, Trade and Consumer Protection (DATCP) runs a [black cutworm trap network](https://datcp.wi.gov/Pages/Programs_Services/TrapNetworks.aspx) each season and uses its counts to forecast scouting windows.[^datcp-traps] Moth catches are an alert to scout, not proof of damage.[^purdue-2023] Start scouting before about 300 degree days after a large flight.[^umn-bcw]
+- **Corn:** from emergence, check marked areas every two to three days for two to three weeks for leaf feeding and cut, wilted or missing plants, especially in low, wet areas, late-planted fields and fields with winter annual broadleaf weeds.[^a3646-2025] Weeds that disappear without herbicide can mean cutworms are moving to the crop.[^umn-bcw]
+- **Corn thresholds:** Iowa State and Minnesota suggest treating at 2 to 3 % of plants cut while caterpillars are under ¾ inch long, or 5 % once they are larger; UW–Madison's field crops guide gives 2 to 5 %. Its table of head widths tells how long a caterpillar will keep feeding: a fourth instar feeds for about 25 more days and can cut four plants at the one-leaf stage.[^iowa-bcw][^umn-bcw][^a3646-2025]
+- **Vegetable thresholds:** UW Vegetable Entomology gives 2 caterpillars per foot of row for snap beans, 4 per foot for potatoes, and more than 5 % of plants damaged for sweet corn.[^uw-vegento]
+
+## Management
+
+**Nonchemical controls:**
+
+- **Weeds, cover crops and tillage:** control early-season weeds and end cover crops in time, so fields don't draw egg-laying moths. Fall tillage that buries residue and spring tillage that removes weeds before the flight lower the risk; tilling after eggs are laid does little unless the field stays bare for weeks.[^iowa-bcw][^umn-bcw]
+- **Field choice:** avoid planting susceptible vegetables in low, wet, grassy spots or right after sod.[^uw-vegento]
+- **Natural enemies:** parasitic wasps and flies, ground beetles and birds all feed on cutworms.[^uw-vegento]
+- **Home gardens:** collars of cardboard or foil around transplants, picking caterpillars from the soil in the evening, and removing weeds and debris are usually enough without insecticides.[^umn-garden]
+
+**Bt corn:** hybrids with the Cry1F or Vip3A protein are labeled for black cutworm. They reduce the risk, but plants can still be cut under heavy pressure.[^umn-bcw][^iowa-bcw]
+
+**Insecticides:** a rescue treatment once scouting finds damage is more reliable than a preventive one, because outbreaks are hard to predict.[^a3646-2025][^iowa-bcw] Pyrethroids (IRAC group 3A, such as bifenthrin and lambda-cyhalothrin), organophosphates, carbamates and diamides (group 28, chlorantraniliprole) all control the caterpillars well; spot-treat isolated patches.[^umn-bcw][^iowa-bcw][^a3646-2025] In hot, dry weather caterpillars stay deeper in the soil, which makes sprays less effective, and incorporating the insecticide can help. Soil insecticides at planting and seed treatments (diamides, high-rate neonicotinoids) help against light to moderate infestations but not heavy ones.[^a3646-2025][^iowa-bcw]
+
+For products, rates and current registrations, see UW–Madison's [Pest Management in Wisconsin Field Crops (A3646)](https://cropsandsoils.extension.wisc.edu/files/2025/01/A3646_2025_web.pdf) for field corn and [Commercial Vegetable Production in Wisconsin (A3422)](https://vegpath.plantpath.wisc.edu/resources/a3422/) for vegetables, or in neighboring states the [Midwest Vegetable Production Guide](https://mwveguide.org/guide). UW Vegetable Entomology's [cutworms page](https://vegento.russell.wisc.edu/pests/cutworms/) and Iowa State's [black cutworm page](https://crops.extension.iastate.edu/encyclopedia/black-cutworm) give more detail; for home gardens, see the University of Minnesota's [cutworms page](https://extension.umn.edu/yard-and-garden-insects/cutworms).
+
+## AgWeather's models
+
+The [black cutworm model](/models/black-cutworm) counts degree days at a base of 50 °F with an upper limit of 86 °F from a fixed May 15, and rates risk from 0 to 4 during a cutting window from 300 to 1,000 degree days, peaking at 700. It reproduces VDIFN, the forecasting tool AgWeather replaces. Its source isn't identified with certainty, May 15 stands in for the moth flight the guides count from, and it hasn't been compared with trap counts or reports of cutting.[^agweather-bcw]
+
+Its start, 300, agrees with the start of cutting, but by the stage table above cutting ends by about 640, so the model's peak at 700 comes after the caterpillars have pupated.[^purdue-2023] In AgWeather's long-term averages (1996–2025), counting from May 15 at Arlington, 300 degree days falls around June 8, 640 around June 26 and 700 around June 29. Moths can also arrive well before May 15.[^iowa-bcw] At a location you can set your own biofix from a trap catch.[^agweather-bcw] Until the model is revised, read its start as the time to scout and the stage table for when cutting ends.
