@@ -62,7 +62,7 @@ The old API is a reference, not the truth (D54): this explains the difference Ve
 - **The table against its sources:** Wallin 1962 and Krause et al. 1975 aren't in `tmp/references/`; the table matches the tool's and the old API's, but no test reads it from the papers.
 - **RH ≥ 90 % as leaf wetness:** humid hours stand in for wet hours; the D50 shift was fitted on station RH and leaf wetness counts, not on disease. Irrigated fields stay wetter than the grid shows.
 - **A single humid count a day:** Wallin's values come from continuous humid periods; v2 counts all humid hours in the day from 6 pm, so two short periods count as one long one (as the tool and old API do).
-- **Cheapest independent comparison:** UW Vegetable Pathology's records of first late blight detections in Wisconsin (and USAblight's confirmed reports by county) against the date each location's season total reached 18 DSVs and its risk level in the weeks before; then NEWA's late blight model, if it runs one on the same hours.
+- **Cheapest independent comparison:** UW Vegetable Pathology's records of first late blight detections in Wisconsin (USAblight, which mapped confirmed reports by county, went offline by 2026; its successor is PlantAid, plant-aid.org) against the date each location's season total reached 18 DSVs and its risk level in the weeks before; then NEWA's late blight model, if it runs one on the same hours.
 
 ## Reproducing
 
