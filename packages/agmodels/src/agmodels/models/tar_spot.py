@@ -1,4 +1,4 @@
-"""Tar spot of corn: the probability of Phyllachora maydis spores being present.
+"""Tar spot of corn: the probability that recent weather has favored tar spot increasing (Webster et al. 2023: the response was an increase in severity between two ratings of a field).
 
 Two logistic models (Webster et al. 2023) from 30-day mean temperature, 30-day mean daily maximum RH and 14-day
 mean night hours with RH ≥ 90% (7 pm to 6 am, the readings 20:00–06:00 its coefficients were fitted on as the
@@ -31,11 +31,11 @@ from agmodels.spec import (
 
 SPEC = ModelSpec(
     id="tar-spot",
-    name="Tar spot spore probability",
+    name="Tar spot risk",
     group="disease",
-    version="0.2",
+    version="0.3",
     status="beta",
-    summary="The probability of tar spot spores being present, from a month of temperature and humidity; corn is susceptible from V10 (10th leaf) to R3 (milk).",
+    summary="The probability that recent weather has favored tar spot increasing in a corn field, from a month of temperature and humidity; corn is susceptible from V10 (10th leaf) to R3 (milk).",
     topics=("tar-spot",),
     crops=("corn",),
     citations=(
@@ -64,7 +64,7 @@ SPEC = ModelSpec(
             description="21-day moving average, for cold attenuation",
         ),
     ),
-    outputs=(Quantity(name="probability", label="Spore probability", unit="percent"),),
+    outputs=(Quantity(name="probability", label="Probability of tar spot increasing", unit="percent"),),
     risk=Risk(levels=PROBABILITY_LEVELS, criteria="Very low below 1%, Low from 1%, Moderate from 20%, High from 35%."),
     explorer=(
         ExplorerInput(
@@ -120,6 +120,11 @@ SPEC = ModelSpec(
             version="0.2",
             date="2026-11-06",
             note="The same night hours (readings 20:00–06:00, 7 pm to 6 am) on CST all year, an hour later by the clock in summer (D74).",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-18",
+            note="Named for what it predicts: Webster et al. 2023's response was an increase in tar spot severity between two ratings, not spores being present (the Crop Risk Tool's wording). Outputs unchanged.",
         ),
     ),
     checks=(
