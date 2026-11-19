@@ -93,10 +93,18 @@ def test_soybean_cercospora_species_match(crt, inputs):
 
 
 def test_wheat_scab_resistance_classes_match(crt, inputs):
+    # 0.2's window ends the day before (the deployment's "14 days before flowering"): day d is the tool's d - 1,
+    # compared once the window is full
     theirs = crt("wheat_scab_eau_claire_2025")
     for key, (label, _) in wheat_scab.RESISTANCE.items():
         out = wheat_scab.outputs(inputs, resistance=key)
-        np.testing.assert_allclose(out["probability"], theirs[label], atol=1e-9)
+        np.testing.assert_allclose(out["probability"][14:], theirs[label][13:-1], atol=1e-9)
+        assert np.isnan(out["probability"][:12]).all()  # fewer than 12 of the 14 days before
+
+
+def test_wheat_scab_levels_are_the_national_tools():
+    levels = wheat_scab.risk({"probability": np.array([0.0, 0.10, 0.239, 0.24, 0.319, 0.32, 0.9])})
+    np.testing.assert_array_equal(levels, [1, 1, 1, 2, 2, 3, 3])  # Low below 24 %, never Very low
 
 
 def test_red_crown_rot_matches_from_r1(crt, inputs):
