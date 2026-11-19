@@ -47,7 +47,7 @@ The work list for PLAN.md Phase 3 D8 step 4: moving each insect from its legacy 
 
 `tmp/references/insects/VDIFN Models v20210407.xlsx` lists each model's thresholds, biofix, events and links. Most links are to **USPest.org** degree-day models (Oregon State IPPC, Len Coop). Their pages (`uspest.org/cgi-bin/ddmodel2.pl?spp=<code>`) give each model's source, method, thresholds, biofix and region, but no full citation. They show several insects whose current definitions don't match their own source:
 
-- **Variegated cutworm:** the events (900, 1450, 2100) are Coop and Berry's (1987), defined at 41/88 °F. VDIFN runs them at 45/80.1 °F, Simonet et al.'s (1981) thresholds, which UC IPM pairs with different events. One of the two has to go.
+- **Variegated cutworm:** the events (900, 1450, 2100) are Coop and Berry's (1987), defined at 41/88 °F. VDIFN runs them at 45/80.1 °F, credited to Simonet et al. (1981), who give 45 °F with no upper threshold, from January 1 (re-read 2026-11-18; the 80.1 °F cap has no known source; Simonet's flight peaks of 900 and 2,160 from January 1 are near the model's 900 and 2,100 from May 1), which UC IPM pairs with different events. One of the two has to go.
 - **Tarnished plant bug:** the model is Simko's (2000) for _Lygus hesperus_ on alfalfa seed in eastern Oregon and southwestern Idaho. Wisconsin's pest is _L. lineolaris_ (Fleischer and Gaylor 1988 is a candidate).
 - **Biofixes that stand in for events:**
   - black cutworm (May 15): peak pheromone-trap captures;
