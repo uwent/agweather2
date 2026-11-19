@@ -7,18 +7,95 @@ crops:
   - leafy-greens
   - potato
   - raspberry
-scientific_name: ''
-summary: ''
+scientific_name: Lygus lineolaris
+summary: A small, mottled plant bug that feeds on the buds, flowers, young fruit and tender stems of strawberries, beans, peppers, celery, raspberries and many other crops; it is managed by weed control, scouting from early spring and insecticides aimed at the nymphs.
 image: images/tarnished-plant-bug.jpg
-image_credit: to confirm
+image_credit: 'Tarnished plant bug adult on a leaf. Photo by Katja Schulz, via Wikimedia Commons (File:Tarnished Plant Bug - Flickr - treegrow.jpg), CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/); resized.'
 status: draft
-updated: 2026-11-17
+updated: 2026-11-19
 sources:
-  - VDIFN db/seeds.rb (tarnished-plant-bug)
+  - key: uw-vegento-tpb
+    text: 'Tarnished Plant Bug. UW–Madison Vegetable Entomology, updated 2026.'
+    url: https://vegento.russell.wisc.edu/pests/tarnished-plant-bug/
+  - key: uw-vegpath-2021
+    text: "Groves, R. L. Vegetable insect update. In Update 9, June 5, 2021, UW–Madison Vegetable Pathology's vegetable crop updates."
+    url: https://vegpath.plantpath.wisc.edu/2021/06/05/update-9-june-5-2021/
+  - key: uw-fruit-tpb
+    text: 'van Zoeren, J. and C. Guédot. Tarnished plant bug – a strawberry menace. UW–Madison Fruit Program, 2018, updated 2019.'
+    url: https://fruit.wisc.edu/2018/05/18/tarnished-plant-bug-a-strawberry-menace/
+  - key: psu-tpb
+    text: 'Tarnished Plant Bug. Penn State Extension, updated 2026.'
+    url: https://extension.psu.edu/tarnished-plant-bug
+  - key: umass-veg-tpb
+    text: 'Hazzard, R. and S. Schloemann. Tarnished Plant Bug. UMass Extension Vegetable Program, updated 2019.'
+    url: https://www.umass.edu/agriculture-food-environment/vegetable/fact-sheets/tarnished-plant-bug
+  - key: umass-brambles
+    text: 'Brambles: Insects. New England Small Fruit Management Guide, UMass Extension.'
+    url: https://www.umass.edu/agriculture-food-environment/fruit/ne-small-fruit-management-guide/brambles/insects
+  - key: ncsu-tpb
+    text: 'Burrack, H. and A. Toennisson. Tarnished Plant Bug in Strawberries. NC State Extension (read in its December 2024 archived copy; the live page was unreachable when checked).'
+    url: https://content.ces.ncsu.edu/tarnished-plant-bug-in-strawberries
+  - key: agweather-tpb
+    text: 'AgWeather. Tarnished plant bug model: validation report. UW–Madison, 2026.'
+    url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/tarnished-plant-bug.md
+  - key: a3422-2026
+    text: 'Bradford, B. Z., J. B. Colquhoun, S. A. Chapman, A. J. Gevens and others. Commercial Vegetable Production in Wisconsin (A3422). UW–Madison Division of Extension, 2026.'
+    url: https://vegpath.plantpath.wisc.edu/resources/a3422/
+  - key: midwest-veg-guide
+    text: 'Midwest Vegetable Production Guide for Commercial Growers. Land-grant universities of the Midwest, current edition.'
+    url: https://mwveguide.org/guide
+  - key: midwest-guide-2026
+    text: 'Midwest Fruit Pest Management Guide 2026–2027 (ID-465). Purdue Extension and partner universities, 2026.'
+    url: https://edustore.purdue.edu/id-465-w.html
 ---
 
-Tarnished plant bugs (_Lygus lineolaris_), also known as Lygus bugs, are 1/4 inch, tan to dark brown oval insects with piercing sucking mouthparts. They attack more than 50 different economic crops but are most damaging to strawberries, peppers, and all bean crops in Wisconsin. Feeding by these insects causes poor fruit set and gnarled fruit due to the toxic saliva they inject into the plant. They are highly mobile insects that overwinter in field debris. Large numbers of adult plant bugs migrate out of alfalfa fields when hay is cut. For both potatoes and commercial beans, take 25 sweeps with an insect sweep net per sample site with at least 10 sample sites per 100 acres. When counts exceed one tarnish plant bug per sweep on a field average, control measures are recommended in potato and snap bean.
+The tarnished plant bug (_Lygus lineolaris_), also called the lygus bug, is a small plant bug with piercing, sucking mouthparts. It feeds on more than 50 crops. In Wisconsin it does the most harm to strawberries, peppers, tomatoes and beans,[^uw-vegento-tpb] and it also damages celery, lettuce, raspberries and other fruits and vegetables.[^umass-veg-tpb][^umass-brambles] Penn State counts 385 host plants, 130 of them of economic importance.[^psu-tpb]
 
-Our tarnished plant bug model uses a base 52F degree day model.
+## Identification
 
-- More: <https://vegento.russell.wisc.edu/pests/>
+- **Adults** are oval bugs about ¼ inch long, mottled brown, bronze or greenish with yellowish markings, and with a small triangle in the middle of the back.[^uw-fruit-tpb][^umass-brambles][^psu-tpb][^ncsu-tpb]
+- **Nymphs** are bright green and wingless; the youngest can be yellowish, and older ones have black spots on the back. They look like aphids but move much faster.[^psu-tpb][^umass-veg-tpb]
+- **Eggs** are laid inside soft stems, buds and leaf veins, where you can't see them.[^psu-tpb]
+- **Look-alike:** the big-eyed bug, a beneficial predator, is similar in size but lacks the yellow markings.[^uw-fruit-tpb]
+
+## Life cycle
+
+Adults spend the winter in leaf litter and plant debris, mostly in wooded areas, and along fence lines and in alfalfa fields.[^uw-fruit-tpb][^uw-vegento-tpb] They become active early in spring and lay eggs in the stems and leaf ribs of host plants. The eggs hatch in 5 to 7 days, and nymphs grow through five stages to adults.[^umass-veg-tpb][^psu-tpb] In strawberries, the nymphs usually show up around mid-May, once temperatures reach about 68 °F.[^uw-fruit-tpb] The bugs develop when it is warmer than about 50 °F, and development slows or stops above about 94 °F.[^psu-tpb]
+
+Generations overlap, so adults and nymphs are present from spring to fall. UW–Madison's fruit program counts four to five generations a year in the Midwest; sources farther east count two or three.[^uw-fruit-tpb][^umass-veg-tpb] The bugs move easily between weeds, alfalfa and crops. Alfalfa is a favored host, and cutting hay drives large numbers of adults into nearby fields.[^uw-vegento-tpb][^umass-veg-tpb] Mowing weedy field edges can do the same.[^psu-tpb][^uw-fruit-tpb]
+
+## Damage
+
+The bugs inject a toxic saliva as they feed, which leads to poor fruit set and misshapen fruit.[^uw-vegento-tpb] Feeding on buds, flowers and young fruit can do economic damage even when the bugs are few.[^psu-tpb]
+
+- **Strawberries:** misshapen, "catfaced" berries, often at the tip, with seeds sucked hollow. Nymphs do more damage than adults. Frost and poor pollination can cause similar misshapen berries.[^uw-fruit-tpb]
+- **Raspberries:** feeding on flowers and young fruit keeps some drupelets from enlarging, so the berries crumble and can't be sold.[^umass-brambles]
+- **Celery:** large, brown, wilted spots on tender stalks and blackened joints. **Lettuce:** scars on the leaf stems and ribs.[^umass-veg-tpb]
+- **Beans, peppers and tomatoes:** flowers drop; in beans, feeding on the seeds in young pods pits and blemishes the pods.[^umass-veg-tpb]
+
+## Monitoring
+
+- **Beans:** take 25 sweeps with an insect net at each of at least 10 sites per 100 acres, and treat when the field averages more than one bug per sweep.[^uw-vegento-tpb] UW–Madison's vegetable newsletter has given the same threshold for potatoes.[^uw-vegpath-2021]
+- **Strawberries:** tap plants over a white surface, such as a sheet or plate, and count the bugs. Start before the first flowers open and check twice a week until harvest; act at an average of one bug per four plants.[^uw-fruit-tpb]
+- **Near alfalfa:** scout the parts of a field closest to alfalfa, especially after it is cut.[^uw-fruit-tpb][^uw-vegento-tpb]
+- **White sticky traps** show when adults become active in spring and roughly how many there are, but not when to spray.[^umass-brambles] For most vegetables, no thresholds have been set.[^umass-veg-tpb]
+
+## Management
+
+**Nonchemical controls:**
+
+- **Control weeds** in and around fields, and disk cover crops in spring, to take away places to lay eggs.[^uw-fruit-tpb][^psu-tpb]
+- **Time mowing.** Don't mow weedy borders next to a crop while it is flowering or setting fruit, which pushes the bugs into the crop.[^uw-fruit-tpb]
+- **Row covers** keep bugs off small plantings of strawberries; remove them at bloom so pollinators can reach the flowers.[^uw-fruit-tpb]
+- **Early varieties:** strawberries that flower early can escape the worst damage.[^uw-fruit-tpb]
+- **Natural enemies,** such as lady beetles, spined soldier bugs and insidious flower bugs, eat nymphs. A parasitic wasp released against the bug in the Northeast can kill up to half of them, but it doesn't keep numbers low enough to prevent damage in key crops.[^umass-veg-tpb]
+
+**Insecticides** work better on nymphs than on adults, and none reach the eggs inside the plant.[^uw-fruit-tpb][^ncsu-tpb][^psu-tpb] Apply them promptly once a threshold is reached.[^uw-fruit-tpb] The New England raspberry guide rates pyrethroids (IRAC group 3A, such as bifenthrin and fenpropathrin) excellent against the bug, and the neonicotinoids thiamethoxam and acetamiprid (group 4A) and the carbamate carbaryl (group 1A) good. Rotate IRAC groups rather than repeat one mode of action, to slow resistance.[^umass-brambles] Pyrethroids and carbamates are also labeled on lettuce, and pyrethrins are an option for organic growers.[^umass-veg-tpb] In raspberries, sprays go on before bloom and again after petal fall. Don't spray insecticides during bloom.[^umass-brambles][^umass-veg-tpb]
+
+For products and current registrations in Wisconsin, see [Commercial Vegetable Production in Wisconsin](https://vegpath.plantpath.wisc.edu/resources/a3422/) (A3422) for vegetables and the [Midwest Fruit Pest Management Guide](https://edustore.purdue.edu/id-465-w.html) for fruit; in neighboring states, the [Midwest Vegetable Production Guide](https://mwveguide.org/guide). See also UW–Madison Vegetable Entomology's [tarnished plant bug page](https://vegento.russell.wisc.edu/pests/tarnished-plant-bug/), UW–Madison's [strawberry article](https://fruit.wisc.edu/2018/05/18/tarnished-plant-bug-a-strawberry-menace/) and Penn State's [tarnished plant bug page](https://extension.psu.edu/tarnished-plant-bug).
+
+## AgWeather's models
+
+The [tarnished plant bug model](/models/tarnished-plant-bug) follows the bugs' activity by [degree days](/topics/degree-days), a running total of warmth above a base temperature, here 52 °F with no upper threshold, counted from January 1. Its window opens at 275 degree days, which UW–Madison's vegetable newsletter gives as the start of the bugs' summer activity after the nymphs' early-season development, peaks at 1,000 and closes at 2,000, treating the overlapping generations as one season of activity. It was carried over unchanged from the earlier Wisconsin forecasting tool, VDIFN, and hasn't been checked against field counts.[^agweather-tpb][^uw-vegpath-2021]
+
+The numbers appear to come from a model of a different species, the western tarnished plant bug (_Lygus hesperus_), developed for alfalfa grown for seed in Oregon and Idaho. Wisconsin's pest is _L. lineolaris_, which Penn State says develops above about 50 °F.[^agweather-tpb][^psu-tpb] In AgWeather's long-term averages for 1996–2025, the window opens around May 26 at Arlington and June 5 at Rhinelander, peaks around July 10 at Arlington and closes around September 3; at Rhinelander an average season doesn't reach 2,000, so the window stays open until fall freezes. Overwintered adults are active from early spring, and nymphs often appear by mid-May, before the window opens.[^uw-fruit-tpb] The model also can't show the sudden influx when alfalfa is cut. Scout from early spring whatever the model shows.

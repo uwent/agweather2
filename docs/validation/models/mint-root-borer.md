@@ -15,9 +15,9 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 ## Choices and differences
 
 - **Degree days:** single sine (Baskerville–Emin), 50 °F, no upper threshold, from April 1: VDIFN's thresholds, computed as the old AgWeather API did.
-- **Risk:** VDIFN's: one generation, (430, 1280, 2150) degree days (°F) as (start, peak, end); severity rises along a half sine from start to peak and falls from peak to end, rounded up to the 0–4 levels, and is 0 outside. VDIFN's text: the first moth catch comes about 430 degree days (°F) after April 1, egg hatch peaks about 1,280, and risk ends about 2,150, when the larvae have formed their overwintering chambers (hibernacula).
+- **Risk:** VDIFN's: one generation, (430, 1280, 2150) degree days (°F) as (start, peak, end); severity rises along a half sine from start to peak and falls from peak to end, rounded up to the 0–4 levels, and is 0 outside. VDIFN's text: the first moth catch comes about 430 degree days (°F) after April 1, egg hatch peaks about 1,280, and risk ends about 2,150, when the larvae have formed their overwintering chambers (hibernacula). (USPest's event at 2,150 is half the larvae in their chambers, not all; the model page's text overstates it.)
 - **Freezes:** after day 250 (early September), severity is lowered by the number of days in the last 14 at or below −2 °C (28.4 °F), the Crop Risk Tool's rule, used for every insect still on a legacy table; VDIFN subtracted freezing days only from November (PLAN.md Phase 3 D, step 3).
-- **Biofix:** April 1, as in VDIFN; where the date comes from isn't documented.
+- **Biofix:** April 1, as in VDIFN and in USPest's `mrb` model (https://uspest.org/cgi-bin/ddmodel2.pl?spp=mrb), which counts from April 1 at 50 °F: first moths at 430 degree days, egg hatch peaking at 1,280, and half the larvae in their winter chambers (hibernacula) at 2,150. All three of the model's numbers are USPest's events (checked 2026-11-19 for the topic page).
 
 ## Checks
 
