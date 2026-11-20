@@ -10,6 +10,7 @@ AgWeather v2: one Django app replacing the AgWeather API (`../ag-weather`), the 
 - `TODO.md`: things only Ben can do (installs, accounts, IT, data copies, exit checks), by phase.
 - `docs/project-plan.md`: the original inventory and rebuild proposal, with the option comparisons, storage budget and server sizing behind PLAN.md's decisions. Background only; PLAN.md wins where they differ.
 - `docs/api.md`: the API v2 contract (envelope, formats, endpoints); PLAN.md Phase 5 has the work list and its open questions.
+- `docs/openmeteo-humidity-plan.md`: D100's follow-up, a correction of Open-Meteo's humidity for points outside Wisconsin, with its own handoff; results in `docs/validation/weather/openmeteo-humidity.md`.
 - `docs/models-plan.md`: Phase 6 step 4's own plan (more models and a write-up for each), with its handoff at the top; `docs/enviroweather-models.md` is its inventory of MSU Enviroweather's model code.
 - `docs/validation/`: technical reports, by `weather/`, `legacy/` and `models/` (one per model, D98), and the small public datasets they read in `data/`; its README says what goes where.
 - `docs/frontend.md`: the frontend spec (objectives, features with their API status, pages and URLs, design conventions, the peer-site review, open questions F#); PLAN.md Phase 6 has its decisions (A) and the data and API work it needs (B); Phase 7 builds it.

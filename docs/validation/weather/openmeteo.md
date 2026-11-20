@@ -52,10 +52,6 @@ The merged series' RH mapped onto the archive's, fitted on 2025 and held out, Ma
 | Open-Meteo, derived | 4.73          | 5.62          | -2.0                     | 6.9                      |
 | Open-Meteo, mapped  | 5.71          | 6.57          | -1.7                     | 6.7                      |
 
-### Outside the Upper Midwest (D100)
-
-At five Oklahoma Mesonet stations in pecan country, March–August 2023–2025 (`tmp/pecan-check/report.md`; the Mesonet's data are copyrighted and stay out of the repository), the map fitted here made April 3.7 and May 2.2 times too humid in RH ≥ 90 % hours with temperature ≥ 70 °F, while raw Open-Meteo matched the stations' 90 % at about 88 % (pooled 87.5–88.2; station-seasons 85–89.4), drier in summer than in spring (matching thresholds 90 % in April and May, 86 % in August). So the map applies only inside `openmeteo.RH_MAP_AREA` (40–49.5° N, 97.5–82° W); elsewhere RH is Open-Meteo's own, and D50's 88 % applies to it as to the archive.
-
 ## Daily ET0 (mm), against FAO-56 from the stations' measurements
 
 | Source                                     | ratio, Apr–Oct | MAE, Apr–Oct | ratio, all | by month, Apr–Oct (ratio)                                      |
