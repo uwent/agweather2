@@ -1,0 +1,239 @@
+network,site,county,years,lat,lon,located
+WBC pheromone,Abrams,Oconto,2021 2023,44.78,-88.06,Census 2023 gazetteer: Abrams CDP
+WBC pheromone,Adams,Adams,2021,43.96,-89.82,Census 2023 gazetteer: Adams city
+WBC pheromone,Almond,Portage,2026,44.24,-89.40,DATCP's 2026 trap-network survey layer
+WBC pheromone,Almond,Waushara,2024 2025,44.26,-89.41,Census 2023 gazetteer: Almond village
+WBC pheromone,Amherst,Portage,2026,44.45,-89.32,DATCP's 2026 trap-network survey layer
+WBC pheromone,Antigo,Langlade,2021,45.14,-89.16,Census 2023 gazetteer: Antigo city
+WBC pheromone,Argyle,Lafayette,2024,42.70,-89.87,Census 2023 gazetteer: Argyle village
+WBC pheromone,Arlington,Columbia,2021 2023 2024 2025 2026,43.30,-89.35,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Arlington E,Columbia,2022,43.34,-89.37,Census 2023 gazetteer: Arlington village; site named for Arlington
+WBC pheromone,Arlington N,Columbia,2021,43.34,-89.37,Census 2023 gazetteer: Arlington village; site named for Arlington
+WBC pheromone,Arlington W,Columbia,2022,43.34,-89.37,Census 2023 gazetteer: Arlington village; site named for Arlington
+WBC pheromone,Atlas,Polk,2021,45.46,-92.45,Polk County's centre (place 'Atlas' not found)
+WBC pheromone,Baraboo,Sauk,2022 2025,43.47,-89.74,Census 2023 gazetteer: Baraboo city
+WBC pheromone,Barneveld,Iowa,2026,43.07,-89.95,DATCP's 2026 trap-network survey layer
+WBC pheromone,Beaver Dam,Dodge,2021 2022 2023 2024 2025 2026,43.52,-88.79,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Beloit W,Rock,2026,42.50,-89.19,DATCP's 2026 trap-network survey layer
+WBC pheromone,Bloomer,Dunn,2026,45.11,-91.65,DATCP's 2026 trap-network survey layer
+WBC pheromone,Boaz,Richland,2026,43.32,-90.53,DATCP's 2026 trap-network survey layer
+WBC pheromone,Boltonville,Washington,2026,43.51,-88.06,DATCP's 2026 trap-network survey layer
+WBC pheromone,Boscobel N,Crawford,2026,43.22,-90.77,DATCP's 2026 trap-network survey layer
+WBC pheromone,Boscobel S,Grant,2026,43.09,-90.69,DATCP's 2026 trap-network survey layer
+WBC pheromone,Brodhead,Green,2025 2026,42.54,-89.40,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Bryant,Langlade,2023 2025,45.25,-89.07,Langlade County's centre (place 'Bryant' not found)
+WBC pheromone,Buffalo,Marquette,2023,43.69,-89.33,Census 2023 gazetteer: Buffalo town (Marquette County)
+WBC pheromone,Burlington,Racine,2021,42.68,-88.27,Census 2023 gazetteer: Burlington city
+WBC pheromone,Calumetville,Fond du Lac,2026,43.92,-88.29,DATCP's 2026 trap-network survey layer
+WBC pheromone,Cambria,Columbia,2023 2025 2026,43.56,-89.14,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Cambridge,Jefferson,2025,43.01,-89.02,Census 2023 gazetteer: Cambridge village
+WBC pheromone,Cameron,Barron,2023 2024 2025 2026,45.37,-91.75,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Cashton,Monroe,2026,43.75,-90.76,DATCP's 2026 trap-network survey layer
+WBC pheromone,Cecil,Shawano,2023,44.81,-88.45,Census 2023 gazetteer: Cecil village
+WBC pheromone,Chase,Oconto,2024,44.72,-88.20,Census 2023 gazetteer: Chase town (Oconto County)
+WBC pheromone,Chetek,Barron,2025 2026,45.32,-91.60,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Clinton E,Rock,2026,42.59,-88.79,DATCP's 2026 trap-network survey layer
+WBC pheromone,Clinton N,Rock,2025,42.56,-88.87,Census 2023 gazetteer: Clinton village; site named for Clinton
+WBC pheromone,Cobb,Iowa,2024,42.97,-90.33,Census 2023 gazetteer: Cobb village
+WBC pheromone,Coloma,Waushara,2026,44.08,-89.43,DATCP's 2026 trap-network survey layer
+WBC pheromone,Columbus,Columbia,2021 2023 2025 2026,43.34,-89.08,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Cottage Grove,Dane,2024,43.09,-89.21,Census 2023 gazetteer: Cottage Grove village
+WBC pheromone,Crivitz,Marinette,2021 2022 2023 2025 2026,45.27,-87.99,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Cuba City,Grant,2026,42.57,-90.52,DATCP's 2026 trap-network survey layer
+WBC pheromone,Curtis,Clark,2021,44.74,-90.61,Clark County's centre (place 'Curtis' not found)
+WBC pheromone,Darien S,Walworth,2026,42.55,-88.74,DATCP's 2026 trap-network survey layer
+WBC pheromone,Darlington,Lafayette,2024,42.68,-90.12,Census 2023 gazetteer: Darlington city
+WBC pheromone,Delavan,Walworth,2025 2026,42.71,-88.72,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Delavan 2,Walworth,2025,42.63,-88.63,Census 2023 gazetteer: Delavan city; site named for Delavan
+WBC pheromone,Dell,Vernon,2026,43.66,-90.67,DATCP's 2026 trap-network survey layer
+WBC pheromone,Dickeyville,Grant,2026,42.64,-90.63,DATCP's 2026 trap-network survey layer
+WBC pheromone,Dodgeville,Iowa,2024,42.97,-90.13,Census 2023 gazetteer: Dodgeville city
+WBC pheromone,Dodgeville E,Iowa,2026,42.96,-90.08,DATCP's 2026 trap-network survey layer
+WBC pheromone,Dodgeville W,Iowa,2026,42.98,-90.22,DATCP's 2026 trap-network survey layer
+WBC pheromone,Dorchester,Clark,2021 2022 2023,45.00,-90.33,Census 2023 gazetteer: Dorchester village
+WBC pheromone,Dotyville,Fond du Lac,2026,43.74,-88.25,DATCP's 2026 trap-network survey layer
+WBC pheromone,Dunn,Dunn,2023,44.74,-91.91,Census 2023 gazetteer: Dunn town (Dunn County)
+WBC pheromone,Durand,Pepin,2021 2022 2023 2024 2025 2026,44.61,-91.81,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Eagle Point,Chippewa,2025,45.06,-91.34,Census 2023 gazetteer: Eagle Point town (Chippewa County)
+WBC pheromone,East Troy,Walworth,2021 2022 2023 2024 2025 2026,42.82,-88.49,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Eau Claire,Eau Claire,2024,44.82,-91.49,Census 2023 gazetteer: Eau Claire city
+WBC pheromone,Ettrick,Trempealeau,2024,44.10,-91.19,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Ettrick,Trempeauleau,2025,44.17,-91.27,Census 2023 gazetteer: Ettrick village
+WBC pheromone,Evansville,Rock,2024,42.78,-89.30,Census 2023 gazetteer: Evansville city
+WBC pheromone,Fall City Prairie,Dunn,2024,44.95,-91.90,Dunn County's centre (place 'Fall City Prairie' not found)
+WBC pheromone,Fall River,Dodge,2021 2022,43.39,-89.05,Census 2023 gazetteer: Fall River village
+WBC pheromone,Fennimore,Grant,2026,42.98,-90.52,DATCP's 2026 trap-network survey layer
+WBC pheromone,Fort Atkinson,Jefferson,2026,42.97,-88.89,DATCP's 2026 trap-network survey layer
+WBC pheromone,Fort Winnebago,Columbia,2021,43.61,-89.42,Census 2023 gazetteer: Fort Winnebago town (Columbia County)
+WBC pheromone,Fox Lake N,Green Lake,2023,43.56,-88.91,Census 2023 gazetteer: Fox Lake city; site named for Fox Lake
+WBC pheromone,Fox Lake NE,Dodge,2023,43.56,-88.91,Census 2023 gazetteer: Fox Lake city; site named for Fox Lake
+WBC pheromone,Fredonia,Ozaukee,2025 2026,43.44,-87.94,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Gays Mills,Crawford,2026,43.29,-90.77,DATCP's 2026 trap-network survey layer
+WBC pheromone,Gillett,Shawano,2026,44.84,-88.31,DATCP's 2026 trap-network survey layer
+WBC pheromone,Gotham,Richland,2026,43.27,-90.23,DATCP's 2026 trap-network survey layer
+WBC pheromone,Grand Chute,Outagamie,2025,44.29,-88.45,Census 2023 gazetteer: Grand Chute town (Outagamie County)
+WBC pheromone,Grand Marsh,Adams,2023 2025,43.89,-89.71,Census 2023 gazetteer: Grand Marsh CDP
+WBC pheromone,Grand Marsh N,Adams,2024 2026,43.92,-89.70,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Grand Marsh S,Adams,2024 2026,43.78,-89.71,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Granton,Clark,2021 2023,44.59,-90.46,Census 2023 gazetteer: Granton village
+WBC pheromone,Grantsburg,Burnett,2021,45.78,-92.68,Census 2023 gazetteer: Grantsburg village
+WBC pheromone,Gratiot,Lafayette,2024,42.58,-90.02,Census 2023 gazetteer: Gratiot village
+WBC pheromone,Green Lake,Green Lake,2022 2023,43.84,-88.96,Census 2023 gazetteer: Green Lake city
+WBC pheromone,Greenfield,Sauk,2021,43.46,-89.65,Census 2023 gazetteer: Greenfield town (Sauk County)
+WBC pheromone,Greenleaf,Brown,2025 2026,44.26,-88.08,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Gresham,Shawano,2025 2026,44.80,-88.78,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Hancock,Waushara,2021 2022 2023 2024 2025 2026,44.12,-89.54,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Highland,Iowa,2026,43.02,-90.37,DATCP's 2026 trap-network survey layer
+WBC pheromone,Hillsboro,Juneau,2025,43.66,-90.33,Census 2023 gazetteer: Hillsboro city
+WBC pheromone,Hollandale,Iowa,2024,42.87,-89.93,Census 2023 gazetteer: Hollandale village
+WBC pheromone,Hollandale SW,Iowa,2026,42.85,-90.00,DATCP's 2026 trap-network survey layer
+WBC pheromone,Hustler,Juneau,2025,43.88,-90.27,Census 2023 gazetteer: Hustler village
+WBC pheromone,Janesville C,Rock,2024,42.68,-89.01,Census 2023 gazetteer: Janesville city; site named for Janesville
+WBC pheromone,Janesville M,Rock,2024,42.68,-89.01,Census 2023 gazetteer: Janesville city; site named for Janesville
+WBC pheromone,Janesville N,Rock,2025 2026,42.73,-89.02,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Janesville O,Rock,2024,42.68,-89.01,Census 2023 gazetteer: Janesville city; site named for Janesville
+WBC pheromone,Janesville R,Rock,2024,42.68,-89.01,Census 2023 gazetteer: Janesville city; site named for Janesville
+WBC pheromone,Janesville RC,Rock,2024,42.68,-89.01,Census 2023 gazetteer: Janesville city; site named for Janesville
+WBC pheromone,Janesville S,Rock,2025 2026,42.72,-89.02,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Juda,Green,2024,42.59,-89.51,Census 2023 gazetteer: Juda CDP
+WBC pheromone,Keyeser,Columbia,2026,43.32,-89.20,DATCP's 2026 trap-network survey layer
+WBC pheromone,Lake Delton,Sauk,2021 2022,43.59,-89.78,Census 2023 gazetteer: Lake Delton village
+WBC pheromone,Lake Mills,Jefferson,2025 2026,43.13,-88.85,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Lancaster 1,Grant,2025,42.85,-90.71,Census 2023 gazetteer: Lancaster city; site named for Lancaster
+WBC pheromone,Lancaster 2,Grant,2025,42.85,-90.71,Census 2023 gazetteer: Lancaster city; site named for Lancaster
+WBC pheromone,Lancaster N,Grant,2026,42.83,-90.79,DATCP's 2026 trap-network survey layer
+WBC pheromone,Lancaster S,Grant,2026,42.82,-90.79,DATCP's 2026 trap-network survey layer
+WBC pheromone,Leeds,Columbia,2021 2023,43.32,-89.30,Census 2023 gazetteer: Leeds town (Columbia County)
+WBC pheromone,Lemonweir,Juneau,2025,43.79,-90.01,Census 2023 gazetteer: Lemonweir town (Juneau County)
+WBC pheromone,Lena,Oconto,2022 2026,45.00,-87.95,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Leroy,Dodge,2025 2026,43.58,-88.56,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Lewiston,Columbia,2021 2024,43.60,-89.57,Census 2023 gazetteer: Lewiston town (Columbia County)
+WBC pheromone,Little River,Oconto,2024,44.97,-87.90,Census 2023 gazetteer: Little River town (Oconto County)
+WBC pheromone,Lodi,Columbia,2021 2023 2026,43.32,-89.59,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Lodi H,Columbia,2024,43.32,-89.54,Census 2023 gazetteer: Lodi city; site named for Lodi
+WBC pheromone,Lodi L,Columbia,2025,43.32,-89.54,Census 2023 gazetteer: Lodi city; site named for Lodi
+WBC pheromone,Lodi M,Columbia,2025,43.32,-89.54,Census 2023 gazetteer: Lodi city; site named for Lodi
+WBC pheromone,Lodi O,Columbia,2024,43.32,-89.54,Census 2023 gazetteer: Lodi city; site named for Lodi
+WBC pheromone,Lodi R,Columbia,2024,43.32,-89.54,Census 2023 gazetteer: Lodi city; site named for Lodi
+WBC pheromone,Loganville,Sauk,2021 2023 2024,43.44,-90.04,Census 2023 gazetteer: Loganville village
+WBC pheromone,Lone Rock,Richland,2025,43.19,-90.20,Census 2023 gazetteer: Lone Rock village
+WBC pheromone,Lone Rock,Sauk,2024,43.19,-90.20,Census 2023 gazetteer: Lone Rock village
+WBC pheromone,Lowell,Dodge,2024,43.33,-88.81,Census 2023 gazetteer: Lowell village
+WBC pheromone,Loyal,Clark,2021 2023,44.74,-90.50,Census 2023 gazetteer: Loyal city
+WBC pheromone,Lyndon Station,Juneau,2021 2024 2025,43.71,-89.89,Census 2023 gazetteer: Lyndon Station village
+WBC pheromone,Manchester,Green Lake,2021,43.68,-89.06,Census 2023 gazetteer: Manchester town (Green Lake County)
+WBC pheromone,Manitowoc,Manitowoc,2021 2022 2023 2024,44.10,-87.68,Census 2023 gazetteer: Manitowoc city
+WBC pheromone,Markesan,Green Lake,2021 2022 2023,43.71,-88.99,Census 2023 gazetteer: Markesan city
+WBC pheromone,Marshall,Dane,2026,43.24,-89.05,DATCP's 2026 trap-network survey layer
+WBC pheromone,Marshfield,Wood,2021 2022 2023 2024 2025,44.66,-90.17,Census 2023 gazetteer: Marshfield city
+WBC pheromone,Mauston,Juneau,2025,43.80,-90.08,Census 2023 gazetteer: Mauston city
+WBC pheromone,Mazomanie,Dane,2026,43.17,-89.77,DATCP's 2026 trap-network survey layer
+WBC pheromone,Merrimac,Sauk,2021 2022,43.38,-89.63,Census 2023 gazetteer: Merrimac village
+WBC pheromone,Mineral Point,Iowa,2024,42.86,-90.18,Census 2023 gazetteer: Mineral Point city
+WBC pheromone,Monroe,Green,2024 2025 2026,42.62,-89.72,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Monroe SE,Green,2024,42.60,-89.64,Census 2023 gazetteer: Monroe city; site named for Monroe
+WBC pheromone,Montello,Marquette,2021 2023,43.79,-89.33,Census 2023 gazetteer: Montello city
+WBC pheromone,Montello E,Marquette,2022,43.79,-89.33,Census 2023 gazetteer: Montello city; site named for Montello
+WBC pheromone,Montello W,Marquette,2022,43.79,-89.33,Census 2023 gazetteer: Montello city; site named for Montello
+WBC pheromone,Mosinee,Marathon,2026,44.76,-89.69,DATCP's 2026 trap-network survey layer
+WBC pheromone,Mount Hope,Grant,2026,42.93,-90.85,DATCP's 2026 trap-network survey layer
+WBC pheromone,Mountain,Oconto,2024 2025 2026,45.18,-88.46,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Mt. Horeb N,Dane,2026,43.05,-89.70,DATCP's 2026 trap-network survey layer
+WBC pheromone,Mt. Horeb S,Dane,2026,42.97,-89.75,DATCP's 2026 trap-network survey layer
+WBC pheromone,Muscoda,Richland,2025,43.19,-90.43,Census 2023 gazetteer: Muscoda village
+WBC pheromone,New Auburn NE,Chippewa,2025,45.20,-91.57,Census 2023 gazetteer: New Auburn village; site named for New Auburn
+WBC pheromone,New Glarus E,Green,2024,42.81,-89.63,Census 2023 gazetteer: New Glarus village; site named for New Glarus
+WBC pheromone,New Glarus W,Green,2024,42.81,-89.63,Census 2023 gazetteer: New Glarus village; site named for New Glarus
+WBC pheromone,Newport,Columbia,2021,43.61,-89.71,Census 2023 gazetteer: Newport town (Columbia County)
+WBC pheromone,Oakfield,Fond du Lac,2024,43.68,-88.55,Census 2023 gazetteer: Oakfield village
+WBC pheromone,Oconto,Oconto,2025,44.89,-87.87,Census 2023 gazetteer: Oconto city
+WBC pheromone,Omro,Winnebago,2025 2026,44.06,-88.76,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Oostburg,Sheboygan,2024 2025 2026,43.67,-87.81,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Oregon,Dane,2024,42.93,-89.39,Census 2023 gazetteer: Oregon village
+WBC pheromone,Pardeeville,Columbia,2022 2023 2024 2025 2026,43.59,-89.31,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Pardeeville N,Columbia,2021,43.54,-89.30,Census 2023 gazetteer: Pardeeville village; site named for Pardeeville
+WBC pheromone,Pardeeville S,Columbia,2021,43.54,-89.30,Census 2023 gazetteer: Pardeeville village; site named for Pardeeville
+WBC pheromone,Patch Grove,Grant,2026,42.97,-90.93,DATCP's 2026 trap-network survey layer
+WBC pheromone,Plain,Sauk,2021 2023,43.28,-90.04,Census 2023 gazetteer: Plain village
+WBC pheromone,Plain E,Sauk,2022,43.28,-90.04,Census 2023 gazetteer: Plain village; site named for Plain
+WBC pheromone,Plain N,Sauk,2022,43.28,-90.04,Census 2023 gazetteer: Plain village; site named for Plain
+WBC pheromone,Portage N,Columbia,2022 2023,43.55,-89.47,Census 2023 gazetteer: Portage city; site named for Portage
+WBC pheromone,Portage S,Columbia,2022 2023,43.55,-89.47,Census 2023 gazetteer: Portage city; site named for Portage
+WBC pheromone,Portage W,Columbia,2022 2025 2026,43.59,-89.59,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Prairie du Sac,Sauk,2021,43.29,-89.74,Census 2023 gazetteer: Prairie du Sac village
+WBC pheromone,Princeton,Green Lake,2021 2022 2023,43.86,-89.12,Census 2023 gazetteer: Princeton city
+WBC pheromone,Pulaski,Oconto,2025,44.67,-88.23,Census 2023 gazetteer: Pulaski village
+WBC pheromone,Randolph,Columbia,2022 2023,43.54,-89.00,Census 2023 gazetteer: Randolph village
+WBC pheromone,Randolph,Dodge,2021,43.54,-89.00,Census 2023 gazetteer: Randolph village
+WBC pheromone,Reedsburg,Sauk,2022 2025 2026,43.54,-90.00,Census 2023 gazetteer: Reedsburg city
+WBC pheromone,Reedsburg N,Sauk,2025,43.54,-90.00,Census 2023 gazetteer: Reedsburg city; site named for Reedsburg
+WBC pheromone,Reedsburg S,Sauk,2021,43.48,-90.01,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Richland Center,Richland,2022,43.34,-90.38,Census 2023 gazetteer: Richland Center city
+WBC pheromone,Richland Center NW,Richland,2025,43.34,-90.38,Census 2023 gazetteer: Richland Center city; site named for Richland Center
+WBC pheromone,Richland Center SW,Richland,2025,43.34,-90.38,Census 2023 gazetteer: Richland Center city; site named for Richland Center
+WBC pheromone,Rio E,Columbia,2022,43.45,-89.24,Census 2023 gazetteer: Rio village; site named for Rio
+WBC pheromone,Rio W,Columbia,2022,43.45,-89.24,Census 2023 gazetteer: Rio village; site named for Rio
+WBC pheromone,Ripon,Fond du Lac,2021 2022 2023 2024,43.84,-88.84,Census 2023 gazetteer: Ripon city
+WBC pheromone,Rochester,Racine,2024 2025,42.73,-88.25,Census 2023 gazetteer: Rochester village
+WBC pheromone,Rubicon,Dodge,2025 2026,43.37,-88.43,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Rusk,Dunn,2024,44.95,-91.90,Dunn County's centre (place 'Rusk' not found)
+WBC pheromone,Sauk City,Sauk,2024,43.27,-89.73,Census 2023 gazetteer: Sauk City village
+WBC pheromone,Sauk City N,Sauk,2023,43.27,-89.73,Census 2023 gazetteer: Sauk City village; site named for Sauk City
+WBC pheromone,Sauk City NE,Sauk,2023,43.27,-89.73,Census 2023 gazetteer: Sauk City village; site named for Sauk City
+WBC pheromone,Sauk City NW,Sauk,2023,43.27,-89.73,Census 2023 gazetteer: Sauk City village; site named for Sauk City
+WBC pheromone,Sextonville,Richland,2024 2026,43.29,-90.30,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Seymour,Outagamie,2026,44.50,-88.32,DATCP's 2026 trap-network survey layer
+WBC pheromone,Sharon,Walworth,2025,42.50,-88.73,Census 2023 gazetteer: Sharon village
+WBC pheromone,Sheboygan,Sheboygan,2024 2025 2026,43.66,-87.76,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Sherwood,Calumet,2025,44.18,-88.28,Census 2023 gazetteer: Sherwood village
+WBC pheromone,Shullsburg,Lafayette,2024,42.57,-90.23,Census 2023 gazetteer: Shullsburg city
+WBC pheromone,South Lancaster,Grant,2026,42.81,-90.77,DATCP's 2026 trap-network survey layer
+WBC pheromone,Spring Green,Sauk,2021 2022 2023 2025 2026,43.20,-90.04,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Springville,Adams,2024,43.78,-89.79,Census 2023 gazetteer: Springville town (Adams County)
+WBC pheromone,St Nazianz,Manitowoc,2025,44.01,-87.92,Census 2023 gazetteer: St. Nazianz village; site named for St. Nazianz
+WBC pheromone,St. Nazianz,Manitowoc,2026,44.00,-87.94,DATCP's 2026 trap-network survey layer
+WBC pheromone,Stephenson,Marinette,2024,45.24,-88.14,Census 2023 gazetteer: Stephenson town (Marinette County)
+WBC pheromone,Stevens Point,Portage,2025,44.53,-89.55,Census 2023 gazetteer: Stevens Point city
+WBC pheromone,Stockton,Portage,2024,44.49,-89.42,Census 2023 gazetteer: Stockton town (Portage County)
+WBC pheromone,Stoughton,Dane,2024,42.92,-89.22,Census 2023 gazetteer: Stoughton city
+WBC pheromone,Strickland,Rusk,2025,45.42,-91.49,Census 2023 gazetteer: Strickland town (Rusk County)
+WBC pheromone,Sturgeon Bay,Door,2025 2026,44.95,-87.31,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Sumner,Rusk,2025,45.47,-91.14,Rusk County's centre (place 'Sumner' not found)
+WBC pheromone,Sun Prairie E,Dane,2025,43.18,-89.24,Census 2023 gazetteer: Sun Prairie city; site named for Sun Prairie
+WBC pheromone,Sun Prairie N,Dane,2025 2026,43.24,-89.19,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Suring,Oconto,2024 2025 2026,44.95,-88.43,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Taylor,Jackson,2024,44.32,-91.12,Census 2023 gazetteer: Taylor village
+WBC pheromone,Troy,Sauk,2021,43.25,-89.92,Census 2023 gazetteer: Troy town (Sauk County)
+WBC pheromone,Verona,Dane,2024,42.99,-89.54,Census 2023 gazetteer: Verona city
+WBC pheromone,Viroqua,Vernon,2026,43.61,-90.89,DATCP's 2026 trap-network survey layer
+WBC pheromone,Watertown,Dodge,2026,43.21,-88.84,DATCP's 2026 trap-network survey layer
+WBC pheromone,Watertown W,Dodge,2025,43.19,-88.73,Census 2023 gazetteer: Watertown city; site named for Watertown
+WBC pheromone,Waubeka,Ozaukee,2024,43.47,-87.99,Census 2023 gazetteer: Waubeka CDP
+WBC pheromone,Waupun,Dodge,2021 2022 2023 2024 2025,43.63,-88.74,Census 2023 gazetteer: Waupun city
+WBC pheromone,Wausau,Marathon,2021 2025,44.96,-89.65,Census 2023 gazetteer: Wausau city
+WBC pheromone,Wausau E,Marathon,2022 2023 2024 2025 2026,44.95,-89.60,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,Wausau N,Marathon,2022 2023 2024 2026,45.03,-89.69,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+WBC pheromone,West Baraboo,Sauk,2021,43.48,-89.77,Census 2023 gazetteer: West Baraboo village
+WBC pheromone,West Bloomfield,Waushara,2025,44.11,-89.24,Waushara County's centre (place 'West Bloomfield' not found)
+WBC pheromone,West Point,Columbia,2021,43.33,-89.65,Census 2023 gazetteer: West Point town (Columbia County)
+WBC pheromone,Weston,Dunn,2026,44.79,-92.01,DATCP's 2026 trap-network survey layer
+WBC pheromone,Westpoint,Columbia,2026,43.33,-89.64,DATCP's 2026 trap-network survey layer
+WBC pheromone,Wheatland,Kenosha,2024,42.58,-88.25,Census 2023 gazetteer: Wheatland town (Kenosha County)
+WBC pheromone,Wisconsin Dells,Columbia,2024,43.64,-89.78,Census 2023 gazetteer: Wisconsin Dells city
+WBC pheromone,Wonewoc,Juneau,2024,43.65,-90.22,Census 2023 gazetteer: Wonewoc village
+black light,Antigo,Langlade,2020 2021,45.14,-89.16,Census 2023 gazetteer: Antigo city
+black light,Arlington,Columbia,2020 2021 2022 2023 2024 2026,43.31,-89.33,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+black light,Beaver Dam,Dodge,2020 2021 2022 2023 2024 2025 2026,43.52,-88.79,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+black light,East Troy,Walworth,2020 2021 2022 2023 2024 2025 2026,42.82,-88.49,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+black light,Hancock,Waushara,2020,44.13,-89.52,Census 2023 gazetteer: Hancock village
+black light,Janesville,Rock,2020 2021 2022,42.68,-89.01,Census 2023 gazetteer: Janesville city
+black light,Manitowoc,Manitowoc,2020 2021 2022 2023,44.10,-87.68,Census 2023 gazetteer: Manitowoc city
+black light,Marshfield,Wood,2020 2021 2022 2023 2024 2025,44.66,-90.17,Census 2023 gazetteer: Marshfield city
+black light,Pardeeville,Columbia,2020 2021 2022,43.54,-89.30,Census 2023 gazetteer: Pardeeville village
+black light,Prairie du Chien,Grant,2020 2021 2022 2023,43.04,-91.14,Census 2023 gazetteer: Prairie du Chien city
+black light,Ripon,Fond du Lac,2020 2021 2022 2023 2024 2025 2026,43.81,-88.81,DATCP's 2026 trap-network survey layer; the trap may have stood elsewhere in earlier years
+black light,Sparta,Monroe,2020 2021 2022,43.94,-90.81,Census 2023 gazetteer: Sparta city
+black light,Wausau,Marathon,2020 2021 2022 2023 2024 2025,44.95,-89.60,DATCP's 2026 trap-network survey layer (as Wausau E); the trap may have stood elsewhere in earlier years
+black light,Wausau E,Marathon,2026,44.95,-89.60,DATCP's 2026 trap-network survey layer
+black light,Wausau N,Marathon,2026,44.98,-89.64,DATCP's 2026 trap-network survey layer
+black light,Wausau North,Marathon,2022 2023 2024 2025,44.98,-89.64,DATCP's 2026 trap-network survey layer (as Wausau N); the trap may have stood elsewhere in earlier years
