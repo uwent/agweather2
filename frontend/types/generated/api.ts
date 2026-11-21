@@ -1077,6 +1077,10 @@ export interface ModelDetail {
    */
   citations: CitationInfo[]
   /**
+   * Where and when the data the model was fitted to came from, for a model fitted to field or trap counts. Outside this area the model still runs, with a warning that it reaches beyond its data. Null for other models.
+   */
+  trained?: TrainingAreaInfo | null
+  /**
    * How many days of weather the model reads before the first day of its results.
    */
   lookback_days: number
@@ -1138,6 +1142,24 @@ export interface ModelDetail {
    * How we checked the model against results it wasn't built from: its sources' own numbers, other forecasting systems on the same weather, and observations in the field. Empty while the model's checks are being written up.
    */
   checks: CheckInfo[]
+}
+export interface TrainingAreaInfo {
+  /**
+   * The data, in words, such as scouting counts in potato fields in Wisconsin's Central Sands.
+   */
+  description: string
+  /**
+   * The first and last years of the data.
+   */
+  years: number[]
+  /**
+   * States wholly inside the area, as postal abbreviations.
+   */
+  states: string[]
+  /**
+   * Counties inside the area, as five-digit FIPS codes, beyond any whole states listed.
+   */
+  counties: string[]
 }
 export interface QuantityInfo {
   /**
@@ -1254,6 +1276,10 @@ export interface ModelSummary {
    * The research the model is based on.
    */
   citations: CitationInfo[]
+  /**
+   * Where and when the data the model was fitted to came from, for a model fitted to field or trap counts. Outside this area the model still runs, with a warning that it reaches beyond its data. Null for other models.
+   */
+  trained?: TrainingAreaInfo | null
 }
 export interface ModelsQuery {
   group?: ('disease' | 'insect' | 'crop' | 'agronomic' | 'degree_days') | null

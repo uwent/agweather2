@@ -13,7 +13,10 @@ declared one of three ways:
   (10–90% of adult flight: "Avoid planting during adult flight").
 - `life_stages` as `FittedStage`s: each stage's abundance fitted to field counts over degree days, every generation at
   once (a GAM of log(count + 1), tabulated), read off the fit: the typical count and activity (1 at the fit's peak).
-  Colorado potato beetle (Bradford and Groves, unpublished). No generations, derived stages or action windows.
+  Colorado potato beetle (Bradford and Groves, unpublished). No generations, derived stages or action windows. A
+  fitted stage may also carry the same fit on the calendar (day of year); the insect then takes a `clock` option,
+  degree days or calendar, its default `Insect.clock` (D101): the calendar curve is the typical season where the
+  data came from, the degree-day curve the one that moves with the year's weather and carries farther.
 - `stages` (legacy, until each insect moves to life stages): a step table of degree-day starts with a severity and a
   life-stage label (the Crop Risk Tool's key);
 - `generations` (legacy): VDIFN's (start, peak, end) per generation, severity rising along a half sine from start to
@@ -51,8 +54,10 @@ from agmodels.spec import (
     ExplorerInput,
     Input,
     ModelSpec,
+    Option,
     Quantity,
     Risk,
+    TrainingArea,
 )
 
 FREEZE_C = -2.0
@@ -104,10 +109,19 @@ class FittedStage:
     log_count: tuple[float, ...]  # the fit on its link scale, by `transform`
     weight: float = 1.0
     transform: Literal["log1p", "log"] = "log1p"
+    # The same stage fitted on the calendar (D101): days of year, increasing, with the fit at each on the same link
+    # scale; read as the degree-day fit is (0 before the first day, held after the last). Empty: degree days only
+    days: tuple[float, ...] = ()
+    log_count_by_day: tuple[float, ...] = ()
 
     def __post_init__(self):
         if len(self.dd) != len(self.log_count) or len(self.dd) < 2 or np.any(np.diff(self.dd) <= 0):
             raise ValueError(f"{self.label}: dd must increase, one log count each")
+        if len(self.days) != len(self.log_count_by_day) or (
+            self.days
+            and (len(self.days) < 2 or np.any(np.diff(self.days) <= 0) or not 1 <= self.days[0] <= self.days[-1] <= 366)
+        ):
+            raise ValueError(f"{self.label}: days must increase within 1–366, one log count each")
 
     @property
     def key(self) -> str:
@@ -198,6 +212,13 @@ class Insect:
     version: str = "0.1"
     changelog: tuple[Change, ...] = ()  # after the port (1.0)
     checks: tuple[Check, ...] = ()  # D98
+    clock: Literal["degree_days", "calendar"] = "degree_days"  # the default clock of fitted stages with both (D101)
+    trained: TrainingArea | None = None  # where the fitted stages' data came from (D101)
+
+    @property
+    def has_calendar(self) -> bool:
+        """Whether its fitted stages carry calendar curves too (all of them do, or none)."""
+        return any(isinstance(s, FittedStage) and s.days for s in self.life_stages)
 
     def __post_init__(self):
         stages = {s.label for s in self.life_stages}
@@ -219,6 +240,10 @@ class Insect:
             raise ValueError(f"{self.id}: an estimated biofix or generation size needs life stages")
         if self.estimated_biofix and self.biofix != "01-01":
             raise ValueError(f"{self.id}: an estimated biofix replaces a January 1 biofix")
+        if self.has_calendar and not all(isinstance(s, FittedStage) and s.days for s in self.life_stages):
+            raise ValueError(f"{self.id}: every fitted stage needs a calendar curve, or none")
+        if self.clock == "calendar" and not self.has_calendar:
+            raise ValueError(f"{self.id}: a calendar clock needs calendar curves")
 
 
 class InsectModel:
@@ -262,10 +287,16 @@ class InsectModel:
             biofix=Biofix(default=insect.biofix, label=insect.biofix_label or default_biofix_label(insect.biofix)),
             context=self._context(),
             changelog=(
-                Change(version="0.1", date="2026-10-28", note=f"Ported from {insect.source}."),
+                *(
+                    (Change(version="0.1", date="2026-10-28", note=f"Ported from {insect.source}."),)
+                    if not any(c.version == "0.1" for c in insect.changelog)  # a new model gives its own 0.1
+                    else ()
+                ),
                 *insect.changelog,
             ),
             checks=insect.checks,
+            trained=insect.trained,
+            options=(clock_option(insect.clock),) if insect.has_calendar else (),
             ingredients=(
                 Ingredient(
                     name="dd",
@@ -412,7 +443,13 @@ class PhenologyModel(InsectModel):
         alive = factor > 0
         out = {"dd_total": total, "dd": values["dd"]}
         timed, extra = self._timed(values, total)
-        for name, value in evaluate(insect=self.insect, dd_total=timed).items():
+        if options.get("clock", self.insect.clock) == "calendar":
+            if "day_of_year" not in values:
+                raise KeyError(f"{self.insect.id}'s calendar curves need the day of year")
+            read = evaluate_calendar(insect=self.insect, day_of_year=values["day_of_year"], like=total)
+        else:
+            read = evaluate(insect=self.insect, dd_total=timed)
+        for name, value in read.items():
             if name.startswith(("activity_", "count_")):
                 value = value * factor
             elif name.startswith("window_"):
@@ -592,6 +629,46 @@ def evaluate(insect: Insect, dd_total: np.ndarray) -> dict[str, np.ndarray]:
         if name.startswith("window_"):  # open or not, at the nearest grid point
             value = np.interp(np.round(total / DD_STEP) * DD_STEP, x, table)
         out[name] = np.where(np.isnan(total), np.nan, value)
+    return out
+
+
+def clock_option(default: str) -> Option:
+    """The `clock` option of an insect whose fitted stages carry calendar curves (D101)."""
+    return Option(
+        name="clock",
+        label="Read the curves by",
+        choices=(("degree_days", "Degree days (this year's weather)"), ("calendar", "Calendar date (a typical year)")),
+        default=default,
+    )
+
+
+@cache
+def calendar_curves(insect: Insect) -> dict[str, np.ndarray]:
+    """The fitted stages' calendar curves tabulated on days of year 1–366: each stage's activity (1 at its own
+    calendar peak) and typical count, 0 before the data's first day and held after its last."""
+    x = np.arange(1.0, 367.0)
+    tables: dict[str, np.ndarray] = {}
+    for stage in insect.life_stages:
+        assert isinstance(stage, FittedStage) and stage.days
+        fit = np.interp(x, stage.days, stage.log_count_by_day)
+        count = np.expm1(np.maximum(fit, 0.0)) if stage.transform == "log1p" else np.exp(fit)
+        count = np.where(x < stage.days[0], 0.0, count)
+        tables[f"activity_{stage.key}"] = count / count.max()
+        tables[f"count_{stage.key}"] = count
+    return tables
+
+
+def evaluate_calendar(insect: Insect, day_of_year: np.ndarray, like: np.ndarray) -> dict[str, np.ndarray]:
+    """The calendar curves on each day, shaped like `like` (a point's days, or a grid's days × cells, whose days of
+    year come as days × 1 × 1) and missing where it is: a day without weather stays missing, as on degree days."""
+    like = np.asarray(like, dtype=float)
+    doy = np.asarray(day_of_year, dtype=float)
+    if doy.ndim == 1 and like.ndim > 1:  # a series of days against a grid's days × cells
+        doy = doy.reshape(-1, *([1] * (like.ndim - 1)))
+    out = {}
+    for name, table in calendar_curves(insect).items():
+        value = np.broadcast_to(np.interp(doy, np.arange(1.0, 367.0), table), like.shape)
+        out[name] = np.where(np.isnan(like), np.nan, value)
     return out
 
 

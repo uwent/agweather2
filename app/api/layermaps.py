@@ -1278,6 +1278,13 @@ def _model_compute(
         warnings.append(
             f"{layer_title(layer)} was developed for {', '.join(model.spec.region)}, and none of this area is in those states, so the map is empty."
         )
+    inside = modelgrid.training_mask(model.spec, window)
+    if inside is not None and (regions.land(window) & ~inside & np.isfinite(values).any(axis=0)).any():
+        t = model.spec.trained
+        assert t is not None
+        warnings.append(
+            f"{layer_title(layer)} was fitted to {t.description}, {t.years[0]}–{t.years[1]}. Outside that area the map reaches beyond the model's data, so its timing there is less certain."
+        )
     if found.in_season is not None and not any(found.in_season):
         first_md, last_md = model.spec.season or ("", "")
         warnings.append(

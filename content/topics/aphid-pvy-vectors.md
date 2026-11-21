@@ -9,7 +9,7 @@ summary: Winged aphids spread potato virus Y as they probe potato leaves on thei
 image: images/aphid-pvy-vectors.jpg
 image_credit: 'A winged green peach aphid, one of the most efficient vectors of potato virus Y. Photo by Scott Bauer, USDA Agricultural Research Service, via Wikimedia Commons (File:Myzus persicae.jpg), public domain.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento-pvy
     text: 'Potato Virus Y Management. UW–Madison Vegetable Entomology, updated 2026.'
@@ -97,9 +97,9 @@ For products and current registrations in Wisconsin, see [Commercial Vegetable P
 
 ## AgWeather's models
 
-The [aphid PVY vectors model](/models/aphid-pvy-vectors) shows how much PVY-spreading aphid flight a typical season has at each point, from degree days at a base of 39.2 °F with an 86 °F cutoff, counted from January 1. Its curve comes from UW–Madison Vegetable Entomology's analysis of Wisconsin's suction trap catches from 2016 to 2023, with each species weighted by how well it transmits PVY. Risk rises through midsummer to a broad peak near 3,580 degree days.[^agweather-pvy]
+The [aphid PVY vectors model](/models/aphid-pvy-vectors) shows how much PVY-spreading aphid flight a typical season has at each point, from degree days at a base of 39.2 °F with an 86 °F cutoff, counted from January 1. Its curve comes from UW–Madison Vegetable Entomology's analysis of Wisconsin's suction trap catches from 2016 to 2023, with each species counted in proportion to how well it transmits PVY. Risk rises through midsummer to a broad peak near 3,490 degree days. You can also read the curve by calendar date, as a typical Wisconsin season: risk climbs from late July and peaks about August 22.[^agweather-pvy]
 
-In AgWeather's long-term averages for 1996–2025, risk is already Moderate by late May in southern Wisconsin and early June in the north. It turns High (half the peak) around mid-July in the south and about August 1 near Antigo, in the north-central seed-growing area, and peaks in late August at Arlington, in early September at Hancock and in late September around Antigo and Rhinelander. In the north, then, risk keeps rising through most of the season.
+In AgWeather's long-term averages for 1996–2025, risk is Moderate from about June 1 in southern Wisconsin and mid-June in the north. It turns High (half the peak) around mid-July in the south and about August 2 near Antigo, in the north-central seed-growing area, and peaks in late August at Arlington and Hancock and in late September around Antigo and Rhinelander. In the north, then, risk keeps rising through most of the season.
 
 Use the model alongside the season-long oil program, not as the signal to start it: as risk rises toward High, consider spraying oils and aphicides more often and keeping coverage up. Because risk climbs late in the season, killing vines early, before the late surge of aphids, helps keep PVY out of a seed lot.[^cornell-management][^uw-vegento-pvy]
 

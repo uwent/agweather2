@@ -31,7 +31,7 @@ from agmodels.registry import all_models
 from agmodels.runner import ModelRun, default_biofix
 from agmodels.scenarios import milestones, spread
 from agmodels.seasons import Season
-from agmodels.spec import Model
+from agmodels.spec import Model, ModelSpec
 from api import clock, modelevents, points, runs, stations
 from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_modified, respond, table
 from api.errors import ApiError, day_text, quoted
@@ -72,6 +72,16 @@ def reason_text(reason: str) -> str:
         stage = reason.removesuffix(" isn't reached in the series")
         return f"The crop hasn't reached {stage}, where the model starts, by the last day, so it has no output yet."
     return f"The model has no output: {reason}."
+
+
+def training_area_text(spec: ModelSpec) -> str:
+    """The warning for a place outside the area a model's data came from (D101)."""
+    t = spec.trained
+    assert t is not None
+    text = f"{spec.name} was fitted to {t.description}, {t.years[0]}–{t.years[1]}. This location is outside that area, so its timing here is less certain."
+    if any(o.name == "clock" for o in spec.options):
+        text += " Its calendar curve describes a typical year where the data came from; degree days follow the weather here."
+    return text
 
 
 def too_many_runs(count: int) -> str:
@@ -1011,6 +1021,8 @@ def _table(
             add("projection_years", [int(v) if v > 0 else None for v in _values(bands[k].years, count)])
         if r.reason:
             reasons.append((label, reason_text(r.reason)))
+        elif r.outside_training_area and spec.trained is not None:
+            reasons.append((label, training_area_text(spec)))
         if r.windows:
             windows.append(
                 {

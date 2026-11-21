@@ -11,7 +11,7 @@ summary: A striped leaf beetle whose adults and larvae strip the leaves of potat
 image: images/colorado-potato-beetle.jpg
 image_credit: 'Late-instar Colorado potato beetle larvae and their feeding on potato leaves. Photo: Ben Bradford, UW–Madison Vegetable Entomology.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento-cpb
     text: 'Colorado Potato Beetle. UW–Madison Vegetable Entomology, updated 2026.'
@@ -50,7 +50,7 @@ Adults spend the winter in the soil, about 4 to 12 inches down, mostly at field 
 
 Eggs hatch in 4 to 9 days, depending on temperature. Larvae pass through four stages (instars) over 2 to 3 weeks, then drop to the soil to pupate, and new adults come out 10 to 14 days later. South-central Wisconsin usually has two generations a year and northern Wisconsin one; first-generation adults, the summer adults, appear from about mid-July, and some lay eggs for a partial second generation before they leave for their winter sites as the crop dies back.[^uw-vegento-cpb]
 
-Because the beetles develop faster in warm weather, [degree days](/topics/degree-days) predict their stages better than the calendar. UW–Madison uses a base of 52 °F and an upper limit of 86 °F, counting from the first egg mass: eggs take about 120 degree days to hatch, larvae reach the pupal stage at about 400 and new adults appear at about 675.[^uw-vegento-cpb][^a3422-2026]
+Because the beetles develop faster in warm weather, [degree days](/topics/degree-days) are used to time their stages. UW–Madison uses a base of 52 °F and an upper limit of 86 °F, counting from the first egg mass: eggs take about 120 degree days to hatch, larvae reach the pupal stage at about 400 and new adults appear at about 675.[^uw-vegento-cpb][^a3422-2026]
 
 ## Damage
 
@@ -83,4 +83,4 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [Colorado potato beetle model](/models/colorado-potato-beetle) shows a typical count of adults, egg masses and larvae through the season, from curves UW–Madison's Vegetable Entomology lab fitted to scouting counts in Central Sands potato fields, 2014 to 2025. It counts degree days on 52 °F and 86 °F from January 1: overwintered adults colonize fields at about 210 degree days, the first egg masses appear at about 240, eggs hatch from about 370 and larvae peak near 790; summer adults peak near 1,480. UW's stage table counts from the first egg mass instead, and its 120 degree days to hatch fit the model's 240 to 370.[^agweather-cpb][^uw-vegento-cpb] The model's risk compares the count of adults and larvae with its season peak. The curves haven't yet been tested on years or fields outside the data, a field's counts can run well above or below them, and their use in tomato and eggplant is untested.[^agweather-cpb]
+The [Colorado potato beetle model](/models/colorado-potato-beetle) shows a typical count of adults, egg masses and larvae through the season, from curves UW–Madison's Vegetable Entomology lab fitted to scouting counts in central Wisconsin potato fields, mostly in the Central Sands, 2014 to 2025. It counts degree days on 52 °F and 86 °F from January 1: overwintered adults colonize fields at about 205 degree days, the first egg masses appear at about 215, larvae show in sweep counts from about 400 and peak near 735; summer adults peak near 1,450. UW's stage table counts from the first egg mass instead: its 120 degree days to hatch put the first hatch near 335, a little before larvae show in sweeps.[^agweather-cpb][^uw-vegento-cpb] The same curves can be read by calendar date, as a typical central Wisconsin season. Tested on years left out of the fit, the curves timed the beetle's stages no better by degree days than by the calendar in these fields, where colonization and the peaks varied little from year to year; degree days should carry the timing better to places farther north or south, which these data can't test. The model's risk compares the count of adults and larvae with its season peak. A field's counts can run well above or below the typical ones, and outside central Wisconsin, and in tomato and eggplant, the model comes with a warning.[^agweather-cpb]

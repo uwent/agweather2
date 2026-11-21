@@ -54,6 +54,9 @@ class ModelRun:
     # not in the series" (the days given start after it: read from `first_day_needed`), "<stage> isn't reached in the
     # series" (a biofix at a crop stage the planting hasn't reached: not started yet)
     reason: str | None = None
+    # The place is outside the area the model's data came from (`ModelSpec.trained`, D101), set by the caller that
+    # knows the place (`agdata.series`): the run is made, and the answer says it reaches beyond the data
+    outside_training_area: bool = False
     # Where the weather came from, set by the caller that read it (`agdata.series`): its sources and corrections
     sources: tuple[str, ...] = ()
     corrections: tuple[str, ...] = ()

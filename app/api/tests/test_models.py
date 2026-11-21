@@ -413,3 +413,26 @@ def test_all_needs_an_option_with_choices():
     assert option_values(typed, None, []) == ["10"] and option_values(typed, "12", []) == ["12"]
     with pytest.raises(ApiError, match="'threshold' has no list of choices, so it can't be set to 'all'"):
         option_values(typed, "all", [])
+
+
+def test_outside_its_training_area_a_fitted_model_runs_with_a_warning(client, archive):
+    """D101: the fixture's point is in Iowa; the beetle's curves were fitted in central Wisconsin."""
+    body = get(client, "colorado-potato-beetle", biofix="2025-07-01", end="2025-07-05").json()
+    assert any(
+        "fitted to scouting counts in commercial potato fields in central Wisconsin" in w
+        for w in body["meta"]["warnings"]
+    )
+    assert body["data"]["count_adults"][0] is not None
+    both = get(client, "colorado-potato-beetle", biofix="2025-07-01", end="2025-07-05", clock="all").json()
+    assert both["meta"]["request"]["options"]["clock"] == ["degree_days", "calendar"]
+    assert set(both["data"]["option_set"]) == {0, 1}
+    assert not any(
+        "fitted to" in w for w in get(client, "early-blight-pdays", biofix="2025-07-02").json()["meta"]["warnings"]
+    )
+
+
+def test_the_models_list_says_where_a_fitted_model_was_trained(client):
+    data = client.get("/api/v2/models").json()["data"]
+    beetle = next(m for m in data if m["id"] == "colorado-potato-beetle")
+    assert beetle["trained"]["years"] == [2014, 2025] and "55001" in beetle["trained"]["counties"]
+    assert next(m for m in data if m["id"] == "early-blight-pdays")["trained"] is None

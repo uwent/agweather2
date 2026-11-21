@@ -283,6 +283,13 @@ class CitationInfo(Schema):
     url: str | None  # the DOI's link where there's a DOI, else a copy or a source without one
 
 
+class TrainingAreaInfo(Schema):
+    description: str
+    years: list[int]  # [first, last]
+    states: list[str]
+    counties: list[str]  # five-digit FIPS codes
+
+
 class ModelSummary(Schema):
     id: str
     name: str
@@ -298,6 +305,7 @@ class ModelSummary(Schema):
     # a once-a-season product (D68): MM-DD its season's map is first shown (the last one's until then); None: daily
     seasonal_appears: str | None = None
     citations: list[CitationInfo]
+    trained: TrainingAreaInfo | None = None  # where the model's data came from (D101); None: not a fit to data
 
 
 class ModelsResponse(Schema):
@@ -427,6 +435,11 @@ def _summary(spec: ModelSpec) -> dict:
         "season": list(spec.season) if spec.season else None,
         "seasonal_appears": spec.seasonal.appears if spec.seasonal else None,
         "citations": [citation_info(c) for c in spec.citations],
+        "trained": None
+        if (t := spec.trained) is None
+        else TrainingAreaInfo(
+            description=t.description, years=list(t.years), states=list(t.states), counties=list(t.counties)
+        ),
     }
 
 

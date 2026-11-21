@@ -636,6 +636,22 @@ def _region_mask(spec: ModelSpec, window: Window) -> np.ndarray | None:
     return _states_mask(spec.region, window) if spec.region else None
 
 
+def training_mask(spec: ModelSpec, window: Window) -> np.ndarray | None:
+    """Cells inside the area the model's data came from (D101); None if it records none."""
+    t = spec.trained
+    return None if t is None else _areas_mask((*t.states, *t.counties), window)
+
+
+@cache
+def _areas_mask(codes: tuple[str, ...], window: Window) -> np.ndarray:
+    """Cells in any of the states or counties (postal codes or five-digit FIPS), cached."""
+    found = [regions.find(code) for code in codes]
+    masks = [regions.mask(r, window) for r in found if r is not None]
+    mask = np.any(masks, axis=0) if masks else np.zeros(window.shape, dtype=bool)
+    mask.setflags(write=False)
+    return mask
+
+
 @cache
 def _states_mask(states: tuple[str, ...], window: Window) -> np.ndarray:
     """Cells in any of the states (cached: ~0.2 s for a box and 17 states)."""

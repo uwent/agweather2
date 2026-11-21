@@ -27,7 +27,7 @@ from agdata.areas import Area, Place, cells_of
 from agdata.areas import combine as combine_area
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, GAP_FILL, VARIABLES, Variable
 from agdata.grid import NDFD, Window
-from agdata.places import county_at
+from agdata.places import County, county_at
 from agdata.planting import typical_planting
 from agdata.point import daily_at_point, hourly_sources
 from agdata.store import CUMULATIVE, DAILY, HOURLY, INGREDIENTS, SOURCES, GridStore, StoreLayout
@@ -36,6 +36,7 @@ from agmodels import runner
 from agmodels.registry import model as find_model
 from agmodels.runner import ModelRun
 from agmodels.scenarios import run_scenarios
+from agmodels.spec import ModelSpec
 
 HOUR = timedelta(hours=1)
 MAX_RUN_AGE = timedelta(hours=12)  # past this a run's forecast isn't used (D43; the job runs every 6 hours)
@@ -843,7 +844,17 @@ def runs_at_point(
             )
         )
         results[-1].sources, results[-1].corrections = days.sources, days.corrections
+        results[-1].outside_training_area = outside_training_area(m.SPEC, county)
     return results
+
+
+def outside_training_area(spec: ModelSpec, county: County | None) -> bool:
+    """Whether a place (its county, None off the county grid) is outside the area the model's data came from (D101)."""
+    if spec.trained is None:
+        return False
+    return not spec.trained.contains(
+        state=county.state if county is not None else None, fips=county.geoid if county is not None else None
+    )
 
 
 @dataclass(kw_only=True)
@@ -912,6 +923,7 @@ def projected_runs(
         )
         for r in found:
             r.sources, r.corrections = days.sources, days.corrections
+            r.outside_training_area = outside_training_area(m.SPEC, county)
         out.append(found)
     return Projected(runs=out, years=scenarios_found.years, start=begins, coverage=scenarios_found.coverage)
 

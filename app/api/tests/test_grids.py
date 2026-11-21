@@ -554,3 +554,9 @@ def test_clip_serves_the_regions_cells_or_the_rectangle_around_them(client, arch
         (WINDOW.j0, WINDOW.i0),
         (WINDOW.j0 + 1, WINDOW.i0 + 1),
     ]
+
+
+def test_a_fitted_model_warns_where_the_map_reaches_past_its_data(client, archive):
+    """D101: the fixture's window is in Iowa, outside the counties the beetle's curves came from."""
+    body = get(client, "colorado-potato-beetle", date="2025-07-08", clock="calendar").json()
+    assert any("reaches beyond the model's data" in w for w in body["meta"]["warnings"]), body["meta"]["warnings"]

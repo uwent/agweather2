@@ -162,6 +162,13 @@ region = "The states where the model was developed or tested, as postal abbrevia
 season = "The first and last days of the year the model's results are shown, as `MM-DD`. Null when it runs all year."
 seasonal_appears = "For a model with one result a season: the day of the year (`MM-DD`) the new season's map first appears. Until then, the last season's map is shown. Null for a model with results each day."
 citations = "The research the model is based on."
+trained = "Where and when the data the model was fitted to came from, for a model fitted to field or trap counts. Outside this area the model still runs, with a warning that it reaches beyond its data. Null for other models."
+
+[TrainingAreaInfo]
+description = "The data, in words, such as scouting counts in potato fields in Wisconsin's Central Sands."
+years = "The first and last years of the data."
+states = "States wholly inside the area, as postal abbreviations."
+counties = "Counties inside the area, as five-digit FIPS codes, beyond any whole states listed."
 
 [ModelDetail]
 _inherits = "ModelSummary"

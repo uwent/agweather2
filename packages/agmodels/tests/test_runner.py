@@ -237,10 +237,11 @@ NO_DATA_GIVES_A_LEVEL = {
     "colorado-potato-beetle-adults", "colorado-potato-beetle-larvae", "common-asparagus-beetle", "corn-earworm",
     "corn-rootworm", "crucifer-flea-beetle", "early-blight-pdays", "european-corn-borer", "imported-cabbageworm",
     "japanese-beetle", "late-blight-dsv", "mint-flea-beetle", "mint-root-borer", "oak-wilt-vectors", "onion-maggot",
-    "pecan-scab", "potato-volunteer", "rye-biomass", "seedcorn-maggot", "spotted-wing-drosophila",
+    "pecan-scab", "potato-aphid", "potato-volunteer", "rye-biomass", "seedcorn-maggot", "spotted-wing-drosophila",
     "squash-vine-borer", "stalk-borer", "tarnished-plant-bug", "variegated-cutworm", "western-bean-cutworm",
     "western-flower-thrips",
 }  # fmt: skip
+CALENDAR_BY_DEFAULT = {"green-peach-aphid"}
 
 
 @pytest.mark.parametrize("model_id", sorted(all_models()))
@@ -256,6 +257,9 @@ def test_a_model_without_any_weather_gives_no_risk_but_its_documented_level(mode
         return
     level = m.risk(out)
     known = level[np.isfinite(level)]
+    if model_id in CALENDAR_BY_DEFAULT:  # a typical season by date (D101): it needs no weather, so it varies by day
+        assert known.size == level.size, model_id
+        return
     assert (known.size > 0) == (model_id in NO_DATA_GIVES_A_LEVEL), model_id
     assert len(np.unique(known)) <= 1, f"{model_id}: a risk that varies with no weather"
     if model_id != "potato-volunteer":  # the rest read "nothing counted" as the lowest level

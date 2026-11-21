@@ -9,7 +9,7 @@ summary: Wisconsin is the third-largest potato-growing state, with most of its c
 image: images/potato.jpg
 image_credit: 'Hilling potatoes in Adams County, Wisconsin. Photo by Royalbroil, via Wikimedia Commons (File:Potato hilling in Adams County Wisconsin.jpg), CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/); resized.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-21
 sources:
   - key: uw-system-potatoes
     text: "Potatoes contribute $522 million to Wisconsin's economy. Universities of Wisconsin, All in Wisconsin (on a study by UW–Whitewater's Fiscal and Economic Research Center)."
@@ -115,5 +115,5 @@ Many problems are settled before planting: certified seed, rotation away from po
 
 - The [potato emergence model](/models/potato-stages) estimates the date half a planting has emerged, from degree days in air above 4 °C (39 °F) since planting. It was fitted to UW–Madison's estimated planting and emergence dates across Wisconsin's potato areas and matches them within about 3 days on average; it hasn't been checked against emergence counted in fields.[^agweather-potato-stages]
 - The [early blight P-days model](/models/early-blight-pdays) and the [late blight DSV model](/models/late-blight-dsv) count from that emergence date, or from your own.
-- The [Colorado potato beetle model](/models/colorado-potato-beetle) and the [aphid PVY vectors model](/models/aphid-pvy-vectors) follow these insects by degree days from January 1.
+- The [Colorado potato beetle model](/models/colorado-potato-beetle) and the [aphid PVY vectors model](/models/aphid-pvy-vectors) follow these insects by degree days from January 1, or by calendar date as a typical season.
 - The [potato volunteer model](/models/potato-volunteer) estimates whether tubers left in the field survived the winter, from the hours the soil spent below 27 °F at 2, 4 and 8 inches. Our soil data count more cold hours than Wisconsin's soil sensors, so the model may underrate the risk.[^agweather-potato-volunteer]

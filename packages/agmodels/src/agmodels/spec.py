@@ -171,6 +171,28 @@ class Check:
 
 
 @dataclass(frozen=True, kw_only=True)
+class TrainingArea:
+    """Where and when the data a model was fitted to came from (D101), so a place outside it can be told that the
+    model is reaching beyond its data: the model still runs everywhere in its `region`, with a warning. Kept coarse
+    (counties or states, never fields or farms), since the data are often growers'."""
+
+    description: str  # public text, completing "fitted to …": "scouting counts in commercial potato fields in Wisconsin's Central Sands"
+    years: tuple[int, int]  # first and last year of the data
+    states: tuple[str, ...] = ()  # postal abbreviations; the whole state counts as inside
+    counties: tuple[str, ...] = ()  # five-digit FIPS codes; inside these counties as well as anywhere in `states`
+
+    def __post_init__(self):
+        if not self.states and not self.counties:
+            raise ValueError("a training area needs states or counties")
+        if any(len(c) != 5 or not c.isdigit() for c in self.counties):
+            raise ValueError("counties are five-digit FIPS codes")
+
+    def contains(self, *, state: str | None, fips: str | None) -> bool:
+        """Whether a place in this state and county (either may be unknown) is inside."""
+        return (state is not None and state in self.states) or (fips is not None and fips in self.counties)
+
+
+@dataclass(frozen=True, kw_only=True)
 class ModelSpec:
     id: str
     name: str
@@ -197,6 +219,7 @@ class ModelSpec:
         None  # (crop model id, stage code) whose predicted date is the default biofix
     )
     region: tuple[str, ...] = ()  # state abbreviations where it's valid; empty: anywhere
+    trained: TrainingArea | None = None  # where its data came from (D101); None: not a fit to data, or not recorded
     season: tuple[str, str] | None = None  # MM-DD first and last day it's shown
     seasonal: Seasonal | None = None  # a once-a-season product (`agmodels.seasons`); None: a daily model
     biofix: Biofix | None = None
