@@ -1,41 +1,51 @@
 ---
 id: squash-vine-borer
 status: draft
-updated: 2026-11-19
-summary: Rates squash vine borer moth activity from degree days since January 1 in one window from 750 to 1,000 degree days (base 50 °F), peaking at 900, around when the moths begin to emerge.
+updated: 2026-11-21
+summary: Follows squash vine borer moth flight and egg laying, and the larvae boring in the vines, from degree days since January 1 (modified average, 50/86 °F), and marks when to protect stems during egg laying, from about 825 to 1,240 degree days.
 sources:
-  - VDIFN's squash vine borer model (all of the model's numbers; no source is known for them)
-  - Liesch and Groves, Squash Vine Borer (XHT1136), UW–Madison Division of Extension, 2026 (emergence at 900 degree days, three weeks of egg laying around 1,000)
-  - UW–Madison Vegetable Entomology, squash vine borer (vegento.russell.wisc.edu, 2026) (emergence after about 1,000 degree days)
+  - Liesch and Groves, Squash Vine Borer (XHT1136), UW–Madison Division of Extension, 2026 (first moths at 900 degree days, three weeks of egg laying around 1,000)
+  - Delahaut, Degree Days for Common Fruit and Vegetable Insect Pests (XHT1087), UW–Madison Division of Extension, 2012 (the degree-day method; egg laying 900–1,000)
+  - SDSU Extension, squash vine borer activity estimates (Varenhorst and others, 2023) (egg hatch and larval feeding in degree days)
+  - Ruger and Leach, Squash Vine Borer (ENT-0106), Ohio State University Extension, 2026 (emergence at 1,000 degree days; compared)
+  - MSU Enviroweather's squash vine borer model (the end of the flight)
+  - UW–Madison Vegetable Entomology, squash vine borer (2026) (one generation; emergence after about 1,000 degree days)
   - Commercial Vegetable Production in Wisconsin (A3422), 2026 (spray timing)
-  - University of Minnesota Extension, squash vine borers (reviewed 2026) (monitoring)
-  - MSU Enviroweather's squash vine borer model (numbers compared)
 ---
 
 ## What it predicts
 
-Squash vine borer moths lay their eggs at the base of squash and pumpkin vines in early summer. The larvae that hatch bore into the stems, where sprays can't reach them, and feed there until the vine wilts and dies. Insecticides work only if they're on the stems while eggs are hatching, so the timing of the moths matters. There is one generation a year in Wisconsin.
+Squash vine borer moths lay their eggs at the base of squash and pumpkin vines in early summer. The larvae that hatch bore into the stems, where sprays can't reach them, and feed there until the vine wilts and dies. Insecticides work only if they're on the stems while eggs are hatching, so the timing of the moths matters. There is one generation a year in Wisconsin. The model follows:
 
-The model rates moth activity on five levels, from Very low to Very high (0 to 4), in a single window around the moths' emergence.
+- **Moth flight and egg laying**: how many moths are flying and laying eggs, compared with the flight's peak.
+- **Larvae in vines**: how many larvae are boring in the stems.
+- **Protect stems during egg laying**: the days from the first moths until three quarters of the season's moths have flown.
+
+Risk is the larvae's, since they do the damage; the moths don't feed. A risk of 1 means as many larvae in the vines as at the season's peak. Act during the window, before the risk rises: once larvae are inside the vines, sprays do little.
 
 ## How it works
 
-Degree days are counted from January 1 by the single-sine method, base 50 °F, with no upper threshold.
+No research study of squash vine borer timing is known to us, so the model combines the extension guides. Degree days are counted from January 1 by the modified average (UW–Madison's method): the day's high, capped at 86 °F, and low, raised to 50 °F, are averaged, less 50 °F.
 
-- **The window** opens at 750 degree days, peaks at 900 and closes at 1,000. The rating rises a level at a time, from Low just after 750 to Very high from about 850, holds there past the peak to about 935, and falls back to Very low at 1,000.
-- **The numbers** come from VDIFN, the vegetable disease and insect forecasting tool AgWeather replaces. No source is known for them. The peak at 900 matches UW–Madison's fact sheet, which expects the moths at about 900 degree days, around when chicory is in full bloom along roadsides.
-- **On the calendar**, from AgWeather's long-term averages (degree days for 1996 to 2025), an average year's window runs from about June 21 to July 3 at Arlington, peaking about June 28; from June 25 to July 8 at Hancock; and from July 3 to July 18 at Rhinelander.
+- **Moth flight and egg laying.** UW–Madison's fact sheet expects the first moths at about 900 degree days and three weeks of egg laying centered on about 1,000. South Dakota State and Ohio State put emergence at about 1,000, and Michigan State's model has the flight declining from 1,800 and over by 2,000. The model's first moths come at about 825 degree days, half have flown by about 1,085, three quarters by about 1,240, and the last by 1,900. Females lay eggs as they fly, so the one curve stands for both.
+- **Larvae.** Eggs hatch about 270 degree days after they're laid, and the larvae feed inside the vines for about 660 degree days, South Dakota State's numbers.
+- **The window** runs from the first moths to three quarters of the flight, about 825 to 1,240 degree days: UW–Madison's three weeks of egg laying.
+
+South Dakota State and Ohio State count degree days by the plain daily average, which runs about a week behind UW–Madison's method in a Wisconsin spring, so their 1,000 degree days comes later on the calendar than UW–Madison's 1,000.
+
+In an average year (AgWeather's degree days for 1996 to 2025), the window runs from about June 21 to July 12 at Arlington, June 24 to July 16 at Hancock and July 2 to July 26 at Rhinelander. The most larvae are in the vines in early August in the south and late August in the north.
 
 ## How to read it
 
-- Start watching for moths as the rating rises, and by 900 degree days or the last week of June at the latest. Yellow pans of water with a drop of dish soap catch the moths; pheromone traps show when males are flying but also catch related clearwing moths. Neither kind of trap has a treatment threshold.
-- UW–Madison recommends treating when moths are first seen, around 900 degree days, especially on plants with runners shorter than 2 feet, and repeating every 5 to 7 days through the three weeks of egg laying. Once larvae are inside the vine, sprays do little.
-- **Don't stop when the window closes.** By UW–Madison's timing, egg laying centers on about 1,000 degree days, where the model's window ends, and goes on for about a week and a half after the rating falls to Very low. Keep stems protected for the full three weeks.
+- Start watching for moths as the window opens, and by the last week of June at the latest. Yellow pans of water with a drop of dish soap catch the moths; pheromone traps show when males are flying but also catch related clearwing moths. Neither kind of trap has a treatment threshold.
+- UW–Madison recommends treating when moths are first seen, especially on plants with runners shorter than 2 feet, and repeating every 5 to 7 days through the three weeks of egg laying.
+- **Keep stems protected while moths are still being seen,** even after the window closes: some moths fly and lay eggs for weeks longer.
 - Check the bases of stems for entry holes and sawdust-like droppings (frass), which show where larvae have bored in before plants wilt.
 
 ## Validation and caveats
 
-- Draft (model version 0.1, beta). Given the same degree days, its ratings match VDIFN's exactly, and its degree days match the calculator VDIFN used. That shows the model was carried over faithfully, not that its timing is right: it hasn't been checked against a published source or against trap catches in Wisconsin.
-- The window is shorter and earlier than UW–Madison's advice. It ends at 1,000 degree days, about the middle of egg laying in UW–Madison's fact sheet, and about when UW Vegetable Entomology's page says the moths begin to emerge. Michigan State's Enviroweather model, also without a cited source, counts from March 1, starts emergence at 800 degree days and has flight and egg laying declining from 1,800 and over at 2,000. AgWeather's model is the likelier to change.
-- The rating is a display of where the season stands in the window, not an estimate of how many moths there are: Very high means near the window's peak, in a light year as in a heavy one.
+- Draft (model version 0.2, beta). Built from the timing in extension guides from Wisconsin, South Dakota, Ohio and Michigan, which don't cite the data behind their numbers; the shape of the flight is our judgment across them.
+- The model's first moths, half flight and window match the guides' numbers, since it was drawn to them.
+- **Moths are seen later than the guides suggest.** Against 235 iNaturalist photographs of moths in the upper Midwest from 2016 to 2026, the first 10 % of the records came at about the model's first moths, but half came about 8 days after the model's half, and the last tenth well after the window. A photograph isn't a moth laying eggs, and records follow how common moths are, but the records agree better with Michigan State's long flight than with three weeks of egg laying. The model wasn't fitted to these records, and no trap counts in Wisconsin are known to us.
+- The model shows where the season stands, not how many moths or borers there are.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

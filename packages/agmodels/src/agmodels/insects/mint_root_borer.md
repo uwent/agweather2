@@ -1,28 +1,32 @@
 ---
 id: mint-root-borer
 status: draft
-updated: 2026-11-19
-summary: Rates mint root borer activity from degree days since April 1 (base 50 °F) in one window, from the first moths at 430 degree days through the peak of egg hatch at 1,280 to 2,150, when half the larvae have made their winter chambers.
+updated: 2026-11-21
+summary: Follows mint root borer moth flight and the larvae feeding in mint roots from degree days since April 1 (base 50 °F), by Oregon State's model, and marks when to trap or sweep for moths.
 sources:
-  - VDIFN's mint root borer model (all of the model's numbers)
-  - Berry and others, Oregon State University's mint root borer degree-day model on USPest.org, partly validated for the Pacific Northwest (the start date and the three events the window follows)
+  - Berry, Takeyasu and Morris 1997, Oregon State University's mint root borer degree-day model on USPest.org, partly validated for the Pacific Northwest (the method and every event)
+  - Tollerup, Marcum, Wilson and Godfrey 2013 (the same model against trap catches in California peppermint)
   - Pacific Northwest Insect Management Handbook, mint root borer (2026) (life cycle, sampling, threshold)
 ---
 
 ## What it predicts
 
-The mint root borer has one generation a year. It spends the winter as a full-grown larva in a cocoon in the soil, and the moths fly from May through July. The larvae that hatch from their eggs tunnel in mint rhizomes and feed on the roots from late July through September, and into early October in some years, which can severely thin the stand.
+The mint root borer has one generation a year. It spends the winter as a full-grown larva in a cocoon in the soil, and the moths fly in early summer. The larvae that hatch from their eggs tunnel in mint rhizomes and feed on the roots from late July through September, and into early October in some years, which can severely thin the stand. The model follows both:
 
-The model rates activity on five levels, from Very low to Very high (0 to 4), in one long window that covers moth flight, egg laying and the larvae's feeding until they settle for the winter.
+- **Moth flight**: how many moths are flying, compared with the flight's peak.
+- **Larvae in roots**: how many larvae are feeding in the rhizomes and roots, from hatching until each has made the chamber (hibernaculum) in which it spends the winter.
+- **Trap or sweep for moths**: the days from the first moths caught until 90 % have been.
+
+Risk is the larvae's, since they do the damage; the moths don't feed. A risk of 1 means as many larvae feeding as at the season's peak.
 
 ## How it works
 
-Degree days are counted from April 1 by the single-sine method, base 50 °F, with no upper threshold.
+The model is Oregon State University's mint root borer model on USPest.org (Berry, Takeyasu and Morris, 1997). Degree days are counted from April 1 by the single-sine method, base 50 °F, with no upper limit.
 
-- **The window** opens at 430 degree days, peaks at 1,280 and closes at 2,150. The rating rises a level at a time, from Low just after 430 to Very high from about 1,000, holds there past the peak to about 1,570, and falls back to Very low at 2,150.
-- **The numbers** come from VDIFN, the vegetable disease and insect forecasting tool AgWeather replaces, and all three are events in Oregon State University's mint root borer model on USPest.org (Berry and others), which also counts from April 1 at 50 °F: the first moths caught at 430 degree days, the peak of egg hatch at 1,280, and half the larvae in the chambers in which they spend the winter (hibernacula) at 2,150. Oregon State's model also puts the peak of moth catches at 910 and of egg laying at 1,130, and has 5 percent of the larvae forming their chambers at 1,850; the rating doesn't mark these.
-- **On the calendar**, from AgWeather's long-term averages (degree days for 1996 to 2025), in an average year at Arlington the window opens about June 4, peaks about July 18 and closes about August 29. At Rhinelander it opens about June 13 and peaks in early August, and an average season doesn't reach 2,150.
-- **The end of the season.** After early September, the rating drops by one level for each day in the last two weeks at or below about 28 °F (−2 °C). Where the season doesn't reach 2,150, the rating is still Low in the fall, and freezes bring it to Very low.
+- **Moth flight.** The first moths are caught at about 430 degree days, catches peak at 910, and 90 % of the moths have been caught by 1,350. The flight lasts about two months.
+- **Larvae.** Egg laying peaks at about 1,130 degree days and egg hatch at about 1,280. The larvae feed until they make their winter chambers: in Oregon State's model, 5 % have done so by 1,850 and half by 2,150. The model keeps each larva feeding until it has made its chamber, so the larvae fall away gradually after 2,150 rather than ending there.
+
+In an average year (AgWeather's degree days for 1996 to 2025), the first moths come about June 4 at Arlington, June 7 at Hancock and June 13 at Rhinelander, and the flight peaks around the start of July in the south and mid-July in the north. Half the larvae have hatched by about July 20 at Arlington and early August at Rhinelander, and the most larvae are feeding in early to mid-August in the south. At Arlington half have made their winter chambers by about August 29; at Rhinelander an average season ends with most larvae still feeding, until fall freezes.
 
 ## How to read it
 
@@ -32,8 +36,9 @@ Degree days are counted from April 1 by the single-sine method, base 50 °F, wit
 
 ## Validation and caveats
 
-- Draft (model version 0.1, beta). Given the same degree days, its ratings match VDIFN's exactly, and its degree days match the calculator VDIFN used. That shows the model was carried over faithfully, not that its timing is right: it hasn't been checked against trap catches or larval counts in Wisconsin, and none are known to us.
-- Oregon State's model was developed for the Pacific Northwest and is listed as partly validated; the research behind it isn't identified.
-- The window closes when half the larvae have formed their winter chambers, not when all have. VDIFN's earlier description said risk ended when the larvae had formed their winter chambers; some larvae are still feeding after the rating falls to Very low.
-- The rating is a display of where the season stands in the window, not an estimate of how many borers there are.
+- Draft (model version 0.2, beta). Developed for peppermint in the Pacific Northwest, where Oregon State lists it as partly validated; the research behind it isn't published online.
+- The model's curves follow Oregon State's events: its moth flight passes the first catch, peak and 90 % catch, and half its larvae make their chambers at 2,150 degree days, as in Oregon State's model.
+- **In California the model ran late.** Researchers compared it with pheromone trap catches in peppermint in two California counties in 2010 and 2011 and found that its peak flight came 10 to 25 days later than the traps' in most cases, and its 90 % catch two weeks to a month later. They found it a poor predictor there. It hasn't been compared with trap catches or larval counts in Wisconsin, and none are known to us, so treat its dates as a guide and confirm with traps and soil samples.
+- The model's first larvae make their winter chambers somewhat earlier than in Oregon State's model (at about 1,700 degree days rather than 1,850), because it times them from the spread of the moth flight.
+- The model shows where the season stands, not how many borers there are.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

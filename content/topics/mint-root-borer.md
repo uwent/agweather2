@@ -9,7 +9,7 @@ summary: A small moth whose caterpillars feed inside mint rhizomes and on the ro
 image: images/mint-root-borer.jpg
 image_credit: 'Mint root borer moth. Photo by Justin Chan, via iNaturalist (observation 297373014), CC BY-NC 4.0 (https://creativecommons.org/licenses/by-nc/4.0/); resized.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: pnw
     text: 'Mint-Mint root borer. In Pacific Northwest Pest Management Handbooks: Insect Management Handbook. Oregon State University, Washington State University and University of Idaho, 2026.'
@@ -29,6 +29,9 @@ sources:
   - key: agweather-mint-root-borer
     text: 'AgWeather. Mint root borer model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/mint-root-borer.md
+  - key: tollerup-2013
+    text: 'Tollerup, K. E., D. Marcum, R. Wilson and L. Godfrey. Biology of mint root borer (Lepidoptera: Crambidae) and control options on California peppermint. Journal of Integrated Pest Management 4(3): A1–A4, 2013.'
+    url: https://doi.org/10.1603/IPM13004
   - key: irac-moa
     text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
     url: https://irac-online.org/documents/moa-classification/
@@ -66,6 +69,6 @@ For products, rates and current registrations, see the Pacific Northwest Insect 
 
 ## AgWeather's models
 
-The [mint root borer model](/models/mint-root-borer) counts degree days from April 1 at a base of 50 °F with no upper limit, and rates risk from 0 to 4 in one window: from the first moths at 430 degree days, through a peak at the peak of egg hatch, 1,280, to an end at 2,150. Those three numbers are events in Oregon State's model, which was developed for the Pacific Northwest and is listed as partly validated; the end is when half the larvae have formed their winter chambers, not when all have.[^uspest-mrb][^agweather-mint-root-borer] Its April 1 start is Oregon State's too.[^uspest-mrb] The model comes from VDIFN, the forecasting tool AgWeather replaces, and gives the same ratings as VDIFN for the same degree days. It hasn't been compared with trap catches or larval counts in Wisconsin.[^agweather-mint-root-borer]
+The [mint root borer model](/models/mint-root-borer) is Oregon State's mint root borer model, counted from April 1 at a base of 50 °F with no upper limit.[^uspest-mrb] Its moth flight follows Oregon State's events: the first moths caught at about 430 degree days, the peak at 910 and 90 % caught by 1,350. The larvae are timed from the flight, from the peak of egg hatch at about 1,280 until each has made its winter chamber; half have done so by 2,150. The risk is the larvae's, since the moths don't feed, and the model marks a window to trap or sweep for moths from the first catch to 90 %.[^agweather-mint-root-borer]
 
-We worked out what the window means on the calendar from AgWeather's long-term averages (degree days for 1996 to 2025): in an average year at Arlington it opens about June 4, peaks about July 18 and ends about August 29; at Rhinelander it opens about June 13, peaks in early August, and the season's warmth doesn't reach 2,150. The risk shown covers moth flight, egg laying and the larvae's feeding until they settle for the winter. Use it to time moth trapping and plan control, and count larvae in the soil after harvest to decide whether to treat.
+The model was developed for the Pacific Northwest and is listed as partly validated. In California peppermint it ran late: its peak flight came 10 to 25 days after the traps' in most fields and years, and its 90 % catch two weeks to a month after.[^tollerup-2013] It hasn't been compared with trap catches or larval counts in Wisconsin. In an average year (AgWeather's degree days for 1996 to 2025), its first moths come about June 4 at Arlington and June 13 at Rhinelander, and the most larvae are feeding in early to mid-August in the south.[^agweather-mint-root-borer] Use it to time moth trapping, and count larvae in the soil after harvest to decide whether to treat.[^pnw]

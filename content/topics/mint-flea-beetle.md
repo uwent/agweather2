@@ -9,7 +9,7 @@ summary: A tiny flea beetle of peppermint and spearmint whose larvae feed on roo
 image: null
 image_credit: null
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: a3422-2026
     text: 'Bradford, B. Z., J. B. Colquhoun, S. A. Chapman, A. J. Gevens, R. L. Groves, D. J. Heider, G. R. W. Nice, M. D. Ruark, Y. Wang and R. Dewerff. Commercial Vegetable Production in Wisconsin—2026 (A3422). UW–Madison Division of Extension, 2026.'
@@ -71,6 +71,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [mint flea beetle model](/models/mint-flea-beetle) counts degree days in air from January 1 at a base of 41 °F with no upper limit, and rates risk from 0 to 4 in one window of adult activity: from emergence at 1,475 degree days, through a peak at 1,675, to its end at 1,880. It comes from VDIFN, the forecasting tool AgWeather replaces, and gives the same ratings as VDIFN for the same degree days. It was developed for the Pacific Northwest's mint and hasn't been compared with field counts in Wisconsin.[^agweather-mint-flea-beetle] Its start matches Oregon State's mint flea beetle model on USPest.org, which puts the beginning of adult emergence at 1,475 degree days from January 1 and lists itself as partly validated for the Pacific Northwest; Oregon State's model has no events for the peak or the end, so where the model's 1,675 and 1,880 come from isn't known.[^uspest-mfb][^agweather-mint-flea-beetle]
+The [mint flea beetle model](/models/mint-flea-beetle) is Oregon State's mint flea beetle model, counted in air from January 1 at a base of 41 °F.[^uspest-mfb] Oregon State's model gives only when each stage begins: eggs hatch from about 405 degree days, larvae leave the rhizomes from 900, and adults emerge from 1,475. The model spreads hatching and emergence over the Pacific Northwest's calendar, follows the larvae's and adults' feeding, and marks a window to sweep for adults from the first to emerge until 95 % have.[^pnw][^agweather-mint-flea-beetle] It was developed for the Pacific Northwest's mint and hasn't been compared with field counts in Wisconsin.
 
-The model's timing runs ahead of Wisconsin's guide. We worked out what the window means on the calendar from AgWeather's long-term averages (degree days for 1996 to 2025): in an average year it runs from about June 25 to July 9 at Arlington, and from about July 8 to July 23 at Rhinelander. That fits the Pacific Northwest's late June and July emergence, but it ends before or around the late July emergence that Commercial Vegetable Production in Wisconsin gives.[^pnw][^a3422-2026] Use the model as a reminder to start sweeping for adults, and time sprays from your own sweep counts, before egg laying begins.
+In an average year (AgWeather's degree days for 1996 to 2025), the model's first adults emerge about June 25 at Arlington and July 8 at Rhinelander, two to four weeks before the late July emergence that Commercial Vegetable Production in Wisconsin gives.[^agweather-mint-flea-beetle][^a3422-2026] The guide's own measure, 1,100 degree days above 40 °F in soil 6 inches deep, came even earlier on AgWeather's soil temperatures for 2016 to 2025, in June or early July, so the guide's date and number disagree.[^agweather-mint-flea-beetle] Use the model as a reminder to start sweeping for adults, keep sweeping into August, and time sprays from your own sweep counts, before egg laying begins.

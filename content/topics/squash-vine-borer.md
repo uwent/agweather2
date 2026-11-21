@@ -11,7 +11,7 @@ summary: A day-flying clearwing moth whose larvae tunnel inside the stems of squ
 image: images/squash-vine-borer.jpg
 image_credit: 'Squash vine borer moth on milkweed flowers, showing its orange, black-dotted abdomen and hairy hind legs. Photo by matthew_wills, via iNaturalist (observation 51024415), CC BY-NC 4.0 (https://creativecommons.org/licenses/by-nc/4.0/); resized.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Squash Vine Borer. Updated 2026.'
@@ -34,6 +34,15 @@ sources:
   - key: agweather-squash-vine-borer
     text: 'AgWeather. Squash vine borer model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/squash-vine-borer.md
+  - key: uw-hort-dd
+    text: 'Delahaut, K. Degree Days for Common Fruit and Vegetable Insect Pests (XHT1087). UW–Madison Division of Extension, Wisconsin Horticulture, 2012.'
+    url: https://hort.extension.wisc.edu/articles/degree-days-common-fruit-vegetable-insect-pests/
+  - key: sdsu-svb
+    text: 'Varenhorst, A. and others. Squash vine borer activity estimate, June 21, 2023. South Dakota State University Extension, 2023.'
+    url: https://extension.sdstate.edu/squash-vine-borer-activity-estimate-june-21-2023
+  - key: osu-svb
+    text: 'Ruger and Leach. Squash Vine Borer (ENT-0106). Ohio State University Extension, Ohioline, 2026.'
+    url: https://ohioline.osu.edu/factsheet/ent-0106
   - key: irac-moa
     text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
     url: https://irac-online.org/documents/moa-classification/
@@ -80,6 +89,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [squash vine borer model](/models/squash-vine-borer) counts degree days from January 1 at a base of 50 °F with no upper limit, and rates the risk of moth activity from 0 to 4 in one window from 750 to 1,000 degree days, peaking at 900. It comes from VDIFN, the forecasting tool AgWeather replaces, and gives the same ratings as VDIFN for the same degree days. No source is known for its numbers, and it hasn't been compared with trap catches in Wisconsin.[^agweather-squash-vine-borer]
+The [squash vine borer model](/models/squash-vine-borer) combines the extension guides, since no research study of the moth's timing is known to us. It counts degree days from January 1 by UW–Madison's modified average (50 °F, with highs capped at 86 °F).[^uw-hort-dd] Its moth flight, which stands for egg laying too, starts at about 825 degree days, is half over by about 1,085 and ends by 1,900: UW–Madison's first moths at 900 and three weeks of egg laying around 1,000, South Dakota State's and Ohio State's emergence at 1,000, and Michigan State's flight lasting to 2,000.[^uw-hort][^uw-vegento][^sdsu-svb][^osu-svb] The larvae in the vines are timed from it by South Dakota State's numbers, and the risk is theirs. The model marks a window to protect stems from the first moths until three quarters have flown, about 825 to 1,240 degree days.[^sdsu-svb][^agweather-squash-vine-borer]
 
-The model's window is shorter and earlier than UW–Madison's advice. Its peak matches the 900 degree days at which UW–Madison's fact sheet expects the moths, but it ends at 1,000, about when the fact sheet puts the middle of three weeks of egg laying, and when UW Vegetable Entomology's page says the moths begin to emerge.[^uw-hort][^uw-vegento][^agweather-squash-vine-borer] We worked out what this means on the calendar from AgWeather's long-term averages (degree days for 1996 to 2025): in an average year at Arlington the window runs from about June 21 to July 3, and at Rhinelander from about July 3 to July 18, while egg laying, by UW–Madison's timing, goes on for a week or more after each window closes. Michigan State's Enviroweather model, also without a cited source, has the flight lasting to 2,000 degree days.[^agweather-squash-vine-borer] AgWeather's model is the likelier to change. Until it does, use it to know when to start watching for moths, and keep stems protected for the three weeks of egg laying, whatever the model shows after its window ends.
+In an average year (AgWeather's degree days for 1996 to 2025), the window runs from about June 21 to July 12 at Arlington and from July 2 to July 26 at Rhinelander.[^agweather-squash-vine-borer] South Dakota State and Ohio State count a plain daily average, which reaches 1,000 about a week later on Wisconsin's weather than UW–Madison's method. iNaturalist photographs of the moths in the upper Midwest agree with the model's first moths but put half the sightings about 8 days after its half, with moths seen well after the window closes.[^agweather-squash-vine-borer] Watch for moths from the last week of June, and keep stems protected while moths are still being seen.

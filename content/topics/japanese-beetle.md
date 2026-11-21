@@ -25,7 +25,7 @@ summary: A metallic green and copper beetle whose adults skeletonize the leaves 
 image: images/japanese-beetle.jpg
 image_credit: 'Japanese beetle adult on a clover flower. Photo by Bruce Marlin, via Wikimedia Commons (File:Popillia japonica.jpg), CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/); resized.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento-jb
     text: 'Japanese Beetle. UW–Madison Vegetable Entomology, updated 2026.'
@@ -104,8 +104,6 @@ For products and current registrations in Wisconsin, see [Commercial Vegetable P
 
 ## AgWeather's models
 
-The [Japanese beetle model](/models/japanese-beetle) follows adult feeding from degree days at a base of 50 °F with no upper threshold, counted from January 1. Its window opens at 970 degree days, peaks at 1,600 and closes at 2,150. It was carried over unchanged from the earlier Wisconsin forecasting tool, VDIFN, and its timing hasn't been checked against field counts in Wisconsin; where its numbers came from isn't documented.[^agweather-jb]
+The [Japanese beetle model](/models/japanese-beetle) is Oregon State University's Japanese beetle model (version 2, 2024), counted from January 1 by the single-sine method at a base of 50 °F with an upper limit of 92 °F. Its curve of adult activity follows Oregon State's averages of adult trap catches in Minnesota: 10 % of the season's beetles by about 1,100 degree days, half by 1,540, 90 % by 1,985, and the end of main activity at 2,110.[^uspest-jb][^ebbenga-2022] The model marks a window to scout for beetles feeding, from the first beetles at about 920 degree days to the end of main activity.[^agweather-jb]
 
-They fit the guides fairly well. In AgWeather's long-term averages for 1996–2025, 970 degree days comes around July 2 at Arlington and July 6 at Hancock, close to UW–Madison's late June or early July, and 2,150 comes around August 28 at Arlington. In northern Wisconsin, at Rhinelander, the window opens around mid-July, and an average season there doesn't reach 2,150, so the window stays open until fall freezes. UW–Madison Vegetable Entomology's page puts the first adults earlier, in mid-June.[^uw-vegento-jb] Oregon State's model, built on lab and field studies, has 2 % of adults out at 1,000 degree days, half at 1,540 and 90 % at 1,985, close to our window.[^uspest-jb]
-
-The upper threshold is unsettled: our model has none, Oregon State's uses 92 °F, and UW–Madison's table of degree-day models gives 100 °F.[^uspest-jb][^uw-vegento-modeling] In AgWeather's long-term averages, a cap at 92 °F changes the totals by less than one degree day, because few days pass 92 °F; in a hot summer it would put the dates a little later. A Minnesota trap study found that a different method, a simple average with thresholds of 59 and 71 °F from January 1, best predicted when the first 10 % of the season's beetles were caught.[^ebbenga-2022] Scout from late June whatever the model shows.
+In an average year (AgWeather's degree days for 1996 to 2025), the first beetles come about June 29 at Arlington, July 4 at Hancock and July 13 at Rhinelander, as UW–Madison's horticulture page describes; UW Vegetable Entomology's page puts the first adults earlier, in mid-June.[^uw-hort-jb][^uw-vegento-jb][^agweather-jb] Against 2,818 iNaturalist records of adults in Wisconsin, the first 10 % and half of the records came within about 2 days of the model's, and later records ran past its curve, as sightings of beetles still feeding would.[^agweather-jb] Few Wisconsin days pass 92 °F, so the upper limit moves the dates by a day at most; UW–Madison's table of degree-day models gives 100 °F.[^uw-vegento-modeling] Scout from late June whatever the model shows.
