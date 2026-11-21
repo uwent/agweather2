@@ -9,7 +9,7 @@ summary: A tiny, shiny black beetle that jumps when disturbed and chews small ro
 image: images/crucifer-flea-beetle.jpg
 image_credit: 'Shot-hole damage from crucifer flea beetles on a Chinese cabbage leaf. Photo by Whitney Cranshaw, Colorado State University, Bugwood.org (image 1243031), via Wikimedia Commons (File:Phyllotreta cruciferae (02).jpg), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/).'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Flea Beetles. Updated 2026.'
@@ -26,6 +26,12 @@ sources:
   - key: mwvg-2026
     text: 'Midwest Vegetable Production Guide 2026: Cole Crops and Brassica Leafy Greens. Land-grant universities of Illinois, Indiana, Iowa, Kansas, Michigan, Minnesota, Missouri and Ohio, 2026.'
     url: https://mwveguide.org/guide
+  - key: uw-degree-days
+    text: 'Delahaut, K. Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087). UW–Madison Division of Extension, Wisconsin Horticulture, revised 2012.'
+    url: https://hort.extension.wisc.edu/articles/degree-days-common-fruit-vegetable-insect-pests/
+  - key: kinoshita-1979
+    text: 'Kinoshita, G. B., H. J. Svec, C. R. Harris and F. L. McEwen. Biology of the crucifer flea beetle, Phyllotreta cruciferae (Coleoptera: Chrysomelidae), in southwestern Ontario. The Canadian Entomologist 111: 1395–1407, 1979.'
+    url: https://doi.org/10.4039/Ent1111395-12
   - key: agweather-crucifer-flea-beetle
     text: 'AgWeather. Crucifer flea beetle model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/crucifer-flea-beetle.md
@@ -76,6 +82,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [crucifer flea beetle model](/models/crucifer-flea-beetle) counts degree days from January 1 at a base of 50 °F with no upper limit, and rates risk from 0 to 4 in two windows of adult feeding by the summer generations: the first from 820 to 1,155 degree days (peaking at 965), the second from 1,640 to 1,975 (peaking at 1,785). It comes from VDIFN, the forecasting tool AgWeather replaces, and reproduces VDIFN exactly. Its source hasn't been identified, and it hasn't been compared with field counts.[^agweather-crucifer-flea-beetle]
+The [crucifer flea beetle model](/models/crucifer-flea-beetle) counts degree days from January 1 by the modified average method, base 50 °F with a cutoff at 86 °F, and follows the adults through the season. Its first stage is the overwintered beetles feeding on seedlings and transplants: UW–Madison's degree-day table puts flea beetles at 150 to 200 degree days, and in the model a tenth of the spring beetles are active by about 145 and activity peaks at 200.[^uw-degree-days] The beetles then lay eggs, and the new summer adults follow about 1,350 degree days after the spring peak, from the development times measured in southwestern Ontario.[^kinoshita-1979] Both kinds of adults count in the risk, and a window marks when to scout new plantings every one to two days.[^agweather-crucifer-flea-beetle][^uw-vegento]
 
-The model leaves out the beetles that matter most. Overwintered adults, which feed on seedlings from early spring, aren't in it.[^agweather-crucifer-flea-beetle][^umn] We worked out what the windows mean on the calendar from AgWeather's long-term averages (degree days for 1996 to 2025): in an average year the first window opens only in late June in southern Wisconsin, at Arlington and Lancaster, and in early July in the north, at Rhinelander. That first window lines up with the new generation that UMass reports in Massachusetts from late June. The second runs from late July to mid-August in southern Wisconsin, peaking in early August, about the time of or a little after the late-July generation UMass reports.[^umass] Scout every spring planting from emergence whatever the model shows, and use it as a guide to summer flights on leafy crops.
+On AgWeather's long-term averages (degree days for 1996 to 2025), the spring beetles are active from late April in southern Wisconsin and early May in the north, peaking in early to mid-May. The summer adults peak in late July in the south and early to mid-August in the north, later than the late June that UMass reports for Massachusetts.[^agweather-crucifer-flea-beetle][^umass] Their timing rests on estimates of when the spring beetles lay eggs, and the model hasn't been compared with counts in Wisconsin. Scout every spring planting from emergence whatever the model shows.

@@ -17,7 +17,7 @@ summary: A moth that migrates into Wisconsin from the south each summer; its gre
 image: images/cabbage-looper.jpg
 image_credit: 'Cabbage looper caterpillar on a damaged leaf. Photo by Alton N. Sparks, Jr., University of Georgia, Bugwood.org (image 1327034), via Wikimedia Commons (File:Trichoplusia ni larva.jpg), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/).'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cabbage Looper. Updated 2026.'
@@ -37,6 +37,9 @@ sources:
   - key: toba-1973
     text: 'Toba, H. H., A. N. Kishaba, R. Pangaldan and P. V. Vail. Temperature and the development of the cabbage looper. Annals of the Entomological Society of America 66: 965–974, 1973.'
     url: https://doi.org/10.1093/aesa/66.5.965
+  - key: uspest-cbl
+    text: 'USPest.org, Oregon State University. Cabbage looper degree-day model (Toba et al. 1973).'
+    url: https://uspest.org/cgi-bin/ddmodel2.pl?spp=cbl
   - key: agweather-cabbage-looper
     text: 'AgWeather. Cabbage looper model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/cabbage-looper.md
@@ -88,6 +91,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [cabbage looper model](/models/cabbage-looper) counts degree days at a base of 50 °F with an upper limit of 90 °F from a fixed start date of May 15, and rates risk from 0 to 4 in two windows of caterpillar feeding: the first from 325 to 750 degree days (peaking at 520), the second from 1,115 to 1,540 (peaking at 1,310). It comes from VDIFN, the forecasting tool AgWeather replaces, and reproduces VDIFN exactly. The source of its windows hasn't been confirmed, the May 15 start has no published source, and the model hasn't been compared with field counts.[^agweather-cabbage-looper]
+The [cabbage looper model](/models/cabbage-looper) is USPest.org's cabbage looper model, built on laboratory development times.[^uspest-cbl][^toba-1973] It counts degree days at a base of 50 °F with an upper limit of 90 °F from the first moth caught in a pheromone trap. Without a trap date it starts on July 15, when UW–Madison says the moths begin arriving; that's a typical arrival, not a forecast, and in Minnesota moths can come in early July.[^uw-hort][^umn-caterpillars] Egg laying begins about 120 degree days after the first catch, caterpillars hatch about 100 degree days after an egg is laid and feed for about 420, and a new generation starts every 912 degree days until fall freezes end the season. The risk is the caterpillars feeding, and a window marks when small caterpillars are hatching.[^agweather-cabbage-looper]
 
-The model's timing doesn't fit what UW–Madison describes. We worked out what the windows mean on the calendar from AgWeather's long-term averages (degree days for 1996 to 2025): in an average year at Arlington and Lancaster, the model's first caterpillars come in early to mid-June, about a month before the moths UW–Madison says arrive from mid-July.[^uw-hort] Its second window, from mid-July to early August, falls closer to when the first caterpillars of migrant moths would appear. The model is the likelier of the two to change. Until it does, base sprays on your own scouting rather than on the model's first window.
+On AgWeather's long-term averages (degree days for 1996 to 2025) and the July 15 start, the first generation's caterpillars peak in early to mid-August, and the second generation, which UW–Madison says does the most damage, lays its eggs in early to mid-September in southern and central Wisconsin.[^agweather-cabbage-looper][^uw-hort] We found no Wisconsin trap or scouting records to check the timing against, and moths that arrive later in the summer can lay eggs outside the model's windows. If you trap, enter your first catch; either way, base sprays on your own scouting.

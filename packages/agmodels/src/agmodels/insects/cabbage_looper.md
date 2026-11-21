@@ -1,47 +1,53 @@
 ---
 id: cabbage-looper
 status: draft
-updated: 2026-11-19
-summary: Rates the risk of cabbage looper caterpillar feeding in two windows of degree days counted from May 15, a fixed date that stands in for the moths' arrival from the south; in an average year its first window comes about a month before UW–Madison says the moths arrive.
+updated: 2026-11-21
+summary: Times cabbage looper egg laying and caterpillar feeding from degree days since the first moth caught in a pheromone trap, or July 15 without one, for each generation to the season's end, and marks when to scout for small caterpillars.
 sources:
-  - VDIFN's cabbage looper model (the thresholds, the May 15 start and the two windows, unchanged)
-  - Toba, Kishaba, Pangaldan and Vail 1973 (laboratory development of the cabbage looper; its times from egg to adult average the windows' spacing in degree days)
-  - USPest.org's cabbage looper model, as summarized in VDIFN's notes (counts from the first trap catch)
-  - Delahaut, Cabbage Looper, UW–Madison Division of Extension (moths arrive from mid-July; the second generation does the most damage)
+  - USPest.org's cabbage looper model, Oregon State University (the method and each stage's timing)
+  - Toba, Kishaba, Pangaldan and Vail 1973 (laboratory development of the cabbage looper; the time from egg to moth)
+  - Delahaut, Cabbage Looper, UW–Madison Division of Extension, and UW Vegetable Entomology's cabbage looper page (moths arrive from mid-July; the second generation does the most damage)
+  - University of Minnesota Extension, Caterpillars on Cole Crops (moths' arrival in Minnesota; compared)
   - Commercial Vegetable Production in Wisconsin (A3422), 2026 (scouting and thresholds)
 ---
 
 ## What it predicts
 
-Cabbage loopers can't survive Wisconsin winters. Each year's moths migrate in from the south, and their caterpillars feed on cabbage, broccoli and the other cole crops, and on lettuce, celery, peas, potatoes, tomatoes and other crops. The model rates the risk of caterpillar feeding from 0 (Very low) to 4 (Very high) in two windows, one for each generation of caterpillars. The rating says where the season is in the model's timing, not how many caterpillars there are.
+Cabbage looper moths don't survive Wisconsin winters. They fly in from the south each summer, and their caterpillars feed on cole crops, lettuce, spinach, celery, potatoes, tomatoes and other crops. Large loopers can bore through the wrapper leaves of cabbage heads. The model follows each generation from the moths' arrival:
+
+- **Egg laying**: moths laying eggs, compared with the first generation's peak.
+- **Eggs**: eggs laid and not yet hatched.
+- **Larval feeding**: caterpillars feeding on the crop. This is the risk.
+- **Scout for small caterpillars**: the days from 10 % to 90 % of each generation's eggs hatched.
+
+A risk of 1 means as many caterpillars feeding as at the first generation's peak.
 
 ## How it works
 
-Degree days are counted by the single-sine method, base 50 °F with a cutoff at 90 °F, from May 15.
+The model is USPest.org's cabbage looper model, from Oregon State University, built on laboratory development times (Toba and others, 1973). Degree days are counted by the single-sine method, base 50 °F with a cutoff at 90 °F, from the start date.
 
-- **First window:** caterpillars from 325 degree days after May 15, peaking at 520 and ending at 750.
-- **Second window:** from 1,115, peaking at 1,310 and ending at 1,540. The model has no third window.
-- **The rating** rises a level at a time from Low at a window's start through Moderate and High to Very high, and falls the same way to its end. It's Very high from about 455 to 595 degree days in the first window and from about 1,245 to 1,385 in the second, and Very low outside the windows.
-- **The end of the season.** After early September, the rating drops by one level for each day in the last two weeks at or below about 28 °F (−2 °C).
+- **The start date** is the first moth caught in a pheromone trap near your field. Enter it if you trap. Without it, the model starts on July 15, when UW–Madison says the moths begin arriving. That date is a typical arrival, not a prediction for this year: the moths ride weather systems north, and in Minnesota they can arrive in early July.
+- **Egg laying** begins about 120 degree days after the first catch and peaks at about 200. Because moths keep arriving for weeks, the model spreads egg laying out to about 450.
+- **Caterpillars** hatch about 100 degree days after an egg is laid and feed for about 420 degree days, a little over three weeks in August, before they pupate. They are large and feeding heavily from about 210 degree days after hatching.
+- **Later generations.** A new generation begins laying eggs every 912 degree days, the time from egg to moth plus the days before a moth lays, until fall freezes end the season.
+- **The end of the season.** After early September, each day at or below 28 °F reduces activity, and four such days within two weeks end the season.
 
-When you look up a single location, you can change the start date (the biofix) to the day you first catch moths in a pheromone trap. Maps count from May 15.
-
-The model comes from VDIFN, the vegetable forecasting tool AgWeather replaces. Its two windows are 790 degree days apart, about one generation. In Toba and colleagues' laboratory study (1973, in California), loopers held at three constant temperatures took 21.5 to 73.5 days to develop from egg to adult, which comes to 666 to 873 degree days above 50 °F, 791.5 on average. Models of the looper developed elsewhere, such as USPest.org's, count from the first moth caught in a trap rather than from a fixed date, because the moths arrive at a different time each year. The May 15 start has no published source.
+In an average year (AgWeather's degree days for 1996 to 2025), starting on July 15, egg laying peaks in late July across Wisconsin and the first generation's caterpillars peak from about August 9 at Arlington to August 15 at Rhinelander. The second generation lays its eggs in early to mid-September in southern and central Wisconsin; in the north the season usually ends before it gets far.
 
 ## How to read it
 
-- **Use the windows as a reminder to scout, not as spray dates.** Scout cole crops weekly through the season whatever the model shows. Walk a W-shaped path, examine 25 to 50 plants, and count a plant as infested if it has eggs or caterpillars of the looper, the imported cabbageworm or the diamondback moth.
-- **Treat by the share of infested plants.** For cabbage, Commercial Vegetable Production in Wisconsin gives 10 % in the seedbed, 30 % from transplanting to cupping, 20 % from cupping to early head and 10 % at mature head; for broccoli and cauliflower, 10 % in the seedbed, 50 % from transplanting to the first flower bud or curd, and 10 % after.
-- **Pheromone traps** show when moths reach your area. A trap date entered as the biofix moves the windows to follow your own season, though the windows haven't been tested that way in Wisconsin.
+- **Trap if you can.** A pheromone trap's first catch makes the model's dates fit your field, rather than an average arrival.
+- **Use the scouting window** to look for small caterpillars on the undersides of lower leaves. Insecticides work best on small loopers, which are also harder to control once they are inside heads.
+- **Scout cole crops weekly** and treat by the share of infested plants, counting cabbage loopers, imported cabbageworms and diamondback moths together. For cabbage, Commercial Vegetable Production in Wisconsin gives 10 % in the seedbed, 30 % from transplanting to cupping, 20 % from cupping to early head and 10 % at mature head.
+- **The second generation does the most damage,** by UW–Madison's account. In southern Wisconsin its eggs come in September, so watch fall cole crops. The model rates every generation alike.
 
 The [cabbage looper topic page](/topics/cabbage-looper) explains the insect, its scouting and its management in more detail.
 
 ## Validation and caveats
 
-- Draft (model version 0.1, beta).
-- Given the same degree days, the model's rating matches VDIFN's at all 701 totals tested from 0 to 3,500, with VDIFN's own code run on this model's windows, and its degree days match those of the calculator VDIFN used. This shows that AgWeather reproduces VDIFN, not that VDIFN's timing is right for Wisconsin. The model hasn't been compared with trap catches or field counts.
-- **The first window comes early.** On AgWeather's long-term averages (degree days for 1996 to 2025) at Arlington and Lancaster, the first window opens in early to mid-June, about a month before the moths that UW–Madison says arrive from mid-July. The second window, from mid-July to early August, falls closer to when the first caterpillars of those moths would appear.
-- **Late summer isn't covered.** UW–Madison says the second generation in Wisconsin, the caterpillars of moths that grew up here from the migrants' eggs, does the most damage to cole crops. By UW–Madison's account (moths arriving from mid-July, caterpillars feeding four to five weeks, new moths 10 to 14 days later), that generation feeds from late summer into fall. In an average year the model's last window ends in early August in southern Wisconsin, weeks before then.
-- **May 15 is a stand-in.** Arrival varies from year to year; your own trap date at a location follows it, but the maps can't.
-- The model's timing is to be reviewed against its sources, and it is likelier to change than UW–Madison's account of the insect.
+- Draft (model version 0.2, beta). Its development times were measured in the laboratory in Riverside, California; USPest.org describes the model as not fully tested.
+- **The default start date is an estimate.** We found no Wisconsin or Minnesota records of first trap catches to check July 15 against; Wisconsin's state light-trap network counts other loopers. A grower's own first catch is more reliable.
+- **Moths keep arriving.** The model starts from one date, but migrant moths arrive from mid-July through September, so later arrivals can lay eggs outside the model's windows.
+- The model's stages match USPest.org's timings, and its generation time matches the laboratory time from egg to moth, but neither has been compared with field counts in Wisconsin.
+- Every generation counts alike in the risk, though UW–Madison says the second does the most damage.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

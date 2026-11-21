@@ -1,44 +1,53 @@
 ---
 id: imported-cabbageworm
 status: draft
-updated: 2026-11-19
-summary: Rates the risk from imported cabbageworm butterflies and caterpillars in two windows of degree days from January 1, the spring flight and one long window for the summer; the later generations that Wisconsin sources describe aren't modeled separately.
+updated: 2026-11-21
+summary: Times the cabbage white butterfly's flights, egg laying and imported cabbageworm caterpillar feeding from degree days since January 1, for each generation through the season, and marks when to scout for eggs and young caterpillars.
 sources:
-  - VDIFN's imported cabbageworm model (the threshold, the January 1 start and the two windows, unchanged; its source isn't identified)
-  - Liesch and Groves, Imported Cabbageworm, UW–Madison Division of Extension, revised 2026, and UW Vegetable Entomology's imported cabbageworm page (flights and generations in Wisconsin)
-  - University of Minnesota VegEdge, Imported Cabbageworm (number of generations)
+  - Delahaut, Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087), UW–Madison Extension (the method and the spring flight)
+  - Tatchell 1981 (caterpillar development by temperature, in the laboratory; as UC IPM's model database gives it)
+  - Liesch and Groves, Imported Cabbageworm, UW–Madison Division of Extension, and UW Vegetable Entomology's imported cabbageworm page (development times, flights and generations in Wisconsin)
+  - iNaturalist records of cabbage white butterflies in Wisconsin, 2016–2026 (the timing of later flights; compared)
   - Commercial Vegetable Production in Wisconsin (A3422), 2026 (scouting and thresholds)
 ---
 
 ## What it predicts
 
-The imported cabbageworm is the caterpillar of the cabbage white butterfly, and the most important caterpillar pest of cole crops in Wisconsin. The butterflies come out of overwintering chrysalises in spring and lay eggs on cruciferous weeds and early cole crops; later generations feed on planted crops through the summer. The model rates the risk from 0 (Very low) to 4 (Very high) in two windows: the spring flight and its caterpillars, and a long window for the summer generations. The rating says where the season is in the model's timing, not how many caterpillars there are.
+The imported cabbageworm is the caterpillar of the cabbage white butterfly, and the most important caterpillar pest of cole crops in Wisconsin. Butterflies come out of overwintering chrysalises in spring and lay eggs on cruciferous weeds and early cole crops; later generations feed on planted crops through the summer. The model follows each generation:
+
+- **Adult flight**: how many butterflies are emerging, compared with the spring flight's peak.
+- **Eggs**: eggs laid and not yet hatched.
+- **Larval feeding**: caterpillars feeding on the crop. This is the risk.
+- **Scout for eggs and young caterpillars**: the days from 10 % to 90 % of each generation's eggs hatched, when small caterpillars are appearing.
+
+Risk follows the caterpillars, not the butterflies. A risk of 1 means as many caterpillars feeding as at the spring generation's peak.
 
 ## How it works
 
-Degree days are counted by the single-sine method, base 50 °F with no cutoff, from January 1.
+Degree days are counted from January 1 by the modified average method, base 50 °F with a cutoff at 86 °F: a day's low is raised to 50 °F and its high capped at 86 °F before they are averaged. This is the method of UW–Madison Extension's degree-day table (Delahaut's XHT1087).
 
-- **The spring flight:** butterflies from 150 degree days, their flight peaking at 240, and caterpillars feeding through 630.
-- **The summer window:** the second flight from 830, peaking at 1,030, with caterpillars feeding through about 2,000. This one long window stands in for all the later generations.
-- **The rating** rises a level at a time from Low at a window's start through Moderate and High to Very high, and falls the same way to its end. It's Very high from about 210 to 370 degree days in the first window and from about 965 to 1,355 in the second, and Very low between and after them.
-- **The end of the season.** After early September, the rating drops by one level for each day in the last two weeks at or below about 28 °F (−2 °C).
+- **The spring flight.** UW–Madison's table puts the butterflies at 150 to 240 degree days. In the model, a tenth of the spring flight has emerged by 150 and half by 240; it peaks at about 210.
+- **Eggs and caterpillars.** Females lay eggs over the days after they emerge, and the eggs hatch in about 5 days, about 105 degree days. The caterpillars then feed for about 350 degree days, two to three weeks in summer, as measured in the laboratory (Tatchell 1981).
+- **Later generations.** Each generation follows the last about 840 degree days later. Development times from egg to butterfly add up to about 740 to 820 degree days; Wisconsin's iNaturalist records of cabbage white butterflies show flights about 840 apart, and the model follows them. There's no fixed number of generations: the season's warmth decides, and fall freezes end it.
+- **The end of the season.** After early September, each day at or below 28 °F reduces activity, and four such days within two weeks end the season.
 
-The model comes from VDIFN, the vegetable forecasting tool AgWeather replaces. VDIFN's notes cite a source for its numbers that we haven't been able to identify.
+In an average year (AgWeather's degree days for 1996 to 2025), the spring flight begins in late April at Arlington and early May at Rhinelander, and is half over by about May 10 in the south and May 20 in the north. Its caterpillars peak in mid-June. The second flight comes in early July in the south and mid-July in the north, with caterpillars peaking in late July; a third flight follows in August, a little later in the north.
 
 ## How to read it
 
-- **Use the windows as a reminder to scout, not as spray dates.** Scout cole crops weekly through the season whatever the model shows. Walk a W-shaped path, examine 25 to 50 plants, and count a plant as infested if it has eggs or caterpillars of the imported cabbageworm, the cabbage looper or the diamondback moth.
+- **Scout weekly through the season,** whatever the model shows. Walk a W-shaped path, examine 25 to 50 plants, and count a plant as infested if it has eggs or caterpillars of the imported cabbageworm, the cabbage looper or the diamondback moth.
+- **Use the scouting window** to watch for eggs and newly hatched caterpillars. Insecticides, including _Bacillus thuringiensis_, work best on small caterpillars with good coverage of the leaves.
 - **Treat by the share of infested plants.** For cabbage, Commercial Vegetable Production in Wisconsin gives 10 % in the seedbed, 30 % from transplanting to cupping, 20 % from cupping to early head and 10 % at mature head; for broccoli and cauliflower, 10 % in the seedbed, 50 % from transplanting to the first flower bud or curd, and 10 % after.
-- **The rating peaks with the butterflies' flight.** By VDIFN's description, each window peaks with a flight (at 240 and 1,030 degree days) and runs on while the caterpillars feed. Eggs hatch within about a week and caterpillars feed for about 11 to 20 days, so a flight's caterpillars are largest after the rating has passed its peak. Look for eggs and small caterpillars around the peak: insecticides work best on small caterpillars.
-- UW–Madison says the second generation, from mid-July, does the most damage; nearly all of its caterpillars grow up on planted cole crops.
+- **The second generation does the most damage,** by UW–Madison's account: nearly all of its caterpillars grow up on planted cole crops. The model rates every generation alike, so give the July and August windows close attention.
 
 The [imported cabbageworm topic page](/topics/imported-cabbageworm) explains the insect, its scouting and its management in more detail.
 
 ## Validation and caveats
 
-- Draft (model version 0.1, beta).
-- Given the same degree days, the model's rating matches VDIFN's exactly, and its degree days match those of the calculator VDIFN used. This shows that AgWeather reproduces VDIFN, not that VDIFN's timing is right for Wisconsin. The source of the windows isn't identified, and the model hasn't been compared with field counts.
-- **The spring flight agrees with UW–Madison.** On AgWeather's long-term averages (degree days for 1996 to 2025), the first flight begins around the start of May in southern Wisconsin, at Arlington and Lancaster, as UW–Madison describes.
-- **The summer window comes early and ends early.** In an average year it peaks from late June to early July at Arlington and Lancaster, a week or two before the mid-July flight UW–Madison describes, and it ends in mid to late August.
-- **Two windows for several generations.** UW–Madison's fact sheet says there are usually three generations a season, UW Vegetable Entomology three to six and the University of Minnesota three to five, overlapping. The model has two windows, so caterpillars of the late-summer generations aren't covered.
+- Draft (model version 0.2, beta). The spring flight comes from UW–Madison's degree-day table for Wisconsin; caterpillar development was measured in the laboratory in England.
+- **Butterflies in Wisconsin.** On the same degree days, iNaturalist records of cabbage white butterflies in Wisconsin (2016 to 2026, corrected for how many people were looking) put the middle of the spring flight at 234 degree days, against the model's 239. The time between later flights was set from the same records, so their agreement there isn't an independent test.
+- **The second flight may come earlier than UW–Madison describes.** In an average year the model's second flight comes in early July in southern Wisconsin, a week or two before UW's mid-July; the iNaturalist records agree with the model.
+- **Some steps are estimates.** UW–Madison's table doesn't say which part of the flight its 150 to 240 degree days cover, and the timing of egg laying, the egg and the chrysalis comes from development times in days, converted to degree days.
+- Every generation counts alike in the risk, though UW–Madison says the second does the most damage.
+- The model hasn't been compared with counts of caterpillars in fields.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

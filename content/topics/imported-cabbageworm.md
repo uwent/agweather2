@@ -9,7 +9,7 @@ summary: The caterpillar of the cabbage white butterfly, the most important cate
 image: images/imported-cabbageworm.jpg
 image_credit: 'Imported cabbageworm caterpillar on a leaf. Photo by James K. Lindsey, via Wikimedia Commons (File:Pieris.rapae.caterpillar.jpg), CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Imported Cabbageworm. Updated 2026.'
@@ -29,6 +29,9 @@ sources:
   - key: mwvg-2026
     text: 'Midwest Vegetable Production Guide 2026: Cole Crops and Brassica Leafy Greens. Land-grant universities of Illinois, Indiana, Iowa, Kansas, Michigan, Minnesota, Missouri and Ohio, 2026.'
     url: https://mwveguide.org/guide
+  - key: uw-degree-days
+    text: 'Delahaut, K. Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087). UW–Madison Division of Extension, Wisconsin Horticulture, revised 2012.'
+    url: https://hort.extension.wisc.edu/articles/degree-days-common-fruit-vegetable-insect-pests/
   - key: agweather-imported-cabbageworm
     text: 'AgWeather. Imported cabbageworm model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/imported-cabbageworm.md
@@ -78,6 +81,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [imported cabbageworm model](/models/imported-cabbageworm) counts degree days from January 1 at a base of 50 °F with no upper limit, and rates risk from 0 to 4 in two windows: the first flight and its caterpillars (150 to 630 degree days, peaking at 240), and a long second window (830 to 2,000, peaking at 1,030) that stands in for all the later generations. It comes from VDIFN, the forecasting tool AgWeather replaces, and reproduces VDIFN exactly. Its source hasn't been identified, and it hasn't been compared with field counts.[^agweather-imported-cabbageworm]
+The [imported cabbageworm model](/models/imported-cabbageworm) counts degree days from January 1 by the modified average method, base 50 °F with a cutoff at 86 °F, as UW–Madison's degree-day table does. That table puts the spring butterflies at 150 to 240 degree days; in the model a tenth of the spring flight has emerged by 150 and half by 240.[^uw-degree-days] Eggs and caterpillars follow each flight, and the model's risk is the caterpillars feeding. Later generations follow about every 840 degree days until fall freezes end the season, and a window marks when each generation's eggs are hatching, the time to scout for eggs and young caterpillars.[^agweather-imported-cabbageworm]
 
-We worked out what the windows mean on the calendar from AgWeather's long-term averages (degree days for 1996 to 2025). In an average year in southern Wisconsin, at Arlington and Lancaster, the first flight begins around the start of May, matching UW–Madison's account.[^uw-vegento] The second window peaks from late June to early July there, a week or two before the mid-July flight UW describes, and it ends in mid to late August, so caterpillars of the later generations aren't covered.[^uw-hort] Use the model as a reminder of when to scout, and base sprays on your own counts and the thresholds above.
+We checked the spring flight against iNaturalist records of cabbage white butterflies in Wisconsin from 2016 to 2026, corrected for how many people were looking: the middle of the spring flight came at 234 degree days, against the model's 239. The time between later flights was set from the same records. On AgWeather's long-term averages (degree days for 1996 to 2025), the spring flight begins in late April or early May, as UW–Madison describes, and the second flight comes in early July in southern Wisconsin, a week or two before the mid-July that UW–Madison gives.[^agweather-imported-cabbageworm][^uw-hort] The model rates every generation alike, though the second does the most damage, and it hasn't been compared with counts of caterpillars. Use it as a reminder of when to scout, and base sprays on your own counts and the thresholds above.

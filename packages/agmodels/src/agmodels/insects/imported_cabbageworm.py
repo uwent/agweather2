@@ -24,6 +24,7 @@ INSECT = Insect(
     upper_f=86,
     dd_method="modified",
     biofix="01-01",
+    ported_from="VDIFN",
     source="UW–Madison's degree-day table for imported cabbageworm",
     life_stages=(
         # Butterflies from overwintering chrysalises: XHT1087's "adult butterflies at 150–240 DD50" are this curve's 10
