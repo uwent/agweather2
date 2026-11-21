@@ -30,7 +30,7 @@ In an average year (AgWeather's degree days for 1996 to 2025), the first moths c
 
 ## How to read it
 
-- From the window's opening, use pheromone-baited sticky traps or a sweep net to see when moths are flying. There is no threshold for moths, but catches, together with a field's history, help plan control of eggs and young larvae before damage is done.
+- From the window's opening, use pheromone-baited sticky traps or a sweep net to see when moths are flying. Moth catches have no treatment threshold of their own; read them with the field's history to plan control of the eggs and young larvae.
 - Decide on treatment from the larvae. Sample after harvest, from late August through mid-September, when most larvae are big enough to find but haven't yet done much damage: dig square-foot samples of soil to the depth of the rhizomes, sift them and count the larvae. The Pacific Northwest handbook suggests treating at two to four larvae per square foot, depending on the age and vigor of the stand, other pests and stresses, and the price of mint oil.
 - Commercial Vegetable Production in Wisconsin doesn't cover this insect. Check that any product is registered for mint in Wisconsin before you use it.
 
@@ -39,6 +39,6 @@ In an average year (AgWeather's degree days for 1996 to 2025), the first moths c
 - Draft (model version 0.2, beta). Developed for peppermint in the Pacific Northwest, where Oregon State lists it as partly validated; the research behind it isn't published online.
 - The model's curves follow Oregon State's events: its moth flight passes the first catch, peak and 90 % catch, and half its larvae make their chambers at 2,150 degree days, as in Oregon State's model.
 - **In California the model ran late.** Researchers compared it with pheromone trap catches in peppermint in two California counties in 2010 and 2011 and found that its peak flight came 10 to 25 days later than the traps' in most cases, and its 90 % catch two weeks to a month later. They found it a poor predictor there. It hasn't been compared with trap catches or larval counts in Wisconsin, and none are known to us, so treat its dates as a guide and confirm with traps and soil samples.
-- The model's first larvae make their winter chambers somewhat earlier than in Oregon State's model (at about 1,700 degree days rather than 1,850), because it times them from the spread of the moth flight.
+- The model's first 5 % of larvae make their winter chambers somewhat earlier than in Oregon State's model (at about 1,700 degree days rather than 1,850), because it times them from the spread of the moth flight.
 - The model shows where the season stands, not how many borers there are.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

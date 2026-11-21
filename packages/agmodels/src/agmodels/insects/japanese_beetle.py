@@ -35,7 +35,7 @@ INSECT = Insect(
     ported_from="VDIFN",
     life_stages=(
         # Adults caught in traps (Coop and Barker 2024, p. 1 and p. 15): 10 % at 1,100, 50 % at 1,540, 90 % at 1,985
-        # and 94 % at 2,110, the rounded means of 13 site-years of trap catches in Minnesota, 1994–1997 and 2019–2021
+        # and 94 % at 2,110, the rounded means of about 14 site-years of trap catches at five Minnesota sites, 1994–1997 and 2019–2021
         # (1,128, 1,540, 1,985, 2,108); "2 %" at 1,000 is set below their mean (1,027) to warn early, and the last
         # adults at 2,700 above theirs (2,534). Least squares through the four shares (fitted 2026-11-21): 9.9, 50.2, 89.1 and 95.0 % there; 2 % at
         # 921 and 5 % at 1,007; 99 % at 2,275. A trap catch is beetles active that day, so the curve is read as

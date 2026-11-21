@@ -42,7 +42,7 @@ sources:
     url: https://extension.sdstate.edu/squash-vine-borer-activity-estimate-june-21-2023
   - key: osu-svb
     text: 'Ruger and Leach. Squash Vine Borer (ENT-0106). Ohio State University Extension, Ohioline, 2026.'
-    url: https://ohioline.osu.edu/factsheet/ent-0106
+    url: https://cfaes.osu.edu/fact-sheet/squash-vine-borer-damage-and-management-what-look-and-when-act
   - key: irac-moa
     text: 'Insecticide Resistance Action Committee. IRAC Mode of Action Classification Scheme, version 11.5. CropLife International, 2026.'
     url: https://irac-online.org/documents/moa-classification/
@@ -89,6 +89,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [squash vine borer model](/models/squash-vine-borer) combines the extension guides, since no research study of the moth's timing is known to us. It counts degree days from January 1 by UW–Madison's modified average (50 °F, with highs capped at 86 °F).[^uw-hort-dd] Its moth flight, which stands for egg laying too, starts at about 825 degree days, is half over by about 1,085 and ends by 1,900: UW–Madison's first moths at 900 and three weeks of egg laying around 1,000, South Dakota State's and Ohio State's emergence at 1,000, and Michigan State's flight lasting to 2,000.[^uw-hort][^uw-vegento][^sdsu-svb][^osu-svb] The larvae in the vines are timed from it by South Dakota State's numbers, and the risk is theirs. The model marks a window to protect stems from the first moths until three quarters have flown, about 825 to 1,240 degree days.[^sdsu-svb][^agweather-squash-vine-borer]
+The [squash vine borer model](/models/squash-vine-borer) combines the extension guides, since no research study of the moth's timing is known to us. It counts degree days from January 1 by UW–Madison's modified average (50 °F, with highs capped at 86 °F).[^uw-hort-dd] Its moth flight, which stands for egg laying too, starts at about 825 degree days, is half over by about 1,085 and ends by 1,900: UW–Madison's first moths at 900 and three weeks of egg laying around 1,000, South Dakota State's and Ohio State's emergence at 1,000, and Michigan State's flight lasting to 2,000.[^uw-hort][^uw-vegento][^sdsu-svb][^osu-svb] The larvae in the vines are timed from it by South Dakota State's numbers, and the risk is theirs.[^sdsu-svb] The model marks a window to protect stems from the first moths until three quarters have flown, about 825 to 1,240 degree days.[^agweather-squash-vine-borer]
 
 In an average year (AgWeather's degree days for 1996 to 2025), the window runs from about June 21 to July 12 at Arlington and from July 2 to July 26 at Rhinelander.[^agweather-squash-vine-borer] South Dakota State and Ohio State count a plain daily average, which reaches 1,000 about a week later on Wisconsin's weather than UW–Madison's method. iNaturalist photographs of the moths in the upper Midwest agree with the model's first moths but put half the sightings about 8 days after its half, with moths seen well after the window closes.[^agweather-squash-vine-borer] Watch for moths from the last week of June, and keep stems protected while moths are still being seen.

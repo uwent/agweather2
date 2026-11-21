@@ -60,6 +60,7 @@ Half the eggs hatch around June 14 at Arlington and June 26 at Rhinelander, one 
 
 ## Limits and open questions
 
+- **First beetles at Arlington:** an old three-year study at Arlington (UW Vegetable Entomology) found the first beetles July 16–24, after the model has half of them out (about July 15 on the normals); A3646's early July matches the model's first beetles.
 - Apple et al. 1971 isn't in hand; its numbers come from its abstract and UC IPM. Its method and start date aren't known.
 - Air temperatures stand in for the soil. A daily soil degree-day feature (from the archive's 4 and 10 cm soil temperatures) would let the model use Iowa State's soil numbers or Apple's laboratory ones directly; worth checking how ERA5-Land's lag and the forecast's soil temperatures would affect it.
 - The western corn rootworm's hatch isn't separately timed. Jackson and Elliott 1988 ([doi:10.1093/ee/17.2.166](https://doi.org/10.1093/ee/17.2.166)) and Davis, Brenes and Allee 1996 ([doi:10.1093/ee/25.4.767](https://doi.org/10.1093/ee/25.4.767); soil base 11 °C) aren't in hand; they would give its development and a check on the larvae's 350 and the pupa.

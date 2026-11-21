@@ -11,6 +11,7 @@ sources:
   - MSU Enviroweather's squash vine borer model (the end of the flight)
   - UW–Madison Vegetable Entomology, squash vine borer (2026) (one generation; emergence after about 1,000 degree days)
   - Commercial Vegetable Production in Wisconsin (A3422), 2026 (spray timing)
+  - Schuh, Hahn and Burkness, Squash Vine Borers, University of Minnesota Extension, reviewed 2026 (traps; start watching the last week of June)
 ---
 
 ## What it predicts
@@ -27,7 +28,7 @@ Risk is the larvae's, since they do the damage; the moths don't feed. A risk of 
 
 No research study of squash vine borer timing is known to us, so the model combines the extension guides. Degree days are counted from January 1 by the modified average (UW–Madison's method): the day's high, capped at 86 °F, and low, raised to 50 °F, are averaged, less 50 °F.
 
-- **Moth flight and egg laying.** UW–Madison's fact sheet expects the first moths at about 900 degree days and three weeks of egg laying centered on about 1,000. South Dakota State and Ohio State put emergence at about 1,000, and Michigan State's model has the flight declining from 1,800 and over by 2,000. The model's first moths come at about 825 degree days, half have flown by about 1,085, three quarters by about 1,240, and the last by 1,900. Females lay eggs as they fly, so the one curve stands for both.
+- **Moth flight and egg laying.** UW–Madison's fact sheet expects the first moths at about 900 degree days and three weeks of egg laying around 1,000. South Dakota State and Ohio State put emergence at about 1,000, and Michigan State's model has the flight declining from 1,800 and over by 2,000. The model's first moths come at about 825 degree days, half have flown by about 1,085, three quarters by about 1,240, and the last by 1,900. Females lay eggs as they fly, so the one curve stands for both.
 - **Larvae.** Eggs hatch about 270 degree days after they're laid, and the larvae feed inside the vines for about 660 degree days, South Dakota State's numbers.
 - **The window** runs from the first moths to three quarters of the flight, about 825 to 1,240 degree days: UW–Madison's three weeks of egg laying.
 
@@ -38,7 +39,7 @@ In an average year (AgWeather's degree days for 1996 to 2025), the window runs f
 ## How to read it
 
 - Start watching for moths as the window opens, and by the last week of June at the latest. Yellow pans of water with a drop of dish soap catch the moths; pheromone traps show when males are flying but also catch related clearwing moths. Neither kind of trap has a treatment threshold.
-- UW–Madison recommends treating when moths are first seen, especially on plants with runners shorter than 2 feet, and repeating every 5 to 7 days through the three weeks of egg laying.
+- UW–Madison recommends two to three sprays 5 to 7 days apart during the three weeks of egg laying, aimed at newly hatched larvae before they bore into the vines. Protecting plants with runners shorter than 2 feet is particularly important.
 - **Keep stems protected while moths are still being seen,** even after the window closes: some moths fly and lay eggs for weeks longer.
 - Check the bases of stems for entry holes and sawdust-like droppings (frass), which show where larvae have bored in before plants wilt.
 
@@ -46,6 +47,6 @@ In an average year (AgWeather's degree days for 1996 to 2025), the window runs f
 
 - Draft (model version 0.2, beta). Built from the timing in extension guides from Wisconsin, South Dakota, Ohio and Michigan, which don't cite the data behind their numbers; the shape of the flight is our judgment across them.
 - The model's first moths, half flight and window match the guides' numbers, since it was drawn to them.
-- **Moths are seen later than the guides suggest.** Against 235 iNaturalist photographs of moths in the upper Midwest from 2016 to 2026, the first 10 % of the records came at about the model's first moths, but half came about 8 days after the model's half, and the last tenth well after the window. A photograph isn't a moth laying eggs, and records follow how common moths are, but the records agree better with Michigan State's long flight than with three weeks of egg laying. The model wasn't fitted to these records, and no trap counts in Wisconsin are known to us.
+- **Moths are seen later than the guides suggest.** Against 235 iNaturalist photographs of moths in the upper Midwest from 2016 to 2026, the first 5 and 10 % of the records came within about 25 degree days of the model's, but half came about 8 days after the model's half, and the last tenth well after the window. A photograph isn't a moth laying eggs, and records follow how common moths are, but the records agree better with Michigan State's long flight than with three weeks of egg laying. The model wasn't fitted to these records, and no trap counts in Wisconsin are known to us.
 - The model shows where the season stands, not how many moths or borers there are.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

@@ -77,7 +77,7 @@ INSECT = Insect(
         ),
         Citation(
             text="Ruger and Leach (2026). Squash Vine Borer (ENT-0106). Ohio State University Extension, Ohioline.",
-            url="https://ohioline.osu.edu/factsheet/ent-0106",
+            url="https://cfaes.osu.edu/fact-sheet/squash-vine-borer-damage-and-management-what-look-and-when-act",
         ),
         Citation(
             text="Michigan State University Enviroweather: squash vine borer model.",

@@ -23,9 +23,9 @@ INSECT = Insect(
     id="tarnished-plant-bug",
     name="Tarnished plant bug",
     crops=("beans", "celery", "leafy-greens", "pepper", "potato", "raspberry", "tomato"),
-    # Single sine above 52 °F from January 1, no upper threshold: the setting of UW–Madison's vegetable newsletter
-    # (Groves 2021) and of Simko's lygus bug model for seed alfalfa in Oregon and Idaho (USPest.org), which is where
-    # the 275 below comes from. Ugine's threshold for development from egg to adult is 7.9 °C (46.2 °F; 9.8 °C for the
+    # Single sine above 52 °F from January 1, no upper threshold: the setting of Simko's lygus bug model for seed
+    # alfalfa in Oregon and Idaho (USPest.org); UW–Madison's vegetable newsletter (Groves 2021) gives only "275 DD52",
+    # probably from Simko's model (an inference: the newsletter cites nothing). Ugine's threshold for development from egg to adult is 7.9 °C (46.2 °F; 9.8 °C for the
     # nymphs); his sums are converted above rather than adding a running total at 46.2 °F for a model with no
     # supported spring timing
     base_f=52,
