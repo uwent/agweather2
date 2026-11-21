@@ -10,7 +10,7 @@ summary: Beetles whose larvae prune corn roots where corn follows corn; crop rot
 image: images/corn-rootworm.jpg
 image_credit: 'Adult southern, northern and western corn rootworms, left to right. Photo by R.L. Croissant, Bugwood.org (image 5361235), via Wikimedia Commons (File:Diabrotica undecimpunctata howardi and D. barberi and D. virgifera virgifera.jpg), CC BY 3.0 US.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-21
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Corn Rootworm. University of Wisconsin–Madison, updated 2026.'
@@ -21,6 +21,12 @@ sources:
   - key: iowa-crw
     text: 'Dean, A. and E. Hodgson. Corn Rootworm Peak Egg Hatch Is Occurring. Integrated Crop Management News, Iowa State University Extension and Outreach, 2024.'
     url: https://crops.extension.iastate.edu/cropnews/2024/06/corn-rootworm-peak-egg-hatch-occurring
+  - key: apple-1971
+    text: 'Apple, J. W., E. T. Walgenbach and W. J. Knee. Thermal requirements for northern corn rootworm egg hatch. Journal of Economic Entomology 64: 853–856, 1971.'
+    url: https://doi.org/10.1093/jee/64.4.853
+  - key: uw-degree-days
+    text: 'Delahaut, K. Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087). UW–Madison Division of Extension, Wisconsin Horticulture, revised 2012.'
+    url: https://hort.extension.wisc.edu/articles/degree-days-common-fruit-vegetable-insect-pests/
   - key: umn-crw
     text: 'Ostlie, K., T. Leaf and B. Potter. Scouting for Corn Rootworm. University of Minnesota Extension, reviewed 2022.'
     url: https://extension.umn.edu/corn-pest-management/scouting-corn-rootworm
@@ -78,6 +84,6 @@ For products, rates and current registrations, see UW–Madison's [Pest Manageme
 
 ## AgWeather's models
 
-The [corn rootworm model](/models/corn-rootworm) counts degree days in air temperature at a base of 52 °F, with no upper limit, from January 1, and rates risk from 0 to 4 during a larval feeding window from 329 to 636 degree days, peaking at 472. It reproduces VDIFN, the forecasting tool AgWeather replaces. Its validation report notes that which species and which temperature (air or soil) its numbers were made for isn't recorded, and that it hasn't been compared with field observations.[^agweather-crw]
+The [corn rootworm model](/models/corn-rootworm) counts degree days in air temperature from January 1, base 52 °F with no upper limit. Its egg hatch comes from a study of northern corn rootworm eggs from Wisconsin fields: hatch begins at about 300 degree days and is half done at 533, the air total on the day eggs buried in a Madison field reached half hatched.[^apple-1971] Larvae feed on roots for about three weeks after hatching, the model's risk, and half the beetles are out at about 1,075 degree days, the equivalent of the 1,300 degree days above 50 °F in UW–Madison's degree-day table.[^uw-vegento][^uw-degree-days][^agweather-crw] It also marks a window to dig and rate roots.
 
-Its timing runs ahead of UW–Madison's. In AgWeather's long-term averages (1996–2025), the window runs from about May 31 to June 21 at Arlington and June 10 to July 3 at Rhinelander, closing before the early to mid-July peak of larvae that UW–Madison describes.[^uw-vegento][^a3646-2025] Until the model is checked, time root digs and beetle counts by the calendar above.
+In AgWeather's long-term averages (1996–2025), half the eggs hatch around June 14 at Arlington and June 26 at Rhinelander, about a week after Iowa State's average peak hatch in central Iowa, and larvae peak around June 24 at Arlington and July 7 at Rhinelander, a week or two before UW–Madison's early to mid-July.[^iowa-crw][^uw-vegento] The timing is the northern species'; the larvae of the two species can't be told apart in the field. Eggs and larvae live in the soil, and Iowa State times hatch by soil temperature instead, so its numbers can't be set directly against the model's.[^agweather-crw] The model hasn't been compared with field observations in Wisconsin.

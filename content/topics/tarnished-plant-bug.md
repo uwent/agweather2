@@ -15,7 +15,7 @@ summary: A small, mottled plant bug that feeds on the buds, flowers, young fruit
 image: images/tarnished-plant-bug.jpg
 image_credit: 'Tarnished plant bug adult on a leaf. Photo by Katja Schulz, via Wikimedia Commons (File:Tarnished Plant Bug - Flickr - treegrow.jpg), CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/); resized.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento-tpb
     text: 'Tarnished Plant Bug. UW–Madison Vegetable Entomology, updated 2026.'
@@ -23,6 +23,9 @@ sources:
   - key: uw-vegpath-2021
     text: "Groves, R. L. Vegetable insect update. In Update 9, June 5, 2021, UW–Madison Vegetable Pathology's vegetable crop updates."
     url: https://vegpath.plantpath.wisc.edu/2021/06/05/update-9-june-5-2021/
+  - key: ugine-2012
+    text: 'Ugine, T. A. Developmental times and age-specific life tables for Lygus lineolaris (Heteroptera: Miridae), reared at multiple constant temperatures. Environmental Entomology 41: 1–10, 2012.'
+    url: https://doi.org/10.1603/EN10210
   - key: uw-fruit-tpb
     text: 'van Zoeren, J. and C. Guédot. Tarnished plant bug – a strawberry menace. UW–Madison Fruit Program, 2018, updated 2019.'
     url: https://fruit.wisc.edu/2018/05/18/tarnished-plant-bug-a-strawberry-menace/
@@ -102,6 +105,6 @@ For products and current registrations in Wisconsin, see [Commercial Vegetable P
 
 ## AgWeather's models
 
-The [tarnished plant bug model](/models/tarnished-plant-bug) follows the bugs' activity by [degree days](/topics/degree-days), a running total of warmth above a base temperature, here 52 °F with no upper threshold, counted from January 1. Its window opens at 275 degree days, which UW–Madison's vegetable newsletter gives as the start of the bugs' summer activity after the nymphs' early-season development, peaks at 1,000 and closes at 2,000, treating the overlapping generations as one season of activity. It was carried over unchanged from the earlier Wisconsin forecasting tool, VDIFN, and hasn't been checked against field counts.[^agweather-tpb][^uw-vegpath-2021]
+The [tarnished plant bug model](/models/tarnished-plant-bug) follows egg hatch, nymphs and adults through overlapping generations by [degree days](/topics/degree-days), a running total of warmth above a base temperature, here 52 °F with no upper threshold, counted from January 1. The time from hatch to adult, how long adults live and the time between generations come from a laboratory study of the tarnished plant bug at constant temperatures, converted to that base: about 390 degree days for the nymphs and 640 for a generation.[^ugine-2012][^agweather-tpb] Nymphs and adults both count in the model's risk.
 
-The numbers appear to come from a model of a different species, the western tarnished plant bug (_Lygus hesperus_), developed for alfalfa grown for seed in Oregon and Idaho. Wisconsin's pest is _L. lineolaris_, which Penn State says develops above about 50 °F.[^agweather-tpb][^psu-tpb] In AgWeather's long-term averages for 1996–2025, the window opens around May 26 at Arlington and June 5 at Rhinelander, peaks around July 10 at Arlington and closes around September 3; at Rhinelander an average season doesn't reach 2,000, so the window stays open until fall freezes. Overwintered adults are active from early spring, and nymphs often appear by mid-May, before the window opens.[^uw-fruit-tpb] The model also can't show the sudden influx when alfalfa is cut. Scout from early spring whatever the model shows.
+The spring generation is placed so that young nymphs peak at 275 degree days, which UW–Madison's vegetable newsletter gives as the start of the bugs' summer activity.[^uw-vegpath-2021] That number comes from a model of a different species, the western tarnished plant bug (_Lygus hesperus_), developed for alfalfa grown for seed in Oregon and Idaho, and we found no source that times the spring generation of _L. lineolaris_ by degree days, so the model's timing is unsupported for Wisconsin's bug.[^agweather-tpb] In AgWeather's long-term averages for 1996–2025, the first nymphs appear around May 5 at Arlington and May 16 at Rhinelander, about when UW–Madison's fruit program finds nymphs in strawberries, and an average season has about four generations at Arlington and three at Rhinelander.[^uw-fruit-tpb] The model doesn't follow the overwintered adults, which are active from early spring, or the sudden influx when alfalfa is cut, and it hasn't been checked against field counts. Scout from early spring whatever the model shows.

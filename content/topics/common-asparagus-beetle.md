@@ -9,7 +9,7 @@ summary: A small blue-black and cream leaf beetle that feeds on asparagus spears
 image: images/common-asparagus-beetle.jpg
 image_credit: 'Common asparagus beetle on an asparagus fern in Madison, Wisconsin. Photo by Mike Gibson, via iNaturalist (observation 309573295), CC BY-NC 4.0 (https://creativecommons.org/licenses/by-nc/4.0/); resized.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Asparagus Beetle. Updated 2026.'
@@ -17,6 +17,9 @@ sources:
   - key: uw-hort
     text: 'Lowenstein, D., R. Groves and P. J. Liesch. Asparagus Beetle (XHT1137). UW–Madison Division of Extension, Wisconsin Horticulture, revised 2026.'
     url: https://hort.extension.wisc.edu/articles/asparagus-beetle/
+  - key: uw-degree-days
+    text: 'Delahaut, K. Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087). UW–Madison Division of Extension, Wisconsin Horticulture, revised 2012.'
+    url: https://hort.extension.wisc.edu/articles/degree-days-common-fruit-vegetable-insect-pests/
   - key: a3422-2026
     text: 'Bradford, B. Z., J. B. Colquhoun, S. A. Chapman, A. J. Gevens, R. L. Groves, D. J. Heider, G. R. W. Nice, M. D. Ruark, Y. Wang and R. Dewerff. Commercial Vegetable Production in Wisconsin—2026 (A3422). UW–Madison Division of Extension, 2026.'
     url: https://vegpath.plantpath.wisc.edu/resources/a3422/
@@ -76,6 +79,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [common asparagus beetle model](/models/common-asparagus-beetle) counts degree days from January 1 at a base of 50 °F with an upper limit of 86 °F, and rates risk from 0 to 4 in one window for the first generation's larvae: from egg hatch at 105 degree days, through a peak at 250, to the last larvae at 405. It comes from VDIFN, the forecasting tool AgWeather replaces, and gives the same ratings as VDIFN for the same degree days. The source of its numbers hasn't been identified, and it hasn't been compared with field counts.[^agweather-common-asparagus-beetle]
+The [common asparagus beetle model](/models/common-asparagus-beetle) counts degree days from January 1 by UW–Madison's method (base 50 °F, upper limit 86 °F). It follows the overwintered beetles feeding and laying eggs on spears, with 10 % active at about 150 degree days and half at about 240, the span UW–Madison's degree-day table gives for egg laying.[^uw-degree-days] Larvae follow the eggs, and new generations of beetles follow about every 600 degree days, up to three in a season. The larvae's timing and the time between generations are our estimates from UW–Madison's development times in days, not from a degree-day study.[^uw-hort][^agweather-common-asparagus-beetle] Both beetles and larvae count in the model's risk: beetles scar spears and their eggs make spears unmarketable during harvest, and larvae feed on spears and ferns.
 
-The model covers only part of the season. The overwintered adults that feed and lay eggs on spears during harvest, and the later generations that feed on the ferns, aren't in it.[^agweather-common-asparagus-beetle] We worked out what the window means on the calendar from AgWeather's long-term averages (degree days for 1996 to 2025): in an average year it opens about April 27 at Arlington and May 9 at Rhinelander, peaks in the second half of May and closes between about May 31 and June 11. That puts the first larvae a week or two earlier than UW–Madison's sequence suggests (adults active in early May, eggs hatching a week later), though Commercial Vegetable Production in Wisconsin has the adults out in April.[^uw-hort][^a3422-2026] Scout the spears from emergence, and the ferns all summer, whatever the model shows.
+We worked out what the model means on the calendar from AgWeather's long-term averages (degree days for 1996 to 2025): in an average year the beetles become active around April 28 at Arlington and May 8 at Rhinelander, and half are out by May 10 and May 20, in line with UW–Madison's and Commercial Vegetable Production in Wisconsin's April to early May.[^uw-hort][^a3422-2026] The second generation's beetles peak in late June, and the third in late July to early August. The model hasn't been compared with field counts. Scout the spears from emergence, and the ferns all summer, whatever the model shows.
