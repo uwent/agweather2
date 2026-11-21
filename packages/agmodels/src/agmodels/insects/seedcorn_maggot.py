@@ -14,7 +14,8 @@ INSECT = Insect(
     dd_method="average",
     biofix="01-01",
     life_stages=(
-        # Over-wintered flies: first emergence 54–94 FDD in New York (Olaya-Arenas et al. 2024) and 50% at 347 in
+        # Over-wintered flies: first emergence 54–94 FDD in New York (Olaya-Arenas et al. 2024; °F·d, average above 39 °F;
+        # Cho et al. 2025's 52–197 too, though NEWA reads them as °C·d: docs/validation/models/seedcorn-maggot.md) and 50% at 347 in
         # Wisconsin (Sanborn 1981 in Funderburk et al. 1984); this curve's 10, 50 and 90% are 201, 345 and 495
         LifeStage(label="Adult flight", start=70, peak=340, end=650),
         # Pre-oviposition 15.7 and egg 30 °C·d (28 + 54 FDD), then the larva's 204 °C·d (367 FDD; Sanborn et al.
@@ -57,6 +58,12 @@ INSECT = Insect(
             result="Our flight peaks came 6 days after the tool's in spring and 3 days after in summer, mostly because we count degree days by the method our sources used.",
             report="docs/validation/models/seedcorn-maggot.md#against-the-crop-risk-tool-on-the-same-weather",
         ),
+        Check(
+            kind="system",
+            against="NEWA's seedcorn maggot model on the weather of 34 Wisconsin NEWA stations, 2024 and 2025",
+            result="Our spring flight starts a median 5 days before NEWA's first-emergence window opens and is half over a median 1 day before the window closes. NEWA reads New York's first-emergence numbers as degree days Celsius where the studies counted in Fahrenheit, so its window covers most of the flight rather than its first flies.",
+            report="docs/validation/models/seedcorn-maggot.md#against-newa-on-the-same-weather",
+        ),
     ),
     citations=(
         Citation(text="The Crop Risk Tool (UW–Madison Vegetable Entomology)."),
@@ -75,6 +82,14 @@ INSECT = Insect(
         Citation(
             text="Olaya-Arenas, P., Cho, C. Y. L., Olmstead, D., et al. (2024). Degree-day models for predicting adult Delia platura (Diptera: Anthomyiidae) spring flight and first emergence in New York State. Journal of Economic Entomology 117, 2181–2185.",
             doi="10.1093/jee/toae148",
+        ),
+        Citation(
+            text="Cho, C. Y.-L., Crowther, S., Stratton, A., Olmstead, D. and Poveda, K. (2025). Validation of degree day threshold for Delia platura first emergence in New York State. Crop Protection 188, 107011.",
+            doi="10.1016/j.cropro.2024.107011",
+        ),
+        Citation(
+            text="NEWA, Network for Environment and Weather Applications, Cornell University: seedcorn maggot model.",
+            url="https://newa.cornell.edu/seedcorn-maggot",
         ),
     ),
 )

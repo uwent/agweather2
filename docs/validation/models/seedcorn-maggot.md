@@ -1,8 +1,8 @@
 # Seedcorn maggot (`seedcorn-maggot`): validation
 
-Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/insects/seedcorn_maggot.py`, life-stage curves (D36) run by the insect engine (`agmodels.phenology`, `PhenologyModel`) on degree days by its sources' method (D37); its page: `seedcorn_maggot.md` beside it. Rebuilt on its sources on 2026-10-29, replacing the Crop Risk Tool's step table; the notes this condenses, with the sources' numbers converted to °F·d, are in PLAN.md Phase 3 D8 ("Seedcorn maggot first"). The sources' PDFs are in `tmp/references/insects/`.
+Model version 0.2, written 2026-11-18 (D98); NEWA's comparison and the units of New York's first-emergence numbers added 2026-11-21 (part H, H1), with no change to the model. The model: `packages/agmodels/src/agmodels/insects/seedcorn_maggot.py`, life-stage curves (D36) run by the insect engine (`agmodels.phenology`, `PhenologyModel`) on degree days by its sources' method (D37); its page: `seedcorn_maggot.md` beside it. Rebuilt on its sources on 2026-10-29, replacing the Crop Risk Tool's step table; the notes this condenses, with the sources' numbers converted to °F·d, are in PLAN.md Phase 3 D8 ("Seedcorn maggot first"). The sources' PDFs are in `tmp/references/insects/`.
 
-**In short:** the first (over-wintered) flight was set from field data, so it matches them by construction: half the flies have emerged at 345 degree days, against 347 in Wisconsin. The later flights, placed by the laboratory's adult-to-adult time rather than fitted, come at 1065 and 1785, against Wisconsin's field peaks at 1051 and 1912, and well before Iowa's second flight (1228). On the same weather our flight peaks come 3 to 6 days after the Crop Risk Tool's, mostly because of the degree-day method. None of this is held by a test in CI, and the model hasn't been compared with NEWA's seedcorn maggot model or with Wisconsin trap catches.
+**In short:** the first (over-wintered) flight was set from field data, so it matches them by construction: half the flies have emerged at 345 degree days, against 347 in Wisconsin. The later flights, placed by the laboratory's adult-to-adult time rather than fitted, come at 1065 and 1785, against Wisconsin's field peaks at 1051 and 1912, and well before Iowa's second flight (1228). On the same weather our flight peaks come 3 to 6 days after the Crop Risk Tool's, mostly because of the degree-day method. Only the first flight's start is held by a test in CI (`test_maggots.py`). On the same weather at 34 Wisconsin NEWA stations, our flight starts a median 5 days before NEWA's first-emergence window opens and is half over a day before NEWA's window closes: NEWA reads New York's first-emergence numbers as °C·d, where the studies counted °F·d (below). Not compared with Wisconsin trap catches.
 
 ## Sources and what we took from each
 
@@ -12,7 +12,9 @@ Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 | Sanborn, Wyman and Chapman 1982 (laboratory, Wisconsin) | Base 3.9 °C; egg 30, larva 204, pupa 142, egg to adult 376 °C·d (54, 367, 256 and 677 °F·d); individual development rates within about ±20 % of the mean | The larva's 367 °F·d and the egg's 54; the generations' spread (SD 60 °F·d, about 8 % of a generation) |
 | Funderburk, Higley and Pedigo 1984 (cone traps near Ames, Iowa, 1980–1981) | The average method above 3.9 °C with temperatures over 29 °C set to 29, counted from when 5.7 cm soil reached 3.9 °C; adult to adult 392 °C·d (Sanborn's 376 plus 15.7 before egg laying); 50 % capture of each flight in Iowa at 190, 682 and 1181 °C·d, and Sanborn 1981's Wisconsin field data at 193, 584 and 1062 (Table 1); air temperatures overestimate field development (Iowa's flights 492 and 499 °C·d apart against the laboratory's 392); few flies in summer, suggesting the second generation aestivates | The method and its 29 °C cap (39 °F, 84.2 °F); the generation interval (706 °F·d, rounded to 720); 28 °F·d before egg laying; the field peaks as checks |
 | Throne and Eckenrode 1985 (emergence traps, New York) | Emergence of over-wintered flies drawn out over the season; more of each generation entering diapause from June on; damage in the week or two during and after flight peaks | The first flight's wide spread; the caveat that later generations are smaller |
-| Olaya-Arenas et al. 2024 (New York; average method from January 1) | First emergence at 54–94 °F·d (2023); adults active at 214–417 (2022) | The flight's start at 70 |
+| Olaya-Arenas et al. 2024 ([doi:10.1093/jee/toae148](https://doi.org/10.1093/jee/toae148); New York; average method above 39 °F from January 1) | First emergence at 54–94 °F·d (2023; the abstract: a mean of 68 DD at base 39 °F); adults active at 214–417 (2022, abstract: a mean of 282); NEWA's 2022 model had predicted first emergence at 471 | The flight's start at 70 |
+| Cho, Crowther, Stratton, Olmstead and Poveda 2025 ([doi:10.1016/j.cropro.2024.107011](https://doi.org/10.1016/j.cropro.2024.107011); abstract as indexed, paper not in hand) | First emergence at 52–197 degree days from January 1 (mean 98 ± 7 SE), 4 sites in 2023 and 25 in 2024; units not stated in the abstract; a press summary dates it March 8–April 2, 2024 (mean March 16) | A check on the start (below); NEWA's current table |
+| NEWA's seedcorn maggot model (newa.cornell.edu, read 2026-11-21) | Air temperature, simple average above 3.9 °C, no upper, °C·d from January 1, to July 31: 0–52 overwintering pupae, 53–197 first adult emergence, 198+ complete (Cho et al. 2025; Broatch et al. 2006) | Compared (below) |
 | The Crop Risk Tool (`src/models.R`, `scm`) | Single sine 4/30 °C from January 1; a step table peaking at 340, 1050 and 1750 (three generations); its text gives 360, 1080 and 1800 | Replaced (changelog 0.2); its 340 and 1050 are Sanborn 1981's Wisconsin peaks |
 | VDIFN (`db/seeds.rb`) | Sine-ramped generations (peak − 65, peak, peak + 450) at 360 + 720*n*, single sine 39.2/86 °F | Replaced; its 720 kept, which the laboratory's 706 supports |
 | Enviroweather (MSU), SeedCornMaggot (`docs/enviroweather-models.md`) | Single sine 39 °F, no upper, from March 1: over-wintered flight 200–813, peak 342; generation 1 flight 901–1650, peak 1234; no source cited | Compared only |
@@ -59,18 +61,36 @@ Computed from the tool's fixtures for one cell at Eau Claire, Wisconsin, through
 
 At the end of April the tool's total was 361 against our 294, and at the end of June 1802 against 1731: the method, not the thresholds, makes most of the difference. The tool is the system v2 replaces, a reference rather than the truth (D54).
 
+### Units of New York's first-emergence numbers
+
+Our flight's start (70 °F·d) came from Olaya-Arenas et al. 2024's first emergence, "54–94 FDD". The paper's abstract (Crossref) gives its method as the average above 39 °F from January 1 and its 2023 mean as 68 DD: degree-Fahrenheit days, so the start stands. Cho et al. 2025's 52–197 (mean 98) are the same group's, same method; their abstract gives no unit, but the mean date of first emergence in 2024, March 16, settles it: at Geneva, New York, the average above 39 °F from January 1, 2024 reached 94 °F·d (52 °C·d) on March 8, 142 °F·d (79 °C·d) on March 16 and 177 °F·d (98 °C·d) on April 2 (Open-Meteo's archive at 42.88 °N, 77.03 °W, fetched 2026-11-21). A mean of 98 °C·d would fall in early April, at the end of their range of dates; 98 °F·d falls in early to mid-March, inside it. NEWA's table (53–197 °C·d, 95–355 °F·d) reads the numbers as Celsius, which asks 1.8 times the degree days the studies found before the window opens. The start stays at 70 °F·d, inside both papers' ranges (`test_maggots.py::test_seedcorn_maggots_first_flight_starts_within_new_yorks_first_emergence`).
+
+### Against NEWA on the same weather
+
+`scripts/check_maggots.py`; full table in [seedcorn-maggot/newa.md](seedcorn-maggot/newa.md). NEWA's model as deployed, recomputed from its rules (`scripts/newa_reference.py`: the simple average above 3.9 °C in °C·d from January 1; its first-emergence window opens at 53 and closes at 198) on the hours of 34 Wisconsin NEWA stations, 2024 and 2025 (67 station-seasons); ours (average 39/84.2 °F) on the same daily max and min, and on the archive at each station's cell.
+
+<!-- prettier-ignore -->
+| Ours − NEWA's, days | Station days: median (10th–90th percentile; range) | Archive: median (10th–90th percentile) |
+| --- | --- | --- |
+| Our flight's first day (70 °F·d) against NEWA's window opening (53 °C·d, 95 °F·d) | −5 (−13 to −2; −16 to −1) | −7 (−13 to −2) |
+| Our flight's 50 % (345 °F·d) against NEWA's window closing (198 °C·d, 356 °F·d) | −1 (−2 to 0; −4 to 0) | 0 (−4 to +1) |
+
+Our flight starts a median 5 days before NEWA's first-emergence window opens and is half over a median 1 day before the window closes. The two differ by design, not by method (both are the simple average above 39 °F, ours capping each temperature at 84.2 °F, which spring days don't reach): NEWA's window is the studies' first-emergence range read as °C·d (above), so it covers most of our spring flight rather than its first flies. NEWA has no later generations (its season ends July 31). D95 changes nothing here: the method is the same family, and NEWA's thresholds rest on the unit reading above.
+
 ## Limits and open questions
 
 - **No field check in Wisconsin:** the over-wintered flight is fitted to Wisconsin's and New York's numbers, and the later flights are checked only against two published sets of peaks: Sanborn's Wisconsin flights (from his 1981 dissertation, as Funderburk et al. report them) and 2 years of traps in Iowa.
 - **Air, not soil:** the insects develop in soil cooler than the air (Funderburk et al. 1984), so later generations may come later than shown, as Iowa's did.
 - **Equal generations:** every generation is as large as the first, but Iowa's second generation mostly aestivated and few flies were caught in summer (Funderburk et al. 1984; Throne and Eckenrode 1985). With equal generations the risk stays High to Very high all summer (PLAN.md Phase 3 D8), which probably overstates summer risk; the windows are the sharper signal.
-- **The model page:** says "model version 2.0" (it is 0.2 since the renumbering, PLAN.md D46) and that larval feeding is heaviest "around 650" (the curve peaks near 611). The page is rewritten in part I2.
-- **Cheapest independent comparison:** NEWA's seedcorn maggot model on the hours of the 34 Wisconsin NEWA orchard stations already fetched for codling moth (`scripts/fetch_newa.py`), as `scripts/check_codling_moth.py` does; NEWA is the standard where it runs a model of the same pest (D95). For observations: dated flight records, such as Olaya-Arenas et al. 2024's New York traps (if the paper gives sites and dates) on Open-Meteo's weather, or Wisconsin trap catches if any are kept.
+- **The model page** says larval feeding is heaviest "around 650" (the curve peaks near 611).
+- **NEWA's units** (above) are for the courtesy email to NEWA, with its soil-temperature description against its air computation and its table against its hidden per-crop guide (255–434 adults, 461–1030 first generation).
+- **Cheapest independent comparison** now: dated flight records, such as Olaya-Arenas et al. 2024's and Cho et al. 2025's New York traps (if the papers give sites and dates) on Open-Meteo's weather, or Wisconsin trap catches if any are kept.
 
 ## Reproducing
 
 ```bash
-uv run pytest packages/agmodels/tests/test_phenology.py packages/agmodels/tests/test_runner.py   # the engine and the model's windows
+uv run pytest packages/agmodels/tests/test_phenology.py packages/agmodels/tests/test_runner.py packages/agmodels/tests/test_maggots.py
+uv run python scripts/check_maggots.py   # NEWA on the same weather; needs the archive in data/ and tmp/newa/hours/
 uv run python -c "
 import numpy as np
 from agmodels.phenology import dd_grid, generation_densities

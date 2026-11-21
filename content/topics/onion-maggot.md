@@ -9,7 +9,7 @@ summary: A small fly whose maggots tunnel into the roots and bulbs of onions and
 image: images/onion-maggot.jpg
 image_credit: 'Onion maggots in a damaged onion set. Photo by Rasbak, via Wikimedia Commons (File:Uienvlieg maden.jpg), CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento-om
     text: 'Onion Maggot. UW–Madison Vegetable Entomology, updated 2026.'
@@ -29,6 +29,9 @@ sources:
   - key: liu-1982
     text: 'Liu, H. J., F. L. McEwen and G. Ritcey. Forecasting events in the life cycle of the onion maggot, Hylemya antiqua (Diptera: Anthomyiidae): application to control schemes. Environmental Entomology 11: 751–755, 1982.'
     url: https://doi.org/10.1093/ee/11.3.751
+  - key: newa-om
+    text: 'NEWA (Network for Environment and Weather Applications). Onion Maggot. Cornell University.'
+    url: https://newa.cornell.edu/onion-maggot
   - key: agweather-om
     text: 'AgWeather. Onion maggot model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/onion-maggot.md
@@ -87,4 +90,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [onion maggot model](/models/onion-maggot) rates the risk of fly activity from 0 to 4 for two flights, peaking at 680 and 1,950 degree days from January 1 (base 39.2 °F, upper limit 86 °F), the timing of the first two of UW–Madison's three peaks. It doesn't yet include the third flight, in late August and September, which UW's calendar and New York trapping both show.[^agweather-om][^uw-vegento-om][^eckenrode-1975] The model was carried over unchanged from the Vegetable Disease and Insect Forecasting Network (VDIFN), and given the same degree days it gives the same risk levels. The source of its numbers hasn't been identified, and its timing hasn't been checked against published research, Wisconsin trap catches or NEWA's onion maggot model.[^agweather-om]
+The [onion maggot model](/models/onion-maggot) is NEWA's onion maggot model, counted from January 1 as the day's average temperature above 40 °F.[^newa-om] It follows three flights: the first flies at about 390 degree days, the spring flight half over at 735, and summer flights peaking at about 1,830 and 2,930, each more drawn out than the last. Larval feeding is timed from each flight, and the model marks a window for protecting onion plantings from each flight's first flies to 95 % emergence.[^agweather-om][^liu-1982]
+
+On the same weather at Wisconsin's NEWA stations, the model's spring flight falls on NEWA's days and its summer flights within a few days. Its spring midpoint is close to New York's average, 712 degree days, but its generations are about 10 % shorter than New York's broods.[^eckenrode-1975][^agweather-om] In an average year at Arlington (degree days for 1996 to 2025) the first flies come about May 8 and the spring flight peaks about May 27, as UW–Madison's calendar has them; the third flight peaks about August 10, 10 days before UW's third peak.[^uw-vegento-om] NEWA calls the spring generation the most destructive and says later ones rarely damage onions; the model counts every flight alike, so plan protection around its first window.[^newa-om]

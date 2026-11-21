@@ -9,7 +9,7 @@ summary: A small fly whose maggots feed on the roots of cabbage, broccoli, radis
 image: images/cabbage-maggot.jpg
 image_credit: 'Cabbage maggot larvae at the base of a cauliflower stem. Photo by Rasbak, via Wikimedia Commons (File:Koolvlieg bloemkool.jpg), CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cabbage Maggot. Updated 2026.'
@@ -38,6 +38,9 @@ sources:
   - key: newa
     text: 'NEWA (Network for Environment and Weather Applications). Cabbage Maggot. Cornell University.'
     url: https://www.newa.cornell.edu/cabbage-maggot
+  - key: jyoti-2003
+    text: 'Jyoti, J. L., A. M. Shelton and J. Barnard. Evaluation of degree-day and Julian-day logistic models in predicting cabbage maggot (Diptera: Anthomyiidae) emergence and flight in upstate New York. Journal of Entomological Science 38: 525–532, 2003.'
+    url: https://doi.org/10.18474/0749-8004-38.4.525
   - key: agweather-cabbage-maggot
     text: 'AgWeather. Cabbage maggot model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/cabbage-maggot.md
@@ -90,6 +93,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [cabbage maggot model](/models/cabbage-maggot) counts degree days from January 1 at a base of 42.8 °F with an upper limit of 86 °F, and rates risk from 0 to 4 in two windows, each running from a generation's flight through its egg laying. It comes from VDIFN, the forecasting tool AgWeather replaces, and reproduces VDIFN exactly.[^agweather-cabbage-maggot]
+The [cabbage maggot model](/models/cabbage-maggot) is NEWA's cabbage maggot model, counted from January 1 as the day's average temperature above 40 °F.[^newa] Its spring flight follows two years of trap catches in upstate New York: the first flies at about 290 degree days, half at 450 and 95 % by about 700.[^jyoti-2003] Larval feeding is timed from the flight, and later flights follow every 850 degree days, up to the four found in New York. The model marks a window for protecting seedlings and transplants from each flight's first flies to 95 % emergence.[^agweather-cabbage-maggot]
 
-Its timing differs from UW–Madison's guides in two ways. Its first flight, from 360 degree days, agrees with the Wisconsin trap study. But its second flight starts at 1,881 degree days, about 345 later than the study's generation time puts it, and the model has no third flight.[^agweather-cabbage-maggot][^uw-hort] We worked out what that means on the calendar from AgWeather's long-term averages: in an average year at Arlington and Lancaster (degree days for 1996 to 2025), the model's second flight starts in mid-July, about two weeks after the late-June flight UW–Madison describes.[^uw-hort] UW's third flight, at 2,652 degree days, comes in early to mid-August there and falls inside the model's second window without a flight of its own. NEWA's cabbage maggot model uses degree days at a base of 40 °F; we haven't compared the two yet.[^newa][^agweather-cabbage-maggot] Use the model's first window to plan spring plantings and row covers, and rely on traps for later flights.
+On the same weather at Wisconsin's NEWA stations, the model's flights fall within a day or two of NEWA's. Wisconsin's own trap study agrees on the spring flight, but its generations took about a third longer, which would put each summer flight about two weeks later, and it found three flights rather than four.[^eckenrode-1972][^agweather-cabbage-maggot] In an average year at Arlington (degree days for 1996 to 2025), the model's first flies come about May 1 and the second flight peaks in mid-June, near the late-June flight UW–Madison describes.[^uw-hort] The model counts every flight alike, though the spring flight does the most damage; use its first window to plan spring plantings and row covers, and traps for later flights.

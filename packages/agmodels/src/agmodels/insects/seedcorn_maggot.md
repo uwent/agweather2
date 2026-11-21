@@ -1,13 +1,14 @@
 ---
 id: seedcorn-maggot
 status: draft
-updated: 2026-11-18
+updated: 2026-11-21
 summary: Times each generation's adult flight and the larval feeding that follows from degree days since January 1, and marks the windows when planting a susceptible crop is most likely to be hit.
 sources:
   - Sanborn, Wyman and Chapman 1982 (development times by stage)
   - Funderburk, Higley and Pedigo 1984 (field flight peaks, Iowa and Wisconsin)
   - Throne and Eckenrode 1985 (emergence patterns, New York)
-  - Olaya-Arenas et al. 2024 (first emergence, New York)
+  - Olaya-Arenas et al. 2024 and Cho et al. 2025 (first emergence, New York)
+  - NEWA's seedcorn maggot model, Cornell University (compared)
   - UW Vegetable Entomology, seedcorn maggot (vegento.russell.wisc.edu, 2026)
   - University of Minnesota Extension, seedcorn maggot (Potter, reviewed 2018)
   - Crop Risk Tool docs/insects/scm.md; VDIFN db/seeds.rb (seedcorn-maggot)
@@ -41,6 +42,7 @@ The model counts degree days from January 1 by the method its sources use: the d
 ## Validation and caveats
 
 - Draft (model version 0.2, beta). The degree-day numbers come from laboratory development times and field flight peaks in Wisconsin, Iowa and New York, not from a fit to Wisconsin trap data. Wisconsin DATCP trap captures could check it (PLAN.md, model review).
+- NEWA's seedcorn maggot model, on the same weather at 34 Wisconsin NEWA stations in 2024 and 2025, opens its first-emergence window a median 5 days after the model's flight begins and closes it about when half the model's spring flight has emerged. NEWA reads the New York studies' first-emergence numbers as degree days Celsius; the studies counted in Fahrenheit, as the model does.
 - Air temperature runs ahead of the soil where the insects develop: Iowa's field generations took about 490 °C·d against the lab's 392 (Funderburk et al. 1984). Later generations may come later than shown.
 - Later generations are often smaller than the first, and some flies enter a summer or winter dormancy instead of emerging; the model doesn't predict population size.
 - Flies emerge from over-wintered pupae over a long period (Throne and Eckenrode 1985), so a few can be active outside the windows.

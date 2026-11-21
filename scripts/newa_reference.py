@@ -15,6 +15,8 @@ What it repeats, per NEWA's pages as of 2026-11:
   counted only after a week with rain, Stensvand et al. 2005) and discharge; wet and dry periods from green tip
   (start: wet and raining; continue: wet or raining), merged when less than 24 hours apart, an infection when the
   hours reach NEWA's Revised Mills table at the rounded mean temperature; the daily summary.
+- Root maggots (cabbage, onion, seedcorn): the simple-average running total from January 1 and the days it reaches
+  each event of NEWA's tables (used by scripts/check_maggots.py; NEWA's pages weren't exported to check against).
 - Fire blight: Cougarblight's daily degree hours (Smith's table, hours from 60 to 105 °F) and NEWA's 4-day sum;
   MaryBlyt's EIP from first blossom (230 DD43) to the end of the data, with NEWA's blossom window and cold-day cuts;
   the daily wetness table.
@@ -605,6 +607,29 @@ def codling_moth(days: list[Day], biofix1: int | None = None) -> dict:
     for name, dd in CM_AFTER_BIOFIX2.items():
         events[name] = next((k for k, t in enumerate(after2) if t is not None and t >= dd), None)
     return {"jan1": [t for _, t in jan1], "after1": after1, "after2": after2, "events": events}
+
+
+# --- Root maggots -------------------------------------------------------------------------------------------------
+# NEWA's cabbage, onion and seedcorn maggot pages (tmp/references/insects/notes/newa-insects.md, read 2026-11-21):
+# the day's simple average above a base, no upper, unrounded into a running total from January 1; an event is the
+# first day the total reaches its degree days. Cabbage and onion maggot in °F above 40 °F; seedcorn maggot, as
+# deployed, in °C above 3.9 °C (its table: 53 first adult emergence, 198 complete).
+CABBAGE_MAGGOT = {"first emergence": 288, "25%": 366, "spring peak": 452, "75%": 547, "95%": 697, "first generation peak": 1261, "second generation peak": 2176, "third generation peak": 3014}  # fmt: skip
+ONION_MAGGOT = {"first emergence": 390, "spring peak": 735, "first generation first": 1218, "first generation peak": 1752, "second generation first": 2415, "second generation peak": 2975}  # fmt: skip
+SEEDCORN_MAGGOT_C = {"first emergence": 53, "emergence complete": 198}
+
+
+def maggot(days: list[Day], table: dict[str, float], *, base: float = 40, celsius: bool = False) -> dict:
+    """NEWA's root maggot models: the running simple-average total from January 1 (each day unrounded) and the
+    first day index reaching each event's degree days (None if not reached). A day without hours adds nothing."""
+    total, totals = 0.0, []
+    for d in days:
+        if math.isfinite(d.mint) and math.isfinite(d.maxt):
+            lo, hi = (d.mint, d.maxt) if not celsius else ((d.mint - 32) * 5 / 9, (d.maxt - 32) * 5 / 9)
+            total += average_dd(tmin=lo, tmax=hi, base=base)
+        totals.append(total)
+    events = {name: next((k for k, t in enumerate(totals) if t >= dd), None) for name, dd in table.items()}
+    return {"totals": totals, "events": events}
 
 
 # --- Checking against NEWA's exports ------------------------------------------------------------------------------

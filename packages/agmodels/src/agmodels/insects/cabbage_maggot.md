@@ -1,49 +1,52 @@
 ---
 id: cabbage-maggot
 status: draft
-updated: 2026-11-19
-summary: Rates the risk from cabbage maggot flies and their egg laying in two windows of degree days from January 1, one for the spring flight and one for a summer generation; the second comes later than the Wisconsin trap study puts it, and the model has no third flight.
+updated: 2026-11-21
+summary: Times cabbage maggot fly flights and the root feeding that follows from degree days since January 1, by NEWA's model, and marks when to have seedlings and transplants protected during each flight.
 sources:
-  - VDIFN's cabbage maggot model (the thresholds, the January 1 start and the two windows, unchanged)
-  - Eckenrode and Chapman 1972 (fly trap catches at Kenosha and Arlington, Wisconsin, by thermal units; compared)
-  - Lowenstein and Groves, Cabbage Maggot, UW–Madison Division of Extension, and UW Vegetable Entomology's cabbage maggot page (flights and degree days in Wisconsin)
-  - Commercial Vegetable Production in Wisconsin (A3422), 2026 (three generations; soil treatments)
-  - University of Minnesota Extension, VegEdge's Cabbage Maggot and the root maggots page (later generations' injury; row covers)
-  - MSU Enviroweather's cabbage maggot model (compared)
+  - NEWA's cabbage maggot model, Cornell University (the method, the spring flight and the later flights' timing)
+  - Jyoti, Shelton and Barnard 2003 (spring emergence and four generations, upstate New York; NEWA's source)
+  - Eckenrode and Chapman 1971 (development in the laboratory; the timing of egg laying and larvae)
+  - Eckenrode and Chapman 1972 (fly trap catches at Kenosha and Arlington, Wisconsin; compared)
+  - Lowenstein and Groves, Cabbage Maggot, UW–Madison Division of Extension, and UW Vegetable Entomology's cabbage maggot page (flights in Wisconsin; management)
+  - Commercial Vegetable Production in Wisconsin (A3422), 2026 (generations; soil treatments)
 ---
 
 ## What it predicts
 
-Cabbage maggot flies lay eggs in the soil at the base of cabbage, broccoli, radish and other cole crops, and the maggots that hatch feed on the roots. Damage can't be stopped once the maggots are in the roots, so control is preventive and has to be in place while flies are laying eggs. The model rates the risk from 0 (Very low) to 4 (Very high) in two windows, each running from a generation's flight through its egg laying.
+Cabbage maggot flies lay eggs in the soil at the base of cabbage, broccoli, radish and other cole crops, and the maggots that hatch feed on the roots. Damage can't be stopped once the maggots are in the roots, so protection has to be in place while flies are laying eggs. The model follows each generation through the season:
+
+- **Adult flight**: how many flies are emerging, compared with the spring flight's peak.
+- **Larval feeding**: how many maggots are feeding on roots, timed from the flies that laid their eggs.
+- **Protect seedlings and transplants during fly flight**: the days from the first flies (about 5 % of a flight) until 95 % have emerged, for each flight.
+
+Risk adds the two stages together. Flight counts because egg laying follows it; feeding counts because it's the damage. A risk of 1 means as active as the spring flight at its peak.
 
 ## How it works
 
-Degree days are counted by the single-sine method, base 42.8 °F (6 °C) with a cutoff at 86 °F, from January 1.
+The model is NEWA's cabbage maggot model, from Cornell University. Degree days are counted from January 1 as the day's average temperature above 40 °F, with no upper limit.
 
-- **The spring flight:** flies from the overwintering pupae begin emerging at 360 degree days, their flight peaks at 600, and the window ends at 1,521. VDIFN's description put egg laying from about 750 to 1,500, most of it around 1,050.
-- **A summer generation:** from 1,881, peaking at 2,121 and ending at 3,042, with egg laying from about 2,270 to 3,040 by VDIFN's description. The model has no third window.
-- **The rating** rises a level at a time from Low at a window's start through Moderate and High to Very high, and falls the same way to its end. It's Very high from about 520 to 905 degree days in the first window and from about 2,040 to 2,430 in the second, and Very low between them.
-- **The end of the season.** After early September, the rating drops by one level for each day in the last two weeks at or below about 28 °F (−2 °C).
+- **The spring flight.** Flies from the overwintering pupae begin emerging at about 290 degree days; a quarter have emerged by 365, half by 450, and 95 % by about 700. These are NEWA's numbers, from two years of trap catches in upstate New York (Jyoti, Shelton and Barnard 2003).
+- **Larvae.** Females begin laying eggs a few days after they emerge, and the eggs hatch a few days later: about 245 degree days in all. The maggots then feed for about 580 degree days, three weeks or so in summer (Eckenrode and Chapman 1971). Half of the spring flight's maggots are feeding by about 700 degree days.
+- **Later flights.** Each generation takes about 850 degree days from flight to flight, as NEWA's peaks do, and spreads a little more than the one before. The model stops at four flights, the number found in New York. Half of each later flight has emerged by about 1,300, 2,150 and 3,000 degree days.
+- **The end of the season.** After early September, each day at or below 28 °F reduces activity, and four such days within two weeks end the season.
 
-The model comes from VDIFN, the vegetable forecasting tool AgWeather replaces. Its numbers most likely come from Eckenrode and Chapman's trap catches of flies in Wisconsin (1972), which counted thermal units above 43 °F from each day's high and low by a slightly different method.
+In an average year (AgWeather's degree days for 1996 to 2025), the spring flight's first flies come about May 1 at Arlington, May 5 at Hancock and May 13 at Rhinelander, and its peak about 11 days later. The later flights peak in mid- to late June, mid- to late July and mid-August in the south, a week or two later in the north.
 
 ## How to read it
 
-- **Plan spring plantings around the first window.** Plant after the spring flight's peak where you can; plantings made after mid-June usually suffer less damage than earlier ones.
-- **Row covers** keep flies off if they are in place before the flight. Don't use them where brassicas grew last year, since flies emerging from the soil would be trapped underneath.
-- **Soil insecticides** work only as prevention, at or just before planting, and last only four to five days, so they must go on while flies are laying eggs.
-- **The rating peaks with the flight, not with egg laying.** By VDIFN's description, egg laying peaks a few weeks after the flight, so roots remain at risk after the rating starts to fall.
-- **Use traps for later flights.** Yellow bowls of soapy water along field edges, checked every four to six days, show whether flies are active; rely on them rather than the model after the spring flight.
+- **Protect spring plantings through the first window.** Have a soil insecticide, treated seed or transplant drench, or row covers in place before the first flies emerge, and keep plantings protected until the window closes. Where you can, plant after the spring flight's peak.
+- **Row covers** keep flies off only if they go on before the flight. Don't use them where brassicas grew last year, since flies emerging from the soil would be trapped underneath.
+- **Soil treatments last only four to five days,** so time them to the window rather than to the calendar.
+- **The spring flight does the most damage.** NEWA, UW–Madison and Commercial Vegetable Production in Wisconsin all find the spring generation the largest and most harmful; later flights can damage late plantings and root crops. The model rates every flight alike, so judge the summer windows with yellow-bowl traps along field edges.
 
 The [cabbage maggot topic page](/topics/cabbage-maggot) explains the insect, its monitoring and its management in more detail.
 
 ## Validation and caveats
 
-- Draft (model version 0.1, beta).
-- Given the same degree days, the model's rating matches VDIFN's exactly, and its degree days match those of the calculator VDIFN used. This shows that AgWeather reproduces VDIFN, not that VDIFN's timing is right for Wisconsin.
-- **The spring flight agrees with the Wisconsin study.** The model's first window opens at 360 degree days; over five years in Eckenrode and Chapman's study, spring flies emerged at 290 to 365.
-- **The summer generation comes late.** The model's second window opens 1,521 degree days after the first; the study found a mean of 1,176 between generations in the field (1,058 to 1,261 by site and year), so the model's second flight is about 345 degree days later than the study puts it. On AgWeather's long-term averages (degree days for 1996 to 2025) at Arlington and Lancaster, it opens in mid-July, about two weeks after the late-June flight UW–Madison describes.
-- **There's no third flight.** The study trapped flies of three generations in a season, and Commercial Vegetable Production in Wisconsin counts three in the state. UW–Madison's third flight, at about 2,652 degree days, comes in early to mid-August in an average year at Arlington and Lancaster and falls inside the model's second window, without a peak of its own.
-- **Every window counts alike.** Commercial Vegetable Production in Wisconsin calls the spring generation the largest and most damaging, and the University of Minnesota finds the second generation's injury usually light; the model rates every generation's peak the same.
-- NEWA's cabbage maggot model, which counts degree days at a base of 40 °F, hasn't been compared with this one yet. MSU Enviroweather's counts from March 1 without a cutoff and puts the spring flight's peak at 565 to 716 degree days, near the model's 600.
+- Draft (model version 0.2, beta). Developed from trap catches in upstate New York in 1999 and 2000.
+- On the same weather at 34 Wisconsin NEWA stations in 2024 and 2025, the model's first flies and flight peaks fall within a day or two of NEWA's.
+- **Wisconsin's own study agrees on spring but not on summer.** In Eckenrode and Chapman's trap catches at Kenosha and Arlington (1965 to 1969), spring flies first emerged on about the same days as the model's first flies, or up to about 9 days later. But their generations took about a third longer than NEWA's, which would put each summer flight about two weeks later than the model shows, and they found three flights a season, not four. The model follows NEWA, and no Wisconsin trap counts are yet in hand to decide between them.
+- Every flight counts alike in the risk, though the spring flight does most of the damage.
+- The timing of egg laying and larvae comes from laboratory development times, not from field observations.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.
