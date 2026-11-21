@@ -11,7 +11,7 @@ summary: A migratory moth whose caterpillars feed in the tips of sweet corn ears
 image: images/corn-earworm.jpg
 image_credit: 'Corn earworm caterpillar feeding in the tip of a corn ear. Photo by Cyndy Sims (cyanocorax), via Wikimedia Commons (File:Helicoverpa zea larva.jpg, from Flickr), CC BY-SA 2.0 (https://creativecommons.org/licenses/by-sa/2.0/).'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Corn Earworm. University of Wisconsin–Madison, updated 2026.'
@@ -92,6 +92,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [corn earworm model](/models/corn-earworm) counts degree days at a base of 55 °F with an upper limit of 92 °F from August 1, and rates risk from 0 to 4 from 70 degree days, when eggs laid on that date hatch, to 440, when the caterpillars leave the ears, peaking at 275. It comes from VDIFN, the forecasting tool AgWeather replaces, and gives the same ratings as VDIFN for the same degree days. The study its numbers come from hasn't yet been read, and the model hasn't been compared with Wisconsin's trap counts.[^agweather-cew]
+The [corn earworm model](/models/corn-earworm) counts degree days at a base of 55 °F with an upper limit of 92 °F from egg laying, as USPest.org's model from Hartstack and colleagues (1976) does. Eggs hatch about 73 degree days after they are laid, and the caterpillars leave the ears to pupate at about 437. The model spreads the eggs over several weeks, as moths keep arriving, and rates the risk from the caterpillars in the ears.[^agweather-cew]
 
-August 1 stands in for the date you first find eggs on silks, which UW Vegetable Entomology says is typically around then.[^uw-vegento] Because the moths' arrival changes from year to year, a fixed date can be weeks off, and counting from August 1 misses the June flight that reaches early sweet corn. When you look up a single location, you can change the model's start date (its biofix) to the day you first find eggs on silks or first catch moths in your traps; maps count from August 1. Either way, keep timing sprays by your traps.
+Without your own date, the model starts on August 15. In DATCP's pheromone trap counts from 2021 to 2026, the main flight's first week of 35 or more moths came within a week of August 15 in two thirds of the sites and years, and a median 15 days after August 1, the old start.[^datcp-cew][^agweather-cew] Because the moths' arrival depends on winds from the south, a fixed date can still be weeks off, and it misses the June flight that reaches early sweet corn.[^umn-cew][^uw-hort] When you look up a single location, set the model's start date (its biofix) to the day you first find eggs on silks or see a significant flight in your traps; maps count from August 15. Either way, keep timing sprays by your traps.[^uw-vegento]

@@ -1,0 +1,944 @@
+year,site,county,week_end,count,note,source
+2021,Arlington,Columbia,2021-07-07,8,,CornEarwormCount2021.pdf
+2021,Arlington,Columbia,2021-07-14,0,,CornEarwormCount2021.pdf
+2021,Arlington,Columbia,2021-07-21,6,,CornEarwormCount2021.pdf
+2021,Arlington,Columbia,2021-07-28,10,,CornEarwormCount2021.pdf
+2021,Arlington,Columbia,2021-08-04,11,,CornEarwormCount2021.pdf
+2021,Arlington,Columbia,2021-08-11,22,,CornEarwormCount2021.pdf
+2021,Arlington,Columbia,2021-08-18,202,,CornEarwormCount2021.pdf
+2021,Arlington,Columbia,2021-08-25,381,,CornEarwormCount2021.pdf
+2021,Arlington,Columbia,2021-09-01,1579,,CornEarwormCount2021.pdf
+2021,Arlington,Columbia,2021-09-08,250,,CornEarwormCount2021.pdf
+2021,Arlington,Columbia,2021-09-15,,,CornEarwormCount2021.pdf
+2021,Arlington N,Columbia,2021-07-07,10,,CornEarwormCount2021.pdf
+2021,Arlington N,Columbia,2021-07-14,4,,CornEarwormCount2021.pdf
+2021,Arlington N,Columbia,2021-07-21,6,,CornEarwormCount2021.pdf
+2021,Arlington N,Columbia,2021-07-28,66,,CornEarwormCount2021.pdf
+2021,Arlington N,Columbia,2021-08-04,3,,CornEarwormCount2021.pdf
+2021,Arlington N,Columbia,2021-08-11,28,,CornEarwormCount2021.pdf
+2021,Arlington N,Columbia,2021-08-18,155,,CornEarwormCount2021.pdf
+2021,Arlington N,Columbia,2021-08-25,377,,CornEarwormCount2021.pdf
+2021,Arlington N,Columbia,2021-09-01,952,,CornEarwormCount2021.pdf
+2021,Arlington N,Columbia,2021-09-08,357,,CornEarwormCount2021.pdf
+2021,Arlington N,Columbia,2021-09-15,,,CornEarwormCount2021.pdf
+2021,Pardeeville,Columbia,2021-07-07,1,,CornEarwormCount2021.pdf
+2021,Pardeeville,Columbia,2021-07-14,0,,CornEarwormCount2021.pdf
+2021,Pardeeville,Columbia,2021-07-21,0,,CornEarwormCount2021.pdf
+2021,Pardeeville,Columbia,2021-07-28,0,,CornEarwormCount2021.pdf
+2021,Pardeeville,Columbia,2021-08-04,0,,CornEarwormCount2021.pdf
+2021,Pardeeville,Columbia,2021-08-11,0,,CornEarwormCount2021.pdf
+2021,Pardeeville,Columbia,2021-08-18,1,,CornEarwormCount2021.pdf
+2021,Pardeeville,Columbia,2021-08-25,4,,CornEarwormCount2021.pdf
+2021,Pardeeville,Columbia,2021-09-01,15,,CornEarwormCount2021.pdf
+2021,Pardeeville,Columbia,2021-09-08,16,,CornEarwormCount2021.pdf
+2021,Pardeeville,Columbia,2021-09-15,0,,CornEarwormCount2021.pdf
+2021,Bristol,Dane,2021-07-07,,,CornEarwormCount2021.pdf
+2021,Bristol,Dane,2021-07-14,5,,CornEarwormCount2021.pdf
+2021,Bristol,Dane,2021-07-21,0,,CornEarwormCount2021.pdf
+2021,Bristol,Dane,2021-07-28,2,,CornEarwormCount2021.pdf
+2021,Bristol,Dane,2021-08-04,3,,CornEarwormCount2021.pdf
+2021,Bristol,Dane,2021-08-11,2,,CornEarwormCount2021.pdf
+2021,Bristol,Dane,2021-08-18,,,CornEarwormCount2021.pdf
+2021,Bristol,Dane,2021-08-25,60,,CornEarwormCount2021.pdf
+2021,Bristol,Dane,2021-09-01,,,CornEarwormCount2021.pdf
+2021,Bristol,Dane,2021-09-08,,,CornEarwormCount2021.pdf
+2021,Bristol,Dane,2021-09-15,,,CornEarwormCount2021.pdf
+2021,Cottage Grove,Dane,2021-07-07,,,CornEarwormCount2021.pdf
+2021,Cottage Grove,Dane,2021-07-14,0,,CornEarwormCount2021.pdf
+2021,Cottage Grove,Dane,2021-07-21,3,,CornEarwormCount2021.pdf
+2021,Cottage Grove,Dane,2021-07-28,12,,CornEarwormCount2021.pdf
+2021,Cottage Grove,Dane,2021-08-04,4,,CornEarwormCount2021.pdf
+2021,Cottage Grove,Dane,2021-08-11,3,,CornEarwormCount2021.pdf
+2021,Cottage Grove,Dane,2021-08-18,23,,CornEarwormCount2021.pdf
+2021,Cottage Grove,Dane,2021-08-25,56,,CornEarwormCount2021.pdf
+2021,Cottage Grove,Dane,2021-09-01,172,,CornEarwormCount2021.pdf
+2021,Cottage Grove,Dane,2021-09-08,,,CornEarwormCount2021.pdf
+2021,Cottage Grove,Dane,2021-09-15,,,CornEarwormCount2021.pdf
+2021,Sun Prairie East,Dane,2021-07-07,,,CornEarwormCount2021.pdf
+2021,Sun Prairie East,Dane,2021-07-14,1,,CornEarwormCount2021.pdf
+2021,Sun Prairie East,Dane,2021-07-21,0,,CornEarwormCount2021.pdf
+2021,Sun Prairie East,Dane,2021-07-28,7,,CornEarwormCount2021.pdf
+2021,Sun Prairie East,Dane,2021-08-04,1,,CornEarwormCount2021.pdf
+2021,Sun Prairie East,Dane,2021-08-11,5,,CornEarwormCount2021.pdf
+2021,Sun Prairie East,Dane,2021-08-18,,,CornEarwormCount2021.pdf
+2021,Sun Prairie East,Dane,2021-08-25,8,,CornEarwormCount2021.pdf
+2021,Sun Prairie East,Dane,2021-09-01,62,,CornEarwormCount2021.pdf
+2021,Sun Prairie East,Dane,2021-09-08,,,CornEarwormCount2021.pdf
+2021,Sun Prairie East,Dane,2021-09-15,,,CornEarwormCount2021.pdf
+2021,Sun Prairie North,Dane,2021-07-07,,,CornEarwormCount2021.pdf
+2021,Sun Prairie North,Dane,2021-07-14,3,,CornEarwormCount2021.pdf
+2021,Sun Prairie North,Dane,2021-07-21,3,,CornEarwormCount2021.pdf
+2021,Sun Prairie North,Dane,2021-07-28,2,,CornEarwormCount2021.pdf
+2021,Sun Prairie North,Dane,2021-08-04,2,,CornEarwormCount2021.pdf
+2021,Sun Prairie North,Dane,2021-08-11,1,,CornEarwormCount2021.pdf
+2021,Sun Prairie North,Dane,2021-08-18,26,,CornEarwormCount2021.pdf
+2021,Sun Prairie North,Dane,2021-08-25,14,,CornEarwormCount2021.pdf
+2021,Sun Prairie North,Dane,2021-09-01,145,,CornEarwormCount2021.pdf
+2021,Sun Prairie North,Dane,2021-09-08,,,CornEarwormCount2021.pdf
+2021,Sun Prairie North,Dane,2021-09-15,,,CornEarwormCount2021.pdf
+2021,Beaver Dam,Dodge,2021-07-07,4,,CornEarwormCount2021.pdf
+2021,Beaver Dam,Dodge,2021-07-14,2,,CornEarwormCount2021.pdf
+2021,Beaver Dam,Dodge,2021-07-21,9,,CornEarwormCount2021.pdf
+2021,Beaver Dam,Dodge,2021-07-28,35,,CornEarwormCount2021.pdf
+2021,Beaver Dam,Dodge,2021-08-04,9,,CornEarwormCount2021.pdf
+2021,Beaver Dam,Dodge,2021-08-11,18,,CornEarwormCount2021.pdf
+2021,Beaver Dam,Dodge,2021-08-18,25,,CornEarwormCount2021.pdf
+2021,Beaver Dam,Dodge,2021-08-25,129,,CornEarwormCount2021.pdf
+2021,Beaver Dam,Dodge,2021-09-01,230,,CornEarwormCount2021.pdf
+2021,Beaver Dam,Dodge,2021-09-08,68,,CornEarwormCount2021.pdf
+2021,Beaver Dam,Dodge,2021-09-15,65,,CornEarwormCount2021.pdf
+2021,Mayville,Dodge,2021-07-07,10,,CornEarwormCount2021.pdf
+2021,Mayville,Dodge,2021-07-14,3,,CornEarwormCount2021.pdf
+2021,Mayville,Dodge,2021-07-21,7,,CornEarwormCount2021.pdf
+2021,Mayville,Dodge,2021-07-28,27,,CornEarwormCount2021.pdf
+2021,Mayville,Dodge,2021-08-04,24,,CornEarwormCount2021.pdf
+2021,Mayville,Dodge,2021-08-11,30,,CornEarwormCount2021.pdf
+2021,Mayville,Dodge,2021-08-18,115,,CornEarwormCount2021.pdf
+2021,Mayville,Dodge,2021-08-25,704,,CornEarwormCount2021.pdf
+2021,Mayville,Dodge,2021-09-01,854,,CornEarwormCount2021.pdf
+2021,Mayville,Dodge,2021-09-08,334,,CornEarwormCount2021.pdf
+2021,Mayville,Dodge,2021-09-15,48,,CornEarwormCount2021.pdf
+2021,Watertown,Dodge,2021-07-07,,,CornEarwormCount2021.pdf
+2021,Watertown,Dodge,2021-07-14,20,,CornEarwormCount2021.pdf
+2021,Watertown,Dodge,2021-07-21,4,,CornEarwormCount2021.pdf
+2021,Watertown,Dodge,2021-07-28,3,,CornEarwormCount2021.pdf
+2021,Watertown,Dodge,2021-08-04,2,,CornEarwormCount2021.pdf
+2021,Watertown,Dodge,2021-08-11,4,,CornEarwormCount2021.pdf
+2021,Watertown,Dodge,2021-08-18,60,,CornEarwormCount2021.pdf
+2021,Watertown,Dodge,2021-08-25,67,,CornEarwormCount2021.pdf
+2021,Watertown,Dodge,2021-09-01,114,,CornEarwormCount2021.pdf
+2021,Watertown,Dodge,2021-09-08,,,CornEarwormCount2021.pdf
+2021,Watertown,Dodge,2021-09-15,,,CornEarwormCount2021.pdf
+2021,Ripon,Fond du Lac,2021-07-07,5,,CornEarwormCount2021.pdf
+2021,Ripon,Fond du Lac,2021-07-14,2,,CornEarwormCount2021.pdf
+2021,Ripon,Fond du Lac,2021-07-21,1,,CornEarwormCount2021.pdf
+2021,Ripon,Fond du Lac,2021-07-28,6,,CornEarwormCount2021.pdf
+2021,Ripon,Fond du Lac,2021-08-04,0,,CornEarwormCount2021.pdf
+2021,Ripon,Fond du Lac,2021-08-11,9,,CornEarwormCount2021.pdf
+2021,Ripon,Fond du Lac,2021-08-18,106,,CornEarwormCount2021.pdf
+2021,Ripon,Fond du Lac,2021-08-25,858,,CornEarwormCount2021.pdf
+2021,Ripon,Fond du Lac,2021-09-01,960,,CornEarwormCount2021.pdf
+2021,Ripon,Fond du Lac,2021-09-08,891,,CornEarwormCount2021.pdf
+2021,Ripon,Fond du Lac,2021-09-15,260,,CornEarwormCount2021.pdf
+2021,Manitowoc,Manitowoc,2021-07-07,,,CornEarwormCount2021.pdf
+2021,Manitowoc,Manitowoc,2021-07-14,1,,CornEarwormCount2021.pdf
+2021,Manitowoc,Manitowoc,2021-07-21,0,,CornEarwormCount2021.pdf
+2021,Manitowoc,Manitowoc,2021-07-28,8,,CornEarwormCount2021.pdf
+2021,Manitowoc,Manitowoc,2021-08-04,1,,CornEarwormCount2021.pdf
+2021,Manitowoc,Manitowoc,2021-08-11,7,,CornEarwormCount2021.pdf
+2021,Manitowoc,Manitowoc,2021-08-18,13,,CornEarwormCount2021.pdf
+2021,Manitowoc,Manitowoc,2021-08-25,38,,CornEarwormCount2021.pdf
+2021,Manitowoc,Manitowoc,2021-09-01,250,,CornEarwormCount2021.pdf
+2021,Manitowoc,Manitowoc,2021-09-08,,,CornEarwormCount2021.pdf
+2021,Manitowoc,Manitowoc,2021-09-15,,,CornEarwormCount2021.pdf
+2021,Wausau,Marathon,2021-07-07,0,,CornEarwormCount2021.pdf
+2021,Wausau,Marathon,2021-07-14,0,,CornEarwormCount2021.pdf
+2021,Wausau,Marathon,2021-07-21,0,,CornEarwormCount2021.pdf
+2021,Wausau,Marathon,2021-07-28,0,,CornEarwormCount2021.pdf
+2021,Wausau,Marathon,2021-08-04,0,,CornEarwormCount2021.pdf
+2021,Wausau,Marathon,2021-08-11,0,,CornEarwormCount2021.pdf
+2021,Wausau,Marathon,2021-08-18,0,,CornEarwormCount2021.pdf
+2021,Wausau,Marathon,2021-08-25,0,,CornEarwormCount2021.pdf
+2021,Wausau,Marathon,2021-09-01,6,,CornEarwormCount2021.pdf
+2021,Wausau,Marathon,2021-09-08,4,,CornEarwormCount2021.pdf
+2021,Wausau,Marathon,2021-09-15,0,,CornEarwormCount2021.pdf
+2021,Coon Valley,Vernon,2021-07-07,,,CornEarwormCount2021.pdf
+2021,Coon Valley,Vernon,2021-07-14,0,,CornEarwormCount2021.pdf
+2021,Coon Valley,Vernon,2021-07-21,0,,CornEarwormCount2021.pdf
+2021,Coon Valley,Vernon,2021-07-28,1,,CornEarwormCount2021.pdf
+2021,Coon Valley,Vernon,2021-08-04,0,,CornEarwormCount2021.pdf
+2021,Coon Valley,Vernon,2021-08-11,9,,CornEarwormCount2021.pdf
+2021,Coon Valley,Vernon,2021-08-18,18,,CornEarwormCount2021.pdf
+2021,Coon Valley,Vernon,2021-08-25,38,,CornEarwormCount2021.pdf
+2021,Coon Valley,Vernon,2021-09-01,94,,CornEarwormCount2021.pdf
+2021,Coon Valley,Vernon,2021-09-08,,,CornEarwormCount2021.pdf
+2021,Coon Valley,Vernon,2021-09-15,,,CornEarwormCount2021.pdf
+2021,Hancock,Waushara,2021-07-07,0,,CornEarwormCount2021.pdf
+2021,Hancock,Waushara,2021-07-14,,,CornEarwormCount2021.pdf
+2021,Hancock,Waushara,2021-07-21,0,,CornEarwormCount2021.pdf
+2021,Hancock,Waushara,2021-07-28,0,,CornEarwormCount2021.pdf
+2021,Hancock,Waushara,2021-08-04,0,,CornEarwormCount2021.pdf
+2021,Hancock,Waushara,2021-08-11,7,,CornEarwormCount2021.pdf
+2021,Hancock,Waushara,2021-08-18,32,,CornEarwormCount2021.pdf
+2021,Hancock,Waushara,2021-08-25,30,,CornEarwormCount2021.pdf
+2021,Hancock,Waushara,2021-09-01,57,,CornEarwormCount2021.pdf
+2021,Hancock,Waushara,2021-09-08,,,CornEarwormCount2021.pdf
+2021,Hancock,Waushara,2021-09-15,,,CornEarwormCount2021.pdf
+2021,Marshfield,Wood,2021-07-07,1,,CornEarwormCount2021.pdf
+2021,Marshfield,Wood,2021-07-14,1,,CornEarwormCount2021.pdf
+2021,Marshfield,Wood,2021-07-21,2,,CornEarwormCount2021.pdf
+2021,Marshfield,Wood,2021-07-28,0,,CornEarwormCount2021.pdf
+2021,Marshfield,Wood,2021-08-04,0,,CornEarwormCount2021.pdf
+2021,Marshfield,Wood,2021-08-11,0,,CornEarwormCount2021.pdf
+2021,Marshfield,Wood,2021-08-18,0,,CornEarwormCount2021.pdf
+2021,Marshfield,Wood,2021-08-25,3,,CornEarwormCount2021.pdf
+2021,Marshfield,Wood,2021-09-01,0,,CornEarwormCount2021.pdf
+2021,Marshfield,Wood,2021-09-08,2,,CornEarwormCount2021.pdf
+2021,Marshfield,Wood,2021-09-15,0,,CornEarwormCount2021.pdf
+2022,Pardeeville,Columbia,2022-07-14,0,,2022CornEarwormCounts110922end.pdf
+2022,Pardeeville,Columbia,2022-07-21,0,,2022CornEarwormCounts110922end.pdf
+2022,Pardeeville,Columbia,2022-07-28,0,,2022CornEarwormCounts110922end.pdf
+2022,Pardeeville,Columbia,2022-08-04,0,,2022CornEarwormCounts110922end.pdf
+2022,Pardeeville,Columbia,2022-08-11,7,,2022CornEarwormCounts110922end.pdf
+2022,Pardeeville,Columbia,2022-08-18,1,,2022CornEarwormCounts110922end.pdf
+2022,Pardeeville,Columbia,2022-08-25,2,,2022CornEarwormCounts110922end.pdf
+2022,Pardeeville,Columbia,2022-09-01,1,,2022CornEarwormCounts110922end.pdf
+2022,Pardeeville,Columbia,2022-09-08,4,,2022CornEarwormCounts110922end.pdf
+2022,Pardeeville,Columbia,2022-09-15,3,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie North,Dane,2022-07-14,,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie North,Dane,2022-07-21,3,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie North,Dane,2022-07-28,1,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie North,Dane,2022-08-04,3,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie North,Dane,2022-08-11,2,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie North,Dane,2022-08-18,14,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie North,Dane,2022-08-25,9,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie North,Dane,2022-09-01,18,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie North,Dane,2022-09-08,248,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie North,Dane,2022-09-15,,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie Northwest,Dane,2022-07-14,,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie Northwest,Dane,2022-07-21,3,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie Northwest,Dane,2022-07-28,12,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie Northwest,Dane,2022-08-04,14,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie Northwest,Dane,2022-08-11,19,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie Northwest,Dane,2022-08-18,18,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie Northwest,Dane,2022-08-25,17,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie Northwest,Dane,2022-09-01,101,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie Northwest,Dane,2022-09-08,49,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie Northwest,Dane,2022-09-15,,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie South,Dane,2022-07-14,,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie South,Dane,2022-07-21,3,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie South,Dane,2022-07-28,2,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie South,Dane,2022-08-04,11,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie South,Dane,2022-08-11,7,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie South,Dane,2022-08-18,6,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie South,Dane,2022-08-25,3,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie South,Dane,2022-09-01,36,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie South,Dane,2022-09-08,202,,2022CornEarwormCounts110922end.pdf
+2022,Sun Prairie South,Dane,2022-09-15,,,2022CornEarwormCounts110922end.pdf
+2022,Beaver Dam,Dodge,2022-07-14,,,2022CornEarwormCounts110922end.pdf
+2022,Beaver Dam,Dodge,2022-07-21,0,,2022CornEarwormCounts110922end.pdf
+2022,Beaver Dam,Dodge,2022-07-28,4,,2022CornEarwormCounts110922end.pdf
+2022,Beaver Dam,Dodge,2022-08-04,12,,2022CornEarwormCounts110922end.pdf
+2022,Beaver Dam,Dodge,2022-08-11,18,,2022CornEarwormCounts110922end.pdf
+2022,Beaver Dam,Dodge,2022-08-18,27,,2022CornEarwormCounts110922end.pdf
+2022,Beaver Dam,Dodge,2022-08-25,33,,2022CornEarwormCounts110922end.pdf
+2022,Beaver Dam,Dodge,2022-09-01,85,,2022CornEarwormCounts110922end.pdf
+2022,Beaver Dam,Dodge,2022-09-08,170,,2022CornEarwormCounts110922end.pdf
+2022,Beaver Dam,Dodge,2022-09-15,,,2022CornEarwormCounts110922end.pdf
+2022,Mayville,Dodge,2022-07-14,26,,2022CornEarwormCounts110922end.pdf
+2022,Mayville,Dodge,2022-07-21,21,,2022CornEarwormCounts110922end.pdf
+2022,Mayville,Dodge,2022-07-28,35,,2022CornEarwormCounts110922end.pdf
+2022,Mayville,Dodge,2022-08-04,42,,2022CornEarwormCounts110922end.pdf
+2022,Mayville,Dodge,2022-08-11,23,,2022CornEarwormCounts110922end.pdf
+2022,Mayville,Dodge,2022-08-18,20,,2022CornEarwormCounts110922end.pdf
+2022,Mayville,Dodge,2022-08-25,55,,2022CornEarwormCounts110922end.pdf
+2022,Mayville,Dodge,2022-09-01,277,,2022CornEarwormCounts110922end.pdf
+2022,Mayville,Dodge,2022-09-08,710,,2022CornEarwormCounts110922end.pdf
+2022,Mayville,Dodge,2022-09-15,,,2022CornEarwormCounts110922end.pdf
+2022,Watertown,Dodge,2022-07-14,,,2022CornEarwormCounts110922end.pdf
+2022,Watertown,Dodge,2022-07-21,3,,2022CornEarwormCounts110922end.pdf
+2022,Watertown,Dodge,2022-07-28,2,,2022CornEarwormCounts110922end.pdf
+2022,Watertown,Dodge,2022-08-04,2,,2022CornEarwormCounts110922end.pdf
+2022,Watertown,Dodge,2022-08-11,3,,2022CornEarwormCounts110922end.pdf
+2022,Watertown,Dodge,2022-08-18,3,,2022CornEarwormCounts110922end.pdf
+2022,Watertown,Dodge,2022-08-25,1,,2022CornEarwormCounts110922end.pdf
+2022,Watertown,Dodge,2022-09-01,25,,2022CornEarwormCounts110922end.pdf
+2022,Watertown,Dodge,2022-09-08,23,,2022CornEarwormCounts110922end.pdf
+2022,Watertown,Dodge,2022-09-15,,,2022CornEarwormCounts110922end.pdf
+2022,Ripon,Fond du Lac,2022-07-14,14,,2022CornEarwormCounts110922end.pdf
+2022,Ripon,Fond du Lac,2022-07-21,3,,2022CornEarwormCounts110922end.pdf
+2022,Ripon,Fond du Lac,2022-07-28,19,,2022CornEarwormCounts110922end.pdf
+2022,Ripon,Fond du Lac,2022-08-04,18,,2022CornEarwormCounts110922end.pdf
+2022,Ripon,Fond du Lac,2022-08-11,14,,2022CornEarwormCounts110922end.pdf
+2022,Ripon,Fond du Lac,2022-08-18,4,,2022CornEarwormCounts110922end.pdf
+2022,Ripon,Fond du Lac,2022-08-25,115,,2022CornEarwormCounts110922end.pdf
+2022,Ripon,Fond du Lac,2022-09-01,659,,2022CornEarwormCounts110922end.pdf
+2022,Ripon,Fond du Lac,2022-09-08,549,,2022CornEarwormCounts110922end.pdf
+2022,Ripon,Fond du Lac,2022-09-15,,,2022CornEarwormCounts110922end.pdf
+2022,Manitowoc,Manitowoc,2022-07-14,0,,2022CornEarwormCounts110922end.pdf
+2022,Manitowoc,Manitowoc,2022-07-21,0,,2022CornEarwormCounts110922end.pdf
+2022,Manitowoc,Manitowoc,2022-07-28,0,,2022CornEarwormCounts110922end.pdf
+2022,Manitowoc,Manitowoc,2022-08-04,0,,2022CornEarwormCounts110922end.pdf
+2022,Manitowoc,Manitowoc,2022-08-11,0,,2022CornEarwormCounts110922end.pdf
+2022,Manitowoc,Manitowoc,2022-08-18,3,,2022CornEarwormCounts110922end.pdf
+2022,Manitowoc,Manitowoc,2022-08-25,3,,2022CornEarwormCounts110922end.pdf
+2022,Manitowoc,Manitowoc,2022-09-01,34,,2022CornEarwormCounts110922end.pdf
+2022,Manitowoc,Manitowoc,2022-09-08,27,,2022CornEarwormCounts110922end.pdf
+2022,Manitowoc,Manitowoc,2022-09-15,,,2022CornEarwormCounts110922end.pdf
+2022,Wausau,Marathon,2022-07-14,0,,2022CornEarwormCounts110922end.pdf
+2022,Wausau,Marathon,2022-07-21,0,,2022CornEarwormCounts110922end.pdf
+2022,Wausau,Marathon,2022-07-28,0,,2022CornEarwormCounts110922end.pdf
+2022,Wausau,Marathon,2022-08-04,0,,2022CornEarwormCounts110922end.pdf
+2022,Wausau,Marathon,2022-08-11,0,,2022CornEarwormCounts110922end.pdf
+2022,Wausau,Marathon,2022-08-18,,,2022CornEarwormCounts110922end.pdf
+2022,Wausau,Marathon,2022-08-25,0,,2022CornEarwormCounts110922end.pdf
+2022,Wausau,Marathon,2022-09-01,6,,2022CornEarwormCounts110922end.pdf
+2022,Wausau,Marathon,2022-09-08,1,,2022CornEarwormCounts110922end.pdf
+2022,Wausau,Marathon,2022-09-15,1,,2022CornEarwormCounts110922end.pdf
+2022,Coon Valley,Vernon,2022-07-14,0,,2022CornEarwormCounts110922end.pdf
+2022,Coon Valley,Vernon,2022-07-21,0,,2022CornEarwormCounts110922end.pdf
+2022,Coon Valley,Vernon,2022-07-28,0,,2022CornEarwormCounts110922end.pdf
+2022,Coon Valley,Vernon,2022-08-04,,,2022CornEarwormCounts110922end.pdf
+2022,Coon Valley,Vernon,2022-08-11,0,,2022CornEarwormCounts110922end.pdf
+2022,Coon Valley,Vernon,2022-08-18,5,,2022CornEarwormCounts110922end.pdf
+2022,Coon Valley,Vernon,2022-08-25,12,,2022CornEarwormCounts110922end.pdf
+2022,Coon Valley,Vernon,2022-09-01,8,,2022CornEarwormCounts110922end.pdf
+2022,Coon Valley,Vernon,2022-09-08,22,,2022CornEarwormCounts110922end.pdf
+2022,Coon Valley,Vernon,2022-09-15,0,,2022CornEarwormCounts110922end.pdf
+2022,Hancock,Waushara,2022-07-14,0,,2022CornEarwormCounts110922end.pdf
+2022,Hancock,Waushara,2022-07-21,4,,2022CornEarwormCounts110922end.pdf
+2022,Hancock,Waushara,2022-07-28,3,,2022CornEarwormCounts110922end.pdf
+2022,Hancock,Waushara,2022-08-04,3,,2022CornEarwormCounts110922end.pdf
+2022,Hancock,Waushara,2022-08-11,12,,2022CornEarwormCounts110922end.pdf
+2022,Hancock,Waushara,2022-08-18,6,,2022CornEarwormCounts110922end.pdf
+2022,Hancock,Waushara,2022-08-25,5,,2022CornEarwormCounts110922end.pdf
+2022,Hancock,Waushara,2022-09-01,20,,2022CornEarwormCounts110922end.pdf
+2022,Hancock,Waushara,2022-09-08,75,,2022CornEarwormCounts110922end.pdf
+2022,Hancock,Waushara,2022-09-15,31,,2022CornEarwormCounts110922end.pdf
+2022,Hancock,Waushara,2022-09-22,52,"from the PDF's footnote: ""Additional report for Hancock: Sep 22 - 52 moths""",2022CornEarwormCounts110922end.pdf
+2022,Marshfield,Wood,2022-07-14,0,,2022CornEarwormCounts110922end.pdf
+2022,Marshfield,Wood,2022-07-21,2,,2022CornEarwormCounts110922end.pdf
+2022,Marshfield,Wood,2022-07-28,1,,2022CornEarwormCounts110922end.pdf
+2022,Marshfield,Wood,2022-08-04,3,,2022CornEarwormCounts110922end.pdf
+2022,Marshfield,Wood,2022-08-11,0,,2022CornEarwormCounts110922end.pdf
+2022,Marshfield,Wood,2022-08-18,0,,2022CornEarwormCounts110922end.pdf
+2022,Marshfield,Wood,2022-08-25,0,,2022CornEarwormCounts110922end.pdf
+2022,Marshfield,Wood,2022-09-01,0,,2022CornEarwormCounts110922end.pdf
+2022,Marshfield,Wood,2022-09-08,,,2022CornEarwormCounts110922end.pdf
+2022,Marshfield,Wood,2022-09-15,,,2022CornEarwormCounts110922end.pdf
+2023,Pardeeville,Columbia,2023-07-13,1,,2023CornEarwormSummary.pdf
+2023,Pardeeville,Columbia,2023-07-20,0,,2023CornEarwormSummary.pdf
+2023,Pardeeville,Columbia,2023-07-27,0,,2023CornEarwormSummary.pdf
+2023,Pardeeville,Columbia,2023-08-03,0,,2023CornEarwormSummary.pdf
+2023,Pardeeville,Columbia,2023-08-10,1,,2023CornEarwormSummary.pdf
+2023,Pardeeville,Columbia,2023-08-17,3,,2023CornEarwormSummary.pdf
+2023,Pardeeville,Columbia,2023-08-24,225,,2023CornEarwormSummary.pdf
+2023,Pardeeville,Columbia,2023-08-31,650,,2023CornEarwormSummary.pdf
+2023,Pardeeville,Columbia,2023-09-07,1044,,2023CornEarwormSummary.pdf
+2023,Pardeeville,Columbia,2023-09-14,198,,2023CornEarwormSummary.pdf
+2023,Pardeeville,Columbia,2023-09-21,145,,2023CornEarwormSummary.pdf
+2023,East Bristol,Dane,2023-07-13,,,2023CornEarwormSummary.pdf
+2023,East Bristol,Dane,2023-07-20,13,,2023CornEarwormSummary.pdf
+2023,East Bristol,Dane,2023-07-27,3,,2023CornEarwormSummary.pdf
+2023,East Bristol,Dane,2023-08-03,,,2023CornEarwormSummary.pdf
+2023,East Bristol,Dane,2023-08-10,2,,2023CornEarwormSummary.pdf
+2023,East Bristol,Dane,2023-08-17,2,,2023CornEarwormSummary.pdf
+2023,East Bristol,Dane,2023-08-24,45,,2023CornEarwormSummary.pdf
+2023,East Bristol,Dane,2023-08-31,375,,2023CornEarwormSummary.pdf
+2023,East Bristol,Dane,2023-09-07,550,,2023CornEarwormSummary.pdf
+2023,East Bristol,Dane,2023-09-14,240,,2023CornEarwormSummary.pdf
+2023,East Bristol,Dane,2023-09-21,,,2023CornEarwormSummary.pdf
+2023,Sun Prairie,Dane,2023-07-13,,,2023CornEarwormSummary.pdf
+2023,Sun Prairie,Dane,2023-07-20,5,,2023CornEarwormSummary.pdf
+2023,Sun Prairie,Dane,2023-07-27,4,,2023CornEarwormSummary.pdf
+2023,Sun Prairie,Dane,2023-08-03,1,,2023CornEarwormSummary.pdf
+2023,Sun Prairie,Dane,2023-08-10,0,,2023CornEarwormSummary.pdf
+2023,Sun Prairie,Dane,2023-08-17,2,,2023CornEarwormSummary.pdf
+2023,Sun Prairie,Dane,2023-08-24,48,,2023CornEarwormSummary.pdf
+2023,Sun Prairie,Dane,2023-08-31,180,,2023CornEarwormSummary.pdf
+2023,Sun Prairie,Dane,2023-09-07,225,,2023CornEarwormSummary.pdf
+2023,Sun Prairie,Dane,2023-09-14,82,,2023CornEarwormSummary.pdf
+2023,Sun Prairie,Dane,2023-09-21,,,2023CornEarwormSummary.pdf
+2023,Beaver Dam,Dodge,2023-07-13,1,,2023CornEarwormSummary.pdf
+2023,Beaver Dam,Dodge,2023-07-20,0,,2023CornEarwormSummary.pdf
+2023,Beaver Dam,Dodge,2023-07-27,0,,2023CornEarwormSummary.pdf
+2023,Beaver Dam,Dodge,2023-08-03,2,,2023CornEarwormSummary.pdf
+2023,Beaver Dam,Dodge,2023-08-10,1,,2023CornEarwormSummary.pdf
+2023,Beaver Dam,Dodge,2023-08-17,0,,2023CornEarwormSummary.pdf
+2023,Beaver Dam,Dodge,2023-08-24,586,,2023CornEarwormSummary.pdf
+2023,Beaver Dam,Dodge,2023-08-31,1711,,2023CornEarwormSummary.pdf
+2023,Beaver Dam,Dodge,2023-09-07,1019,,2023CornEarwormSummary.pdf
+2023,Beaver Dam,Dodge,2023-09-14,504,,2023CornEarwormSummary.pdf
+2023,Beaver Dam,Dodge,2023-09-21,721,,2023CornEarwormSummary.pdf
+2023,Mayville,Dodge,2023-07-13,5,,2023CornEarwormSummary.pdf
+2023,Mayville,Dodge,2023-07-20,2,,2023CornEarwormSummary.pdf
+2023,Mayville,Dodge,2023-07-27,1,,2023CornEarwormSummary.pdf
+2023,Mayville,Dodge,2023-08-03,0,,2023CornEarwormSummary.pdf
+2023,Mayville,Dodge,2023-08-10,0,,2023CornEarwormSummary.pdf
+2023,Mayville,Dodge,2023-08-17,0,,2023CornEarwormSummary.pdf
+2023,Mayville,Dodge,2023-08-24,695,,2023CornEarwormSummary.pdf
+2023,Mayville,Dodge,2023-08-31,1050,,2023CornEarwormSummary.pdf
+2023,Mayville,Dodge,2023-09-07,986,,2023CornEarwormSummary.pdf
+2023,Mayville,Dodge,2023-09-14,223,,2023CornEarwormSummary.pdf
+2023,Mayville,Dodge,2023-09-21,256,,2023CornEarwormSummary.pdf
+2023,Watertown,Dodge,2023-07-13,,,2023CornEarwormSummary.pdf
+2023,Watertown,Dodge,2023-07-20,1,,2023CornEarwormSummary.pdf
+2023,Watertown,Dodge,2023-07-27,4,,2023CornEarwormSummary.pdf
+2023,Watertown,Dodge,2023-08-03,-,printed as a dash: no report,2023CornEarwormSummary.pdf
+2023,Watertown,Dodge,2023-08-10,1,,2023CornEarwormSummary.pdf
+2023,Watertown,Dodge,2023-08-17,0,,2023CornEarwormSummary.pdf
+2023,Watertown,Dodge,2023-08-24,5,,2023CornEarwormSummary.pdf
+2023,Watertown,Dodge,2023-08-31,92,,2023CornEarwormSummary.pdf
+2023,Watertown,Dodge,2023-09-07,46,,2023CornEarwormSummary.pdf
+2023,Watertown,Dodge,2023-09-14,75,,2023CornEarwormSummary.pdf
+2023,Watertown,Dodge,2023-09-21,,,2023CornEarwormSummary.pdf
+2023,Ripon,Fond du Lac,2023-07-13,2,,2023CornEarwormSummary.pdf
+2023,Ripon,Fond du Lac,2023-07-20,7,,2023CornEarwormSummary.pdf
+2023,Ripon,Fond du Lac,2023-07-27,4,,2023CornEarwormSummary.pdf
+2023,Ripon,Fond du Lac,2023-08-03,0,,2023CornEarwormSummary.pdf
+2023,Ripon,Fond du Lac,2023-08-10,1,,2023CornEarwormSummary.pdf
+2023,Ripon,Fond du Lac,2023-08-17,1,,2023CornEarwormSummary.pdf
+2023,Ripon,Fond du Lac,2023-08-24,203,,2023CornEarwormSummary.pdf
+2023,Ripon,Fond du Lac,2023-08-31,671,,2023CornEarwormSummary.pdf
+2023,Ripon,Fond du Lac,2023-09-07,531,,2023CornEarwormSummary.pdf
+2023,Ripon,Fond du Lac,2023-09-14,39,,2023CornEarwormSummary.pdf
+2023,Ripon,Fond du Lac,2023-09-21,,,2023CornEarwormSummary.pdf
+2023,Manitowoc,Manitowoc,2023-07-13,,,2023CornEarwormSummary.pdf
+2023,Manitowoc,Manitowoc,2023-07-20,1,,2023CornEarwormSummary.pdf
+2023,Manitowoc,Manitowoc,2023-07-27,1,,2023CornEarwormSummary.pdf
+2023,Manitowoc,Manitowoc,2023-08-03,0,,2023CornEarwormSummary.pdf
+2023,Manitowoc,Manitowoc,2023-08-10,,,2023CornEarwormSummary.pdf
+2023,Manitowoc,Manitowoc,2023-08-17,0,,2023CornEarwormSummary.pdf
+2023,Manitowoc,Manitowoc,2023-08-24,23,,2023CornEarwormSummary.pdf
+2023,Manitowoc,Manitowoc,2023-08-31,256,,2023CornEarwormSummary.pdf
+2023,Manitowoc,Manitowoc,2023-09-07,,,2023CornEarwormSummary.pdf
+2023,Manitowoc,Manitowoc,2023-09-14,,,2023CornEarwormSummary.pdf
+2023,Manitowoc,Manitowoc,2023-09-21,,,2023CornEarwormSummary.pdf
+2023,Wausau,Marathon,2023-07-13,0,,2023CornEarwormSummary.pdf
+2023,Wausau,Marathon,2023-07-20,5,,2023CornEarwormSummary.pdf
+2023,Wausau,Marathon,2023-07-27,5,,2023CornEarwormSummary.pdf
+2023,Wausau,Marathon,2023-08-03,0,,2023CornEarwormSummary.pdf
+2023,Wausau,Marathon,2023-08-10,0,,2023CornEarwormSummary.pdf
+2023,Wausau,Marathon,2023-08-17,0,,2023CornEarwormSummary.pdf
+2023,Wausau,Marathon,2023-08-24,1,,2023CornEarwormSummary.pdf
+2023,Wausau,Marathon,2023-08-31,0,,2023CornEarwormSummary.pdf
+2023,Wausau,Marathon,2023-09-07,0,,2023CornEarwormSummary.pdf
+2023,Wausau,Marathon,2023-09-14,0,,2023CornEarwormSummary.pdf
+2023,Wausau,Marathon,2023-09-21,0,,2023CornEarwormSummary.pdf
+2023,Coon Valley,Vernon,2023-07-13,0,,2023CornEarwormSummary.pdf
+2023,Coon Valley,Vernon,2023-07-20,0,,2023CornEarwormSummary.pdf
+2023,Coon Valley,Vernon,2023-07-27,0,,2023CornEarwormSummary.pdf
+2023,Coon Valley,Vernon,2023-08-03,0,,2023CornEarwormSummary.pdf
+2023,Coon Valley,Vernon,2023-08-10,0,,2023CornEarwormSummary.pdf
+2023,Coon Valley,Vernon,2023-08-17,0,,2023CornEarwormSummary.pdf
+2023,Coon Valley,Vernon,2023-08-24,7,,2023CornEarwormSummary.pdf
+2023,Coon Valley,Vernon,2023-08-31,24,,2023CornEarwormSummary.pdf
+2023,Coon Valley,Vernon,2023-09-07,3,,2023CornEarwormSummary.pdf
+2023,Coon Valley,Vernon,2023-09-14,2,,2023CornEarwormSummary.pdf
+2023,Coon Valley,Vernon,2023-09-21,0,,2023CornEarwormSummary.pdf
+2023,Hancock,Waushara,2023-07-13,,,2023CornEarwormSummary.pdf
+2023,Hancock,Waushara,2023-07-20,,,2023CornEarwormSummary.pdf
+2023,Hancock,Waushara,2023-07-27,0,,2023CornEarwormSummary.pdf
+2023,Hancock,Waushara,2023-08-03,0,,2023CornEarwormSummary.pdf
+2023,Hancock,Waushara,2023-08-10,0,,2023CornEarwormSummary.pdf
+2023,Hancock,Waushara,2023-08-17,0,,2023CornEarwormSummary.pdf
+2023,Hancock,Waushara,2023-08-24,4,,2023CornEarwormSummary.pdf
+2023,Hancock,Waushara,2023-08-31,5,,2023CornEarwormSummary.pdf
+2023,Hancock,Waushara,2023-09-07,70,,2023CornEarwormSummary.pdf
+2023,Hancock,Waushara,2023-09-14,60,,2023CornEarwormSummary.pdf
+2023,Hancock,Waushara,2023-09-21,21,,2023CornEarwormSummary.pdf
+2023,Marshfield,Wood,2023-07-13,12,,2023CornEarwormSummary.pdf
+2023,Marshfield,Wood,2023-07-20,1,,2023CornEarwormSummary.pdf
+2023,Marshfield,Wood,2023-07-27,0,,2023CornEarwormSummary.pdf
+2023,Marshfield,Wood,2023-08-03,0,,2023CornEarwormSummary.pdf
+2023,Marshfield,Wood,2023-08-10,0,,2023CornEarwormSummary.pdf
+2023,Marshfield,Wood,2023-08-17,0,,2023CornEarwormSummary.pdf
+2023,Marshfield,Wood,2023-08-24,1,,2023CornEarwormSummary.pdf
+2023,Marshfield,Wood,2023-08-31,4,,2023CornEarwormSummary.pdf
+2023,Marshfield,Wood,2023-09-07,0,,2023CornEarwormSummary.pdf
+2023,Marshfield,Wood,2023-09-14,0,,2023CornEarwormSummary.pdf
+2023,Marshfield,Wood,2023-09-21,0,,2023CornEarwormSummary.pdf
+2024,Pardeeville,Columbia,2024-07-11,0,,CEW summary for 2024.pdf
+2024,Pardeeville,Columbia,2024-07-18,0,,CEW summary for 2024.pdf
+2024,Pardeeville,Columbia,2024-07-25,3,,CEW summary for 2024.pdf
+2024,Pardeeville,Columbia,2024-08-01,2,,CEW summary for 2024.pdf
+2024,Pardeeville,Columbia,2024-08-08,1,,CEW summary for 2024.pdf
+2024,Pardeeville,Columbia,2024-08-15,1,,CEW summary for 2024.pdf
+2024,Pardeeville,Columbia,2024-08-22,9,,CEW summary for 2024.pdf
+2024,Pardeeville,Columbia,2024-08-29,98,,CEW summary for 2024.pdf
+2024,Pardeeville,Columbia,2024-09-05,94,,CEW summary for 2024.pdf
+2024,Pardeeville,Columbia,2024-09-12,30,,CEW summary for 2024.pdf
+2024,Pardeeville,Columbia,2024-09-19,67,,CEW summary for 2024.pdf
+2024,Pardeeville,Columbia,2024-09-26,65,,CEW summary for 2024.pdf
+2024,Cottage Grove,Dane,2024-07-11,,,CEW summary for 2024.pdf
+2024,Cottage Grove,Dane,2024-07-18,4,,CEW summary for 2024.pdf
+2024,Cottage Grove,Dane,2024-07-25,2,,CEW summary for 2024.pdf
+2024,Cottage Grove,Dane,2024-08-01,0,,CEW summary for 2024.pdf
+2024,Cottage Grove,Dane,2024-08-08,3,,CEW summary for 2024.pdf
+2024,Cottage Grove,Dane,2024-08-15,24,,CEW summary for 2024.pdf
+2024,Cottage Grove,Dane,2024-08-22,70,,CEW summary for 2024.pdf
+2024,Cottage Grove,Dane,2024-08-29,356,,CEW summary for 2024.pdf
+2024,Cottage Grove,Dane,2024-09-05,234,,CEW summary for 2024.pdf
+2024,Cottage Grove,Dane,2024-09-12,,,CEW summary for 2024.pdf
+2024,Cottage Grove,Dane,2024-09-19,,,CEW summary for 2024.pdf
+2024,Cottage Grove,Dane,2024-09-26,,,CEW summary for 2024.pdf
+2024,Fitchburg,Dane,2024-07-11,69,,CEW summary for 2024.pdf
+2024,Fitchburg,Dane,2024-07-18,6,,CEW summary for 2024.pdf
+2024,Fitchburg,Dane,2024-07-25,2,,CEW summary for 2024.pdf
+2024,Fitchburg,Dane,2024-08-01,5,,CEW summary for 2024.pdf
+2024,Fitchburg,Dane,2024-08-08,8,,CEW summary for 2024.pdf
+2024,Fitchburg,Dane,2024-08-15,75,,CEW summary for 2024.pdf
+2024,Fitchburg,Dane,2024-08-22,92,,CEW summary for 2024.pdf
+2024,Fitchburg,Dane,2024-08-29,154,,CEW summary for 2024.pdf
+2024,Fitchburg,Dane,2024-09-05,151,,CEW summary for 2024.pdf
+2024,Fitchburg,Dane,2024-09-12,,,CEW summary for 2024.pdf
+2024,Fitchburg,Dane,2024-09-19,,,CEW summary for 2024.pdf
+2024,Fitchburg,Dane,2024-09-26,,,CEW summary for 2024.pdf
+2024,Sun Prairie N,Dane,2024-07-11,,,CEW summary for 2024.pdf
+2024,Sun Prairie N,Dane,2024-07-18,3,,CEW summary for 2024.pdf
+2024,Sun Prairie N,Dane,2024-07-25,1,,CEW summary for 2024.pdf
+2024,Sun Prairie N,Dane,2024-08-01,1,,CEW summary for 2024.pdf
+2024,Sun Prairie N,Dane,2024-08-08,1,,CEW summary for 2024.pdf
+2024,Sun Prairie N,Dane,2024-08-15,18,,CEW summary for 2024.pdf
+2024,Sun Prairie N,Dane,2024-08-22,86,,CEW summary for 2024.pdf
+2024,Sun Prairie N,Dane,2024-08-29,340,,CEW summary for 2024.pdf
+2024,Sun Prairie N,Dane,2024-09-05,393,,CEW summary for 2024.pdf
+2024,Sun Prairie N,Dane,2024-09-12,,,CEW summary for 2024.pdf
+2024,Sun Prairie N,Dane,2024-09-19,,,CEW summary for 2024.pdf
+2024,Sun Prairie N,Dane,2024-09-26,,,CEW summary for 2024.pdf
+2024,Beaver Dam,Dodge,2024-07-11,4,,CEW summary for 2024.pdf
+2024,Beaver Dam,Dodge,2024-07-18,2,,CEW summary for 2024.pdf
+2024,Beaver Dam,Dodge,2024-07-25,3,,CEW summary for 2024.pdf
+2024,Beaver Dam,Dodge,2024-08-01,3,,CEW summary for 2024.pdf
+2024,Beaver Dam,Dodge,2024-08-08,5,,CEW summary for 2024.pdf
+2024,Beaver Dam,Dodge,2024-08-15,40,,CEW summary for 2024.pdf
+2024,Beaver Dam,Dodge,2024-08-22,237,,CEW summary for 2024.pdf
+2024,Beaver Dam,Dodge,2024-08-29,884,,CEW summary for 2024.pdf
+2024,Beaver Dam,Dodge,2024-09-05,838,,CEW summary for 2024.pdf
+2024,Beaver Dam,Dodge,2024-09-12,188,,CEW summary for 2024.pdf
+2024,Beaver Dam,Dodge,2024-09-19,,,CEW summary for 2024.pdf
+2024,Beaver Dam,Dodge,2024-09-26,,,CEW summary for 2024.pdf
+2024,Mayville,Dodge,2024-07-11,21,,CEW summary for 2024.pdf
+2024,Mayville,Dodge,2024-07-18,9,,CEW summary for 2024.pdf
+2024,Mayville,Dodge,2024-07-25,3,,CEW summary for 2024.pdf
+2024,Mayville,Dodge,2024-08-01,6,,CEW summary for 2024.pdf
+2024,Mayville,Dodge,2024-08-08,4,,CEW summary for 2024.pdf
+2024,Mayville,Dodge,2024-08-15,21,,CEW summary for 2024.pdf
+2024,Mayville,Dodge,2024-08-22,127,,CEW summary for 2024.pdf
+2024,Mayville,Dodge,2024-08-29,794,,CEW summary for 2024.pdf
+2024,Mayville,Dodge,2024-09-05,759,,CEW summary for 2024.pdf
+2024,Mayville,Dodge,2024-09-12,165,,CEW summary for 2024.pdf
+2024,Mayville,Dodge,2024-09-19,,,CEW summary for 2024.pdf
+2024,Mayville,Dodge,2024-09-26,,,CEW summary for 2024.pdf
+2024,Watertown,Dodge,2024-07-11,,,CEW summary for 2024.pdf
+2024,Watertown,Dodge,2024-07-18,2,,CEW summary for 2024.pdf
+2024,Watertown,Dodge,2024-07-25,3,,CEW summary for 2024.pdf
+2024,Watertown,Dodge,2024-08-01,2,,CEW summary for 2024.pdf
+2024,Watertown,Dodge,2024-08-08,1,,CEW summary for 2024.pdf
+2024,Watertown,Dodge,2024-08-15,2,,CEW summary for 2024.pdf
+2024,Watertown,Dodge,2024-08-22,7,,CEW summary for 2024.pdf
+2024,Watertown,Dodge,2024-08-29,16,,CEW summary for 2024.pdf
+2024,Watertown,Dodge,2024-09-05,10,,CEW summary for 2024.pdf
+2024,Watertown,Dodge,2024-09-12,,,CEW summary for 2024.pdf
+2024,Watertown,Dodge,2024-09-19,,,CEW summary for 2024.pdf
+2024,Watertown,Dodge,2024-09-26,,,CEW summary for 2024.pdf
+2024,Ripon,Fond du Lac,2024-07-11,19,,CEW summary for 2024.pdf
+2024,Ripon,Fond du Lac,2024-07-18,3,,CEW summary for 2024.pdf
+2024,Ripon,Fond du Lac,2024-07-25,0,,CEW summary for 2024.pdf
+2024,Ripon,Fond du Lac,2024-08-01,3,,CEW summary for 2024.pdf
+2024,Ripon,Fond du Lac,2024-08-08,9,,CEW summary for 2024.pdf
+2024,Ripon,Fond du Lac,2024-08-15,15,,CEW summary for 2024.pdf
+2024,Ripon,Fond du Lac,2024-08-22,27,,CEW summary for 2024.pdf
+2024,Ripon,Fond du Lac,2024-08-29,665,,CEW summary for 2024.pdf
+2024,Ripon,Fond du Lac,2024-09-05,527,,CEW summary for 2024.pdf
+2024,Ripon,Fond du Lac,2024-09-12,131,,CEW summary for 2024.pdf
+2024,Ripon,Fond du Lac,2024-09-19,,,CEW summary for 2024.pdf
+2024,Ripon,Fond du Lac,2024-09-26,,,CEW summary for 2024.pdf
+2024,Taylor,Jackson,2024-07-11,10,,CEW summary for 2024.pdf
+2024,Taylor,Jackson,2024-07-18,0,,CEW summary for 2024.pdf
+2024,Taylor,Jackson,2024-07-25,0,,CEW summary for 2024.pdf
+2024,Taylor,Jackson,2024-08-01,0,,CEW summary for 2024.pdf
+2024,Taylor,Jackson,2024-08-08,0,,CEW summary for 2024.pdf
+2024,Taylor,Jackson,2024-08-15,0,,CEW summary for 2024.pdf
+2024,Taylor,Jackson,2024-08-22,0,,CEW summary for 2024.pdf
+2024,Taylor,Jackson,2024-08-29,,,CEW summary for 2024.pdf
+2024,Taylor,Jackson,2024-09-05,0,,CEW summary for 2024.pdf
+2024,Taylor,Jackson,2024-09-12,,,CEW summary for 2024.pdf
+2024,Taylor,Jackson,2024-09-19,,,CEW summary for 2024.pdf
+2024,Taylor,Jackson,2024-09-26,,,CEW summary for 2024.pdf
+2024,Wausau,Marathon,2024-07-11,0,,CEW summary for 2024.pdf
+2024,Wausau,Marathon,2024-07-18,0,,CEW summary for 2024.pdf
+2024,Wausau,Marathon,2024-07-25,0,,CEW summary for 2024.pdf
+2024,Wausau,Marathon,2024-08-01,0,,CEW summary for 2024.pdf
+2024,Wausau,Marathon,2024-08-08,0,,CEW summary for 2024.pdf
+2024,Wausau,Marathon,2024-08-15,0,,CEW summary for 2024.pdf
+2024,Wausau,Marathon,2024-08-22,0,,CEW summary for 2024.pdf
+2024,Wausau,Marathon,2024-08-29,0,,CEW summary for 2024.pdf
+2024,Wausau,Marathon,2024-09-05,2,,CEW summary for 2024.pdf
+2024,Wausau,Marathon,2024-09-12,0,,CEW summary for 2024.pdf
+2024,Wausau,Marathon,2024-09-19,0,,CEW summary for 2024.pdf
+2024,Wausau,Marathon,2024-09-26,,,CEW summary for 2024.pdf
+2024,Coon Valley,Vernon,2024-07-11,,,CEW summary for 2024.pdf
+2024,Coon Valley,Vernon,2024-07-18,0,,CEW summary for 2024.pdf
+2024,Coon Valley,Vernon,2024-07-25,0,,CEW summary for 2024.pdf
+2024,Coon Valley,Vernon,2024-08-01,0,,CEW summary for 2024.pdf
+2024,Coon Valley,Vernon,2024-08-08,0,,CEW summary for 2024.pdf
+2024,Coon Valley,Vernon,2024-08-15,0,,CEW summary for 2024.pdf
+2024,Coon Valley,Vernon,2024-08-22,0,,CEW summary for 2024.pdf
+2024,Coon Valley,Vernon,2024-08-29,20,,CEW summary for 2024.pdf
+2024,Coon Valley,Vernon,2024-09-05,15,,CEW summary for 2024.pdf
+2024,Coon Valley,Vernon,2024-09-12,9,,CEW summary for 2024.pdf
+2024,Coon Valley,Vernon,2024-09-19,,,CEW summary for 2024.pdf
+2024,Coon Valley,Vernon,2024-09-26,,,CEW summary for 2024.pdf
+2024,Burlington,Walworth,2024-07-11,25,,CEW summary for 2024.pdf
+2024,Burlington,Walworth,2024-07-18,7,,CEW summary for 2024.pdf
+2024,Burlington,Walworth,2024-07-25,0,,CEW summary for 2024.pdf
+2024,Burlington,Walworth,2024-08-01,0,,CEW summary for 2024.pdf
+2024,Burlington,Walworth,2024-08-08,3,,CEW summary for 2024.pdf
+2024,Burlington,Walworth,2024-08-15,21,,CEW summary for 2024.pdf
+2024,Burlington,Walworth,2024-08-22,168,,CEW summary for 2024.pdf
+2024,Burlington,Walworth,2024-08-29,,,CEW summary for 2024.pdf
+2024,Burlington,Walworth,2024-09-05,378,,CEW summary for 2024.pdf
+2024,Burlington,Walworth,2024-09-12,48,,CEW summary for 2024.pdf
+2024,Burlington,Walworth,2024-09-19,,,CEW summary for 2024.pdf
+2024,Burlington,Walworth,2024-09-26,,,CEW summary for 2024.pdf
+2024,Hancock,Waushara,2024-07-11,,,CEW summary for 2024.pdf
+2024,Hancock,Waushara,2024-07-18,2,,CEW summary for 2024.pdf
+2024,Hancock,Waushara,2024-07-25,1,,CEW summary for 2024.pdf
+2024,Hancock,Waushara,2024-08-01,0,,CEW summary for 2024.pdf
+2024,Hancock,Waushara,2024-08-08,0,,CEW summary for 2024.pdf
+2024,Hancock,Waushara,2024-08-15,0,,CEW summary for 2024.pdf
+2024,Hancock,Waushara,2024-08-22,10,,CEW summary for 2024.pdf
+2024,Hancock,Waushara,2024-08-29,30,,CEW summary for 2024.pdf
+2024,Hancock,Waushara,2024-09-05,35,,CEW summary for 2024.pdf
+2024,Hancock,Waushara,2024-09-12,25,,CEW summary for 2024.pdf
+2024,Hancock,Waushara,2024-09-19,17,,CEW summary for 2024.pdf
+2024,Hancock,Waushara,2024-09-26,,,CEW summary for 2024.pdf
+2024,Marshfield,Wood,2024-07-11,0,,CEW summary for 2024.pdf
+2024,Marshfield,Wood,2024-07-18,0,,CEW summary for 2024.pdf
+2024,Marshfield,Wood,2024-07-25,0,,CEW summary for 2024.pdf
+2024,Marshfield,Wood,2024-08-01,0,,CEW summary for 2024.pdf
+2024,Marshfield,Wood,2024-08-08,0,,CEW summary for 2024.pdf
+2024,Marshfield,Wood,2024-08-15,0,,CEW summary for 2024.pdf
+2024,Marshfield,Wood,2024-08-22,0,,CEW summary for 2024.pdf
+2024,Marshfield,Wood,2024-08-29,0,,CEW summary for 2024.pdf
+2024,Marshfield,Wood,2024-09-05,0,,CEW summary for 2024.pdf
+2024,Marshfield,Wood,2024-09-12,0,,CEW summary for 2024.pdf
+2024,Marshfield,Wood,2024-09-19,,,CEW summary for 2024.pdf
+2024,Marshfield,Wood,2024-09-26,,,CEW summary for 2024.pdf
+2025,Pardeeville,Columbia,2025-07-03,,,CEWcounts20251023.pdf
+2025,Pardeeville,Columbia,2025-07-10,4,,CEWcounts20251023.pdf
+2025,Pardeeville,Columbia,2025-07-17,2,,CEWcounts20251023.pdf
+2025,Pardeeville,Columbia,2025-07-24,1,,CEWcounts20251023.pdf
+2025,Pardeeville,Columbia,2025-07-31,0,,CEWcounts20251023.pdf
+2025,Pardeeville,Columbia,2025-08-07,0,,CEWcounts20251023.pdf
+2025,Pardeeville,Columbia,2025-08-14,178,,CEWcounts20251023.pdf
+2025,Pardeeville,Columbia,2025-08-21,126,,CEWcounts20251023.pdf
+2025,Pardeeville,Columbia,2025-08-28,7,,CEWcounts20251023.pdf
+2025,Pardeeville,Columbia,2025-09-04,1,,CEWcounts20251023.pdf
+2025,Pardeeville,Columbia,2025-09-11,0,,CEWcounts20251023.pdf
+2025,Pardeeville,Columbia,2025-09-18,2,,CEWcounts20251023.pdf
+2025,Sun Prairie E,Dane,2025-07-03,,,CEWcounts20251023.pdf
+2025,Sun Prairie E,Dane,2025-07-10,168,,CEWcounts20251023.pdf
+2025,Sun Prairie E,Dane,2025-07-17,11,,CEWcounts20251023.pdf
+2025,Sun Prairie E,Dane,2025-07-24,0,,CEWcounts20251023.pdf
+2025,Sun Prairie E,Dane,2025-07-31,2,,CEWcounts20251023.pdf
+2025,Sun Prairie E,Dane,2025-08-07,2,,CEWcounts20251023.pdf
+2025,Sun Prairie E,Dane,2025-08-14,328,,CEWcounts20251023.pdf
+2025,Sun Prairie E,Dane,2025-08-21,400,,CEWcounts20251023.pdf
+2025,Sun Prairie E,Dane,2025-08-28,216,,CEWcounts20251023.pdf
+2025,Sun Prairie E,Dane,2025-09-04,,,CEWcounts20251023.pdf
+2025,Sun Prairie E,Dane,2025-09-11,39,,CEWcounts20251023.pdf
+2025,Sun Prairie E,Dane,2025-09-18,,,CEWcounts20251023.pdf
+2025,Sun Prairie N,Dane,2025-07-03,,,CEWcounts20251023.pdf
+2025,Sun Prairie N,Dane,2025-07-10,227,,CEWcounts20251023.pdf
+2025,Sun Prairie N,Dane,2025-07-17,29,,CEWcounts20251023.pdf
+2025,Sun Prairie N,Dane,2025-07-24,0,,CEWcounts20251023.pdf
+2025,Sun Prairie N,Dane,2025-07-31,0,,CEWcounts20251023.pdf
+2025,Sun Prairie N,Dane,2025-08-07,0,,CEWcounts20251023.pdf
+2025,Sun Prairie N,Dane,2025-08-14,284,,CEWcounts20251023.pdf
+2025,Sun Prairie N,Dane,2025-08-21,500,,CEWcounts20251023.pdf
+2025,Sun Prairie N,Dane,2025-08-28,213,,CEWcounts20251023.pdf
+2025,Sun Prairie N,Dane,2025-09-04,,,CEWcounts20251023.pdf
+2025,Sun Prairie N,Dane,2025-09-11,33,,CEWcounts20251023.pdf
+2025,Sun Prairie N,Dane,2025-09-18,,,CEWcounts20251023.pdf
+2025,Beaver Dam,Dodge,2025-07-03,,,CEWcounts20251023.pdf
+2025,Beaver Dam,Dodge,2025-07-10,9,,CEWcounts20251023.pdf
+2025,Beaver Dam,Dodge,2025-07-17,,,CEWcounts20251023.pdf
+2025,Beaver Dam,Dodge,2025-07-24,,,CEWcounts20251023.pdf
+2025,Beaver Dam,Dodge,2025-07-31,,,CEWcounts20251023.pdf
+2025,Beaver Dam,Dodge,2025-08-07,1,,CEWcounts20251023.pdf
+2025,Beaver Dam,Dodge,2025-08-14,718,,CEWcounts20251023.pdf
+2025,Beaver Dam,Dodge,2025-08-21,1112,,CEWcounts20251023.pdf
+2025,Beaver Dam,Dodge,2025-08-28,79,,CEWcounts20251023.pdf
+2025,Beaver Dam,Dodge,2025-09-04,78,,CEWcounts20251023.pdf
+2025,Beaver Dam,Dodge,2025-09-11,77,,CEWcounts20251023.pdf
+2025,Beaver Dam,Dodge,2025-09-18,126,,CEWcounts20251023.pdf
+2025,Mayville,Dodge,2025-07-03,,,CEWcounts20251023.pdf
+2025,Mayville,Dodge,2025-07-10,,,CEWcounts20251023.pdf
+2025,Mayville,Dodge,2025-07-17,252,,CEWcounts20251023.pdf
+2025,Mayville,Dodge,2025-07-24,8,,CEWcounts20251023.pdf
+2025,Mayville,Dodge,2025-07-31,8,,CEWcounts20251023.pdf
+2025,Mayville,Dodge,2025-08-07,1,,CEWcounts20251023.pdf
+2025,Mayville,Dodge,2025-08-14,294,,CEWcounts20251023.pdf
+2025,Mayville,Dodge,2025-08-21,429,,CEWcounts20251023.pdf
+2025,Mayville,Dodge,2025-08-28,70,,CEWcounts20251023.pdf
+2025,Mayville,Dodge,2025-09-04,2,,CEWcounts20251023.pdf
+2025,Mayville,Dodge,2025-09-11,1,,CEWcounts20251023.pdf
+2025,Mayville,Dodge,2025-09-18,,,CEWcounts20251023.pdf
+2025,Watertown E,Dodge,2025-07-03,,,CEWcounts20251023.pdf
+2025,Watertown E,Dodge,2025-07-10,123,,CEWcounts20251023.pdf
+2025,Watertown E,Dodge,2025-07-17,23,,CEWcounts20251023.pdf
+2025,Watertown E,Dodge,2025-07-24,0,,CEWcounts20251023.pdf
+2025,Watertown E,Dodge,2025-07-31,0,,CEWcounts20251023.pdf
+2025,Watertown E,Dodge,2025-08-07,2,,CEWcounts20251023.pdf
+2025,Watertown E,Dodge,2025-08-14,314,,CEWcounts20251023.pdf
+2025,Watertown E,Dodge,2025-08-21,300,,CEWcounts20251023.pdf
+2025,Watertown E,Dodge,2025-08-28,70,,CEWcounts20251023.pdf
+2025,Watertown E,Dodge,2025-09-04,,,CEWcounts20251023.pdf
+2025,Watertown E,Dodge,2025-09-11,9,,CEWcounts20251023.pdf
+2025,Watertown E,Dodge,2025-09-18,,,CEWcounts20251023.pdf
+2025,Wausau,Marathon,2025-07-03,,,CEWcounts20251023.pdf
+2025,Wausau,Marathon,2025-07-10,0,,CEWcounts20251023.pdf
+2025,Wausau,Marathon,2025-07-17,0,,CEWcounts20251023.pdf
+2025,Wausau,Marathon,2025-07-24,0,,CEWcounts20251023.pdf
+2025,Wausau,Marathon,2025-07-31,1,,CEWcounts20251023.pdf
+2025,Wausau,Marathon,2025-08-07,0,,CEWcounts20251023.pdf
+2025,Wausau,Marathon,2025-08-14,2,,CEWcounts20251023.pdf
+2025,Wausau,Marathon,2025-08-21,1,,CEWcounts20251023.pdf
+2025,Wausau,Marathon,2025-08-28,0,,CEWcounts20251023.pdf
+2025,Wausau,Marathon,2025-09-04,0,,CEWcounts20251023.pdf
+2025,Wausau,Marathon,2025-09-11,0,,CEWcounts20251023.pdf
+2025,Wausau,Marathon,2025-09-18,0,,CEWcounts20251023.pdf
+2025,Clinton,Rock,2025-07-03,276,,CEWcounts20251023.pdf
+2025,Clinton,Rock,2025-07-10,201,,CEWcounts20251023.pdf
+2025,Clinton,Rock,2025-07-17,37,,CEWcounts20251023.pdf
+2025,Clinton,Rock,2025-07-24,7,,CEWcounts20251023.pdf
+2025,Clinton,Rock,2025-07-31,5,,CEWcounts20251023.pdf
+2025,Clinton,Rock,2025-08-07,6,,CEWcounts20251023.pdf
+2025,Clinton,Rock,2025-08-14,615,,CEWcounts20251023.pdf
+2025,Clinton,Rock,2025-08-21,679,,CEWcounts20251023.pdf
+2025,Clinton,Rock,2025-08-28,220,,CEWcounts20251023.pdf
+2025,Clinton,Rock,2025-09-04,46,,CEWcounts20251023.pdf
+2025,Clinton,Rock,2025-09-11,11,,CEWcounts20251023.pdf
+2025,Clinton,Rock,2025-09-18,13,,CEWcounts20251023.pdf
+2025,Coon Valley,Vernon,2025-07-03,,,CEWcounts20251023.pdf
+2025,Coon Valley,Vernon,2025-07-10,0,,CEWcounts20251023.pdf
+2025,Coon Valley,Vernon,2025-07-17,15,,CEWcounts20251023.pdf
+2025,Coon Valley,Vernon,2025-07-24,0,,CEWcounts20251023.pdf
+2025,Coon Valley,Vernon,2025-07-31,4,,CEWcounts20251023.pdf
+2025,Coon Valley,Vernon,2025-08-07,1,,CEWcounts20251023.pdf
+2025,Coon Valley,Vernon,2025-08-14,305,,CEWcounts20251023.pdf
+2025,Coon Valley,Vernon,2025-08-21,371,,CEWcounts20251023.pdf
+2025,Coon Valley,Vernon,2025-08-28,110,,CEWcounts20251023.pdf
+2025,Coon Valley,Vernon,2025-09-04,20,,CEWcounts20251023.pdf
+2025,Coon Valley,Vernon,2025-09-11,0,,CEWcounts20251023.pdf
+2025,Coon Valley,Vernon,2025-09-18,5,,CEWcounts20251023.pdf
+2025,Burlington,Walworth,2025-07-03,,,CEWcounts20251023.pdf
+2025,Burlington,Walworth,2025-07-10,,,CEWcounts20251023.pdf
+2025,Burlington,Walworth,2025-07-17,17,,CEWcounts20251023.pdf
+2025,Burlington,Walworth,2025-07-24,2,,CEWcounts20251023.pdf
+2025,Burlington,Walworth,2025-07-31,0,,CEWcounts20251023.pdf
+2025,Burlington,Walworth,2025-08-07,17,,CEWcounts20251023.pdf
+2025,Burlington,Walworth,2025-08-14,524,,CEWcounts20251023.pdf
+2025,Burlington,Walworth,2025-08-21,1325,,CEWcounts20251023.pdf
+2025,Burlington,Walworth,2025-08-28,420,,CEWcounts20251023.pdf
+2025,Burlington,Walworth,2025-09-04,32,,CEWcounts20251023.pdf
+2025,Burlington,Walworth,2025-09-11,28,,CEWcounts20251023.pdf
+2025,Burlington,Walworth,2025-09-18,52,,CEWcounts20251023.pdf
+2025,Hancock,Waushara,2025-07-03,,,CEWcounts20251023.pdf
+2025,Hancock,Waushara,2025-07-10,14,,CEWcounts20251023.pdf
+2025,Hancock,Waushara,2025-07-17,1,,CEWcounts20251023.pdf
+2025,Hancock,Waushara,2025-07-24,0,,CEWcounts20251023.pdf
+2025,Hancock,Waushara,2025-07-31,2,,CEWcounts20251023.pdf
+2025,Hancock,Waushara,2025-08-07,0,,CEWcounts20251023.pdf
+2025,Hancock,Waushara,2025-08-14,60,,CEWcounts20251023.pdf
+2025,Hancock,Waushara,2025-08-21,90,,CEWcounts20251023.pdf
+2025,Hancock,Waushara,2025-08-28,8,,CEWcounts20251023.pdf
+2025,Hancock,Waushara,2025-09-04,0,,CEWcounts20251023.pdf
+2025,Hancock,Waushara,2025-09-11,3,,CEWcounts20251023.pdf
+2025,Hancock,Waushara,2025-09-18,,,CEWcounts20251023.pdf
+2025,Marshfield,Wood,2025-07-03,,,CEWcounts20251023.pdf
+2025,Marshfield,Wood,2025-07-10,10,,CEWcounts20251023.pdf
+2025,Marshfield,Wood,2025-07-17,0,,CEWcounts20251023.pdf
+2025,Marshfield,Wood,2025-07-24,0,,CEWcounts20251023.pdf
+2025,Marshfield,Wood,2025-07-31,0,,CEWcounts20251023.pdf
+2025,Marshfield,Wood,2025-08-07,0,,CEWcounts20251023.pdf
+2025,Marshfield,Wood,2025-08-14,0,,CEWcounts20251023.pdf
+2025,Marshfield,Wood,2025-08-21,0,,CEWcounts20251023.pdf
+2025,Marshfield,Wood,2025-08-28,0,,CEWcounts20251023.pdf
+2025,Marshfield,Wood,2025-09-04,0,,CEWcounts20251023.pdf
+2025,Marshfield,Wood,2025-09-11,0,,CEWcounts20251023.pdf
+2025,Marshfield,Wood,2025-09-18,,,CEWcounts20251023.pdf
+2026,Keyeser,Columbia,2026-07-08,NA,,CornEarwormCounts2026.pdf
+2026,Keyeser,Columbia,2026-07-15,3,,CornEarwormCounts2026.pdf
+2026,Keyeser,Columbia,2026-07-22,27,,CornEarwormCounts2026.pdf
+2026,Keyeser,Columbia,2026-07-29,21,,CornEarwormCounts2026.pdf
+2026,Keyeser,Columbia,2026-08-05,20,,CornEarwormCounts2026.pdf
+2026,Keyeser,Columbia,2026-08-12,24,,CornEarwormCounts2026.pdf
+2026,Keyeser,Columbia,2026-08-19,185,,CornEarwormCounts2026.pdf
+2026,Keyeser,Columbia,2026-08-26,77,,CornEarwormCounts2026.pdf
+2026,Keyeser,Columbia,2026-09-02,111,,CornEarwormCounts2026.pdf
+2026,Keyeser,Columbia,2026-09-09,NA,,CornEarwormCounts2026.pdf
+2026,Keyeser,Columbia,2026-09-16,200,,CornEarwormCounts2026.pdf
+2026,Keyeser,Columbia,2026-09-23,121,,CornEarwormCounts2026.pdf
+2026,Lodi,Columbia,2026-07-08,15,,CornEarwormCounts2026.pdf
+2026,Lodi,Columbia,2026-07-15,16,,CornEarwormCounts2026.pdf
+2026,Lodi,Columbia,2026-07-22,37,,CornEarwormCounts2026.pdf
+2026,Lodi,Columbia,2026-07-29,49,,CornEarwormCounts2026.pdf
+2026,Lodi,Columbia,2026-08-05,27,,CornEarwormCounts2026.pdf
+2026,Lodi,Columbia,2026-08-12,53,,CornEarwormCounts2026.pdf
+2026,Lodi,Columbia,2026-08-19,173,,CornEarwormCounts2026.pdf
+2026,Lodi,Columbia,2026-08-26,173,,CornEarwormCounts2026.pdf
+2026,Lodi,Columbia,2026-09-02,405,,CornEarwormCounts2026.pdf
+2026,Lodi,Columbia,2026-09-09,1855,,CornEarwormCounts2026.pdf
+2026,Lodi,Columbia,2026-09-16,957,,CornEarwormCounts2026.pdf
+2026,Lodi,Columbia,2026-09-23,500,500 in the PDF (its site and weekly totals include it); DATCP's web table prints NA,CornEarwormCounts2026.pdf
+2026,Pardeeville,Columbia,2026-07-08,0,,CornEarwormCounts2026.pdf
+2026,Pardeeville,Columbia,2026-07-15,0,,CornEarwormCounts2026.pdf
+2026,Pardeeville,Columbia,2026-07-22,20,,CornEarwormCounts2026.pdf
+2026,Pardeeville,Columbia,2026-07-29,25,,CornEarwormCounts2026.pdf
+2026,Pardeeville,Columbia,2026-08-05,14,,CornEarwormCounts2026.pdf
+2026,Pardeeville,Columbia,2026-08-12,3,,CornEarwormCounts2026.pdf
+2026,Pardeeville,Columbia,2026-08-19,28,,CornEarwormCounts2026.pdf
+2026,Pardeeville,Columbia,2026-08-26,42,,CornEarwormCounts2026.pdf
+2026,Pardeeville,Columbia,2026-09-02,49,,CornEarwormCounts2026.pdf
+2026,Pardeeville,Columbia,2026-09-09,NA,,CornEarwormCounts2026.pdf
+2026,Pardeeville,Columbia,2026-09-16,797,,CornEarwormCounts2026.pdf
+2026,Pardeeville,Columbia,2026-09-23,23,,CornEarwormCounts2026.pdf
+2026,Fitchburg,Dane,2026-07-08,NA,,CornEarwormCounts2026.pdf
+2026,Fitchburg,Dane,2026-07-15,32,,CornEarwormCounts2026.pdf
+2026,Fitchburg,Dane,2026-07-22,18,,CornEarwormCounts2026.pdf
+2026,Fitchburg,Dane,2026-07-29,20,,CornEarwormCounts2026.pdf
+2026,Fitchburg,Dane,2026-08-05,15,,CornEarwormCounts2026.pdf
+2026,Fitchburg,Dane,2026-08-12,59,,CornEarwormCounts2026.pdf
+2026,Fitchburg,Dane,2026-08-19,200,,CornEarwormCounts2026.pdf
+2026,Fitchburg,Dane,2026-08-26,NA,,CornEarwormCounts2026.pdf
+2026,Fitchburg,Dane,2026-09-02,633,,CornEarwormCounts2026.pdf
+2026,Fitchburg,Dane,2026-09-09,NA,,CornEarwormCounts2026.pdf
+2026,Fitchburg,Dane,2026-09-16,426,,CornEarwormCounts2026.pdf
+2026,Fitchburg,Dane,2026-09-23,450,,CornEarwormCounts2026.pdf
+2026,Sun Prairie N,Dane,2026-07-08,NA,,CornEarwormCounts2026.pdf
+2026,Sun Prairie N,Dane,2026-07-15,16,,CornEarwormCounts2026.pdf
+2026,Sun Prairie N,Dane,2026-07-22,35,,CornEarwormCounts2026.pdf
+2026,Sun Prairie N,Dane,2026-07-29,20,,CornEarwormCounts2026.pdf
+2026,Sun Prairie N,Dane,2026-08-05,11,,CornEarwormCounts2026.pdf
+2026,Sun Prairie N,Dane,2026-08-12,40,,CornEarwormCounts2026.pdf
+2026,Sun Prairie N,Dane,2026-08-19,250,,CornEarwormCounts2026.pdf
+2026,Sun Prairie N,Dane,2026-08-26,260,,CornEarwormCounts2026.pdf
+2026,Sun Prairie N,Dane,2026-09-02,240,,CornEarwormCounts2026.pdf
+2026,Sun Prairie N,Dane,2026-09-09,NA,,CornEarwormCounts2026.pdf
+2026,Sun Prairie N,Dane,2026-09-16,154,,CornEarwormCounts2026.pdf
+2026,Sun Prairie N,Dane,2026-09-23,356,,CornEarwormCounts2026.pdf
+2026,Sun Prairie S,Dane,2026-07-08,NA,,CornEarwormCounts2026.pdf
+2026,Sun Prairie S,Dane,2026-07-15,NA,,CornEarwormCounts2026.pdf
+2026,Sun Prairie S,Dane,2026-07-22,15,,CornEarwormCounts2026.pdf
+2026,Sun Prairie S,Dane,2026-07-29,16,,CornEarwormCounts2026.pdf
+2026,Sun Prairie S,Dane,2026-08-05,22,,CornEarwormCounts2026.pdf
+2026,Sun Prairie S,Dane,2026-08-12,37,,CornEarwormCounts2026.pdf
+2026,Sun Prairie S,Dane,2026-08-19,100,,CornEarwormCounts2026.pdf
+2026,Sun Prairie S,Dane,2026-08-26,75,,CornEarwormCounts2026.pdf
+2026,Sun Prairie S,Dane,2026-09-02,72,,CornEarwormCounts2026.pdf
+2026,Sun Prairie S,Dane,2026-09-09,NA,,CornEarwormCounts2026.pdf
+2026,Sun Prairie S,Dane,2026-09-16,92,,CornEarwormCounts2026.pdf
+2026,Sun Prairie S,Dane,2026-09-23,110,,CornEarwormCounts2026.pdf
+2026,Beaver Dam,Dodge,2026-07-08,8,,CornEarwormCounts2026.pdf
+2026,Beaver Dam,Dodge,2026-07-15,4,,CornEarwormCounts2026.pdf
+2026,Beaver Dam,Dodge,2026-07-22,24,,CornEarwormCounts2026.pdf
+2026,Beaver Dam,Dodge,2026-07-29,48,,CornEarwormCounts2026.pdf
+2026,Beaver Dam,Dodge,2026-08-05,20,,CornEarwormCounts2026.pdf
+2026,Beaver Dam,Dodge,2026-08-12,14,,CornEarwormCounts2026.pdf
+2026,Beaver Dam,Dodge,2026-08-19,43,,CornEarwormCounts2026.pdf
+2026,Beaver Dam,Dodge,2026-08-26,257,,CornEarwormCounts2026.pdf
+2026,Beaver Dam,Dodge,2026-09-02,315,,CornEarwormCounts2026.pdf
+2026,Beaver Dam,Dodge,2026-09-09,568,,CornEarwormCounts2026.pdf
+2026,Beaver Dam,Dodge,2026-09-16,418,,CornEarwormCounts2026.pdf
+2026,Beaver Dam,Dodge,2026-09-23,42,,CornEarwormCounts2026.pdf
+2026,Leroy,Dodge,2026-07-08,0,,CornEarwormCounts2026.pdf
+2026,Leroy,Dodge,2026-07-15,3,,CornEarwormCounts2026.pdf
+2026,Leroy,Dodge,2026-07-22,29,,CornEarwormCounts2026.pdf
+2026,Leroy,Dodge,2026-07-29,12,,CornEarwormCounts2026.pdf
+2026,Leroy,Dodge,2026-08-05,6,,CornEarwormCounts2026.pdf
+2026,Leroy,Dodge,2026-08-12,3,,CornEarwormCounts2026.pdf
+2026,Leroy,Dodge,2026-08-19,NA,,CornEarwormCounts2026.pdf
+2026,Leroy,Dodge,2026-08-26,188,,CornEarwormCounts2026.pdf
+2026,Leroy,Dodge,2026-09-02,220,,CornEarwormCounts2026.pdf
+2026,Leroy,Dodge,2026-09-09,308,,CornEarwormCounts2026.pdf
+2026,Leroy,Dodge,2026-09-16,267,,CornEarwormCounts2026.pdf
+2026,Leroy,Dodge,2026-09-23,100,,CornEarwormCounts2026.pdf
+2026,Watertown W,Dodge,2026-07-08,NA,,CornEarwormCounts2026.pdf
+2026,Watertown W,Dodge,2026-07-15,6,,CornEarwormCounts2026.pdf
+2026,Watertown W,Dodge,2026-07-22,31,,CornEarwormCounts2026.pdf
+2026,Watertown W,Dodge,2026-07-29,33,,CornEarwormCounts2026.pdf
+2026,Watertown W,Dodge,2026-08-05,12,,CornEarwormCounts2026.pdf
+2026,Watertown W,Dodge,2026-08-12,12,,CornEarwormCounts2026.pdf
+2026,Watertown W,Dodge,2026-08-19,50,,CornEarwormCounts2026.pdf
+2026,Watertown W,Dodge,2026-08-26,53,,CornEarwormCounts2026.pdf
+2026,Watertown W,Dodge,2026-09-02,100,,CornEarwormCounts2026.pdf
+2026,Watertown W,Dodge,2026-09-09,NA,,CornEarwormCounts2026.pdf
+2026,Watertown W,Dodge,2026-09-16,213,,CornEarwormCounts2026.pdf
+2026,Watertown W,Dodge,2026-09-23,300,,CornEarwormCounts2026.pdf
+2026,Green Lake,Green Lake,2026-07-08,0,,CornEarwormCounts2026.pdf
+2026,Green Lake,Green Lake,2026-07-15,NA,,CornEarwormCounts2026.pdf
+2026,Green Lake,Green Lake,2026-07-22,34,,CornEarwormCounts2026.pdf
+2026,Green Lake,Green Lake,2026-07-29,23,,CornEarwormCounts2026.pdf
+2026,Green Lake,Green Lake,2026-08-05,23,,CornEarwormCounts2026.pdf
+2026,Green Lake,Green Lake,2026-08-12,9,,CornEarwormCounts2026.pdf
+2026,Green Lake,Green Lake,2026-08-19,NA,,CornEarwormCounts2026.pdf
+2026,Green Lake,Green Lake,2026-08-26,34,,CornEarwormCounts2026.pdf
+2026,Green Lake,Green Lake,2026-09-02,33,,CornEarwormCounts2026.pdf
+2026,Green Lake,Green Lake,2026-09-09,287,,CornEarwormCounts2026.pdf
+2026,Green Lake,Green Lake,2026-09-16,558,,CornEarwormCounts2026.pdf
+2026,Green Lake,Green Lake,2026-09-23,NA,,CornEarwormCounts2026.pdf
+2026,Wausau,Marathon,2026-07-08,1,,CornEarwormCounts2026.pdf
+2026,Wausau,Marathon,2026-07-15,NA,,CornEarwormCounts2026.pdf
+2026,Wausau,Marathon,2026-07-22,0,,CornEarwormCounts2026.pdf
+2026,Wausau,Marathon,2026-07-29,0,,CornEarwormCounts2026.pdf
+2026,Wausau,Marathon,2026-08-05,0,,CornEarwormCounts2026.pdf
+2026,Wausau,Marathon,2026-08-12,0,,CornEarwormCounts2026.pdf
+2026,Wausau,Marathon,2026-08-19,0,,CornEarwormCounts2026.pdf
+2026,Wausau,Marathon,2026-08-26,0,,CornEarwormCounts2026.pdf
+2026,Wausau,Marathon,2026-09-02,0,,CornEarwormCounts2026.pdf
+2026,Wausau,Marathon,2026-09-09,1,,CornEarwormCounts2026.pdf
+2026,Wausau,Marathon,2026-09-16,0,,CornEarwormCounts2026.pdf
+2026,Wausau,Marathon,2026-09-23,NA,,CornEarwormCounts2026.pdf
+2026,Janesville,Rock,2026-07-08,NA,,CornEarwormCounts2026.pdf
+2026,Janesville,Rock,2026-07-15,NA,,CornEarwormCounts2026.pdf
+2026,Janesville,Rock,2026-07-22,NA,,CornEarwormCounts2026.pdf
+2026,Janesville,Rock,2026-07-29,NA,,CornEarwormCounts2026.pdf
+2026,Janesville,Rock,2026-08-05,NA,,CornEarwormCounts2026.pdf
+2026,Janesville,Rock,2026-08-12,48,,CornEarwormCounts2026.pdf
+2026,Janesville,Rock,2026-08-19,520,,CornEarwormCounts2026.pdf
+2026,Janesville,Rock,2026-08-26,230,,CornEarwormCounts2026.pdf
+2026,Janesville,Rock,2026-09-02,180,,CornEarwormCounts2026.pdf
+2026,Janesville,Rock,2026-09-09,730,,CornEarwormCounts2026.pdf
+2026,Janesville,Rock,2026-09-16,419,,CornEarwormCounts2026.pdf
+2026,Janesville,Rock,2026-09-23,325,,CornEarwormCounts2026.pdf
+2026,Coon Valley,Vernon,2026-07-08,NA,,CornEarwormCounts2026.pdf
+2026,Coon Valley,Vernon,2026-07-15,0,,CornEarwormCounts2026.pdf
+2026,Coon Valley,Vernon,2026-07-22,0,,CornEarwormCounts2026.pdf
+2026,Coon Valley,Vernon,2026-07-29,0,,CornEarwormCounts2026.pdf
+2026,Coon Valley,Vernon,2026-08-05,3,,CornEarwormCounts2026.pdf
+2026,Coon Valley,Vernon,2026-08-12,6,,CornEarwormCounts2026.pdf
+2026,Coon Valley,Vernon,2026-08-19,65,,CornEarwormCounts2026.pdf
+2026,Coon Valley,Vernon,2026-08-26,35,,CornEarwormCounts2026.pdf
+2026,Coon Valley,Vernon,2026-09-02,72,,CornEarwormCounts2026.pdf
+2026,Coon Valley,Vernon,2026-09-09,172,,CornEarwormCounts2026.pdf
+2026,Coon Valley,Vernon,2026-09-16,15,,CornEarwormCounts2026.pdf
+2026,Coon Valley,Vernon,2026-09-23,33,,CornEarwormCounts2026.pdf
+2026,Burlington,Walworth,2026-07-08,36,,CornEarwormCounts2026.pdf
+2026,Burlington,Walworth,2026-07-15,6,,CornEarwormCounts2026.pdf
+2026,Burlington,Walworth,2026-07-22,14,,CornEarwormCounts2026.pdf
+2026,Burlington,Walworth,2026-07-29,8,,CornEarwormCounts2026.pdf
+2026,Burlington,Walworth,2026-08-05,4,,CornEarwormCounts2026.pdf
+2026,Burlington,Walworth,2026-08-12,111,,CornEarwormCounts2026.pdf
+2026,Burlington,Walworth,2026-08-19,224,,CornEarwormCounts2026.pdf
+2026,Burlington,Walworth,2026-08-26,64,,CornEarwormCounts2026.pdf
+2026,Burlington,Walworth,2026-09-02,157,,CornEarwormCounts2026.pdf
+2026,Burlington,Walworth,2026-09-09,NA,,CornEarwormCounts2026.pdf
+2026,Burlington,Walworth,2026-09-16,424,,CornEarwormCounts2026.pdf
+2026,Burlington,Walworth,2026-09-23,124,,CornEarwormCounts2026.pdf
+2026,Williams Bay,Walworth,2026-07-08,33,,CornEarwormCounts2026.pdf
+2026,Williams Bay,Walworth,2026-07-15,34,,CornEarwormCounts2026.pdf
+2026,Williams Bay,Walworth,2026-07-22,13,,CornEarwormCounts2026.pdf
+2026,Williams Bay,Walworth,2026-07-29,12,,CornEarwormCounts2026.pdf
+2026,Williams Bay,Walworth,2026-08-05,6,,CornEarwormCounts2026.pdf
+2026,Williams Bay,Walworth,2026-08-12,134,,CornEarwormCounts2026.pdf
+2026,Williams Bay,Walworth,2026-08-19,676,,CornEarwormCounts2026.pdf
+2026,Williams Bay,Walworth,2026-08-26,332,,CornEarwormCounts2026.pdf
+2026,Williams Bay,Walworth,2026-09-02,495,,CornEarwormCounts2026.pdf
+2026,Williams Bay,Walworth,2026-09-09,409,,CornEarwormCounts2026.pdf
+2026,Williams Bay,Walworth,2026-09-16,377,,CornEarwormCounts2026.pdf
+2026,Williams Bay,Walworth,2026-09-23,63,,CornEarwormCounts2026.pdf
+2026,Hancock,Waushara,2026-07-08,2,,CornEarwormCounts2026.pdf
+2026,Hancock,Waushara,2026-07-15,2,,CornEarwormCounts2026.pdf
+2026,Hancock,Waushara,2026-07-22,10,,CornEarwormCounts2026.pdf
+2026,Hancock,Waushara,2026-07-29,0,,CornEarwormCounts2026.pdf
+2026,Hancock,Waushara,2026-08-05,NA,,CornEarwormCounts2026.pdf
+2026,Hancock,Waushara,2026-08-12,4,,CornEarwormCounts2026.pdf
+2026,Hancock,Waushara,2026-08-19,4,,CornEarwormCounts2026.pdf
+2026,Hancock,Waushara,2026-08-26,6,,CornEarwormCounts2026.pdf
+2026,Hancock,Waushara,2026-09-02,NA,,CornEarwormCounts2026.pdf
+2026,Hancock,Waushara,2026-09-09,680,,CornEarwormCounts2026.pdf
+2026,Hancock,Waushara,2026-09-16,NA,,CornEarwormCounts2026.pdf
+2026,Hancock,Waushara,2026-09-23,168,,CornEarwormCounts2026.pdf

@@ -1,53 +1,110 @@
 # European corn borer (`european-corn-borer`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/insects/european_corn_borer.py`, run by the insect engine (`agmodels.phenology`, VDIFN's generations); its page: `european_corn_borer.md` beside it. Ported from VDIFN in Phase 3 (PLAN.md Phase 3 D step 3); its sources are listed for review in `docs/insect-models.md`.
+Model version 0.2, written 2026-11-21 (D98). The model: `packages/agmodels/src/agmodels/insects/european_corn_borer.py`, run by the insect engine (`agmodels.phenology`, D36, D37); its page: `european_corn_borer.md` beside it. Rebuilt in part H, batch H2 (`docs/models-plan.md`); the research notes this condenses are in the project's working notes (part H sources, "European corn borer").
 
-**In short:** VDIFN's two moth flights, 50/86 °F degree days from January 1, reproduced exactly. Its source isn't identified; the page's description gives the wrong numbers for the first flight; and it hasn't been compared with Wisconsin's black light trap counts or NEWA's model.
+**In short:** rebuilt on Wisconsin's own degree-day lineage (UW–Madison's table, from Apple's work at Madison): the modified average, 50/86 °F, from January 1; a spring flight from 374 degree days (peak 631) and a summer flight 1,100 later (peak near 1,733), with egg masses and young larvae timed from them and a window to treat larvae before they bore in. On DATCP's black light traps, 2020–2026, the flights' midpoints fall within a day of the observed weeks in southern and central Wisconsin, where VDIFN's ran 4 and 14 days late. In the north (Wausau, Marshfield, Antigo) the traps show one flight in mid-July to mid-August, which the model's two flights don't: a rule for the univoltine north is proposed below, not built.
 
 ## Sources and what we took from each
 
+<!-- prettier-ignore -->
 | Source | What it gives | What we took |
 | --- | --- | --- |
-| VDIFN's entry (`../ag-vdifn/db/seeds.rb`, `european-corn-borer`) | Thresholds 50/86 °F, biofix January 1, two flights (550, 740, 900) and (1660, 1950, 2190); a text whose first-flight numbers (329, 472, 636) are corn rootworm's | The thresholds and flights, unchanged; the text as the page's summary (a slip, below) |
-| VDIFN's model spreadsheet (`tmp/references/insects/VDIFN Models v20210407.xlsx`), as summarized in `docs/insect-models.md` | University of Kentucky's EF-106 | Nothing yet: not read |
-| Matteson and Decker 1965 ([doi:10.1093/jee/58.2.344](https://doi.org/10.1093/jee/58.2.344)); Anderson et al. 1982 ([doi:10.1093/ee/11.6.1307](https://doi.org/10.1093/ee/11.6.1307)) | Development at constant and variable temperatures; postdiapause development and spring emergence | Nothing yet (both in `tmp/references/insects/`, not read for this report) |
-| Enviroweather (MSU), European corn borer (`docs/enviroweather-models.md`) | Single sine 50 °F, no upper, from March 1: flights at 450–950, 1,450–1,950 and 2,450–2,950 ("rough numbers" in its code) | Compared only (below) |
-| NEWA's European corn borer model | The standard where sources conflict (D95) | Not yet compared |
+| Delahaut, UW–Madison XHT1087 (rev. 2012; hort.extension.wisc.edu), with its method from XHT1086 | DD50 (modified average, low raised to 50, high capped at 86, from January 1): first spring moths 375, first eggs 450, peak spring moths 631, first summer moths 1,400, eggs 1,450, hatch 1,550, peak summer moths 1,733, summer treatment 1,550–2,100 | The method, the flights' starts and peaks, egg laying 76 after the first moths, hatch ~100 after laying |
+| Apple 1952 ([doi:10.1093/jee/45.5.877](https://doi.org/10.1093/jee/45.5.877)) | Corn borer development on canning corn in Wisconsin by temperature accumulation | The likely origin of UW's numbers (UMN's VegEdge: "similar to the original model from Dr. J. W. Apple"); not read |
+| Hazzard 2017 (UMass) | 374, eggs 450, peak 631, hatch ~100 after laying, second flight 1,400, eggs 1,450, hatch 1,550 | A check that UW's table is the shared Upper Midwest–Northeast lineage |
+| Potter 2020, UMN (field corn, Table 3) | Base 50 from March; multivoltine first moths 374, scout 800–1,000; second generation first moths 1,400, scout 1,550–2,100; univoltine first moths < 911, scout 1,100–1,300; "a first moth capture biofix will be more accurate" | The univoltine timing, compared with Wausau's traps (below) |
+| Flandermeyer and Bick (UW–Madison, 2025); A3646 | Sprays for first-generation larvae at 800–1,000 DD50, second at 1,500–2,100, before larvae bore in | The window's purpose; its edges compared |
+| Showers et al. 1989, NCR 327 (Iowa State), Table 2 | Simple average above 50 from the first significant spring capture: peak hatch 100, 1st–2nd instars 200+, 3rd 350+, 4th 400+, 5th 550+ (boring), pupation 900+; second generation peak hatch 1,260, boring 1,650; says January 1 starts "have not been accurate" | Young larvae last ~300 from hatch (to the 4th instar); NCR 327's first-capture biofix is the alternative (Limits) |
+| Bessin, EF-106 (Kentucky) | Simple average above 50 from January 1, no upper; Grayson Brown's unpublished model: flights 550/690/740/790/900 and 1,660/1,880/1,950/2,030/2,190 | Nothing: these are VDIFN's numbers exactly, a Kentucky model that VDIFN ran on single sine 50/86 |
+| Enviroweather (MSU) | Baskerville-Emin sine 50, no upper, from March 1; flights 450–950, 1,450–1,950, 2,450–2,950 ("rough numbers") | Compared only |
+| Hoard and Weiss 1995 ([doi:10.1093/ee/24.3.564](https://doi.org/10.1093/ee/24.3.564)); Ikten et al. 2011 ([doi:10.1603/AN09149](https://doi.org/10.1603/AN09149)); A1220 | Voltinism set by post-diapause development time (North Dakota); critical photoperiods 14.80 h (bivoltine Nebraska) and 15.33 h (univoltine northwest Minnesota); most borers in northern Wisconsin diapause after one generation | The north's one generation (Limits, the proposed rule) |
+| DATCP black light traps, 2020–2026 (`docs/validation/data/datcp-blacklight-traps/`) | Weekly corn borer moths at 6–13 sites a year, 59–293 moths a year | The check below |
+
+NEWA runs no European corn borer model, so D95 doesn't apply.
 
 ## Choices and differences
 
-- **Degree days:** single sine, 50/86 °F, from January 1, as VDIFN computed them. Whether that is the method its source's numbers were made with isn't checked (D37; part H).
-- **Severity:** VDIFN's rule: in each window (start, peak, end) (550, 740, 900) and (1660, 1950, 2190), a level from 0 to 4 rising along a half sine from start to peak and falling from peak to end, rounded up; 0 outside; where two windows touch, the later one's value.
-- **Freeze:** after day 250 (early September) severity is lowered by the number of days in the last 14 with a minimum at or below −2 °C, the Crop Risk Tool's rule, used for every insect; VDIFN subtracted freezing days only from November (PLAN.md Phase 3 D step 3).
-- **Days:** midnight to midnight CST (D74); VDIFN's came from the old API's local days.
-- **Against Enviroweather** (thresholds compared, not run): MSU's first flight starts 100 degree days earlier (450) and ends 50 later (950); its second runs 1,450–1,950 against 1,660–2,190; it adds a third flight that it expects in few years.
-- **Two flights**, no third, as VDIFN's text has two generations in most of Wisconsin.
+- **Degree days:** the modified average, 50/86 °F, from January 1 (UW–Madison's method; stored on the grid as `dd_modified_50_86`). VDIFN ran EF-106's numbers on single sine 50/86, a method neither EF-106 nor UW uses.
+- **Adult flight:** PERT (374, 631, 1,000), weight 0 (moths don't feed). Its 1, 50 and 99 % are 420, 645 and 911. The end, ~1,000, is the research's estimate: UW and UMN give no last moths, but scout first-generation larvae to 1,000 and have summer moths from 1,400.
+- **Egg masses:** from 76 after each moth's emergence (UW: first moths 375, first eggs 450) for 100 (hatch ~100 after laying, UW and UMass), weight 0.
+- **Young larvae:** from hatch (176 after emergence) for 300, to about the 4th instar, when larvae have bored into midribs, stalks, shanks or ears (NCR 327, Table 2). Weight 1: the crop's risk.
+- **Generations:** 1,100 apart (UW's peaks 631 and 1,733 are 1,102 apart; first moths 374 and 1,400, 1,026), with D36's default spread (the first flight's SD, ~117): the summer flight's 1 % at 1,388, peak 1,737, 99 % at 2,144, against UW's 1,400, 1,733 and summer treatments to 2,100. Two generations (`max_generations=2`), weighted alike (D37); no third, which MSU's code doesn't expect in most years either.
+- **Window:** "Scout and treat young larvae before they bore in", 10–90 % of each generation's hatch: 671–986 and 1,713–2,142 degree days, against UW–Madison's 800–1,000 and 1,550–2,100. It opens before UW's first-generation window (UW's 800 is near peak hatch, 807) and closes after its second (UW's 1,550 is first hatch). Neither is wrong for scouting; sprays go by scouting thresholds.
+- **Not EF-106:** VDIFN's first flight (550–900) began 176 degree days after UW's first moths and peaked 109 after; with single sine in place of the modified average (lower in spring), its dates ran later still (below).
 
 ## Checks
 
-### Against VDIFN
+### Against its sources' numbers
 
-VDIFN is the tool this model replaces: a reference, not the truth (D54). These tests show the port reproduces it, not that its timings are right. Run in CI:
+`packages/agmodels/tests/test_european_corn_borer.py`, run in CI:
 
-- `test_insects.py::test_the_sine_ramp_by_its_steps_matches_the_sine`: v2's severity ramp equals VDIFN's `Insect#sev_ramp` (a half sine from start to peak and back to end, times 4, rounded up; `_sine_ramp_reference` is its Ruby term for term) on this model's generations, (550, 740, 900) and (1660, 1950, 2190), exactly, at every 0.01 °F·d from start to end and at 2,000 random totals in each.
-- `test_insects.py::test_vdifn_generations_match_its_severity`: VDIFN's own `Insect#total_to_severity`, run in Ruby (`fixtures/make_vdifn_fixtures.rb`), at 701 totals from 0 to 3,500 by 5 on four generation tables; v2's severity (0 to 4) is identical at every one. None of the four is this model's table.
-- `test_degree_days.py::test_matches_the_old_api`: v2's single-sine degree days at 50/86 °F match the old AgWeather API's calculator, which VDIFN read its totals from, to within 0.000001 °F·d at 231 pairs of daily minimum and maximum.
-- The thresholds, biofix and generations are VDIFN's entry in `../ag-vdifn/db/seeds.rb`, unchanged.
-- The weather itself: VDIFN read its degree days from the old AgWeather API's daily grid; v2 reads its own archive. At Waunakee, January 1 to October 31, 2026, v2's single-sine 50/86 °F total was 3,184 against the old API's 3,203 (−0.6 %; `docs/validation/legacy/v1-dd-table.md`).
+- The modified average on hand-computed days (a minimum raised to 50, a maximum capped at 86), and the model's daily degree days the same.
+- The spring flight begins at 374 (UW: 375) and peaks at 631 (UW: 631); the summer flight's first moths (1 %) at 1,388 (UW: 1,400) and peak 1,737 (UW: 1,733); its 99 % at 2,144 (UW's summer treatment ends at 2,100); two generations and no third.
+- First eggs at 450 (UW: 450) and first hatch at 550 (UW: summer hatch 100 after eggs); young larvae begin at first hatch and carry the risk.
+- The windows run from 671 to 986 and from 1,713 to 2,142, bracketing UW–Madison's 800 to 1,000 and 1,550 to 2,100.
 
-Not compared: v2 and VDIFN on the same days' weather (VDIFN's maps against v2's), or the freeze reduction (different by design, above).
+### Against Wisconsin's black light traps
+
+`scripts/check_european_corn_borer.py`; full table in [european-corn-borer/traps.md](european-corn-borer/traps.md); data in [../data/datcp-blacklight-traps/](../data/datcp-blacklight-traps/README.md). The model runs on the archive at each black light site's cell from January 1, 2020–2026. Each site-year's weeks are split into spring and summer flights at the model's own trough there (`check_insect_traps.py` splits at July 7 instead). Days off: 0 inside the observed week, else days before (−) or after (+) it. "South" is everything below 44.6 °N (Arlington, Beaver Dam, East Troy, Hancock, Janesville, Manitowoc, Pardeeville, Prairie du Chien, Ripon, Sparta); "north" is Wausau, Marshfield and Antigo.
+
+<!-- prettier-ignore -->
+| Event (model against the observed week) | n | Within a week | Median, days | 10th–90th percentile |
+| --- | --- | --- | --- | --- |
+| South, spring flight, 50 % | 14 | 11 | 0 | −4 to +10 |
+| South, spring flight, 50 %: VDIFN's peak (740, single sine) | 14 | 10 | +4 | 0 to +16 |
+| South, spring flight, peak week | 14 | 10 | 0 | −8 to +8 |
+| South, spring, first moths (1 %) against first catch | 24 | 15 | −6 | −12 to +3 |
+| South, summer flight, 50 % | 23 | 12 | +1 | −8 to +20 |
+| South, summer flight, 50 %: VDIFN's peak (1,950, single sine) | 23 | 9 | +14 | 0 to +33 |
+| South, summer flight, peak week | 23 | 7 | +4 | −12 to +25 |
+| North, the one flight's 50 % against the model's summer 50 % | 7 | 2 | +19 | +4 to +26 |
+| North, the same against VDIFN's summer peak | 7 | 0 | +35 | +29 to +47 |
+
+- Leaving out Arlington 2021–2023, whose mid-May "corn borers" may be misidentified (data README, Caveats), the southern spring midpoint is −1 day (11 site-years) and the summer 0 (20).
+- The model's first moths (1 %) come a median 6 days before the first week with a catch: a weekly trap with one to a few moths a week catches its first moth after the flight has begun, as codling moth's traps showed (D97).
+- Observed degree days (modified 50/86 from January 1) at the middle of the observed weeks, south: spring 50 % median 694 (25th–75th percentile 647–731), against the model's 645; summer 50 % median 1,651 (1,387–1,881), against 1,745.
+- The summer flight is wide in the traps (10th–90th percentile of days off −8 to +20): a split by the model's trough sorts late spring moths and early summer moths by the model's clock, and a site's flight rests on a handful of moths.
+
+#### One flight or two
+
+From the same run ([traps.md](european-corn-borer/traps.md), "One flight or two"):
+
+- **South:** 34 site-years caught corn borers, 26 of them before the model's trough (236 moths before, 733 after). The season's 969 moths by degree days: 10, 50 and 90 % at 620, 1,400 and 2,075, two flights.
+- **North:** 12 site-years caught corn borers, 4 of them before the trough, with 4 moths between them (145 after). The season's 149 moths, almost all at Wausau: 10, 25, 50, 75 and 90 % at 1,112, 1,287, 1,402, 1,600 and 1,715 degree days: one flight from mid-July to mid-August, between the bivoltine strain's two, as UMN's univoltine scouting window (1,100–1,300 for larvae) implies. Wausau never caught a June moth in six years.
+- Degree days by August 1 in the trap years: south median 1,736 (1,309–2,020), north 1,462 (1,263–1,651). The research's guess for a second generation, 1,400 by about August 1, doesn't separate them: the north passed 1,400 by August 1 in most years and still had one flight.
+- On the 1996–2025 normals, August 1 totals are Arlington 1,684, Hancock 1,567, Marshfield 1,453, Wausau 1,441 and Rhinelander 1,355. A threshold near 1,500 on the normal total separates the traps' two-flight sites from the one-flight sites (Sparta 2020, at 1,566 that year, caught both flights; Wausau 2021, at 1,559, one).
+
+### Typical dates on the normals
+
+`uv run app/manage.py shell < scripts/corn_moth_normals.py`: the day each event's degree days are reached on AgWeather's 1996–2025 normal running total (modified 50/86 °F from January 1). A typical-year calendar, not a forecast.
+
+<!-- prettier-ignore -->
+| Event | DD | Arlington | Hancock | Rhinelander |
+| --- | --- | --- | --- | --- |
+| Spring moths, first (1 %) | 420 | May 27 | May 30 | Jun 5 |
+| Spring flight, peak | 631 | Jun 10 | Jun 13 | Jun 21 |
+| Treat young larvae, first generation | 672–985 | Jun 13 to Jun 29 | Jun 16 to Jul 3 | Jun 23 to Jul 12 |
+| Summer moths, first (1 %) | 1,388 | Jul 19 | Jul 24 | Aug 3 |
+| Summer flight, peak | 1,737 | Aug 4 | Aug 10 | Aug 25 |
+| Treat young larvae, second generation | 1,713–2,142 | Aug 3 to Aug 25 | Aug 9 to Sep 3 | Aug 24 to Sep 30 |
+| Normal total, August 1 |  | 1,684 | 1,567 | 1,355 |
+
+Against UW–Madison's descriptions: first eggs in southern Wisconsin from late May to mid-June (the model: first eggs ~450, about May 29 at Arlington; spring peak June 10); the summer flight "from late July or early August", peaking "around mid-August in central Wisconsin" (Hancock August 10); first-generation sprays "mid-June to early July in southern Wisconsin" (Arlington's window June 13–29). At Rhinelander the model's two flights are what the north doesn't show: Wausau's traps put its one flight from about mid-July (1,112) to mid-August (1,715).
 
 ## Limits and open questions
 
-- **A slip in the page's text:** the summary in `european_corn_borer.md` (VDIFN's text) says the first flight starts at 329, peaks at 472 and ends at 636 degree days, which are corn rootworm's numbers; the model's first flight is 550, 740 and 900. Fixed 2026-11-18 (the page now gives 550, 740 and 900).
-- The source of 550/740/900 and 1660/1950/2190 isn't identified.
-- Moving to D36's life-stage curves with the source's own degree-day method is part H's review (`docs/insect-models.md`); this report describes the model as ported (version 0.1).
-- **Cheapest independent comparison:** DATCP's weekly Pest Bulletin black light trap counts of European corn borer moths, 2020–2026 (both flights, many sites a year), against the flights; then NEWA's European corn borer model on the same weather.
+- **The univoltine north.** The model runs two flights everywhere. Where the borer has one generation (Wausau's traps, A1220, UMN), its spring flight (June) and its summer flight (late August) are both wrong: the one flight comes between them, mid-July to mid-August, half flown near 1,400. A proposed rule, for Ben and the engine (not built): where the 1996–2025 normal total (modified 50/86 °F from January 1) by August 1 is below about 1,500, run a univoltine form: one flight, PERT about (900, 1,400, 1,900) (10/50/90 % near Wausau's 1,112, 1,402 and 1,715), egg masses and larvae timed from it as now, one generation. It needs a place-dependent choice of life stages in `phenology.py`, read from a static per-cell value (the normal total by August 1, or latitude as a cruder proxy that misses the cool Lake Michigan shore), like `EstimatedBiofix` reads latitude. This year's total by August 1 can't decide it: it isn't known until after the univoltine flight has begun, and it overlaps between north and south.
+- **Few moths.** Black light catches are 59–293 moths a year across the network, a handful at most sites; the north rests on Wausau (6 years) and a few moths at Marshfield and Antigo. DATCP doesn't split the Z and E pheromone races.
+- **First catch:** the model's first moths come about a week before a weekly trap's first catch; that is expected, but it means "first moths" on the page is earlier than the first moth a grower's trap will show.
+- **NCR 327's alternative:** a biofix at the first significant spring capture (simple average 50 °F) with larval stages from it; it says January 1 starts "have not been accurate". UW's table from January 1 fits Wisconsin's traps within days in the south, so the January 1 start stays; a grower's first-catch date isn't offered (it would need NCR 327's numbers and the simple average).
+- **The end of the spring flight (1,000)** is an estimate, not a published number; it sets the first window's close (986).
+- **Young larvae's 300 degree days** come from NCR 327's instar timings on the simple average from first capture, applied on UW's method.
+- The window follows hatch, not plant stage: sweet corn's risk depends on silking (A3422), which the model can't see.
 
 ## Reproducing
 
 ```bash
-uv run pytest packages/agmodels/tests/test_insects.py packages/agmodels/tests/test_degree_days.py
-ruby packages/agmodels/tests/fixtures/make_vdifn_fixtures.rb       # VDIFN's severities (needs ../ag-vdifn)
-ruby packages/agmodels/tests/fixtures/make_degree_days_legacy.rb   # the old API's degree days (needs ../ag-weather)
+uv run pytest packages/agmodels/tests/test_european_corn_borer.py
+uv run python scripts/check_european_corn_borer.py    # needs the archive in data/
+uv run app/manage.py shell < scripts/corn_moth_normals.py
 ```

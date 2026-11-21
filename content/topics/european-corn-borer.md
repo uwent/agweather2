@@ -14,7 +14,7 @@ summary: A moth whose caterpillars bore into the stalks and ears of corn and int
 image: images/european-corn-borer.jpg
 image_credit: 'European corn borer caterpillar on a corn leaf. Photo by Keith Weller, USDA Agricultural Research Service (image k7834-3), via Wikimedia Commons (File:Corn borer.jpg), public domain.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. European Corn Borer. University of Wisconsin–Madison, updated 2026.'
@@ -46,6 +46,9 @@ sources:
   - key: mwvg-2026
     text: 'Midwest Vegetable Production Guide 2026. Land-grant universities of Illinois, Indiana, Iowa, Kansas, Michigan, Minnesota, Missouri and Ohio, 2026.'
     url: https://mwveguide.org/guide
+  - key: uw-dd-table
+    text: 'Delahaut, K. Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087). UW–Madison Division of Extension, revised 2012.'
+    url: https://hort.extension.wisc.edu/articles/degree-days-common-fruit-vegetable-insect-pests/
   - key: agweather-ecb
     text: 'AgWeather. European corn borer model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/european-corn-borer.md
@@ -100,6 +103,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [European corn borer model](/models/european-corn-borer) counts degree days at a base of 50 °F with an upper limit of 86 °F from January 1, and rates risk from 0 to 4 during two moth flights: the first from 550 to 900 degree days (peaking at 740), the second from 1,660 to 2,190 (peaking at 1,950). It comes from VDIFN, the forecasting tool AgWeather replaces, and gives the same ratings as VDIFN for the same degree days. The source of its numbers hasn't been identified, and it hasn't yet been compared with DATCP's black light trap counts.[^agweather-ecb]
+The [European corn borer model](/models/european-corn-borer) counts degree days from January 1 by the modified average method (base 50 °F, cutoff 86 °F), as UW–Madison's degree-day table does.[^uw-dd-table] It follows the spring moth flight from about 374 degree days (peaking at 631), the egg masses and young caterpillars that come from it, and a summer flight about 1,100 degree days later (peaking near 1,733), and marks the days from 10 % to 90 % of each generation's egg hatch as the time to scout and treat young caterpillars before they bore in. That window opens a little before UW–Madison's spray timings of 800 to 1,000 and about 1,500 to 2,100 degree days.[^flandermeyer-2025]
 
-Published timings don't all agree with it. Minnesota's guide expects the first moths of the two-generation strain at about 374 degree days (counted from March), well before the model's first flight begins,[^umn-ecb] and UW–Madison's window for second-generation sprays opens at about 1,500, before the model's second flight begins at 1,660.[^flandermeyer-2025] Until the model is checked against trap counts, time scouting by black light catches in your area and egg masses in your fields.
+On DATCP's black light trap counts from 2020 to 2026, the middle of each flight fell within a day or so of the observed flights in southern and central Wisconsin.[^agweather-ecb][^datcp-blacklight] In the north, where most corn borers have one generation, Wausau's trap caught a single flight from mid-July to mid-August, between the model's two flights, so the model doesn't fit there yet.[^agweather-ecb][^uw-vegento] Minnesota's guide also times the one-generation strain later than the spring flight of the two-generation strain.[^umn-ecb] Time scouting by trap catches in your area and egg masses in your fields.

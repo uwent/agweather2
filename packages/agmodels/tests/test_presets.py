@@ -38,7 +38,7 @@ def test_each_insect_model_gives_a_preset_with_its_setting_and_biofix():
     weevil = insects["alfalfa-weevil"]
     assert (weevil.setting.method, weevil.setting.base_f, weevil.setting.upper_f) == ("average", 48, None)
     assert weevil.group == "insect" and weevil.starts == "biofix" and weevil.biofix == "01-01"
-    assert insects["corn-earworm"].biofix == "08-01"
+    assert insects["corn-earworm"].biofix == "08-15"
     # The beetle's adults and larvae models count as the beetle does: one preset
     assert "colorado-potato-beetle" in insects and "colorado-potato-beetle-adults" not in insects
     modelled = {m for m, mod in all_models().items() if mod.SPEC.group == "insect" and mod.SPEC.status != "retired"}

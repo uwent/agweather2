@@ -461,7 +461,7 @@ def test_a_model_map_says_when_its_out_of_season_or_before_its_biofix(client, ar
     cotton = get(client, "cotton-planting", date="2025-07-05").json()["meta"]["warnings"]
     assert "These dates are outside the model's season (March 15 to June 30)." in cotton
     earworm = get(client, "corn-earworm", date="2025-07-08").json()["meta"]["warnings"]
-    assert "The season starts at the biofix, August 1, 2025, so nothing has accumulated yet." in earworm
+    assert "The season starts at the biofix, August 15, 2025, so nothing has accumulated yet." in earworm
 
 
 def test_a_mean_of_degree_days_is_the_days_sum_over_their_number(client, archive):
