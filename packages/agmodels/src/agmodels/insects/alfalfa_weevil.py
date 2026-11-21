@@ -41,7 +41,7 @@ INSECT = Insect(
         Change(
             version="0.2",
             date="2026-11-21",
-            note="Rebuilt on NEWA's alfalfa weevil model (D95): simple average degree days above 48 °F from January 1, half the eggs hatched at 280 and cocooning at 600 (Harcourt 1981's peaks), as curves: egg hatch, larval feeding (the risk), pupae and new adults, and a window to scout stem tips. Replaces the Crop Risk Tool's step table on single sine 48.2/86 °F.",
+            note="Rebuilt on NEWA's alfalfa weevil model (D95): simple average degree days above 48 °F from January 1, half the eggs hatched at 280 and cocooning at 600 (NEWA's table, which matches Harcourt 1981's stage peaks converted), as curves: egg hatch, larval feeding (the risk), pupae and new adults, and a window to scout stem tips. Replaces the Crop Risk Tool's step table on single sine 48.2/86 °F.",
         ),
     ),
     trained=TrainingArea(

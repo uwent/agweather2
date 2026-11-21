@@ -2,6 +2,41 @@
 
 The work list for PLAN.md Phase 3 D8 step 4: moving each insect from its legacy definition (a VDIFN generation table or a Crop Risk Tool stage table) to life-stage curves (D36), using the degree-day method its source used (D37). Seedcorn maggot is done and is the worked example. Last updated 2026-10-29.
 
+## Where each insect stands (part H, 2026-11-21)
+
+Part H (`docs/models-plan.md`) rebuilt every insect still on a legacy definition on its source: NEWA's models where NEWA runs the insect (D95), else the source's own method and thresholds (D37), each stage a curve (D36). Every insect but the three retired ones is now on curves; VDIFN's ramp (`generations`) remains only for the retired models. Each model's report (`docs/validation/models/<id>.md`) says what each number comes from and which are judgments; the source summaries behind the rebuilds are in `tmp/references/insects/notes/` (`newa-insects.md`, `part-h-sources.md`). The sections after this one are the review's earlier work list (2026-10), kept for its notes.
+
+<!-- prettier-ignore -->
+| Model | Version | Degree days (°F) and start | Phenology | Source |
+| --- | --- | --- | --- | --- |
+| `alfalfa-weevil` | 0.2 | simple average 48, no upper, Jan 1 | curves (hatch, larvae, pupae, adults) | NEWA (Carruthers' table, Harcourt 1981) |
+| `aphid-pvy-vectors` | 0.3 | single sine 39.2/86, Jan 1 | fitted curve, two clocks (D101) | Bradford and Groves (suction traps) |
+| `black-cutworm` | 0.2 | single sine 50/86, trap date (default May 1) | curves | Luckmann et al. 1976; DATCP's pheromone traps |
+| `cabbage-looper` | 0.2 | single sine 50/90, trap date (default July 15) | curves, every 912 | USPest `cbl` (Toba et al. 1973) |
+| `cabbage-maggot` | 0.2 | simple average 40, no upper, Jan 1 | curves, every 850 (4 at most) | NEWA (Jyoti, Shelton and Barnard 2003) |
+| `codling-moth` | 0.1 | single sine 50/86, first catch (estimated) | curves, every 1084 (2) | WSU (Jones et al.) |
+| `colorado-potato-beetle` | 0.3 | single sine 52/86, Jan 1 | fitted curves, two clocks | Bradford and Groves (scouting) |
+| `common-asparagus-beetle` | 0.2 | modified 50/86, Jan 1 | curves, every 600 (3) | UW's degree-day table (Delahaut); judgments |
+| `corn-earworm` | 0.2 | single sine 55/92, egg laying (default Aug 15) | curves | Hartstack et al. 1976 via USPest; DATCP's pheromone traps |
+| `corn-rootworm` | 0.2 | single sine 52, no upper, Jan 1 | curves | Apple, Walgenbach and Knee 1971 |
+| `crucifer-flea-beetle` | 0.2 | modified 50/86, Jan 1 | curves, every 1350 (2) | UW's table; Kinoshita et al. 1979 |
+| `european-corn-borer` | 0.2 | modified 50/86, Jan 1 | curves, every 1100 (2) | UW's degree-day table (Apple 1952 lineage) |
+| `green-peach-aphid` | 0.1 | single sine 39.2/86, Jan 1 | fitted curve, calendar by default | Bradford and Groves (suction traps) |
+| `imported-cabbageworm` | 0.2 | modified 50/86, Jan 1 | curves, every 840 | UW's degree-day table; Tatchell 1981 |
+| `japanese-beetle` | 0.2 | single sine 50/92, Jan 1 | curve | USPest `jpb` version 2 (Minnesota traps) |
+| `mint-flea-beetle` | 0.2 | single sine 41, no upper, Jan 1 | curves | USPest `mfb` |
+| `mint-root-borer` | 0.2 | single sine 50, no upper, Apr 1 | curves | USPest `mrb`; Tollerup et al. 2013 |
+| `onion-maggot` | 0.2 | simple average 40, no upper, Jan 1 | curves, every 1100 (3) | NEWA (Eckenrode et al. 1975) |
+| `potato-aphid` | 0.1 | single sine 39.2/86, Jan 1 | fitted curve, two clocks | Bradford and Groves (scouting) |
+| `seedcorn-maggot` | 0.2 | simple average 39/84.2, Jan 1 | curves, every 720 | Sanborn, Funderburk; checked against NEWA |
+| `spotted-wing-drosophila` | 0.2 | single sine 45/86, Jan 1 | fitted curve | Kamiyama et al. 2020, refitted |
+| `squash-vine-borer` | 0.2 | modified 50/86, Jan 1 | curves | UW, SDSU, MSU, Ohio State (a judgment across them) |
+| `stalk-borer` | 0.2 | single sine 41, no upper, Jan 1 | curve (caterpillars moving into corn) | Lasack and Pedigo 1986; Iowa State, A3646 |
+| `tarnished-plant-bug` | 0.2 | single sine 52, no upper, Jan 1 | curves, every 640 | Ugine 2012; the spring start unsourced |
+| `variegated-cutworm` | 0.2 | single sine 45, no upper, Jan 1 | curves, every 1260 (2) | Simonet et al. 1981 |
+| `western-bean-cutworm` | 0.3 | average 38 with the day's mean capped at 75, Mar 1 | curves | Hanson et al. 2015 (as NEWA) |
+| `colorado-potato-beetle-adults`, `-larvae`, `western-flower-thrips` | retired | | VDIFN's ramp | |
+
 ## How each insect is reviewed
 
 1. **Find the source** of the current numbers, and any newer or more local work. Put PDFs in `tmp/references/insects/<insect-id>/`.

@@ -29,7 +29,7 @@ INSECT = Insect(
     ),
     # NEWA's later flights peak (50 %) at 1,261, 2,176 and 3,014, 809, 915 and 838 apart: 850 sets every
     # generation's 50 % within 45 of NEWA's (least squares over the three). Eckenrode and Chapman 1972 found 1,176 DD43
-    # between Wisconsin flights (about 1,300 DD40 in summer): a third longer, kept as a difference (D95)
+    # between Wisconsin flights (about 1,300 DD40 in summer): about half again as long, kept as a difference (D95)
     generation_dd=850,
     # Eckenrode and Chapman 1972: the spring emergence pattern repeats in later generations, so they spread little;
     # 10 % of a generation (the default, the spring flight's own SD, 125, would widen them half again as fast)
@@ -65,7 +65,7 @@ INSECT = Insect(
         Check(
             kind="published",
             against="Fly trap catches at Kenosha and Arlington, Wisconsin, 1965–1969 (Eckenrode and Chapman 1972)",
-            result="Wisconsin's spring flies first emerged at 290 to 365 degree days above 43 °F, about the same days as NEWA's 288 above 40 °F, or up to about 9 days later. Wisconsin's generations took 1,176 degree days above 43 °F, about a third longer than NEWA's 850 above 40 °F, which would put the first summer flight a median 16 days later; the model follows NEWA.",
+            result="Wisconsin's spring flies first emerged at 290 to 365 degree days above 43 °F, about the same days as NEWA's 288 above 40 °F, or up to about 9 days later. Wisconsin's generations took 1,176 degree days above 43 °F, about half again as long as NEWA's 850 above 40 °F (about 1,300 at 40 °F), which would put the first summer flight a median 16 days later; the model follows NEWA.",
             report="docs/validation/models/cabbage-maggot.md#against-eckenrode-and-chapman-1972",
         ),
         Check(

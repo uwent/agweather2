@@ -2,7 +2,7 @@
 
 Model version 0.2, written 2026-11-21 (D98; part H, H1). The model: `packages/agmodels/src/agmodels/insects/cabbage_maggot.py`, run by the insect engine (`agmodels.phenology`, D36); its page: `cabbage_maggot.md` beside it. Version 0.1 was VDIFN's two windows (single sine 42.8/86 °F, (360, 600, 1521) and (1881, 2121, 3042)); this version replaces it with NEWA's model (D95).
 
-**In short:** NEWA's cabbage maggot model as D36 curves: the simple average above 40 °F from January 1, the spring flight through NEWA's 25–95 % emergence (Jyoti, Shelton and Barnard 2003, upstate New York), larval feeding timed from it, and up to four flights 850 degree days apart. On the same weather at 34 Wisconsin NEWA stations it reproduces NEWA's events to a day or two. Wisconsin's own trap study (Eckenrode and Chapman 1972) agrees on the spring flight but found generations about a third longer than NEWA's, which would put each summer flight about two weeks later; the model follows NEWA, and no Wisconsin trap data are in hand to settle it.
+**In short:** NEWA's cabbage maggot model as D36 curves: the simple average above 40 °F from January 1, the spring flight through NEWA's 25–95 % emergence (Jyoti, Shelton and Barnard 2003, upstate New York), larval feeding timed from it, and up to four flights 850 degree days apart. On the same weather at 34 Wisconsin NEWA stations it reproduces NEWA's events to a day or two. Wisconsin's own trap study (Eckenrode and Chapman 1972) agrees on the spring flight but found generations about about half again as long as NEWA's (about 1,300 DD40 against 850), which would put the first summer flight about two weeks later and later flights later still; the model follows NEWA, and no Wisconsin trap data are in hand to settle it.
 
 ## Sources and what we took from each
 
@@ -42,7 +42,7 @@ Model version 0.2, written 2026-11-21 (D98; part H, H1). The model: `packages/ag
 `scripts/check_maggots.py` (station days, the single sine above 43 °F without an upper standing in for Arnold's correction), 67 station-seasons:
 
 - Spring: the station's DD43 reaches 290 a median 2 days after our first flies (5.9 %; 10th–90th percentile 0 to 5) and 365 a median 9 days after (6 to 13). So Wisconsin's spring flies first emerged at 290 to 365 degree days above 43 °F, about the same days as NEWA's 288 above 40 °F, or up to about 9 days later.
-- Generations: between our spring and first summer peaks the stations accumulated a median 742 DD43 (728 to 760), against their 1,176. By their generation time the first summer peak would come a median 16 days later (13 to 18). Eckenrode and Chapman's generations took 1,176 degree days above 43 °F, about a third longer than NEWA's 850 above 40 °F; the model follows NEWA.
+- Generations: between our spring and first summer peaks the stations accumulated a median 742 DD43 (728 to 760), against their 1,176. By their generation time the first summer peak would come a median 16 days later (13 to 18). Eckenrode and Chapman's generations took 1,176 degree days above 43 °F, about about half again as long as NEWA's 850 above 40 °F (about 1,300 at 40 °F); the model follows NEWA.
 - Flights: they trapped three flights at Arlington (spring, F1 from early July, F2 from mid-August, small); the model has four in southern Wisconsin's normal season (below), the fourth in mid-August.
 
 ### Against NEWA on the same weather
