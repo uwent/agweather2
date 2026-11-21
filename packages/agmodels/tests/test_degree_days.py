@@ -132,3 +132,16 @@ def test_simple_average_by_hand(lo, hi, base, upper, expected):
 
 def test_a_mean_just_below_the_base_is_zero_for_the_sine_when_the_max_is_below_it():
     assert dd.degree_days_sine(40, 50, 50) == 0  # the maximum at the base: nothing above it
+
+
+def test_the_capped_mean_caps_the_days_mean_not_each_temperature():
+    """Hanson et al. 2015's simple method (western bean cutworm, 38/75 °F): min((min + max) / 2, 75) − 38."""
+    from agmodels.degree_days import degree_days_average_capped_mean
+
+    got = degree_days_average_capped_mean(
+        np.array([60.0, 70.0, 30.0, 30.0]), np.array([80.0, 90.0, 40.0, np.nan]), 38, 75
+    )
+    np.testing.assert_allclose(got[:3], [32.0, 37.0, 0.0])  # 70 − 38; the mean 80 capped at 75; below the base
+    assert np.isnan(got[3])
+    # capping each temperature instead would give (70 + 75) / 2 − 38 = 34.5 on the second day
+    assert dd.degree_days_average(70.0, 90.0, 38, 75) == 34.5

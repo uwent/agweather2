@@ -34,6 +34,13 @@ def degree_days_average(min_temp, max_temp, base, upper=None):
     return _valid(lo, hi, np.maximum((np.minimum(lo, cap) + np.minimum(hi, cap)) / 2 - base, 0.0))
 
 
+def degree_days_average_capped_mean(min_temp, max_temp, base, upper):
+    """Simple average with the daily mean, not each temperature, capped at `upper`: min((min + max) / 2, upper) −
+    base, at least 0 (Hanson et al. 2015's simple method for western bean cutworm, 38/75 °F)."""
+    lo, hi = _arrays(min_temp, max_temp)
+    return _valid(lo, hi, np.maximum(np.minimum((lo + hi) / 2, upper) - base, 0.0))
+
+
 def degree_days_modified(min_temp, max_temp, base, upper=None):
     """Modified average: min raised to the base and both capped at `upper` before averaging (the corn GDD
     method with 50/86 °F)."""

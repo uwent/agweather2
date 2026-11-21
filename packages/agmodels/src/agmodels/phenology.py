@@ -43,7 +43,12 @@ from typing import Literal
 import numpy as np
 
 from agmodels.accumulate import rolling_sum
-from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
+from agmodels.degree_days import (
+    degree_days_average,
+    degree_days_average_capped_mean,
+    degree_days_modified,
+    degree_days_sine,
+)
 from agmodels.ingredients import Accumulation, DegreeDays, Ingredient, finished
 from agmodels.spec import (
     SEVERITY_LEVELS,
@@ -201,7 +206,9 @@ class Insect:
     topic: str = ""  # the pest's topic page, when several models share one (Colorado potato beetle); default its id
     # the first a LifeStage (it sets the default spread), or all FittedStages
     life_stages: tuple[LifeStage | DerivedStage | FittedStage, ...] = ()
-    dd_method: Literal["sine", "average", "modified"] = "sine"  # the method its source's thresholds use (D37)
+    # the method its source's thresholds use (D37); "average_capped_mean" caps the day's mean, not each temperature,
+    # and has no shared running total on the grid, so its daily degree days are kept per model (`agdata.modelmaps`)
+    dd_method: Literal["sine", "average", "modified", "average_capped_mean"] = "sine"
     generation_dd: float | None = None  # degree days between generations; None: one generation
     generation_sd: float | None = None  # SD of a generation's time; None: the first stage's first-generation SD
     action_windows: tuple[ActionWindow, ...] = ()
@@ -301,7 +308,9 @@ class InsectModel:
                 Ingredient(
                     name="dd",
                     unit="degF_day",
-                    degree_days=DegreeDays(method=insect.dd_method, base_f=insect.base_f, upper_f=insect.upper_f),
+                    degree_days=None
+                    if insect.dd_method == "average_capped_mean"
+                    else DegreeDays(method=insect.dd_method, base_f=insect.base_f, upper_f=insect.upper_f),
                 ),
                 Ingredient(name=self.FREEZE, unit="index", shared=self.FREEZE, running_minimum=self.HELD),
             ),
@@ -552,6 +561,10 @@ def insect_degree_days(insect: Insect, min_f: np.ndarray, max_f: np.ndarray) -> 
     upper threshold, or the modified average (the minimum also raised to the base)."""
     if insect.dd_method == "average":
         return degree_days_average(min_f, max_f, base=insect.base_f, upper=insect.upper_f)
+    if insect.dd_method == "average_capped_mean":
+        if insect.upper_f is None:
+            raise ValueError(f"{insect.id}: a capped mean needs an upper threshold")
+        return degree_days_average_capped_mean(min_f, max_f, base=insect.base_f, upper=insect.upper_f)
     if insect.dd_method == "modified":
         return degree_days_modified(min_f, max_f, base=insect.base_f, upper=insect.upper_f)
     return degree_days_sine(min_f, max_f, base=insect.base_f, upper=insect.upper_f)

@@ -81,6 +81,8 @@ CumulativeName = Literal[
     "chill_state",
     "dd_average_39_84p2",
     "dd_average_39p2",
+    "dd_average_40",
+    "dd_average_48",
     "dd_modified_50_86",
     "dd_sine_32",
     "dd_sine_39p2",

@@ -522,8 +522,9 @@ GAP_FILL: dict[str, GapFill] = {name: v.gap_fill for name, v in DAILY_VARIABLES.
 # Thresholds are those the planned models use (°F, D18); corn's modified average isn't linear, so it has its own.
 DD_SINE_THRESHOLDS_F: tuple[float, ...] = (32, 39.2, 41, 42.8, 43, 45, 48.2, 50, 52, 55, 80.1, 86, 90, 92, 95)
 DD_MODIFIED_PAIRS_F: tuple[tuple[float, float], ...] = ((50, 86),)
-# The simple average isn't linear in its thresholds either: seedcorn maggot's 39/84.2 and potato's 39.2 (4 °C)
-DD_AVERAGE_SETTINGS_F: tuple[tuple[float, float | None], ...] = ((39, 84.2), (39.2, None))
+# The simple average isn't linear in its thresholds either: seedcorn maggot's 39/84.2, potato's 39.2 (4 °C), and
+# NEWA's 40 for the onion and cabbage maggots and 48 for alfalfa weevil (part H, D95)
+DD_AVERAGE_SETTINGS_F: tuple[tuple[float, float | None], ...] = ((39, 84.2), (39.2, None), (40, None), (48, None))
 _DD_RANGE = {
     "scale": 0.5,
     "valid_min": 0,
