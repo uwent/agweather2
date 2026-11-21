@@ -80,7 +80,7 @@ INSECT = Insect(
             doi="10.1093/aesa/66.5.965",
         ),
         Citation(
-            text="USPest.org, Oregon State University: cabbage looper degree-day model (Toba et al. 1973).",
+            text="USPest.org (Oregon State University's degree-day site): cabbage looper degree-day model, credited there to the University of Minnesota (Toba et al. 1973).",
             url="https://uspest.org/cgi-bin/ddmodel2.pl?spp=cbl",
         ),
         Citation(

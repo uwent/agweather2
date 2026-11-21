@@ -24,14 +24,14 @@ Risk follows the caterpillars, not the butterflies. A risk of 1 means as many ca
 
 ## How it works
 
-Degree days are counted from January 1 by the modified average method, base 50 °F with a cutoff at 86 °F: a day's low is raised to 50 °F and its high capped at 86 °F before they are averaged. This is the method of UW–Madison Extension's degree-day table (Delahaut's XHT1087).
+Degree days are counted from January 1 by the modified average method, base 50 °F with a cutoff at 86 °F: a day's low is raised to 50 °F and its high capped at 86 °F before they are averaged. This is the modified method in UW–Madison Extension's guide to calculating degree days, the companion to its degree-day table (Delahaut's XHT1087).
 
 - **The spring flight.** UW–Madison's table puts the butterflies at 150 to 240 degree days. In the model, a tenth of the spring flight has emerged by 150 and half by 240; it peaks at about 210.
-- **Eggs and caterpillars.** Females lay eggs over the days after they emerge, and the eggs hatch in about 5 days, about 105 degree days. The caterpillars then feed for about 350 degree days, two to three weeks in summer, as measured in the laboratory (Tatchell 1981).
-- **Later generations.** Each generation follows the last about 840 degree days later. Development times from egg to butterfly add up to about 740 to 820 degree days; Wisconsin's iNaturalist records of cabbage white butterflies show flights about 840 apart, and the model follows them. There's no fixed number of generations: the season's warmth decides, and fall freezes end it.
+- **Eggs and caterpillars.** Females lay eggs over the days after they emerge (the model centers egg laying about 5 days after, our estimate), and the eggs hatch in about 5 days, about 105 degree days. The caterpillars then feed for about 350 degree days, two to three weeks in summer, as measured in the laboratory (Tatchell 1981).
+- **Later generations.** Each generation follows the last about 840 degree days later. From one flight to the next, development times (egg laying, egg, caterpillar and chrysalis) add up to about 740 to 820 degree days; Wisconsin's iNaturalist records of cabbage white butterflies show flights about 840 apart, and the model follows them. There's no fixed number of generations: the season's warmth decides, and fall freezes end it.
 - **The end of the season.** After early September, each day at or below 28 °F reduces activity, and four such days within two weeks end the season.
 
-In an average year (AgWeather's degree days for 1996 to 2025), the spring flight begins in late April at Arlington and early May at Rhinelander, and is half over by about May 10 in the south and May 20 in the north. Its caterpillars peak in mid-June. The second flight comes in early July in the south and mid-July in the north, with caterpillars peaking in late July; a third flight follows in August, a little later in the north.
+In an average year (AgWeather's degree days for 1996 to 2025), the spring flight begins in late April at Arlington and early May at Rhinelander, and is half over by about May 10 in the south and May 20 in the north. Its caterpillars peak in mid- to late June. The second flight comes in early July in the south and mid-July in the north, with caterpillars peaking in late July in the south and early August in the north; a third flight follows in mid-August in the south and early September in the north.
 
 ## How to read it
 

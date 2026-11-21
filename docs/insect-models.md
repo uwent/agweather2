@@ -4,7 +4,7 @@ The work list for PLAN.md Phase 3 D8 step 4: moving each insect from its legacy 
 
 ## Where each insect stands (part H, 2026-11-21)
 
-Part H (`docs/models-plan.md`) rebuilt every insect still on a legacy definition on its source: NEWA's models where NEWA runs the insect (D95), else the source's own method and thresholds (D37), each stage a curve (D36). Every insect but the three retired ones is now on curves; VDIFN's ramp (`generations`) remains only for the retired models. Each model's report (`docs/validation/models/<id>.md`) says what each number comes from and which are judgments; the source summaries behind the rebuilds are in `tmp/references/insects/notes/` (`newa-insects.md`, `part-h-sources.md`). The sections after this one are the review's earlier work list (2026-10), kept for its notes.
+Part H (`docs/models-plan.md`) rebuilt every insect still on a legacy definition on its source: NEWA's models where NEWA runs the insect (D95), else the source's own method and thresholds (D37), each stage a curve (D36). Every insect but the three retired ones is now on curves; VDIFN's ramp (`generations`) remains only for the retired models. Each model's report (`docs/validation/models/<id>.md`) says what each number comes from and which are judgments; the source summaries behind the rebuilds are in `tmp/references/insects/notes/` (`newa-insects.md`, `part-h-sources.md`). UW's degree-day table (XHT1087) states no method; the modified average 50/86 its four insects run is our reading of its companion guide (XHT1086, which describes both averages). The sections after this one are the review's earlier work list (2026-10), kept for its notes.
 
 <!-- prettier-ignore -->
 | Model | Version | Degree days (°F) and start | Phenology | Source |

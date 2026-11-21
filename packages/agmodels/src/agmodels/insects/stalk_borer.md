@@ -30,7 +30,7 @@ In AgWeather's long-term averages (1996–2025), the window opens around June 19
 
 ## How to read it
 
-- **Scout border rows when the window opens.** Look for caterpillars in the whorls and frass at entry holes, starting with fields that had stalk borers before and edges next to grassy borders (A3646, Iowa State).
+- **Scout border rows when the window opens.** Look for caterpillars in the whorls and frass in the whorl or at entry holes, starting with field edges next to grassy borders, and check the whole field where grassy weeds were widespread last year (A3646, Iowa State).
 - **If a spray is needed, apply it inside the window**, while caterpillars are moving. Once they are inside the stem, sprays don't reach them. UW–Madison's field crops guide gives thresholds by leaf stage, corn price and expected yield; plants are unlikely to be killed once they reach about the seventh leaf.
 - **Check last year's weed patches earlier.** Caterpillars that hatch in weeds inside a field start feeding on corn earlier; A3646 suggests checking those patches from about 900 to 1,000 degree days.
 
