@@ -4,15 +4,10 @@ A short plan of its own (Ben, 2026-11-19), from D100's follow-up in PLAN.md. Res
 
 ## Handoff
 
-**Updated 2026-11-19.** Branch `phase-6`.
+**Updated 2026-11-21.** Branch `phase-6`.
 
 - **Where things stand:** D100 keeps D51's humidity map to a lat/lon box around the Upper Midwest (`agdata.sources.openmeteo.RH_MAP_AREA`) and counts pecan scab's 90 % at D50's 88 %, after five Oklahoma Mesonet stations showed the map made spring 2–4 times too humid there. The box is a stopgap with a cliff at its edge. Ben chose to replace it with a statistical correction from the hour's own weather (below), adopted only if it clearly beats the simplest option: no map, raw Open-Meteo counted at one threshold.
-- **Downloads at session end (2026-11-19, 18:10):** `scripts/fetch_urma_sample.py` writing URMA's hourly TMP and DPT at 9,365 lattice cells (every 20th row and column of the NDFD grid, ~50 km) and the five Oklahoma stations' cells into `data/urma-sample/<year>/<YYYYMMDD>.npz`: 2025 (about 150 of 365 days done at 18:05, ~5 days a minute), then 2024; 2026-01-01 to 2026-11-15 in parallel. Logs `data/urma-sample/fetch-<year>.log`. To finish or check, rerun the same command: written days are skipped.
-
-      uv run python scripts/fetch_urma_sample.py --start 2025-01-01 --end 2025-12-31 --workers 16
-      uv run python scripts/fetch_urma_sample.py --start 2024-01-01 --end 2024-12-31 --workers 16
-      uv run python scripts/fetch_urma_sample.py --start 2026-01-01 --end 2026-11-15 --workers 8
-
+- **Downloads complete (2026-11-21):** `data/urma-sample/` holds URMA's hourly TMP and DPT at 9,365 lattice cells (every 20th row and column of the NDFD grid, ~50 km) and the five Oklahoma stations' cells for every day of 2024 and 2025 and 2026-01-01 to 2026-11-15 (`scripts/fetch_urma_sample.py`; logs `fetch-<year>*.log`). About two dozen hours failed on dropped connections (9 in 2024, a few in 2025 and 2026) and stay NaN inside their days' files; rerunning skips written days, so they'd need the day's file deleted first, which a statistical fit doesn't need.
 - **Next:** step 1.
 
 ## Why not a simpler fix

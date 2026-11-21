@@ -158,9 +158,9 @@ def test_apple_scabs_map_starts_at_each_cells_green_tip(built):
 
 def test_days_before_a_models_biofix_are_missing(built):
     root, _ = built
-    found = modelgrid.model_days(root, "corn-earworm", date(2025, 7, 30), date(2025, 7, 31), WINDOW)  # biofix 08-01
+    found = modelgrid.model_days(root, "corn-earworm", date(2025, 7, 30), date(2025, 7, 31), WINDOW)  # biofix 08-15
     assert np.isnan(found.outputs["dd_total"]).all() and np.isnan(found.level).all()  # type: ignore[arg-type]
-    assert found.biofix == [date(2025, 8, 1)] * 2
+    assert found.biofix == [date(2025, 8, 15)] * 2
 
 
 def test_a_range_is_each_day_finished(built):
