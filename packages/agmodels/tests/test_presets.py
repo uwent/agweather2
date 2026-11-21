@@ -41,5 +41,5 @@ def test_each_insect_model_gives_a_preset_with_its_setting_and_biofix():
     assert insects["corn-earworm"].biofix == "08-01"
     # The beetle's adults and larvae models count as the beetle does: one preset
     assert "colorado-potato-beetle" in insects and "colorado-potato-beetle-adults" not in insects
-    modelled = {m for m, mod in all_models().items() if mod.SPEC.group == "insect"}
-    assert set(insects) <= modelled and len(insects) == len(modelled) - 2
+    modelled = {m for m, mod in all_models().items() if mod.SPEC.group == "insect" and mod.SPEC.status != "retired"}
+    assert set(insects) == modelled

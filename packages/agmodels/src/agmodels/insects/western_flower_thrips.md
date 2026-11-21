@@ -1,8 +1,8 @@
 ---
 id: western-flower-thrips
 status: draft
-updated: 2026-11-19
-summary: Rates western flower thrips activity from degree days since January 1 (base 45 °F) in four windows, one for each generation, peaking at 675, 1,350, 2,025 and 2,700 degree days.
+updated: 2026-11-21
+summary: Retired. Western flower thrips don't survive the winter outdoors in Wisconsin, so degree days from January 1 don't time them here.
 sources:
   - VDIFN's western flower thrips model (all of the model's numbers)
   - Oregon State University's western flower thrips degree-day model on USPest.org, listed as under development (the peaks of adults the windows follow)
@@ -11,6 +11,8 @@ sources:
   - UMass Extension, Western Flower Thrips, Management and Tospoviruses (monitoring with sticky cards)
   - UW–Madison Vegetable Entomology, thrips (vegento.russell.wisc.edu, 2026) (scouting field edges)
 ---
+
+This model is retired. Western flower thrips don't survive the winter outdoors in Wisconsin: they breed in greenhouses and reach fields on transplants, so a count of degree days from January 1 doesn't time them in the field. The model's source, Oregon State University's western flower thrips model on USPest.org, is also still listed as under development. Scout transplants and field edges for the thrips themselves (see the [western flower thrips topic](/topics/western-flower-thrips)).
 
 ## What it predicts
 

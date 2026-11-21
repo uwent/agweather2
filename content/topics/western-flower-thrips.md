@@ -12,7 +12,7 @@ summary: A tiny thrips that scars leaves and flowers of greenhouse and vegetable
 image: images/western-flower-thrips.jpg
 image_credit: 'Western flower thrips adult under magnification; the bar is 1 millimeter. Photo by Jesse Rorabaugh, via iNaturalist (observation 10629194), dedicated to the public domain (CC0).'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Thrips. Updated 2026.'
@@ -90,6 +90,4 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [western flower thrips model](/models/western-flower-thrips) counts degree days from January 1 at a base of 45 °F with no upper limit, and rates risk from 0 to 4 in four windows, one for each generation, peaking at 675, 1,350, 2,025 and 2,700 degree days. It comes from VDIFN, the forecasting tool AgWeather replaces, and gives the same ratings as VDIFN for the same degree days; it hasn't been compared with thrips counts in Wisconsin.[^agweather-western-flower-thrips] VDIFN described it with text and a link about onion thrips, but its numbers follow Oregon State's western flower thrips model on USPest.org: its peaks fall on that model's peaks of adults, 675 degree days apart, and its first window runs between that model's first two peaks of egg hatch (338 and 1,013 degree days). Oregon State lists that model as still under development.[^uspest-wft][^agweather-western-flower-thrips] The model's base of 45 °F is lower than the 50 °F below which UW–Madison says the thrips stop developing.[^uw-hort]
-
-Read it with care in Wisconsin. The model counts from January 1 as if thrips had spent the winter in the field, which western flower thrips don't do here.[^umn] We worked out what the windows mean on the calendar from AgWeather's long-term averages (degree days for 1996 to 2025): in an average year at Arlington the first window opens in mid-May and the fourth closes in late September. Thrips in Wisconsin fields arrive on transplants or from greenhouses, on their own schedule, and generations overlap rather than coming in the separate waves the windows suggest.[^uw-hort][^agweather-western-flower-thrips] Use the model as a general sign of how fast thrips can develop in the season's warmth, and scout transplants and field edges for the thrips themselves.
+AgWeather has no western flower thrips model. An earlier one, carried over from VDIFN, counted degree days from January 1 at a base of 45 °F, following Oregon State's western flower thrips model, which is still listed as under development,[^uspest-wft] as if thrips had spent the winter in the field, which western flower thrips don't do in Wisconsin: they arrive on transplants or from greenhouses, on their own schedule.[^umn][^uw-hort] It was retired in 2026, and its [page](/models/western-flower-thrips) says why.[^agweather-western-flower-thrips] Scout transplants and field edges for the thrips themselves.

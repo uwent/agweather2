@@ -1,7 +1,8 @@
-"""Western Flower Thrips, from VDIFN."""
+"""Western Flower Thrips, from VDIFN. Retired 2026-11-21 (Ben, part H): the thrips doesn't overwinter outdoors in
+Wisconsin, so counting from January 1 has no meaning here, and its source (USPest's model) is under development."""
 
 from agmodels.phenology import Insect
-from agmodels.spec import Check
+from agmodels.spec import Change, Check
 
 INSECT = Insect(
     id="western-flower-thrips",
@@ -15,6 +16,15 @@ INSECT = Insect(
         (1010, 1350, 1685),
         (1685, 2025, 2360),
         (2360, 2700, 3375),
+    ),
+    status="retired",
+    version="0.2",
+    changelog=(
+        Change(
+            version="0.2",
+            date="2026-11-21",
+            note="Retired: western flower thrips don't survive the winter outdoors in Wisconsin, so a count of degree days from January 1 doesn't time them here, and the model's source, Oregon State's model, is still under development. Scout transplants and field edges instead.",
+        ),
     ),
     checks=(
         Check(

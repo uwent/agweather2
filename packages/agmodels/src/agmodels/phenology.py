@@ -43,7 +43,7 @@ from typing import Literal
 import numpy as np
 
 from agmodels.accumulate import rolling_sum
-from agmodels.degree_days import degree_days_average, degree_days_sine
+from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 from agmodels.ingredients import Accumulation, DegreeDays, Ingredient, finished
 from agmodels.spec import (
     SEVERITY_LEVELS,
@@ -201,7 +201,7 @@ class Insect:
     topic: str = ""  # the pest's topic page, when several models share one (Colorado potato beetle); default its id
     # the first a LifeStage (it sets the default spread), or all FittedStages
     life_stages: tuple[LifeStage | DerivedStage | FittedStage, ...] = ()
-    dd_method: Literal["sine", "average"] = "sine"  # the method its source's thresholds use (D37)
+    dd_method: Literal["sine", "average", "modified"] = "sine"  # the method its source's thresholds use (D37)
     generation_dd: float | None = None  # degree days between generations; None: one generation
     generation_sd: float | None = None  # SD of a generation's time; None: the first stage's first-generation SD
     action_windows: tuple[ActionWindow, ...] = ()
@@ -548,10 +548,12 @@ def dd_grid() -> np.ndarray:
 
 
 def insect_degree_days(insect: Insect, min_f: np.ndarray, max_f: np.ndarray) -> np.ndarray:
-    """Daily degree days by the insect's method: single sine, or the simple average with both temperatures capped
-    at the upper threshold."""
+    """Daily degree days by the insect's method: single sine, the simple average with both temperatures capped at the
+    upper threshold, or the modified average (the minimum also raised to the base)."""
     if insect.dd_method == "average":
         return degree_days_average(min_f, max_f, base=insect.base_f, upper=insect.upper_f)
+    if insect.dd_method == "modified":
+        return degree_days_modified(min_f, max_f, base=insect.base_f, upper=insect.upper_f)
     return degree_days_sine(min_f, max_f, base=insect.base_f, upper=insect.upper_f)
 
 

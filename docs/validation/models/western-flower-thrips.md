@@ -1,5 +1,7 @@
 # Western flower thrips (`western-flower-thrips`): validation
 
+**Retired 2026-11-21 (version 0.2; Ben, part H of `docs/models-plan.md`):** the thrips doesn't overwinter outdoors in Wisconsin, so degree days from January 1 don't time it in the field, and its source (USPest's model) is still under development. The report below describes version 0.1 as it was.
+
 Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/insects/western_flower_thrips.py`, VDIFN's generation table run by the insect engine (`agmodels.phenology`; PLAN.md Phase 3 D, step 3); its page: `western_flower_thrips.md` beside it (VDIFN's text). The insect review that will replace or confirm the numbers is `docs/models-plan.md` part H, with `docs/insect-models.md` as its work list.
 
 **In short:** ported from VDIFN unchanged. Given the same degree days its risk matches VDIFN's exactly, and its degree days match the old AgWeather API's that VDIFN read. That shows a faithful port, not a right answer: the timing hasn't been checked against its source or against field data in Wisconsin. Which species the numbers are for is unclear (below); USPest's model was marked under development, and no paper is identified.
