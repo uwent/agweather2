@@ -1,51 +1,96 @@
 # Western bean cutworm (`western-bean-cutworm`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/insects/western_bean_cutworm.py`, VDIFN's generation table run by the insect engine (`agmodels.phenology`; PLAN.md Phase 3 D, step 3); its page: `western_bean_cutworm.md` beside it (VDIFN's text). The insect review that will replace or confirm the numbers is `docs/models-plan.md` part H, with `docs/insect-models.md` as its work list.
+Model version 0.3, written 2026-11-21 (D98; part H2 of `docs/models-plan.md`). The model: `packages/agmodels/src/agmodels/insects/western_bean_cutworm.py`, run by the insect engine (`agmodels.phenology`, D36, D37); its page: `western_bean_cutworm.md` beside it. Versions 0.1–0.2 were VDIFN's ramp (single sine above 50 °F from May 1, (1320, 1420, 1535), Ahmad 1979's 25, 50 and 75 % flight), reported in this file's history.
 
-**In short:** ported from VDIFN unchanged. Given the same degree days its risk matches VDIFN's exactly, and its degree days match the old AgWeather API's that VDIFN read. That shows a faithful port, not a right answer: the timing hasn't been checked against its source or against field data in Wisconsin. It runs on a different degree-day method from its source's (below).
+**In short:** rebuilt on Hanson et al. 2015's flight model, which NEWA also runs (D95): the simple average with the daily mean capped, 38/75 °F from March 1, and a curve following their log-logistic flight within 2.3 percentage points. Against DATCP's Wisconsin pheromone traps (286 trap-years, 2021–2026, not used to build it) half the flight falls a median 3 days before the end of the trap's week, inside the week in about half the trap-years and within a week of it in 95 %. NEWA's deployed model counts fewer degree days than Hanson's method on hot days and puts the flight a median 3 days later than ours.
 
 ## Sources and what we took from each
 
+<!-- prettier-ignore -->
 | Source | What it gives | What we took |
 | --- | --- | --- |
-| VDIFN's `db/seeds.rb` (`../ag-vdifn`) | Base 50 °F, no upper, from May 1; one span (1320, 1420, 1535); the text; a link to UW Vegetable Entomology's black cutworm page | Everything |
-| The VDIFN Models spreadsheet (`tmp/references/insects/VDIFN Models v20210407.xlsx`) and the USPest.org model it links, as summarized in `docs/insect-models.md` | USPest's `wbc` model (Nebraska IPM): simple average, 50 °F; UNL CropWatch 2016; UW publication A3856 | Nothing yet: the method differs (below) |
-| Hanson et al. 2015 (`tmp/references/insects/`) | Degree-day prediction models of the moth's flight, compared by their concordance with observed flight | Read 2026-11-19: Ahmad's (1979) 25, 50 and 75 % flight at 733, 790 and 853 °C·d (1,319, 1,422 and 1,535 °F·d), from the daily average with no upper threshold; on 36 Nebraska site-years (1981–2009) Ahmad's model ran 3 days late on average (7 early to 12 late), and a model from March 1 did better. The table's 1,319 to 1,535 are these points |
+| Hanson et al. 2015 (`tmp/references/insects/`) | Daily black light catches at Aurora, Clay Center, Concord and North Platte, Nebraska, 1981–2009 (73 site-years with ≥ 25 moths, half for development, half for validation). A grid search of 15,910 degree-day models by the concordance of predicted and observed 25 % flight; best: the simple method, the daily mean (not each temperature) capped at the upper threshold, 3.3 and 23.9 °C (38 and 75 °F), from March 1 (validation: 1.4 days late on average, SD 3.8, −7 to +7; Ahmad's 3.1, SD 4.6, −7 to +12). The whole flight as a log-logistic in °C·d, μ 7.315, s 0.044 (Table 4: 5, 10, 25, 50, 75, 90, 95 % at 2,377, 2,456, 2,577, 2,704, 2,838, 2,977, 3,077 °F·d). Scouting for egg masses between 25 and 50 % flight | The method, start and thresholds; the flight curve |
+| NEWA's western bean cutworm model (newa.cornell.edu/western-bean-cutworm, read 2026-11-21; methods and constants only) | Hanson's Table 4 with 10 % 2,455 and 90 % 2,977; counting days of year 60–305 in °C, base 3.3 °C; the daily formula caps the maximum at 23.9 °C before averaging, and as deployed rounds each day's max and min to a whole °C and passes them in the wrong order (`tmp/references/insects/notes/newa-insects.md`) | The 10 and 90 % levels; compared on the same weather |
+| UW–Madison (A3646 2025; UW Vegetable Entomology, adapted from A3856) | Eggs hatch 5 to 7 days after they're laid; scout from 25 % flight or the first moths caught nearby until 7–10 days after the peak; thresholds 5 % (field corn) and 4 % (processing sweet corn) of plants with egg masses or small larvae; the flight usually peaks in the second or third week of July in the Upper Midwest | The egg period (converted to degree days, below); the window's span; the page's advice |
+| DATCP's black light and western bean cutworm pheromone trap networks, 2020–2026 (`docs/validation/data/datcp-blacklight-traps/`) | Weekly counts by site | A check (below), not used to build the model |
+| VDIFN (versions 0.1–0.2) | Ahmad 1979's 25/50/75 % on single sine 50 °F from May 1 | Compared on the normals |
 
 ## Choices and differences
 
-- **Degree days:** single sine (Baskerville–Emin), 50 °F, no upper threshold, from May 1: VDIFN's thresholds, computed as the old AgWeather API did.
-- **Risk:** VDIFN's: one generation, (1320, 1420, 1535) degree days (°F) as (start, peak, end); severity rises along a half sine from start to peak and falls from peak to end, rounded up to the 0–4 levels, and is 0 outside. VDIFN's text: 25% of adult moths have emerged about 1,320 degree days (°F) after May 1, emergence peaks about 1,420 and ends about 1,535.
-- **Freezes:** after day 250 (early September), severity is lowered by the number of days in the last 14 at or below −2 °C (28.4 °F), the Crop Risk Tool's rule, used for every insect still on a legacy table; VDIFN subtracted freezing days only from November (PLAN.md Phase 3 D, step 3).
-- **Method:** single sine, as VDIFN computed every insect; USPest's (Nebraska's) model uses the simple average (`docs/insect-models.md`). By D37 a model should run on its source's method; the sine counts more on cool days (70–100 °F·d more by May from January 1 at Eau Claire in 2025, `docs/insect-models.md`), so the events likely come earlier than the source's.
-- **The ramp:** severity starts at 25% emergence (1,320), so the first quarter of the flight shows as no risk, and it is 0 after 1,535.
+- **Method (D37, D95):** Hanson's simple method as their paper specifies it, `average_capped_mean`: min((min + max) / 2, 75) − 38, at least 0, from March 1 (a running total kept per model; no shared stored total). Hanson et al. warn that simple degree days computed another way (capping each temperature first) can mispredict.
+- **NEWA's code differs** from Hanson's method in two ways, which we don't reproduce: its formula caps the day's maximum at 23.9 °C before averaging (fewer degree days on hot days than capping the mean), and as deployed it rounds each day's max and min to whole °C and passes them to the formula swapped (a day whose rounded minimum is below 3.3 °C counts nothing; the cap applies only when the minimum is above 23.9 °C). The swap alone hardly matters in Wisconsin (below); the cap on the maximum moves NEWA's flight about 3 days later. Recorded for the courtesy note to NEWA (D95: NEWA's source, followed as published, shows its code's formula off).
+- **Adult flight:** a PERT (2,247, 2,685, 3,285) fitted to the log-logistic over 1,800–3,800 °F·d (2026-11-21): maximum difference 2.2 percentage points, RMSE 1.2; 5/10/25/50/75/90/95 % at 2,402, 2,455, 2,564, 2,705, 2,853, 2,978, 3,043. Weight 0: moths do no damage.
+- **Egg masses (the risk, weight 1):** a derived stage from each moth's emergence (no pre-oviposition delay; none in degree days was found) for 200 °F·d: UW–Madison's 5 to 7 days to hatch, six days at about 33 °F·d a day, the rate of this method at Arlington on the normals from July 15 to August 1 (2,312 to 2,872 °F·d). No source gives the egg period in degree days. Egg masses peak at 2,787, about 80 after the middle of the flight.
+- **Scouting window:** "Scout corn for egg masses", adult flight 5 % to 90 %: 2,402 to 2,977 °F·d. It opens at the first moths (the first level Hanson tabulates) and closes at 90 %, about 8 days after the middle of the flight at Arlington's late-July rate, matching UW–Madison's "7–10 days after the peak". Hanson's own advice (25–50 %) is narrower.
+- **One generation.** The biofix is March 1, the model's start; a grower's date would shift the whole flight, so the default should stand.
+- **Training area:** Nebraska, 1981–2009 (`trained`); Wisconsin points get the training-area warning, though the checks below find the model on time in Wisconsin's traps.
 
 ## Checks
 
-### Against VDIFN
+### Against its sources' numbers
 
-VDIFN is the tool this model replaces, so this compares with a reference, not with the truth (D54). In `packages/agmodels/tests/`, run in CI:
+`packages/agmodels/tests/test_western_bean_cutworm.py`, run in CI:
 
-- **Numbers:** the thresholds, biofix and table are VDIFN's `db/seeds.rb` entry, read against it again for this report: identical. No test compares them with the seeds file.
-- **Severity:** VDIFN's own Ruby code (`Insect#total_to_severity`, loaded over a stub by `fixtures/make_vdifn_fixtures.rb` into `vdifn_insect_severity_sweep.csv`) on four generation tables, every 5 degree days from 0 to 3,500 (701 totals each, 2,804 in all), without freezes: our severity is identical at every total (`test_insects.py::test_vdifn_generations_match_its_severity`). The four tables aren't this insect's; its own (1320, 1420, 1535) is checked against a Python copy of VDIFN's sine ramp at every 0.01 degree day from start to end and at 2,000 random totals: identical (`test_insects.py::test_the_sine_ramp_by_its_steps_matches_the_sine`).
-- **Degree days:** the old AgWeather API's calculator (`../ag-weather`, VDIFN's source of degree days), single sine at 50 °F, on 231 pairs of daily minimum and maximum around the thresholds: within 0.000001 °F·d (`test_degree_days.py::test_matches_the_old_api`, fixture from `fixtures/make_degree_days_legacy.rb`).
-- **Not compared:** the freeze reduction (the rules differ, above), and VDIFN's results on real weather. VDIFN read the old API's grid and v2 reads its own archive; for scale, v2's single-sine 50/86 °F total from January 1 to October 31, 2026 at Waunakee was 0.6% below the old API's (`docs/validation/legacy/v1-dd-table.md`).
+- Hanson's Table 4 is the log-logistic (μ 7.315, s 0.044) within 0.6 percentage points at each level.
+- Our flight curve follows the log-logistic within 2.3 percentage points from 1,800 to 3,800 (RMSE at most 1.3), and passes 5, 50 and 95 % at 2,402, 2,705 and 3,043 against Table 4's 2,377, 2,704 and 3,077 (each level within 40).
+- The daily degree days cap the mean, not the maximum: a 60/100 °F day counts 75 − 38 = 37.
+- The window opens at 5 % and closes at 90 % (within 2 of NEWA's 2,977); egg masses carry the risk, peaking between 50 and 75 % of the flight.
 
-### Against its sources and the field
+### Against NEWA on the same weather
 
-None yet: no test reproduces a published number for this insect, and it hasn't been compared with trap counts or scouting records.
+`scripts/check_western_bean_cutworm.py`, part 1; full table in [western-bean-cutworm/weather.md](western-bean-cutworm/weather.md). NEWA's model as deployed and as its formula is written, recomputed from its page's rules, on the hours of Wisconsin's NEWA stations, 2024 and 2025 (66 station-years), against ours on the same days and on the archive at each station's cell.
+
+| Later (+) or earlier (−) than NEWA as deployed, days | 25 %          | 50 %          | 75 %          |
+| ---------------------------------------------------- | ------------- | ------------- | ------------- |
+| NEWA's formula without the swap and rounding         | 0 (−2 to +2)  | 0 (−2 to +2)  | +1 (−1 to +2) |
+| Hanson's method at NEWA's totals                     | −4 (−6 to −2) | −3 (−7 to −2) | −3 (−6 to −2) |
+| Ours, station days                                   | −4 (−7 to −2) | −3 (−7 to −2) | −3 (−6 to −1) |
+| Ours, archive                                        | −5 (−9 to −1) | −4 (−8 to −1) | −3 (−8 to 0)  |
+
+Medians, with the 10th–90th percentiles. By August 1 the station-years averaged 2,794 °F·d from March 1 by NEWA as deployed, 2,774 as its formula is written, and 2,915 by Hanson's method. So NEWA's argument swap moves dates by about a day either way, while its cap on the maximum, rather than the mean, puts the flight about 3 days after Hanson's method.
+
+### Typical dates in Wisconsin
+
+`scripts/check_western_bean_cutworm.py`, part 2: the day the 1996–2025 normal running total (each year's own from March 1, averaged; computed from the climatology store as `/api/v2/climate/normals` does, since the capped mean isn't one of its methods) reaches each event.
+
+| Event                                         | Degree days                                | Arlington               | Hancock                | Rhinelander             |
+| --------------------------------------------- | ------------------------------------------ | ----------------------- | ---------------------- | ----------------------- |
+| 5 % of the moths have flown; the window opens | 2,402                                      | Jul 18                  | Jul 23                 | Aug 2                   |
+| 25 %                                          | 2,564                                      | Jul 23                  | Jul 28                 | Aug 8                   |
+| 50 %                                          | 2,705                                      | Jul 27                  | Aug 2                  | Aug 13                  |
+| Most egg masses                               | 2,787                                      | Jul 30                  | Aug 4                  | Aug 16                  |
+| 75 %                                          | 2,853                                      | Aug 1                   | Aug 6                  | Aug 18                  |
+| 90 %; the window closes                       | 2,978                                      | Aug 5                   | Aug 10                 | Aug 23                  |
+| Old (VDIFN) 25 / 50 / 75 %                    | 1,320 / 1,420 / 1,535 (sine 50 from May 1) | Jul 24 / Jul 29 / Aug 3 | Jul 29 / Aug 3 / Aug 9 | Aug 9 / Aug 15 / Aug 23 |
+
+On the normals the new model's flight comes 1–2 days before the old one's in the middle, and its window covers the whole flight rather than 25–75 %. UW–Madison describes the flight peaking in the second or third week of July; the normals put the middle of the flight in late July in the south and mid-August in the north, but DATCP's traps in 2021–2026 (warmer years) agree with the model's dates (below).
+
+### Against Wisconsin's traps
+
+`scripts/check_western_bean_cutworm.py`, part 3; full tables in [western-bean-cutworm/weather.md](western-bean-cutworm/weather.md); data in [../data/datcp-blacklight-traps/](../data/datcp-blacklight-traps/README.md). For each site-year with at least 25 moths (Hanson's rule), the week in which the season's catch passed 25, 50 and 75 %, against the day our curve passes the same level on the archive at the trap's approximate location. A week's catch is dated by its last day, so −6 to 0 days is inside the week; "within a week" is −13 to +7. The model wasn't fitted to these data: they test it.
+
+| Ours − the trap's week end, days                                           | 25 %          | 50 %          | 75 %           |
+| -------------------------------------------------------------------------- | ------------- | ------------- | -------------- |
+| Pheromone traps, 286 trap-years, 2021–2026: median (10th–90th percentile)  | −3 (−9 to +5) | −3 (−8 to +4) | −2 (−8 to +6)  |
+| inside the week / within a week of it                                      | 145 / 268     | 135 / 273     | 163 / 263      |
+| Black light traps, 38 site-years, 2020–2026: median (10th–90th percentile) | 0 (−6 to +8)  | +2 (−3 to +9) | +3 (−4 to +12) |
+| inside the week / within a week of it                                      | 18 / 34       | 17 / 30       | 9 / 29         |
+
+- In the pheromone network the model's dates fall inside the trap's week at the median at every level. Pheromone traps catch males only, and males may fly later than females (Hanson et al. 2015, citing Mahrt et al. 1987), which would make the model look early here, not late.
+- The black light traps, the kind the model was fitted to, are few (6–13 sites) and catch few moths; at those, the model runs a median 0–3 days after the trap's week. All seven of 2020's site-years run late (+6 to +23 days at 50 %; 2020's counts come from the weekly bulletins, with a week in late June missing); without them the medians are −1, 0 and +2 days (31 site-years).
+- Trap locations are approximate (town centres or DATCP's 2026 survey points), and blanks in 2024–2025 are read as zeros (the data's README).
 
 ## Limits and open questions
 
-- It runs on a different degree-day method from its source's (above).
-- No check against Wisconsin field data.
-- The 0–4 levels are VDIFN's display rule, not an estimate of numbers: 4 means near the table's peak, and every generation counts alike (D37).
-- **Cheapest independent comparison:** DATCP's weekly Pest Bulletin black light trap counts of western bean cutworm moths, 2020–2026: the dates of 25% and peak cumulative catch against the model's 1,320 and 1,420 (public data, a script like codling moth's trap check).
+- **Egg masses** are timed by a duration given in days, not degree days (UW–Madison's 5–7 days), and with no pre-oviposition delay; how long young larvae stay exposed before entering the ear isn't modeled.
+- **Fitted in Nebraska.** Hanson et al. asked for validation in other states; DATCP's traps are that check for Wisconsin and find the model on time, but by the trap's week only.
+- **Migration** (moths moved by storms) is beyond any degree-day model.
+- **NEWA's difference** (its formula and code) is recorded for the courtesy note to NEWA; agreement with NEWA isn't expected until NEWA's code follows Hanson.
 
 ## Reproducing
 
 ```bash
-uv run pytest packages/agmodels/tests/test_insects.py packages/agmodels/tests/test_degree_days.py
-ruby packages/agmodels/tests/fixtures/make_vdifn_fixtures.rb      # rebuilds VDIFN's sweep; needs ../ag-vdifn
-ruby packages/agmodels/tests/fixtures/make_degree_days_legacy.rb  # rebuilds the old API's degree days; needs ../ag-weather
+uv run pytest packages/agmodels/tests/test_western_bean_cutworm.py
+uv run python scripts/fetch_newa.py                  # NEWA station hours into tmp/newa/hours/ (once)
+uv run python scripts/check_western_bean_cutworm.py  # needs the archive in data/, the station hours and the trap data
 ```

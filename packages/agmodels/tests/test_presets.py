@@ -36,10 +36,11 @@ def test_a_crop_with_a_stage_model_has_that_models_setting():
 def test_each_insect_model_gives_a_preset_with_its_setting_and_biofix():
     insects = {p.id: p for p in insect_presets()}
     weevil = insects["alfalfa-weevil"]
-    assert (weevil.setting.method, weevil.setting.base_f, weevil.setting.upper_f) == ("sine", 48.2, 86)
+    assert (weevil.setting.method, weevil.setting.base_f, weevil.setting.upper_f) == ("average", 48, None)
     assert weevil.group == "insect" and weevil.starts == "biofix" and weevil.biofix == "01-01"
     assert insects["corn-earworm"].biofix == "08-01"
     # The beetle's adults and larvae models count as the beetle does: one preset
     assert "colorado-potato-beetle" in insects and "colorado-potato-beetle-adults" not in insects
     modelled = {m for m, mod in all_models().items() if mod.SPEC.group == "insect" and mod.SPEC.status != "retired"}
-    assert set(insects) == modelled
+    # western bean cutworm's capped mean (Hanson et al. 2015) isn't a calculator method, so it has no preset
+    assert set(insects) == modelled - {"western-bean-cutworm"}

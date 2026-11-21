@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 
 from agmodels.models import oak_wilt
-from agmodels.phenology import Insect, InsectModel, _sine_ramp, _sine_ramp_reference, severity, stage_index
-from agmodels.registry import all_insects, all_models, model
+from agmodels.phenology import Insect, InsectModel, _sine_ramp, _sine_ramp_reference, severity
+from agmodels.registry import all_insects, all_models
 
 FIXTURES = Path(__file__).parent / "fixtures"
 VDIFN_ARRAYS = {  # as in make_vdifn_fixtures.rb
@@ -58,39 +58,6 @@ def test_oak_wilt_matches_vdifn():
     doy = np.array([float(r["day_of_year"]) for r in rows])
     ours = [oak_wilt.explore(d, y)["risk"] for d, y in zip(dd, doy, strict=True)]
     np.testing.assert_array_equal(ours, [float(r["severity"]) for r in rows])
-
-
-@pytest.mark.parametrize(
-    # Seedcorn maggot left the tool's step table in 0.2 (D36, D37) and Colorado potato beetle in its 0.2 (its fits),
-    # so only alfalfa weevil still matches it
-    ("crt_id", "model_id"),
-    [("afw", "alfalfa-weevil")],
-)
-def test_crop_risk_tool_insects_match_over_a_year(crt, crt_id, model_id):
-    daily, theirs = crt("daily_eau_claire_2025"), crt(f"insect_{crt_id}_eau_claire_2025")
-    days = daily["date"].astype("datetime64[D]")
-    inputs = {
-        "air_temperature_min": daily["temperature_min"],
-        "air_temperature_max": daily["temperature_max"],
-        "day_of_year": (days - days.astype("datetime64[Y]")).astype(int) + 1,
-    }
-    m = model(model_id)
-    insect = next(i for i in all_insects() if i.id == model_id)
-    out = m.outputs(inputs)
-
-    # Degree days match except where the tool skips the upper cutoff: its gdd_sine returns mean - base whenever the
-    # min is above the base, before checking the max against the upper threshold (PLAN.md Phase 3 D)
-    lo, hi = daily["temperature_min"] * 1.8 + 32, daily["temperature_max"] * 1.8 + 32
-    skipped = (lo >= insect.base_f) & (hi > (insect.upper_f or np.inf))
-    np.testing.assert_allclose(out["dd"][~skipped], theirs["gdd_f"][~skipped], atol=1e-9)
-    np.testing.assert_allclose(theirs["gdd_f"][skipped], (lo + hi)[skipped] / 2 - insect.base_f, atol=1e-9)
-    assert (out["dd"][skipped] < theirs["gdd_f"][skipped]).all()
-
-    # From the tool's own totals, the severity, freeze reduction and stage label match exactly
-    from_theirs = {"dd_total": theirs["cum_gdd"], "freeze_reduction": out["freeze_reduction"]}
-    np.testing.assert_array_equal(m.risk(from_theirs), theirs["severity"])
-    labels = ["Before spring emergence"] + [s.label for s in insect.stages]
-    assert [labels[int(k) + 1] for k in stage_index(theirs["cum_gdd"], insect.stages)] == theirs["label"].tolist()
 
 
 def test_every_insect_is_a_model_with_a_severity_rule():

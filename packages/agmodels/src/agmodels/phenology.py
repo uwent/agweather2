@@ -715,7 +715,12 @@ def phenology_criteria(insect: Insect) -> str:
     if insect.life_stages and isinstance(insect.life_stages[0], FittedStage):
         return _fitted_criteria(insect)
     upper = "no upper threshold" if insect.upper_f is None else f"upper {insect.upper_f:g} °F"
-    method = "Single-sine" if insect.dd_method == "sine" else "Average"
+    method = {
+        "sine": "Single-sine",
+        "average": "Average",
+        "modified": "Modified-average",
+        "average_capped_mean": "Average (the day's mean capped at the upper threshold)",
+    }[insect.dd_method]
     stages = "; ".join(_stage_words(s) for s in insect.life_stages)
     repeat = (
         f" Later generations follow every {insect.generation_dd:,g} degree days, spreading as each generation's timing varies."

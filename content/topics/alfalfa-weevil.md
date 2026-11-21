@@ -9,7 +9,7 @@ summary: A snout beetle whose green larvae feed on the tips of first-crop alfalf
 image: images/alfalfa-weevil.jpg
 image_credit: 'An alfalfa weevil larva on an alfalfa shoot. Photo: Clemson University – USDA Cooperative Extension Slide Series, Bugwood.org (image 1233149), via Wikimedia Commons (File:Alfalfa weevil (Hypera postica).jpg), CC BY 3.0 US; resized.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: bick-2025
     text: 'Bick, E. N. Managing Alfalfa Weevil in Wisconsin Alfalfa Fields. UW–Madison Division of Extension, Crops and Soils, updated 2025.'
@@ -26,6 +26,12 @@ sources:
   - key: cpn-2023
     text: 'Alfalfa Pest Management Working Group. Alfalfa Weevil in Alfalfa. Crop Protection Network, 2023.'
     url: https://cropprotectionnetwork.org/encyclopedia/alfalfa-weevil-in-alfalfa
+  - key: newa-alfalfa-weevil
+    text: 'NEWA (Network for Environment and Weather Applications). Alfalfa Weevil. Cornell University, accessed 2026.'
+    url: https://newa.cornell.edu/alfalfa-weevil
+  - key: harcourt-1981
+    text: 'Harcourt, D. G. A thermal summation model for predicting seasonal occurrence of the alfalfa weevil, Hypera postica (Coleoptera: Curculionidae), in southern Ontario. The Canadian Entomologist 113: 601–605, 1981.'
+    url: https://doi.org/10.4039/Ent113601-7
   - key: agweather-alfalfa-weevil
     text: 'AgWeather. Alfalfa weevil model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/alfalfa-weevil.md
@@ -77,8 +83,8 @@ For products and current registrations, see UW–Madison's [Pest Management in W
 
 ## AgWeather's models
 
-The [alfalfa weevil model](/models/alfalfa-weevil) counts degree days from January 1 (single sine, base 48.2 °F, or 9 °C, with an upper limit of 86 °F) and marks the weevil's stages: egg hatch and the start of scouting at 300, the second, third and fourth larval stages at 370, 440 and 505, pupae at 595, new adults at 815 and their summer rest at 1,000. Risk is highest from 440 to 595, while the larger larvae feed.[^agweather-alfalfa-weevil]
+The [alfalfa weevil model](/models/alfalfa-weevil) follows NEWA's alfalfa weevil model from Cornell University. It counts degree days from January 1 as the day's average temperature above 48 °F, with no upper limit. Half the eggs have hatched by about 280 degree days, the most larvae are feeding at about 440, half the larvae have spun cocoons by 600, and half the new adults are out by 815.[^newa-alfalfa-weevil][^agweather-alfalfa-weevil] These are the stages D. G. Harcourt timed in alfalfa fields in southern Ontario, which NEWA converted to degrees Fahrenheit.[^harcourt-1981] The model shows hatch, feeding and the later stages as curves rather than single dates, because eggs are laid over several weeks, and it marks a window to scout stem tips from about 280 to 530 degree days. On the 1996–2025 normals, half the eggs have hatched by about May 22 at Arlington, May 26 at Hancock and June 2 at Rhinelander.[^agweather-alfalfa-weevil]
 
-The model was copied from the Crop Protection Network's Crop Risk Tool, and it matches the tool day for day. The tool cites no study, but its larval stages after egg hatch fall within 3 degree days of the development times measured in Wisconsin by Litsinger and Apple in 1973, and its adult emergence within 2 of Harcourt's 1981 model from Ontario. We found no study behind egg hatch at 300 degree days from January 1, and the model hasn't been compared with weevil counts or tip feeding in Wisconsin fields.[^agweather-alfalfa-weevil] It uses one base for every stage, while the Wisconsin study found eggs develop above 50 °F, and it can't account for eggs laid the autumn before.[^agweather-alfalfa-weevil]
+On the weather of Wisconsin's NEWA stations, the model reaches each stage on NEWA's days. On historical weather for Harcourt's study area, NEWA's method reached the dates he observed a median 3 days late, a day later than his own method. The model hasn't been compared with weevil counts or tip feeding in Wisconsin fields.[^agweather-alfalfa-weevil]
 
-Its timing also differs from UW–Madison's advice. UW–Madison puts the heaviest feeding at about 600 to 800 degree days, while the model's risk peaks earlier and it marks the end of scouting at 595, when pupation begins.[^jensen-2018][^agweather-alfalfa-weevil] Keep checking fields after that if larvae are still feeding, and check the stubble after the first cutting.
+Its timing differs from some UW–Madison advice. UW–Madison puts the heaviest feeding at about 600 to 800 degree days, while in this model larval feeding peaks at about 440 and half the larvae have stopped feeding by 600; guides count degree days in different ways, so the same number can mean different dates.[^jensen-2018][^agweather-alfalfa-weevil] Keep checking fields while larvae are feeding, and check the stubble after the first cutting.

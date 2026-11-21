@@ -11,7 +11,7 @@ summary: A moth with one generation a year whose caterpillars feed inside corn e
 image: images/western-bean-cutworm.jpg
 image_credit: 'Western bean cutworm caterpillar feeding in a corn ear. Photo by Keith Waldron, New York State IPM Program at Cornell University, via Wikimedia Commons (File:WBC larva (16700280357).jpg, from Flickr), CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/).'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-21
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Western Bean Cutworm. University of Wisconsin–Madison, updated 2026 (adapted from Cullen, E. and J. Jyotika, Western Bean Cutworm: A Pest of Field and Sweet Corn, A3856, 2008).'
@@ -37,6 +37,9 @@ sources:
   - key: mwvg-2026
     text: 'Midwest Vegetable Production Guide 2026. Land-grant universities of Illinois, Indiana, Iowa, Kansas, Michigan, Minnesota, Missouri and Ohio, 2026.'
     url: https://mwveguide.org/guide
+  - key: newa-wbc
+    text: 'NEWA (Network for Environment and Weather Applications). Western Bean Cutworm. Cornell University, accessed 2026.'
+    url: https://newa.cornell.edu/western-bean-cutworm
   - key: agweather-wbc
     text: 'AgWeather. Western bean cutworm model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/western-bean-cutworm.md
@@ -83,6 +86,6 @@ For products, rates and current registrations, see UW–Madison's [Pest Manageme
 
 ## AgWeather's models
 
-The [western bean cutworm model](/models/western-bean-cutworm) counts degree days at a base of 50 °F, with no upper limit, from May 1, and rates risk from 0 to 4 from 1,320 to 1,535 degree days, peaking at 1,420. It comes from VDIFN, the forecasting tool AgWeather replaces, and gives the same ratings as VDIFN for the same degree days, but it hasn't been checked against Wisconsin trap counts.[^agweather-wbc]
+The [western bean cutworm model](/models/western-bean-cutworm) follows the flight model Hanson and colleagues fitted in 2015 to black light trap catches at four sites in Nebraska, 1981–2009, which NEWA also uses. It counts degree days from March 1 as the day's average temperature above 38 °F, with the average capped at 75 °F. A quarter of the moths have flown by about 2,560 degree days, half by about 2,705 and three quarters by about 2,850.[^hanson-2015][^newa-wbc] The model shows the whole flight as a curve, times the egg masses that follow it, and marks a window to scout for egg masses from the first moths (5 % of the flight) to 90 %. On the 1996–2025 normals, half the moths have flown by about July 27 at Arlington, August 2 at Hancock and August 13 at Rhinelander; recent, warmer years ran earlier.[^agweather-wbc]
 
-The numbers are those of a model T. R. Ahmad built in 1979 from Nebraska black light catches in 1958–1974, which put 25, 50 and 75 % of the moth flight at those totals. So the model's risk starts when a quarter of the moths have flown and ends at three quarters, while the flight and egg laying go on. Tested against Nebraska trap records from 1981–2009, Ahmad's model put 25 % flight 3 days late on average, from 7 days early to 12 days late; a newer model counting from March 1 did better.[^hanson-2015] The original counted degree days from the daily average temperature, while AgWeather uses a method that counts more on cool days, so the model's dates likely come somewhat earlier.[^agweather-wbc] Guides also differ on the upper limit: UW Vegetable Entomology counts with an 86 °F limit, the original model with none.[^uw-vegento][^hanson-2015] Confirm the flight with your own traps or DATCP's before scouting.
+Against DATCP's Wisconsin pheromone traps, 2021–2026, the model's date for half the flight fell a median 3 days before the end of the week in which half the season's moths were caught, and within a week of it in almost every trap-year.[^datcp-traps][^agweather-wbc] NEWA's version counts degree days a little differently from the published method and puts the flight about 3 days later.[^agweather-wbc] Moths blown in by storms can arrive outside the model's dates, so confirm the flight with your own traps or DATCP's before scouting.

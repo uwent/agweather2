@@ -192,7 +192,7 @@ def test_degree_day_presets_give_each_setting_in_both_unit_systems(client):
     assert corn["base"] == {"us": 50.0, "metric": 10.0} and corn["model"] == "corn-stages"
     assert not found["spring-wheat"]["stored"]  # 32/95 modified: computed when asked
     weevil = found["alfalfa-weevil"]
-    assert weevil["group"] == "insect" and weevil["dd"]["us"] == "sine_48p2_86" and weevil["biofix"] == "01-01"
+    assert weevil["group"] == "insect" and weevil["dd"]["us"] == "average_48" and weevil["biofix"] == "01-01"
     assert corn["group"] == "crop" and corn["crop_ids"] == ["corn"] and corn["biofix"] is None
     for preset in found.values():
         # The °C text names the same °F thresholds as the °F text (7.22 °C is 45 °F's, not 44.996's)
