@@ -17,6 +17,7 @@ INSECT = Insect(
     dd_method="modified",
     biofix="01-01",
     source="UW–Madison's degree-day table for European corn borer",
+    ported_from="VDIFN",
     life_stages=(
         # UW–Madison's table (Delahaut 2012; also UMass, Hazzard 2017): first spring moths 375 (UMN 374), peak 631;
         # the flight ends near 1,000 (the research's estimate: UMN scouts first-generation larvae to 1,000 and the

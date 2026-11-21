@@ -22,7 +22,7 @@ summary: A climbing cutworm that eats the leaves, buds and fruit of many vegetab
 image: images/variegated-cutworm.jpg
 image_credit: 'A variegated cutworm caterpillar, with the pale spots down its back. Photo by Ryan Hodnett, via Wikimedia Commons (File:Variegated Cutworm Moth (Peridroma saucia) - Thunder Bay, Ontario 2012-06-29.jpg), CC BY-SA 4.0.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cutworms. University of Wisconsin–Madison, updated 2026.'
@@ -113,6 +113,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [variegated cutworm model](/models/variegated-cutworm) counts degree days at a base of 45 °F with an upper limit of 80.1 °F from May 1, and rates risk from 0 to 4 during one window from 900 to 2,100 degree days, peaking at 1,450. It comes from VDIFN, the forecasting tool AgWeather replaces, and gives the same ratings as VDIFN for the same degree days. Its validation report finds that its events and its temperature thresholds come from different sources: the events were defined at 41 and 88 °F, the thresholds UW Vegetable Entomology's table lists, but the model runs them at 45 and 80.1 °F, which counts fewer degree days and so puts the events later. The timing hasn't been checked against its source or against field counts in Wisconsin, and its report proposes DATCP's black light counts as the first check.[^agweather-vcw][^uw-vegento-models]
+The [variegated cutworm model](/models/variegated-cutworm) follows the Ohio study above: it counts degree days at a base of 45 °F with no upper limit from January 1, and times two moth flights peaking at about 900 and 2,160 degree days, with the caterpillars from each timed by the study's development times.[^simonet-1981][^agweather-vcw] It marks the days from each flight's peak, when the study suggests scouting for eggs and young caterpillars should begin. In AgWeather's long-term averages (1996–2025), the first flight peaks around June 14 at Arlington and June 25 at Rhinelander, and the second around August 2 and August 22.
 
-The Ohio study above also differs from the model. It placed the first flight peak at about 900 degree days at 45 °F, with no upper limit, counted from January 1 rather than May 1; the model's text calls 900 the peak of egg laying.[^simonet-1981][^agweather-vcw] In AgWeather's long-term averages (1996–2025), 900 degree days counted the Ohio way comes around June 14 at Arlington, while the model reaches its 900 around June 23 and its peak around July 15. Until the model is checked, use trap counts and scouting to time control.
+In Wisconsin's black light traps from 2020 to 2026, the first flight's moths came somewhat later than the model's and the second's somewhat earlier, but the traps caught only 273 moths in seven years.[^datcp-blacklight][^agweather-vcw] UW Vegetable Entomology's model table lists thresholds of 41 and 88 °F, from a model developed in Oregon peppermint; AgWeather uses the Ohio study's.[^uw-vegento-models] Outbreaks are sporadic, so use trap counts and scouting to decide whether to act.

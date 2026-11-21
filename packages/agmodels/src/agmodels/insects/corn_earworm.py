@@ -16,6 +16,7 @@ INSECT = Insect(
     biofix="08-15",
     biofix_label="Eggs first found on silks, or the first week of a significant moth flight in your area; without a date, August 15",
     source="Hartstack et al. 1976, as USPest.org runs it",
+    ported_from="VDIFN",
     life_stages=(
         # Eggs laid by the flight that starts at the biofix, taken to follow the moths caught. DATCP's pheromone catches
         # after the main flight's first week of 35 or more moths (5 a night, from July 25), 2021–2026, 63 site-years:

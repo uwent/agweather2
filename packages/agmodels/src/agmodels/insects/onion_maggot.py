@@ -15,6 +15,7 @@ INSECT = Insect(
     dd_method="average",
     biofix="01-01",
     source="NEWA's onion maggot model",
+    ported_from="VDIFN",
     life_stages=(
         # NEWA's spring flight: first emergence 390 (taken as 5 %, where NEWA's cabbage maggot table puts its first
         # emergence) and peak (50 %) 735; Eckenrode et al. 1975's averages were 389 (initial increase) and 712 (50 %

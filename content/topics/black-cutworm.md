@@ -22,7 +22,7 @@ summary: A moth that flies in from the south each spring; its caterpillars cut o
 image: images/black-cutworm.jpg
 image_credit: 'A black cutworm caterpillar beside the corn seedling it cut. Photo by W.M. Hantsbarger, Bugwood.org (image 5361045), via Wikimedia Commons (File:Agrotis ipsilon larva.jpg), CC BY 3.0 US.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-21
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cutworms. University of Wisconsin–Madison, updated 2026.'
@@ -45,6 +45,12 @@ sources:
   - key: datcp-traps
     text: 'Wisconsin Department of Agriculture, Trade and Consumer Protection. Trap Networks.'
     url: https://datcp.wi.gov/Pages/Programs_Services/TrapNetworks.aspx
+  - key: luckmann-1976
+    text: 'Luckmann, W. H., J. T. Shaw, D. W. Sherrod and W. G. Ruesink. Developmental Rate of the Black Cutworm. Journal of Economic Entomology 69: 386–388, 1976.'
+    url: https://doi.org/10.1093/jee/69.3.386
+  - key: story-1984
+    text: 'Story, R. N., A. J. Keaster, W. B. Showers and J. T. Shaw. Survey and Phenology of Cutworms (Lepidoptera: Noctuidae) Infesting Field Corn in the Midwest. Journal of Economic Entomology 77: 491–494, 1984.'
+    url: https://doi.org/10.1093/jee/77.2.491
   - key: a3422-2026
     text: 'Bradford, B. Z., J. B. Colquhoun, S. A. Chapman, A. J. Gevens, R. L. Groves, D. J. Heider, G. R. W. Nice, M. D. Ruark, Y. Wang and R. Dewerff. Commercial Vegetable Production in Wisconsin—2026 (A3422). UW–Madison Division of Extension, 2026.'
     url: https://vegpath.plantpath.wisc.edu/resources/a3422/
@@ -104,6 +110,6 @@ For products, rates and current registrations, see UW–Madison's [Pest Manageme
 
 ## AgWeather's models
 
-The [black cutworm model](/models/black-cutworm) counts degree days at a base of 50 °F with an upper limit of 86 °F from a fixed May 15, and rates risk from 0 to 4 during a cutting window from 300 to 1,000 degree days, peaking at 700. It reproduces VDIFN, the forecasting tool AgWeather replaces. Its source isn't identified with certainty, May 15 stands in for the moth flight the guides count from, and it hasn't been compared with trap counts or reports of cutting.[^agweather-bcw]
+The [black cutworm model](/models/black-cutworm) counts degree days at a base of 50 °F, with an upper limit of 86 °F, from a significant moth capture. Enter the date of a capture near you; without one, the model counts from May 1, the middle of the first weeks with nine or more moths in DATCP's black cutworm traps in 2021–2023 and 2026.[^agweather-bcw][^datcp-traps] It spreads egg laying over the weeks after the capture, as moths keep arriving, and times the caterpillars from each egg by laboratory development times: hatch at about 94 degree days, the fourth instar, when cutting begins, at about 306, and pupation at about 729.[^luckmann-1976] The first caterpillars can cut about 310 degree days after the capture, as in the stage table above, and the model's risk is the share of caterpillars in the cutting stages.[^purdue-2023][^iowa-bcw]
 
-Its start, 300, agrees with the start of cutting, but by the stage table above cutting ends by about 640, so the model's peak at 700 comes after the caterpillars have pupated.[^purdue-2023] In AgWeather's long-term averages (1996–2025), counting from May 15 at Arlington, 300 degree days falls around June 8, 640 around June 26 and 700 around June 29. Moths can also arrive well before May 15.[^iowa-bcw] At a location you can set your own biofix from a trap catch.[^agweather-bcw] Until the model is revised, read its start as the time to scout and the stage table for when cutting ends.
+The model's cutting lasts longer than the stage table's, because it follows the laboratory study's time to pupation and spreads egg laying; half the caterpillars have pupated by about 810 degree days after the capture. In AgWeather's long-term averages (1996–2025), counting from May 1, the first caterpillars can cut around June 2 at Arlington and June 8 at Rhinelander. Field studies have found black cutworms further along than laboratory times predict, so use the model to time scouting rather than to rule cutting out.[^story-1984][^agweather-bcw]

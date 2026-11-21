@@ -201,6 +201,8 @@ class Insect:
     generations: tuple[tuple[float, float, float], ...] = ()
     biofix_label: str | None = None  # None: the default date, "or your own date" (`default_biofix_label`)
     source: str = "VDIFN"
+    # what the 0.1 changelog line says it was ported from, when the model has since moved to another source
+    ported_from: str = ""
     status: str = "beta"
     citations: tuple[Citation, ...] = ()
     topic: str = ""  # the pest's topic page, when several models share one (Colorado potato beetle); default its id
@@ -295,7 +297,11 @@ class InsectModel:
             context=self._context(),
             changelog=(
                 *(
-                    (Change(version="0.1", date="2026-10-28", note=f"Ported from {insect.source}."),)
+                    (
+                        Change(
+                            version="0.1", date="2026-10-28", note=f"Ported from {insect.ported_from or insect.source}."
+                        ),
+                    )
                     if not any(c.version == "0.1" for c in insect.changelog)  # a new model gives its own 0.1
                     else ()
                 ),

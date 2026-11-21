@@ -15,6 +15,7 @@ INSECT = Insect(
     dd_method="average",
     biofix="01-01",
     source="NEWA's cabbage maggot model",
+    ported_from="VDIFN",
     life_stages=(
         # Spring emergence from overwintering pupae (NEWA's table; Jyoti et al. 2003): 25 % at 366, 50 % at 452, 75 %
         # at 547 and 95 % at 697. This curve is at 25.2, 50.6, 74.6 and 95.4 % there (a fit within a point); its 10,

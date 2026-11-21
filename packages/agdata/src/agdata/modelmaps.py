@@ -57,8 +57,9 @@ _DAILY: dict[str, tuple[float, float, float]] = {
     "m_s": (0.01, 0, 100),
     "mm": (0.02, 0, 650),
     "index": (0.001, 0, 32),
+    "degF_day": (0.01, 0, 80),  # a day's degree days kept per model (western bean cutworm's capped mean)
 }
-_TOTAL_STEP: dict[str, float] = {"hour": 0.5, "index": 0.2}
+_TOTAL_STEP: dict[str, float] = {"hour": 0.5, "index": 0.2, "degF_day": 0.5}
 
 
 @dataclass(frozen=True, kw_only=True)
