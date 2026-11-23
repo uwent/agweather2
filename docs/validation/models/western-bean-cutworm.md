@@ -22,7 +22,7 @@ Model version 0.3, written 2026-11-21 (D98; part H2 of `docs/plans/models.md`). 
 - **Adult flight:** a PERT (2,247, 2,685, 3,285) fitted to the log-logistic over 1,800–3,800 °F·d (2026-11-21): maximum difference 2.2 percentage points, RMSE 1.2; 5/10/25/50/75/90/95 % at 2,402, 2,455, 2,564, 2,705, 2,853, 2,978, 3,043. Weight 0: moths do no damage.
 - **Egg masses (the risk, weight 1):** a derived stage from each moth's emergence (no pre-oviposition delay; none in degree days was found) for 200 °F·d: UW–Madison's 5 to 7 days to hatch, six days at about 33 °F·d a day, the rate of this method at Arlington on the normals from July 15 to August 1 (2,312 to 2,872 °F·d). No source gives the egg period in degree days. Egg masses peak at 2,787, about 80 after the middle of the flight.
 - **Scouting window:** "Scout corn for egg masses", adult flight 5 % to 90 %: 2,402 to 2,977 °F·d. It opens at the first moths (the first level Hanson tabulates) and closes at 90 %, about 8 days after the middle of the flight at Arlington's late-July rate, matching UW–Madison's "7–10 days after the peak". Hanson's own advice (25–50 %) is narrower.
-- **One generation.** The biofix is March 1, the model's start; a grower's date would shift the whole flight, so the default should stand.
+- **One generation; the start is locked at March 1** (Ben, 2026-11-23). Hanson et al. chose the thresholds (38/75 °F) by how well degree days counted from March 1 predicted the flight, so the thresholds and the flight curve have no meaning counted from another day: the model takes no grower's date. Its biofix label is plain "March 1", as for the January 1 insects; refusing a `biofix` sent for this model needs a field on the spec's biofix (round 2's final message), until which a date sent is still accepted.
 - **Training area:** Nebraska, 1981–2009 (`trained`); Wisconsin points get the training-area warning, though the checks below find the model on time in Wisconsin's traps.
 
 ## Checks
@@ -85,6 +85,7 @@ On the normals the new model's flight comes 1–2 days before the old one's in t
 - **Egg masses** are timed by a duration given in days, not degree days (UW–Madison's 5–7 days), and with no pre-oviposition delay; how long young larvae stay exposed before entering the ear isn't modeled.
 - **Fitted in Nebraska.** Hanson et al. asked for validation in other states; DATCP's traps are that check for Wisconsin and find the model on time, but by the trap's week only.
 - **Migration** (moths moved by storms) is beyond any degree-day model.
+- **The start can't be the grower's:** a local first catch can't restart the count (the curve is cumulative from March 1). A grower with traps reads the model's flight against their own catches instead.
 - **NEWA's difference** (its formula and code) is recorded for the courtesy note to NEWA; agreement with NEWA isn't expected until NEWA's code follows Hanson.
 
 ## Reproducing

@@ -11,7 +11,7 @@ summary: A moth with one generation a year whose caterpillars feed inside corn e
 image: images/western-bean-cutworm.jpg
 image_credit: 'Western bean cutworm caterpillar feeding in a corn ear. Photo by Keith Waldron, New York State IPM Program at Cornell University, via Wikimedia Commons (File:WBC larva (16700280357).jpg, from Flickr), CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/).'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Western Bean Cutworm. University of Wisconsin–Madison, updated 2026 (adapted from Cullen, E. and J. Jyotika, Western Bean Cutworm: A Pest of Field and Sweet Corn, A3856, 2008).'
@@ -86,6 +86,6 @@ For products, rates and current registrations, see UW–Madison's [Pest Manageme
 
 ## AgWeather's models
 
-The [western bean cutworm model](/models/western-bean-cutworm) follows the flight model Hanson and colleagues fitted in 2015 to black light trap catches at four sites in Nebraska, 1981–2009, which NEWA also uses. It counts degree days from March 1 as the day's average temperature above 38 °F, with the average capped at 75 °F. A quarter of the moths have flown by about 2,560 degree days, half by about 2,705 and three quarters by about 2,850.[^hanson-2015][^newa-wbc] The model shows the whole flight as a curve, times the egg masses that follow it, and marks a window to scout for egg masses from the first moths (5 % of the flight) to 90 %. On the 1996–2025 normals, half the moths have flown by about July 27 at Arlington, August 2 at Hancock and August 13 at Rhinelander; recent, warmer years ran earlier.[^agweather-wbc]
+The [western bean cutworm model](/models/western-bean-cutworm) follows the flight model Hanson and colleagues fitted in 2015 to black light trap catches at four sites in Nebraska, 1981–2009, which NEWA also uses. It always counts degree days from March 1, the start the model was fitted from, as the day's average temperature above 38 °F, with the average capped at 75 °F. A quarter of the moths have flown by about 2,560 degree days, half by about 2,705 and three quarters by about 2,850.[^hanson-2015][^newa-wbc] The model shows the whole flight as a curve, times the egg masses that follow it, and marks a window to scout for egg masses from the first moths (5 % of the flight) to 90 %. On the 1996–2025 normals, half the moths have flown by about July 27 at Arlington, August 2 at Hancock and August 13 at Rhinelander; recent, warmer years ran earlier.[^agweather-wbc]
 
 Against DATCP's Wisconsin pheromone traps, 2021–2026, the model's date for half the flight fell a median 3 days before the end of the week in which half the season's moths were caught, and within a week of it in almost every trap-year.[^datcp-traps][^agweather-wbc] NEWA's version counts degree days a little differently from the published method and puts the flight about 3 days later.[^agweather-wbc] Moths blown in by storms can arrive outside the model's dates, so confirm the flight with your own traps or DATCP's before scouting.

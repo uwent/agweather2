@@ -1,4 +1,4 @@
-{"version": "0.2", "rows": [
+{"version": "0.3", "rows": [
 {"inputs":{"dd_total":0.0},"outputs":{"activity_egg_hatch":0.0,"generations_egg_hatch":0.0,"activity_nymphs":0.0,"generations_nymphs":0.0,"activity_adults":0.0,"generations_adults":0.0,"risk":0.0}},
 {"inputs":{"dd_total":100.0},"outputs":{"activity_egg_hatch":0.541397673,"generations_egg_hatch":0.05966615,"activity_nymphs":0.059798127,"generations_nymphs":0.0,"activity_adults":0.0,"generations_adults":0.0,"risk":0.059798127}},
 {"inputs":{"dd_total":200.0},"outputs":{"activity_egg_hatch":0.997807085,"generations_egg_hatch":0.44130598,"activity_nymphs":0.442282118,"generations_nymphs":0.0,"activity_adults":0.0,"generations_adults":0.0,"risk":0.442282118}},

@@ -9,7 +9,7 @@ summary: A small moth whose caterpillars feed inside mint rhizomes and on the ro
 image: images/mint-root-borer.jpg
 image_credit: 'Mint root borer moth. Photo by Justin Chan, via iNaturalist (observation 297373014), CC BY-NC 4.0 (https://creativecommons.org/licenses/by-nc/4.0/); resized.'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 sources:
   - key: pnw
     text: 'Mint-Mint root borer. In Pacific Northwest Pest Management Handbooks: Insect Management Handbook. Oregon State University, Washington State University and University of Idaho, 2026.'
@@ -71,4 +71,4 @@ For products, rates and current registrations, see the Pacific Northwest Insect 
 
 The [mint root borer model](/models/mint-root-borer) is Oregon State's mint root borer model, counted from April 1 at a base of 50 °F with no upper limit.[^uspest-mrb] Its moth flight follows Oregon State's events: the first moths caught at about 430 degree days, the peak at 910 and 90 % caught by 1,350. The larvae are timed from the flight, from the peak of egg hatch at about 1,280 until each has made its winter chamber; half have done so by 2,150. The risk is the larvae's, since the moths don't feed, and the model marks a window to trap or sweep for moths from the first catch to 90 %.[^agweather-mint-root-borer]
 
-The model was developed for the Pacific Northwest and is listed as partly validated. In California peppermint it ran late: its peak flight came 10 to 25 days after the traps' in three of four county-years, and its 90 % catch two weeks to a month after.[^tollerup-2013] It hasn't been compared with trap catches or larval counts in Wisconsin. In an average year (AgWeather's degree days for 1996 to 2025), its first moths come about June 4 at Arlington and June 13 at Rhinelander, and the most larvae are feeding in early to mid-August in the south.[^agweather-mint-root-borer] Use it to time moth trapping, and count larvae in the soil after harvest to decide whether to treat.[^pnw]
+The model was developed for the Pacific Northwest and is listed as partly validated. In California peppermint it ran late: its peak flight came 10 to 25 days after the traps' in three of four county-years, and its 90 % catch two weeks to a month after.[^tollerup-2013] It hasn't been compared with trap catches or larval counts in Wisconsin. In an average year (AgWeather's degree days for 1996 to 2025), its first moths come about June 4 at Arlington and June 13 at Rhinelander, and the most larvae are feeding in early to mid-August in the south.[^agweather-mint-root-borer] Because it may run late here too, set traps a little before its dates, and count larvae in the soil after harvest to decide whether to treat.[^pnw]

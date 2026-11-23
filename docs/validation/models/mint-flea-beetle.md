@@ -66,7 +66,7 @@ The handbook's larvae feed until early June and its adults emerge in late June a
 
 ## Limits and open questions
 
-- **Wisconsin's emergence:** A3422's late July against the model's late June to early July; A3422's own soil number points earlier still. Sweep counts in Wisconsin mint would settle it; none are known.
+- **Wisconsin's emergence:** A3422's late July against the model's late June to early July; A3422's own soil number points earlier still. Sweep counts in Wisconsin mint would settle it; none are known. Ben (2026-11-23) kept the model, with the doubt stated on its page ("Wisconsin's guide disagrees with itself and with the model", and the advice to sweep from late June into August) and on the topic page.
 - **Every spread is a judgment:** USPest gives only the start of hatch, of larvae leaving and of emergence.
 - **Air, not soil:** the larvae and pupae develop in the soil, which USPest's air degree days stand in for.
 - **Developed in the Pacific Northwest**, partly validated; Berry et al.'s work isn't online.

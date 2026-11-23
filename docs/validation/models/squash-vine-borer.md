@@ -71,7 +71,7 @@ UW–Madison: watch for moths by the last week of June, and protect stems throug
 ## Limits and open questions
 
 - **No primary source:** the flight curve is a judgment across extension guides that don't cite their data (Ohio State's basis for 1,000, MSU's numbers).
-- **The flight's tail:** UW's three weeks of egg laying against MSU's flight to 2,000 and the iNaturalist records' late median; Wisconsin pheromone or yellow-pan trap counts would decide.
+- **The flight's tail:** UW's three weeks of egg laying against MSU's flight to 2,000 and the iNaturalist records' late median; Wisconsin pheromone or yellow-pan trap counts would decide. Ben (2026-11-23): no shift; the page and topic page caution that the window may close before egg laying ends, and to keep stems protected while moths are seen.
 - **Methods differ by a week:** the guides at 1,000 degree days count it three ways, which put the same number a week apart on Wisconsin's weather.
 - **iNaturalist's check** is from the exploratory pull in `tmp/inat-check`; the 768 upper Midwest records outside the grid could triple it with Open-Meteo or gridMET degree days, and a citable GBIF download is H0's to-do.
 
