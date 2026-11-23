@@ -44,7 +44,7 @@ INSECT = Insect(
     base_f=50,
     upper_f=86,
     # The biofix is a significant moth capture (Iowa State, Minnesota: 8 or more moths in a pheromone trap over two
-    # nights; DATCP: 9). Without a grower's date, May 1: the median first week with 9 or more moths in DATCP's black
+    # nights; UW Vegetable Entomology: 9 a night on two nights, black light). Without a grower's date, May 1: the median first week with 9 or more moths in DATCP's black
     # cutworm pheromone network, 2021–2023 and 2026 (129 site-years; scripts/check_cutworms.py). The moths are
     # migrants, so their arrival follows storms rather than local degree days: a fixed date fitted those weeks better
     # than a fixed degree-day total (mean error 10.3 against 11.3 days)
