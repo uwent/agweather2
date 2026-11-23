@@ -61,3 +61,13 @@ def test_default_capture_is_may_first():
     biofix = MODEL.SPEC.biofix
     assert biofix is not None and biofix.default == "05-01"
     assert "May 1" in biofix.label
+
+
+def test_the_cutting_window_opens_with_the_first_cutting_caterpillars():
+    """Part H, round 2: a 'present' window, from 1 % in the cutting stages (the table's 312) until 90 % have
+    pupated."""
+    (window,) = INSECT.action_windows
+    assert window.when == "present" and window.stage == "Cutting caterpillars" and window.between == (0.01, 0.9)
+    table = curves(INSECT)["window_scout_and_treat_while_caterpillars_can_cut_plants"]
+    assert (first(table, 1), last(table, 1)) == (311, 903)
+    assert np.all(table[(X >= 311) & (X <= 903)] == 1)  # one period

@@ -16,7 +16,7 @@ import numpy as np
 from django.test import Client
 
 from agmodels.insects import corn_earworm, european_corn_borer
-from agmodels.phenology import curves, dd_grid
+from agmodels.phenology import curves, dd_grid, form_insect
 
 PLACES = {
     "Arlington": (43.30, -89.35),
@@ -94,6 +94,20 @@ totals = {p: normal_totals(*ll, "modified_50_86") for p, ll in PLACES.items()}
 print_table("european-corn-borer (modified_50_86 from January 1)", events, totals)
 print("| Normal total, August 1 | | " + " | ".join(f"{dict(v)['2026-08-01']:.0f}" for v in totals.values()) + " |")
 print("| Normal total, October 15 | | " + " | ".join(f"{dict(v)['2026-10-15']:.0f}" for v in totals.values()) + " |")
+
+# The one-flight form (part H, round 2), where the normal total by August 1 is below 1,500
+one = form_insect(ecb)
+t1 = curves(one)
+one_events: dict[str, float | tuple[float, float]] = {
+    "one flight, first moths (1 %)": share(t1["generations_adult_flight"], 0.01),
+    "one flight, 50 %": share(t1["generations_adult_flight"], 0.5),
+    "one flight, peak": float(x[np.argmax(t1["activity_adult_flight"])]),
+    "one flight, 99 %": share(t1["generations_adult_flight"], 0.99),
+}
+for n, edges in enumerate(window_edges(one), start=1):
+    one_events[f"treat young larvae, window {n}"] = edges
+north = {p: v for p, v in totals.items() if dict(v)["2026-08-01"] < 1500}
+print_table("european-corn-borer, one flight (where the normal by August 1 is below 1,500)", one_events, north)
 
 cew = corn_earworm.INSECT
 t = curves(cew)

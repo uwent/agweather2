@@ -44,12 +44,15 @@ INSECT = Insect(
     # No cap: UW–Madison gives usually three generations, UW Veg Ento three to six; the season's degree days limit
     # them (three flights in the normal season everywhere, a fourth begun at Arlington by October), and fall freezes
     # end it
+    # UW–Madison: the second generation does the most damage. It weighs 1 and the others 0.5: the sources say which
+    # generation matters, not by how much, so 0.5 is a judgment (Ben, 2026-11-23)
+    generation_weights=(0.5, 1.0, 0.5),
     action_windows=(
         # Scout weekly all season (A3422); this marks when each generation's young caterpillars are hatching, from 10
         # to 90 % of its eggs hatched, when sprays work best (UW Hort: target small caterpillars)
         ActionWindow(label="Scout for eggs and young caterpillars", stage="Eggs", between=(0.1, 0.9)),
     ),
-    version="0.2",
+    version="0.3",
     status="beta",
     # XHT1087 gives no years for its numbers; the span runs from Tatchell's study (1981) to the last iNaturalist
     # records the generation time was set from (2026)
@@ -63,6 +66,11 @@ INSECT = Insect(
             version="0.2",
             date="2026-11-21",
             note="Rebuilt on UW–Madison's degree-day table (Delahaut's XHT1087; the modified average, 50/86 °F, from January 1): the spring butterfly flight as a curve whose 10 and 50 % are the table's 150 and 240 degree days, eggs and caterpillar feeding timed from it (Tatchell 1981's 349 degree days for the caterpillars), later generations every 840 degree days to the season's end (within the range development times give, and the spacing of Wisconsin's iNaturalist records), and a window to scout for eggs and young caterpillars. Risk follows the caterpillars, not the butterflies. Replaces VDIFN's two windows on single sine 50 °F, whose summer window stood in for every later generation.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-23",
+            note="The second generation's caterpillars weigh twice as much as the others' in the risk, since UW–Madison says the second generation does the most damage.",
         ),
     ),
     checks=(

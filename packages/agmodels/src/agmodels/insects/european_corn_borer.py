@@ -1,8 +1,24 @@
 """European corn borer, rebuilt on Wisconsin's own degree-day lineage (Apple 1952 via UW–Madison's table; part H,
 D36, D37), checked against DATCP's black light traps."""
 
-from agmodels.phenology import ActionWindow, DerivedStage, Insect, LifeStage
-from agmodels.spec import Change, Check, Citation, TrainingArea
+from agmodels.phenology import ActionWindow, DerivedStage, Insect, LifeStage, PlaceForm
+from agmodels.spec import Change, Check, Citation, PlaceNormal, TrainingArea
+
+EGG_LAG, EGG = 76, 100  # first eggs 76 after the first moths (UW: 374 and 450); hatch about 100 later
+LARVA = 300  # young larvae from hatch until they bore in (NCR 327's third instar, 250 after hatch, and the 4th at 300)
+
+# The univoltine north (part H, round 2; Ben, 2026-11-23): where the 1996–2025 normal total by August 1 is below about
+# 1,500, one flight. DATCP's traps: Wausau, Marshfield and Antigo (normals 1,292–1,460) caught one flight, half flown
+# at 1,402, and the southern and central sites (1,571–1,906) two; Sparta 2020 (1,566 that year) caught both and Wausau
+# 2021 (1,559) one, so the year's own total can't decide it, and it isn't known until the flight has begun. The
+# normal is the 30-year normal maps' (`last30`), which move a year each January
+ONE_FLIGHT_BELOW = 1500
+ONE_FLIGHT_NORMAL = PlaceNormal(
+    variable="dd_modified_50_86",
+    through="08-01",
+    label="the 30-year normal total of degree days (modified average, 50/86 °F) from January 1 through August 1",
+    missing="European corn borer has one flight a year where the 30-year normal degree days from January 1 through August 1 are below 1,500 (°F), and two elsewhere. We don't have that normal for this location or for part of this area, so the model shows two flights there.",
+)
 
 INSECT = Insect(
     id="european-corn-borer",
@@ -25,26 +41,43 @@ INSECT = Insect(
         LifeStage(label="Adult flight", start=374, peak=631, end=1000, weight=0),
         # First eggs 450 (76 after the first moths) and hatch about 100 later (UW: summer eggs 1,450, hatch 1,550;
         # UMass: hatch ~100 after laying). Egg masses are what scouts count; they carry no risk of their own
-        DerivedStage(label="Egg masses", follows="Adult flight", lag=76, duration=100, weight=0),
+        DerivedStage(label="Egg masses", follows="Adult flight", lag=EGG_LAG, duration=EGG, weight=0),
         # Young larvae from hatch until they bore into stalks, shanks or ears, where sprays can't reach them: NCR 327
         # (Showers et al. 1989, Table 2) has peak hatch at 100, the 3rd instar at 350 and the 4th at 400 after first
         # significant catch, and first-generation larvae tunnelling into midribs from the 3rd instar (UW Veg Ento), so
         # about 300 degree days from hatch. The crop's risk
-        DerivedStage(label="Young larvae", follows="Adult flight", lag=176, duration=300),
+        DerivedStage(label="Young larvae", follows="Adult flight", lag=EGG_LAG + EGG, duration=LARVA),
     ),
     # UW–Madison's peaks 631 and 1,733 are 1,102 apart (first moths 374 and 1,400: 1,026). The second flight's spread
     # by D36's default (the first flight's SD, ~117, for the generation time) puts its 1 % at 1,388 and 99 % at 2,144,
     # against UW's first summer moths at 1,400 and its summer treatments ending at 2,100
     generation_dd=1100,
-    # Two generations in southern and central Wisconsin, one in the north (A1220; UW Veg Ento); MSU's third flight
-    # (2,450–2,950) isn't expected here. Equal weights (D37): DATCP's northern traps show one flight (the report)
+    # Two generations in southern and central Wisconsin, one in the north (A1220; UW Veg Ento): the north runs the
+    # one-flight form below. MSU's third flight (2,450–2,950) isn't expected here. Equal weights (D37)
     max_generations=2,
+    # One flight where the normal season is short: Wausau's traps' 10, 50 and 90 % at 1,112, 1,402 and 1,715, a flight
+    # from mid-July to mid-August between the bivoltine strain's two (UMN scouts univoltine larvae at 1,100–1,300). This
+    # curve's 10, 50 and 90 % are 1,146, 1,400 and 1,653 (a little narrower than Wausau's few moths); egg masses and young
+    # larvae follow it as in the south, so the window to treat runs 1,323–1,828, later than UMN's 1,100–1,300 for scouting
+    # univoltine larvae in Minnesota
+    place_form=PlaceForm(
+        name="one_flight",
+        label="One flight here (1) or two (0)",
+        words="one flight a year",
+        normal=ONE_FLIGHT_NORMAL,
+        below=ONE_FLIGHT_BELOW,
+        life_stages=(
+            LifeStage(label="Adult flight", start=900, peak=1400, end=1900, weight=0),
+            DerivedStage(label="Egg masses", follows="Adult flight", lag=EGG_LAG, duration=EGG, weight=0),
+            DerivedStage(label="Young larvae", follows="Adult flight", lag=EGG_LAG + EGG, duration=LARVA),
+        ),
+    ),
     action_windows=(
         # Sprays work only before larvae bore in (A3646): from 10 % to 90 % of each generation's eggs hatched. That's
         # 671–986 and 1,713–2,142 degree days, against UW–Madison's 800–1,000 and 1,550–2,100 (Flandermeyer and Bick)
         ActionWindow(label="Scout and treat young larvae before they bore in", stage="Egg masses", between=(0.1, 0.9)),
     ),
-    version="0.2",
+    version="0.3",
     status="beta",
     # Apple's degree-day work was on canning corn in Wisconsin; its field years aren't in hand, so the span runs from
     # his paper (1952) to the table's last revision (2012)
@@ -59,6 +92,11 @@ INSECT = Insect(
             date="2026-11-21",
             note="Rebuilt on UW–Madison's degree-day table (the modified average, 50/86 °F, from January 1): the spring flight as a curve from 374 to about 1,000 degree days (peak 631), egg masses and young larvae timed from it, a second flight 1,100 later (peak near 1,733), and a window to scout and treat young larvae before they bore in. Replaces VDIFN's two windows on single sine 50/86 °F (Kentucky's EF-106: 550–900 and 1,660–2,190), which came about 175 degree days late in spring.",
         ),
+        Change(
+            version="0.3",
+            date="2026-11-23",
+            note="One flight a year where the 30-year normal degree days from January 1 through August 1 are below 1,500, as in northern Wisconsin: a flight from about 900 to 1,900 degree days (peak 1,400), with egg masses, young larvae and the window to treat them timed from it. Two flights elsewhere, and where the normal isn't available.",
+        ),
     ),
     checks=(
         Check(
@@ -70,7 +108,7 @@ INSECT = Insect(
         Check(
             kind="observations",
             against="Black light trap catches of corn borer moths in Wisconsin (DATCP), 2020–2026",
-            result="At southern and central sites, the model's spring-flight midpoint fell a median 0 days from the week half the spring moths were caught (14 site-years, 11 within a week), and its summer-flight midpoint a median 1 day after (23 site-years, 12 within a week). In the north (Wausau, Marshfield, Antigo) the traps caught 4 moths before midsummer in 12 site-years and one flight from mid-July to mid-August, half caught by 1,402 degree days, which the model's summer flight follows a median 19 days late.",
+            result="At southern and central sites, the model's spring-flight midpoint fell a median 0 days from the week half the spring moths were caught (14 site-years, 11 within a week), and its summer-flight midpoint a median 1 day after (23 site-years, 12 within a week). In the north (Wausau, Marshfield, Antigo) the traps caught 4 moths before midsummer in 12 site-years and one flight from mid-July to mid-August, half caught by 1,402 degree days. Where the model runs one flight (a 30-year normal below 1,500 by August 1), its midpoint fell a median 0 days from the week half that flight was caught (7 site-years, 4 within a week), where two flights' summer flight ran a median 19 days late.",
             report="docs/validation/models/european-corn-borer.md#against-wisconsins-black-light-traps",
         ),
     ),

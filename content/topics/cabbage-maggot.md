@@ -9,7 +9,7 @@ summary: A small fly whose maggots feed on the roots of cabbage, broccoli, radis
 image: images/cabbage-maggot.jpg
 image_credit: 'Cabbage maggot larvae at the base of a cauliflower stem. Photo by Rasbak, via Wikimedia Commons (File:Koolvlieg bloemkool.jpg), CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cabbage Maggot. Updated 2026.'
@@ -93,6 +93,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [cabbage maggot model](/models/cabbage-maggot) is NEWA's cabbage maggot model, counted from January 1 as the day's average temperature above 40 °F.[^newa] Its spring flight follows two years of trap catches in upstate New York: the first flies at about 290 degree days, half at 450 and 95 % by about 700.[^jyoti-2003] Larval feeding is timed from the flight, and later flights follow every 850 degree days, up to the four found in New York. The model marks a window for protecting seedlings and transplants from each flight's first flies to 95 % emergence.[^agweather-cabbage-maggot]
+The [cabbage maggot model](/models/cabbage-maggot) is NEWA's cabbage maggot model, counted from January 1 as the day's average temperature above 40 °F.[^newa] Its spring flight follows two years of trap catches in upstate New York: the first flies at about 290 degree days, half at 450 and 95 % by about 700.[^jyoti-2003] Larval feeding is timed from the flight, and later flights follow every 850 degree days, up to the three found in Wisconsin (New York has four). The model marks a window for protecting seedlings and transplants from each flight's first flies to 95 % emergence.[^agweather-cabbage-maggot]
 
-On the same weather at Wisconsin's NEWA stations, the model's flights fall within a day or two of NEWA's. Wisconsin's own trap study agrees on the spring flight, but its generations took about half again as long, which would put the first summer flight about two weeks later, and it found three flights rather than four.[^eckenrode-1972][^agweather-cabbage-maggot] In an average year at Arlington (degree days for 1996 to 2025), the model's first flies come about May 1 and the second flight peaks about June 18, near the late-June flight UW–Madison describes.[^uw-hort] The model counts every flight alike, though the spring flight does the most damage; use its first window to plan spring plantings and row covers, and traps for later flights.
+On the same weather at Wisconsin's NEWA stations, the model's flights fall within a day or two of NEWA's. Wisconsin's own trap study agrees on the spring flight, but its generations took about half again as long, which would put the first summer flight about two weeks later, so Wisconsin's summer flights may come later than the model shows.[^eckenrode-1972][^agweather-cabbage-maggot] In an average year at Arlington (degree days for 1996 to 2025), the model's first flies come about May 1 and the second flight peaks about June 18, near the late-June flight UW–Madison describes.[^uw-hort] The model counts the summer flights at half the spring flight's weight in its risk, since the spring flight does the most damage; use its first window to plan spring plantings and row covers, and traps for later flights.

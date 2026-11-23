@@ -69,3 +69,29 @@ def test_two_generations_and_no_third():
     out = MODEL.explore(dd_total=3500)
     assert out["generations_adult_flight"] == pytest.approx(2, abs=1e-3)
     assert out["risk"] < 1e-3 and out[WINDOW] == 0
+
+
+def test_one_flight_where_the_normal_season_is_short():
+    """The univoltine north (part H, round 2): below 1,500 normal degree days (modified 50/86 °F) from January 1
+    through August 1, one flight whose 10, 50 and 90 % bracket Wausau's traps' 1,112, 1,402 and 1,715, with the egg
+    masses, young larvae and window timed from it, and one generation."""
+    from agmodels.phenology import form_insect
+
+    f = INSECT.place_form
+    assert f is not None and f.below == 1500 and f.max_generations is None and f.generation_dd is None
+    assert (f.normal.variable, f.normal.through, f.normal.period) == ("dd_modified_50_86", "08-01", "last30")
+    one = form_insect(INSECT)
+    flight = curves(one)["generations_adult_flight"]
+    assert flight.max() == pytest.approx(1)  # one generation
+    tenth, half, ninetieth = (_share(flight, p) for p in (0.1, 0.5, 0.9))
+    assert 1112 < tenth < 1200 and abs(half - 1402) < 5 and 1600 < ninetieth < 1715
+    open_ = dd_grid()[curves(one)[WINDOW] > 0]
+    assert (open_[0], open_[-1]) == (1323, 1828)
+    # Wausau (1,441) and Antigo (1,292) one flight, Hancock (1,571) and Arlington (1,684) two
+    total = np.array([631.0, 1400.0])
+    base = {"dd_total": total, "dd": np.zeros(2), MODEL.FREEZE: np.ones(2)}
+    for normal, flights in ((1292.0, 1), (1441.0, 1), (1571.0, 2), (1684.0, 2)):
+        out = MODEL.finish(base | {f.normal.key: np.array(normal)})
+        assert out["one_flight"][0] == (flights == 1)
+        spring = out["activity_adult_flight"][0]
+        assert (spring == 0) if flights == 1 else (spring == pytest.approx(1))

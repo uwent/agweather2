@@ -166,3 +166,17 @@ def test_crucifer_flea_beetle_scouting_window_covers_the_spring_adults():
     assert len(windows) == 2
     first, last = windows[0]
     assert abs(first - 129) <= 3 and abs(last - 410) <= 3
+
+
+@pytest.mark.parametrize("insect", [imported_cabbageworm.INSECT, cabbage_looper.INSECT], ids=lambda i: i.id)
+def test_the_second_generation_weighs_most(insect):
+    """UW–Madison: the second generation of caterpillars does the most damage (part H, round 2): weights 0.5, 1, 0.5."""
+    from agmodels.phenology import risk_curve
+
+    assert insect.generation_weights == (0.5, 1.0, 0.5)
+    unweighted = risk_curve(type(insect)(**{**insect.__dict__, "generation_weights": ()}))
+    weighted = risk_curve(insect)
+    gen = insect.generation_dd
+    first_gen = gen * 0.6 > X  # the first generation's caterpillars, before the second's hatch
+    np.testing.assert_allclose(weighted[first_gen], unweighted[first_gen] / 2)
+    assert weighted.max() == pytest.approx(weighted[(gen < X) & (2 * gen > X)].max())  # the peak is the second's

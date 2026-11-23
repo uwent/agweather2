@@ -7,6 +7,7 @@ import pytest
 from agmodels.degree_days import degree_days_average
 from agmodels.insects import cabbage_maggot, onion_maggot, seedcorn_maggot
 from agmodels.phenology import DD_STEP, PhenologyModel, curves, dd_grid, generation_densities
+from agmodels.registry import model
 
 X = dd_grid()
 
@@ -51,14 +52,29 @@ def test_cabbage_maggots_spring_flight_follows_newas_table_and_jyoti_2003():
     assert np.interp(288, X, spring) == pytest.approx(0.059, abs=0.005)
 
 
-def test_cabbage_maggots_later_flights_follow_newas_peaks_and_stop_at_four():
+def test_cabbage_maggots_later_flights_follow_newas_peaks_and_stop_at_three():
+    """Three flights, as Eckenrode and Chapman 1972 trapped in Wisconsin (NEWA's New York has four): the second and
+    third within 45 of NEWA's peaks."""
     flights = shares(CM)
-    assert len(flights) == 4
-    for g, peak in enumerate(NEWA_CM_PEAKS, start=1):
+    assert len(flights) == 3
+    for g, peak in enumerate(NEWA_CM_PEAKS[:2], start=1):
         assert abs(dd_at(flights[g], 0.5) - peak) <= 45, g
     # generation time 850 against NEWA's 809, 915 and 838 between peaks
     gaps = np.diff([dd_at(f, 0.5) for f in flights])
     assert np.all(np.abs(gaps - 850) <= 5)
+
+
+def test_cabbage_maggots_spring_flight_weighs_most():
+    """The spring flight does the most damage (NEWA; Eckenrode and Chapman 1972): summer flights weigh 0.5."""
+    m = model("cabbage-maggot")
+    assert CM.generation_weights == (1.0, 0.5)
+    stages = ("adult_flight", "larval_feeding")
+    spring, summer = (m.explore(dd_total=d) for d in (500, 1350))
+    assert spring["risk"] == pytest.approx(sum(spring[f"activity_{k}"] for k in stages))  # the first generation alone
+    # the second flight and the spring larvae's tail: between half and all of the activity
+    activity = sum(summer[f"activity_{k}"] for k in stages)
+    assert activity / 2 < summer["risk"] < 0.7 * activity
+    assert summer["risk"] < spring["risk"]
 
 
 def test_cabbage_maggot_generation_against_eckenrode_and_chapman():
@@ -81,7 +97,7 @@ def test_cabbage_maggot_larvae_follow_the_flight():
 
 def test_cabbage_maggot_protection_window_runs_from_first_emergence_to_95_percent():
     windows = window_edges(CM, "window_protect_seedlings_and_transplants_during_fly_flight")
-    assert len(windows) == 4
+    assert len(windows) == 3
     first, last = windows[0]
     assert abs(first - 288) <= 6 and abs(last - 697) <= 6  # NEWA's first emergence and 95 %
 
@@ -152,3 +168,15 @@ def test_seedcorn_maggots_first_flight_starts_within_new_yorks_first_emergence()
     spring = shares(seedcorn_maggot.INSECT)[0]
     # our 10 % and 50 % (about 201 and 345) fall inside NEWA's first-emergence window read as °C·d (95–355 °F·d)
     assert dd_at(spring, 0.10) >= 53 * 1.8 and dd_at(spring, 0.50) <= 197.5 * 1.8
+
+
+def test_onion_and_seedcorn_maggots_spring_generation_weighs_most():
+    """Part H, round 2: the spring generation does the damage; summer weights 0.5 (onion) and 0.25 (seedcorn), a
+    judgment."""
+    from agmodels.phenology import risk_curve
+
+    assert OM.generation_weights == (1.0, 0.5) and seedcorn_maggot.INSECT.generation_weights == (1.0, 0.25)
+    for insect, weight in ((OM, 0.5), (seedcorn_maggot.INSECT, 0.25)):
+        plain = risk_curve(type(insect)(**{**insect.__dict__, "generation_weights": ()}))
+        late = 3 * (insect.generation_dd or 0) < X  # later generations only
+        np.testing.assert_allclose(risk_curve(insect)[late], plain[late] * weight, rtol=1e-6, atol=1e-9)

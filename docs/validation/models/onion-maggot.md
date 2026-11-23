@@ -1,6 +1,6 @@
 # Onion maggot (`onion-maggot`): validation
 
-Model version 0.2, written 2026-11-21 (D98; part H, H1). The model: `packages/agmodels/src/agmodels/insects/onion_maggot.py`, run by the insect engine (`agmodels.phenology`, D36); its page: `onion_maggot.md` beside it. Version 0.1 was VDIFN's two windows (single sine 39.2/86 °F, (510, 680, 850) and (1460, 1950, 2435), source "XHT1087" not identified); this version replaces it with NEWA's model (D95).
+Model version 0.3, written 2026-11-21 and revised 2026-11-23 for generation weights (D98; part H, H1, and round 2). The model: `packages/agmodels/src/agmodels/insects/onion_maggot.py`, run by the insect engine (`agmodels.phenology`, D36); its page: `onion_maggot.md` beside it. Version 0.1 was VDIFN's two windows (single sine 39.2/86 °F, (510, 680, 850) and (1460, 1950, 2435), source "XHT1087" not identified); this version replaces it with NEWA's model (D95).
 
 **In short:** NEWA's onion maggot model as D36 curves: the simple average above 40 °F from January 1, three flights from NEWA's first emergence and peak of each, larval feeding timed from each flight by Liu, McEwen and Ritcey's (1982) development times. On the same weather at 34 Wisconsin NEWA stations it matches NEWA's spring events to the day and its later flights within a few days. Against the New York trapping NEWA's numbers rest on (Eckenrode, Vea and Stone 1975), the spring midpoint agrees and the generation time is about 10 % shorter. No Wisconsin trap data are in hand.
 
@@ -20,7 +20,7 @@ Model version 0.2, written 2026-11-21 (D98; part H, H1). The model: `packages/ag
 - **Spring flight:** PERT (200, 721, 1,349) DD40, set so NEWA's first emergence (390) is its 5 % and NEWA's peak (735) its 50 %: 5, 50 and 95 % at 389, 734 and 1,102 (the 95 % before NEWA's first summer flies at 1,218). 5 % is a choice: NEWA's cabbage maggot table puts first emergence at 5.9 % of its curve, and Eckenrode et al.'s "initial increase" (389) is the first surge in catches, not the first fly. The start (200) is free within what the two points allow; a start of 150 or 250 moves the 95 % between 1,050 and 1,175.
 - **Larval feeding** (a `DerivedStage`): from 275 °F·d after each fly emerges (pre-oviposition 103 + egg 50 °C·d) for 517 (larva 287 °C·d), Liu et al.'s laboratory times above 4 °C read as DD40. NEWA's "eggs 7–10 days after emergence" is about 200–300 DD40 in late May.
 - **Generations:** every 1,100 DD40, the least-squares fit to NEWA's peaks (1,017 and 1,223 apart): 50 % at 1,831 and 2,930 against NEWA's 1,752 and 2,975. SD 200: NEWA's later flights start 534 and 560 before their peaks, against 345 in spring, so each spreads more than the last; the curves' first flies (5 %) come at 1,366 and 2,367 against NEWA's 1,218 and 2,415. Eckenrode et al. measured 1,187 and 1,257, Liu et al.'s lab generation 1,343 °F·d: NEWA's, and so the model's, is about 10 % shorter. Three flights at most (NEWA, Eckenrode et al., Liu et al.).
-- **Equal weights (D37):** flight and larval feeding weight 1 in every generation. NEWA calls the spring generation the most destructive and says later ones rarely damage; Liu et al. found the third generation's larvae in stored bulbs the costliest in Ontario. The model keeps the generations alike and the page says so.
+- **Generation weights** (version 0.3; Ben, 2026-11-23): flight and larval feeding weight 1, the spring generation's 1 and each summer generation's 0.5. NEWA calls the spring generation the most destructive and says later ones rarely damage; Eckenrode et al. agree. The sources say which generation matters, not by how much, so 0.5 is a judgment. Liu et al. found the third generation's larvae in stored bulbs the costliest in Ontario, a harvest loss the half weight may understate. Version 0.2 weighted every generation alike (D37).
 - **Action window:** "Protect onion seedlings during fly flight", from 5 % to 95 % of each flight (390–1,102 in spring): NEWA's advice to have treated seed, an in-furrow treatment or row covers in place before flies emerge and for three weeks past the peak.
 
 ## Checks
@@ -67,12 +67,34 @@ The model reproduces NEWA's events: first emergence and the spring peak fall on 
 
 UW–Madison's scouting calendar (topic page): flies from mid-May to mid-June, early July to mid-August, and late August through September; peaks at about 680, 1,950 and 3,230 DD40 from thaw. The spring flight agrees; the model's second flight starts in late June, a week or so before UW's, and its third peaks in mid-August, 10 to 14 days before UW's third peak (3,230 DD40: August 20 at Arlington, August 28 at Hancock, September 15 at Rhinelander on the normals) and before UW's late-August-to-September flight.
 
+#### What the weights change
+
+`uv run app/manage.py shell < scripts/generation_weights_normals.py`: the risk on the same normal totals with every generation alike (version 0.2) and with version 0.3's generation weights, at each peak of the risk through October 15, without fall freezes.
+
+<!-- prettier-ignore -->
+| Place | Peak | Equal generations | Weighted |
+| --- | --- | --- | --- |
+| Arlington | June 5 | 1.27 (Very high) | 1.27 (Very high) |
+| Arlington | June 23 | 1.21 (Very high) | 1.01 (Very high) |
+| Arlington | July 18 | 1.21 (Very high) | 0.60 (High) |
+| Arlington | Days at High or above | 124 | 108 |
+| Hancock | June 9 | 1.27 (Very high) | 1.27 (Very high) |
+| Hancock | June 28 | 1.21 (Very high) | 1.00 (Very high) |
+| Hancock | July 23 | 1.21 (Very high) | 0.60 (High) |
+| Hancock | Days at High or above | 131 | 112 |
+| Rhinelander | June 17 | 1.27 (Very high) | 1.27 (Very high) |
+| Rhinelander | July 6 | 1.21 (Very high) | 1.01 (Very high) |
+| Rhinelander | August 2 | 1.21 (Very high) | 0.60 (High) |
+| Rhinelander | Days at High or above | 146 | 125 |
+
+The spring flight and its maggots are unchanged; the second flight's peak, overlapping the spring larvae, falls from 1.21 to about 1.0, and the third flight's from Very high to High, so a season has two to three fewer weeks at High or above.
+
 ## Limits and open questions
 
 - **Generation time:** NEWA's peaks are 1,017 and 1,223 apart, Eckenrode et al.'s 1,187 and 1,257, UW's 1,270 and 1,280; the model's 1,100 fits NEWA's, so its later flights may be early for Wisconsin. Wisconsin trap counts would decide.
 - **NEWA's sources:** Andaloro, Rose and Eckenrode 1984 isn't in hand; the training area's last year (1983) is an estimate.
 - **The spring flight's shape** rests on two numbers (first emergence and peak); 5 % for "first emergence" is a choice.
-- **Equal generations (D37):** the spring generation does most of the damage to seedlings (NEWA, Eckenrode et al.), but every flight counts alike in the risk.
+- **The summer flights' weight (0.5)** is a judgment: the spring generation does most of the damage to seedlings (NEWA, Eckenrode et al.), but the sources don't say by how much, and Ontario's third generation damages stored bulbs (Liu et al.).
 - **The larval stage** comes from Ontario laboratory times, not from field observations in Wisconsin.
 
 ## Reproducing
@@ -82,4 +104,5 @@ uv run pytest packages/agmodels/tests/test_maggots.py
 uv run python scripts/fetch_newa.py                     # NEWA station hours into tmp/newa/hours/ (once)
 uv run python scripts/check_maggots.py                  # needs the archive in data/ and the station hours
 uv run app/manage.py shell < scripts/maggot_normals.py  # the dates on the normals
+uv run app/manage.py shell < scripts/generation_weights_normals.py  # what the generation weights change
 ```

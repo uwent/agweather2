@@ -1,8 +1,8 @@
 ---
 id: european-corn-borer
 status: draft
-updated: 2026-11-21
-summary: Times European corn borer moth flights, egg laying and young caterpillars from degree days since January 1, and marks when to scout and treat young caterpillars before they bore into the plant, in each of two generations.
+updated: 2026-11-23
+summary: Times European corn borer moth flights, egg laying and young caterpillars from degree days since January 1, and marks when to scout and treat young caterpillars before they bore into the plant, with two generations in southern and central Wisconsin and one in the north.
 sources:
   - UW–Madison Extension's degree-day table for European corn borer (Delahaut 2012; the method and both flights)
   - Apple 1952 (corn borer development on canning corn by temperature accumulation; the likely origin of UW–Madison's table)
@@ -28,10 +28,10 @@ Degree days are counted from January 1 by the modified average method, base 50 �
 - **Spring flight.** Moths from caterpillars that spent the winter in old stalks begin to fly at about 374 degree days. The flight peaks at 631 and is mostly over by 1,000.
 - **Eggs and young caterpillars.** Moths begin laying eggs about 76 degree days after they emerge, and the eggs hatch about 100 degree days later. Young caterpillars feed in the whorl or on leaves for about 300 degree days, until about their fourth stage (Iowa State's NCR 327). By then they have begun tunneling into leaf midribs, and soon after into stalks, shanks or ears (UW–Madison).
 - **Summer flight.** Moths of the second generation follow 1,100 degree days after the first: the first appear at about 1,400 and the flight peaks near 1,733, as in UW–Madison's table. Their caterpillars are the second generation's risk.
-- **Two generations.** The model shows two generations everywhere, and no third.
+- **One generation or two.** In the north, most corn borers have one generation a year. The model shows one flight where the average total of degree days from January 1 through August 1, over the last 30 years (1996–2025), is below 1,500: about from Wausau and Marshfield north, and along the Lake Michigan shore. There the moths begin to fly at about 1,000 degree days and the flight peaks at about 1,400, from mid-July to late August, with egg masses and young caterpillars following as in the south. Elsewhere the model shows two generations, and no third. Where we don't have that 30-year average (outside the area our maps cover), the model shows two generations and says so.
 - **The end of the season.** After early September, each day at or below 28 °F reduces activity, and four such days within two weeks end the season.
 
-In a typical year (AgWeather's 1996–2025 averages), the spring flight peaks around June 10 at Arlington and June 13 at Hancock, and the window to treat first-generation caterpillars runs from about June 13 to June 29 at Arlington. The summer flight peaks around August 4 at Arlington and August 10 at Hancock.
+In a typical year (AgWeather's 1996–2025 averages), the spring flight peaks around June 10 at Arlington and June 13 at Hancock, and the window to treat first-generation caterpillars runs from about June 13 to June 29 at Arlington. The summer flight peaks around August 4 at Arlington and August 10 at Hancock. At Rhinelander, in the one-flight north, the flight peaks around August 4, and the window to treat caterpillars runs from about July 31 to September 1.
 
 ## How to read it
 
@@ -44,9 +44,9 @@ The [European corn borer topic page](/topics/european-corn-borer) explains the i
 
 ## Validation and caveats
 
-- Draft (model version 0.2, beta). The numbers come from UW–Madison's table, developed in Wisconsin.
+- Draft (model version 0.3, beta). The numbers come from UW–Madison's table, developed in Wisconsin.
 - In southern and central Wisconsin, the middle of each flight falls a median of 0 to 1 day from the week DATCP's black light traps caught half of that flight's moths, 2020–2026, though in single years it can be a week or more off. VDIFN's model, which this one replaces, ran a median 4 days late in spring and 14 in summer at the same traps. Black light traps catch few corn borers, so each site's record rests on a handful of moths.
-- **Northern Wisconsin.** In the northern counties most corn borers have only one generation a year. Wausau's trap caught no June moths in six years, only one flight from mid-July to mid-August, between the model's two flights. From about Wausau and Marshfield north, the model's spring and summer flights don't fit; watch trap counts there from early July.
+- **Northern Wisconsin.** In the northern counties most corn borers have only one generation a year. Wausau's trap caught no June moths in six years, only one flight from mid-July to mid-August. Where the model shows one flight, the middle of that flight fell a median of 0 days from the week Wausau's and other northern traps caught half their moths, though those traps caught few moths. The line between one flight and two (1,500 degree days by August 1 on the 30-year average) rests on a few northern traps; near it, fields may see either, so watch trap counts from early June. The 30-year average is updated each year, so a place near the line can change between years.
 - The model's first moths come about a week before a weekly trap's first catch, since a trap that catches a few moths a week catches its first one after the flight has begun.
 - Both generations count alike in the risk, though first-generation caterpillars that mature late in the season overwinter instead of producing summer moths, so the second generation can be smaller.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

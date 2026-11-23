@@ -1,7 +1,7 @@
 ---
 id: seedcorn-maggot
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 summary: Times each generation's adult flight and the larval feeding that follows from degree days since January 1, and marks the windows when planting a susceptible crop is most likely to be hit.
 sources:
   - Sanborn, Wyman and Chapman 1982 (development times by stage)
@@ -37,11 +37,11 @@ The model counts degree days from January 1 by the method its sources use: the d
 
 - Plan plantings of susceptible crops (beans, peas, sweet corn, cucurbits, onions and others) outside the **avoid planting** windows where you can, especially in fields with fresh manure, an incorporated cover crop or green manure, or heavy weeds.
 - If planting during a window can't be avoided, that's when an insecticide seed treatment earns its keep, and when shallow planting into warm soil (faster emergence) helps most.
-- Risk stays fairly high through summer because the generations overlap. The windows are sharper than the risk curve, so use them for timing.
+- The over-wintered flight and the spring generation's maggots carry the most risk, since spring plantings take the damage. Summer generations count a quarter as much in the risk, our judgment of the sources' finding that the summer generation mostly rests through the heat in Iowa; their windows still show when flies are active, for late plantings.
 
 ## Validation and caveats
 
-- Draft (model version 0.2, beta). The degree-day numbers come from laboratory development times and field flight peaks in Wisconsin, Iowa and New York, not from a fit to Wisconsin trap data. Wisconsin DATCP trap captures could check it (PLAN.md, model review).
+- Draft (model version 0.3, beta). The degree-day numbers come from laboratory development times and field flight peaks in Wisconsin, Iowa and New York, not from a fit to Wisconsin trap data. Wisconsin DATCP trap captures could check it (PLAN.md, model review).
 - NEWA's seedcorn maggot model, on the same weather at 34 Wisconsin NEWA stations in 2024 and 2025, opens its first-emergence window a median 5 days after the model's flight begins and closes it about when half the model's spring flight has emerged. NEWA reads the New York studies' first-emergence numbers as degree days Celsius; the studies counted in Fahrenheit, as the model does.
 - Air temperature runs ahead of the soil where the insects develop: Iowa's field generations took about 490 °C·d against the lab's 392 (Funderburk et al. 1984). Later generations may come later than shown.
 - Later generations are often smaller than the first, and some flies enter a summer or winter dormancy instead of emerging; the model doesn't predict population size.

@@ -1,7 +1,7 @@
 """Black cutworm, rebuilt on Luckmann et al. 1976's development times from a significant moth capture, with a
 default capture date from Wisconsin's pheromone trap network (part H, D36, D37, D97)."""
 
-from agmodels.phenology import DerivedStage, Insect, LifeStage
+from agmodels.phenology import ActionWindow, DerivedStage, Insect, LifeStage
 from agmodels.spec import Change, Check, Citation, TrainingArea
 
 # Luckmann et al. 1976, Table 2: median °C·d above 10.4 °C from oviposition to hatch 52, to the third molt (the
@@ -69,7 +69,18 @@ INSECT = Insect(
     ),
     # One generation: the moths arriving in spring give the caterpillars that cut seedlings; later generations feed on
     # larger plants and weeds and rarely damage corn (Minnesota)
-    version="0.2",
+    action_windows=(
+        # From the first caterpillars big enough to cut (1 % of the generation in the cutting stages, 310 after the
+        # capture, as Purdue's and Iowa State's 312) until 90 % have pupated (904): scouting and any treatment belong
+        # while cutting caterpillars are present, not after a share has passed through (part H, round 2)
+        ActionWindow(
+            label="Scout and treat while caterpillars can cut plants",
+            stage="Cutting caterpillars",
+            between=(0.01, 0.9),
+            when="present",
+        ),
+    ),
+    version="0.3",
     status="beta",
     trained=TrainingArea(
         description="development times measured in the laboratory in Illinois, and the default capture date from the first weeks with 9 or more moths in Wisconsin's black cutworm pheromone traps",
@@ -83,12 +94,17 @@ INSECT = Insect(
             date="2026-11-21",
             note="Rebuilt on Luckmann et al. 1976: from a significant moth capture (May 1 without a date, from DATCP's pheromone traps), egg laying, leaf-feeding caterpillars and cutting caterpillars (fourth instar to pupation, 306 to 729 degree days after an egg is laid), single sine 50/86 °F. Replaces VDIFN's window (300, 700, 1,000 degree days from May 15), which peaked after cutting ends.",
         ),
+        Change(
+            version="0.3",
+            date="2026-11-23",
+            note="A window to scout and treat while caterpillars can cut plants: from the first caterpillars big enough to cut (about 310 degree days after the capture) until 90 % have pupated (about 900).",
+        ),
     ),
     checks=(
         Check(
             kind="published",
             against="Luckmann et al. 1976's development times, and Purdue's and Iowa State's stage table for black cutworm",
-            result="The first caterpillars hatch 99 degree days after the moth capture and the first reach cutting size at 311, as the table's 90 and 312. Cutting lasts longer than the table says: half the caterpillars have pupated by 811 degree days and 90 % by 904, against the table's 641, because the model follows Luckmann's time to pupation and spreads egg laying over the weeks after the capture.",
+            result="The first caterpillars hatch 99 degree days after the moth capture and the first reach cutting size at 311, as the table's 90 and 312; the window to scout and treat opens then. Cutting lasts longer than the table says: half the caterpillars have pupated by 811 degree days and 90 % by 904, against the table's 641, because the model follows Luckmann's time to pupation and spreads egg laying over the weeks after the capture.",
             report="docs/validation/models/black-cutworm.md#against-its-sources-numbers",
         ),
         Check(

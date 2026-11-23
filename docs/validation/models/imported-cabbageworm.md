@@ -1,6 +1,6 @@
 # Imported cabbageworm (`imported-cabbageworm`): validation
 
-Model version 0.2, written 2026-11-21 (D98; part H, H3). The model: `packages/agmodels/src/agmodels/insects/imported_cabbageworm.py`, run by the insect engine (`agmodels.phenology`, D36); its page: `imported_cabbageworm.md` beside it. Version 0.1 was VDIFN's two windows (single sine 50 °F, no upper, from January 1: (150, 240, 630) and (830, 1030, 2000), the last three with "?" in VDIFN's own sheet); this version replaces them.
+Model version 0.3, written 2026-11-21 and revised 2026-11-23 for generation weights (D98; part H, H3, and round 2). The model: `packages/agmodels/src/agmodels/insects/imported_cabbageworm.py`, run by the insect engine (`agmodels.phenology`, D36); its page: `imported_cabbageworm.md` beside it. Version 0.1 was VDIFN's two windows (single sine 50 °F, no upper, from January 1: (150, 240, 630) and (830, 1030, 2000), the last three with "?" in VDIFN's own sheet); this version replaces them.
 
 **In short:** UW–Madison's degree-day table (Delahaut's XHT1087: "adult butterflies at 150–240 DD50", modified average 50/86 °F from January 1) as the spring flight's 10 and 50 %, eggs and caterpillars timed from it (Tatchell 1981's 349 degree days for the larva), and later flights every 840 degree days to the season's end, with risk on the caterpillars. Wisconsin's iNaturalist records of cabbage white butterflies (2016–2026) put the middle of the spring flight within 5 degree days of the model's; the generation time was set within the range development times allow to match their later flights, so those agree by construction. No counts of caterpillars were compared.
 
@@ -24,7 +24,7 @@ Model version 0.2, written 2026-11-21 (D98; part H, H3). The model: `packages/ag
 - **Larval feeding** (a `DerivedStage`, the risk): from hatch for 349 degree days (Tatchell 1981's 349 above 48.9 °F, taken as DD50; the 1 °F difference is about 15 degree days over the stage). Its first peak comes at 662. Risk follows the caterpillars only (weight 1), as the plan set (D36): the butterflies are the signal, the caterpillars the damage.
 - **Generations:** every 840 degree days, flight to flight, until fall freezes end the season; no cap. Development times give egg laying 105 + egg 105 + larva 349 + pupa 180 (8.5 days) = 739 with the shorter readings of UW's days, and about 820 with UW Hort's week-long egg and egg laying centered a week after emergence; UW's ranges in days allow about 600 to 1,000. Within that range, 840 follows the spacing of Wisconsin's records (832 and 861, below). The generations spread by the default (the spring flight's SD, 80).
 - **Action window:** "Scout for eggs and young caterpillars", from 10 to 90 % of each generation's eggs hatched: 359–570 in spring. Weekly scouting all season stays the advice (A3422); the window marks when sprays aimed at small caterpillars work best.
-- **Equal generations (D37):** UW–Madison says the second generation, from mid-July, does the most damage, since nearly all of its caterpillars grow up on planted cole crops; every generation counts alike in the risk, and the page says so.
+- **Generation weights** (version 0.3; Ben, 2026-11-23): UW–Madison says the second generation, from mid-July, does the most damage, since nearly all of its caterpillars grow up on planted cole crops. Its caterpillars weigh 1 in the risk and the other generations' 0.5. The source says which generation matters, not by how much, so 0.5 is a judgment. Version 0.2 weighted every generation alike (D37).
 
 ## Checks
 
@@ -66,12 +66,33 @@ Model version 0.2, written 2026-11-21 (D98; part H, H3). The model: `packages/ag
 
 UW–Madison: butterflies emerge in early May; second-generation butterflies emerge in mid-July; usually three generations (UW Veg Ento three to six). The model's spring flight begins in late April and early May and peaks in early to mid-May, as UW describes. Its second flight's middle comes in early July in the south and mid-July at Rhinelander, a week or two before UW's mid-July in southern Wisconsin (the iNaturalist records agree with the model there). Three flights fit in a normal season everywhere, the third in August in the south and early September in the north; a fourth begins at Arlington only in October, after the first fall freezes in most years.
 
+#### What the weights change
+
+`uv run app/manage.py shell < scripts/generation_weights_normals.py`: the risk on the same normal totals with every generation alike (version 0.2) and with version 0.3's generation weights, at each peak of the risk through October 15, without fall freezes.
+
+<!-- prettier-ignore -->
+| Place | Peak | Equal generations | Weighted |
+| --- | --- | --- | --- |
+| Arlington | June 12 | 1.00 (Very high) | 0.50 (Moderate) |
+| Arlington | July 22 | 0.89 (Very high) | 0.89 (Very high) |
+| Arlington | September 2 | 0.80 (Very high) | 0.40 (Moderate) |
+| Arlington | Days at High or above | 61 | 17 |
+| Hancock | June 15 | 1.00 (Very high) | 0.50 (Moderate) |
+| Hancock | July 27 | 0.89 (Very high) | 0.89 (Very high) |
+| Hancock | September 15 | 0.80 (Very high) | 0.40 (Moderate) |
+| Hancock | Days at High or above | 68 | 17 |
+| Rhinelander | June 22 | 1.00 (Very high) | 0.50 (Moderate) |
+| Rhinelander | August 8 | 0.89 (Very high) | 0.89 (Very high) |
+| Rhinelander | Days at High or above | 61 | 21 |
+
+The second generation's caterpillars stay Very high; the first and third fall to Moderate (0.50 is just under High's 0.5), so High or above now marks the second generation alone, about 17 to 21 days.
+
 ## Limits and open questions
 
 - **XHT1087's numbers have no stated source or years**, and the table doesn't say which shares of the flight 150 and 240 are; reading them as 10 and 50 % fits the iNaturalist records' spring middle.
 - **Egg and pupa** come from UW's days converted at about 21 degree days a day, and egg laying's timing is a judgment; Nealis, Jones and Wellington 1984 (paywalled) give stage thresholds and degree days that would replace them.
 - **The generation time** (840) leans on iNaturalist records of adults, corrected for effort by a crude baseline; development times alone give 739 to about 820.
-- **Equal generations (D37):** the second generation does the most damage by UW's account; every generation counts alike.
+- **The other generations' weight (0.5)** is a judgment: the second generation does the most damage by UW's account, which doesn't say by how much.
 - **No caterpillar counts:** neither VDIFN's windows nor this model have been compared with scouting counts. Wisconsin's scouting records of the caterpillar complex (UW Vegetable Entomology, consultants), if any exist, would be the test.
 - For UW's sites (`tmp/vegsites-corrections.md`): UW Veg Ento's three to six generations against UW Hort's usually three (already listed); the second flight's timing (mid-July) against the records' early July in southern Wisconsin.
 
@@ -81,4 +102,5 @@ UW–Madison: butterflies emerge in early May; second-generation butterflies eme
 uv run pytest packages/agmodels/tests/test_cole_crop_pests.py
 uv run python scripts/check_imported_cabbageworm.py          # needs the archive in data/ and tmp/inat-check/ (records and cache)
 uv run app/manage.py shell < scripts/cole_pest_normals.py   # the dates on the normals
+uv run app/manage.py shell < scripts/generation_weights_normals.py  # what the generation weights change
 ```

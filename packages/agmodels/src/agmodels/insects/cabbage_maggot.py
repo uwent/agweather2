@@ -34,10 +34,15 @@ INSECT = Insect(
     # Eckenrode and Chapman 1972: the spring emergence pattern repeats in later generations, so they spread little;
     # 10 % of a generation (the default, the spring flight's own SD, 125, would widen them half again as fast)
     generation_sd=85,
-    # Four flights at most: New York's four (NEWA; Jyoti et al. 2003). At 850 a generation, southern Wisconsin's
-    # normal season (about 4,400 DD40 by October 15 at Arlington) would otherwise start a fifth (50 % at 3,858) in
-    # late September, which no source reports; Eckenrode and Chapman 1972 trapped three in Wisconsin
-    max_generations=4,
+    # Three flights at most (part H, round 2; Ben, 2026-11-23): Eckenrode and Chapman 1972 trapped three in Wisconsin
+    # (spring, F1 from early July, F2 from mid-August, small), against New York's four (NEWA; Jyoti et al. 2003). At
+    # 850 a generation, southern Wisconsin's normal season (about 4,400 DD40 by October 15 at Arlington) would
+    # otherwise start a fourth in mid-August and a fifth in late September
+    max_generations=3,
+    # The spring flight does the most damage (NEWA: highest risk at the first two flights' peaks; Eckenrode and
+    # Chapman 1972's radish injury; A3422), so it weighs 1 and the summer flights 0.5. The sources say which flight
+    # matters, not by how much: 0.5 is a judgment (Ben, 2026-11-23)
+    generation_weights=(1.0, 0.5),
     action_windows=(
         # NEWA: highest risk around peak flights; protect seedlings, transplants and root crops then. From first
         # emergence (NEWA's 288, 5 %) to 95 % of each flight
@@ -45,7 +50,7 @@ INSECT = Insect(
             label="Protect seedlings and transplants during fly flight", stage="Adult flight", between=(0.05, 0.95)
         ),
     ),
-    version="0.2",
+    version="0.3",
     status="beta",
     trained=TrainingArea(description="water-pan trap catches in upstate New York", years=(1999, 2000), states=("NY",)),
     changelog=(
@@ -54,12 +59,17 @@ INSECT = Insect(
             date="2026-11-21",
             note="Rebuilt on NEWA's cabbage maggot model and its source (Jyoti, Shelton and Barnard 2003): degree days by the simple average above 40 °F from January 1 with no upper threshold; the spring flight as a curve through NEWA's 25, 50, 75 and 95 % emergence, larval feeding timed from it, and later flights every 850 degree days, as NEWA's peaks. Replaces VDIFN's two windows (single sine 42.8/86 °F), whose second flight came about 345 degree days late and which had no third.",
         ),
+        Change(
+            version="0.3",
+            date="2026-11-23",
+            note="At most three flights, as Eckenrode and Chapman trapped in Wisconsin (NEWA's New York has four), and the summer flights weigh half as much as the spring flight in the risk, since the spring flight does the most damage.",
+        ),
     ),
     checks=(
         Check(
             kind="published",
             against="NEWA's cabbage maggot table and its source, trap catches in upstate New York (Jyoti, Shelton and Barnard 2003)",
-            result="The spring flight passes 10, 25, 50, 75 and 95 % emergence within 13 degree days of the published points, and NEWA's first emergence at 288 comes at 5.9 % of the flight. Half of each later flight has emerged within 45 degree days of NEWA's 1,261, 2,176 and 3,014.",
+            result="The spring flight passes 10, 25, 50, 75 and 95 % emergence within 13 degree days of the published points, and NEWA's first emergence at 288 comes at 5.9 % of the flight. The second and third flights are half emerged within 45 degree days of NEWA's 1,261 and 2,176; the model stops at three flights, where NEWA has a fourth (3,014).",
             report="docs/validation/models/cabbage-maggot.md#against-its-sources-numbers",
         ),
         Check(
@@ -71,7 +81,7 @@ INSECT = Insect(
         Check(
             kind="system",
             against="NEWA's cabbage maggot model on the weather of 34 Wisconsin NEWA stations, 2024 and 2025",
-            result="The model reproduces NEWA's events: first emergence, the spring peak and each later peak fall within a day or two of NEWA's on the same weather.",
+            result="The model reproduces NEWA's events: first emergence, the spring peak and each later peak it has fall within a day or two of NEWA's on the same weather.",
             report="docs/validation/models/cabbage-maggot.md#against-newa-on-the-same-weather",
         ),
     ),

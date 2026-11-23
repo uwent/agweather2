@@ -1,6 +1,6 @@
 # Cabbage looper (`cabbage-looper`): validation
 
-Model version 0.2, written 2026-11-21 (D98; part H, H3). The model: `packages/agmodels/src/agmodels/insects/cabbage_looper.py`, run by the insect engine (`agmodels.phenology`, D36); its page: `cabbage_looper.md` beside it. Version 0.1 was VDIFN's two windows (single sine 50/90 °F from May 15: (325, 520, 750) and (1115, 1310, 1540)); this version replaces them.
+Model version 0.3, written 2026-11-21 and revised 2026-11-23 for generation weights (D98; part H, H3, and round 2). The model: `packages/agmodels/src/agmodels/insects/cabbage_looper.py`, run by the insect engine (`agmodels.phenology`, D36); its page: `cabbage_looper.md` beside it. Version 0.1 was VDIFN's two windows (single sine 50/90 °F from May 15: (325, 520, 750) and (1115, 1310, 1540)); this version replaces them.
 
 **In short:** USPest.org's cabbage looper model (Toba et al. 1973's development times, single sine 50/90 °F) as D36 curves, counted from the first moth caught in a pheromone trap, or from July 15 without one (UW–Madison: moths arrive from mid-July). Egg laying, eggs and caterpillar feeding follow USPest's events, and generations repeat every 912 degree days to the season's end, so the second generation, which UW–Madison says does the most damage, is now covered. No Wisconsin trap or scouting records were found to check the timing.
 
@@ -25,7 +25,7 @@ Model version 0.2, written 2026-11-21 (D98; part H, H3). The model: `packages/ag
 - **Larval feeding** (a `DerivedStage`, the risk): from hatch to pupation, 420 degree days (USPest's 218 to 638); large caterpillars from 210 after hatch (its 428). Weight 1; moths and eggs carry no risk of their own.
 - **Generations:** every 912 degree days from egg laying to egg laying (USPest's first adults at 912 and first eggs at 120 after the catch: 791.5 from egg to adult, Toba et al., plus 120 before laying), with no cap: fall freezes end the season. The spread is the default (egg laying's SD, 59).
 - **Action window:** "Scout for small caterpillars", from 10 to 90 % of each generation's eggs hatched: 254–408 after the biofix. Small caterpillars are the target for sprays (A3422).
-- **Equal generations (D37):** UW–Madison says the second generation does the most damage; every generation counts alike in the risk, and the page says so.
+- **Generation weights** (version 0.3; Ben, 2026-11-23): UW–Madison says the second generation does the most damage. Its caterpillars weigh 1 in the risk and the other generations' 0.5. The source says which generation matters, not by how much, so 0.5 is a judgment. Version 0.2 weighted every generation alike (D37).
 
 ## Checks
 
@@ -55,12 +55,29 @@ Model version 0.2, written 2026-11-21 (D98; part H, H3). The model: `packages/ag
 
 From the July 15 default, the first generation's caterpillars peak in early to mid-August and the second generation's eggs are laid in early to mid-September at Arlington and Hancock, so the generation UW–Madison calls the most damaging is covered; at Rhinelander the season ends during the second generation's egg laying. Fall freezes (after early September) end the season before the second generation's caterpillars peak in most of the state, so in practice the late caterpillars are those of the first generation and of moths still arriving.
 
+#### What the weights change
+
+`uv run app/manage.py shell < scripts/generation_weights_normals.py`: the risk on the same normal totals with every generation alike (version 0.2) and with version 0.3's generation weights, at each peak of the risk through October 15, without fall freezes. From the July 15 default biofix.
+
+<!-- prettier-ignore -->
+| Place | Peak | Equal generations | Weighted |
+| --- | --- | --- | --- |
+| Arlington | August 12 | 1.00 (Very high) | 0.50 (High) |
+| Arlington | October 11 | 0.99 (Very high) | 0.99 (Very high) |
+| Arlington | Days at High or above | 50 | 33 |
+| Hancock | August 15 | 1.00 (Very high) | 0.50 (High) |
+| Hancock | Days at High or above | 43 | 25 |
+| Rhinelander | August 20 | 1.00 (Very high) | 0.50 (High) |
+| Rhinelander | Days at High or above | 27 | 6 |
+
+On the normals from July 15, only Arlington's second generation of caterpillars peaks before October 15 (October 11); at Hancock and Rhinelander the season's only caterpillar peak is the first generation's, now High at its peak (0.50) rather than Very high, with fewer days at High or above (Arlington 33 instead of 50, Hancock 25 instead of 43, Rhinelander 6 instead of 27). So the weights lower the risk most where the damaging second generation doesn't arrive before fall: there the first generation is all there is, and a grower may read its lower risk as less to watch. Fall freezes end the season before most second-generation caterpillars mature in the north.
+
 ## Limits and open questions
 
 - **The default biofix** (July 15) is UW–Madison's description, not a fit; Minnesota's account starts two weeks earlier. Wisconsin pheromone-trap first catches (UW Vegetable Entomology, consultants, or a DATCP trap if one is added) would fit it as black cutworm's and corn earworm's were fitted to DATCP's traps (D97).
 - **Egg laying's spread** (to 450) is a judgment standing in for moths that keep arriving into September; a single biofix can't follow a second wave of migrants.
 - **USPest's model is "not fully tested"**, from laboratory development times in California; its events haven't been compared with field observations here.
-- **Equal generations (D37):** UW–Madison says the second generation does the most damage.
+- **The other generations' weight (0.5)** is a judgment: UW–Madison says the second generation does the most damage, not by how much. Where the second generation doesn't arrive before fall (central and northern Wisconsin on the normals), the weight halves the season's only caterpillar peak.
 - **Not compared:** scouting counts of looper caterpillars in Wisconsin (none found).
 
 ## Reproducing
@@ -68,4 +85,5 @@ From the July 15 default, the first generation's caterpillars peak in early to m
 ```bash
 uv run pytest packages/agmodels/tests/test_cole_crop_pests.py
 uv run app/manage.py shell < scripts/cole_pest_normals.py   # the dates on the normals
+uv run app/manage.py shell < scripts/generation_weights_normals.py  # what the generation weights change
 ```
