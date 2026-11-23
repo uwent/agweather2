@@ -12,3 +12,5 @@ class ApiConfig(AppConfig):
 
         # Open water for summaries, model maps and land_only from the terrain store where it's built (D6)
         regions.use_terrain(lambda: settings.DATA_DIR)
+        # Only the cells the service covers (D105: the launch coverage is a mask on its window)
+        regions.use_coverage(lambda: settings.SERVICE_BOX)

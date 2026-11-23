@@ -98,3 +98,19 @@ def test_runs_reaching_before_the_archive_read_open_meteo_and_the_rest_the_archi
     found = points.models_at_point(*MADISON, runs, date(2025, 7, 1), date(2025, 7, 10), NOW, planting_default=False)
     assert found == ["a:tar-spot", "o:potato-volunteer", "a:custom-degree-days"]  # in the order asked
     assert [r.model_id for r in seen["om"]] == ["potato-volunteer"]  # its biofix is before the archive
+
+
+def test_under_the_launch_coverage_a_point_in_its_window_but_outside_its_mask_is_outside(settings):
+    """D105: Toronto lies inside `upper_midwest`'s window but outside its mask, so it's outside the box (Open-Meteo,
+    its own days); Madison and Windsor, within 50 km of Michigan, are inside."""
+    settings.SERVICE_BOX = "upper_midwest"
+    toronto, windsor = (43.65, -79.38), (42.31, -83.04)
+    assert service_window("upper_midwest").contains(*points.NDFD.cell_of(*toronto))  # type: ignore[misc]
+    assert not points.in_box(*toronto) and points.day_basis(*toronto) == "local"
+    assert points.in_box(*MADISON) and points.in_box(*windsor)
+    covered = points.coverage.of("upper_midwest")
+    r = next(r for r in range(covered.mask.shape[0]) if covered.mask[r].any() and np.argmax(covered.mask[r]) >= 20)
+    edge = (covered.window.j0 + r, covered.window.i0 + int(np.argmax(covered.mask[r])))  # on the mask's western edge
+    lat, lng = (float(v) for v in points.NDFD.latlon(*edge))
+    area = points.AreaAsk(radius_km=15).at(lat, lng)  # an area takes only covered cells
+    assert len(area.cells) > 1 and all(covered.contains(*c) for c in area.cells)

@@ -31,10 +31,10 @@ class Box:
 
 
 # Service-box presets (docs/decisions.md D20). Wisconsin's state lines with a margin, including Lake Michigan's
-# Wisconsin waters; the Upper Midwest from ND/SD/NE/KS to OH; CONUS is the whole grid.
+# Wisconsin waters; CONUS is the whole grid. Launch's `upper_midwest` is a coverage mask, not a box (D105,
+# `agdata.coverage`; until 2026-11-23 the box 35–50° N, 100–75° W).
 BOXES: dict[str, Box | None] = {
     "wisconsin": Box(south=42.4, west=-93.0, north=47.4, east=-86.2),
-    "upper_midwest": Box(south=35.0, west=-100.0, north=50.0, east=-75.0),
     "conus": None,
 }
 
@@ -204,7 +204,7 @@ _BOX_SPEC = re.compile(r"^\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*
 
 
 def parse_box(spec: str) -> Box | None:
-    """A preset name (`wisconsin`, `upper_midwest`, `conus`) or `south,west,north,east` → a Box.
+    """A box preset's name (`wisconsin`, `conus`) or `south,west,north,east` → a Box.
 
     None means the whole grid.
     """
@@ -213,10 +213,17 @@ def parse_box(spec: str) -> Box | None:
         return BOXES[name]
     match = _BOX_SPEC.match(spec)
     if not match:
-        raise ValueError(f"unknown service box {spec!r}: use one of {', '.join(BOXES)} or south,west,north,east")
+        from agdata.coverage import PRESETS
+
+        raise ValueError(
+            f"unknown service box {spec!r}: use one of {', '.join([*BOXES, *PRESETS])} or south,west,north,east"
+        )
     south, west, north, east = (float(value) for value in match.groups())
     return Box(south=south, west=west, north=north, east=east)
 
 
 def service_window(spec: str) -> Window:
-    return NDFD.window_for(parse_box(spec))
+    """The window the stores take: a box's, or a coverage preset's (`agdata.coverage`, D105)."""
+    from agdata import coverage
+
+    return coverage.of(spec).window

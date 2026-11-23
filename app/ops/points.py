@@ -9,9 +9,9 @@ from datetime import date, datetime
 import numpy as np
 from django.conf import settings
 
-from agdata import areas, series, terrain
+from agdata import areas, coverage, series, terrain
 from agdata.areas import Area, Place, Weighting
-from agdata.grid import NDFD, service_window
+from agdata.grid import NDFD
 from agdata.store import DAILY
 from agdata.timezones import DayBasis, basis_zone
 from agmodels.runner import ModelRun
@@ -28,10 +28,16 @@ class AreaAsk:
     land_only: bool = False  # leave out cells all open water (`agdata.terrain`, D6)
 
     def at(self, latitude: float, longitude: float) -> Area:
-        keep = _not_all_water() if self.land_only else None
-        found = areas.around(
-            latitude, longitude, self.radius_km, self.weighting, window=service_window(settings.SERVICE_BOX), keep=keep
-        )
+        covered = coverage.of(settings.SERVICE_BOX)
+        water_keep = _not_all_water() if self.land_only else None
+
+        def keep(jj: np.ndarray, ii: np.ndarray) -> np.ndarray:  # covered cells (D105), and not all water if asked
+            w = covered.window
+            inside = (jj >= w.j0) & (jj < w.j1) & (ii >= w.i0) & (ii < w.i1)
+            ok = inside & covered.mask[np.clip(jj - w.j0, 0, w.shape[0] - 1), np.clip(ii - w.i0, 0, w.shape[1] - 1)]
+            return ok if water_keep is None else ok & water_keep(jj, ii)
+
+        found = areas.around(latitude, longitude, self.radius_km, self.weighting, window=covered.window, keep=keep)
         if found is None:
             if NDFD.cell_of(latitude, longitude) is not None and self.land_only:
                 raise AllWater(f"every cell within {self.radius_km:g} km of ({latitude}, {longitude}) is open water")
@@ -69,8 +75,9 @@ def place_at(latitude: float, longitude: float, area: AreaAsk | None) -> Place:
 
 
 def in_box(latitude: float, longitude: float) -> bool:
+    """Whether the archive covers a point's cell: inside the service box, or the launch coverage's mask (D105)."""
     cell = NDFD.cell_of(latitude, longitude)
-    return cell is not None and service_window(settings.SERVICE_BOX).contains(*cell)
+    return cell is not None and coverage.of(settings.SERVICE_BOX).contains(*cell)
 
 
 def day_basis(latitude: float, longitude: float, basis: DayBasis | None = None) -> DayBasis:

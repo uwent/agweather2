@@ -9,8 +9,8 @@ from zoneinfo import ZoneInfo
 import numpy as np
 from django.conf import settings
 
-from agdata import terrain
-from agdata.grid import NDFD, service_window
+from agdata import coverage, terrain
+from agdata.grid import NDFD
 from agdata.places import county_at
 from agdata.timezones import GRID_ZONE, DayBasis, basis_zone, zone_at
 from ops.points import day_basis
@@ -41,7 +41,7 @@ def describe_days(lat: float, lng: float, year: int, basis: DayBasis | None = No
 
 def describe(lat: float, lng: float) -> dict[str, Any]:
     """The point asked for, its NDFD cell (center rounded to 4 decimals, ~10 m) or None off the grid, `in_box`
-    (inside the archive's window), its zone, county and state (None outside the US counties' grid), and from the
+    (inside the archive's coverage), its zone, county and state (None outside the US counties' grid), and from the
     terrain store (D6; None where it isn't built or has none) the point's elevation, its cell's mean elevation and
     the cell's share of open water. Nothing is moved: a cell mostly water is still the cell read."""
     found = NDFD.cell_of(lat, lng)
@@ -54,7 +54,7 @@ def describe(lat: float, lng: float) -> dict[str, Any]:
         "lat": lat,
         "lng": lng,
         "cell": cell,
-        "in_box": found is not None and service_window(settings.SERVICE_BOX).contains(*found),
+        "in_box": found is not None and coverage.of(settings.SERVICE_BOX).contains(*found),
         "timezone": zone_at(lat, lng),
         "county": county.name if county is not None else None,
         "state": county.state if county is not None else None,

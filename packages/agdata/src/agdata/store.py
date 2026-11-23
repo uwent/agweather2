@@ -22,6 +22,7 @@ import numpy as np
 import zarr
 from zarr.codecs.numcodecs import PCodec
 
+from agdata import coverage
 from agdata.catalog import FILL, Variable
 from agdata.grid import NDFD, Window
 
@@ -266,10 +267,14 @@ class GridStore:
         store's; a sub-window writes part of each step), in the stored unit.
 
         `source` marks every written step; pass None and call `set_sources` when steps came from different sources.
+        A store over a coverage preset's window keeps its cells outside the mask missing (`coverage.outside`, D105).
         """
         t0 = self.index_of(start)
         now = datetime.now(UTC).timestamp()
         rows, cols = self._local_slices(window)
+        excluded = coverage.outside(self.window)
+        if excluded is not None:
+            excluded = excluded[rows, cols]
         for name, block in values.items():
             v = self._variable(name)
             block = np.asarray(block)
@@ -281,6 +286,8 @@ class GridStore:
             t1 = t0 + block.shape[0]
             if t1 > self.length:
                 raise IndexError(f"{name}: steps run past the end of {self.year}")
+            if excluded is not None:
+                block = np.where(excluded, np.nan, block)
             self._array(name)[t0:t1, rows, cols] = v.encode(block)
             self._array(f"_meta/{name}.written")[t0:t1] = now
             if source is not None:

@@ -124,6 +124,7 @@ def cell_counties(window: Window) -> np.ndarray:
 
 SUMMARY_WATER = 50  # percent: a cell at least this much open water isn't counted in summaries (Ben, 2026-11-11)
 _terrain_dir: Callable[[], Path] | None = None
+_coverage_spec: Callable[[], str] | None = None
 
 
 def use_terrain(data_dir: Callable[[], Path] | None) -> None:
@@ -132,6 +133,13 @@ def use_terrain(data_dir: Callable[[], Path] | None) -> None:
     or outside the store's window, open water is the wave-height mask's."""
     global _terrain_dir
     _terrain_dir = data_dir
+
+
+def use_coverage(spec: Callable[[], str] | None) -> None:
+    """Count only the cells the service covers (`agdata.coverage.of(spec())`, D105) in summaries and model maps; the
+    app calls this at start with a function, so a changed setting (tests) is followed. Without it every cell counts."""
+    global _coverage_spec
+    _coverage_spec = spec
 
 
 def _terrain():
@@ -168,15 +176,19 @@ def land(window: Window) -> np.ndarray:
 
 def summary_counties(window: Window) -> np.ndarray:
     """Each cell's county as summaries count it (0 for none), (y, x): `cell_counties` less open water (`water`), so
-    a shore county's lake cells, which the county grid gives it within ~10 km, don't count. Cached per build of the
-    terrain store; don't write to it."""
-    return _summary_counties(window, _water_stamp())
+    a shore county's lake cells, which the county grid gives it within ~10 km, don't count, and less cells outside
+    the service's coverage (`use_coverage`, D105). Cached per build of the terrain store; don't write to it."""
+    return _summary_counties(window, _water_stamp(), None if _coverage_spec is None else _coverage_spec())
 
 
 @cache
-def _summary_counties(window: Window, stamp: float | None) -> np.ndarray:
+def _summary_counties(window: Window, stamp: float | None, spec: str | None) -> np.ndarray:
     found = cell_counties(window).copy()
     found[water(window)] = 0
+    if spec is not None:
+        from agdata import coverage
+
+        found[~coverage.of(spec).over(window)] = 0
     found.flags.writeable = False
     return found
 
