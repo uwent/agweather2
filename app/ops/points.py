@@ -167,7 +167,13 @@ def models_at_points(
         )
         for k, days in zip(batched, found, strict=True):
             own = series.runs_at_point(
-                _slicer(days), *sites[k], [runs[k][m] for m in chosen[k]], start, end, planting_default=False
+                _slicer(days),
+                *sites[k],
+                [runs[k][m] for m in chosen[k]],
+                start,
+                end,
+                planting_default=False,
+                data_dir=settings.DATA_DIR,
             )
             for m, result in zip(chosen[k], own, strict=True):
                 results[k][m] = result
@@ -223,7 +229,9 @@ def _openmeteo_runs(latitude, longitude, runs, start, end, now, zone: str) -> li
     def read_days(first: date, last: date, names: list[str]) -> series.DailySeries:
         return openmeteo.point_days(latitude, longitude, first, last, names, now, zone=zone)
 
-    return series.runs_at_point(read_days, latitude, longitude, runs, start, end, planting_default=False)
+    return series.runs_at_point(
+        read_days, latitude, longitude, runs, start, end, planting_default=False, data_dir=settings.DATA_DIR
+    )
 
 
 def projected_at_point(
@@ -273,6 +281,7 @@ def projected_at_point(
         start,
         end,
         years=series.archive_years(settings.DATA_DIR),
+        data_dir=settings.DATA_DIR,
     )
 
 

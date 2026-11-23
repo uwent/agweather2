@@ -1,6 +1,6 @@
 # Black cutworm (`black-cutworm`): validation
 
-Model version 0.2, written 2026-11-21 (D98; part H, batch H2). The model: `packages/agmodels/src/agmodels/insects/black_cutworm.py`, run by the insect engine (`agmodels.phenology`, D36); its page: `black_cutworm.md` beside it. Version 0.1 was VDIFN's window (300, 700, 1,000 degree days, single sine 50/86 °F from May 15), checked only against VDIFN; this report replaces that one.
+Model version 0.3, written 2026-11-21 and revised 2026-11-23 for the cutting window (D98; part H, batch H2, and round 2). The model: `packages/agmodels/src/agmodels/insects/black_cutworm.py`, run by the insect engine (`agmodels.phenology`, D36); its page: `black_cutworm.md` beside it. Version 0.1 was VDIFN's window (300, 700, 1,000 degree days, single sine 50/86 °F from May 15), checked only against VDIFN; this report replaces that one.
 
 **In short:** the stages follow Luckmann et al. 1976's laboratory development times, counted from a significant moth capture; the first caterpillars hatch and reach cutting size where Purdue's and Iowa State's table says, but cutting ends later than the table has it (the table's 641 is short of Luckmann's pupation). Without a grower's date the capture is May 1, the median first week with 9 or more moths in DATCP's pheromone traps. Cutting itself hasn't been compared with field reports.
 
@@ -19,10 +19,10 @@ Model version 0.2, written 2026-11-21 (D98; part H, batch H2). The model: `packa
 ## Choices and differences
 
 - **Degree days:** single sine, 50/86 °F, the extension tables' base. Luckmann's threshold, 10.44 °C (50.8 °F), would count about 40 °F·d fewer over May and June: on the archive at Arlington and Rhinelander, 2016–2025, 50.8 puts the start of cutting 1.1–1.8 days later on average (at most 3) and the end 2.2–2.8 days later (at most 4). That is within the weekly trap dates' resolution, and 50.8 °F would need a running total of its own, so 50 is kept. Luckmann's rates are linear from 18 to 30 °C, which supports a cutoff near 86 °F.
-- **Biofix:** a significant moth capture, the grower's date; without one, May 1 (below). The flight is a migration on storm fronts, so its date doesn't follow local degree days.
+- **Biofix:** a significant moth capture, the grower's date; without one, May 1, fitted to DATCP's black cutworm pheromone traps, 2021–2023 and 2026 (below), so its check on those traps is in sample (Ben, 2026-11-23: kept, labelled as fitted). The flight is a migration on storm fronts, so its date doesn't follow local degree days.
 - **Stages:** egg laying, a PERT curve (0, 50, 350) °F·d after the capture (10, 50 and 90 % at 23, 82 and 174), weight 0; leaf-feeding caterpillars from 94 to 306 after each egg, weight 0; cutting caterpillars from 306 to 729 after each egg (fourth instar to pupation), weight 1, the risk. Egg laying is spread because moths keep arriving after a significant capture: in DATCP's pheromone traps, after each site-year's first week with 9 or more moths, half the later moths were caught within 63 °F·d and 90 % within 239, while traps were still read (a median 209 after it, so the tail is cut off). Purdue's and Iowa State's table counts every egg from the capture day.
 - **One generation:** the moths arriving in spring give the caterpillars that cut seedlings (Minnesota: usually only the first generation damages corn). UW Vegetable Entomology counts three generations a year in Wisconsin; later ones aren't modelled.
-- **No action window:** the engine's windows are fractions of a stage complete, and for a stage timed from another (here the cutting caterpillars, from egg laying) that fraction is of caterpillars that have left the stage, so a window can't open when the first reach cutting size. The cutting caterpillars' activity is the window to read instead.
+- **Action window** (version 0.3; part H, round 2): "Scout and treat while caterpillars can cut plants", from the first caterpillars big enough to cut (1 % of the generation in the cutting stages) until 90 % have pupated: 311 to 903 °F·d after the capture. The engine's usual windows are fractions of a stage complete, which for a stage timed from another counts caterpillars that have left it, so they can't open when the first reach cutting size; a "present" window (`ActionWindow(when="present")`) opens when a share has entered the stage and closes when a share has left it. Version 0.2 had no window.
 - **Against the table:** cutting begins in the same place (first caterpillars at 311, the table's 312). It ends later: Purdue's 640 matches Luckmann's larval period (353 °C·d, 635 °F·d) counted from the capture rather than from hatch; Luckmann's own pupation is 405 °C·d (729 °F·d) after the egg. With egg laying spread over the following weeks, half the caterpillars have pupated by 811 and 90 % by 904.
 - **Against VDIFN:** VDIFN's window started at 300 (as cutting does) but peaked at 700 and ran to 1,000 from a fixed May 15.
 
@@ -36,6 +36,7 @@ Model version 0.2, written 2026-11-21 (D98; part H, batch H2). The model: `packa
 - The first leaf-feeding caterpillars (1 % of the curve's peak) appear at 99 °F·d after the capture, against the table's hatch at 90; the first cutting caterpillars at 311, against 312.
 - Half the eggs are laid by 82 °F·d, so half the caterpillars present can cut by about 388; nearly every caterpillar is in the cutting stages from about 597, and half have pupated by 811 and 90 % by 904, against the table's pupae from 641. Cutting activity ends before 1,000.
 - One generation; risk 0 before cutting, 1 when every caterpillar is cutting.
+- The window to scout and treat opens at 311 °F·d after the capture, with the first cutting caterpillars (the table's 312), and closes at 903, when 90 % have pupated.
 
 ### The default capture date against Wisconsin's traps
 
@@ -65,6 +66,7 @@ On AgWeather's 1996–2025 normals (`/api/v2/climate/normals`, single sine 50/86
 | Half have pupated (811) | June 30 | July 3 | July 11 |
 | 90 % have pupated (904) | July 5 | July 8 | July 16 |
 | Purdue's end of cutting (640) | June 22 | June 24 | June 30 |
+| Window to scout and treat (311–903) | June 2 to July 5 | June 4 to July 8 | June 8 to July 16 |
 
 Version 0.1 (VDIFN's window from May 15) reached 300 around June 8 and its peak, 700, around June 29 at Arlington. UW–Madison's field crops guide (A3646) has corn scouted from emergence for two to three weeks; corn planted in early to mid-May emerges in late May, so that scouting falls just before and into the model's start of cutting in southern Wisconsin.
 

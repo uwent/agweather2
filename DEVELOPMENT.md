@@ -1,6 +1,6 @@
 # Development
 
-How to set up a machine to work on AgWeather v2 and the day-to-day commands. Conventions are in [CLAUDE.md](CLAUDE.md); where things stand in [PLAN.md](the plans, `docs/plans/`), the design in [docs/architecture.md](docs/architecture.md) and the phases in [docs/plans/](docs/plans/).
+How to set up a machine to work on AgWeather v2 and the day-to-day commands. Conventions are in [CLAUDE.md](CLAUDE.md); where things stand in [PLAN.md](PLAN.md), the design in [docs/architecture.md](docs/architecture.md) and the phases in [docs/plans/](docs/plans/).
 
 ## 1. Prerequisites
 

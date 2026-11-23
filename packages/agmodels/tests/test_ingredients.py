@@ -31,6 +31,10 @@ def _inputs(m, shape=(2, 3)) -> dict[str, np.ndarray]:
         series = WEATHER[q.name][(slice(None), None, None)]
         inputs[q.name] = np.broadcast_to(series + (shifts if q.unit == "degC" else 0.0), (DAYS, *shape)).copy()
     context = runner._context(DATES, LATITUDE)
+    # normals of the place per cell, on both sides of any bound (European corn borer's 1,500), one cell unknown
+    normal = np.linspace(1300, 1700, int(np.prod(shape))).reshape(1, *shape)
+    normal.flat[-1] = np.nan
+    context |= {n.key: normal for n in m.SPEC.place_normals}
     return inputs | {name: context[name] for name in m.SPEC.context}
 
 
@@ -64,6 +68,7 @@ def test_finish_is_day_by_day(model_id):
         values, m.SPEC.accumulations, BIOFIX, day_of_year=inputs.get("day_of_year"), year=inputs.get("year")
     )
     full |= {name: np.asarray(inputs[name], dtype=float) for name in CONTEXT if name in inputs}
+    full |= {n.key: np.asarray(inputs[n.key], dtype=float) for n in m.SPEC.place_normals}  # per cell, as a map's
     if "day_of_year" in inputs:
         full["biofix_day_of_year"] = np.asarray(inputs["day_of_year"][BIOFIX])
     season = m.finish(full)  # type: ignore[attr-defined]

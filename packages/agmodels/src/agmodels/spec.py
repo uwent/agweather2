@@ -114,6 +114,8 @@ class Seasonal:
 class Biofix:
     default: str  # MM-DD
     label: str  # what the date means to a grower, e.g. "Crop emergence or last fungicide application"
+    # always the default: the model's thresholds mean nothing from another start (western bean cutworm's March 1)
+    fixed: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -193,6 +195,25 @@ class TrainingArea:
 
 
 @dataclass(frozen=True, kw_only=True)
+class PlaceNormal:
+    """A fixed value of each place that a model reads (part H, round 2): the normal running total of a stored variable from
+    January 1 through a day, from the 30-year normal maps (`agdata.normals`, `last30`). It reaches the model as a
+    context value named by `key`, read at a point's cell and per cell on a map, and is missing (NaN) where the
+    normals don't reach (outside the box, or before they're built): the model then says what it does without it,
+    `missing`, and the caller passes that on as a warning."""
+
+    variable: str  # a running total the normals keep, e.g. "dd_modified_50_86"
+    through: str  # MM-DD, the day the total is read (through its end)
+    label: str  # public text: "the 30-year normal degree days (modified average, 50/86 °F) from January 1 to August 1"
+    missing: str  # public text, a warning where the normal isn't available, saying what the model does instead
+    period: str = "last30"
+
+    @property
+    def key(self) -> str:
+        return f"normal_{self.variable}_to_{self.through.replace('-', '_')}"  # `ingredients.PLACE_NORMAL` starts it
+
+
+@dataclass(frozen=True, kw_only=True)
 class ModelSpec:
     id: str
     name: str
@@ -214,6 +235,8 @@ class ModelSpec:
     lookback_days: int = 0  # days of inputs needed before the first output (moving averages)
     # values the runner supplies from the place and the dates rather than the weather: "day_of_year", "latitude"
     context: tuple[str, ...] = ()
+    # fixed values of the place it reads (part H, round 2), each also named in `context` by its key
+    place_normals: tuple[PlaceNormal, ...] = ()
     susceptible: Susceptibility | None = None  # crop stages the disease affects; None: shown all season
     biofix_stage: tuple[str, str] | None = (
         None  # (crop model id, stage code) whose predicted date is the default biofix

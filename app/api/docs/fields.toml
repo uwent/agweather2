@@ -226,6 +226,7 @@ label = "What it means, in a few words."
 default = "The biofix used when you don't give one, as `MM-DD`."
 label = "What the biofix date means in the field, such as crop emergence."
 stage = "The crop model and growth stage whose predicted date is used as the biofix in place of `default`, as `[model id, stage]`. Null when `default` is used."
+fixed = "True when the model always counts from `default` and doesn't take a biofix date: its thresholds were set from that date."
 
 [SusceptibilityInfo]
 crop = "The crop growth stage model whose stages are named."

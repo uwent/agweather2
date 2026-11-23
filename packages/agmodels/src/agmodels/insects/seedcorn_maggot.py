@@ -28,14 +28,24 @@ INSECT = Insect(
     # at 14.6 °C), about ±2 SD, so an SD near 8% of a generation; the first flight's own spread (~120) is wider
     # because over-wintered emergence is drawn out (Throne and Eckenrode 1985), not because development varies
     generation_sd=60,
+    # The over-wintered flight and the spring generation's larvae do the damage, to germinating seed in spring
+    # plantings; in Iowa the summer generation mostly aestivated and few flies were caught in summer (Funderburk et al.
+    # 1984; Throne and Eckenrode 1985). So the first generation weighs 1 and the summer ones 0.25: the sources say
+    # which generation matters, not by how much, so 0.25 is a judgment (Ben, 2026-11-23)
+    generation_weights=(1.0, 0.25),
     action_windows=(ActionWindow(label="Avoid planting during adult flight", stage="Adult flight"),),
-    version="0.2",
+    version="0.3",
     status="beta",
     changelog=(
         Change(
             version="0.2",
             date="2026-10-29",
             note="Life stages as curves (D36): adult flight from 70 FDD, half done by 345, and larval feeding timed from it, in every generation 720 FDD apart; degree days by the sources' average method (D37) rather than single sine, which ran 5–7 days early in spring. Replaces the Crop Risk Tool's step table.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-23",
+            note="The summer generations weigh a quarter as much as the over-wintered flight and the spring generation in the risk, since spring plantings take the damage and the summer generation mostly rests through the heat.",
         ),
     ),
     source=CRT,

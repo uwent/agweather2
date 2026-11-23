@@ -42,11 +42,14 @@ INSECT = Insect(
     # Every 912 to the season's end: the second generation, which UW–Madison says does the most damage, lays its eggs
     # in late August and September in southern Wisconsin on the normals; fall freezes end the season
     generation_dd=GENERATION,
+    # UW–Madison: the second generation does the most damage. It weighs 1 and the others 0.5: the sources say which
+    # generation matters, not by how much, so 0.5 is a judgment (Ben, 2026-11-23)
+    generation_weights=(0.5, 1.0, 0.5),
     action_windows=(
         # From 10 to 90 % of each generation's eggs hatched: small caterpillars, the target for sprays (A3422; UW)
         ActionWindow(label="Scout for small caterpillars", stage="Eggs", between=(0.1, 0.9)),
     ),
-    version="0.2",
+    version="0.3",
     status="beta",
     trained=TrainingArea(
         description="development times measured in the laboratory in Riverside, California, as USPest.org's model uses them",
@@ -58,6 +61,11 @@ INSECT = Insect(
             version="0.2",
             date="2026-11-21",
             note="Rebuilt on USPest.org's cabbage looper model (Toba et al. 1973; single sine 50/90 °F): counted from the first moth caught in a pheromone trap, or July 15 without one (UW–Madison: moths arrive from mid-July); egg laying, eggs and caterpillar feeding as curves (hatch 98 and pupation 518 degree days after an egg is laid), generations every 912 degree days to the season's end, and a window to scout for small caterpillars. Risk follows the caterpillars. Replaces VDIFN's two windows from May 15, whose first came about a month before the moths arrive and which missed the damaging late-summer generation.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-23",
+            note="The second generation's caterpillars weigh twice as much as the others' in the risk, since UW–Madison says the second generation does the most damage.",
         ),
     ),
     checks=(

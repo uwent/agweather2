@@ -9,7 +9,7 @@ This file is where things stand and what's next: the one handoff, Ben's open cho
 <!-- prettier-ignore -->
 | Doc | Holds |
 | --- | --- |
-| [docs/decisions.md](docs/decisions.md) | Why: the recorded decisions (D1–D102) and the questions put to Ben (Q1–Q40). A new decision takes the next D number |
+| [docs/decisions.md](docs/decisions.md) | Why: the recorded decisions (D1–D103) and the questions put to Ben (Q1–Q40). A new decision takes the next D number |
 | [docs/architecture.md](docs/architecture.md) | How the system is laid out (§3–13: data, ingest, forecast, models, API, web app, jobs, testing, deployment) |
 | [docs/plans/](docs/plans/) | The work, by phase in build order (Phases 1–5 done, 6 current, 7–9 sketches), and the plans that run beside a phase (models, humidity). Its README says what each holds and its status |
 | [docs/api.md](docs/api.md) | The API v2 contract |
@@ -37,15 +37,12 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 
 **This session (2026-11-23):**
 
-- Ben answered part H's ten questions (all as proposed; recorded in [docs/plans/models.md](docs/plans/models.md), part H). Two agents build them in worktrees, to merge back into `phase-6`:
-  - `h2-engine` (`../agweather2-h2-engine`): European corn borer's one-flight form in the north (stages chosen per place from the 1996–2025 normal), weights per generation (both maggots' spring flight, cabbageworm's and looper's second generation, seedcorn maggot's spring), cabbage maggot capped at three flights, a "present" action window for black cutworm's cutting.
-  - `h2-content` (`../agweather2-h2-content`): `tarnished-plant-bug` retired, western bean cutworm's March 1 locked, the fitted defaults labelled, cautions on corn rootworm, mint flea beetle, squash vine borer and mint root borer.
-  - Both worktrees link `tmp/`, `data/` and `node_modules/` to this checkout's and use their own databases (`.env`). The brief: `tmp/briefs/h2-build-brief.md`.
+- **Part H round 2 (D103), built and merged:** Ben answered part H's ten questions (all as proposed). Two agents built them in worktrees (brief `tmp/briefs/h2-build-brief.md`, reports in `tmp/h2/`): a normal of each place read by models (`PlaceNormal`), European corn borer 0.3 with one flight where the normal by August 1 is below 1,500 (Wausau's traps a median 0 days off), weights per generation (both maggots, seedcorn maggot, cabbageworm, looper, 0.3), cabbage maggot capped at three flights, a "present" window (black cutworm 0.3), a fixed biofix the API refuses (western bean cutworm), `tarnished-plant-bug` retired, labels and cautions on six more. The whole suite passes (4,178); `rebuild --check` and `ingredients --check` are clean (the weights apply when a model is evaluated).
 - The plans were reorganized (Ben, 2026-11-23, after WISP 3's): this file is the handoff; decisions and questions in `docs/decisions.md`; architecture in `docs/architecture.md`; each phase and side plan in `docs/plans/`. The models plan and the humidity plan no longer carry handoffs of their own (the models plan's old one is its "Record").
 
 **Next, in order** (proposed 2026-11-23; see Ben's open choices):
 
-1. **Merge part H round 2**: review each branch's diff, merge into `phase-6`, run `bin/test all` (grid and map tests included), `rebuild --stale` and `ingredients` on the dev archive, cold checks of the changed pages (`tmp/briefs/verify-brief.md`), record a decision (D103) and `docs/insect-models.md`'s rows, then remove the worktrees.
+1. **Cold checks of round 2's changed pages** (`tmp/briefs/verify-brief.md`; the seven 0.3 insects, tarnished plant bug's retirement, the cautions), at most four agents at once.
 2. **Step 7's launch-box profile** first of the engineering, since it can change how maps are stored: a synthetic `upper_midwest` archive, then `manage.py latency` and the jobs. Apple scab's map takes 8 s and fire blight's 19 s over Wisconsin today; the box has 11.7× the cells.
 3. **Step 5**, site services: changelog and announcements, the API use form, the verification archive, Open-Meteo when NBM is stale, Open-Meteo usage.
 4. **Step 6**, new sources: soil moisture (send the ERA5-Land requests early: the CDS queue takes hours) and cropland fractions.
@@ -56,6 +53,7 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 
 - Phases 1–5 have no open boxes. Phase 6: steps 1–3 done (the API contract, discovery data, events on model layers); step 4's parts A, B (apple), H (all 19 legacy insects on their sources, D102), I1 and I2 (a report and page for every model) done; steps 5–7 open.
 - Every model is `beta` and every topic page `status: draft` until launch (D46).
+- A test reaches for the network: `app/api/tests/test_takes.py::test_a_models_options_and_its_crop_models_are_listed` (frogeye leaf spot) tries an outside address, which pytest-socket blocks, so it passes with a warning; it predates round 2. Find what it calls and give it a fixture.
 - The API's public docs at `/api/v2/docs` come from `app/api/docs/` (`test_docs` checks completeness and style); public text follows CLAUDE.md's "Writing for the public".
 - Jobs: ingest :40, forecast :15/:45, IFS :50, crop tiers :55, ERA5-Land 6-hourly, past years and downloads Mondays, `housekeeping` daily.
 - Dev environment: `bin/dev` may or may not be running (Ben runs other projects' servers too); a task that needs it asks Ben to start it. The dev archive is full from 2016. gridMET 1996–2025 over Wisconsin in `data/gridmet/`, derived on the archive's basis in `data/climate/gridmet/` (D84); the normals in `data/climate/normals/` (D85); the terrain store built (D6). `rebuild --check` was clean on 2026-11-18, before part H's rebuild.

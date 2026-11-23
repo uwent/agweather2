@@ -195,6 +195,9 @@ def _model_inputs(m, *, shape: tuple[int, ...] = ()) -> dict[str, np.ndarray]:
         cell_series = series[(slice(None),) + (None,) * len(shape)] + (shifts if temperature else 0.0)
         inputs[q.name] = np.broadcast_to(cell_series, (DAYS, *shape)).copy()
     context = runner._context(DATES, LATITUDE)
+    # normals of the place: per cell on a grid, on both sides of European corn borer's 1,500
+    normal = np.linspace(1300, 1700, cells).reshape(1, *shape) if shape else np.array(1400.0)
+    context |= {n.key: normal for n in m.SPEC.place_normals}
     inputs |= {name: context[name] for name in m.SPEC.context}
     if "day_of_year" in inputs:
         inputs["day_of_year"] = context["day_of_year"]
@@ -212,8 +215,10 @@ def test_a_grid_gives_every_cell_what_its_point_series_gives(model_id):
     for name, values in out.items():
         assert values.shape == (DAYS, *shape), (model_id, name)
     for cell in np.ndindex(shape):
+        place = {n.key for n in m.SPEC.place_normals}
         point_inputs = {
-            k: (v if v.ndim == 1 or k in m.SPEC.context else v[:, cell[0], cell[1]]) for k, v in grid.items()
+            k: (v if v.ndim == 1 or (k in m.SPEC.context and k not in place) else v[:, cell[0], cell[1]])
+            for k, v in grid.items()
         }
         point = m.outputs(point_inputs, biofix_index=biofix)
         for name, values in out.items():

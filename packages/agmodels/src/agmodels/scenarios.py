@@ -17,7 +17,7 @@ from agmodels.crops import CropModel, stage_days
 from agmodels.gaps import GapFill, fill_inputs
 from agmodels.phenology import PhenologyModel, window_periods
 from agmodels.registry import model as find_model
-from agmodels.runner import ModelRun, _context, _crop_stage, _index, crop_models, default_biofix, run
+from agmodels.runner import ModelRun, _context, _crop_stage, _index, crop_models, default_biofix, place_context, run
 from agmodels.spec import Model
 
 PERCENTILES = (10, 50, 90)
@@ -37,6 +37,7 @@ def run_scenarios(
     crop_options: Mapping[str, str] | None = None,
     in_region: bool = True,
     gap_fill: Mapping[str, GapFill] | None = None,
+    place: Mapping[str, float] | None = None,
 ) -> list[ModelRun]:
     """`runner.run` over `daily`'s (days × scenarios) arrays: one `ModelRun` per scenario, in column order."""
     m = find_model(m) if isinstance(m, str) else m
@@ -58,13 +59,19 @@ def run_scenarios(
             crop_options=crop_options,
             in_region=in_region,
             gap_fill=gap_fill,
+            place=place,
         )
 
     groups: dict[date | None, list[int]] = {biofix: list(range(n))}
     spec = m.SPEC
     if biofix is None and spec.biofix_stage is not None and planting is not None and in_region:
         stage = _crop_stage(
-            spec, dates, _filled(raw, gap_fill), _context(dates, latitude), planting, crop_options or {}
+            spec,
+            dates,
+            _filled(raw, gap_fill),
+            _context(dates, latitude) | place_context(spec, place),
+            planting,
+            crop_options or {},
         )
         if stage is not None:
             crop = cast(CropModel, find_model(spec.biofix_stage[0]))

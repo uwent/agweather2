@@ -20,7 +20,7 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from ninja import Field, Query, Router, Schema
 
-from agdata import seasonal, series
+from agdata import normals, seasonal, series
 from agdata import units as agunits
 from agdata.point import hourly_sources
 from agdata.projection import PROJECTION
@@ -707,6 +707,7 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
         first,
         last,
         planting_default=False,
+        data_dir=settings.DATA_DIR,
     )
     for r in results:  # a provided day whose inputs the model bridged is estimated
         for k, kind in enumerate(r.kinds):
@@ -890,6 +891,9 @@ def _revalidate(request, plans, computed, sites, first, last, now, projecting: b
     needed, names = days_needed([r for p in plans for r in p.runs], first)
     past = [y for y in archive_years(settings.DATA_DIR) if y < last.year] if projecting else []
     stamp = points.stamp(sites, needed, last, now, names=names, past_years=past, area=area)
+    periods = sorted({n.period for p in plans for n in p.model.SPEC.place_normals})
+    if stamp is not None and periods:  # a model reading normals of the place (`ModelSpec.place_normals`)
+        stamp += "|" + "|".join(str(normals.stamp(settings.DATA_DIR, period)) for period in periods)
     etag = None if stamp is None else etag_for(request, computed, stamp)
     unchanged = None if etag is None else not_modified(request, etag)
     return etag, unchanged, needed
@@ -1023,6 +1027,8 @@ def _table(
             reasons.append((label, reason_text(r.reason)))
         elif r.outside_training_area and spec.trained is not None:
             reasons.append((label, training_area_text(spec)))
+        if not r.reason:  # a normal of the place the model reads, missing here (`ModelSpec.place_normals`)
+            reasons.extend((label, text) for text in r.place_warnings)
         if r.windows:
             windows.append(
                 {

@@ -9,7 +9,7 @@ summary: A small fly whose maggots tunnel into the roots and bulbs of onions and
 image: images/onion-maggot.jpg
 image_credit: 'Onion maggots in a damaged onion set. Photo by Rasbak, via Wikimedia Commons (File:Uienvlieg maden.jpg), CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 sources:
   - key: uw-vegento-om
     text: 'Onion Maggot. UW–Madison Vegetable Entomology, updated 2026.'
@@ -92,4 +92,4 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 The [onion maggot model](/models/onion-maggot) is NEWA's onion maggot model, counted from January 1 as the day's average temperature above 40 °F.[^newa-om] It follows three flights: the first flies at about 390 degree days, the spring flight half over at 735, and summer flights peaking at about 1,830 and 2,930, each more drawn out than the last. Larval feeding is timed from each flight, and the model marks a window for protecting onion plantings from each flight's first flies to 95 % emergence.[^agweather-om][^liu-1982]
 
-On the same weather at Wisconsin's NEWA stations, the model's spring flight falls on NEWA's days and its summer flights within a few days. Its spring midpoint is close to New York's average, 712 degree days, but its generations are about 10 % shorter than New York's broods.[^eckenrode-1975][^agweather-om] In an average year at Arlington (degree days for 1996 to 2025) the first flies come about May 8 and the spring flight peaks about May 27, close to UW–Madison's calendar, which has flies from mid-May to mid-June; the third flight peaks about August 10, 10 days before UW's third peak.[^uw-vegento-om] NEWA calls the spring generation the most destructive and says later ones rarely damage onions; the model counts every flight alike, so plan protection around its first window.[^newa-om]
+On the same weather at Wisconsin's NEWA stations, the model's spring flight falls on NEWA's days and its summer flights within a few days. Its spring midpoint is close to New York's average, 712 degree days, but its generations are about 10 % shorter than New York's broods.[^eckenrode-1975][^agweather-om] In an average year at Arlington (degree days for 1996 to 2025) the first flies come about May 8 and the spring flight peaks about May 27, close to UW–Madison's calendar, which has flies from mid-May to mid-June; the third flight peaks about August 10, 10 days before UW's third peak.[^uw-vegento-om] NEWA calls the spring generation the most destructive and says later ones rarely damage onions; the model counts the summer flights at half the spring flight's weight in its risk, so plan protection around its first window.[^newa-om]

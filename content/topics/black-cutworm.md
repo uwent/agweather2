@@ -22,7 +22,7 @@ summary: A moth that flies in from the south each spring; its caterpillars cut o
 image: images/black-cutworm.jpg
 image_credit: 'A black cutworm caterpillar beside the corn seedling it cut. Photo by W.M. Hantsbarger, Bugwood.org (image 5361045), via Wikimedia Commons (File:Agrotis ipsilon larva.jpg), CC BY 3.0 US.'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cutworms. University of Wisconsin–Madison, updated 2026.'
@@ -110,6 +110,6 @@ For products, rates and current registrations, see UW–Madison's [Pest Manageme
 
 ## AgWeather's models
 
-The [black cutworm model](/models/black-cutworm) counts degree days at a base of 50 °F, with an upper limit of 86 °F, from a significant moth capture. Enter the date of a capture near you; without one, the model counts from May 1, the median date of the first week with nine or more moths at each of DATCP's black cutworm traps in 2021–2023 and 2026.[^agweather-bcw][^datcp-traps] It spreads egg laying over the weeks after the capture, as moths keep arriving (our estimate, from how long the traps keep catching moths), and times the caterpillars from each egg by laboratory development times: hatch at about 94 degree days, the fourth instar, when cutting begins, at about 306, and pupation at about 729.[^luckmann-1976] The first caterpillars can cut about 310 degree days after the capture, as in the stage table above, and the model's risk is the share of caterpillars in the cutting stages.[^purdue-2023][^iowa-bcw]
+The [black cutworm model](/models/black-cutworm) counts degree days at a base of 50 °F, with an upper limit of 86 °F, from a significant moth capture. Enter the date of a capture near you; without one, the model counts from May 1, a date we fitted to DATCP's black cutworm traps: the median date of the first week with nine or more moths at each trap in 2021–2023 and 2026.[^agweather-bcw][^datcp-traps] It spreads egg laying over the weeks after the capture, as moths keep arriving (our estimate, from how long the traps keep catching moths), and times the caterpillars from each egg by laboratory development times: hatch at about 94 degree days, the fourth instar, when cutting begins, at about 306, and pupation at about 729.[^luckmann-1976] The first caterpillars can cut about 310 degree days after the capture, as in the stage table above, and the model's risk is the share of caterpillars in the cutting stages. It marks a window to scout and treat from the first caterpillars big enough to cut until 90 % have pupated.[^purdue-2023][^iowa-bcw]
 
 The model's cutting lasts longer than the stage table's, because it follows the laboratory study's time to pupation and spreads egg laying; half the caterpillars have pupated by about 810 degree days after the capture. In AgWeather's long-term averages (1996–2025), counting from May 1, the first caterpillars can cut around June 2 at Arlington and June 8 at Rhinelander. Field studies have found black cutworms further along than laboratory times predict, so use the model to time scouting rather than to rule cutting out.[^story-1984][^agweather-bcw]

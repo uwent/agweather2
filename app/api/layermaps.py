@@ -33,7 +33,7 @@ import numpy as np
 from django.http import HttpRequest
 from ninja import Schema
 
-from agdata import computed, modelgrid, modelmaps, palettes, regions, rolling, seasonal, series
+from agdata import computed, modelgrid, modelmaps, normals, palettes, regions, rolling, seasonal, series
 from agdata import units as agunits
 from agdata.daily import days_from_hours
 from agdata.grid import Window
@@ -821,12 +821,16 @@ def _scale_asked(request: HttpRequest, a: "LayerAsk") -> ScaleAsked | None:
 
 
 def stamp(a: LayerAsk, now: datetime) -> Any:
-    """The data stamp of what the map reads (`series.last_written`), for its ETag."""
+    """The data stamp of what the map reads (`series.last_written`), for its ETag; with the normal maps' stamps for a
+    model that reads normals of the place (`ModelSpec.place_normals`)."""
     if a.climate is not None:
         own = climatemaps.stamp(a.climate)
         if a.stored_only:
             return own
         return [_weather_stamp(a, now), own]
+    if a.model is not None and a.model.spec.place_normals:
+        periods = sorted({n.period for n in a.model.spec.place_normals})
+        return [_weather_stamp(a, now), *(normals.stamp(_data_dir(), p) for p in periods)]
     return _weather_stamp(a, now)
 
 
@@ -1285,6 +1289,10 @@ def _model_compute(
         warnings.append(
             f"{layer_title(layer)} was fitted to {t.description}, {t.years[0]}–{t.years[1]}. Outside that area the map reaches beyond the model's data, so its timing there is less certain."
         )
+    for normal in model.spec.place_normals:  # a normal of the place the model reads, missing over part of the map
+        known = found.place.get(normal.key)
+        if known is not None and (regions.land(window) & ~np.isfinite(known) & np.isfinite(values).any(axis=0)).any():
+            warnings.append(normal.missing)
     if found.in_season is not None and not any(found.in_season):
         first_md, last_md = model.spec.season or ("", "")
         warnings.append(

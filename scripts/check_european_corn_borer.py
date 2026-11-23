@@ -7,7 +7,9 @@ July 7), and each flight's first catch, the week its cumulative catch reaches 50
 peak only for flights of 5 or more moths) are compared with the model's dates: its first moths (1 % of the flight), 50
 % and peak. Days off: 0 inside the observed week (the 7 days ending on its date), else days before (−) or after (+)
 it. Also: the degree days (modified 50/86 °F from January 1) at the middle of each observed week, and by August 1,
-north (Wausau, Marshfield, Antigo, at 44.6 °N and above) against the rest, for the second-generation question.
+north (Wausau, Marshfield, Antigo, at 44.6 °N and above) against the rest, for the second-generation question. And
+the one-flight form (part H, round 2): each site's 30-year normal by August 1 from the normal maps (as the model reads
+it), the form the rule gives it, and, at the one-flight sites, the season's whole flight against the form's.
 
     uv run python scripts/check_european_corn_borer.py [--out docs/validation/models/european-corn-borer/traps.md]
 
@@ -27,12 +29,13 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from check_insect_traps import DATA, MIN_FLIGHT, SiteYear, flight_of, read_blacklight
 
+from agdata import normals
 from agdata.catalog import DAILY_VARIABLES
-from agdata.grid import NDFD
+from agdata.grid import NDFD, Window
 from agdata.store import DAILY, GridStore
 from agmodels.degree_days import degree_days_modified, degree_days_sine
 from agmodels.insects.european_corn_borer import INSECT
-from agmodels.phenology import curves, dd_grid
+from agmodels.phenology import curves, dd_grid, form_insect
 from agmodels.registry import model
 
 NORTH_LAT = 44.6
@@ -70,6 +73,26 @@ def model_events() -> dict[str, float]:
         "second 50": float(np.interp(1.5, done, x)),
         "second peak": float(x[p2]),
     }
+
+
+def form_events() -> dict[str, float]:
+    """The one-flight form's events in degree days from January 1: 1 %, 50 % and the peak of its flight."""
+    x = dd_grid()
+    t = curves(form_insect(INSECT))
+    done = t["generations_adult_flight"]
+    return {
+        "1": float(np.interp(0.01, done, x)),
+        "50": float(np.interp(0.5, done, x)),
+        "peak": float(x[int(np.argmax(t["activity_adult_flight"]))]),
+    }
+
+
+def site_normal(data_dir: Path, cell: tuple[int, int]) -> float:
+    """The place normal the model reads at a cell (`agdata.normals.place_normal`)."""
+    form = INSECT.place_form
+    assert form is not None
+    j, i = cell
+    return float(normals.place_normal(data_dir, form.normal, Window(j0=j, j1=j + 1, i0=i, i1=i + 1))[0, 0])
 
 
 def day_reaching(total: np.ndarray, dd: float, year: int) -> date | None:
@@ -112,6 +135,12 @@ def main():
     by_aug1: dict[str, list[float]] = {"north": [], "south": []}
     spring_share: dict[str, list[tuple[str, int, int, int]]] = {"north": [], "south": []}
     pooled: dict[str, list[tuple[float, int]]] = {"north": [], "south": []}
+    form = INSECT.place_form
+    assert form is not None
+    one = form_events()
+    site_forms: dict[str, tuple[float, int]] = {}  # site: (normal, flights)
+    one_offs: dict[str, list[int]] = {}
+    one_rows: list[str] = []
     for sy in site_years:
         loc = where.get(sy.site)
         if loc is None or not any(w.count is not None for w in sy.weeks):
@@ -138,6 +167,21 @@ def main():
         for w in sy.weeks:  # every moth at its week's middle, for the season's catch by degree days
             if w.count:
                 pooled[region].append((float(total[(w.end - timedelta(days=3) - date(sy.year, 1, 1)).days]), w.count))
+        normal = site_normal(Path(args.data), cell)
+        site_forms[sy.site] = (normal, 1 if normal < form.below else 2)
+        if normal < form.below:  # the one-flight form: the season's whole flight against its own
+            whole = flight_of(weeks=sy.weeks, name="all")
+            cells = []
+            for what, observed in (
+                ("first", None if whole.caught_in_first_week_read else whole.first_catch),
+                ("50", whole.percent_weeks[50]),
+                ("peak", whole.peak),
+            ):
+                o = offset(day_reaching(total, one["1" if what == "first" else what], sy.year), observed)
+                if o is not None:
+                    one_offs.setdefault(what, []).append(o)
+                cells.append("–" if observed is None else f"{observed:%b %-d} ({show(o)})")
+            one_rows.append(f"| {sy.year} | {sy.site} | {normal:.0f} | {whole.total} | {' | '.join(cells)} |")
         star = "\\*" if (sy.site, sy.year) in SUSPECT else ""
         for name, fl, key in (("spring", spring, "first"), ("summer", summer, "second")):
             cells = []
@@ -203,6 +247,26 @@ def main():
         lines.append(
             f"  - The season's {c.sum():.0f} moths by degree days at their week's middle (every moth alike): {pct}."
         )
+    lines += [
+        "",
+        "## The one-flight form",
+        "",
+        f"Each site's 30-year normal (modified 50/86 °F from January 1 through August 1, the normal maps the model reads) and the form the rule gives it (one flight below {form.below:,.0f}). The form's flight: first moths (1 %) {one['1']:.0f}, 50 % {one['50']:.0f}, peak {one['peak']:.0f}.",
+        "",
+        "| Site | Normal | Flights |",
+        "| --- | --- | --- |",
+        *(f"| {site} | {n:.0f} | {f} |" for site, (n, f) in sorted(site_forms.items(), key=lambda kv: kv[1][0])),
+        "",
+        "At the one-flight sites, the season's whole catch against the form's flight (days off as above):",
+        "",
+        "| Year | Site | Normal | Moths | First catch (off) | 50 % (off) | Peak (off) |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+        *one_rows,
+        "",
+        "| Event | n | Inside the week | Within a week | Median, days | 10th–90th percentile |",
+        "| --- | --- | --- | --- | --- | --- |",
+        *(summarize(f"One flight, {what}", one_offs[what]) for what in ("first", "50", "peak") if what in one_offs),
+    ]
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text("\n".join(lines) + "\n")
     print("\n".join(lines[-40:]))

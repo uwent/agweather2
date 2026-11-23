@@ -560,3 +560,25 @@ def test_a_fitted_model_warns_where_the_map_reaches_past_its_data(client, archiv
     """D101: the fixture's window is in Iowa, outside the counties the beetle's curves came from."""
     body = get(client, "colorado-potato-beetle", date="2025-07-08", clock="calendar").json()
     assert any("reaches beyond the model's data" in w for w in body["meta"]["warnings"]), body["meta"]["warnings"]
+
+
+def test_a_map_reads_each_cells_normal_and_warns_where_its_missing(client, archive, monkeypatch):
+    """European corn borer's form by each cell's 30-year normal by August 1 (part H, round 2): the fixture has none,
+    so two flights everywhere and a warning; given one below 1,500 in the first column only, one flight there."""
+    from agdata import normals
+    from agmodels.insects.european_corn_borer import ONE_FLIGHT_NORMAL
+
+    body = get(client, "european-corn-borer", date="2025-07-05", output="one_flight", cells="true").json()
+    assert ONE_FLIGHT_NORMAL.missing in body["meta"]["warnings"], body
+    assert set(body["data"]["european-corn-borer"]) <= {0, None}
+
+    def field(data_dir, normal, window):
+        values = np.full(window.shape, 1600.0)
+        values[:, : max(0, WINDOW.i0 + 1 - window.i0)] = 1400.0  # the window's first column
+        return values
+
+    monkeypatch.setattr(normals, "place_normal", field)
+    body = get(client, "european-corn-borer", date="2025-07-06", output="one_flight", cells="true").json()
+    assert ONE_FLIGHT_NORMAL.missing not in body["meta"]["warnings"]
+    found = dict(zip(body["data"]["i"], body["data"]["european-corn-borer"], strict=True))
+    assert found[WINDOW.i0] == 1 and found[WINDOW.i0 + 1] == 0, body["data"]

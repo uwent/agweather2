@@ -34,12 +34,16 @@ INSECT = Insect(
     # Three flights in New York (NEWA; Eckenrode et al. 1975) and Ontario (Liu et al. 1982); 27–91 % of the second
     # brood's pupae enter diapause (LaFrance and Perron 1959, in Eckenrode et al. 1975)
     max_generations=3,
+    # The spring generation does most of the damage to seedlings (NEWA; Eckenrode et al. 1975), so it weighs 1 and the
+    # summer flights 0.5: the sources say which generation matters, not by how much, so 0.5 is a judgment (Ben,
+    # 2026-11-23)
+    generation_weights=(1.0, 0.5),
     action_windows=(
         # NEWA: treated seed or an in-furrow treatment at planting, or row covers before flies emerge, kept three
         # weeks past the spring peak. From first emergence (5 %) to 95 % of each flight
         ActionWindow(label="Protect onion seedlings during fly flight", stage="Adult flight", between=(0.05, 0.95)),
     ),
-    version="0.2",
+    version="0.3",
     status="beta",
     # NEWA's table cites Andaloro, Rose and Eckenrode 1984 (Search: Agriculture, Cornell; not in hand, title and years unknown), built on the trapping
     # Eckenrode et al. 1975 began in 1971 in New York's muck onion fields: the last year is an estimate
@@ -53,6 +57,11 @@ INSECT = Insect(
             version="0.2",
             date="2026-11-21",
             note="Rebuilt on NEWA's onion maggot model: degree days by the simple average above 40 °F from January 1 with no upper threshold; the spring flight as a curve from NEWA's first emergence and peak, larval feeding timed from it (Liu, McEwen and Ritcey 1982), and two later flights 1,100 degree days apart, as NEWA's three. Replaces VDIFN's two windows (single sine 39.2/86 °F, source not identified), which had no third flight.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-23",
+            note="The summer flights weigh half as much as the spring flight in the risk, since the spring generation does most of the damage to seedlings.",
         ),
     ),
     checks=(

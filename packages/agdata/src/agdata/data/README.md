@@ -1,6 +1,6 @@
 # agdata static data
 
-Built once by scripts in `scripts/`; no live sources (PLAN.md D34). Rebuild with the commands in each script's docstring.
+Built once by scripts in `scripts/`; no live sources (docs/decisions.md D34). Rebuild with the commands in each script's docstring.
 
 <!-- prettier-ignore -->
 | File | Built by | Source | License |

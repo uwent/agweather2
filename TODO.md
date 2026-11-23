@@ -1,6 +1,6 @@
 # TODO (Ben)
 
-Things only you can do, by phase. Where things stand and why: [PLAN.md](the plans, `docs/plans/`), [docs/decisions.md](docs/decisions.md) and [docs/plans/](docs/plans/). In progress marked [-]; finished items are deleted (git history keeps them).
+Things only you can do, by phase. Where things stand and why: [PLAN.md](PLAN.md), [docs/decisions.md](docs/decisions.md) and [docs/plans/](docs/plans/). In progress marked [-]; finished items are deleted (git history keeps them).
 
 ## Phase 3: Model library (the insects now wait on `docs/plans/models.md` part H)
 
@@ -41,6 +41,7 @@ Things only you can do, by phase. Where things stand and why: [PLAN.md](the plan
 - [x] **The PVY index's weighting** (2026-11-18): settled 2026-11-21, each species weighted by its transmission efficiency (`aphid-pvy-vectors` 0.3, D101).
 
 - [ ] **Rebuild the models' stored inputs on the dev archive** (2026-11-19): white mold 0.2 dropped one, DON 0.2 added one, and other models changed today; `uv run app/manage.py ingredients --check` lists 19 stale per year (2016–2026). Run `uv run app/manage.py ingredients --background` when the machine is free (maps of those models read the stale ones until then).
+- [ ] **Part H round 2, for your eye** (D103): the generation weights are judgments, especially the looper's (0.5, 1, 0.5): north of Arlington its second generation doesn't arrive before October 15 on the normals, so the weights halve the season's only caterpillar peak there (cabbage looper's report, "What the weights change"). Corn borer trap counts in the north near the 1,500 bound (Shawano, the Lake Michigan shore: Manitowoc goes one-flight on 2 moths in 4 years) would test it.
 - [ ] **Part H's papers** (decisions answered 2026-11-23). Into `tmp/references/insects/`; DOIs checked on Crossref and resolved at doi.org on 2026-11-23. Wisconsin trap or scouting counts for cabbage maggot, cabbage looper or cabbageworm would also test the rebuilt models.
   - **First (they'd change a model):**
     - Apple 1952, European corn borer and temperature on canning corn (corn borer's `trained` years rest on it), *J. Econ. Entomol.* 45: 877–879, [10.1093/jee/45.5.877](https://doi.org/10.1093/jee/45.5.877)

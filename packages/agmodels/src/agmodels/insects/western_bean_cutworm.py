@@ -15,9 +15,10 @@ INSECT = Insect(
     dd_method="average_capped_mean",
     # Locked at March 1 (Ben, 2026-11-23): Hanson et al. chose 38/75 °F by how well degree days from March 1 predicted
     # the flight, so the thresholds and flight curve mean nothing counted from another day. The label says so (as the
-    # aphids' and Colorado potato beetle's "January 1"); refusing a grower's date needs a spec field (the lead's)
+    # aphids' and Colorado potato beetle's "January 1"), and the API refuses a grower's date (`biofix_fixed`)
     biofix="03-01",
     biofix_label="March 1",
+    biofix_fixed=True,
     life_stages=(
         # Black light catches in Nebraska, 1981–2009: a log-logistic in °C·d (μ 7.315, s 0.044; Table 4: 5, 25, 50,
         # 75 and 95 % at 2,377, 2,577, 2,704, 2,838 and 3,077 °F·d; NEWA adds 10 % 2,455 and 90 % 2,977). This PERT
