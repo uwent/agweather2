@@ -21,7 +21,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata import chillseason, timecopy
+from agdata import chillseason, coverage, timecopy
 from agdata.catalog import (
     CUMULATIVE_VARIABLES,
     DAILY_VARIABLES,
@@ -34,7 +34,7 @@ from agdata.computed import DAILY_COMPUTED
 from agdata.daily import rollup_days
 from agdata.grid import Window
 from agdata.qc import fill_short_gaps
-from agdata.store import CUMULATIVE, DAILY, GridStore, steps_in_year
+from agdata.store import CUMULATIVE, DAILY, HOURLY_CHUNK_COLUMNS, GridStore, steps_in_year
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 
 MAX_BRIDGE_DAYS = 7
@@ -71,8 +71,7 @@ def rebuild_year(data_dir: Path, window: Window, year: int, changed_from: date |
     if changed_from is not None and changed_from.year == year:
         skip = max(0, min((changed_from - date(year, 1, 1)).days - MAX_BRIDGE_DAYS, n - 1))
     rows = max(1, BAND_CELL_DAYS // ((n + 2 * MAX_BRIDGE_DAYS) * window.shape[1]))
-    for j in range(window.j0, window.j1, rows):
-        band = Window(j0=j, j1=min(j + rows, window.j1), i0=window.i0, i1=window.i1)
+    for band in coverage.parts(window, rows, align=HOURLY_CHUNK_COLUMNS):
         tmin, tmax, et0, precip, et0_estimate = (days.read_with_neighbours(name, band, n) for name in INPUTS)
         out = running_totals(tmin, tmax, et0, precip, et0_estimate)
         out = {name: values[skip:] for name, values in out.items()}

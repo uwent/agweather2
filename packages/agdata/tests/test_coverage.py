@@ -83,3 +83,25 @@ def test_a_store_over_the_coverage_keeps_cells_outside_it_missing_and_their_chun
     touched = sum(written[a : a + 64, b : b + 64].any() for a, b in blocks)
     assert touched > 0
     assert len(stored) == len(blocks) - empty + touched  # July 1's covered chunks, and July 2's
+
+
+def test_work_over_the_coverage_skips_blocks_outside_it_and_trims_bands():
+    """`coverage.parts`: every covered cell is in exactly one part; blocks with none are left out, bands trimmed to
+    whole chunk columns; any other window is divided whole."""
+    for rows, cols, align in ((128, None, 32), (16, 16, 1), (128, 128, 1)):
+        found = coverage.parts(UM.window, rows, cols, align=align)
+        seen = np.zeros(UM.window.shape, dtype=int)
+        for p in found:
+            seen[p.j0 - UM.window.j0 : p.j1 - UM.window.j0, p.i0 - UM.window.i0 : p.i1 - UM.window.i0] += 1
+            assert UM.over(p).any()
+            if cols is None:
+                assert (p.i0 - UM.window.i0) % align == 0 and (
+                    (p.i1 - UM.window.i0) % align == 0 or p.i1 == UM.window.i1
+                )
+        assert (seen[UM.mask] == 1).all() and seen.max() == 1
+        assert seen.sum() < UM.window.size  # something was left out
+    wi = service_window("wisconsin")
+    whole = coverage.parts(wi, 100)
+    assert [(p.j0, p.j1, p.i0, p.i1) for p in whole] == [
+        (wi.j0 + k, min(wi.j0 + k + 100, wi.j1), wi.i0, wi.i1) for k in range(0, wi.shape[0], 100)
+    ]

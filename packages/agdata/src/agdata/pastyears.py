@@ -29,6 +29,7 @@ import zarr
 from zarr.codecs.numcodecs import PCodec
 from zarr.errors import GroupNotFoundError
 
+from agdata import coverage
 from agdata.areas import Area, combine
 from agdata.catalog import DAILY_VARIABLES, FILL, Variable
 from agdata.grid import Window
@@ -194,9 +195,7 @@ def _build(data_dir: Path, year: int, progress: Callable[[int, int], None] | Non
 
 
 def _tiles(window: Window) -> Iterable[Window]:
-    for j in range(window.j0, window.j1, TILE):
-        for i in range(window.i0, window.i1, TILE):
-            yield Window(j0=j, j1=min(j + TILE, window.j1), i0=i, i1=min(i + TILE, window.i1))
+    return coverage.parts(window, TILE, TILE)  # those with a covered cell (D105)
 
 
 @dataclass

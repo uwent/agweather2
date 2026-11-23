@@ -19,10 +19,11 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import zarr
 
+from agdata import coverage
 from agdata.catalog import DAILY_MIN_HOURS, DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES, DailyStatistic
 from agdata.gaps import estimate_et0_hourly_mm
 from agdata.grid import NDFD, Window
-from agdata.store import DAILY, HOURLY, GridStore
+from agdata.store import DAILY, HOURLY, HOURLY_CHUNK_COLUMNS, GridStore
 from agdata.timezones import GRID_ZONE, day_bounds, evening_bounds, overnight_bounds, scab_bounds
 from agmodels import features
 from agmodels.weather import relative_humidity_percent
@@ -110,10 +111,10 @@ def days_from_hours(
     offset = 0
     for days in _passes(first, last):
         for band, values in _rolled(hourly, window, days, names):
-            y0 = band.j0 - window.j0
+            y0, x0 = band.j0 - window.j0, band.i0 - window.i0
             for name, v in values.items():
                 target = out.setdefault(name, np.full(((last - first).days + 1, *window.shape), np.nan, np.float32))
-                target[offset : offset + len(days), y0 : y0 + band.shape[0]] = v
+                target[offset : offset + len(days), y0 : y0 + band.shape[0], x0 : x0 + band.shape[1]] = v
         offset += len(days)
     return out
 
@@ -352,5 +353,5 @@ def _passes(first: date, last: date) -> Iterator[list[date]]:
 
 
 def _bands(window: Window) -> Iterator[Window]:
-    for j in range(window.j0, window.j1, BAND_ROWS):
-        yield Window(j0=j, j1=min(j + BAND_ROWS, window.j1), i0=window.i0, i1=window.i1)
+    """Bands of BAND_ROWS, trimmed to the coverage's cells (`coverage.parts`, in the hourly store's chunk columns)."""
+    yield from coverage.parts(window, BAND_ROWS, align=HOURLY_CHUNK_COLUMNS)

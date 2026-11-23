@@ -33,9 +33,10 @@ from typing import Any
 
 import numpy as np
 
+from agdata import coverage
 from agdata.catalog import DAILY_VARIABLES, GAP_FILL, Variable
 from agdata.grid import Window
-from agdata.store import DAILY, DEFAULT_CHUNKS, INGREDIENTS, GridStore
+from agdata.store import DAILY, DEFAULT_CHUNKS, HOURLY_CHUNK_COLUMNS, INGREDIENTS, GridStore
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps, fill_zero
 from agmodels.ingredients import LOOKBACK_DAYS, Ingredient
 from agmodels.registry import all_models
@@ -256,11 +257,10 @@ def update(
     while day <= last:
         blocks.append((day, min(last, day + timedelta(days=block_days - 1))))
         day = blocks[-1][1] + timedelta(days=1)
-    work = [(b, j) for b in blocks for j in range(window.j0, window.j1, rows)]
+    work = [(b, band) for b in blocks for band in coverage.parts(window, rows, align=HOURLY_CHUNK_COLUMNS)]
     computing = _computing(entries)
     names = sorted({q.name for m, _ in computing for q in m.SPEC.inputs})
-    for done, ((begin, end), j) in enumerate(work):
-        band = Window(j0=j, j1=min(j + rows, window.j1), i0=window.i0, i1=window.i1)
+    for done, ((begin, end), band) in enumerate(work):
         values = _compute(data_dir, run, run_first, band, begin, end, ahead, computing, names)
         with (lock or nullcontext)():
             _write(data_dir, root, band, begin, values, entries, run is not None)

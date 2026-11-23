@@ -77,3 +77,31 @@ def outside(window: Window) -> np.ndarray | None:
             out.flags.writeable = False
             return out
     return None
+
+
+def parts(window: Window, rows: int, cols: int | None = None, align: int = 1) -> list[Window]:
+    """`window` in blocks of `rows` × `cols` (`cols` None: bands of the full width), in row order: the one way a job
+    divides a store's window into work. Over a coverage preset's window (`outside`), a block with no covered cell is
+    left out and a band's columns are trimmed to its covered cells, rounded out to multiples of `align` from the
+    window's edge (a store's chunk width, so writes stay whole chunks); a square block is kept whole, its chunks
+    aligned already. Any other window is divided whole. The cells left out are missing anyway (`GridStore.write`)."""
+    excluded = outside(window)
+    out = []
+    for j in range(window.j0, window.j1, rows):
+        j1 = min(j + rows, window.j1)
+        for i in range(window.i0, window.i1, cols or window.shape[1]):
+            i1 = window.i1 if cols is None else min(i + cols, window.i1)
+            block = Window(j0=j, j1=j1, i0=i, i1=i1)
+            if excluded is None:
+                out.append(block)
+                continue
+            covered = ~excluded[j - window.j0 : j1 - window.j0, i - window.i0 : i1 - window.i0]
+            columns = np.flatnonzero(covered.any(axis=0))
+            if not columns.size:
+                continue
+            if cols is None:
+                first = (int(columns[0]) // align) * align
+                last = min(window.shape[1], -(-(int(columns[-1]) + 1) // align) * align)
+                block = Window(j0=j, j1=j1, i0=window.i0 + first, i1=window.i0 + last)
+            out.append(block)
+    return out

@@ -20,7 +20,7 @@ from agmodels.gaps import GapFill
 DailyStat = Literal["min", "max", "mean", "sum"]
 
 FILL = np.int16(np.iinfo(np.int16).min)  # missing
-DECODE_PARALLEL = 100_000  # float32 decodes of more values than this go through Numba
+DECODE_PARALLEL = 100_000  # float32 decodes and encodes of more values than this go through Numba
 _INT16_MAX = np.iinfo(np.int16).max
 
 
@@ -51,7 +51,16 @@ class Variable:
             )
 
     def encode(self, values: np.ndarray) -> np.ndarray:
-        """Floats in the stored unit → int16; NaN becomes FILL. Values must already be within the QC range."""
+        """Floats in the stored unit → int16; NaN becomes FILL. Values must already be within the QC range. Many
+        values are packed in one parallel pass (`agdata.fastdecode.encode_int16`), the same values."""
+        values = np.asarray(values)
+        if values.size > DECODE_PARALLEL:
+            from agdata.fastdecode import encode_int16  # Numba: loaded only when a write is large
+
+            packed, bad = encode_int16(values, self.scale, self.offset)
+            if bad:
+                raise ValueError(f"{self.name}: values outside what int16 can hold; run QC first")
+            return packed
         values = np.asarray(values, dtype=np.float64)
         missing = ~np.isfinite(values)
         packed = np.round((np.where(missing, 0.0, values) - self.offset) / self.scale)

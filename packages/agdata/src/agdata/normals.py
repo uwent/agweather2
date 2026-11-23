@@ -37,7 +37,7 @@ import zarr
 from zarr.codecs.numcodecs import PCodec
 from zarr.errors import GroupNotFoundError
 
-from agdata import climatestore, climatology, pastyears
+from agdata import climatestore, climatology, coverage, pastyears
 from agdata import units as agunits
 from agdata.catalog import (
     CUMULATIVE_VARIABLES,
@@ -274,9 +274,7 @@ def _single(values: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
 
 
 def _blocks(window: Window, size: int) -> Iterator[Window]:
-    for j in range(window.j0, window.j1, size):
-        for i in range(window.i0, window.i1, size):
-            yield Window(j0=j, j1=min(j + size, window.j1), i0=i, i1=min(i + size, window.i1))
+    yield from coverage.parts(window, size, size)  # those with a covered cell (D105)
 
 
 def _encode(values: np.ndarray, scale: float) -> np.ndarray:

@@ -29,9 +29,9 @@ from typing import Any, cast
 import numpy as np
 import zarr
 
-from agdata import modelmaps, planting
+from agdata import coverage, modelmaps, planting
 from agdata.grid import NDFD, Window
-from agdata.store import INGREDIENTS, GridStore
+from agdata.store import HOURLY_CHUNK_COLUMNS, INGREDIENTS, GridStore
 from agmodels.crops import CropModel, stage_days
 from agmodels.registry import model as find_model
 
@@ -104,15 +104,14 @@ def update(
         # The inputs are read once a band from the earliest planting of any tier, and each tier runs from them
         begin = min(date.fromordinal(int(np.nanmin(sown))) for sown, _ in tiers.values())
         n = (end - begin).days + 1
-        for j in range(window.j0, window.j1, rows):
-            band = Window(j0=j, j1=min(j + rows, window.j1), i0=window.i0, i1=window.i1)
-            y0 = j - window.j0
+        for band in coverage.parts(window, rows, align=HOURLY_CHUNK_COLUMNS):
+            y0, x0 = band.j0 - window.j0, band.i0 - window.i0
             inputs = {
                 name: modelmaps._filled(name, modelmaps._read(data_dir, run, run_first, name, begin, n, band))
                 for name in names
             }
             for tier, (sown, write_from) in tiers.items():
-                planted = sown[y0 : y0 + band.shape[0]]
+                planted = sown[y0 : y0 + band.shape[0], x0 : x0 + band.shape[1]]
                 found = _season(m, spec, inputs, planted, begin, n, band, options)
                 k = (write_from - begin).days
                 values = {modelmaps.tier_key(model_id, q, tier): v[k:] for q, v in found.items()}

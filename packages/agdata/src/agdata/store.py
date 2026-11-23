@@ -49,6 +49,7 @@ PROVISIONAL = frozenset({"rtma", "ifs"})
 # Chunks (time steps, y, x): hourly for point reads (a cell's month is one chunk), daily for map tiles.
 # pcodec compresses the packed int16 values 25-45% better than zstd at the same speed (docs/pilot.md).
 DEFAULT_CHUNKS: dict[Step, tuple[int, int, int]] = {"hour": (720, 32, 32), "day": (1, 256, 256)}
+HOURLY_CHUNK_COLUMNS = DEFAULT_CHUNKS["hour"][2]  # work over the window is divided in these (`coverage.parts`)
 
 
 @dataclass(frozen=True, kw_only=True)
