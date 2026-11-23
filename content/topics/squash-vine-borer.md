@@ -11,7 +11,7 @@ summary: A day-flying clearwing moth whose larvae tunnel inside the stems of squ
 image: images/squash-vine-borer.jpg
 image_credit: 'Squash vine borer moth on milkweed flowers, showing its orange, black-dotted abdomen and hairy hind legs. Photo by matthew_wills, via iNaturalist (observation 51024415), CC BY-NC 4.0 (https://creativecommons.org/licenses/by-nc/4.0/); resized.'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Squash Vine Borer. Updated 2026.'
@@ -91,4 +91,4 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 The [squash vine borer model](/models/squash-vine-borer) combines the extension guides, since no research study of the moth's timing is known to us. It counts degree days from January 1 by UW–Madison's modified average (50 °F, with highs capped at 86 °F).[^uw-hort-dd] Its moth flight, which stands for egg laying too, starts at about 825 degree days, is half over by about 1,085 and ends by 1,900: UW–Madison's first moths at 900 and three weeks of egg laying around 1,000, South Dakota State's and Ohio State's emergence at 1,000, and Michigan State's flight lasting to 2,000.[^uw-hort][^uw-vegento][^sdsu-svb][^osu-svb] The larvae in the vines are timed from it by South Dakota State's numbers, and the risk is theirs.[^sdsu-svb] The model marks a window to protect stems from the first moths until three quarters have flown, about 825 to 1,240 degree days.[^agweather-squash-vine-borer]
 
-In an average year (AgWeather's degree days for 1996 to 2025), the window runs from about June 21 to July 12 at Arlington and from July 2 to July 26 at Rhinelander.[^agweather-squash-vine-borer] South Dakota State and Ohio State count a plain daily average, which reaches 1,000 about a week later on Wisconsin's weather than UW–Madison's method. iNaturalist photographs of the moths in the upper Midwest agree with the model's first moths but put half the sightings about 8 days after its half, with moths seen well after the window closes.[^agweather-squash-vine-borer] Watch for moths from the last week of June, and keep stems protected while moths are still being seen.
+In an average year (AgWeather's degree days for 1996 to 2025), the window runs from about June 21 to July 12 at Arlington and from July 2 to July 26 at Rhinelander.[^agweather-squash-vine-borer] South Dakota State and Ohio State count a plain daily average, which reaches 1,000 about a week later on Wisconsin's weather than UW–Madison's method. iNaturalist photographs of the moths in the upper Midwest agree with the model's first moths but put half the sightings about 8 days after its half, with moths seen well after the window closes.[^agweather-squash-vine-borer] The window may therefore close before egg laying ends. Watch for moths from the last week of June, and keep stems protected while moths are still being seen.

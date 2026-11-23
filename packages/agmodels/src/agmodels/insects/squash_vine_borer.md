@@ -1,7 +1,7 @@
 ---
 id: squash-vine-borer
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 summary: Follows squash vine borer moth flight and egg laying, and the larvae boring in the vines, from degree days since January 1 (modified average, 50/86 °F), and marks when to protect stems during egg laying, from about 825 to 1,240 degree days.
 sources:
   - Liesch and Groves, Squash Vine Borer (XHT1136), UW–Madison Division of Extension, 2026 (first moths at 900 degree days, three weeks of egg laying around 1,000)
@@ -40,7 +40,7 @@ In an average year (AgWeather's degree days for 1996 to 2025), the window runs f
 
 - Start watching for moths as the window opens, and by the last week of June at the latest. Yellow pans of water with a drop of dish soap catch the moths; pheromone traps show when males are flying but also catch related clearwing moths. Neither kind of trap has a treatment threshold.
 - UW–Madison recommends two to three sprays 5 to 7 days apart during the three weeks of egg laying, aimed at newly hatched larvae before they bore into the vines. Protecting plants with runners shorter than 2 feet is particularly important.
-- **Keep stems protected while moths are still being seen,** even after the window closes: some moths fly and lay eggs for weeks longer.
+- **The window may close too early.** It follows UW–Madison's three weeks of egg laying, but Michigan State's model has moths flying for weeks longer, and photographs of the moths in the upper Midwest put half the sightings about 8 days after the model's half flight, with many after the window. Keep stems protected while moths are still being seen, even after the window closes.
 - Check the bases of stems for entry holes and sawdust-like droppings (frass), which show where larvae have bored in before plants wilt.
 
 ## Validation and caveats

@@ -60,9 +60,9 @@ Half the eggs hatch around June 14 at Arlington and June 26 at Rhinelander, one 
 
 ## Limits and open questions
 
-- **First beetles at Arlington:** an old three-year study at Arlington (UW Vegetable Entomology) found the first beetles July 16–24, after the model has half of them out (about July 15 on the normals); A3646's early July matches the model's first beetles.
+- **First beetles at Arlington:** an old three-year study at Arlington (UW Vegetable Entomology) found the first beetles July 16–24, after the model has half of them out (about July 15 on the normals); A3646's early July matches the model's first beetles. The page and topic page say the model may run early (Ben, 2026-11-23; no shift).
 - Apple et al. 1971 isn't in hand; its numbers come from its abstract and UC IPM. Its method and start date aren't known.
-- Air temperatures stand in for the soil. A daily soil degree-day feature (from the archive's 4 and 10 cm soil temperatures) would let the model use Iowa State's soil numbers or Apple's laboratory ones directly; worth checking how ERA5-Land's lag and the forecast's soil temperatures would affect it.
+- **Air temperatures stand in for the soil** (Ben, 2026-11-23: air degree days stay for now; the page says the model may run early). A later step: a daily soil degree-day feature (from the archive's 4 and 10 cm soil temperatures) would let the model use Iowa State's soil numbers or Apple's laboratory ones directly; it needs a check of how ERA5-Land's lag and the forecast's soil temperatures would affect it, and of whether soil totals move the larvae and beetles toward UW–Madison's dates and Arlington's first beetles.
 - The western corn rootworm's hatch isn't separately timed. Jackson and Elliott 1988 ([doi:10.1093/ee/17.2.166](https://doi.org/10.1093/ee/17.2.166)) and Davis, Brenes and Allee 1996 ([doi:10.1093/ee/25.4.767](https://doi.org/10.1093/ee/25.4.767); soil base 11 °C) aren't in hand; they would give its development and a check on the larvae's 350 and the pupa.
 - The larvae run a week or two ahead of UW–Madison's description of their peak; a shorter larval period or a later hatch would widen the gap or close it, and we have no Wisconsin counts to choose between them.
 - No Wisconsin observations of hatch or larvae are known to us.

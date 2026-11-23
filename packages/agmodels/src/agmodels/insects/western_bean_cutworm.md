@@ -1,7 +1,7 @@
 ---
 id: western-bean-cutworm
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 summary: Times the western bean cutworm moth flight and the egg masses that follow from degree days since March 1, on Hanson et al.'s 2015 model, which NEWA also uses, and marks when to scout corn for egg masses.
 sources:
   - Hanson, Moon, Wright, Hunt and Hutchison 2015 (the degree-day method and the flight model, from Nebraska black light traps)
@@ -20,7 +20,7 @@ Western bean cutworm has one generation a year. The moths emerge from the soil i
 
 ## How it works
 
-Degree days are counted from March 1 by the simple average method, base 38 °F, with the day's average temperature capped at 75 °F: a day averaging 80 °F counts as 75. This is the method Hanson and colleagues found predicted the flight best in 2015, from black light trap catches at four sites in Nebraska, 1981–2009. NEWA (the Network for Environment and Weather Applications at Cornell University) uses their model too.
+Degree days are counted from March 1 by the simple average method, base 38 °F, with the day's average temperature capped at 75 °F: a day averaging 80 °F counts as 75. This is the method Hanson and colleagues found predicted the flight best in 2015, from black light trap catches at four sites in Nebraska, 1981–2009. NEWA (the Network for Environment and Weather Applications at Cornell University) uses their model too. The model always counts from March 1, and you can't set your own start date: Hanson and colleagues chose the thresholds for degree days counted from March 1, so the flight's timing has no meaning counted from another day.
 
 - **The flight.** The model follows their flight curve: 5 % of the moths have flown by about 2,400 degree days, a quarter by about 2,560, half by about 2,705, three quarters by about 2,850 and 90 % by about 2,980.
 - **Egg masses.** Eggs hatch 5 to 7 days after they're laid (UW–Madison). No study gives the time from a moth's emergence to egg laying in degree days, so the model starts each moth's eggs on the day it emerges and counts them as present for about 200 degree days, six days at the usual late-July rate, so egg masses peak about 80 degree days after the middle of the flight.

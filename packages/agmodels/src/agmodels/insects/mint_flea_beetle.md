@@ -1,7 +1,7 @@
 ---
 id: mint-flea-beetle
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 summary: Follows mint flea beetle larvae in the roots and adults on the leaves from degree days since January 1 (base 41 °F), by Oregon State's model, and marks when to sweep mint for adults as they emerge.
 sources:
   - Berry and others, Oregon State University's mint flea beetle degree-day model on USPest.org, partly validated for the Pacific Northwest (the method and when each stage begins)
@@ -30,7 +30,7 @@ In an average year (AgWeather's degree days for 1996 to 2025), the first larvae 
 
 ## How to read it
 
-- Use the window as a reminder to start sweeping for adults, and keep sweeping after it closes if Wisconsin's later emergence (below) holds in your field. Sweep in the early morning, below about 60 °F, when the beetles stay on the leaves, and check the whole field, starting at the margins, where infestations usually begin.
+- **When adults emerge in Wisconsin is uncertain.** The model's first adults come in late June in the south and early July in the north, but Commercial Vegetable Production in Wisconsin puts emergence in late July (see Validation and caveats). Use the window as a reminder to start sweeping for adults, and keep sweeping into August, after the window closes. Sweep in the early morning, below about 60 °F, when the beetles stay on the leaves, and check the whole field, starting at the margins, where infestations usually begin.
 - Commercial Vegetable Production in Wisconsin suggests treating the adults before they lay eggs if larval damage (stunting, purpling in June) was visible; or, without larval damage, if standing mint has more than 25 adults per 100 sweeps; or if standing mint has fewer but stubble after harvest has more than 25 per 100 sweeps.
 - Time sprays from your sweep counts: after most adults have emerged, and before females start laying eggs two to three weeks later.
 

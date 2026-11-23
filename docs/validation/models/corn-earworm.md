@@ -78,7 +78,7 @@ From the new default, larvae fill the ears from late August through September in
 - **Hartstack et al. 1976 hasn't been read** (not online); the events are USPest's and UC IPM's, which agree with each other. The development rates are from Texas; USPest calls the model "partly validated" in the Pacific Northwest. No Wisconsin data on egg hatch or larval timing.
 - **The June flight:** a small flight usually reaches Wisconsin in June and threatens very early sweet corn (UW–Madison Horticulture; UMN). DATCP's pheromone traps go up about July 1, so they don't see it, and the default can't follow it. A grower's date (first eggs on early silks) can.
 - **One egg-laying event per biofix:** moths keep arriving after the main flight's first week; the egg-laying curve spreads the eggs over the flight as the traps show, but a second wave weeks later (2025's July flight, then August's) needs a second biofix the model doesn't offer.
-- **The default is fitted in sample**, to six years of one network; DATCP's 2027 tables, when posted, are a test.
+- **The default is fitted in sample**, to six years of one network; DATCP's 2027 tables, when posted, are a test. Ben (2026-11-23) kept August 15 as the default, labelled on the page, the topic page and here as fitted to DATCP's 2021–2026 traps.
 - **Black light and pheromone traps differ** in what they catch; the significant-flight definition (35 a week) is ours, from the low end of UW's nightly threshold, not DATCP's.
 
 ## Reproducing

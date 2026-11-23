@@ -62,7 +62,7 @@ The handbook's moths fly May through July in the Pacific Northwest; here the mod
 
 ## Limits and open questions
 
-- **Developed in the Pacific Northwest** and listed as partly validated; in California it ran two weeks to a month late by the end of the flight. Wisconsin moth or larval counts would decide whether it runs late here too; none are known.
+- **Developed in the Pacific Northwest** and listed as partly validated; in California it ran two weeks to a month late by the end of the flight. Wisconsin moth or larval counts would decide whether it runs late here too; none are known. Ben (2026-11-23): no shift; the page and topic page caution that it may run late, and to set traps before the window opens.
 - **Berry, Takeyasu and Morris 1997** isn't online; the events are USPest's as published, without their data.
 - **Hibernacula's spread:** the larvae's exit follows the moths' spread, so the first chambers come about 145 degree days before USPest's 5 %.
 - **Moths carry no risk:** the risk rises with the larvae, after the moths have flown; the moth window is for traps and planning.

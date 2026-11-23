@@ -1,7 +1,7 @@
 ---
 id: corn-earworm
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 summary: Times corn earworm caterpillars in sweet corn ears from degree days after egg laying, from the day you first find eggs on silks or catch a significant moth flight, or August 15 without a date.
 sources:
   - USPest.org's corn earworm model, Oregon State University, from Hartstack et al. 1976 (the method and the caterpillars' development)
@@ -24,7 +24,7 @@ Degree days are counted by the single-sine method, base 55 °F with a cutoff at 
 - **Eggs hatch** about 73 degree days after they are laid, and the caterpillars go straight into the ears.
 - **Caterpillars leave the ears** to pupate in the soil about 437 degree days after the egg was laid.
 - **Eggs are laid over several weeks**, as moths keep arriving. The model spreads them as DATCP's pheromone traps show a flight continuing after its first big week: half the moths in about 141 degree days, roughly 10 days in late August.
-- **Without a date, the model starts on August 15.** In DATCP's pheromone traps, 2021–2026, the main flight's first week of 35 or more moths (an average of 5 a night) came within a week of August 15 in two thirds of the site-years (a site in one year). Moths arrive with weather from the south, so in some years the main flight comes weeks earlier or later than that.
+- **Without a date, the model starts on August 15,** a date we chose to fit DATCP's pheromone traps, 2021–2026. In those traps the main flight's first week of 35 or more moths (an average of 5 a night) came within a week of August 15 in two thirds of the site-years (a site in one year). Moths arrive with weather from the south, so in some years the main flight comes weeks earlier or later than that.
 - **One generation.** The caterpillars' own moths would need about 873 degree days to lay eggs, more than Wisconsin's fall provides.
 - **The end of the season.** After early September, each day at or below 28 °F reduces activity, and four such days within two weeks end the season.
 

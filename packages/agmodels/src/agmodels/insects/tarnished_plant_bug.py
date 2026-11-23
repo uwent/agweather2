@@ -1,6 +1,7 @@
 """Tarnished plant bug (Lygus lineolaris), rebuilt with Ugine 2012's development times for the generations and the
 spring nymphs timed by UW–Madison's 275 degree days, a number from a western lygus bug model (part H, D36, D37). The
-spring timing has no source for this species."""
+spring timing has no source for this species. Retired 2026-11-23 (Ben, part H round 2): with no degree-day timing
+for L. lineolaris's spring generation, every generation the model shows inherits an unsupported start."""
 
 from agmodels.phenology import DerivedStage, Insect, LifeStage
 from agmodels.spec import Change, Check, Citation, TrainingArea
@@ -49,8 +50,8 @@ INSECT = Insect(
     generation_dd=640,
     # No cap: UW–Madison's fruit program counts four to five generations a year in the Midwest; the season's degree
     # days allow about four in southern Wisconsin and three in the north, and fall freezes end it
-    version="0.2",
-    status="beta",
+    version="0.3",
+    status="retired",
     trained=TrainingArea(
         description="development of a laboratory colony from Stoneville, Mississippi, reared at constant temperatures, with spring timing from a lygus bug model for alfalfa grown for seed in Oregon and Idaho",
         years=(2000, 2010),
@@ -61,6 +62,11 @@ INSECT = Insect(
             version="0.2",
             date="2026-11-21",
             note="Rebuilt for Lygus lineolaris on Ugine 2012's development times at constant temperatures: egg hatch, nymphs (393 degree days) and adults (540), with generations every 640 degree days above 52 °F (single sine, from January 1) to the season's end. The spring hatch is placed so that young nymphs peak at 275 degree days, the number UW–Madison's vegetable newsletter uses, which comes from a western lygus bug model; no source gives a spring timing for this species. Replaces VDIFN's one window (275, 1,000, 2,000 degree days), whose 1,000 and 2,000 have no known source.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-23",
+            note="Retired: no study or extension source times the tarnished plant bug's spring generation by degree days. The 275 degree days that placed it most likely comes from a model of a western lygus bug, and every later generation followed from it. Scout from early spring instead.",
         ),
     ),
     checks=(

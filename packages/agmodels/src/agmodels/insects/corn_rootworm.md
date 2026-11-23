@@ -1,7 +1,7 @@
 ---
 id: corn-rootworm
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 summary: Times corn rootworm egg hatch, larvae feeding on corn roots and the beetles that follow from air-temperature degree days since January 1 (base 52 °F), on Wisconsin's northern corn rootworm study, and marks when to dig and rate roots.
 sources:
   - Apple, Walgenbach and Knee 1971 (northern corn rootworm egg hatch, Madison, Wisconsin; the base and the hatch)
@@ -35,6 +35,7 @@ In AgWeather's long-term averages (1996–2025), half the eggs hatch around June
 
 - **Larvae are feeding on roots by mid-June** in southern Wisconsin (UW–Madison). Control of the larvae (rotation, Bt hybrids, soil insecticides or seed treatments) is chosen before or at planting, from the beetle counts the summer before.
 - **Dig roots in the window:** dig plants with a 6-inch core of soil, wash the roots and look for brown, tunneled or pruned roots. Iowa State rates injury from 0 to 3 nodes pruned; 0.25 is its economic injury level. By fall, root decay hides the damage.
+- **The model may run early.** On the long-term averages its larvae peak a week or two before UW–Madison's early to mid-July, and an older three-year study at Arlington found the first beetles between July 16 and 24, when the model already has about half of them out. Dig roots and count beetles by what you find in your fields, and keep looking after the model's dates have passed.
 - **Silk clipping:** UW–Madison suggests a spray to protect pollination only when silks are being clipped, pollination is less than half done and there are five or more beetles per plant.
 - **Next year's corn:** count beetles from late July through late August. If counts average 0.75 or more beetles per plant in August, plan a rootworm control if the field goes back to corn.
 

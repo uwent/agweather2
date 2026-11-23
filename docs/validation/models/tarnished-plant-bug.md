@@ -1,5 +1,7 @@
 # Tarnished plant bug (`tarnished-plant-bug`): validation
 
+**Retired 2026-11-23 (version 0.3; Ben, part H round 2 of `docs/models-plan.md`):** as this report recommended, since no source gives a degree-day timing for _L. lineolaris_'s spring generation and every later generation inherits it. The report below describes version 0.2 as it was.
+
 Model version 0.2, written 2026-11-21 (D98; part H, batch H5). The model: `packages/agmodels/src/agmodels/insects/tarnished_plant_bug.py`, run by the insect engine (`agmodels.phenology`, D36); its page: `tarnished_plant_bug.md` beside it. Version 0.1 was VDIFN's one window (275, 1,000, 2,000 degree days, single sine 52 °F from January 1), checked only against VDIFN; this report replaces that one.
 
 **In short:** the generations of _Lygus lineolaris_ from Ugine 2012's development times at constant temperatures (nymphs 393 degree days above 52 °F, adults 540, a generation 640), with the spring hatch placed so that young nymphs peak at 275, the number UW–Madison's vegetable newsletter uses. That 275 comes from Simko's model of a western lygus bug in Oregon and Idaho: **no source gives a spring degree-day timing for this species**, so the first generation's timing is unsupported, and everything after it inherits that. On the normals the first nymphs appear in mid-May at Arlington, as UW–Madison's fruit program reports in strawberries. We recommend retiring the model unless a spring timing for _L. lineolaris_ turns up.
