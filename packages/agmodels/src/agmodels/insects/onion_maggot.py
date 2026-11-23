@@ -21,8 +21,8 @@ INSECT = Insect(
         # emergence) and peak (50 %) 735; Eckenrode et al. 1975's averages were 389 (initial increase) and 712 (50 %
         # catch). This curve's 5, 50 and 95 % are 390, 735 and 1,103, before NEWA's first summer flies at 1,218
         LifeStage(label="Adult flight", start=200, peak=721, end=1349),
-        # Liu et al. 1982 (Ritcey and McEwen's laboratory times, above 4 °C): pre-oviposition 103 and egg 50 °C·d
-        # (275 °F·d), larva 287 °C·d (517 °F·d)
+        # Liu et al. 1982 (Ritcey and McEwen's laboratory times, above their 4.38 °C threshold; Liu et al. ran them
+        # above 4 °C): pre-oviposition 103 and egg 50 °C·d (275 °F·d), larva 287 °C·d (517 °F·d)
         DerivedStage(label="Larval feeding", follows="Adult flight", lag=275, duration=517),
     ),
     # NEWA's peaks 735, 1,752 and 2,975 are 1,017 and 1,223 apart: 1,100 is the least-squares generation time over
@@ -36,7 +36,9 @@ INSECT = Insect(
     max_generations=3,
     # The spring generation does most of the damage to seedlings (NEWA; Eckenrode et al. 1975), so it weighs 1 and the
     # summer flights 0.5: the sources say which generation matters, not by how much, so 0.5 is a judgment (Ben,
-    # 2026-11-23)
+    # 2026-11-23). The papers' figures: the second generation did a tenth or less of the first's damage in Ontario (Liu
+    # et al. 1982) and was the smallest brood in New York; the third damaged bulbs near harvest (Eckenrode et al. 1975)
+    # and in storage (Liu et al.)
     generation_weights=(1.0, 0.5),
     action_windows=(
         # NEWA: treated seed or an in-furrow treatment at planting, or row covers before flies emerge, kept three

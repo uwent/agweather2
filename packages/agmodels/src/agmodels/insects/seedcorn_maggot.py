@@ -29,9 +29,11 @@ INSECT = Insect(
     # because over-wintered emergence is drawn out (Throne and Eckenrode 1985), not because development varies
     generation_sd=60,
     # The over-wintered flight and the spring generation's larvae do the damage, to germinating seed in spring
-    # plantings; in Iowa the summer generation mostly aestivated and few flies were caught in summer (Funderburk et al.
-    # 1984; Throne and Eckenrode 1985). So the first generation weighs 1 and the summer ones 0.25: the sources say
-    # which generation matters, not by how much, so 0.25 is a judgment (Ben, 2026-11-23)
+    # plantings; in Iowa the F2 mostly aestivated and few flies were caught after mid-June (Funderburk et al. 1984). So
+    # the first generation weighs 1 and the later ones 0.25: the sources say which generation matters, not by how much,
+    # so 0.25 is a judgment (Ben, 2026-11-23). Read in full, Iowa's F1 flight (early June, this engine's second
+    # generation) was as large as the over-wintered one or larger (Funderburk et al., Fig. 2), and New York's mid-June
+    # peak its largest (Throne and Eckenrode 1985): docs/validation/models/seedcorn-maggot.md
     generation_weights=(1.0, 0.25),
     action_windows=(ActionWindow(label="Avoid planting during adult flight", stage="Adult flight"),),
     version="0.3",

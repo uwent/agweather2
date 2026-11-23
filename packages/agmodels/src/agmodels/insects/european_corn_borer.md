@@ -5,10 +5,11 @@ updated: 2026-11-23
 summary: Times European corn borer moth flights, egg laying and young caterpillars from degree days since January 1, and marks when to scout and treat young caterpillars before they bore into the plant, with two generations in southern and central Wisconsin and one in the north.
 sources:
   - UW–Madison Extension's degree-day table for European corn borer (Delahaut 2012; the method and both flights)
-  - Apple 1952 (corn borer development on canning corn by temperature accumulation; the likely origin of UW–Madison's table)
+  - Apple 1952 (corn borer development on canning corn by temperature accumulation, the first degree-day timing for corn borer in Wisconsin; compared)
   - Flandermeyer and Bick, UW–Madison Extension, 2025 (spray timing by degree days)
   - University of Minnesota Extension, European Corn Borer in Minnesota Field Corn (first moths at 374 degree days; the one-generation strain), and VegEdge's corn borer degree-day page (the method's origin)
-  - Showers et al. 1989, NCR 327 (when young caterpillars bore in)
+  - Showers et al. 1989, NCR 327 (when young caterpillars bore in), and Matteson and Decker 1965 (development of eggs and caterpillars at constant temperatures)
+  - Hoard and Weiss 1995 and Showers et al. 1975 (one generation or two, by place and season)
   - Wisconsin DATCP black light trap counts, 2020–2026 (compared)
 ---
 
@@ -46,7 +47,8 @@ The [European corn borer topic page](/topics/european-corn-borer) explains the i
 
 - Draft (model version 0.3, beta). The numbers come from UW–Madison's table, developed in Wisconsin.
 - In southern and central Wisconsin, the middle of each flight falls a median of 0 to 1 day from the week DATCP's black light traps caught half of that flight's moths, 2020–2026, though in single years it can be a week or more off. VDIFN's model, which this one replaces, ran a median 4 days late in spring and 14 in summer at the same traps. Black light traps catch few corn borers, so each site's record rests on a handful of moths.
-- **Northern Wisconsin.** In the northern counties most corn borers have only one generation a year. Wausau's trap caught no June moths in six years, only one flight from mid-July to mid-August. Where the model shows one flight, the middle of that flight fell a median of 0 days from the week Wausau's and other northern traps caught half their moths, though those traps caught few moths. The line between one flight and two (1,500 degree days by August 1 on the 30-year average) rests on a few northern traps; near it, fields may see either, so watch trap counts from early June. The 30-year average is updated each year, so a place near the line can change between years.
+- **Northern Wisconsin.** In the northern counties most corn borers have only one generation a year. Wausau's trap caught no June moths in six years, only one flight from mid-July to mid-August. Where the model shows one flight, the middle of that flight fell a median of 0 days from the week Wausau's and other northern traps caught half their moths, though those traps caught few moths. The line between one flight and two (1,500 degree days by August 1 on the 30-year average) rests on a few northern traps; near it, fields may see either, so watch trap counts from early June. The 30-year average is updated each year, so a place near the line can change between years. In North Dakota, where most corn borers have one generation, a partial second flight came in a warm year (Hoard and Weiss, 1995), and a warm year in northern Wisconsin may bring one too.
+- J. W. Apple's original degree days for corn borer, from canning corn in Illinois and Wisconsin in 1946–1951, put each stage later than UW–Madison's table: counted the table's way on recent weather, his first spring moths come at about 585 degree days, near the table's spring peak, and his first summer moths at about 1,870. Wisconsin's black light traps in 2020–2026 fit the table's timing, so the model uses it.
 - The model's first moths come about a week before a weekly trap's first catch, since a trap that catches a few moths a week catches its first one after the flight has begun.
 - Both generations count alike in the risk, though first-generation caterpillars that mature late in the season overwinter instead of producing summer moths, so the second generation can be smaller.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

@@ -63,6 +63,15 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 ## Ben's open choices
 
 - **The order above** (proposed 2026-11-23): steps 5–7 as the gate to the frontend, with models parts C–G and J alongside Phase 7 rather than before it (Ben, 2026-11-17, had put all of step 4 before the frontend).
+- **Model changes the papers suggest** (read in full 2026-11-23; reports in `tmp/papers/`, details in each model's report; none made):
+  - **Cabbage maggot's generation, about 1,250 DD40 instead of NEWA's 850:** NEWA's own source (Jyoti et al. 2003) gives no generation time; NEWA's later peaks are its spring 50 % plus each flight's length, and the paper's trapped peaks put spring to the first summer flight at 1,075–1,282 °F·d, matching Wisconsin's 1,176 DD43. D95 allows it: NEWA's source shows its interval wrong. At 1,250 the three-flight cap rarely binds.
+  - **Seedcorn maggot's weights (1, 1, 0.25) instead of (1, 0.25):** the engine's second generation is the large early-June flight (Iowa's was as large as the overwintered one or larger; New York's largest peak was mid-June); the quiet summer starts with the next one. Throne and Eckenrode don't say few summer flies (corrected).
+  - **Onion maggot's weights about (1, 0.1–0.25, 0.5) instead of (1, 0.5):** the second brood was always the smallest and did little damage; the third damages bulbs at harvest and in storage (Liu et al., Eckenrode et al.). Cabbage maggot's 0.5 sits between New York's catches and Wisconsin's radish damage: keep.
+  - **Corn rootworm's larvae about 550 and pupa about 200 (hatch to beetle about 750, from 542):** Davis et al. 1996's New York fields and Jackson and Elliott's lab times; on Arlington's normal the dig window opens about July 14 (was July 4), 10 % of beetles about July 18 (Arlington's old study: first beetles July 16–24). Also: VDIFN's old numbers were Davis et al.'s °C·d used as °F·d.
+  - **Black cutworm on Kaster and Showers 1984's outdoor times:** larvae ran faster than Luckmann's lab times (pupation about 613 °F·d after laying, not 729), so the cutting window would close 5–6 days sooner; mixed evidence (their 1982 field plots ran slower).
+  - **Common asparagus beetle's pupa 120 → 166 and pre-laying 80 → about 30** (Taylor and Harcourt 1978, VDIFN's unnamed source); the generation stays 600, so its risk days don't move.
+  - **Imported cabbageworm:** keep, or take only Nealis et al.'s pupa (193): their egg + larva (390) leaves too little for the egg beside Tatchell's larva (349).
+  - **No change, recorded as limits:** corn borer's numbers are UW's table, not Apple 1952's (which run 1–3 weeks later; DATCP's traps support the table), and the one-flight 1,500 has no published bound (Hoard and Weiss give the mechanism, not a number); cabbage looper's base is too low on Toba et al.'s own data (about 55 °F); crucifer flea beetle's summer adults came six weeks sooner in Ontario's warm 1975; tarnished plant bug stays retired (neither paper gives a spring start).
 - **The Crop Risk Tool audit's questions for the authors** (`tmp/crt-model-audit.md`).
 - **Cabbage maggot transplant timing:** UW's pages against A3422.
 - **Spotted wing drosophila** (its report): three trap-seasons that look copied (P Mulch / P Plant Path 2016 and 2018, P Fence / Seaq Hiland 2017: check the field sheets); hold at the peak after it, rather than the fitted decline resting on 2015 alone; an erratum to the journal; newer counts (berries, into October, outside Door County).
@@ -72,7 +81,7 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 
 ## Waiting on other people
 
-- **NEWA**, a courtesy email (TODO.md): comparisons on its public station data are published with credit (D98); part H's notes for it (the maggot pages' "BE" labels, western bean cutworm's deployed code, seedcorn maggot's °F studies read as °C·d, the cabbage maggot table's 75 % and "ends 809", the 404 More Info images).
+- **NEWA**, a courtesy email (TODO.md): comparisons on its public station data are published with credit (D98); part H's notes for it (the maggot pages' "BE" labels, western bean cutworm's deployed code, seedcorn maggot's °F studies read as °C·d, the cabbage maggot table's 75 % and "ends 809", the 404 More Info images; from the papers read 2026-11-23: its later cabbage maggot peaks are Jyoti et al.'s spring 50 % plus each flight's length rather than measured intervals, and its 40 °F base where the paper used 4 °C).
 - **Gray leaf spot** on Smith and Webster; soybean Cercospora's wind unit and tar spot's details on Webster; DON's windows on Paul's group; cotton's φ and seed treatment on Noel.
 - **Wisconsin trap data**, if UW has it: codling moth (first catch), cabbage maggot and cabbage looper (pheromone traps), the cutworms.
 - **Papers** behind library access (part H's list, with DOIs, in TODO.md).

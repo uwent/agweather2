@@ -1,12 +1,13 @@
 ---
 id: japanese-beetle
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 summary: Follows Japanese beetle adult activity through the summer from degree days since January 1, by Oregon State's model, and marks when to scout for beetles feeding, from the first beetles at about 920 degree days to the end of main activity at about 2,100.
 sources:
   - Coop and Barker, Japanese beetle degree-day model, version 2 (2024), Oregon IPM Center, Oregon State University, on USPest.org (the method and the share of beetles caught at each degree-day total)
   - Ebbenga, Hanson, Burkness and Hutchison 2022 (trap catches in Minnesota behind Oregon State's model)
   - Vittum 1986 (life history in Massachusetts; the site of Oregon State's check)
+  - Régnière, Rabb and Stinner 1981 (grub and pupa development by soil temperature, North Carolina; the base and upper limit compared)
   - Williamson, Liesch and Pandian, Japanese Beetle, UW–Madison Extension, Wisconsin Horticulture (first adults at about 1,000 degree days; compared)
   - University of Minnesota Extension, Japanese beetles in yards and gardens (feeding season and scouting)
 ---
@@ -22,7 +23,7 @@ Risk is the adults' activity, since the adults do the damage. A risk of 1 means 
 
 ## How it works
 
-The model is Oregon State University's Japanese beetle model on USPest.org (version 2, 2024). Degree days are counted from January 1 by the single-sine method, base 50 °F, with an upper limit of 92 °F. In Wisconsin few days pass 92 °F, so the limit moves the dates by a day at most.
+The model is Oregon State University's Japanese beetle model on USPest.org (version 2, 2024). Degree days are counted from January 1 by the single-sine method, base 50 °F, with an upper limit of 92 °F. A North Carolina study's development rates for overwintered grubs and pupae start at 50 °F, and the grubs' stop near 93 °F (Régnière, Rabb and Stinner 1981), close to these limits. In Wisconsin few days pass 92 °F, so the limit moves the dates by a day at most.
 
 - **The season's beetles.** Oregon State averaged adult trap catches at five Minnesota sites in 1994–1997 and 2019–2021: 10 % of the beetles were caught by about 1,100 degree days, half by 1,540, 90 % by 1,985 and 94 % by 2,110, the end of main activity. The model's curve passes through those points.
 - **The first and last beetles.** The model's first beetles come at about 920 degree days, when Oregon State suggests setting out traps. Oregon State's last beetles are trapped at about 2,700; by then nearly all the model's beetles are done.

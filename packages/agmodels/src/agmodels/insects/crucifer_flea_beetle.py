@@ -4,12 +4,14 @@
 from agmodels.phenology import ActionWindow, DerivedStage, Insect, LifeStage
 from agmodels.spec import Change, Check, Citation, TrainingArea
 
-# Kinoshita et al. 1979 (Guelph, Ontario; as UC IPM gives it): from egg to adult 455.9 °C·d above 11.0 °C (820.6 °F·d
-# above 51.8 °F; eggs 146.2, larvae 378.0, prepupae 82.3, pupae 214.2), counted on soil temperatures, a single sine.
+# Kinoshita et al. 1979 (London, Ontario, p. 1402): from egg to adult 456 °C·d above 11 °C (820.6 °F·d above 51.8 °F;
+# UC IPM splits it as eggs 146.2, larvae 378.0, prepupae 82.3, pupae 214.2, where the paper gives each stage on its own
+# threshold), tested in the field on soil temperatures at 8 cm by a single sine (Baskerville and Emin; Table IV).
 # Counted on air by the modified average 50/86 °F, the same days give 1.10 times as many degree days at Arlington,
 # 1.11 at Hancock and 1.14 at Rhinelander (May 15 to August 15, 2016–2025; the report): 820.6 × 1.11 ≈ 911
 EGG_TO_ADULT = 911
-# Egg laying: Kinoshita et al. found the females need about 61 °C·d above about 17 °C (62.6 °F) before they can lay;
+# Egg laying: Kinoshita et al. found the females need about 61 °C·d above about 17 °C (62.6 °F) before they can lay
+# (p. 1402; 64 above 16.7 °C by their regression, p. 1399);
 # from the spring peak that takes a median 361 to 372 modified degree days at the three places (the report). Here
 # laying starts 300 after each beetle becomes active and lasts 300 (a judgment: UW and UMass have eggs laid in May)
 EGG_LAYING_LAG = 300

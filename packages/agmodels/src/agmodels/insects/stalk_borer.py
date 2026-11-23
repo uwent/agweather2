@@ -1,5 +1,5 @@
-"""Stalk borer, rebuilt as caterpillars moving into corn, on Lasack and Pedigo 1986 by way of Rice and Davis 2010
-and Iowa State, with Levine 1983's degree-day method (part H, D36, D37)."""
+"""Stalk borer, rebuilt as caterpillars moving into corn, on Lasack and Pedigo 1986 and Iowa State, with Levine 1983's
+degree-day method (part H, D36, D37)."""
 
 from agmodels.phenology import ActionWindow, Insect, LifeStage
 from agmodels.spec import Change, Check, Citation, TrainingArea
@@ -17,10 +17,12 @@ INSECT = Insect(
     biofix="01-01",
     source="Lasack and Pedigo 1986",
     life_stages=(
-        # Caterpillars leaving grasses for corn (pitfall traps in Iowa: Lasack and Pedigo 1986, as Rice and Davis 2010
-        # give it): first caught at about 600 °C·d (1,080–1,110 °F·d), half at about 900 (1,620–1,650), little after
-        # 1,100 (1,980); Iowa State's table has 10 % at 1,400 and half at 1,700. This curve's 10, 50 and 99 % are
-        # 1,390, 1,652 and 2,018. One generation a year (Levine 1983); the moths fly from August to October
+        # Caterpillars leaving grasses for corn (Lasack and Pedigo 1986, p. 1702: linear pitfall traps in front of corn
+        # rows beside grassy terraces and a waterway near Baxter, Iowa, 1984 and 1985; Allen's sine above 5.1 °C from
+        # January 1 at Newton): first caught after 600 °C·d (1,080 °F·d), half after 904 in 1984 and 881 in 1985 (1,627
+        # and 1,586 °F·d), little after 1,100 (1,980); Iowa State's table has 10 % at 1,400 and half at 1,700. This
+        # curve's 10, 50 and 99 % are 1,390, 1,652 and 2,018. One generation a year (Levine 1983); the moths fly from
+        # August to October
         LifeStage(label="Caterpillars moving into corn", start=1100, peak=1670, end=2100),
     ),
     action_windows=(
@@ -33,11 +35,10 @@ INSECT = Insect(
     ),
     version="0.2",
     status="beta",
-    # Lasack and Pedigo's fields were in Iowa; the paper's years aren't in hand (published 1986, "consistent between
-    # years"): 1983–1985 is an estimate
+    # Lasack and Pedigo's two fields near Baxter, Jasper County, Iowa, sampled in 1984 and 1985 (p. 1697)
     trained=TrainingArea(
         description="pitfall trap catches of caterpillars moving from grassy areas into corn in Iowa",
-        years=(1983, 1985),
+        years=(1984, 1985),
         states=("IA",),
     ),
     changelog=(
@@ -52,7 +53,7 @@ INSECT = Insect(
         Check(
             kind="published",
             against="Caterpillars moving into corn in Iowa (Lasack and Pedigo 1986), and Iowa State's and UW–Madison's scouting guides",
-            result="10 % of the caterpillars have moved at 1,390 degree days and half at 1,652, against Iowa State's 1,400 and Lasack and Pedigo's 1,620 (1,650 in UW–Madison's guide). The scouting and spray window runs from 1,292 to 1,704 degree days, as the guides' 1,300 to 1,700. The model hasn't been compared with observations in Wisconsin.",
+            result="10 % of the caterpillars have moved at 1,390 degree days and half at 1,652, against Iowa State's 1,400 and Lasack and Pedigo's 1,627 and 1,586 in their two years (1,650 in UW–Madison's guide). The scouting and spray window runs from 1,292 to 1,704 degree days, as the guides' 1,300 to 1,700. The model hasn't been compared with observations in Wisconsin.",
             report="docs/validation/models/stalk-borer.md#against-its-sources-numbers",
         ),
     ),

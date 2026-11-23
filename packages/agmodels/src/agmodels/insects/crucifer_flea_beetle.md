@@ -1,12 +1,13 @@
 ---
 id: crucifer-flea-beetle
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 summary: Times crucifer flea beetle adults from degree days since January 1, the overwintered beetles that feed on seedlings and transplants in spring and the new adults of late summer, and marks when to scout new plantings every one to two days.
 sources:
   - Delahaut, Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087), UW–Madison Extension (the method and the spring beetles)
   - Kinoshita, Svec, Harris and McEwen 1979 (development from egg to adult and egg laying, southwestern Ontario; the summer adults' timing)
   - UMass Extension Vegetable Program, Flea Beetle Biology (the seasonal pattern in Massachusetts; compared)
+  - Ulmer and Dosdall 2006 (spring and summer emergence of adults near Lethbridge, Alberta; compared)
   - UW Vegetable Entomology's flea beetles page and University of Minnesota Extension's flea beetles page (life cycle, scouting and thresholds)
   - Midwest Vegetable Production Guide 2026 (thresholds)
 ---

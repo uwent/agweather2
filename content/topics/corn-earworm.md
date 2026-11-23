@@ -43,6 +43,9 @@ sources:
   - key: mwvg-2026
     text: 'Midwest Vegetable Production Guide 2026. Land-grant universities of Illinois, Indiana, Iowa, Kansas, Michigan, Minnesota, Missouri and Ohio, 2026.'
     url: https://mwveguide.org/guide
+  - key: coop-1993
+    text: 'Coop, L. B., B. A. Croft and R. J. Drapek. Model of Corn Earworm (Lepidoptera: Noctuidae) Development, Damage, and Crop Loss in Sweet Corn. Journal of Economic Entomology 86: 906–916, 1993.'
+    url: https://doi.org/10.1093/jee/86.3.906
   - key: agweather-cew
     text: 'AgWeather. Corn earworm model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/corn-earworm.md
@@ -92,6 +95,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [corn earworm model](/models/corn-earworm) counts degree days at a base of 55 °F with an upper limit of 92 °F from egg laying, as USPest.org's model from Hartstack and colleagues (1976) does. Eggs hatch about 73 degree days after they are laid, and the caterpillars leave the ears to pupate at about 437. The model spreads the eggs over several weeks, as moths keep arriving, and rates the risk from the caterpillars in the ears.[^agweather-cew]
+The [corn earworm model](/models/corn-earworm) counts degree days at a base of 55 °F with an upper limit of 92 °F from egg laying, as USPest.org's model from Hartstack and colleagues (1976) does. Eggs hatch about 73 degree days after they are laid, and the caterpillars leave the ears to pupate at about 437. Caterpillars reared in sweet corn ears in Oregon took about as long.[^coop-1993] The model spreads the eggs over several weeks, as moths keep arriving, and rates the risk from the caterpillars in the ears.[^agweather-cew]
 
 Without your own date, the model starts on August 15. In DATCP's pheromone trap counts from 2021 to 2026, the main flight's first week of 35 or more moths came within a week of August 15 in two thirds of the sites and years, and a median 15 days after August 1, the old start. We chose August 15 from these same counts, so they show how well it fits those years, not how it will do in others.[^datcp-cew][^agweather-cew] Because the moths' arrival depends on winds from the south, a fixed date can still be weeks off, and it misses the June flight that reaches early sweet corn.[^umn-cew][^uw-hort] When you look up a single location, set the model's start date (its biofix) to the day you first find eggs on silks or see a significant flight in your traps; maps count from August 15. Either way, keep timing sprays by your traps.[^uw-vegento]

@@ -32,11 +32,11 @@ INSECT = Insect(
     source="Simonet et al. 1981",
     life_stages=(
         # The overwintering generation's flight peaks at about 500 °C·d (900 °F·d) from January 1 in the 15-year mean
-        # of Wooster's black light catches (Simonet et al. 1981, p. 897, Fig. 3); its spread isn't given, so start and
+        # of Wooster's black light catches (Simonet et al. 1981, p. 897 and Fig. 3 on p. 896); its spread isn't given, so start and
         # end are set from DATCP's black light catches in Wisconsin, 2020–2026 (scripts/check_cutworms.py)
         LifeStage(label="Adult flight", start=200, peak=900, end=1500, weight=0),
         # Pre-oviposition 127.5 °C·d above 3.5 °C and egg 89.2 °C·d above 5.6 °C, then the larva's 386.6 °C·d above
-        # 6.2 °C (Simonet et al. 1981, pp. 895), each carried to the 7.2 °C base at a 20 °C day (99, 79 and 359 °C·d):
+        # 6.2 °C (Simonet et al. 1981, p. 895), each carried to the 7.2 °C base at a 20 °C day (99, 79 and 359 °C·d):
         # 320 °F·d from emergence to hatch, 645 °F·d of feeding. Enviroweather's events put hatch 302 after first flight
         DerivedStage(label="Larvae", follows="Adult flight", lag=320, duration=645),
     ),

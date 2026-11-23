@@ -10,7 +10,7 @@ summary: A moth whose caterpillars hatch in grassy weeds and move into the edges
 image: images/stalk-borer.jpg
 image_credit: 'A young stalk borer caterpillar on a grass stem, with the white stripes and purple band it loses as it matures. Photo by Jacy Lucier, via Wikimedia Commons (File:Papaipema nebris larvae.jpg), CC BY-SA 4.0.'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 sources:
   - key: a3646-2025
     text: 'Dewerff, R., E. Bick, P. J. Liesch, G. Nice, M. Renz, D. Smith, R. Werle and J. Kampa. Pest Management in Wisconsin Field Crops (A3646). UW–Madison Division of Extension, 2025.'
@@ -27,6 +27,9 @@ sources:
   - key: levine-1983
     text: 'Levine, E. Temperature Requirements for Development of the Stalk Borer, Papaipema nebris (Lepidoptera: Noctuidae). Annals of the Entomological Society of America 76: 892–895, 1983.'
     url: https://doi.org/10.1093/aesa/76.5.892
+  - key: lasack-pedigo-1986
+    text: 'Lasack, P. M. and L. P. Pedigo. Movement of Stalk Borer Larvae (Lepidoptera: Noctuidae) from Noncrop Areas into Corn. Journal of Economic Entomology 79: 1697–1702, 1986.'
+    url: https://doi.org/10.1093/jee/79.6.1697
   - key: rice-davis-2010
     text: 'Rice, M. E. and P. M. Davis. Stalk Borer (Lepidoptera: Noctuidae) Ecology and Integrated Pest Management in Corn. Journal of Integrated Pest Management 1: C1–C6, 2010.'
     url: https://doi.org/10.1603/IPM10006
@@ -89,4 +92,4 @@ For products, rates and current registrations, see UW–Madison's [Pest Manageme
 
 ## AgWeather's models
 
-The [stalk borer model](/models/stalk-borer) times caterpillars moving from grasses and weeds into corn, from degree days at a base of 41 °F with no upper limit counted from January 1.[^levine-1983][^agweather-sb] It follows the Iowa field study that UW–Madison's guide draws on, and Iowa State's table: the first caterpillars move at about 1,100 degree days, 10 % by about 1,390 and half by about 1,650.[^rice-davis-2010][^iowa-sb][^a3646-2025] It marks a window from about 1,300 to 1,700 degree days to scout border rows and, if needed, spray, as both guides advise.[^a3646-2025][^iowa-sb] In AgWeather's long-term averages (1996–2025), the window opens around June 19 at Arlington, June 23 at Hancock and July 1 at Rhinelander. The model hasn't been compared with observations in Wisconsin.[^agweather-sb]
+The [stalk borer model](/models/stalk-borer) times caterpillars moving from grasses and weeds into corn, from degree days at a base of 41 °F with no upper limit counted from January 1.[^levine-1983][^agweather-sb] It follows the Iowa field study that UW–Madison's guide draws on, and Iowa State's table: the first caterpillars move at about 1,100 degree days, 10 % by about 1,390 and half by about 1,650.[^lasack-pedigo-1986][^rice-davis-2010][^iowa-sb][^a3646-2025] It marks a window from about 1,300 to 1,700 degree days to scout border rows and, if needed, spray, as both guides advise.[^a3646-2025][^iowa-sb] In AgWeather's long-term averages (1996–2025), the window opens around June 19 at Arlington, June 23 at Hancock and July 1 at Rhinelander. The model hasn't been compared with observations in Wisconsin.[^agweather-sb]

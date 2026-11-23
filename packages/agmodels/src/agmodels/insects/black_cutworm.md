@@ -7,7 +7,7 @@ sources:
   - Luckmann, Shaw, Sherrod and Ruesink 1976 (development times from egg to pupa, Illinois)
   - Krupke and Obermeyer, Timing Black Cutworm Scouting, Purdue Pest&Crop, 2023, and Iowa State's Black Cutworm page (the stage table and the biofix)
   - Wisconsin DATCP black cutworm pheromone trap network, 2021–2023 and 2026 (the default capture date)
-  - Story, Keaster, Showers and Shaw 1984 (cutworms in Midwest corn fields)
+  - Story, Keaster, Showers and Shaw 1984 (cutworms in Midwest corn fields), and Kaster and Showers 1984 (black cutworm development outdoors in Iowa; compared)
   - UW–Madison, Pest Management in Wisconsin Field Crops (A3646), 2025, and UW Vegetable Entomology's cutworms page (scouting and thresholds)
 ---
 
@@ -47,6 +47,6 @@ The [black cutworm topic page](/topics/black-cutworm) explains the insect, its s
 - The first caterpillars hatch and reach cutting size where Purdue's and Iowa State's stage table puts them (about 90 and 312 degree days after the capture). Cutting lasts longer in the model than in that table, which has the caterpillars pupating from about 641. The model follows the laboratory study's time to pupation, about 90 degree days later, and spreads egg laying over the weeks after the capture rather than starting every egg on the capture day.
 - May 1 was the median date of the first week with nine or more moths in 129 trap-years and fell within a week of that week in 60 of them. Because the date was fitted to those same traps, that shows how well it fits them, not a test on new years. The traps are read weekly, so a week with nine moths is an approximation of DATCP's two-night count.
 - The spread of egg laying after the capture is our estimate from catches of male moths in pheromone traps, not a measurement of egg laying.
-- In several fields in Missouri, Illinois and Iowa, black cutworm caterpillars were much further along than laboratory development times predict (Story and others, 1984), perhaps because the temperatures where the caterpillars live differ from the air temperatures used to count degree days. Treat the model's dates as a guide to when to scout, not as a forecast of what you will find.
+- In several fields in Missouri, Illinois and Iowa, black cutworm caterpillars were much further along than laboratory development times predict (Story and others, 1984). Caterpillars reared outdoors in Iowa grew faster than in the laboratory's constant temperatures: they reached the fourth instar about a day sooner and pupated about 115 degree days sooner (Kaster and Showers, 1984). On those times, cutting would end about five or six days earlier in June than the model shows. Treat the model's dates as a guide to when to scout, not as a forecast of what you will find.
 - The model hasn't been compared with reports of cutting in Wisconsin fields.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

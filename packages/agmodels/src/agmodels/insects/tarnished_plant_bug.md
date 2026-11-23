@@ -5,6 +5,7 @@ updated: 2026-11-23
 summary: Retired. No study times the tarnished plant bug's spring generation by degree days, so the model's generations had no supported start.
 sources:
   - Ugine 2012 (development of Lygus lineolaris at constant temperatures; the nymphs, adults and generation time)
+  - Fleischer and Gaylor 1988 (nymphal development of Lygus lineolaris on weeds and cotton in Alabama; compared, and no spring timing)
   - Groves, vegetable insect update, UW–Madison Vegetable Pathology's crop updates, June 5, 2021 (the base of 52 °F, 275 degree days for the spring nymphs, and the sweep threshold for potatoes and snap beans)
   - Simko 2000, lygus bug model for alfalfa grown for seed in eastern Oregon and southwestern Idaho, on USPest.org (the single-sine method from January 1, and the same 275, probably its source)
   - van Zoeren and Guédot, Tarnished plant bug – a strawberry menace, UW–Madison Fruit Program, 2018 (spring nymphs; generations; scouting)

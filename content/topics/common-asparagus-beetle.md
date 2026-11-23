@@ -9,7 +9,7 @@ summary: A small blue-black and cream leaf beetle that feeds on asparagus spears
 image: images/common-asparagus-beetle.jpg
 image_credit: 'Common asparagus beetle on an asparagus fern in Madison, Wisconsin. Photo by Mike Gibson, via iNaturalist (observation 309573295), CC BY-NC 4.0 (https://creativecommons.org/licenses/by-nc/4.0/); resized.'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Asparagus Beetle. Updated 2026.'
@@ -29,6 +29,9 @@ sources:
   - key: mwvg-2026
     text: 'Midwest Vegetable Production Guide for Commercial Growers 2026. Land-grant universities of Illinois, Indiana, Iowa, Kansas, Michigan, Minnesota, Missouri and Ohio, 2026.'
     url: https://mwveguide.org/guide
+  - key: taylor-harcourt-1978
+    text: 'Taylor, R. G. and D. G. Harcourt. Effects of temperature on developmental rate of the immature stages of Crioceris asparagi (Coleoptera: Chrysomelidae). The Canadian Entomologist 110: 57–62, 1978.'
+    url: https://doi.org/10.4039/Ent11057-1
   - key: agweather-common-asparagus-beetle
     text: 'AgWeather. Common asparagus beetle model: validation report. UW–Madison, 2026.'
     url: https://github.com/uwent/agweather2/blob/main/docs/validation/models/common-asparagus-beetle.md
@@ -79,6 +82,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [common asparagus beetle model](/models/common-asparagus-beetle) counts degree days from January 1 by UW–Madison's method (base 50 °F, upper limit 86 °F). It follows the overwintered beetles feeding and laying eggs on spears, with 10 % active at about 150 degree days and half at about 240, the span UW–Madison's degree-day table gives for egg laying.[^uw-degree-days] Larvae follow the eggs, and new generations of beetles follow about every 600 degree days, up to three in a season. The egg's week and the time between generations are our estimates from UW–Madison's development times in days, and the larvae's feeding time is a placeholder somewhat longer than UW–Madison's two weeks; none comes from a degree-day study.[^uw-hort][^agweather-common-asparagus-beetle] Both beetles and larvae count in the model's risk: beetles scar spears and their eggs make spears unmarketable during harvest, and larvae feed on spears and ferns.
+The [common asparagus beetle model](/models/common-asparagus-beetle) counts degree days from January 1 by UW–Madison's method (base 50 °F, upper limit 86 °F). It follows the overwintered beetles feeding and laying eggs on spears, with 10 % active at about 150 degree days and half at about 240, the span UW–Madison's degree-day table gives for egg laying.[^uw-degree-days] Eggs hatch about 100 degree days after they're laid and the larvae feed for about 300, as a laboratory study in Ottawa found. New generations of beetles follow about every 600 degree days, up to three in a season, which agrees with the same study's development from egg to adult and its field counts near Ottawa.[^taylor-harcourt-1978][^agweather-common-asparagus-beetle] Both beetles and larvae count in the model's risk: beetles scar spears and their eggs make spears unmarketable during harvest, and larvae feed on spears and ferns.
 
 We worked out what the model means on the calendar from AgWeather's long-term averages (degree days for 1996 to 2025): in an average year the beetles become active around April 28 at Arlington and May 8 at Rhinelander, and half are out by May 10 and May 20, in line with UW–Madison's and Commercial Vegetable Production in Wisconsin's April to early May.[^uw-hort][^a3422-2026] The second generation's beetles peak in late June, and the third in late July to early August. The model hasn't been compared with field counts. Scout the spears from emergence, and the ferns all summer, whatever the model shows.

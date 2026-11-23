@@ -7,7 +7,8 @@ from agmodels.spec import Change, Check, Citation, TrainingArea
 # USPest.org's cabbage looper events (degree days, °F, single sine 50/90, from the first catch): 120 first egg laying,
 # 218 first hatch, 325 small larvae, 428 first fourth instar, 520 large larvae, 638 first pupae, 750 last large larvae,
 # 912 first adults. So the egg takes 98, the larva 420 (hatch to pupation), and a generation 912 from egg laying to the
-# next egg laying: Toba et al. 1973's 791.5 from egg to adult plus the 120 before laying
+# next egg laying: 791.5 from egg to adult plus the 120 before laying. The 98, 518 (to pupation) and 791.5 are Toba et
+# al. 1973's Table 1 days at 16.6, 21.0 and 27.2 °C times (T − 10 °C) × 1.8, averaged; the paper gives no degree days
 FIRST_EGGS = 120
 EGG = 218 - FIRST_EGGS
 LARVA = 638 - 218
@@ -17,8 +18,8 @@ INSECT = Insect(
     id="cabbage-looper",
     name="Cabbage looper",
     crops=("celery", "cole-crops", "hops", "leafy-greens", "melon", "mint", "pea", "potato", "tomato"),
-    # USPest.org's method: single sine, 50/90 °F (Toba et al. 1973: no development at 7.2 °C, 45 °F; few normal adults
-    # below 12.7 °C, 55 °F). Both thresholds are stored. NEWA runs no looper model
+    # USPest.org's method: single sine, 50/90 °F (Toba et al. 1973: no development at 7.3 °C, 45 °F; no adults from
+    # 10.0 °C and nearly all deformed at 12.7 °C, 55 °F). Both thresholds are stored. NEWA runs no looper model
     base_f=50,
     upper_f=90,
     # The moths migrate from the south each year, so the biofix is the first moth caught in a pheromone trap

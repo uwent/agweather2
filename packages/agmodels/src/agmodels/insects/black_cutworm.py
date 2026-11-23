@@ -5,7 +5,10 @@ from agmodels.phenology import ActionWindow, DerivedStage, Insect, LifeStage
 from agmodels.spec import Change, Check, Citation, TrainingArea
 
 # Luckmann et al. 1976, Table 2: median °C·d above 10.4 °C from oviposition to hatch 52, to the third molt (the
-# start of the fourth instar, when caterpillars can cut) 170, to pupation 405; × 1.8 for °F·d
+# start of the fourth instar, when caterpillars can cut) 170, to pupation 405; × 1.8 for °F·d. Constant temperatures
+# in the laboratory: Kaster and Showers 1984 (Table 1) reared larvae outdoors in weather shelters at Ankeny, Iowa, and
+# found them faster, the fourth instar 106 °C·d after hatch (here 118) and pupation 288 in spring (here 353), which
+# would put cutting's start ~22 °F·d and its end ~115 °F·d sooner (the report's limits; not adopted)
 HATCH_F = 94
 FOURTH_INSTAR_F = 306
 PUPATION_F = 729
@@ -33,7 +36,8 @@ INSECT = Insect(
     # 1976's threshold is 10.44 °C (50.8 °F): counting from 50 °F instead adds about 40 °F·d over May and June and
     # puts cutting's start 1–2 days earlier and its end 2–3 days earlier on the archive (Arlington and Rhinelander,
     # 2016–2025), less than the weekly trap dates resolve, and 50.8 would need a running total of its own. Their
-    # rates are linear from 18 to 30 °C, so the 86 °F cutoff is kept
+    # rates are linear from 18 to 30 °C, so the 86 °F cutoff is kept. Air temperature, not soil: Kaster and Showers 1984
+    # found the two gave much the same predictions
     base_f=50,
     upper_f=86,
     # The biofix is a significant moth capture (Iowa State, Minnesota: 8 or more moths in a pheromone trap over two

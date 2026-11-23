@@ -16,11 +16,11 @@ Part H (`docs/plans/models.md`) rebuilt every insect still on a legacy definitio
 | `cabbage-maggot` | 0.3 | simple average 40, no upper, Jan 1 | curves, every 850 (3 at most); weights 1, 0.5 | NEWA (Jyoti, Shelton and Barnard 2003) |
 | `codling-moth` | 0.1 | single sine 50/86, first catch (estimated) | curves, every 1084 (2) | WSU (Jones et al.) |
 | `colorado-potato-beetle` | 0.3 | single sine 52/86, Jan 1 | fitted curves, two clocks | Bradford and Groves (scouting) |
-| `common-asparagus-beetle` | 0.2 | modified 50/86, Jan 1 | curves, every 600 (3) | UW's degree-day table (Delahaut); judgments |
+| `common-asparagus-beetle` | 0.2 | modified 50/86, Jan 1 | curves, every 600 (3) | UW's degree-day table (Delahaut), whose egg, larvae and generation are Taylor and Harcourt 1978's sums |
 | `corn-earworm` | 0.2 | single sine 55/92, egg laying (default Aug 15) | curves | Hartstack et al. 1976 via USPest; DATCP's pheromone traps |
-| `corn-rootworm` | 0.2 | single sine 52, no upper, Jan 1 | curves | Apple, Walgenbach and Knee 1971 |
+| `corn-rootworm` | 0.2 | single sine 52, no upper, Jan 1 | curves | Apple, Walgenbach and Knee 1971; Chiang and Sisson 1968 |
 | `crucifer-flea-beetle` | 0.2 | modified 50/86, Jan 1 | curves, every 1350 (2) | UW's table; Kinoshita et al. 1979 |
-| `european-corn-borer` | 0.3 | modified 50/86, Jan 1 | curves, every 1100 (2); one flight where the normal by August 1 is below 1,500 | UW's degree-day table (Apple 1952 lineage) |
+| `european-corn-borer` | 0.3 | modified 50/86, Jan 1 | curves, every 1100 (2); one flight where the normal by August 1 is below 1,500 | UW's degree-day table (not Apple 1952's numbers, which run 1–3 weeks later; read 2026-11-23) |
 | `green-peach-aphid` | 0.1 | single sine 39.2/86, Jan 1 | fitted curve, calendar by default | Bradford and Groves (suction traps) |
 | `imported-cabbageworm` | 0.3 | modified 50/86, Jan 1 | curves, every 840; weights 0.5, 1, 0.5 | UW's degree-day table; Tatchell 1981 |
 | `japanese-beetle` | 0.2 | single sine 50/92, Jan 1 | curve | USPest `jpb` version 2 (Minnesota traps) |
@@ -55,7 +55,7 @@ Part H (`docs/plans/models.md`) rebuilt every insect still on a legacy definitio
 | Aphid PVY vectors | 39.2/86, Jan 1, (1838, 2515, 3228) | Bradford & Groves, unpublished analysis (cited) | as fitted | Ben: method used in the fit |
 | Black cutworm | 50/86, May 15, (300, 700, 1000) | USPest `bcw` (UC Davis; MSU events); Luckmann et al. 1976; Story et al. 1984 | Sine 50/86 °F; **biofix: peak pheromone-trap captures** | 🔎 |
 | Cabbage looper | 50/90, May 15, 2 gens 790 apart | USPest `cbl` from Toba et al. 1973 | Sine 50/90 °F; **biofix: first pheromone-trap catch** | 🔎 |
-| Cabbage maggot | 42.8/86, Jan 1, 2 gens | USPest `cm1` (OSU cards, UC Extension); Eckenrode & Chapman 1971, 1972 (WI) | USPest: sine 39.7/86 °F; Wisconsin: **modified max-min**, 43 °F | 🔎 which one? |
+| Cabbage maggot | 42.8/86, Jan 1, 2 gens | USPest `cm1` (OSU cards, UC Extension); Eckenrode & Chapman 1971, 1972 (WI) | USPest: sine 39.7/86 °F; Wisconsin: max–min with Arnold's correction, 43 °F (Eckenrode and Chapman 1972); Jyoti et al. 2003: simple average 4 °C from Jan 1 | read 2026-11-23 |
 | Colorado potato beetle | 52/86, Jan 1, the analysis's GAM fits (0.2, 2026-11-18) | Bradford & Groves, unpublished: Pest Pros scouting 2014–2025 | as fitted | settled (Ben, 2026-11-18) |
 | CPB adults / larvae (VDIFN) | retired 2026-11-18: outputs of `colorado-potato-beetle` | | | |
 | Common asparagus beetle | 50/86, Jan 1, (105, 250, 405) | Spreadsheet links only UW vegento; Taylor & Harcourt 1978 | lab rates | 🔎 |
@@ -67,7 +67,7 @@ Part H (`docs/plans/models.md`) rebuilt every insect still on a legacy definitio
 | Japanese beetle | 50/none, Jan 1, (970, 1600, 2150) | USPest `jpb` (OSU analysis of lab and field studies); Régnière et al. 1981 | Sine **50/92** °F (spreadsheet 50/100) | 🔎 |
 | Mint flea beetle | 41/none, Jan 1, (1475, 1675, 1880) | USPest `mfb` from Berry et al. (OSU) | Sine 41/103 °F | ❓ paper |
 | Mint root borer | 50/none, Apr 1, (430, 1280, 2150) | USPest `mrb` from Berry et al. (OSU); Tollerup et al. 2013 | Sine 50 °F | ❓ paper |
-| Onion maggot | 39.2/86, Jan 1, 2 gens | Spreadsheet: "XHT1087" (unknown), 40/86; Eckenrode et al. 1975; Liu et al. 1982 | Liu: sine 4.4 °C (39.9 °F) | 🔎 |
+| Onion maggot | 39.2/86, Jan 1, 2 gens | Spreadsheet: "XHT1087" (unknown), 40/86; Eckenrode et al. 1975; Liu et al. 1982 | Liu: Allen's sine above 4 °C (39.2 °F); 4.38 °C is the laboratory threshold | read 2026-11-23 |
 | Spotted wing drosophila | 45/86, Jan 1, (1276, 3180, 4000) | Kamiyama et al. 2020 (VDIFN's link); Tochen et al. 2014 | see paper | 🔎 (open access) |
 | Squash vine borer | 50/none, Jan 1, (750, 900, 1000) | Spreadsheet links only UW vegento | ? | ❓ |
 | Stalk borer | 41/86, Jan 1, (1110, 1400, 1700) | Old UW AgWeather thermal model; Levine 1983 | 5 °C | 🔎 |
@@ -153,7 +153,7 @@ Ordered roughly by how many insects they unblock and how far the current model m
 
 ## Notes by insect
 
-- **Cabbage maggot:** the Wisconsin source uses the **modified max-min** method at 43 °F. It puts first spring emergence at 300 FDD and adult to adult at 1,176 FDD. VDIFN's second generation starts 1,521 after its first, so its interval is longer than the source's.
+- **Cabbage maggot:** the Wisconsin source uses max–min with Arnold's correction at 43 °F; its generations ran 1,032–1,354 (mean 1,176 over 12 intervals). It puts first spring emergence at 300 FDD and adult to adult at 1,176 FDD. VDIFN's second generation starts 1,521 after its first, so its interval is longer than the source's.
 - **Cabbage looper:** VDIFN's thresholds (50/90) and generation spacing (790) match Toba et al.'s egg-to-adult time (791.5 FDD). Its biofix (May 15) needs a source, since loopers migrate north.
 - **Black cutworm:** the sources' threshold is 10.4 °C (50.7 °F), and the biofix should be a significant moth capture, not May 15. Story et al. found larvae in the field "far ahead" of lab-based predictions.
 - **Variegated cutworm:** VDIFN's 900 is Simonet's first flight; the field adult-to-adult time is 1,260.

@@ -5,12 +5,16 @@ from agmodels.phenology import ActionWindow, DerivedStage, Insect, LifeStage
 from agmodels.spec import Change, Check, Citation, TrainingArea
 
 # Larvae feed for about three weeks (UW Vegetable Entomology; A3646): about 350 degree days above 52 °F at the normal
-# rate from mid-June to mid-July (15 to 19 a day at Arlington, 12 to 16 at Rhinelander; the report). A judgment
+# rate from mid-June to mid-July (15 to 19 a day at Arlington, 12 to 16 at Rhinelander; the report). A judgment, and
+# short of Jackson and Elliott 1988's western corn rootworm larvae on fresh corn seedlings at constant temperatures:
+# their three instars (Table 1) come to 371–478 degree days above 52 °F at 18–27 °C (the report)
 LARVAE = 350
 # Hatch to beetle: UW–Madison's table (Delahaut, XHT1087) has adult beetles at 1,300 DD50 (modified average, 50/86 °F,
 # from January 1), which the 1996–2025 normals reach on the days they reach 1,054 to 1,094 here (Arlington, Hancock,
 # Rhinelander; the report). Taken as half the beetles out at about 1,075: 542 after half the eggs have hatched (533).
-# What's left after the larvae, about 190 (11 days in July), is the pupa in its soil cell
+# What's left after the larvae, about 190 (11 days in July), is the pupa in its soil cell (Jackson and Elliott 1988:
+# 167–195 at 18–27 °C). Davis, Brenes and Allee 1996's New York cages had half the beetles out at about 1,330–1,380
+# air degree days above 11 °C (52 °F) from January 1, later than this (the report)
 HATCH_TO_BEETLE = 542
 # Beetles live and feed for weeks; 700 (about six weeks in July and August) is a judgment
 BEETLES = 700
@@ -20,20 +24,22 @@ INSECT = Insect(
     name="Corn rootworm",
     crops=("corn", "sweet-corn"),
     # Apple, Walgenbach and Knee 1971's threshold: 52 °F (11.1 °C), from egg hatch's development rates (51.2 °F for
-    # first hatch, 52.6 for median). The abstract doesn't say how their air degree days were computed or from what date;
-    # single sine from January 1, with no upper threshold, is our choice (UC IPM's recommendation for the model). Little
-    # accumulates above 52 °F before April, so the start date matters little
+    # first hatch, 52.6 for median, averaging 51.9: "essentially" Chiang and Sisson 1968's 52; p. 855). Their field
+    # totals came from official air temperatures a mile from the plot, by a method they don't state, and Table 3 seems
+    # to count from the eggs' burial on April 15; single sine from January 1, with no upper threshold, is our choice
+    # (UC IPM's recommendation for the model). Little accumulates above 52 °F before mid-April (47 on Arlington's normal
+    # by April 15), so the start date matters little
     base_f=52,
     upper_f=None,
     biofix="01-01",
     ported_from="VDIFN",
     source="Apple, Walgenbach and Knee 1971",
     life_stages=(
-        # Northern corn rootworm eggs from Wisconsin soil (Apple et al. 1971): first hatch at 304 and median at 530
-        # degree days above 52 °F at constant temperatures in the laboratory; eggs buried 2 inches deep in the field
-        # reached median hatch on June 13, 1970, when air temperatures had given 533. This curve starts at 300 and is
-        # half hatched at 533; its end (1,000) is a judgment, spreading hatch over about four weeks (Iowa State: hatch
-        # begins from mid-May to early June and lasts about a month on average, 29 to 32 days)
+        # Northern corn rootworm eggs from south-central Wisconsin soil (Apple et al. 1971, Table 2): first hatch at 304
+        # and median at 530 degree days above 52 °F at constant temperatures in the laboratory. Eggs buried 2 inches
+        # deep in a bare field plot in 1970 (Table 3) had 37 % hatched at 483 air degree days, half on June 13 (533),
+        # 81 % at 651, 95 % at 832 and all at 998, with first hatch in late May at about 300. This curve starts at 300,
+        # is half hatched at 533 and ends at 1,000 (35, 79, 98 and 100 % at 483, 651, 832 and 998)
         LifeStage(label="Egg hatch", start=300, peak=495, end=1000, weight=0),
         # The larvae feed on roots from hatch to pupation: the crop's risk
         DerivedStage(label="Larvae feeding on roots", follows="Egg hatch", lag=0, duration=LARVAE),
@@ -66,8 +72,14 @@ INSECT = Insect(
         Check(
             kind="published",
             against="Northern corn rootworm egg hatch in Wisconsin (Apple, Walgenbach and Knee 1971)",
-            result="Half the eggs have hatched at 533 degree days above 52 °F, the air temperature total on the day buried eggs reached median hatch in 1970, and hatch begins at 300, against the 304 measured in the laboratory.",
+            result="Half the eggs have hatched at 533 degree days above 52 °F, the air temperature total on the day buried eggs reached median hatch in 1970, and hatch begins at 300, against the 304 measured in the laboratory. Those buried eggs had 37 % hatched at 483 degree days, 81 % at 651 and 95 % at 832; the model has 35, 79 and 98 %.",
             report="docs/validation/models/corn-rootworm.md#against-its-sources-numbers",
+        ),
+        Check(
+            kind="observations",
+            against="Corn rootworm larvae and beetles in 11 New York cornfields, 1991–1993 (Davis, Brenes and Allee 1996)",
+            result="Half the northern corn rootworm beetles had emerged at about 1,328 degree days above 52 °F and half the western at 1,381, against the model's 1,075, and half the pupae were found at 1,148, when the model has half the larvae done feeding at 885. On Arlington's normals the model's beetles come about 13 days before those fields' totals; the model wasn't changed to match them.",
+            report="docs/validation/models/corn-rootworm.md#against-larvae-and-beetles-in-new-york-fields",
         ),
         Check(
             kind="published",
@@ -80,6 +92,10 @@ INSECT = Insect(
         Citation(
             text="Apple, J. W., Walgenbach, E. T. and Knee, W. J. (1971). Thermal requirements for northern corn rootworm egg hatch. Journal of Economic Entomology 64, 853–856.",
             doi="10.1093/jee/64.4.853",
+        ),
+        Citation(
+            text="Chiang, H. C. and Sisson, V. (1968). Temperature relationships of the development of northern corn rootworm eggs. Journal of Economic Entomology 61, 1406–1410.",
+            doi="10.1093/jee/61.5.1406",
         ),
         Citation(
             text="UC IPM, University of California: northern corn rootworm degree-day models (Apple, Walgenbach and Knee 1971 and others).",

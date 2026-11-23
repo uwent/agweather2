@@ -5,9 +5,9 @@ updated: 2026-11-23
 summary: Times cabbage maggot fly flights and the root feeding that follows from degree days since January 1, by NEWA's model, and marks when to have seedlings and transplants protected during each flight.
 sources:
   - NEWA's cabbage maggot model, Cornell University (the method, the spring flight and the later flights' timing)
-  - Jyoti, Shelton and Barnard 2003 (spring emergence and four generations, upstate New York; NEWA's source)
+  - Jyoti, Shelton and Barnard 2003 (spring emergence and four generations, upstate New York; NEWA's source; its flight peaks compared)
   - Eckenrode and Chapman 1971 (development in the laboratory; the timing of egg laying and larvae)
-  - Eckenrode and Chapman 1972 (fly trap catches at Kenosha and Arlington, Wisconsin; compared)
+  - Eckenrode and Chapman 1972 (fly trap catches and radish damage at Kenosha and Arlington, Wisconsin; compared)
   - Lowenstein and Groves, Cabbage Maggot, UW–Madison Division of Extension, and UW Vegetable Entomology's cabbage maggot page (flights in Wisconsin; management)
   - Commercial Vegetable Production in Wisconsin (A3422), 2026 (generations; soil treatments)
 ---
@@ -46,7 +46,7 @@ The [cabbage maggot topic page](/topics/cabbage-maggot) explains the insect, its
 
 - Draft (model version 0.3, beta). Developed from trap catches in upstate New York in 1999 and 2000.
 - On the same weather at 34 Wisconsin NEWA stations in 2024 and 2025, the model's first flies and flight peaks fall within a day or two of NEWA's.
-- **Wisconsin's own study agrees on spring but not on summer.** In Eckenrode and Chapman's trap catches at Kenosha and Arlington (1965 to 1969), spring flies first emerged on about the same days as the model's first flies, or up to about 9 days later. But their generations took about half again as long as NEWA's, which would put the first summer flight about two weeks later than the model shows and later flights later still. So Wisconsin's summer flights may come later than the model shows. The model follows NEWA's generation time, and no Wisconsin trap counts are yet in hand to decide between them; it stops at the three flights they found.
-- The summer flights' half weight in the risk is our judgment of the sources' statement that the spring flight does most of the damage.
+- **Wisconsin's own study agrees on spring but not on summer.** In Eckenrode and Chapman's trap catches at Kenosha and Arlington (1965 to 1969), spring flies first emerged on about the same days as the model's first flies, or up to about 9 days later. But their generations took about half again as long as NEWA's, which would put the first summer flight about two weeks later than the model shows and later flights later still. The New York study behind NEWA's model points the same way: its own trap counts put the first summer flight's peak about 1,100 to 1,300 degree days after the spring peak, not the 850 NEWA uses, and NEWA's later peaks came 10 to 29 days before the trapped ones in those years. So Wisconsin's summer flights may come later than the model shows. The model follows NEWA's generation time for now; Wisconsin trap counts would settle it. It stops at the three flights Eckenrode and Chapman found.
+- The summer flights' half weight in the risk is our judgment. In New York's traps the first summer flight was about as large as the spring flight and later ones a fifth to two-fifths of it or less; in Wisconsin's radish plantings, summer damage was a few percent to about a quarter of spring's.
 - The timing of egg laying and larvae comes from laboratory development times, not from field observations.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

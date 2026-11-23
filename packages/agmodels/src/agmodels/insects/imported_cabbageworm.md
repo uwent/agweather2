@@ -5,7 +5,8 @@ updated: 2026-11-23
 summary: Times the cabbage white butterfly's flights, egg laying and imported cabbageworm caterpillar feeding from degree days since January 1, for each generation through the season, and marks when to scout for eggs and young caterpillars.
 sources:
   - Delahaut, Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087), UW–Madison Extension (the method and the spring flight)
-  - Tatchell 1981 (caterpillar development by temperature, in the laboratory; as UC IPM's model database gives it)
+  - Tatchell 1981 (caterpillar development by temperature, in the laboratory in England)
+  - Nealis, Jones and Wellington 1984 (egg, caterpillar and chrysalis development by temperature, in the laboratory in Vancouver and Canberra; compared)
   - Liesch and Groves, Imported Cabbageworm, UW–Madison Division of Extension, and UW Vegetable Entomology's imported cabbageworm page (development times, flights and generations in Wisconsin)
   - iNaturalist records of cabbage white butterflies in Wisconsin, 2016–2026 (the timing of later flights; compared)
   - Commercial Vegetable Production in Wisconsin (A3422), 2026 (scouting and thresholds)
@@ -47,7 +48,7 @@ The [imported cabbageworm topic page](/topics/imported-cabbageworm) explains the
 - Draft (model version 0.3, beta). The spring flight comes from UW–Madison's degree-day table for Wisconsin; caterpillar development was measured in the laboratory in England.
 - **Butterflies in Wisconsin.** On the same degree days, iNaturalist records of cabbage white butterflies in Wisconsin (2016 to 2026, corrected for how many people were looking) put the middle of the spring flight at 234 degree days, against the model's 239. The time between later flights was set from the same records, so their agreement there isn't an independent test.
 - **The second flight may come earlier than UW–Madison describes.** In an average year the model's second flight comes in early July in southern Wisconsin, a week or two before UW's mid-July; the iNaturalist records agree with the model.
-- **Some steps are estimates.** UW–Madison's table doesn't say which part of the flight its 150 to 240 degree days cover, and the timing of egg laying, the egg and the chrysalis comes from development times in days, converted to degree days.
+- **Some steps are estimates.** UW–Madison's table doesn't say which part of the flight its 150 to 240 degree days cover, and the timing of egg laying, the egg and the chrysalis comes from development times in days, converted to degree days. Laboratory measurements in Vancouver (Nealis and others, 1984) put the egg and caterpillar together at about 390 degree days and the chrysalis at about 195, a little faster than the model's steps.
 - The half weight of the first and third generations in the risk is our judgment of UW–Madison's statement that the second does the most damage; the source doesn't say by how much. Spring caterpillars can still need control.
 - The model hasn't been compared with counts of caterpillars in fields.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

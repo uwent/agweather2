@@ -5,8 +5,8 @@ updated: 2026-11-23
 summary: Times each generation's adult flight and the larval feeding that follows from degree days since January 1, and marks the windows when planting a susceptible crop is most likely to be hit.
 sources:
   - Sanborn, Wyman and Chapman 1982 (development times by stage)
-  - Funderburk, Higley and Pedigo 1984 (field flight peaks, Iowa and Wisconsin)
-  - Throne and Eckenrode 1985 (emergence patterns, New York)
+  - Funderburk, Higley and Pedigo 1984 (field flight peaks and sizes, Iowa and Wisconsin)
+  - Throne and Eckenrode 1985 (emergence patterns and flight peaks, New York)
   - Olaya-Arenas et al. 2024 and Cho et al. 2025 (first emergence, New York)
   - NEWA's seedcorn maggot model, Cornell University (compared)
   - UW Vegetable Entomology, seedcorn maggot (vegento.russell.wisc.edu, 2026)
@@ -37,7 +37,8 @@ The model counts degree days from January 1 by the method its sources use: the d
 
 - Plan plantings of susceptible crops (beans, peas, sweet corn, cucurbits, onions and others) outside the **avoid planting** windows where you can, especially in fields with fresh manure, an incorporated cover crop or green manure, or heavy weeds.
 - If planting during a window can't be avoided, that's when an insecticide seed treatment earns its keep, and when shallow planting into warm soil (faster emergence) helps most.
-- The over-wintered flight and the spring generation's maggots carry the most risk, since spring plantings take the damage. Summer generations count a quarter as much in the risk, our judgment of the sources' finding that the summer generation mostly rests through the heat in Iowa; their windows still show when flies are active, for late plantings.
+- The over-wintered flight and the spring generation's maggots carry the most risk, since spring plantings take the damage. Later generations count a quarter as much in the risk, our judgment of the finding that few flies were caught after mid-June in Iowa, where the summer generation mostly rests through the heat; their windows still show when flies are active, for late plantings.
+- **Treat the June window like the first.** In Iowa and New York the year's largest flight came in early to mid-June, from the offspring of the spring flies, and the model counts it at a quarter. Plantings delayed into late May or June are exposed to it.
 
 ## Validation and caveats
 

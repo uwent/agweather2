@@ -4,10 +4,6 @@ Things only you can do, by phase. Where things stand and why: [PLAN.md](PLAN.md)
 
 ## Phase 3: Model library (the insects now wait on `docs/plans/models.md` part H)
 
-- [ ] **Two insect papers still missing** from `tmp/references/insects/` (the rest of D8 step 4's list arrived 2026-11-17):
-  - Eckenrode and Chapman 1971, cabbage maggot lab development, [10.1093/aesa/64.5.1079](https://doi.org/10.1093/aesa/64.5.1079)
-  - Harcourt 1981, alfalfa weevil (USPest's source), [10.4039/Ent113601-7](https://doi.org/10.4039/Ent113601-7)
-  - The rest (asparagus beetle, corn rootworm, crucifer flea beetle, Lygus, SWD lab data) are under "Papers to find" in [docs/insect-models.md](docs/insect-models.md).
 - [ ] **Reports with no DOI** (cited by USPest; probably Oregon State or USDA reports): Coop 1987 (a thesis; see part H's papers below); Berry et al. (mint flea beetle and mint root borer); Simko 2000 (Lygus in alfalfa seed); Hartstack et al. 1976 (MOTHZV-2, corn earworm).
 - [ ] **Questions on the insects** (answers go in `docs/insect-models.md`):
   - What is "XHT1087", the spreadsheet's source for imported cabbageworm and onion maggot?
@@ -42,38 +38,14 @@ Things only you can do, by phase. Where things stand and why: [PLAN.md](PLAN.md)
 
 - [ ] **Rebuild the models' stored inputs on the dev archive** (2026-11-19): white mold 0.2 dropped one, DON 0.2 added one, and other models changed today; `uv run app/manage.py ingredients --check` lists 19 stale per year (2016–2026). Run `uv run app/manage.py ingredients --background` when the machine is free (maps of those models read the stale ones until then).
 - [ ] **Part H round 2, for your eye** (D103): the generation weights are judgments, especially the looper's (0.5, 1, 0.5): north of Arlington its second generation doesn't arrive before October 15 on the normals, so the weights halve the season's only caterpillar peak there (cabbage looper's report, "What the weights change"). Corn borer trap counts in the north near the 1,500 bound (Shawano, the Lake Michigan shore: Manitowoc goes one-flight on 2 moths in 4 years) would test it.
-- [ ] **Part H's papers** (decisions answered 2026-11-23). Into `tmp/references/insects/`; DOIs checked on Crossref and resolved at doi.org on 2026-11-23. Wisconsin trap or scouting counts for cabbage maggot, cabbage looper or cabbageworm would also test the rebuilt models.
-  - **First (they'd change a model):**
-    - Apple 1952, European corn borer and temperature on canning corn (corn borer's `trained` years rest on it), *J. Econ. Entomol.* 45: 877–879, [10.1093/jee/45.5.877](https://doi.org/10.1093/jee/45.5.877)
-    - Hoard and Weiss 1995, corn borer's postdiapause development and voltinism in North Dakota (the univoltine north), *Environ. Entomol.* 24: 564–570, [10.1093/ee/24.3.564](https://doi.org/10.1093/ee/24.3.564)
-    - Showers et al. 1975, ecotypes of the European corn borer in North America, *Environ. Entomol.* 4: 753–760, [10.1093/ee/4.5.753](https://doi.org/10.1093/ee/4.5.753)
-    - Nealis, Jones and Wellington 1984, temperature and development, *Pieris rapae* and its parasitoid (would replace cabbageworm's judgments), *Oecologia* 61: 224–229, [10.1007/BF00396765](https://doi.org/10.1007/BF00396765)
-    - Apple, Walgenbach and Knee 1971, northern corn rootworm egg hatch, *J. Econ. Entomol.* 64: 853–856, [10.1093/jee/64.4.853](https://doi.org/10.1093/jee/64.4.853)
-    - Eckenrode and Chapman 1972, cabbage maggot flights and thermal units in Wisconsin, *Ann. Entomol. Soc. Am.* 65: 151–156, [10.1093/aesa/65.1.151](https://doi.org/10.1093/aesa/65.1.151)
-    - Jyoti, Shelton and Barnard 2003, cabbage maggot emergence models in New York (NEWA's table), *J. Entomol. Sci.* 38: 525–532, [10.18474/0749-8004-38.4.525](https://doi.org/10.18474/0749-8004-38.4.525)
-  - **Then:**
-    - Chiang and Sisson 1968, northern corn rootworm eggs and temperature, *J. Econ. Entomol.* 61: 1406–1410, [10.1093/jee/61.5.1406](https://doi.org/10.1093/jee/61.5.1406)
-    - Jackson and Elliott 1988, western corn rootworm development, *Environ. Entomol.* 17: 166–171, [10.1093/ee/17.2.166](https://doi.org/10.1093/ee/17.2.166)
-    - Davis, Brenes and Allee 1996, corn rootworm phenology models, *Environ. Entomol.* 25: 767–775, [10.1093/ee/25.4.767](https://doi.org/10.1093/ee/25.4.767)
-    - Funderburk, Higley and Pedigo 1984, seedcorn maggot phenology in Iowa, *Environ. Entomol.* 13: 105–109, [10.1093/ee/13.1.105](https://doi.org/10.1093/ee/13.1.105)
-    - Throne and Eckenrode 1985, seedcorn maggot emergence, *Environ. Entomol.* 14: 182–186, [10.1093/ee/14.2.182](https://doi.org/10.1093/ee/14.2.182)
-    - Sanborn, Wyman and Chapman 1982, seedcorn maggot thresholds and heat units, *Ann. Entomol. Soc. Am.* 75: 103–106, [10.1093/aesa/75.1.103](https://doi.org/10.1093/aesa/75.1.103)
-    - Kaster and Showers 1984, black cutworm field development in Iowa, *Environ. Entomol.* 13: 384–389, [10.1093/ee/13.2.384](https://doi.org/10.1093/ee/13.2.384)
-    - Story, Keaster, Showers and Shaw 1984, cutworms in Midwest field corn, *J. Econ. Entomol.* 77: 491–494, [10.1093/jee/77.2.491](https://doi.org/10.1093/jee/77.2.491)
-    - Coop, Croft and Drapek 1993, corn earworm in sweet corn, *J. Econ. Entomol.* 86: 906–916, [10.1093/jee/86.3.906](https://doi.org/10.1093/jee/86.3.906)
-    - Lasack and Pedigo 1986, stalk borer larvae moving into corn, *J. Econ. Entomol.* 79: 1697–1702, [10.1093/jee/79.6.1697](https://doi.org/10.1093/jee/79.6.1697) (its development curves: Lasack, Bailey and Pedigo 1987, [10.1093/ee/16.1.296](https://doi.org/10.1093/ee/16.1.296))
-    - Taylor and Harcourt 1978, asparagus beetle development and temperature, *Can. Entomol.* 110: 57–62, [10.4039/Ent11057-1](https://doi.org/10.4039/Ent11057-1)
-    - Kinoshita, Svec, Harris and McEwen 1979, crucifer flea beetle in Ontario, *Can. Entomol.* 111: 1395–1407, [10.4039/Ent1111395-12](https://doi.org/10.4039/Ent1111395-12)
-    - Ulmer and Dosdall 2006, crucifer flea beetle emergence, *Crop Protection* 25: 23–30, [10.1016/j.cropro.2005.03.003](https://doi.org/10.1016/j.cropro.2005.03.003)
-    - Tatchell 1981, granulosis virus, temperature and *Pieris rapae*'s feeding, *Entomophaga* 26: 291–299, [10.1007/BF02371879](https://doi.org/10.1007/BF02371879)
-  - **Lower now that `tarnished-plant-bug` is retired:** Ugine 2012, [10.1603/EN10210](https://doi.org/10.1603/EN10210); Fleischer and Gaylor 1988, [10.1093/ee/17.2.246](https://doi.org/10.1093/ee/17.2.246).
-  - **No DOI (library or the authors):**
-    - Sanborn 1981, PhD dissertation, UW–Madison (seedcorn maggot; ProQuest or UW's library).
-    - Coop 1987, *Management of Variegated Cutworm in Peppermint*, PhD thesis, Oregon State University (the 41/88 °F model; abstract at uspest.org/mint/coop1987.htm). There is no Coop and Berry paper on the model; their 1986 paper is on parasitoids.
-    - Berry, Takeyasu and Morris 1997 (mint root borer): probably an Oregon State progress report; ask OSU Entomology or the Oregon Mint Commission.
-    - Andaloro, Rose and Eckenrode 1984 (onion maggot, NEWA's source): probably a Cornell/Geneva bulletin; Cornell's eCommons.
-    - Hartstack et al. 1976, MOTHZV-2, USDA ARS-S-127 (NAL's catalog).
-    - NCR 327, *European Corn Borer: Ecology and Management*, 2018 revision (Iowa State Extension store, $8).
+- [ ] **Part H's papers without a DOI** (the 26 with DOIs arrived 2026-11-23, in `tmp/references/insects/`; agents are digesting them against the models):
+  - Sanborn 1981, PhD dissertation, UW–Madison (seedcorn maggot; ProQuest or UW's library).
+  - Coop 1987, *Management of Variegated Cutworm in Peppermint*, PhD thesis, Oregon State University (the 41/88 °F model; abstract at uspest.org/mint/coop1987.htm). There is no Coop and Berry paper on the model; their 1986 paper is on parasitoids.
+  - Berry, Takeyasu and Morris 1997 (mint root borer): probably an Oregon State progress report; ask OSU Entomology or the Oregon Mint Commission.
+  - Andaloro, Rose and Eckenrode 1984 (onion maggot, NEWA's source): probably a Cornell/Geneva bulletin; Cornell's eCommons.
+  - Hartstack et al. 1976, MOTHZV-2, USDA ARS-S-127 (NAL's catalog).
+  - NCR 327, *European Corn Borer: Ecology and Management*, 2018 revision (Iowa State Extension store, $8).
+  - Three more the corn rootworm papers point to: Levine, Oloumi-Sadeghi and Ellis 1992, western corn rootworm egg hatch, *J. Econ. Entomol.* 85: 2425–2432; Wilde 1971, *J. Kans. Entomol. Soc.* 44: 185–187 (the same); Allen 1976, the sine degree-day method, *Environ. Entomol.* 5: 388–396 (to check which sine Levine 1983 used). DOIs not yet checked.
 - [ ] **On the server after part H is deployed** (2026-11-21): `uv run app/manage.py rebuild --check`, then `uv run app/manage.py rebuild --stale --background` (the new simple averages at 40 and 48 °F, ~45 min over Wisconsin's 11 years), then `uv run app/manage.py ingredients --check` and `uv run app/manage.py ingredients --background` (western bean cutworm's own degree days). Done on the dev archive 2026-11-21.
 - [ ] **Wisconsin codling moth trap records** (optional now): DATCP's trap network (weekly counts at 25–29 orchards, 2020–2025, in its published summaries) already checks the default first catch; UW's records would add daily-checked sites, if the fruit program has them.
 - [ ] **Email NEWA** (newa@cornell-ipm.org) as a courtesy: Part H adds (2026-11-21, `docs/plans/models.md` handoff, Next item 2): the maggot pages' "BE" labels (the code runs the simple average); western bean cutworm's deployed code (caps the maximum, swaps two arguments); seedcorn maggot's °F studies read as °C·d; the cabbage maggot table's 75 % (547 against Jyoti et al.'s 536) and "ends 809"; the 404 More Info images. our validation reports (`docs/validation/models/`) publish comparisons with its models on its stations' public data, with credit (D98). Worth telling them too, as a courtesy: some Wisconsin stations' rain gauges recorded almost nothing in 2024–2025 while the archive had a normal spring (Gays Mills about 10 % of the archive's April–June rain in 2024 and 2 % in 2025, Genoa City 2025 about 1 %, Fort Atkinson 2024 about 26 %), which keeps their apple scab season open. The request: we'd like to read the Wisconsin stations' hours (one request per station-season, 2024–2026, kept) to validate AgWeather's apple models against NEWA's, and publish the comparison with credit. Ask them to confirm the points we read from their site's code: the single sine uses `Math.sin` where Baskerville–Emin has `asin`; Cougarblight counts no hour below 60 °F though Smith's 2010 version starts at 50 °F; fire blight's default first blossom is 230 DD43 though their stage table puts bloom at 346; Cougarblight's "no blight nearby" threshold of 300 (Smith and Pusey 2011 give 500, WSU 400); and codling moth's default first catch at 404 DD and second flight at 1501 DD (published first catches in the Northeast and Michigan run 230–280 DD°F).

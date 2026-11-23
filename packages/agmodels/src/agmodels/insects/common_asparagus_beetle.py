@@ -4,12 +4,11 @@ egg laying on spears, with larvae and later generations from UW–Madison's deve
 from agmodels.phenology import ActionWindow, DerivedStage, Insect, LifeStage
 from agmodels.spec import Change, Check, Citation, TrainingArea
 
-# UW–Madison (XHT1137; UW Veg Ento) gives the stages in days: eggs hatch in about a week, larvae feed for about two
-# weeks, and new adults emerge about a week after the larvae go to the soil. At the normal rate of late May (about 14
-# degree days a day, modified 50/86 °F, at Arlington) a week is about 100
+# Taylor and Harcourt 1978 (Ottawa, laboratory, base 10 °C; p. 62): egg 58 °C·d (104 °F·d above 50 °F), larval
+# instars 21 + 26 + 32 + 88 = 167 (301; the fourth includes the prepupa in the soil), pupa 92 (166). VDIFN's window
+# (105, 250, 405) and its new adults at about 570 are these sums from egg laying. The model's egg and larvae round them
+# (UW–Madison's week for the egg, about 14 degree days a day in late May at Arlington, gives the same 100)
 EGG = 100
-# The larvae: 300, the span of VDIFN's window from first hatch (105) to the last larvae (405), whose source isn't
-# known; UW's two weeks at June's normal 16 to 17 a day would be 230 to 240. A judgment, kept as VDIFN's
 LARVAE = 300
 
 INSECT = Insect(
@@ -34,8 +33,9 @@ INSECT = Insect(
         DerivedStage(label="Larvae", follows="Adults feeding and laying eggs", lag=EGG, duration=LARVAE),
     ),
     # Adult to adult: the egg (100), the larvae (300), the pupa (about a week, 120 at June's rate) and a few days of
-    # feeding before the new beetles lay (about 80), 600. A judgment from UW's days: no source gives the generation in
-    # degree days (Taylor and Harcourt 1978's development rates aren't in hand)
+    # feeding before the new beetles lay (about 80), 600, a judgment from UW's days. Taylor and Harcourt 1978's sums
+    # (egg to adult 317 °C·d, 571 °F·d, with a pupa of 166, not 120) and their field peaks near Ottawa in 1976 (each
+    # generation's adults peaking 1 to 2 days before the next generation's eggs, Table III) give about the same 600
     generation_dd=600,
     # Three generations at most: Taylor 1979 found three in eastern Ontario; UW–Madison gives two to three. At 600 a
     # generation, southern Wisconsin's normal season (about 2,500 degree days by September 15 at Arlington) would
@@ -48,10 +48,11 @@ INSECT = Insect(
     ),
     version="0.2",
     status="beta",
-    # XHT1087 gives no years for its numbers; the span runs from its last revision (2012) to XHT1137's (2026)
+    # XHT1087 gives no years for its numbers; the span runs from Taylor and Harcourt's rearing (1975) to XHT1137's
+    # revision (2026). Ontario has no code here, so only Wisconsin is named
     trained=TrainingArea(
-        description="egg laying in Wisconsin, as UW–Madison's degree-day table gives it, and UW–Madison's description of the beetle's development",
-        years=(2012, 2026),
+        description="egg laying in Wisconsin, as UW–Madison's degree-day table gives it, and development measured in the laboratory and field near Ottawa, Ontario",
+        years=(1975, 2026),
         states=("WI",),
     ),
     changelog=(
@@ -65,7 +66,7 @@ INSECT = Insect(
         Check(
             kind="published",
             against="UW–Madison's degree-day table for asparagus beetle (Delahaut, XHT1087)",
-            result="The table's egg laying at 150 to 240 degree days is the overwintered beetles' 10 and 50 %, at 149 and 239. The larvae and the time between generations are judgments from UW–Madison's development times in days, not from a degree-day study.",
+            result="The table's egg laying at 150 to 240 degree days is the overwintered beetles' 10 and 50 %, at 149 and 239. The egg (100) and larvae (300) round Taylor and Harcourt 1978's 104 and 301 degree days. The time between generations (600) is their egg to adult (571) plus the day or two from each generation's adults to the next one's eggs in their field counts near Ottawa.",
             report="docs/validation/models/common-asparagus-beetle.md#against-its-sources-numbers",
         ),
         Check(

@@ -1,17 +1,24 @@
-"""European corn borer, rebuilt on Wisconsin's own degree-day lineage (Apple 1952 via UW–Madison's table; part H,
-D36, D37), checked against DATCP's black light traps."""
+"""European corn borer, rebuilt on Wisconsin's own degree-day lineage (UW–Madison's table, after Apple 1952's borer
+degree days; part H, D36, D37), checked against DATCP's black light traps."""
 
 from agmodels.phenology import ActionWindow, DerivedStage, Insect, LifeStage, PlaceForm
 from agmodels.spec import Change, Check, Citation, PlaceNormal, TrainingArea
 
-EGG_LAG, EGG = 76, 100  # first eggs 76 after the first moths (UW: 374 and 450); hatch about 100 later
-LARVA = 300  # young larvae from hatch until they bore in (NCR 327's third instar, 250 after hatch, and the 4th at 300)
+# First eggs 76 after the first moths (UW: 374 and 450); hatch about 100 later (Matteson and Decker 1965, Table 1:
+# eggs take 100–122 DD50 at constant 70–80 °F)
+EGG_LAG, EGG = 76, 100
+# Young larvae from hatch until they bore in (NCR 327's third instar, 250 after hatch, and the 4th at 300; Matteson and
+# Decker 1965, Table 2: the first four stadia take 286–329 DD50 at constant 70–80 °F)
+LARVA = 300
 
 # The univoltine north (part H, round 2; Ben, 2026-11-23): where the 1996–2025 normal total by August 1 is below about
 # 1,500, one flight. DATCP's traps: Wausau, Marshfield and Antigo (normals 1,292–1,460) caught one flight, half flown
 # at 1,402, and the southern and central sites (1,571–1,906) two; Sparta 2020 (1,566 that year) caught both and Wausau
 # 2021 (1,559) one, so the year's own total can't decide it, and it isn't known until the flight has begun. The
-# normal is the 30-year normal maps' (`last30`), which move a year each January
+# normal is the 30-year normal maps' (`last30`), which move a year each January. No source gives a degree-day bound:
+# Hoard and Weiss 1995 (North Dakota) and Showers et al. 1975 support the form (voltinism set by a local, partly
+# genetic ecotype and the season's length) and its limit (a mostly univoltine population kept a bivoltine share that
+# flew a second time in a warm year, 1991, and not in cool ones), not the 1,500
 ONE_FLIGHT_BELOW = 1500
 ONE_FLIGHT_NORMAL = PlaceNormal(
     variable="dd_modified_50_86",
@@ -26,8 +33,12 @@ INSECT = Insect(
     crops=("beans", "corn", "sweet-corn", "eggplant", "pepper", "potato"),
     # UW–Madison's method (XHT1086/XHT1087, Delahaut 2012): the modified average, the minimum raised to 50 °F and the
     # maximum capped at 86 °F, from January 1; UMN's VegEdge counts the same way, "similar to the original model from
-    # Dr. J. W. Apple, UW–Madison". NEWA runs no corn borer model, so D95 doesn't apply. EF-106 (Kentucky; VDIFN's
-    # numbers) counts a simple average without an upper, and NCR 327 a simple average from first significant catch
+    # Dr. J. W. Apple, UW–Madison". Apple 1952 itself (read 2026-11-23) counted a simple average above 50 °F with no
+    # upper from the first day averaging above 50, and his stages run later than the table's: on the archive at
+    # Arlington (2016–2025) his first moths (423) fall at a median 585 on this method, and his first summer moths
+    # (1,716) at 1,870, against the table's 374 and 1,400; DATCP's traps fit the table (the report). NEWA runs no corn
+    # borer model, so D95 doesn't apply. EF-106 (Kentucky; VDIFN's numbers) counts a simple average without an upper,
+    # and NCR 327 a simple average from first significant catch
     base_f=50,
     upper_f=86,
     dd_method="modified",
@@ -79,8 +90,9 @@ INSECT = Insect(
     ),
     version="0.3",
     status="beta",
-    # Apple's degree-day work was on canning corn in Wisconsin; its field years aren't in hand, so the span runs from
-    # his paper (1952) to the table's last revision (2012)
+    # The table's own data and years aren't stated; Apple's field years were 1946–1951 (north-central Illinois and
+    # south-central Wisconsin), but the table's numbers aren't his, so the span runs from his paper (1952) to the
+    # table's last revision (2012)
     trained=TrainingArea(
         description="moth flights and egg laying in Wisconsin cornfields, as UW–Madison's degree-day table gives them",
         years=(1952, 2012),

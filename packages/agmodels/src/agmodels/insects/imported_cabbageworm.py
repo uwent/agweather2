@@ -7,8 +7,10 @@ from agmodels.spec import Change, Check, Citation, TrainingArea
 # Development in degree days (°F, base 50) from UW–Madison's days at about 21 DD50 a day, the normal daily total in
 # July at Arlington (modified 50/86): egg about 5 days (UW Veg Ento; "about a week", UW Hort), pupa 6–11 days (8.5),
 # and egg laying centered about 5 days after a butterfly emerges (a judgment: females lay over their 2–3 weeks). The
-# larva is Tatchell 1981's 349 °F·d above 48.9 °F (193.9 °C·d above 9.4 °C; UC IPM), taken as DD50 (the 1 °F
-# difference is about 15 °F·d over the larval period). All but the larva are judgments
+# larva is Tatchell 1981's 349 °F·d above 48.9 °F (193.9 °C·d above 9.4 °C, his p. 293 and Table 2), taken as DD50
+# (the 1 °F difference is about 15 °F·d over the larval period). All but the larva are judgments. Nealis, Jones and
+# Wellington 1984 (Table 1, Vancouver) measured egg and larva together at 216.8 °C·d above 10.0 °C (390 DD50) and the
+# pupa at 107.0 above 10.4 °C (about 193): a check in the report, not used
 EGG_LAYING_LAG = 105
 EGG = 105
 LARVA = 349

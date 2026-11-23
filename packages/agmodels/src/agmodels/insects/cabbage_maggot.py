@@ -8,7 +8,8 @@ INSECT = Insect(
     name="Cabbage maggot",
     crops=("cole-crops",),
     # NEWA's method (D95): the day's simple average above 40 °F, no upper threshold, from January 1. Its table is
-    # Jyoti, Shelton and Barnard 2003's degree days above 4 °C (upstate New York, 1999–2000) times 1.8. Eckenrode and
+    # Jyoti, Shelton and Barnard 2003's degree days (the simple average above 4 °C, 39.2 °F, from January 1; upstate New
+    # York, 1999–2000) times 1.8, counted from 40 °F (about a day and a half late by the spring peak). Eckenrode and
     # Chapman 1972 counted above 43 °F with Arnold's correction in Wisconsin: compared, not used
     base_f=40,
     upper_f=None,
@@ -28,8 +29,11 @@ INSECT = Insect(
         DerivedStage(label="Larval feeding", follows="Adult flight", lag=245, duration=580),
     ),
     # NEWA's later flights peak (50 %) at 1,261, 2,176 and 3,014, 809, 915 and 838 apart: 850 sets every
-    # generation's 50 % within 45 of NEWA's (least squares over the three). Eckenrode and Chapman 1972 found 1,176 DD43
-    # between Wisconsin flights (about 1,300 DD40 in summer): about half again as long, kept as a difference (D95)
+    # generation's 50 % within 45 of NEWA's (least squares over the three). Those intervals are Jyoti et al.'s spring,
+    # F1 and F2 flights' lengths (449.2, 508.4 and 465.3 °C·d from each flight's first increase to its end) × 1.8; the
+    # paper's own Fig. 3 peaks, on Open-Meteo's weather at Geneva, are 1,075–1,282 apart from spring to F1. Eckenrode and
+    # Chapman 1972 found 1,176 DD43 between Wisconsin flights (about 1,300 DD40 in summer). Kept as NEWA's until Ben
+    # decides (D95; docs/validation/models/cabbage-maggot.md)
     generation_dd=850,
     # Eckenrode and Chapman 1972: the spring emergence pattern repeats in later generations, so they spread little;
     # 10 % of a generation (the default, the spring flight's own SD, 125, would widen them half again as fast)
@@ -41,7 +45,9 @@ INSECT = Insect(
     max_generations=3,
     # The spring flight does the most damage (NEWA: highest risk at the first two flights' peaks; Eckenrode and
     # Chapman 1972's radish injury; A3422), so it weighs 1 and the summer flights 0.5. The sources say which flight
-    # matters, not by how much: 0.5 is a judgment (Ben, 2026-11-23)
+    # matters, not by how much: 0.5 is a judgment (Ben, 2026-11-23). The papers' figures: New York's F1 trap peaks 0.9–1.0
+    # of spring's, F2 0.24–0.40, F3 0.05–0.19 (Jyoti et al.); Wisconsin's summer radish damage 0.02–0.24 of spring's
+    # (Eckenrode and Chapman 1972)
     generation_weights=(1.0, 0.5),
     action_windows=(
         # NEWA: highest risk around peak flights; protect seedlings, transplants and root crops then. From first
@@ -68,7 +74,7 @@ INSECT = Insect(
     checks=(
         Check(
             kind="published",
-            against="NEWA's cabbage maggot table and its source, trap catches in upstate New York (Jyoti, Shelton and Barnard 2003)",
+            against="NEWA's cabbage maggot table, whose spring flight comes from trap catches in upstate New York (Jyoti, Shelton and Barnard 2003)",
             result="The spring flight passes 10, 25, 50, 75 and 95 % emergence within 13 degree days of the published points, and NEWA's first emergence at 288 comes at 5.9 % of the flight. The second and third flights are half emerged within 45 degree days of NEWA's 1,261 and 2,176; the model stops at three flights, where NEWA has a fourth (3,014).",
             report="docs/validation/models/cabbage-maggot.md#against-its-sources-numbers",
         ),
@@ -77,6 +83,12 @@ INSECT = Insect(
             against="Fly trap catches at Kenosha and Arlington, Wisconsin, 1965–1969 (Eckenrode and Chapman 1972)",
             result="Wisconsin's spring flies first emerged at 290 to 365 degree days above 43 °F, about the same days as NEWA's 288 above 40 °F, or up to about 9 days later. Wisconsin's generations took 1,176 degree days above 43 °F, about half again as long as NEWA's 850 above 40 °F (about 1,300 at 40 °F), which would put the first summer flight a median 16 days later; the model follows NEWA.",
             report="docs/validation/models/cabbage-maggot.md#against-eckenrode-and-chapman-1972",
+        ),
+        Check(
+            kind="published",
+            against="The flight peaks in New York trap catches, 1999 and 2000 (Jyoti, Shelton and Barnard 2003), on Open-Meteo's weather at the farm",
+            result="The paper gives degree days only for the spring flight. On its trap counts' peak dates, the spring and first summer flights peaked 1,075 to 1,282 degree days apart, against NEWA's 809 and the model's 850, and close to Wisconsin's generation (Eckenrode and Chapman 1972). NEWA's later peaks fall 10 to 29 days before the trapped ones in those years. The model follows NEWA for now.",
+            report="docs/validation/models/cabbage-maggot.md#against-jyoti-et-als-trap-counts",
         ),
         Check(
             kind="system",
