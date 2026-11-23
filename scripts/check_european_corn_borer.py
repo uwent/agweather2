@@ -29,7 +29,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from check_insect_traps import DATA, MIN_FLIGHT, SiteYear, flight_of, read_blacklight
 
-from agdata import normals
+from agdata import normals, regions
 from agdata.catalog import DAILY_VARIABLES
 from agdata.grid import NDFD, Window
 from agdata.store import DAILY, GridStore
@@ -92,6 +92,7 @@ def site_normal(data_dir: Path, cell: tuple[int, int]) -> float:
     form = INSECT.place_form
     assert form is not None
     j, i = cell
+    regions.use_terrain(lambda: data_dir)  # open water as the app takes it (the terrain store), for the land mean
     return float(normals.place_normal(data_dir, form.normal, Window(j0=j, j1=j + 1, i0=i, i1=i + 1))[0, 0])
 
 
@@ -154,7 +155,8 @@ def main():
         f_lo, f_hi = (np.where(good, v * 1.8 + 32, 0.0) for v in (lo, hi))
         total = np.cumsum(degree_days_modified(f_lo, f_hi, base=50, upper=86))
         sine = np.cumsum(degree_days_sine(f_lo, f_hi, 50) - degree_days_sine(f_lo, f_hi, 86))
-        out = m.outputs({"air_temperature_min": lo, "air_temperature_max": hi})
+        normal = site_normal(Path(args.data), cell)
+        out = m.outputs({"air_temperature_min": lo, "air_temperature_max": hi, form.normal.key: np.array(normal)})
         assert np.allclose(np.nan_to_num(out["dd_total"]), total, atol=0.01) or not good.all()
         region = "north" if loc[0] >= NORTH_LAT else "south"
         aug1 = float(total[(date(sy.year, 8, 1) - date(sy.year, 1, 1)).days])
@@ -167,7 +169,6 @@ def main():
         for w in sy.weeks:  # every moth at its week's middle, for the season's catch by degree days
             if w.count:
                 pooled[region].append((float(total[(w.end - timedelta(days=3) - date(sy.year, 1, 1)).days]), w.count))
-        normal = site_normal(Path(args.data), cell)
         site_forms[sy.site] = (normal, 1 if normal < form.below else 2)
         if normal < form.below:  # the one-flight form: the season's whole flight against its own
             whole = flight_of(weeks=sy.weeks, name="all")

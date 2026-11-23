@@ -198,7 +198,7 @@ class TrainingArea:
 class PlaceNormal:
     """A fixed value of each place that a model reads (part H, round 2): the normal running total of a stored variable from
     January 1 through a day, from the 30-year normal maps (`agdata.normals`, `last30`). It reaches the model as a
-    context value named by `key`, read at a point's cell and per cell on a map, and is missing (NaN) where the
+    context value named by `key`, read as the mean over land within ~10 km of a point's cell or each cell of a map (`agdata.normals.land_mean`), and is missing (NaN) where the
     normals don't reach (outside the box, or before they're built): the model then says what it does without it,
     `missing`, and the caller passes that on as a warning."""
 

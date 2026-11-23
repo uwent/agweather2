@@ -12,8 +12,8 @@ EGG_LAG, EGG = 76, 100
 LARVA = 300
 
 # The univoltine north (part H, round 2; Ben, 2026-11-23): where the 1996–2025 normal total by August 1 is below about
-# 1,500, one flight. DATCP's traps: Wausau, Marshfield and Antigo (normals 1,292–1,460) caught one flight, half flown
-# at 1,402, and the southern and central sites (1,571–1,906) two; Sparta 2020 (1,566 that year) caught both and Wausau
+# 1,500, one flight. DATCP's traps: Wausau, Marshfield and Antigo (normals 1,299–1,461, as read over land within 10 km) caught one flight, half flown
+# at 1,402, and the southern and central sites (1,573–1,863) two; Sparta 2020 (1,566 that year) caught both and Wausau
 # 2021 (1,559) one, so the year's own total can't decide it, and it isn't known until the flight has begun. The
 # normal is the 30-year normal maps' (`last30`), which move a year each January. No source gives a degree-day bound:
 # Hoard and Weiss 1995 (North Dakota) and Showers et al. 1975 support the form (voltinism set by a local, partly
@@ -24,7 +24,7 @@ ONE_FLIGHT_NORMAL = PlaceNormal(
     variable="dd_modified_50_86",
     unit="degF_day",
     through="08-01",
-    label="the 30-year normal total of degree days (modified average, 50/86 °F) from January 1 through August 1",
+    label="the 30-year normal total of degree days (modified average, 50/86 °F) from January 1 through August 1, averaged over land within about 6 miles (10 km)",
     missing="European corn borer has one flight a year where the 30-year normal degree days from January 1 through August 1 are below 1,500 (°F), and two elsewhere. We don't have that normal for this location or for part of this area, so the model shows two flights there.",
 )
 
@@ -90,7 +90,7 @@ INSECT = Insect(
         # 671–986 and 1,713–2,142 degree days, against UW–Madison's 800–1,000 and 1,550–2,100 (Flandermeyer and Bick)
         ActionWindow(label="Scout and treat young larvae before they bore in", stage="Egg masses", between=(0.1, 0.9)),
     ),
-    version="0.3",
+    version="0.4",
     status="beta",
     # The table's own data and years aren't stated; Apple's field years were 1946–1951 (north-central Illinois and
     # south-central Wisconsin), but the table's numbers aren't his, so the span runs from his paper (1952) to the
@@ -110,6 +110,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-23",
             note="One flight a year where the 30-year normal degree days from January 1 through August 1 are below 1,500, as in northern Wisconsin: a flight from about 900 to 1,900 degree days (peak 1,400), with egg masses, young larvae and the window to treat them timed from it. Two flights elsewhere, and where the normal isn't available.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-23",
+            note="The 30-year normal that decides between one flight and two is now the average over land within about 6 miles (10 km) of the location, rather than the one grid cell's value. This keeps cells cooled by a nearby lake, and small cell-to-cell differences along the 1,500 line, from deciding the number of flights cell by cell. No trap site changed form.",
         ),
     ),
     checks=(

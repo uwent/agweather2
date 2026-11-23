@@ -189,51 +189,51 @@ Each site's 30-year normal (modified 50/86 °F from January 1 through August 1, 
 
 | Site | Normal | Flights |
 | --- | --- | --- |
-| Antigo | 1292 | 1 |
-| Manitowoc | 1309 | 1 |
-| Wausau | 1441 | 1 |
-| Wausau E | 1441 | 1 |
-| Marshfield | 1452 | 1 |
-| Wausau North | 1460 | 1 |
-| Wausau N | 1460 | 1 |
-| Hancock | 1571 | 2 |
-| Ripon | 1596 | 2 |
-| Beaver Dam | 1638 | 2 |
-| Arlington | 1682 | 2 |
-| Sparta | 1686 | 2 |
-| Pardeeville | 1724 | 2 |
-| East Troy | 1736 | 2 |
-| Janesville | 1799 | 2 |
-| Prairie du Chien | 1906 | 2 |
+| Antigo | 1299 | 1 |
+| Manitowoc | 1325 | 1 |
+| Wausau North | 1426 | 1 |
+| Wausau N | 1426 | 1 |
+| Wausau | 1434 | 1 |
+| Wausau E | 1434 | 1 |
+| Marshfield | 1461 | 1 |
+| Hancock | 1573 | 2 |
+| Ripon | 1599 | 2 |
+| Beaver Dam | 1637 | 2 |
+| Sparta | 1675 | 2 |
+| Arlington | 1696 | 2 |
+| Pardeeville | 1719 | 2 |
+| East Troy | 1735 | 2 |
+| Janesville | 1780 | 2 |
+| Prairie du Chien | 1863 | 2 |
 
 At the one-flight sites, the season's whole catch against the form's flight (days off as above):
 
 | Year | Site | Normal | Moths | First catch (off) | 50 % (off) | Peak (off) |
 | --- | --- | --- | --- | --- | --- | --- |
-| 2020 | Antigo | 1292 | 1 | Jul 15 (+3) | – | – |
-| 2020 | Manitowoc | 1309 | 1 | Aug 19 (-28) | – | – |
-| 2020 | Marshfield | 1452 | 3 | Jul 15 (0) | – | – |
-| 2020 | Wausau | 1441 | 9 | Jul 15 (0) | Jul 22 (+15) | Jul 15 (+23) |
-| 2021 | Antigo | 1292 | 2 | Aug 18 (-33) | – | – |
-| 2021 | Manitowoc | 1309 | 1 | Jun 2 (+41) | – | – |
-| 2021 | Marshfield | 1452 | 2 | Aug 11 (-35) | – | – |
-| 2021 | Wausau | 1441 | 13 | Jul 14 (-5) | Jul 21 (+3) | Jul 21 (+3) |
-| 2022 | Manitowoc | 1309 | 0 | – | – | – |
-| 2022 | Marshfield | 1452 | 0 | – | – | – |
-| 2022 | Wausau | 1441 | 19 | Jul 28 (-10) | Aug 4 (0) | Aug 4 (0) |
-| 2022 | Wausau North | 1460 | 0 | – | – | – |
-| 2023 | Manitowoc | 1309 | 0 | – | – | – |
-| 2023 | Marshfield | 1452 | 0 | – | – | – |
-| 2023 | Wausau | 1441 | 35 | – | Aug 3 (0) | Aug 10 (-6) |
-| 2023 | Wausau North | 1460 | 0 | – | – | – |
-| 2024 | Marshfield | 1452 | 0 | – | – | – |
-| 2024 | Wausau | 1441 | 7 | Aug 8 (-24) | Aug 15 (-9) | Aug 15 (-9) |
-| 2024 | Wausau North | 1460 | 0 | – | – | – |
-| 2025 | Marshfield | 1452 | 1 | Jun 26 (+11) | – | – |
-| 2025 | Wausau | 1441 | 27 | Jul 31 (-16) | Aug 14 (-10) | Aug 14 (-10) |
-| 2025 | Wausau North | 1460 | 0 | – | – | – |
-| 2026 | Wausau E | 1441 | 30 | Jul 1 (+5) | Jul 22 (+3) | Jul 22 (+3) |
-| 2026 | Wausau N | 1460 | 0 | – | – | – |
+| 2020 | Antigo | 1299 | 1 | Jul 15 (+3) | – | – |
+| 2020 | Manitowoc | 1325 | 1 | Aug 19 (-28) | – | – |
+| 2020 | Marshfield | 1461 | 3 | Jul 15 (0) | – | – |
+| 2020 | Wausau | 1434 | 9 | Jul 15 (0) | Jul 22 (+15) | Jul 15 (+23) |
+| 2021 | Antigo | 1299 | 2 | Aug 18 (-33) | – | – |
+| 2021 | Manitowoc | 1325 | 1 | Jun 2 (+41) | – | – |
+| 2021 | Marshfield | 1461 | 2 | Aug 11 (-35) | – | – |
+| 2021 | Wausau | 1434 | 13 | Jul 14 (-5) | Jul 21 (+3) | Jul 21 (+3) |
+| 2022 | Manitowoc | 1325 | 0 | – | – | – |
+| 2022 | Marshfield | 1461 | 0 | – | – | – |
+| 2022 | Wausau | 1434 | 19 | Jul 28 (-10) | Aug 4 (0) | Aug 4 (0) |
+| 2022 | Wausau North | 1426 | 0 | – | – | – |
+| 2023 | Manitowoc | 1325 | 0 | – | – | – |
+| 2023 | Marshfield | 1461 | 0 | – | – | – |
+| 2023 | Wausau | 1434 | 35 | – | Aug 3 (0) | Aug 10 (-6) |
+| 2023 | Wausau North | 1426 | 0 | – | – | – |
+| 2024 | Marshfield | 1461 | 0 | – | – | – |
+| 2024 | Wausau | 1434 | 7 | Aug 8 (-24) | Aug 15 (-9) | Aug 15 (-9) |
+| 2024 | Wausau North | 1426 | 0 | – | – | – |
+| 2025 | Marshfield | 1461 | 1 | Jun 26 (+11) | – | – |
+| 2025 | Wausau | 1434 | 27 | Jul 31 (-16) | Aug 14 (-10) | Aug 14 (-10) |
+| 2025 | Wausau North | 1426 | 0 | – | – | – |
+| 2026 | Wausau E | 1434 | 30 | Jul 1 (+5) | Jul 22 (+3) | Jul 22 (+3) |
+| 2026 | Wausau N | 1426 | 0 | – | – | – |
 
 | Event | n | Inside the week | Within a week | Median, days | 10th–90th percentile |
 | --- | --- | --- | --- | --- | --- |

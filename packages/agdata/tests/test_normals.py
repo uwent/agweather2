@@ -225,6 +225,25 @@ def test_a_place_normal_is_missing_past_the_store_and_where_nothing_was_built(bu
     assert np.isnan(normals.place_normal(data_dir, _normal(period="last30"), WINDOW)).all()  # not built
     assert np.isnan(normals.place_normal(data_dir, _normal(variable="dd_sine_99"), WINDOW)).all()  # no such array
     assert np.isnan(normals.place_normal(data_dir / "elsewhere", _normal(), WINDOW)).all()  # no store at all
+    corner = normals.place_normal(
+        data_dir, _normal(), Window(j0=0, j1=2, i0=0, i1=3)
+    )  # the land mean stops at the grid's edge
+    assert corner.shape == (2, 3) and np.isnan(corner).all()
+
+
+def test_a_place_normal_is_the_mean_over_land_within_10_km():
+    """`land_mean`: a lake's cooled cells don't count, nor does a cell more than PLACE_RADIUS away; a lake cell takes
+    its shore's mean; a cell with no land near is missing."""
+    values = np.full((15, 15), 1600.0)
+    land = np.ones((15, 15), dtype=bool)
+    values[5:10, 5:10] = 1300.0  # a lake, cooled
+    land[5:10, 5:10] = False
+    values[4, 7] = 1450.0  # its shore, cooled a little
+    got = normals.land_mean(values, land, radius=4)
+    assert got[0, 0] == 1600.0  # the lake and the shore cell are farther than 4 cells
+    assert got[7, 7] > 1550.0  # the lake cell reads its shores
+    assert 1580.0 < got[4, 7] < 1600.0  # the shore cell is averaged with its land neighbours
+    assert np.isnan(normals.land_mean(values, np.zeros((15, 15), dtype=bool), radius=4)).all()
 
 
 def test_a_points_normals_are_read_once_for_all_its_runs(built, monkeypatch):

@@ -48,7 +48,7 @@ from agdata.catalog import (
     FILL,
     dd_name,
 )
-from agdata.grid import Window
+from agdata.grid import NDFD, Window
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 from agmodels.spec import ModelSpec, PlaceNormal
 
@@ -529,14 +529,29 @@ def percentile_among(value: np.ndarray, deciles: list[np.ndarray]) -> np.ndarray
 # --- A model's place normals (`agmodels.spec.PlaceNormal`) --------------------------------------------------------
 
 
+PLACE_RADIUS = 4  # cells (~10 km): a place normal is the mean over land within this distance (Ben, 2026-11-23)
+
+
 def place_normal(data_dir: Path, normal: PlaceNormal, window: Window) -> np.ndarray:
     """A model's normal of the place over `window`: the period's mean running total of the variable from January 1
-    through the normal's day. NaN where the normals don't reach, or everywhere if the period isn't built."""
+    through the normal's day, averaged over the land within PLACE_RADIUS cells (`land_mean`). NaN where the cell's own
+    normal is missing (past the normals' area), or everywhere if the period isn't built."""
     return read_place_normals(data_dir, (normal,), window)[normal]
 
 
 def read_place_normals(data_dir: Path, wanted: Sequence[PlaceNormal], window: Window) -> dict[PlaceNormal, np.ndarray]:
     """Each of `wanted` over `window` (`place_normal`), each period's store opened once."""
+    from agdata import regions
+
+    r, full = PLACE_RADIUS, NDFD.window
+    wide = Window(
+        j0=max(full.j0, window.j0 - r),
+        j1=min(full.j1, window.j1 + r),
+        i0=max(full.i0, window.i0 - r),
+        i1=min(full.i1, window.i1 + r),
+    )
+    inner = (slice(window.j0 - wide.j0, window.j1 - wide.j0), slice(window.i0 - wide.i0, window.i1 - wide.i0))
+    land = ~regions.water(wide)
     opened: dict[str, tuple[Any, dict[str, Any]] | None] = {}
     out = {}
     for normal in wanted:
@@ -547,12 +562,37 @@ def read_place_normals(data_dir: Path, wanted: Sequence[PlaceNormal], window: Wi
         try:
             if store is None:
                 raise KeyError(normal.period)
-            out[normal] = _within(
-                *store, name=f"{normal.variable}/mean", day=date(climatology.LEAP, month, day), window=window
+            values = _within(
+                *store, name=f"{normal.variable}/mean", day=date(climatology.LEAP, month, day), window=wide
             )
+            out[normal] = np.where(np.isfinite(values), land_mean(values, land, r), np.nan)[inner]
         except KeyError:  # the period isn't built, or its store lacks the variable
             out[normal] = np.full(window.shape, np.nan)
     return out
+
+
+def land_mean(values: np.ndarray, land: np.ndarray, radius: int) -> np.ndarray:
+    """Each cell's mean of `values` over the land cells (`land`) within `radius` cells of it (a disk), leaving out
+    missing ones; NaN where there are none. Whether a place's insects have one generation or two is a trait of the
+    area, not of a 2.5 km cell: the mean keeps a lake's cooled cells (URMA's inland water, Q39) and the speckle along
+    a model's bound from deciding it cell by cell."""
+    use = land & np.isfinite(values)
+    v = np.where(use, values, 0.0)
+    total = np.zeros(values.shape)
+    count = np.zeros(values.shape)
+    ny, nx = values.shape
+    padded_v = np.pad(v, radius)
+    padded_n = np.pad(use.astype(np.float64), radius)
+    for dj in range(-radius, radius + 1):
+        for di in range(-radius, radius + 1):
+            if dj * dj + di * di > radius * radius:
+                continue
+            rows = slice(radius + dj, radius + dj + ny)
+            cols = slice(radius + di, radius + di + nx)
+            total += padded_v[rows, cols]
+            count += padded_n[rows, cols]
+    with np.errstate(invalid="ignore", divide="ignore"):
+        return np.where(count > 0, total / count, np.nan)
 
 
 def place_normals(data_dir: Path, spec: ModelSpec, window: Window) -> dict[str, np.ndarray]:

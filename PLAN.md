@@ -9,7 +9,7 @@ This file is where things stand and what's next: the one handoff, Ben's open cho
 <!-- prettier-ignore -->
 | Doc | Holds |
 | --- | --- |
-| [docs/decisions.md](docs/decisions.md) | Why: the recorded decisions (D1–D104) and the questions put to Ben (Q1–Q40). A new decision takes the next D number |
+| [docs/decisions.md](docs/decisions.md) | Why: the recorded decisions (D1–D105) and the questions put to Ben (Q1–Q40). A new decision takes the next D number |
 | [docs/architecture.md](docs/architecture.md) | How the system is laid out (§3–13: data, ingest, forecast, models, API, web app, jobs, testing, deployment) |
 | [docs/plans/](docs/plans/) | The work, by phase in build order (Phases 1–5 done, 6 current, 7–9 sketches), and the plans that run beside a phase (models, humidity). Its README says what each holds and its status |
 | [docs/api.md](docs/api.md) | The API v2 contract |
@@ -44,7 +44,7 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 
 **Next, in order** (Ben, 2026-11-23: step 7's profile next, in a fresh session; the rest of the order proposed, see Ben's open choices):
 
-1. **Step 7's launch-box profile** first of the engineering, since it can change how maps are stored: a synthetic `upper_midwest` archive, then `manage.py latency` and the jobs. Apple scab's map takes 8 s and fire blight's 19 s over Wisconsin today; the box has 11.7× the cells. Corn borer's map needs the normals over the launch box (Wisconsin only now: elsewhere two flights with a warning). **When the normals are built for the launch box, build them with the terrain store's water mask** (Ben, 2026-11-23): inland lakes carry a lake-cooled normal today (URMA's years have values over them; gridMET's coast rule covers only the Great Lakes), so corn borer's map shows a one-flight patch over Lake Winnebago; fill water cells from land neighbours by the coast rule (`agdata.coast`), bump `normals.VERSION`, and rebuild `last5`, `last10` and `last30`.
+1. **Step 7's launch-box profile**, planned 2026-11-23 (the phase plan's step 7, items E, A–D, F, G; the coverage settled as D105, a mask of the 12 Midwest states and Kentucky with a 50 km buffer; item E done the same day (place normals read over land within 10 km, corn borer 0.4); next A, the mask), first of the engineering, since it can change how maps are stored: a synthetic `upper_midwest` archive, then `manage.py latency` and the jobs. Apple scab's map takes 8 s and fire blight's 19 s over Wisconsin today; the box has 11.7× the cells. Corn borer's map needs the normals over the launch box (Wisconsin only now: elsewhere two flights with a warning). **When the normals are built for the launch box, build them with the terrain store's water mask** (Ben, 2026-11-23): inland lakes carry a lake-cooled normal today (URMA's years have values over them; gridMET's coast rule covers only the Great Lakes), so corn borer's map shows a one-flight patch over Lake Winnebago; fill water cells from land neighbours by the coast rule (`agdata.coast`), bump `normals.VERSION`, and rebuild `last5`, `last10` and `last30`.
 2. **Step 5**, site services: changelog and announcements, the API use form, the verification archive, Open-Meteo when NBM is stale, Open-Meteo usage.
 3. **Step 6**, new sources: soil moisture (send the ERA5-Land requests early: the CDS queue takes hours) and cropland fractions.
 4. **Step 7's rest** and the **end-of-phase review** (code, docs, tests), then Phase 7.
