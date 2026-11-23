@@ -174,3 +174,30 @@ def test_posted_hours_roll_up_on_the_days_asked_for(client, archive):
     assert local["location"]["day_basis"] == "local" and local["request"]["day_basis"] == "local"
     refused = post(client, "models/early-blight-pdays/run", body | {"day_basis": "solar"}).json()["errors"][0]
     assert refused["param"] == "day_basis" and refused["code"] == "invalid"
+
+
+def _season_body() -> dict:
+    """Daily weather from January 1 (a model counting from then needs it): 5–20 °C, about 1,650 degree days by July."""
+    first = datetime(2025, 1, 1, tzinfo=UTC)
+    days = [(first + timedelta(days=k)).strftime("%Y-%m-%d") for k in range(190)]  # to July 9
+    return body_for(
+        daily={"date": days, "air_temperature_min": [5.0] * 190, "air_temperature_max": [20.0] * 190},
+        start="2025-07-01",
+    )
+
+
+def test_a_model_reads_the_places_normal_and_warns_without_it(client, archive, monkeypatch):
+    """European corn borer's one flight where the 30-year normal by August 1 is below 1,500 (part H, round 2): the
+    fixture has no 30-year normal maps, so two flights and a warning; given one at the cell, one flight."""
+    from agdata import normals
+    from agmodels.insects.european_corn_borer import ONE_FLIGHT_NORMAL
+
+    without = post(client, "models/european-corn-borer/run", _season_body()).json()
+    assert without["data"]["one_flight"] == [0] * 9
+    assert ONE_FLIGHT_NORMAL.missing in without["meta"]["warnings"]
+    monkeypatch.setattr(normals, "place_normal", lambda data_dir, normal, window: np.full(window.shape, 1400.0))
+    north = post(client, "models/european-corn-borer/run", _season_body()).json()
+    assert north["data"]["one_flight"] == [1] * 9
+    assert north["data"][ONE_FLIGHT_NORMAL.key] == [pytest.approx(1400 / 1.8, abs=0.01)] * 9  # metric: °C·d
+    assert ONE_FLIGHT_NORMAL.missing not in north["meta"]["warnings"]
+    assert north["data"]["activity_adult_flight"] != without["data"]["activity_adult_flight"]

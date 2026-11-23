@@ -10,7 +10,11 @@ declared one of three ways:
   their variances add and the spread grows with √*n*. A stage's activity is the sum over its generations, 1 at the
   first generation's peak; risk is the sum of each stage's weight times its activity, continuous, with words from
   `risk_thresholds`. Action windows are the days a stage is between two fractions of complete in some generation
-  (10–90% of adult flight: "Avoid planting during adult flight").
+  (10–90% of adult flight: "Avoid planting during adult flight"), or, for a stage timed from another, the days from
+  when its first individuals enter it until most have left (black cutworm's cutting caterpillars).
+  Generations may weigh differently in the risk (`generation_weights`: the generation that does the damage), and an
+  insect may take another set of life stages where a fixed value of the place is below a bound (`PlaceForm`: European
+  corn borer's one flight where the normal season is short).
 - `life_stages` as `FittedStage`s: each stage's abundance fitted to field counts over degree days, every generation at
   once (a GAM of log(count + 1), tabulated), read off the fit: the typical count and activity (1 at the fit's peak).
   Colorado potato beetle (Bradford and Groves, unpublished). No generations, derived stages or action windows. A
@@ -35,7 +39,7 @@ The insects, one module each, are in `agmodels.insects`.
 import math
 import re
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from functools import cache
 from typing import Literal
@@ -60,6 +64,7 @@ from agmodels.spec import (
     Input,
     ModelSpec,
     Option,
+    PlaceNormal,
     Quantity,
     Risk,
     TrainingArea,
@@ -152,11 +157,16 @@ class DerivedStage:
 
 @dataclass(frozen=True, kw_only=True)
 class ActionWindow:
-    """When to act (D36): the days a life stage is between two fractions of complete in some generation."""
+    """When to act (D36), in each generation: by default (`when="complete"`) the days a life stage is between two
+    fractions of complete (for a stage timed from another, the share that has left it). With `when="present"`, for
+    a stage timed from another (`DerivedStage`), the days from when the share `between[0]` has entered the stage until
+    the share `between[1]` has left it: a window that opens with the first individuals, such as the first caterpillars
+    big enough to cut plants, rather than once a share has passed through."""
 
     label: str  # the intervention, e.g. "Avoid planting during adult flight"
     stage: str  # the label of the life stage it follows
     between: tuple[float, float] = (0.1, 0.9)
+    when: Literal["complete", "present"] = "complete"
 
     @property
     def key(self) -> str:
@@ -187,6 +197,24 @@ class GenerationSize:
     label: str
     on: str  # MM-DD, the date the degree days are read (blank before it)
     bounds: tuple[float, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class PlaceForm:
+    """Another set of life stages for places where a fixed value of the place, a normal total (`PlaceNormal`), is
+    below a bound: European corn borer's one-flight form where the normal season is short. The stages carry the
+    same labels as the insect's (the outputs and windows are the same); its generations replace the insect's. Where
+    the normal is missing (outside the normals' area), the insect's own stages apply, and the run says so."""
+
+    name: str  # the output saying where it applies, e.g. "one_flight"
+    label: str  # that output's label: "One flight here (1) or two (0)"
+    words: str  # the form in a sentence's middle, e.g. "one flight a year"
+    normal: PlaceNormal
+    below: float  # the form applies where the normal is below this
+    life_stages: tuple[LifeStage | DerivedStage, ...]
+    generation_dd: float | None = None
+    generation_sd: float | None = None
+    max_generations: int | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -223,6 +251,11 @@ class Insect:
     checks: tuple[Check, ...] = ()  # D98
     clock: Literal["degree_days", "calendar"] = "degree_days"  # the default clock of fitted stages with both (D101)
     trained: TrainingArea | None = None  # where the fitted stages' data came from (D101)
+    # Each generation's weight in the risk, the first generation's first, later generations the last one's; empty:
+    # all 1 (D37's equal generations). For insects whose sources say which generation does the damage
+    generation_weights: tuple[float, ...] = ()
+    place_form: PlaceForm | None = None  # other life stages where a normal of the place is below a bound
+    biofix_fixed: bool = False  # the biofix is always the default: no grower's date (`Biofix.fixed`)
 
     @property
     def has_calendar(self) -> bool:
@@ -253,6 +286,19 @@ class Insect:
             raise ValueError(f"{self.id}: every fitted stage needs a calendar curve, or none")
         if self.clock == "calendar" and not self.has_calendar:
             raise ValueError(f"{self.id}: a calendar clock needs calendar curves")
+        derived = {s.label for s in self.life_stages if isinstance(s, DerivedStage)}
+        for w in self.action_windows:
+            if w.when == "present" and w.stage not in derived:
+                raise ValueError(f"{self.id}: a 'present' window follows a stage timed from another, not {w.stage!r}")
+        if (self.generation_weights or self.place_form) and (any(fitted) or not self.life_stages):
+            raise ValueError(f"{self.id}: generation weights and place forms need timed life stages")
+        if any(w < 0 for w in self.generation_weights):
+            raise ValueError(f"{self.id}: generation weights can't be negative")
+        if (f := self.place_form) is not None:
+            if [s.label for s in f.life_stages] != [s.label for s in self.life_stages]:
+                raise ValueError(f"{self.id}: a place form's stages carry the insect's labels, in order")
+            if not isinstance(f.life_stages[0], LifeStage):
+                raise ValueError(f"{self.id}: a place form's first stage needs its own start, peak and end")
 
 
 class InsectModel:
@@ -293,7 +339,11 @@ class InsectModel:
             ),
             explorer_outputs=self._explored(),
             sweep={"dd_total": tuple(float(d) for d in range(0, 4001, 100))},
-            biofix=Biofix(default=insect.biofix, label=insect.biofix_label or default_biofix_label(insect.biofix)),
+            biofix=Biofix(
+                default=insect.biofix,
+                label=insect.biofix_label or default_biofix_label(insect.biofix),
+                fixed=insect.biofix_fixed,
+            ),
             context=self._context(),
             changelog=(
                 *(
@@ -310,6 +360,7 @@ class InsectModel:
             checks=insect.checks,
             trained=insect.trained,
             options=(clock_option(insect.clock),) if insect.has_calendar else (),
+            place_normals=(insect.place_form.normal,) if insect.place_form else (),
             ingredients=(
                 Ingredient(
                     name="dd",
@@ -332,12 +383,13 @@ class InsectModel:
 
     def _context(self) -> tuple[str, ...]:
         """The freeze reduction reads the day of year (without it there's none); an estimated biofix the latitude,
-        and a generation size the year (its date's day of year in leap years)."""
+        a generation size the year (its date's day of year in leap years), and a place form its normal."""
         i = self.insect
         return (
             "day_of_year",
             *(("latitude",) if i.estimated_biofix else ()),
             *(("year",) if i.generation_size else ()),
+            *((i.place_form.normal.key,) if i.place_form else ()),
         )
 
     # The shared freeze ingredient: the days in the last 14 at or below −2 °C after day 250 (the legacy reduction)
@@ -435,6 +487,14 @@ class PhenologyModel(InsectModel):
                 else ()
             ),
             *((Quantity(name=g.name, label=g.label, unit="index"),) if (g := i.generation_size) else ()),
+            *(
+                (
+                    Quantity(name=f.name, label=f.label, unit="index"),
+                    Quantity(name=f.normal.key, label=_capitalized(f.normal.label), unit="degF_day"),
+                )
+                if (f := i.place_form)
+                else ()
+            ),
             Quantity(name="freeze_factor", label="Share left after fall freezes", unit="index"),
             Quantity(name="season_complete", label="Season ended by freezes", unit="index"),
         )
@@ -464,6 +524,12 @@ class PhenologyModel(InsectModel):
             read = evaluate_calendar(insect=self.insect, day_of_year=values["day_of_year"], like=total)
         else:
             read = evaluate(insect=self.insect, dd_total=timed)
+            if (f := self.insect.place_form) is not None:
+                normal, here = self._place_form(values)
+                other = evaluate(insect=form_insect(self.insect), dd_total=timed)
+                read = {name: np.where(here, other[name], value) for name, value in read.items()}
+                extra[f.name] = np.where(np.isnan(total), np.nan, here.astype(float))
+                extra[f.normal.key] = np.where(np.isnan(total), np.nan, normal)
         for name, value in read.items():
             if name.startswith(("activity_", "count_")):
                 value = value * factor
@@ -503,14 +569,37 @@ class PhenologyModel(InsectModel):
             extra[g.name] = np.where(np.isnan(total) | ~reached, np.nan, size)
         return timed, extra
 
+    def _place_form(self, values: Mapping[str, np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
+        """The place's normal (NaN where it isn't known) and whether the place form applies (never where unknown)."""
+        f = self.insect.place_form
+        assert f is not None
+        normal = np.asarray(values.get(f.normal.key, np.nan), dtype=float)
+        with np.errstate(invalid="ignore"):
+            return normal, np.isfinite(normal) & (normal < f.below)
+
     def risk(self, outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
-        """The sum of each stage's weight times its activity: 1 at a weight-1 stage's first-generation peak."""
-        stages = self.insect.life_stages
-        return np.sum([s.weight * np.asarray(outputs[f"activity_{s.key}"], dtype=float) for s in stages], axis=0)
+        """The sum of each stage's weight times its activity: 1 at a weight-1 stage's first-generation peak. With
+        generation weights, each generation's activity times its weight, read off the risk's own curve at the
+        degree days the stages are timed by, and scaled by the freeze factor as activity is."""
+        i = self.insect
+        if not i.generation_weights:
+            return np.sum(
+                [s.weight * np.asarray(outputs[f"activity_{s.key}"], dtype=float) for s in i.life_stages], axis=0
+            )
+        e = i.estimated_biofix
+        timed = np.asarray(outputs[f"dd_after_{e.key}" if e else "dd_total"], dtype=float)
+        here = np.asarray(outputs[i.place_form.name], dtype=float) == 1 if i.place_form else None
+        factor = np.asarray(outputs.get("freeze_factor", 1.0), dtype=float)
+        return np.where(np.isnan(timed), np.nan, weighted_risk(insect=i, dd=timed, here=here) * factor)
 
     def explore(self, dd_total: float) -> dict[str, float]:
-        values = evaluate(insect=self.insect, dd_total=np.array([dd_total]))
-        values["risk"] = self.risk(values)
+        total = np.array([dd_total])
+        values = evaluate(insect=self.insect, dd_total=total)
+        values["risk"] = (
+            weighted_risk(insect=self.insect, dd=total, here=None)
+            if self.insect.generation_weights
+            else self.risk(values)
+        )
         return {k: float(v[0]) for k, v in values.items()}
 
 
@@ -600,13 +689,40 @@ def generation_densities(insect: Insect, stage: LifeStage) -> list[np.ndarray]:
     return densities
 
 
+@dataclass(frozen=True, kw_only=True)
+class _Generations:
+    """A timed stage's tables on `dd_grid()`, one per generation: the share present, entered and left (complete)."""
+
+    present: list[np.ndarray]
+    entered: list[np.ndarray]
+    complete: list[np.ndarray]
+
+
+@cache
+def _generations(insect: Insect) -> dict[str, _Generations]:
+    """Each timed stage's generations (`_Generations`), by label."""
+    found: dict[str, _Generations] = {}
+    for stage in insect.life_stages:
+        if isinstance(stage, LifeStage):
+            present = generation_densities(insect=insect, stage=stage)
+            complete = [np.minimum(np.cumsum(d) * DD_STEP, 1.0) for d in present]
+            found[stage.label] = _Generations(present=present, entered=complete, complete=complete)
+        elif isinstance(stage, DerivedStage):  # entered `lag` after the followed stage, left `duration` later
+            followed = found[stage.follows].complete
+            entered = [_shift(f, by=stage.lag) for f in followed]
+            complete = [_shift(f, by=stage.lag + stage.duration) for f in followed]
+            present = [a - b for a, b in zip(entered, complete, strict=True)]
+            found[stage.label] = _Generations(present=present, entered=entered, complete=complete)
+    return found
+
+
 @cache
 def curves(insect: Insect) -> dict[str, np.ndarray]:
     """Each output that depends only on degree days, tabulated on `dd_grid()`: per stage its activity (1 at the
     first generation's peak) and generations complete (the sum of each generation's fraction complete), and per
     action window whether it's open (0 or 1)."""
     tables: dict[str, np.ndarray] = {}
-    complete: dict[str, list[np.ndarray]] = {}
+    timed = _generations(insect)
     for stage in insect.life_stages:
         if isinstance(stage, FittedStage):
             x = dd_grid()
@@ -616,22 +732,64 @@ def curves(insect: Insect) -> dict[str, np.ndarray]:
             tables[f"activity_{stage.key}"] = count / count.max()
             tables[f"count_{stage.key}"] = count
             continue
-        if isinstance(stage, LifeStage):
-            present = generation_densities(insect=insect, stage=stage)
-            complete[stage.label] = [np.minimum(np.cumsum(d) * DD_STEP, 1.0) for d in present]
-        else:  # entered `lag` after the followed stage, left `duration` later
-            entered = [_shift(f, by=stage.lag) for f in complete[stage.follows]]
-            complete[stage.label] = [_shift(f, by=stage.lag + stage.duration) for f in complete[stage.follows]]
-            present = [a - b for a, b in zip(entered, complete[stage.label], strict=True)]
-        tables[f"activity_{stage.key}"] = np.sum(present, axis=0) / present[0].max()
-        tables[f"generations_{stage.key}"] = np.sum(complete[stage.label], axis=0)
+        g = timed[stage.label]
+        tables[f"activity_{stage.key}"] = np.sum(g.present, axis=0) / g.present[0].max()
+        tables[f"generations_{stage.key}"] = np.sum(g.complete, axis=0)
     for w in insect.action_windows:
         low, high = w.between
+        g = timed[w.stage]
         open_ = np.zeros_like(dd_grid(), dtype=bool)
-        for fraction in complete[w.stage]:
-            open_ |= (fraction >= low) & (fraction <= high)
+        for entered, left in zip(g.entered, g.complete, strict=True):
+            if w.when == "present":  # from the first individuals in until most have left
+                open_ |= (entered >= low) & (left <= high)
+            else:
+                open_ |= (left >= low) & (left <= high)
         tables[f"window_{w.key}"] = open_.astype(float)
     return tables
+
+
+def generation_weight(insect: Insect, n: int) -> float:
+    """Generation n's weight in the risk (from 1): its own, or the last one given; 1 without weights."""
+    weights = insect.generation_weights
+    return 1.0 if not weights else weights[min(n, len(weights)) - 1]
+
+
+@cache
+def risk_curve(insect: Insect) -> np.ndarray:
+    """The risk on `dd_grid()` before fall freezes: the sum over stages and generations of the stage's weight times
+    the generation's weight times its activity (1 at a weight-1 stage's first-generation peak)."""
+    total = np.zeros_like(dd_grid())
+    for stage in insect.life_stages:
+        if stage.weight and not isinstance(stage, FittedStage):
+            g = _generations(insect)[stage.label]
+            peak = g.present[0].max()
+            for n, present in enumerate(g.present, start=1):
+                total = total + stage.weight * generation_weight(insect, n) * present / peak
+    return total
+
+
+def weighted_risk(insect: Insect, dd: np.ndarray, here: np.ndarray | None) -> np.ndarray:
+    """`risk_curve` at each total (degree days from the stages' start), the place form's where `here` is true."""
+    x = dd_grid()
+    value = np.interp(dd, x, risk_curve(insect))
+    if insect.place_form is not None and here is not None:
+        value = np.where(here, np.interp(dd, x, risk_curve(form_insect(insect))), value)
+    return value
+
+
+@cache
+def form_insect(insect: Insect) -> Insect:
+    """The insect with its place form's life stages and generations, for the places the form applies."""
+    f = insect.place_form
+    assert f is not None
+    return replace(
+        insect,
+        life_stages=f.life_stages,
+        generation_dd=f.generation_dd,
+        generation_sd=f.generation_sd,
+        max_generations=f.max_generations,
+        place_form=None,
+    )
 
 
 def _shift(values: np.ndarray, by: float) -> np.ndarray:
@@ -735,13 +893,27 @@ def phenology_criteria(insect: Insect) -> str:
     )
     if insect.max_generations:
         repeat += f" At most {insect.max_generations} generations."
+    if (f := insect.place_form) is not None:
+        form_stages = "; ".join(_stage_words(s) for s in f.life_stages)
+        if f.generation_dd:
+            form_repeat = f", later generations every {f.generation_dd:,g} degree days"
+            form_repeat += f" (at most {f.max_generations})" if f.max_generations else ""
+        else:
+            form_repeat = ", one generation"
+        repeat += f" Where {f.normal.label} is below {f.below:,g}, {f.words} instead: {form_stages}{form_repeat}. Where that normal isn't known, the stages above."
+    weighting = "Risk is the sum of each stage's weight times its activity (1 at the first generation's peak)"
+    if insect.generation_weights:
+        weights = ", ".join(f"{_ordinal(n)} {w:g}" for n, w in enumerate(insect.generation_weights, start=1))
+        weighting += (
+            f", each generation's activity also times its weight ({weights}; any later generation, the last weight)"
+        )
     levels = ", ".join(
         f"{word} from {t:g}" for word, t in zip(SEVERITY_LEVELS[1:], insect.risk_thresholds, strict=True)
     )
     since = "the biofix"
     if (e := insect.estimated_biofix) is not None:
         since = f"the {e.event} (a grower's date, or where none is given the day the total from January 1 reaches the {e.event} expected at the place's latitude)"
-    return f"{method} degree days (base {insect.base_f:g} °F, {upper}) since {since} time each life stage's first generation ({stages}).{repeat} Risk is the sum of each stage's weight times its activity (1 at the first generation's peak): {levels}. After day 250, fall freezes end the season."
+    return f"{method} degree days (base {insect.base_f:g} °F, {upper}) since {since} time each life stage's first generation ({stages}).{repeat} {weighting}: {levels}. After day 250, fall freezes end the season."
 
 
 def _fitted_criteria(insect: Insect) -> str:
@@ -754,6 +926,14 @@ def _fitted_criteria(insect: Insect) -> str:
     )
     since = "January 1" if insect.biofix == "01-01" else "the biofix"
     return f"Single-sine degree days (base {insect.base_f:g} °F, {upper}) since {since} read each stage's value off a curve fitted to field counts ({peaks}). Activity is a stage's value over its curve's peak; risk is {weighted}: {levels}. After day 250, fall freezes end the season."
+
+
+def _ordinal(n: int) -> str:
+    return {1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth"}.get(n, f"{n}th")
+
+
+def _capitalized(text: str) -> str:
+    return text[:1].upper() + text[1:]
 
 
 def _lower(label: str) -> str:

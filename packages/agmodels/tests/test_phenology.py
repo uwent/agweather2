@@ -218,3 +218,134 @@ def test_max_generations_stops_the_repeats_and_is_checked():
     assert len(generation_densities(insect=replace(INSECT, max_generations=3), stage=FLIGHT)) == 3
     with pytest.raises(ValueError, match="max_generations"):
         replace(INSECT, max_generations=0)
+
+
+# --- Part H, round 2: a window while a stage is present, generation weights, a form chosen by a normal of the place ---
+
+LARVAE = DerivedStage(label="Larvae", follows="Adult flight", lag=100, duration=200)
+
+
+def test_a_present_window_opens_with_the_first_individuals_and_closes_as_most_leave():
+    """`when="present"`: from the share `between[0]` entered until `between[1]` has left (black cutworm's cutting
+    caterpillars), against the default, which opens only once a share has left."""
+    present = ActionWindow(label="While larvae feed", stage="Larvae", between=(0.01, 0.9), when="present")
+    complete = ActionWindow(label="Larvae done", stage="Larvae", between=(0.01, 0.9))
+    insect = replace(INSECT, life_stages=(FLIGHT, LARVAE), generation_dd=None, action_windows=(present, complete))
+    t = curves(insect)
+    flight = np.minimum(np.cumsum(generation_densities(insect=insect, stage=FLIGHT)[0]), 1.0)
+    first_in = X[np.argmax(flight >= 0.01)] + 100  # 1 % of the flight, then the lag
+    most_out = X[np.argmax(flight >= 0.9)] + 300  # 90 % of the flight, then lag and duration
+    open_ = X[t["window_while_larvae_feed"] > 0]
+    assert abs(open_[0] - first_in) <= 1 and abs(open_[-1] - most_out) <= 1
+    done = X[t["window_larvae_done"] > 0]
+    assert done[0] == pytest.approx(open_[0] + 200, abs=1)  # the default waits for the first to leave
+    with pytest.raises(ValueError, match="present"):  # a stage timed from another only
+        replace(insect, action_windows=(replace(present, stage="Adult flight"),))
+
+
+def test_generation_weights_scale_each_generations_risk():
+    """Each generation's activity times its weight; later generations take the last weight; activity is unweighted."""
+    weighted = replace(INSECT, generation_weights=(1.0, 0.5))
+    plain, half = PhenologyModel(insect=INSECT, summary=""), PhenologyModel(insect=weighted, summary="")
+    for dd in (360, 600):  # the first generation alone: the same risk
+        assert half.explore(dd)["risk"] == pytest.approx(plain.explore(dd)["risk"])
+    for dd in (360 + 720, 360 + 2 * 720):  # second and third flights' peaks: half, as their activity is the same
+        assert half.explore(dd)["activity_adult_flight"] == pytest.approx(plain.explore(dd)["activity_adult_flight"])
+        assert half.explore(dd)["risk"] == pytest.approx(plain.explore(dd)["risk"] / 2, rel=0.01)
+    # through the outputs (as a run and a map compute it), with the freeze factor
+    total = np.array([360.0, 1080.0, np.nan])
+    out = {"dd_total": total, "dd": np.zeros(3), half.FREEZE: np.array([1.0, 0.5, 1.0])}
+    finished = half.finish(out)
+    risk = half.risk(finished)
+    assert risk[0] == pytest.approx(half.explore(360)["risk"])
+    assert risk[1] == pytest.approx(half.explore(1080)["risk"] * 0.5)
+    assert np.isnan(risk[2])
+    with pytest.raises(ValueError, match="negative"):
+        replace(INSECT, generation_weights=(1.0, -0.5))
+
+
+def _form_insect():
+    from agmodels.phenology import PlaceForm
+    from agmodels.spec import PlaceNormal
+
+    normal = PlaceNormal(variable="dd_modified_50_86", through="08-01", label="the normal", missing="No normal here.")
+    one = LifeStage(label="Adult flight", start=900, peak=1400, end=1900)
+    form = PlaceForm(
+        name="one_flight",
+        label="One flight here",
+        words="one flight",
+        normal=normal,
+        below=1500,
+        life_stages=(one, replace(FEEDING, start=1000, peak=1500, end=2000)),
+    )
+    return replace(INSECT, place_form=form), normal
+
+
+def test_a_place_form_is_chosen_by_the_places_normal():
+    """Below the bound, the form's stages; at or above it, or where the normal is unknown, the insect's own."""
+    insect, normal = _form_insect()
+    m = PhenologyModel(insect=insect, summary="")
+    assert normal.key in m.SPEC.context and m.SPEC.place_normals == (normal,)
+    total = np.array([360.0, 1400.0])
+    base = {"dd_total": total, "dd": np.zeros(2), m.FREEZE: np.ones(2)}
+    north = m.finish(base | {normal.key: np.array(1400.0)})
+    south = m.finish(base | {normal.key: np.array(1600.0)})
+    unknown = m.finish(base | {normal.key: np.array(np.nan)})
+    assert north["activity_adult_flight"][0] == 0 and north["activity_adult_flight"][1] == pytest.approx(1)
+    assert south["activity_adult_flight"][0] == pytest.approx(1)
+    np.testing.assert_array_equal(unknown["activity_adult_flight"], south["activity_adult_flight"])
+    assert north["one_flight"].tolist() == [1, 1] and south["one_flight"].tolist() == [0, 0]
+    assert unknown["one_flight"].tolist() == [0, 0] and np.isnan(unknown[normal.key]).all()
+    assert north[normal.key].tolist() == [1400, 1400]
+    # on a grid: one cell each side of the bound, each as its own point
+    grid = {
+        "dd_total": np.broadcast_to(total[:, None, None], (2, 1, 2)).copy(),
+        "dd": np.zeros((2, 1, 2)),
+        m.FREEZE: np.ones((2, 1, 2)),
+        normal.key: np.array([[[1499.0, 1500.0]]]),
+    }
+    cells = m.finish(grid)
+    np.testing.assert_allclose(cells["activity_adult_flight"][:, 0, 0], north["activity_adult_flight"])
+    np.testing.assert_allclose(cells["activity_adult_flight"][:, 0, 1], south["activity_adult_flight"])
+    assert "Where the normal is below 1,500, one flight instead" in m.SPEC.risk.criteria  # type: ignore[union-attr]
+
+
+def test_a_place_forms_stages_are_checked():
+    insect, _ = _form_insect()
+    f = insect.place_form
+    assert f is not None
+    with pytest.raises(ValueError, match="labels"):
+        replace(insect, place_form=replace(f, life_stages=f.life_stages[:1]))
+
+
+def test_the_runner_passes_the_places_normal_and_warns_without_it():
+    from datetime import date, timedelta
+    from typing import cast
+
+    from agmodels import runner
+    from agmodels.spec import Model
+
+    insect, normal = _form_insect()
+    m = cast(Model, PhenologyModel(insect=insect, summary=""))
+    dates = [date(2025, 1, 1) + timedelta(days=k) for k in range(365)]
+    doy = np.arange(365)
+    daily = {
+        "air_temperature_min": 10 + 10 * np.sin((doy - 100) / 365 * 2 * np.pi),
+        "air_temperature_max": 22 + 10 * np.sin((doy - 100) / 365 * 2 * np.pi),
+    }
+    north = runner.run(m, dates=dates, daily=daily, latitude=45.0, place={normal.key: 1400.0})
+    south = runner.run(m, dates=dates, daily=daily, latitude=45.0, place={normal.key: 1600.0})
+    unknown = runner.run(m, dates=dates, daily=daily, latitude=45.0)
+    assert north.outputs["one_flight"][200] == 1 and south.outputs["one_flight"][200] == 0
+    assert north.place_warnings == () and south.place_warnings == ()
+    assert unknown.place_warnings == ("No normal here.",)
+    np.testing.assert_array_equal(unknown.outputs["activity_adult_flight"], south.outputs["activity_adult_flight"])
+    assert len(north.windows["Avoid planting during adult flight"]) < len(
+        south.windows["Avoid planting during adult flight"]
+    )
+
+
+def test_a_fixed_biofix_is_declared_in_the_spec():
+    m = PhenologyModel(insect=replace(INSECT, biofix="03-01", biofix_fixed=True), summary="")
+    assert m.SPEC.biofix is not None and m.SPEC.biofix.fixed
+    assert PhenologyModel(insect=INSECT, summary="").SPEC.biofix.fixed is False  # type: ignore[union-attr]

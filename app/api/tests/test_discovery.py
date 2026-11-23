@@ -125,6 +125,13 @@ def test_every_model_spec_is_served(client, model_id):
     assert all(data["derivable_from_hourly"][i["name"]] for i in data["inputs"]), model_id
 
 
+def test_a_fixed_biofix_is_reported(client):
+    """Western bean cutworm always counts from March 1 (Hanson et al.'s thresholds mean nothing from another start)."""
+    fixed = client.get("/api/v2/models/western-bean-cutworm").json()["data"]["biofix"]
+    assert fixed["default"] == "03-01" and fixed["fixed"] is True
+    assert client.get("/api/v2/models/codling-moth").json()["data"]["biofix"]["fixed"] is False
+
+
 def test_an_unknown_model_is_a_404_envelope(client):
     response = client.get("/api/v2/models/no-such-model")
     assert response.status_code == 404

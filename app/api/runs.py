@@ -95,6 +95,13 @@ def plan(
         raise ApiError(
             "not_applicable", f"The {spec.name} model doesn't take a biofix date. Leave out 'biofix'.", "biofix"
         )
+    if biofix is not None and spec.biofix is not None and spec.biofix.fixed:
+        month, day = (int(p) for p in spec.biofix.default.split("-"))
+        raise ApiError(
+            "not_applicable",
+            f"The {spec.name} model always counts from {date(2001, month, day):%B} {day}, so it doesn't take a biofix date. Leave out {quoted('biofix')}.",
+            "biofix",
+        )
 
     axes: list[tuple[str, list[Any]]] = [("planting_date", plantings)]
     axes += [*own.items(), *crop_opts.items()]

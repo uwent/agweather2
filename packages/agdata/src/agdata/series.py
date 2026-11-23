@@ -22,7 +22,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata import computed, corrections, forecast, pastyears, projection, timecopy
+from agdata import computed, corrections, forecast, normals, pastyears, projection, timecopy
 from agdata.areas import Area, Place, cells_of
 from agdata.areas import combine as combine_area
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, GAP_FILL, VARIABLES, Variable
@@ -808,11 +808,14 @@ def runs_at_point(
     start: date,
     end: date,
     planting_default: bool = True,
+    data_dir: Path | None = None,
 ) -> list[ModelRun]:
     """Models at a point from any source of days (the archive and forecast, or Open-Meteo), read once for them all
     (`days_needed`): each run gets its own days from its `runner.first_day_needed`, so the result is the same as
     running it alone. The region is checked against the county grid; `planting_default` gives a stage-gated model
-    without a planting date the typical one (D34)."""
+    without a planting date the typical one (D34). A model that reads normals of the place (`ModelSpec.place_normals`)
+    gets them at the point's cell from `data_dir`'s normal maps (`place_at`); without them it runs as its normal
+    says, with a warning."""
     if planting_default:
         runs = [with_planting(run, latitude, longitude, start) for run in runs]
     first, names = days_needed(runs, start)
@@ -841,11 +844,23 @@ def runs_at_point(
                 crop_options=run.crop_options,
                 in_region=in_region,
                 gap_fill=GAP_FILL,
+                place=place_at(data_dir, m.SPEC, latitude, longitude),
             )
         )
         results[-1].sources, results[-1].corrections = days.sources, days.corrections
         results[-1].outside_training_area = outside_training_area(m.SPEC, county)
     return results
+
+
+def place_at(data_dir: Path | None, spec: ModelSpec, latitude: float, longitude: float) -> dict[str, float]:
+    """The normals of the place a model reads (`ModelSpec.place_normals`) at the point's cell, from the normal maps
+    (`normals.place_normals_at`, the same values a map reads): NaN outside the grid or the normals' area, and
+    without a data folder."""
+    if not spec.place_normals:
+        return {}
+    if data_dir is None:
+        return {n.key: float("nan") for n in spec.place_normals}
+    return normals.place_normals_at(data_dir, spec, NDFD.cell_of(latitude, longitude))
 
 
 def outside_training_area(spec: ModelSpec, county: County | None) -> bool:
@@ -882,6 +897,7 @@ def projected_runs(
     start: date,
     end: date,
     years: Sequence[int],
+    data_dir: Path | None = None,
 ) -> Projected:
     """`runs_at_point` carried on past the series' last day with data to `end`, once per earlier year in `years`
     (`agdata.projection`; `read_past` reads a past year's days). Each run's scenarios come from
@@ -891,12 +907,16 @@ def projected_runs(
     begins = projection.projection_start(days.dates, days.kinds)
     county = county_at(latitude, longitude)
     if begins is None or begins > end:
-        plain = runs_at_point(lambda *_: days, latitude, longitude, runs, start, end, planting_default=False)
+        plain = runs_at_point(
+            lambda *_: days, latitude, longitude, runs, start, end, planting_default=False, data_dir=data_dir
+        )
         return Projected(runs=[[r] for r in plain], years=[])
     kept = (begins - first).days
     scenarios_found = projection.build(begins, end, [y for y in years if y < end.year], names, read_past)
     if not scenarios_found.years:
-        plain = runs_at_point(lambda *_: days, latitude, longitude, runs, start, end, planting_default=False)
+        plain = runs_at_point(
+            lambda *_: days, latitude, longitude, runs, start, end, planting_default=False, data_dir=data_dir
+        )
         return Projected(runs=[[r] for r in plain], years=[], start=begins, coverage=scenarios_found.coverage)
     values, kinds = projection.stacked(
         {name: days.values[name][:kept] for name in names}, days.kinds[:kept], scenarios_found
@@ -920,6 +940,7 @@ def projected_runs(
             crop_options=run.crop_options,
             in_region=in_region,
             gap_fill=GAP_FILL,
+            place=place_at(data_dir, m.SPEC, latitude, longitude),
         )
         for r in found:
             r.sources, r.corrections = days.sources, days.corrections
@@ -980,7 +1001,9 @@ def models_at_point(
     def read_days(first: date, last: date, names: list[str]) -> DailySeries:
         return point_days(data_dir, *cell, first, last, names, now=now, fill_soil=fill_soil, zone=zone, area=area)
 
-    return runs_at_point(read_days, latitude, longitude, runs, start, end, planting_default=planting_default)
+    return runs_at_point(
+        read_days, latitude, longitude, runs, start, end, planting_default=planting_default, data_dir=data_dir
+    )
 
 
 def model_at_point(

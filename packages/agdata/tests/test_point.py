@@ -134,12 +134,15 @@ def test_every_model_gives_a_cell_what_it_gives_its_series(stores):
         names = [q.name for q in m.SPEC.inputs]
         grid = {name: days.read_steps(name, d0, d1) for name in names}
         context = {"day_of_year": day_of_year[:, None, None], "latitude": lat, "year": np.array(2025.0)}
+        # a normal of the place per cell, as a map reads it (`agdata.normals.place_normals`), across 1,500
+        context |= {n.key: np.linspace(1300, 1700, lat.size).reshape(1, *lat.shape) for n in m.SPEC.place_normals}
         grid |= {name: context[name] for name in m.SPEC.context}
         grid_out = m.outputs(grid)
         grid_risk = None if m.SPEC.risk is None else m.risk(grid_out)
         for y, x, _ in cells():
             point = {name: values[:, y, x] for name, values in grid.items() if name in names}
             context = {"day_of_year": day_of_year, "latitude": lat[y, x], "year": np.array(2025.0)}
+            context |= {n.key: grid[n.key][0, y, x] for n in m.SPEC.place_normals}
             point |= {name: context[name] for name in m.SPEC.context}
             out = m.outputs(point)
             for name, values in out.items():

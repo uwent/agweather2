@@ -50,6 +50,7 @@ from agdata.catalog import (
 )
 from agdata.grid import Window
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
+from agmodels.spec import ModelSpec, PlaceNormal
 
 VERSION = 3  # bump when what's stored changes, and every period is built again (2: `enough_years`; 3: counts)
 KIND = "climate/normals"
@@ -506,3 +507,36 @@ def percentile_among(value: np.ndarray, deciles: list[np.ndarray]) -> np.ndarray
             t = np.where(hi > lo, (value - lo) / (hi - lo), 0.5)
         out = np.where(inside, 10.0 * (k + 1) + 10.0 * t, out)
     return out
+
+
+# --- A model's place normals (`agmodels.spec.PlaceNormal`) --------------------------------------------------------
+
+
+def place_normal(data_dir: Path, normal: PlaceNormal, window: Window) -> np.ndarray:
+    """A model's normal of the place over `window`: the period's mean running total of the variable from January 1
+    through the normal's day. NaN where the normals don't reach, or everywhere if the period isn't built."""
+    if info(data_dir, normal.period) is None:
+        return np.full(window.shape, np.nan)
+    month, day = (int(p) for p in normal.through.split("-"))
+    try:
+        return read_within(
+            data_dir, normal.period, f"{normal.variable}/mean", date(climatology.LEAP, month, day), window
+        )
+    except KeyError:
+        return np.full(window.shape, np.nan)
+
+
+def place_normals(data_dir: Path, spec: ModelSpec, window: Window) -> dict[str, np.ndarray]:
+    """Every place normal a model reads over `window`, by key."""
+    return {n.key: place_normal(data_dir, n, window) for n in spec.place_normals}
+
+
+def place_normals_at(data_dir: Path, spec: ModelSpec, cell: tuple[int, int] | None) -> dict[str, float]:
+    """Every place normal a model reads at a grid cell (j, i), by key; NaN off the grid (None) or where missing."""
+    if not spec.place_normals:
+        return {}
+    if cell is None:
+        return {n.key: float("nan") for n in spec.place_normals}
+    j, i = cell
+    found = place_normals(data_dir, spec, Window(j0=j, j1=j + 1, i0=i, i1=i + 1))
+    return {key: float(values[0, 0]) for key, values in found.items()}

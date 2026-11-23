@@ -342,6 +342,7 @@ class BiofixInfo(Schema):
     default: str  # MM-DD
     label: str
     stage: list[str] | None  # [crop model, stage code] whose predicted date is the default instead, if any
+    fixed: bool  # always the default: the model takes no biofix date
 
 
 class SusceptibilityInfo(Schema):
@@ -482,7 +483,7 @@ def _detail(spec: ModelSpec) -> ModelDetail:
     biofix = None
     if spec.biofix is not None:
         stage = list(spec.biofix_stage) if spec.biofix_stage else None
-        biofix = BiofixInfo(default=spec.biofix.default, label=spec.biofix.label, stage=stage)
+        biofix = BiofixInfo(default=spec.biofix.default, label=spec.biofix.label, stage=stage, fixed=spec.biofix.fixed)
     s = spec.susceptible
     return ModelDetail(
         **_summary(spec),

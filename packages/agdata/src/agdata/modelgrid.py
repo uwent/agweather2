@@ -9,8 +9,9 @@ degree days and rain):
 - an accumulation from the biofix `b` to day `d` is a difference of running totals from January 1,
   `T(d) − T(b − 1)` (zero before January 1), summed year by year when the season crosses New Year (rye); a `sum`
   or `mean` over N days starts at `max(b, d − N + 1)`, and a mean divides by the days with a value (`.known`);
-- the context (`day_of_year`, `year`, `latitude`, `biofix_day_of_year`), then the model's `finish` and `risk`,
-  exactly as `runner.run` calls them at a point.
+- the context (`day_of_year`, `year`, `latitude`, `biofix_day_of_year`, and each cell's normals the model reads,
+  `ModelSpec.place_normals`, from the normal maps), then the model's `finish` and `risk`, exactly as `runner.run`
+  calls them at a point.
 
 `model_days` takes the spec's default biofix for the season each day falls in, or one per cell (`cell_biofix`); a
 day before it is missing, as a point returns nothing before its biofix. Maps take each place's settings, never a
@@ -33,7 +34,7 @@ from typing import cast
 
 import numpy as np
 
-from agdata import croptiers, modelmaps, planting, regions, series
+from agdata import croptiers, modelmaps, normals, planting, regions, series
 from agdata import units as agunits
 from agdata.grid import Window
 from agdata.grids import cube_terms
@@ -99,6 +100,8 @@ class ModelDays:
     reads: int = 0  # map-days read, for timing
     options: dict[str, str] = field(default_factory=dict)
     accumulated: dict[str, np.ndarray] = field(default_factory=dict)  # each accumulation, (days, y, x)
+    # each normal of the place the model reads (`ModelSpec.place_normals`), (y, x), NaN where the normals don't reach
+    place: dict[str, np.ndarray] = field(default_factory=dict)
 
 
 def model_days(
@@ -140,6 +143,8 @@ def model_days(
 
         values["latitude"] = NDFD.window_latlon(window)[0][None].astype(float)
     values["biofix_day_of_year"] = _day_of_year(cells)
+    place = normals.place_normals(data_dir, spec, window)
+    values |= {key: v[None] for key, v in place.items()}
 
     outputs = {k: np.broadcast_to(v, (n, *window.shape)).copy() for k, v in m.finish(values, **opts).items()}  # type: ignore[attr-defined]
     risk = level = None
@@ -180,6 +185,7 @@ def model_days(
         reads=reader.reads,
         options=opts,
         accumulated={a.name: values[a.name] for a in spec.accumulations},
+        place=place,
     )
 
 

@@ -89,6 +89,7 @@ class Accumulation:
 
 
 CONTEXT = ("day_of_year", "year", "latitude")
+PLACE_NORMAL = "normal_"  # the start of a normal of the place's context name (`spec.PlaceNormal.key`)
 
 
 def accumulate(
@@ -136,7 +137,11 @@ def finished(
     doy = inputs.get("day_of_year")
     full = dict(values)
     full |= accumulate(values, accumulations, biofix_index, day_of_year=doy, year=inputs.get("year"))
-    full |= {name: np.asarray(inputs[name], dtype=float) for name in CONTEXT if name in inputs}
+    full |= {
+        name: np.asarray(value, dtype=float)
+        for name, value in inputs.items()
+        if name in CONTEXT or name.startswith(PLACE_NORMAL)
+    }
     if doy is not None:
         days = np.asarray(doy, dtype=float).reshape(-1)
         full["biofix_day_of_year"] = np.asarray(days[biofix_index] if days.size > biofix_index else np.nan)

@@ -42,6 +42,10 @@ export interface BiofixInfo {
    * The crop model and growth stage whose predicted date is used as the biofix in place of `default`, as `[model id, stage]`. Null when `default` is used.
    */
   stage: string[] | null
+  /**
+   * True when the model always counts from `default` and doesn't take a biofix date: its thresholds were set from that date.
+   */
+  fixed: boolean
 }
 export interface Cell {
   /**

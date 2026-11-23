@@ -57,6 +57,9 @@ class ModelRun:
     # The place is outside the area the model's data came from (`ModelSpec.trained`, D101), set by the caller that
     # knows the place (`agdata.series`): the run is made, and the answer says it reaches beyond the data
     outside_training_area: bool = False
+    # Public warnings for the place's fixed values the model reads and didn't get (`ModelSpec.place_normals`): each
+    # one's `missing`, saying what the model did without it
+    place_warnings: tuple[str, ...] = ()
     # Where the weather came from, set by the caller that read it (`agdata.series`): its sources and corrections
     sources: tuple[str, ...] = ()
     corrections: tuple[str, ...] = ()
@@ -110,12 +113,15 @@ def run(
     crop_options: Mapping[str, str] | None = None,
     in_region: bool = True,
     gap_fill: Mapping[str, GapFill] | None = None,
+    place: Mapping[str, float] | None = None,
 ) -> ModelRun:
     """Runs a model over consecutive `dates` (with `daily[name]` for each, as `required_inputs` lists) and returns
     the days from `start` (default the first). `planting` is the crop's planting date, for stage gating and for a
     biofix at a crop stage; without it, gated models aren't gated, unless the options give the gate's stage date
     (`stage_date`, which replaces the crop's stages when given). `gap_fill` gives each input's estimate for
-    missing days (the catalog's `GAP_FILL`); inputs without one are passed as they are."""
+    missing days (the catalog's `GAP_FILL`); inputs without one are passed as they are. `place` gives the place's
+    fixed values the model reads (`ModelSpec.place_normals`, by key); one missing or NaN is passed as NaN, and the
+    run carries its warning."""
     m = find_model(m) if isinstance(m, str) else m
     spec = m.SPEC
     dates = list(dates)
@@ -131,7 +137,8 @@ def run(
 
     raw = {name: np.asarray(values, dtype=float) for name, values in daily.items()}
     daily, estimated = fill_inputs(raw, gap_fill or {})
-    context = _context(dates, latitude)
+    context = _context(dates, latitude) | place_context(spec, place)
+    result.place_warnings = place_warnings(spec, place)
     crop_stage = _crop_stage(spec, dates, daily, context, planting, crop_options or {})
     if biofix is None and spec.biofix_stage is not None and crop_stage is not None:
         code = spec.biofix_stage[1]
@@ -252,6 +259,16 @@ def _context(dates: list[date], latitude: float) -> dict[str, np.ndarray]:
         "latitude": np.array(latitude, dtype=float),
         "year": np.array([d.year for d in dates], dtype=float),
     }
+
+
+def place_context(spec: ModelSpec, place: Mapping[str, float] | None) -> dict[str, np.ndarray]:
+    """The place's fixed values a model reads, by key: NaN for one not given."""
+    return {n.key: np.array(float((place or {}).get(n.key, np.nan))) for n in spec.place_normals}
+
+
+def place_warnings(spec: ModelSpec, place: Mapping[str, float] | None) -> tuple[str, ...]:
+    """The warnings for the place's fixed values a model reads and didn't get (each normal's `missing`)."""
+    return tuple(n.missing for n in spec.place_normals if not np.isfinite(float((place or {}).get(n.key, np.nan))))
 
 
 def _index(dates: list[date], day: date) -> int | None:

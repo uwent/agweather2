@@ -14,6 +14,7 @@ INSECT = Insect(
     upper_f=75,
     dd_method="average_capped_mean",
     biofix="03-01",
+    biofix_fixed=True,
     life_stages=(
         # Black light catches in Nebraska, 1981–2009: a log-logistic in °C·d (μ 7.315, s 0.044; Table 4: 5, 25, 50,
         # 75 and 95 % at 2,377, 2,577, 2,704, 2,838 and 3,077 °F·d; NEWA adds 10 % 2,455 and 90 % 2,977). This PERT

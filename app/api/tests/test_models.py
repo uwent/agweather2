@@ -398,6 +398,12 @@ def test_a_biofix_for_a_model_without_one_and_too_many_option_sets_are_refused(c
     biofix = get(client, "cotton-planting", biofix="2025-05-01").json()["errors"][0]
     assert (biofix["code"], biofix["param"]) == ("not_applicable", "biofix")
     assert biofix["message"] == "The Cotton planting stand risk model doesn't take a biofix date. Leave out 'biofix'."
+    fixed = get(client, "western-bean-cutworm", biofix="2025-04-01").json()["errors"][0]
+    assert (fixed["code"], fixed["param"]) == ("not_applicable", "biofix")
+    assert (
+        fixed["message"]
+        == "The Western bean cutworm model always counts from March 1, so it doesn't take a biofix date. Leave out 'biofix'."
+    )
     many = get(client, "soybean-stages", planting_date="2025-05-01", maturity_group="all", seeding_depth_in="all")
     error = many.json()["errors"][0]  # 9 maturity groups x 3 depths
     assert many.status_code == 422 and (error["code"], error["param"]) == ("too_many", "all")
