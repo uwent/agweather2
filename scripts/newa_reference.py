@@ -1,4 +1,4 @@
-"""A reference of NEWA's apple scab and fire blight results, checked against NEWA's own page exports (models-plan B5).
+"""A reference of NEWA's apple scab and fire blight results, checked against NEWA's own page exports (models plan B5).
 
 NEWA (newa.cornell.edu) computes its apple models in the browser from a station's hours (NRCC's stnHrly, fetched
 by scripts/fetch_newa.py into tmp/newa/hours/). This script repeats that computation in Python from a reading of

@@ -1,4 +1,4 @@
-"""Hourly humidity in the archive against Wisconet's stations (PLAN.md Phase 4 G, D49).
+"""Hourly humidity in the archive against Wisconet's stations (Phase 4 G, D49).
 
 At each station's cell, the archive's hourly RH and temperature against the station's hourly means
 (`60min_relative_humidity_pct_avg`, `60min_air_temp_f_avg`, stamped at the hour's end as ours), and its

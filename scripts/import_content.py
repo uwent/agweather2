@@ -1,4 +1,4 @@
-"""Seed draft topic pages in `content/` and model pages beside their modules (PLAN.md Phase 3 E, D35) from the
+"""Seed draft topic pages in `content/` and model pages beside their modules (Phase 3 E, D35) from the
 Crop Risk Tool's docs and VDIFN's seed texts, and copy their images. Pages that exist are left alone (rewrites
 happen in place in Phase 6); pass --force to rebuild them all. `--quiet` prints only warnings, failures and the summary.
 

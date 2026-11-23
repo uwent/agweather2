@@ -1,4 +1,4 @@
-"""County and state summaries (docs/api.md, "Summaries"; PLAN.md Phase 6 C5): a layer's statistics over each
+"""County and state summaries (docs/api.md, "Summaries"; Phase 6 C5): a layer's statistics over each
 county's or state's cells, on one day or hour, each step of a range, a range reduced by `stat`, or each month of it.
 
 A region's cells are those `agdata.regions.summary_counties` gives it (open water left out). Coverage is the share

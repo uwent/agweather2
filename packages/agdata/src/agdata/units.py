@@ -1,4 +1,4 @@
-"""Units: the one place conversion factors live in Python (PLAN.md D18).
+"""Units: the one place conversion factors live in Python (docs/decisions.md D18).
 
 Stores hold SI (°C, mm, m/s, kPa, W/m², MJ/m²) except degree days, which stay in the unit each model is
 defined in (mostly °F·d). Values are converted only at the edges: source adapters convert into the stored

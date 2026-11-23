@@ -1,4 +1,4 @@
-"""County and state summaries (PLAN.md Phase 6 C5) on the fixture archive: 2 × 3 cells in Fayette County, Iowa
+"""County and state summaries (Phase 6 C5) on the fixture archive: 2 × 3 cells in Fayette County, Iowa
 (19065), observed July 1–10 2025, so the county is a sliver covered and its statistics need `min_coverage=0`."""
 
 import numpy as np

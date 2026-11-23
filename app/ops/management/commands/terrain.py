@@ -5,7 +5,7 @@ from ops.management.base import ReportingCommand
 
 
 class Command(ReportingCommand):
-    help = "Build each grid cell's share of open water and its elevation (PLAN.md Phase 6 D6) from NHDPlus V2.1: fetch the archives the service box needs (kept as received in data/nhdplus), then work out the water share from the lakes', reservoirs' and wide rivers' polygons and the elevation statistics from the 30 m elevation model, into data/terrain.zarr. Run again only when the service box or the source changes."
+    help = "Build each grid cell's share of open water and its elevation (Phase 6 D6) from NHDPlus V2.1: fetch the archives the service box needs (kept as received in data/nhdplus), then work out the water share from the lakes', reservoirs' and wide rivers' polygons and the elevation statistics from the 30 m elevation model, into data/terrain.zarr. Run again only when the service box or the source changes."
     stoppable = True
 
     def add_arguments(self, parser):

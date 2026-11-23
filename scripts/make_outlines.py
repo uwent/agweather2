@@ -1,4 +1,4 @@
-"""Builds `agdata/data/outlines.npz`: state and county outlines for static maps (PLAN.md Phase 5 G3, D60).
+"""Builds `agdata/data/outlines.npz`: state and county outlines for static maps (Phase 5 G3, D60).
 
 From the Census Bureau's cartographic boundary files, 1:5,000,000 (public domain): the lower 48 and DC, each ring
 as lat/lng vertices. Static maps project them onto the grid when drawing (`agdata.mapimage`).

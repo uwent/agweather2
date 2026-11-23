@@ -1,4 +1,4 @@
-"""Projection past the forecast (D63; PLAN.md Phase 5 D P3) on a fixture archive with this season (observed July
+"""Projection past the forecast (D63; Phase 5 D P3) on a fixture archive with this season (observed July
 1–10, 2025, then a forecast to about July 21) and two earlier years' July and August: 2023 at 12 °C ± 6 with an
 11-day hole (July 28 – August 7), 2024 at 18 °C ± 6."""
 

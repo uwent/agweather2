@@ -1,6 +1,6 @@
 # Rebuilds the Crop Risk Tool parity fixtures (crt_*.csv) from its R code and recorded weather.
 #   Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R
-# Needs the tool in tmp/R/crop-risk-tool with its renv library restored into renv-linux-lib (PLAN.md Phase 3 F).
+# Needs the tool in tmp/R/crop-risk-tool with its renv library restored into renv-linux-lib (Phase 3 F).
 source("packages/agmodels/tests/fixtures/crt_env.R")
 out_dir <- "packages/agmodels/tests/fixtures"
 write <- function(df, name) {

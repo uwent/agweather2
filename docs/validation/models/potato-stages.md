@@ -1,6 +1,6 @@
 # Potato emergence (`potato-stages`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/potato_stages.py`, run through `agmodels.crops`; its page: `potato_stages.md` beside it. Built 2026-11-03 (PLAN.md, "Potato emergence"); its predicted emergence starts the early and late blight models when a planting date is given (`biofix_stage`).
+Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/potato_stages.py`, run through `agmodels.crops`; its page: `potato_stages.md` beside it. Built 2026-11-03 (Phase 5, "Potato emergence", `docs/plans/phase-5-api.md`); its predicted emergence starts the early and late blight models when a planting date is given (`biofix_stage`).
 
 **In short:** 50 % emergence at 208 °C·d of air degree days above 4 °C from planting, a threshold fitted to the planting and emergence dates UW Vegetable Pathology's newsletters gave for Wisconsin's potato areas, 2020–2026. Held out by year, it predicts those dates with a mean error of 3.3 days, against 7.5 for a fixed 24 days after planting. The dates it was fitted to are the newsletters' estimates, not field records, and no other data set has tested it.
 
@@ -13,7 +13,7 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 
 ## Choices and differences
 
-- **Degree days:** the daily mean of the maximum and minimum less 4 °C, none below it, in air. Bases from 2 to 7 °C fit about as well, and soil temperature fit no better than air (PLAN.md).
+- **Degree days:** the daily mean of the maximum and minimum less 4 °C, none below it, in air. Bases from 2 to 7 °C fit about as well, and soil temperature fit no better than air (the plans, `docs/plans/`).
 - **Stages:** planting and 50 % emergence only. Tuber initiation and later stages need another source.
 - **Gating margin:** 4 days, the fit's held-out RMSE rounded up.
 - **Weather for the fit:** Open-Meteo's daily temperatures at each place (`tmp/potato/weather.json`), not the archive.
@@ -28,17 +28,17 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 | --- | --- | --- | --- |
 | 208 °C·d above 4 °C, held out by year | 3.3 | 4.0 | +0.1 |
 | The same, in sample | 3.1 | | |
-| A fixed 24 days after planting (PLAN.md) | 7.5 | | |
+| A fixed 24 days after planting (the plans, `docs/plans/`) | 7.5 | | |
 
 The newsletters' planting dates come from growers' reports and their emergence dates are estimates, so this measures agreement with Wisconsin's extension estimates, not with counted emergence.
 
 ### Against Holden et al.
 
-At a 45 °F base the same dates take about 250 °F·d (PLAN.md), Holden et al.'s (2011) base value within their range of 200–300 for the Columbia Basin.
+At a 45 °F base the same dates take about 250 °F·d (the plans, `docs/plans/`), Holden et al.'s (2011) base value within their range of 200–300 for the Columbia Basin.
 
 ## Limits and open questions
 
-- The fit's dates are estimates; PLAN.md notes that the newsletters' numbers come from the old AgWeather and VDIFN, and whether that includes their emergence dates isn't recorded. If it does, the fit partly reproduces an older model.
+- The fit's dates are estimates; the plans (`docs/plans/`) note that the newsletters' numbers come from the old AgWeather and VDIFN, and whether that includes their emergence dates isn't recorded. If it does, the fit partly reproduces an older model.
 - Planting depth, seed size, sprouting before planting and soil moisture all change emergence, and none is an input.
 - Only one threshold for all varieties.
 - **Cheapest independent comparison:** emergence counted in Wisconsin fields with known planting dates, from potato trials at UW–Madison's Hancock Agricultural Research Station, or from growers' and consultants' records, on the archive at each field's cell.

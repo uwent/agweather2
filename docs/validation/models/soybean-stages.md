@@ -1,6 +1,6 @@
 # Soybean growth stages (`soybean-stages`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/soybean_stages.py`, run through `agmodels.crops` (D32–D34); its page: `soybean_stages.md` beside it. Built in Phase 3 (PLAN.md, Phase 3's crop growth stages, step 4).
+Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/soybean_stages.py`, run through `agmodels.crops` (D32–D34); its page: `soybean_stages.md` beside it. Built in Phase 3 (Phase 3's crop growth stages, step 4).
 
 **In short:** a port of SOYDEV (Setiyono et al. 2007) in its mode that sets every parameter from the maturity group. On the paper's six Lincoln, Nebraska seasons of a maturity group 3.0 variety, run on reanalysis weather, beginning bloom (R1) came within 6 days of the observed date and beginning maturity (R7) within 3, close to the paper's own error for this mode (3.6 days). There is no check against Wisconsin fields, and no legacy tool to compare with.
 

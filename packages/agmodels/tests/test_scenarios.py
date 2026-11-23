@@ -1,4 +1,4 @@
-"""Models over scenarios at once (D63's projection; PLAN.md Phase 5 D P2): each scenario as if run alone, and the
+"""Models over scenarios at once (D63's projection; Phase 5 D P2): each scenario as if run alone, and the
 spread across them."""
 
 import warnings

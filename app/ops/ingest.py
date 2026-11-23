@@ -1,5 +1,5 @@
 """Keeping the archive current: the hourly job's refresh of recent hours, and the ingest records both it and the
-backfill write (PLAN.md Phase 2 F)."""
+backfill write (Phase 2 F)."""
 
 import logging
 from collections.abc import Callable

@@ -1,4 +1,4 @@
-"""Open water and terrain per grid cell, from NHDPlus V2.1 (PLAN.md Phase 6 D6, Q39).
+"""Open water and terrain per grid cell, from NHDPlus V2.1 (Phase 6 D6, Q39).
 
 URMA's analysis cools inland water cells to a different degree from year to year, and the wave-height mask
 (`agdata.coast.water`) knows only the Great Lakes and the ocean. This module gives every cell of the service window

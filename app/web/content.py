@@ -1,4 +1,4 @@
-"""Topic and model pages (PLAN.md Phase 3 E, D31, D35): Markdown with YAML front matter.
+"""Topic and model pages (Phase 3 E, D31, D35): Markdown with YAML front matter.
 
 - `content/topics/<id>.md`: a disease, insect, crop or other subject (front matter: id, title, kind, crops,
   scientific_name, summary, image, image_credit, status, updated (set on commit by `scripts/stamp_updated.py`), sources, keyed and cited with `[^key]` markers once a page is

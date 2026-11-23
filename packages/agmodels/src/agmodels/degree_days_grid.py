@@ -1,5 +1,5 @@
 """Degree days over the grid in one parallel pass (Numba), for a custom degree-day map (§3: a season over the box
-in < 2 s; PLAN.md §5's "arbitrary ones run on the fly with Numba").
+in < 2 s; docs/architecture.md §5's "arbitrary ones run on the fly with Numba").
 
 The same three methods as `agmodels.degree_days`, which stays the reference (and what points use): the formulas are
 the same, term for term, in float64, from float32 daily min and max in °C to float32 degree days in °F·d. The NumPy

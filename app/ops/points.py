@@ -1,4 +1,4 @@
-"""A model at any US point (PLAN.md Phase 4 C, E): in the box, from the archive and the NBM forecast, with the forecast
+"""A model at any US point (Phase 4 C, E): in the box, from the archive and the NBM forecast, with the forecast
 soil hours the run lacks from Open-Meteo (D44); outside it, or before the archive, from Open-Meteo through the cell
 cache."""
 

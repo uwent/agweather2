@@ -1,4 +1,4 @@
-"""ERA5-Land into the archive (D52, PLAN.md Phase 4 I): soil temperature and snow depth over the HRRR stand-in hours.
+"""ERA5-Land into the archive (D52, Phase 4 I): soil temperature and snow depth over the HRRR stand-in hours.
 
 ERA5-Land reaches about 5 days behind real time. The daily job asks the CDS for the days of the last month that
 don't have it yet, up to `LAG_DAYS` ago, then writes them as received (`agdata.era5store`), derives the hourly

@@ -1,4 +1,4 @@
-"""Apple scab (agmodels `apple-scab`) against NEWA on Wisconsin's orchard stations (models-plan B2, step 4).
+"""Apple scab (agmodels `apple-scab`) against NEWA on Wisconsin's orchard stations (models plan B2, step 4).
 
 For each station-season in tmp/newa/hours/ (scripts/fetch_newa.py), NEWA's results come from scripts/newa_reference.py
 on the station's own hours (its leaf wetness sensor). Ours run twice through the point rollup and the runner, as the

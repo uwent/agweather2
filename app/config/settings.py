@@ -34,7 +34,7 @@ APP_VERSION = os.environ.get("APP_VERSION", "dev")
 # Where the code and its validation reports are public; links name APP_VERSION's commit, or main in development
 REPOSITORY_URL = "https://github.com/uwent/agweather2"
 
-# The grid window the archive covers (PLAN.md D20): a preset name or south,west,north,east
+# The grid window the archive covers (docs/decisions.md D20): a preset name or south,west,north,east
 SERVICE_BOX = os.environ.get("SERVICE_BOX", "wisconsin")
 # Tests never read the real archive: their fixtures point DATA_DIR at their own, and otherwise it's a folder that
 # doesn't exist (the terrain store in data/ once leaked into region tests through regions.use_terrain)

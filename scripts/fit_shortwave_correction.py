@@ -1,4 +1,4 @@
-"""Fits the HRRR shortwave correction against Wisconet's pyranometers (D48, PLAN.md Phase 2 H).
+"""Fits the HRRR shortwave correction against Wisconet's pyranometers (D48, Phase 2 H).
 
 HRRR's hourly mean shortwave reads ~18% high against 80 Wisconet stations, more under cloud. The correction is a
 factor by the hour's clearness (HRRR's value over the FAO-56 clear-sky Rso, `agdata.gaps`), fitted as the ratio of

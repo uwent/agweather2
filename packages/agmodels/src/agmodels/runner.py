@@ -1,4 +1,4 @@
-"""Running a model over a daily series (PLAN.md Phase 4 D): one place for every caller (API, alerts, tests).
+"""Running a model over a daily series (Phase 4 D): one place for every caller (API, alerts, tests).
 
 The caller reads the days (`agdata.series`): `required_inputs` says which, `first_day_needed` from when (the
 biofix or planting, less the model's lookback). `run` supplies the context (day of year, latitude, year), places

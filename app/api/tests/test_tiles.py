@@ -1,4 +1,4 @@
-"""Map tiles (PLAN.md Phase 5 G) on the fixture archive: 2 × 3 cells in Fayette County, Iowa, July 2025."""
+"""Map tiles (Phase 5 G) on the fixture archive: 2 × 3 cells in Fayette County, Iowa, July 2025."""
 
 import io
 

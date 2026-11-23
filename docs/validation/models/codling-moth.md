@@ -1,6 +1,6 @@
 # Codling moth (`codling-moth`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/insects/codling_moth.py`, run by the insect engine (`agmodels.phenology`, D36, D97); its page: `codling_moth.md` beside it. The research notes this condenses (page and table for every number) are in the project's working notes, `docs/models-plan.md` part B4.
+Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/insects/codling_moth.py`, run by the insect engine (`agmodels.phenology`, D36, D97); its page: `codling_moth.md` beside it. The research notes this condenses (page and table for every number) are in the project's working notes, `docs/plans/models.md` part B4.
 
 **In short:** the curves reproduce their source, Washington State University's codling moth table, within a few percentage points; given the same first catch, egg hatch opens on NEWA's first-spray day or the next; the default first catch is set from Wisconsin's trap network and matches it within a week in most orchard-years. Egg hatch itself hasn't been checked against Wisconsin observations.
 

@@ -1,4 +1,4 @@
-"""Weather at points (PLAN.md Phase 5 C) on the fixture archive: observed July 1–10 2025 at 15 °C ± 6 and 0.1 mm an
+"""Weather at points (Phase 5 C) on the fixture archive: observed July 1–10 2025 at 15 °C ± 6 and 0.1 mm an
 hour, then an NBM run at 25 °C ± 6 to July 21 13Z."""
 
 from datetime import date, timedelta

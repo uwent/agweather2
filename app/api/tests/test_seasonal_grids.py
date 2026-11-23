@@ -1,4 +1,4 @@
-"""Seasonal products' maps (PLAN.md Phase 4 H, D68) on a winter archive (`agdata.testing.winters`): potato
+"""Seasonal products' maps (Phase 4 H, D68) on a winter archive (`agdata.testing.winters`): potato
 volunteer's 2023-24 at one hour a day below 27 °F at every depth, 2024-25 at two, 2025-26 at three, observed
 through December 15, 2025, with ERA5-Land's soil through the spring and IFS's after."""
 

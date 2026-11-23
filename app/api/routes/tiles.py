@@ -1,4 +1,4 @@
-"""Map tiles (docs/api.md, "Tiles"; PLAN.md Phase 5 G): any layer as 256-pixel web-mercator tiles.
+"""Map tiles (docs/api.md, "Tiles"; Phase 5 G): any layer as 256-pixel web-mercator tiles.
 
 `/tiles/{layer}/{time}/{z}/{x}/{y}.png` packs each value into its pixel's color (`agdata.tiles`) for the frontend
 to color on the GPU and read under the pointer; `/tiles/{layer}.json` is its TileJSON, with the decoding. `{time}` is

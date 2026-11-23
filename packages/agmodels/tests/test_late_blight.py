@@ -37,7 +37,7 @@ def test_pairing_hours_with_their_own_window_changes_few_days(crt, monkeypatch):
     )
     ours = lb.outputs(daily)["dsv"]
     theirs = crt("late_blight_eau_claire_2025")["dsv"]
-    # 2025 at Eau Claire (PLAN.md Phase 3 D; D74): with the day from 6 pm, 31 days differ (27 from 8 pm), the
+    # 2025 at Eau Claire (Phase 3 D; D74): with the day from 6 pm, 31 days differ (27 from 8 pm), the
     # May 15-Sep 30 total is 55 against 47 (53 from 8 pm), and both reach the 18-DSV spray threshold on July 16
     assert int((ours != theirs).sum()) == 31
     season = slice(134, 273)

@@ -1,4 +1,4 @@
-"""Alfalfa weevil (agmodels `alfalfa-weevil`) on real weather (docs/models-plan.md part H4).
+"""Alfalfa weevil (agmodels `alfalfa-weevil`) on real weather (`docs/plans/models.md` part H4).
 
 1. Harcourt 1981's dated peaks: eight stages in four years (Table II, Bay of Quinte, Ontario, 1977–1980) and peak hatch
    at Guelph (Table I), on Open-Meteo's historical daily max and min for each area (ERA5; fetched once into --cache).

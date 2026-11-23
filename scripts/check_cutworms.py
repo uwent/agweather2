@@ -1,4 +1,4 @@
-"""Black and variegated cutworm against DATCP's moth traps on the archive (models-plan part H, batch H2).
+"""Black and variegated cutworm against DATCP's moth traps on the archive (models plan part H, batch H2).
 
 1. Black cutworm's default biofix. DATCP's black cutworm pheromone network (docs/validation/data/datcp-blacklight-traps/
    bcw-pheromone-weekly.csv, 2021–2023 and 2026, 30–102 sites a year, read weekly from late March or April to early

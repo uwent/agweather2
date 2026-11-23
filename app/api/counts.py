@@ -1,4 +1,4 @@
-"""Counts of days or hours within bounds (D75; PLAN.md Phase 6 C step 2): `count=days_above_86` on a map,
+"""Counts of days or hours within bounds (D75; Phase 6 C step 2): `count=days_above_86` on a map,
 `count=air_temperature_max:days_above_86` at points.
 
 A count names its time axis (`days_` on daily values, `hours_` on hourly ones, so the request reads like the column it

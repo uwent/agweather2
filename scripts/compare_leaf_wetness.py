@@ -1,4 +1,4 @@
-"""Leaf wetness estimated from weather against NEWA's orchard sensors (docs/models-plan.md part B5).
+"""Leaf wetness estimated from weather against NEWA's orchard sensors (`docs/plans/models.md` part B5).
 
 Apple scab and fire blight need wet hours, which the grid has no sensor for. At Wisconsin's NEWA orchard
 stations (hours fetched by scripts/fetch_newa.py into tmp/newa/hours/), each candidate estimate is run on two sets
@@ -375,7 +375,7 @@ def build_report(seasons: list[Season], years: list[int], report: Reporter) -> s
     methods = candidates()
     lines = ["# Leaf wetness estimated from weather, against NEWA's orchard sensors", ""]
     lines += [
-        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_leaf_wetness.py` (docs/models-plan.md part B5), on the hours of {min(years)}–{max(years)}. Apple scab and fire blight need the hours a leaf is wet, which the archive has no sensor for, so the models estimate wetness from humidity, dew point, wind and rain. This compares {len(methods)} candidate estimates with the leaf wetness sensors at the Wisconsin orchard stations of NEWA (the Network for Environment and Weather Applications, Cornell University; hourly station data from newa.cornell.edu), to choose the estimate the models use and to measure its errors.",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_leaf_wetness.py` (`docs/plans/models.md` part B5), on the hours of {min(years)}–{max(years)}. Apple scab and fire blight need the hours a leaf is wet, which the archive has no sensor for, so the models estimate wetness from humidity, dew point, wind and rain. This compares {len(methods)} candidate estimates with the leaf wetness sensors at the Wisconsin orchard stations of NEWA (the Network for Environment and Weather Applications, Cornell University; hourly station data from newa.cornell.edu), to choose the estimate the models use and to measure its errors.",
         "",
         "The truth is each NEWA station's leaf wetness sensor (an hour wet at 30 minutes or more); only hours the station observed are scored. Each estimate runs on the station's own hours and on the archive's hours at the station's cell. Event scores are Cohen's kappa over station-days: apple scab infection events by NEWA's rules (both sides use the station's rain and temperature on station inputs, the archive's on grid inputs; the truth always uses the sensor with the station's rain and temperature) and fire blight wetting days (2 wet hours or more).",
         "",

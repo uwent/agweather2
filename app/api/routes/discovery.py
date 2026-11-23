@@ -1,4 +1,4 @@
-"""Discovery (docs/api.md, "Discovery"; PLAN.md Phase 5 B): what the service holds and can compute.
+"""Discovery (docs/api.md, "Discovery"; Phase 5 B): what the service holds and can compute.
 
 `/variables`, `/models` and `/models/{id}` depend only on the code, and `/locate` on the code and the point, so their
 ETags come from the request and the code's version alone and a client holding one gets a 304 without any work.

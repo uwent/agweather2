@@ -1,4 +1,4 @@
-"""Maps as data (docs/api.md, "Grids"; PLAN.md Phase 5 E): the layer catalog and any layer over an area.
+"""Maps as data (docs/api.md, "Grids"; Phase 5 E): the layer catalog and any layer over an area.
 
 `/layers` lists what can be mapped (`agdata.layers`) with each layer's time axis and the range the archive and
 forecast hold. `/grids/{layer}` reads one step or a range over the service box, a bounding box or a state or

@@ -1,4 +1,4 @@
-"""Seasons of a once-a-season product (`ModelSpec.seasonal`, PLAN.md Phase 4 H, D68): their names, days, and which
+"""Seasons of a once-a-season product (`ModelSpec.seasonal`, Phase 4 H, D68): their names, days, and which
 one is current.
 
 A season runs over the spec's `season` (MM-DD to MM-DD, crossing New Year or not) and is named by the year it

@@ -1,4 +1,4 @@
-"""Latency checks against PLAN.md §3's targets (Phase 5 H): the requests that must be fast, timed in process.
+"""Latency checks against docs/architecture.md §3's targets (Phase 5 H): the requests that must be fast, timed in process.
 
 Each case is one request the frontend or a caller makes. A map is timed as its first tile, which computes the
 whole map (the frontend's first view of it), then as the same tile again (kept); a point request is timed first

@@ -1,6 +1,6 @@
 # Cercospora leaf spot daily infection values (`cercospora-beet-div`): validation
 
-Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/cercospora_beet.py`, reading the daily features `hours_rh_over_90_from_6pm` and `temperature_mean_rh_over_90_from_6pm`; its page: `cercospora_beet.md` beside it. The notes this condenses are PLAN.md Phase 3 D (step 1), D50 and D74.
+Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/cercospora_beet.py`, reading the daily features `hours_rh_over_90_from_6pm` and `temperature_mean_rh_over_90_from_6pm`; its page: `cercospora_beet.md` beside it. The notes this condenses are Phase 3 D (step 1), D50 and D74.
 
 **In short:** a port of the Crop Risk Tool's Cercospora leaf spot model for beet: daily infection values (DIV, 0–7) from Windels et al.'s (1998) table of humid hours and their mean temperature in °F, with risk from the higher of the last 2 days' and last 7 days' mean. From the tool's inputs, v2 reproduces its table, daily values, 7-day means and risk exactly. The table hasn't been checked in a test against Windels et al.'s paper, and the model hasn't been compared with Cercospora leaf spot in the field.
 
@@ -17,7 +17,7 @@ Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 ## Choices and differences
 
 - **Table:** no DIV at or below 60 °F; from 61 °F the hours needed fall as it warms (61 °F: 1 DIV from 22 hours; 66–71 °F: 1 from 4 hours up to 6 from 22); from 74 °F every humid day starts at 1, and above 82 °F the steps come every 1 to 2 hours up to 7. Temperatures in °C are converted to °F and read into the table's whole-degree bands (each band up to and including its upper degree).
-- **The day:** humid hours and their temperature both from the day from 6 pm (readings 19:00–18:00 CST, D74), as for late blight; the tool counts the hours over the calendar day and their temperature from 8 pm. Gridded RH is counted from 88 % (D50; on the archive at Eau Claire, May 15–September 30, 2025, this raised the season's DIVs from 124 to 158, PLAN.md Phase 4's humidity note).
+- **The day:** humid hours and their temperature both from the day from 6 pm (readings 19:00–18:00 CST, D74), as for late blight; the tool counts the hours over the calendar day and their temperature from 8 pm. Gridded RH is counted from 88 % (D50; on the archive at Eau Claire, May 15–September 30, 2025, this raised the season's DIVs from 124 to 158, Phase 4's humidity note).
 - **No humid hours give 0.** The tool's table starts its warm bands at 1, so with 0 humid hours at a warm temperature it gives 1; that can't happen in its own runs (no humid hours, no temperature), and v2 gives 0.
 - **Risk:** the tool's and VDIFN's levels: Very high when the last 7 days average 5 or more or the last 2 days 5.5; High from 3 or 3.5; Moderate from 1.5 or 2; Low from 0.5 or 1. Days count from planting (June 1 by default).
 - **Crops:** sugar beet and table beet (from 2026-11-19; until then sugar beet only, though the summary and the tool's page spoke of both). The same fungus attacks both; the table was developed for sugar beet.
@@ -30,7 +30,7 @@ Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 
 - **The table:** all 12,024 combinations of mean temperature (10 to 35 °C by 0.05, about 0.1 °F) and 1 to 24 humid hours give the tool's DIV exactly (the sweep's 501 rows at 0 hours are left out, above).
 - **A season from the tool's inputs:** the daily DIVs, their 7-day means (to rounding) and the risk levels match the tool's on all 365 days of 2025.
-- **The pairing change:** from the tool's hourly weather, with the threshold held at 90 %, v2's May 15 to September 30 total is within 20 % of the tool's (with the earlier day from 8 pm, 102 against 100, PLAN.md Phase 3 D).
+- **The pairing change:** from the tool's hourly weather, with the threshold held at 90 %, v2's May 15 to September 30 total is within 20 % of the tool's (with the earlier day from 8 pm, 102 against 100, Phase 3 D).
 
 The tool is the model v2 replaces: this shows the port is faithful where intended, not that the tool is right (D54).
 

@@ -1,6 +1,6 @@
 # Frogeye leaf spot (`frogeye-leaf-spot`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/frogeye.py`, with its risk levels from `agmodels.probability`; gated by `soybean-stages` (R1 to R5, D33); its page: `frogeye.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_fls`, `build_frogeye_leaf_spot`) in Phase 3 (PLAN.md Phase 3 D step 2).
+Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/frogeye.py`, with its risk levels from `agmodels.probability`; gated by `soybean-stages` (R1 to R5, D33); its page: `frogeye.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_fls`, `build_frogeye_leaf_spot`) in Phase 3 (Phase 3 D step 2).
 
 **In short:** the port reproduces the Crop Risk Tool exactly: given the tool's daily weather for 2025 at Eau Claire, the probability matches on all 365 days. The fit is credited to Damon Smith (UW–Madison) and Wade Webster (NDSU) with no published paper, so there is no source to check its numbers against, and it hasn't been compared with frogeye leaf spot in fields.
 
@@ -40,7 +40,7 @@ From the tool's fixture (computed for this report; no test holds it): over the s
 ## Limits and open questions
 
 - **The authors' algorithm** ("2024 Soy Frogeye Leaf Spot Model Algorithm", ver. 1.0, May 29, 2024, in `tmp/R/crop-risk-tool-models/`; audited in `tmp/crt-model-audit.md`: the port matches it) gives this equation, hours at RH 80 % or above, a 50 % action threshold (adjustable 40–60 %) and R1–R5.
-- **No published source:** the fit is unpublished; its region, years, weather and response (spores trapped, or disease) are unknown. Ask its authors for the fit and its data (PLAN.md Phase 4's review, "Citations").
+- **No published source:** the fit is unpublished; its region, years, weather and response (spores trapped, or disease) are unknown. Ask its authors for the fit and its data (Phase 4's review, "Citations").
 - **No observations:** not compared with frogeye leaf spot in Wisconsin fields.
 - **Cheapest independent comparison:** UW Field Crops Pathology's survey records of frogeye leaf spot against the model's probability during R1–R5 on the archive at those fields.
 
@@ -48,5 +48,5 @@ From the tool's fixture (computed for this report; no test holds it): over the s
 
 ```bash
 uv run pytest packages/agmodels/tests/test_field_crops.py packages/agmodels/tests/test_logistic_by_hand.py
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, PLAN.md Phase 3 F)
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, Phase 3 F)
 ```

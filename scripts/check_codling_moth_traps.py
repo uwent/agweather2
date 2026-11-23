@@ -1,4 +1,4 @@
-"""Codling moth's estimated first catch against DATCP's apple pest trap network, 2020–2025 (models-plan B4, step 4).
+"""Codling moth's estimated first catch against DATCP's apple pest trap network, 2020–2025 (models plan B4, step 4).
 
 DATCP (Wisconsin's Department of Agriculture, Trade and Consumer Protection) publishes each cooperating orchard's
 weekly codling moth trap count; docs/validation/data/datcp-apple-traps/codling-moth-site-years.csv has, per site and

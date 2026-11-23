@@ -1,4 +1,4 @@
-"""Western bean cutworm (agmodels `western-bean-cutworm`) on real weather (docs/models-plan.md part H2).
+"""Western bean cutworm (agmodels `western-bean-cutworm`) on real weather (`docs/plans/models.md` part H2).
 
 1. NEWA on the same weather: on the hours of the Wisconsin NEWA stations (tmp/newa/hours/, scripts/fetch_newa.py),
    the days the moth flight reaches 5, 10, 25, 50, 75, 90 and 95 % by NEWA's model and by ours. NEWA's model is its

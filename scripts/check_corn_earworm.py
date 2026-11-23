@@ -1,4 +1,4 @@
-"""Corn earworm's default biofix and egg-laying spread against DATCP's corn earworm pheromone traps, 2021–2026 (models-plan part H, batch H2).
+"""Corn earworm's default biofix and egg-laying spread against DATCP's corn earworm pheromone traps, 2021–2026 (models plan part H, batch H2).
 
 DATCP's pheromone network (docs/validation/data/datcp-blacklight-traps/cew-pheromone-weekly.csv, 12–16 sites a year,
 Hartstack traps set about July 1 and read weekly to mid or late September) catches the migrant flights. For each

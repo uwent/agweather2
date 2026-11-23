@@ -1,4 +1,4 @@
-"""Veg Path's v1 query against v2 (PLAN.md Phase 5 C and D): v1's `/api/pest_forecasts/vegpath` at the 7 points
+"""Veg Path's v1 query against v2 (Phase 5 C and D): v1's `/api/pest_forecasts/vegpath` at the 7 points
 Veg Path's site asks for, against v2's `/weather/daily` and `/models/run` (early blight P-days, late blight DSVs).
 
 uv run python scripts/compare_vegpath.py --end 2026-09-30 [--out docs/validation/legacy/vegpath.md] [--quiet]

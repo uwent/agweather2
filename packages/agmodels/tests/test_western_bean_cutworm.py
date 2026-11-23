@@ -1,4 +1,4 @@
-"""Western bean cutworm (docs/models-plan.md part H2): Hanson et al. 2015's simple method and flight model, which NEWA
+"""Western bean cutworm (`docs/plans/models.md` part H2): Hanson et al. 2015's simple method and flight model, which NEWA
 runs (D95)."""
 
 import numpy as np

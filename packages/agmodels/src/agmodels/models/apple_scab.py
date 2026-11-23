@@ -18,7 +18,7 @@ season's ascospores are released. NEWA's model (Cornell; D95), with the publishe
   al. trapped in 16 site-years, so a cell with a dry or failed gauge doesn't stay open all summer.
 - **Infection periods** by NEWA's rules on hours estimated wet (`infection_periods`): a wet period starts at an hour
   with rain, continues while hours stay wet (RH ≥ 90 % or rain, the estimate that agreed best with Wisconsin's leaf
-  wetness sensors, models-plan B5) or rainy, and periods less than 24 hours apart join (their wet hours added, the gap
+  wetness sensors, models plan B5) or rainy, and periods less than 24 hours apart join (their wet hours added, the gap
   not counted). An infection occurs when a period's wet hours reach the Revised Mills table at its mean temperature
   (MacHardy and Gadoury 1989, as NEWA tabulates it in °F, 34–79 °F; one level, no light, moderate or heavy). The
   infection is put on the day the hours reach the table, where NEWA marks the day the wet period ends. The daily
@@ -48,7 +48,7 @@ MILLS_F: dict[int, int] = (
 )
 _HOURS_NEEDED = np.array([MILLS_F.get(t, np.inf) for t in range(0, 120)], dtype=float)  # by °F, inf outside 34–79
 
-WET_RH = 90.0  # % (models-plan B5: on the archive's RH, with rain, the best match to orchard sensors)
+WET_RH = 90.0  # % (models plan B5: on the archive's RH, with rain, the best match to orchard sensors)
 RAIN_MM = 0.254  # 0.01 in: a rainy hour
 JOIN_HOURS = 24  # periods closer than this join
 WINDOW_HOURS = 120  # the hours each day's periods are found in: the day and the four before it

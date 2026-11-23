@@ -1,4 +1,4 @@
-"""Map images rendered with matplotlib (PLAN.md Phase 5 G, D60): legends for colored tiles, and static maps.
+"""Map images rendered with matplotlib (Phase 5 G, D60): legends for colored tiles, and static maps.
 
 Drawn with matplotlib's Agg backend only (no display, no GDAL). Values arrive in the stored unit; `shown` converts
 a stored value to the unit a reader asked for (`units=`), which the labels use, while colors follow the stored

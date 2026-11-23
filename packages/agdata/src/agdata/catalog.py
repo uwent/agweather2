@@ -1,7 +1,7 @@
 """The variable catalog: every gridded variable, its stored unit and encoding, and how it rolls up to days.
 
 Stores keep each variable as int16 with a scale and offset (value = stored * scale + offset), which keeps
-the archive small (PLAN.md §5.3); `encode`/`decode` do the packing, and the int16 minimum marks a missing
+the archive small (docs/architecture.md §5.3); `encode`/`decode` do the packing, and the int16 minimum marks a missing
 value. Scales are the stored precision (D21): coarser than URMA's 0.01, whose last digit is noise at the
 analysis's accuracy and doesn't compress (docs/pilot.md). Units are symbols from `agdata.units` (SI, D18).
 A variable's QC range is what's physically plausible in the service area; values outside it are treated as
@@ -273,7 +273,7 @@ VARIABLES: dict[str, Variable] = {
 }
 
 
-# Daily statistics (PLAN.md §5.2): each hourly variable's `daily` stats over each cell's local calendar day.
+# Daily statistics (docs/architecture.md §5.2): each hourly variable's `daily` stats over each cell's local calendar day.
 # Min, max and mean keep the hourly unit and precision; sums have their own (shortwave's in MJ/m²).
 DAILY_MIN_HOURS = features.MIN_HOURS  # min, max and mean need this many hours of the day; sums need every hour (D25)
 _SUMS: dict[str, tuple[str, float, float, float, float]] = {
@@ -347,7 +347,7 @@ DAILY_VARIABLES["et0_sum_estimate"] = Variable(
 )
 
 
-# Daily features the models read (`agmodels.features`, PLAN.md Phase 3 B; windows D74): counts of hours over the
+# Daily features the models read (`agmodels.features`, Phase 3 B; windows D74): counts of hours over the
 # calendar day and over the day from 6 pm (readings 19:00 the evening before through 18:00), night hours (6 pm to
 # 6 am, readings 19:00-06:00; tar spot's 7 pm to 6 am, 20:00-06:00), the mean temperature during humid hours, and the
 # overnight minimum (noon to noon). Features that look across days (hot past 5 days, dry) and moving averages are

@@ -1,8 +1,8 @@
 # Early blight P-days (`early-blight-pdays`): validation
 
-Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/early_blight.py`, reading the daily minimum and maximum air temperature; its page: `early_blight.md` beside it. The notes this condenses are PLAN.md Phase 3 D (step 1), Phase 5's Veg Path check and Phase 6's note on Veg Path's 2026 table.
+Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/early_blight.py`, reading the daily minimum and maximum air temperature; its page: `early_blight.md` beside it. The notes this condenses are Phase 3 D (step 1), Phase 5's Veg Path check and Phase 6's note on Veg Path's 2026 table.
 
-**In short:** a port of the Crop Risk Tool's early blight model: potato physiological days (Sands, Hackett and Nix 1979) accumulated from emergence, with the tool's risk levels around Pscheidt and Stevenson's 300 P-day first-spray threshold. From the tool's own inputs, v2 reproduces its P-days and risk exactly when it weighs the last term as the tool does; v2's one intended change (the last term weighs the day's high, as Sands et al. write it) lowers the tool's 2025 test season by under 1 % and leaves the date 300 is reached unchanged. Whether Sands et al. weigh the high there is PLAN.md's reading; the paper isn't in `tmp/references/`, so this round didn't recheck it. Against the old AgWeather API at UW Vegetable Pathology's 7 forecast locations, v2's season totals are within 4 %. The model hasn't been compared with early blight onset in Wisconsin fields.
+**In short:** a port of the Crop Risk Tool's early blight model: potato physiological days (Sands, Hackett and Nix 1979) accumulated from emergence, with the tool's risk levels around Pscheidt and Stevenson's 300 P-day first-spray threshold. From the tool's own inputs, v2 reproduces its P-days and risk exactly when it weighs the last term as the tool does; v2's one intended change (the last term weighs the day's high, as Sands et al. write it) lowers the tool's 2025 test season by under 1 % and leaves the date 300 is reached unchanged. Whether Sands et al. weigh the high there is the plans' reading (`docs/plans/`); the paper isn't in `tmp/references/`, so this round didn't recheck it. Against the old AgWeather API at UW Vegetable Pathology's 7 forecast locations, v2's season totals are within 4 %. The model hasn't been compared with early blight onset in Wisconsin fields.
 
 ## Sources and what we took from each
 
@@ -30,7 +30,7 @@ Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 
 - **The formula:** all 4,131 pairs of low and high (−5 to 35 °C and −5 to 40 °C by 0.5, low not above high) give the tool's P-days to 1e-9 with the tool's last term.
 - **A season from the tool's inputs:** the daily P-days (tool's last term) and the risk levels match the tool's on all 365 days of 2025.
-- **The intended change:** P(Tmax) in the last term gives a different value from P(Tmin) on a day of 10 and 28 °C; P is 0 below 7 °C and above 30 °C and 10 at 21 °C, and a day held at 21 °C earns 10 P-days. On the tool's 2025 inputs, May 15 to September 30, v2 sums 1,098 P-days against the tool's 1,107, and both reach 300 on June 27 (PLAN.md Phase 3 D).
+- **The intended change:** P(Tmax) in the last term gives a different value from P(Tmin) on a day of 10 and 28 °C; P is 0 below 7 °C and above 30 °C and 10 at 21 °C, and a day held at 21 °C earns 10 P-days. On the tool's 2025 inputs, May 15 to September 30, v2 sums 1,098 P-days against the tool's 1,107, and both reach 300 on June 27 (Phase 3 D).
 
 The tool is the model v2 replaces: this shows the port is faithful where intended, not that the tool is right (D54).
 
@@ -49,8 +49,8 @@ The tool is the model v2 replaces: this shows the port is faithful where intende
 | Rhinelander | 1008 | 1044 |
 
 - v2's season totals are within 4 percent of the old API's: 0.4 to 2.8 % below in the south and center, 2.5 % and 3.6 % above at Antigo and Rhinelander (computed from the table).
-- The daily weather behind them: v2's minimum averages 0.46 °F below the old API's and its maximum 0.02 °F above, over 1,071 point-days. PLAN.md attributes the difference to the last term and URMA's cooler minimums. The last term can go either way: P(Tmax) is below P(Tmin) on hot days (a high near 29 °C earns little) and above it on mild ones, which may be why the northern locations, with cooler highs, come out above the old API; this hasn't been separated.
-- From Veg Path's 2026 newsletter emergence dates at Spring Green, Hancock and Antigo, v2's P-days ran 0–6 % below the old API's (PLAN.md Phase 5, "Veg Path's 2026 table"; not a script in the repository).
+- The daily weather behind them: v2's minimum averages 0.46 °F below the old API's and its maximum 0.02 °F above, over 1,071 point-days. The plans (`docs/plans/`) attribute the difference to the last term and URMA's cooler minimums. The last term can go either way: P(Tmax) is below P(Tmin) on hot days (a high near 29 °C earns little) and above it on mild ones, which may be why the northern locations, with cooler highs, come out above the old API; this hasn't been separated.
+- From Veg Path's 2026 newsletter emergence dates at Spring Green, Hancock and Antigo, v2's P-days ran 0–6 % below the old API's (Phase 5, "Veg Path's 2026 table"; not a script in the repository).
 
 The old API is a reference, not the truth (D54).
 

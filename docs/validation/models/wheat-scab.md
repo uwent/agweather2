@@ -1,6 +1,6 @@
 # Wheat scab (`wheat-scab`): validation
 
-Model version 0.4, written 2026-11-18 (D98), updated 2026-11-19 for 0.2, 0.3 and 0.4. The model: `packages/agmodels/src/agmodels/models/wheat_scab.py`, with its risk levels from `agmodels.probability`; shown May 1 to July 31, gated by flowering at a point (below); its page: `wheat_scab.md` beside it. Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_wheat_scab`, `build_wheat_scab`) in Phase 3 (PLAN.md Phase 3 D step 2); audited against the model team's documents on 2026-11-19 (`tmp/crt-model-audit-2-wheat-rcr.md`).
+Model version 0.4, written 2026-11-18 (D98), updated 2026-11-19 for 0.2, 0.3 and 0.4. The model: `packages/agmodels/src/agmodels/models/wheat_scab.py`, with its risk levels from `agmodels.probability`; shown May 1 to July 31, gated by flowering at a point (below); its page: `wheat_scab.md` beside it. Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_wheat_scab`, `build_wheat_scab`) in Phase 3 (Phase 3 D step 2); audited against the model team's documents on 2026-11-19 (`tmp/crt-model-audit-2-wheat-rcr.md`).
 
 **In short:** model M6 of the U.S. Fusarium head blight prediction models (Shah et al. 2013's model 3; M6 in Shah et al. 2021), with the coefficients the model team refit for 2026 ("Wheat Scab Models Deployment 2026", unpublished): the probability of severe head blight (field severity of 10 % or more) for wheat flowering on the day, from the mean RH of the 14 days before, by resistance class. The port matches the deployment document term for term and the Crop Risk Tool on every day once the window is full (shifted a day: v2's window ends the day before, as the deployment says). It's shown May 1 to July 31, with the national FHB Risk Tool's three levels. Since 0.3 a point is gated by flowering (D33's `susceptibility`) from a spring wheat planting date the user gives (`spring-wheat-stages`, Haun 10.2 through 7 days after 11.4, since 0.4) or a flowering date the user gives for any wheat (that day through 7 days after); the map stays ungated, the risk for wheat flowering on each day. It hasn't been compared with scab in fields.
 
@@ -59,5 +59,5 @@ From the audit (`tmp/crt-model-audit-2-wheat-rcr.md`, on the tool's 2025 weather
 
 ```bash
 uv run pytest packages/agmodels/tests/test_field_crops.py
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, PLAN.md Phase 3 F)
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, Phase 3 F)
 ```

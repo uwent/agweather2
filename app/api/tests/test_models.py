@@ -1,4 +1,4 @@
-"""Models at a point (PLAN.md Phase 5 D, D64) on the fixture archive: observed days July 1–10, 2025 (to 10 am
+"""Models at a point (Phase 5 D, D64) on the fixture archive: observed days July 1–10, 2025 (to 10 am
 on the 10th), then the forecast to about July 21. Days before July 1 have no data."""
 
 from datetime import timedelta

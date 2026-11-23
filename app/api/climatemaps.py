@@ -1,4 +1,4 @@
-"""Climate on maps (D86; PLAN.md Phase 6 E4): `climate=` on a layer, the freeze layers and elevation.
+"""Climate on maps (D86; Phase 6 E4): `climate=` on a layer, the freeze layers and elevation.
 
 A layer that lists `climate` (`agdata.layers`) takes `climate=normal`, `departure` or `percentile` with `period=`:
 

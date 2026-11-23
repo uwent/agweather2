@@ -1,4 +1,4 @@
-"""Mappable layers (PLAN.md Phase 5 E, docs/api.md "Grids"): what `/layers` lists and `/grids/{layer}` reads.
+"""Mappable layers (Phase 5 E, docs/api.md "Grids"): what `/layers` lists and `/grids/{layer}` reads.
 
 A layer is a catalog variable on the grid with a time axis: a daily variable (local days, `agdata.daily`), an
 hourly one (hours by their UTC end), either of them computed when read from stored ones (`agdata.computed`), a

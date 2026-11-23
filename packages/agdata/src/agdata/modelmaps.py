@@ -1,4 +1,4 @@
-"""Models' ingredients on the grid (PLAN.md Phase 5 F, D47, D66): the store a model map is finished from.
+"""Models' ingredients on the grid (Phase 5 F, D47, D66): the store a model map is finished from.
 
 `agmodels.ingredients` splits a model into ingredients (daily, biofix- and option-free), accumulations from the
 biofix and a day-by-day finish. This keeps the ingredients over the window, one store per year beside the daily

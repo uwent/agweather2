@@ -15,7 +15,7 @@ Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 ## Choices and differences
 
 - **Degree days:** single sine, base 41 °F, no upper threshold, from January 1, as the old API computed VDIFN's `dd_41`. Jagemann et al.'s own method hasn't been checked (`docs/insect-models.md`: "method only").
-- **July reductions in leap years:** VDIFN compared the day of the year with 196 and 203, which fall on July 14 and 21 in a leap year; ours fall on July 15 and 22 every year (0.2, 2026-11-01; found by the test review after Phase 4, PLAN.md). Version 0.2 also made the reductions apply to runs, not only the explorer.
+- **July reductions in leap years:** VDIFN compared the day of the year with 196 and 203, which fall on July 14 and 21 in a leap year; ours fall on July 15 and 22 every year (0.2, 2026-11-01; found by the test review after Phase 4, `docs/plans/phase-4-forecast.md`). Version 0.2 also made the reductions apply to runs, not only the explorer.
 - **No freeze reduction:** VDIFN's subtracted freezing days from November, when risk is already Very low after the July reductions, so it never changed a level; ours has none.
 - **Against the old website:** the two old tools agree on 231 (5%), 913 (75%) and 2172 (95%), but put 25% flight at 368 (website) and 388 (VDIFN). The paper settles it: 388 (its Table 4: 215.8 °C·d × 1.8); the website's 368 was a slip.
 

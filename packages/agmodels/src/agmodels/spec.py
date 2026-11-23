@@ -1,4 +1,4 @@
-"""Model specs: what a model predicts, from which weather, and how its output becomes a risk score (PLAN.md D30).
+"""Model specs: what a model predicts, from which weather, and how its output becomes a risk score (docs/decisions.md D30).
 
 Every model is one module under `agmodels.models` with a `SPEC` and three functions, matching the three layers
 the API and charts show (the Crop Risk Tool's view):
@@ -104,7 +104,7 @@ class Option:
 
 @dataclass(frozen=True, kw_only=True)
 class Seasonal:
-    """A product that settles once a season (PLAN.md Phase 4 H, D68): counted over the spec's `season` from its
+    """A product that settles once a season (Phase 4 H, D68): counted over the spec's `season` from its
     biofix, it is one map a season. `agmodels.seasons` names seasons and says which one is current."""
 
     appears: str  # MM-DD the season's product is first shown (it has data to chew on by then); the last one before

@@ -1,4 +1,4 @@
-"""Zarr stores for gridded data: one store per kind (hourly, daily, …) per year (PLAN.md §5.3).
+"""Zarr stores for gridded data: one store per kind (hourly, daily, …) per year (docs/architecture.md §5.3).
 
 A store covers one `Window` of the NDFD grid for one calendar year (UTC) at one time step. Each variable is
 an int16 array (time, y, x) packed by the catalog's scale and offset, plus per-step metadata: which source

@@ -1,8 +1,8 @@
 # Open-Meteo's humidity outside Wisconsin: plan
 
-A short plan of its own (Ben, 2026-11-19), from D100's follow-up in PLAN.md. Results go in `docs/validation/weather/openmeteo-humidity.md`; this file says what to do next and why.
+A short plan of its own (Ben, 2026-11-19), from D100's follow-up ([decisions.md](../decisions.md)). Results go in `docs/validation/weather/openmeteo-humidity.md`; this file says what to do next and why.
 
-## Handoff
+## Status
 
 **Updated 2026-11-21.** Branch `phase-6`.
 

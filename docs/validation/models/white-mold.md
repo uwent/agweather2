@@ -1,6 +1,6 @@
 # White mold (`white-mold`): validation
 
-Model version 0.2, written 2026-11-18 (D98), updated 2026-11-19 for 0.2. The model: `packages/agmodels/src/agmodels/models/white_mold.py`, with its risk levels from `agmodels.probability`; gated by `soybean-stages` (R1 to R3, D33); its page: `white_mold.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_white_mold_dry`, `predict_white_mold_irrig`, `build_white_mold`) in Phase 3 (PLAN.md Phase 3 D step 2).
+Model version 0.2, written 2026-11-18 (D98), updated 2026-11-19 for 0.2. The model: `packages/agmodels/src/agmodels/models/white_mold.py`, with its risk levels from `agmodels.probability`; gated by `soybean-stages` (R1 to R3, D33); its page: `white_mold.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_white_mold_dry`, `predict_white_mold_irrig`, `build_white_mold`) in Phase 3 (Phase 3 D step 2).
 
 **In short:** the equations of the 2025 Soybean White Mold Model Algorithm (Smith, Willbur and Webster; Willbur et al. 2018's models), with two corrections to the Crop Risk Tool it was ported from (0.2, from the audit in `tmp/crt-model-audit.md`): the third non-irrigated logit's temperature coefficient is −0.56, not the tool's −0.86, and the algorithm's gate (inactive unless the 30-day mean maximum is above 10 °C) replaces the tool's scaling by the 21-day mean minimum. Given the tool's daily weather for 2025 at Eau Claire, the irrigated probability matches the tool's on every day the model is active; the non-irrigated one runs about 1.5 times the tool's in summer. The model hasn't been compared with apothecia counts or white mold in fields.
 
@@ -63,5 +63,5 @@ On the tool's 2025 weather (computed for this report with 0.2; no test holds it)
 
 ```bash
 uv run pytest packages/agmodels/tests/test_field_crops.py packages/agmodels/tests/test_logistic_by_hand.py
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, PLAN.md Phase 3 F)
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, Phase 3 F)
 ```

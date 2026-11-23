@@ -1,4 +1,4 @@
-"""Scenarios for the projection past the forecast (D63, PLAN.md Phase 5 D P1)."""
+"""Scenarios for the projection past the forecast (D63, Phase 5 D P1)."""
 
 from datetime import date, timedelta
 

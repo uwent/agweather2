@@ -1,4 +1,4 @@
-"""NEWA's station hours for the apple models' validation (docs/models-plan.md part B5).
+"""NEWA's station hours for the apple models' validation (`docs/plans/models.md` part B5).
 
 NEWA (Cornell's Network for Environment and Weather Applications) serves its station list from
 `newa.rcc-acis.workers.dev/v0/stations` and each station's hours from NRCC's `hrly.nrcc.cornell.edu/stnHrly`:

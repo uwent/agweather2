@@ -1,4 +1,4 @@
-"""Open-Meteo for points outside the box and before the archive (PLAN.md §7, Phase 4 E; D40, D42, D43).
+"""Open-Meteo for points outside the box and before the archive (docs/architecture.md §7, Phase 4 E; D40, D42, D43).
 
 Ported from WISP 3 (`app/services/weather/open_meteo.rb`, `grid.rb`). Points are snapped to the ECMWF O1280 grid's
 cells (~9 km), so every point in a cell shares one series and one cache entry. Checked 2026-10-29 at 36.5° N,

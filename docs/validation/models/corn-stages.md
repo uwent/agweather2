@@ -1,6 +1,6 @@
 # Corn growth stages (`corn-stages`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/corn_stages.py`, run through `agmodels.crops` (D32–D34); its page: `corn_stages.md` beside it. Built in Phase 3 (PLAN.md, Phase 3's crop growth stages, step 4).
+Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/corn_stages.py`, run through `agmodels.crops` (D32–D34); its page: `corn_stages.md` beside it. Built in Phase 3 (Phase 3's crop growth stages, step 4).
 
 **In short:** the stage thresholds reproduce their published sources (NCH-40's table for a 2700 GDD hybrid within 2.1 %, Ohio State's V9 within 10 GDD). On the four field seasons Yang et al. (2004) published, run on reanalysis weather at each site, emergence and silking came within 3 days of the observed dates. There is no check against Wisconsin fields, and no legacy parity: the old AgWeather site's corn table was never vetted.
 
@@ -18,11 +18,11 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 
 - **Degree days:** modified 50/86 °F (the minimum raised to 50, both capped at 86), from planting.
 - **R1 (silking):** Yang et al.'s fit, not NCH-40's 1400, so silking moves with the hybrid's rating. For a 2700 GDD hybrid it falls at 1442.5 GDD from planting. The fit's 50 °C·d offset for irrigated fields at yield potential isn't taken: fields in general are the fit's own population.
-- **VT (tasseling):** one leaf interval (50 GDD) before R1, flagged as estimated. This assumption gives the last leaf as V13, V15, V17, V19, V21 and V22 for the 2100 to 3100 GDD presets; PMR 1009 says most hybrids have 18–21. It's to be checked against PMR 1009 (PLAN.md).
+- **VT (tasseling):** one leaf interval (50 GDD) before R1, flagged as estimated. This assumption gives the last leaf as V13, V15, V17, V19, V21 and V22 for the 2100 to 3100 GDD presets; PMR 1009 says most hybrids have 18–21. It's to be checked against PMR 1009 (the plans, `docs/plans/`).
 - **Grain fill:** R2 to R6 at NCH-40's fractions of the GDD from R1 to R6, so they scale with the hybrid. R5 is NCH-40's "kernels denting", R5.5 (half milk line) its "kernels dented"; Nielsen's older article labels these R4.5 and R5.
 - **Leaf counts:** NCH-40's leaf numbers (6 leaves at 475 GDD) count leaf tips and run ahead of the collar method, so they aren't used.
 - **Gating margin:** 3 days either side of a disease's stage window (tar spot, gray leaf spot, Gibberella ear rot), the error seen on Yang et al.'s seasons (below).
-- **No legacy parity:** the old AgWeather site's corn table (V8 at 600 … R6 at 2400–2600 from May 15) predates current staff and isn't vetted (PLAN.md), so v2 isn't compared with it.
+- **No legacy parity:** the old AgWeather site's corn table (V8 at 600 … R6 at 2400–2600 from May 15) predates current staff and isn't vetted (the plans, `docs/plans/`), so v2 isn't compared with it.
 
 ## Checks
 

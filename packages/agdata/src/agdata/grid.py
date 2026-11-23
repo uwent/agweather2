@@ -1,6 +1,6 @@
 """The NDFD 2.5 km CONUS grid, the service box, and cells within them.
 
-Every gridded store and source shares one grid (PLAN.md D2): the NDFD CONUS 2.5 km Lambert conformal grid
+Every gridded store and source shares one grid (docs/decisions.md D2): the NDFD CONUS 2.5 km Lambert conformal grid
 that URMA, RTMA and NBM use since May 2017 (2345 x 1597 cells, the "wexp" grid). Older URMA files and the
 2017-2018 precip files cover aligned sub-windows of it; `NDFD.offset_of` finds where a source grid sits.
 
@@ -30,7 +30,7 @@ class Box:
             raise ValueError(f"not a valid box: {self}")
 
 
-# Service-box presets (PLAN.md D20). Wisconsin's state lines with a margin, including Lake Michigan's
+# Service-box presets (docs/decisions.md D20). Wisconsin's state lines with a margin, including Lake Michigan's
 # Wisconsin waters; the Upper Midwest from ND/SD/NE/KS to OH; CONUS is the whole grid.
 BOXES: dict[str, Box | None] = {
     "wisconsin": Box(south=42.4, west=-93.0, north=47.4, east=-86.2),

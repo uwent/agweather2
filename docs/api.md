@@ -1,6 +1,6 @@
 # API v2 design
 
-Agreed 2026-11-02 (D57, D58). The contract for `/api/v2`: what each endpoint takes and returns, in which formats, and why. PLAN.md Phase 5 holds the work list and the decisions (D57 the contract, D58 models on your own weather); this file is the spec they refer to, and the source for the public API docs page in Phase 7. Details below are refined as the endpoints are built, and recorded here.
+Agreed 2026-11-02 (D57, D58). The contract for `/api/v2`: what each endpoint takes and returns, in which formats, and why. Phase 5 holds the work list and the decisions (D57 the contract, D58 models on your own weather); this file is the spec they refer to, and the source for the public API docs page in Phase 7. Details below are refined as the endpoints are built, and recorded here.
 
 ## Who it serves
 
@@ -210,7 +210,7 @@ Built 2026-11-03. Points inside the box (and the archive's years) read the archi
 | `GET /models/{id}/run?maturity_group=all` ✓ | several option sets in one call (any choice option, or `planting_date=all`; up to 20 sets): long form, with an `option_set` column indexing `meta.summary.option_sets` |
 | `GET /models/run` ✓ | `models=a,b` or `all`: several models at one point on one read of our weather; `data` keyed by model id, each with its own `meta` (`request`, `units`, `summary`, `warnings`) and `data` as `GET /models/{id}/run` gives them (D64; Veg Path's DSV and P-days). Options apply to every model that has them, `planting_date` to every model with a crop (a crop without typical dates here runs without one, warned). Default start January 1. JSON only |
 | `GET /risk` ✓ | `lat, lng, date` (default today), `models=` (default: every model with a risk layer in season and in its region; given, every one asked, with `reason` where there's no risk), `planting_date`, options: one row per model with `kind`, `risk_level`, `risk_label`, `risk_value`, `susceptibility`, `in_season`, `reason`. The Crop Risk Tool's dashboard and the alerts' query |
-| `POST /models/{id}/evaluate` ✓ | the explorer: `{"inputs": {"tmin": 12, "tmax": [20, 24, 28]}}` in the request's `units=`, a list sweeping (lists multiply into rows, up to 10,000); inputs left out take their defaults; values outside an input's usual range run with a warning. One row per combination: the inputs and what the model's core gives (units from `outputs` and `explorer_outputs` in `GET /models/{id}`); JSON or CSV. Same code as the runs (PLAN.md Phase 3 A) |
+| `POST /models/{id}/evaluate` ✓ | the explorer: `{"inputs": {"tmin": 12, "tmax": [20, 24, 28]}}` in the request's `units=`, a list sweeping (lists multiply into rows, up to 10,000); inputs left out take their defaults; values outside an input's usual range run with a warning. One row per combination: the inputs and what the model's core gives (units from `outputs` and `explorer_outputs` in `GET /models/{id}`); JSON or CSV. Same code as the runs (Phase 3 A) |
 | `POST /models/{id}/run` ✓ | the model on **your** weather (below) |
 | `POST /models/run` ✓ | several models (or `"all"`) on your weather in one call, shaped as `GET /models/run`; models the weather sent can't feed are listed under `meta.summary.skipped` with what they need |
 
@@ -394,11 +394,11 @@ A weather network (Wisconet, a farm's own station, a vendor's sensors) sends its
 - **Checks:** the same QC as ingest (`agdata.qc`: ranges, spikes, short gaps in the hours filled). Out-of-range values become missing, with a warning saying how many and where. A model whose inputs can't be made from what was sent returns 422 naming what's missing, and which hourly variables would supply it.
 - **`fill=grid`:** fill the station's gaps from our archive at its cell, with those days' kind `grid`. **`extend=forecast`:** run on past the station's last day with our forecast for the cell, so a station network gets the next week's risk too. The default for both is `none`: by default the answer depends only on what was sent.
 - **Response:** the same envelope and columns as `GET /models/{id}/run`, with `kind` = `provided`, `estimated` (a provided day where the model bridged a gap in an input), `grid` or `forecast` per day, and `meta.summary` counting each kind. A CSV body takes the rest as query parameters (`lat`, `lng`, `units`, `start`, `end`, `fill`, `extend`, `biofix`, `planting_date`, options); `meta.request.sent` says which days and variables arrived.
-- **Nothing sent is stored.** Requests are computed and forgotten, and the docs say so. Limits: about two years of hourly data per request, and the rate limits (Phase 5 H, PLAN.md D69).
+- **Nothing sent is stored.** Requests are computed and forgotten, and the docs say so. Limits: about two years of hourly data per request, and the rate limits (Phase 5 H, docs/decisions.md D69).
 
 **POST only** for running on your own weather. A season of daily min/max would fit in a URL, but hourly data won't, and two ways to send the same thing doubles what has to be documented and tested. The GET form of `run` already covers "our weather at a point".
 
-**A complement, not a substitute:** pulling Wisconet's and other networks' stations onto our map and charts is a later enhancement (PLAN.md, "Enhancement: station networks"). The POST endpoint serves anyone without needing an agreement with us.
+**A complement, not a substitute:** pulling Wisconet's and other networks' stations onto our map and charts is a later enhancement (Phase 9, "Enhancement: station networks"). The POST endpoint serves anyone without needing an agreement with us.
 
 ### Grids
 
@@ -485,7 +485,7 @@ Yearly NetCDF per daily variable for bulk users ✓ (D69, D71, Phase 5 H2), as s
 
 ## Access, limits, stability
 
-- **Anonymous reads** with per-IP rate limits ✓ (PLAN.md D69, `api.ratelimit`): a budget of 200 units a minute per IPv4 address or IPv6 /64 (`API_RATE_LIMIT`), a request costing 1 unit plus 1 per 100 ms of server time, so a kept tile or a 304 costs 1 and a map computed afresh several. Every API response carries `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` (seconds to the minute's end); a client over its budget gets a 429 (`rate_limited`) with `Retry-After`. Optional free API keys (`X-API-Key`) for higher limits, and so we know who to tell before a change, are added when someone needs more.
+- **Anonymous reads** with per-IP rate limits ✓ (docs/decisions.md D69, `api.ratelimit`): a budget of 200 units a minute per IPv4 address or IPv6 /64 (`API_RATE_LIMIT`), a request costing 1 unit plus 1 per 100 ms of server time, so a kept tile or a 304 costs 1 and a map computed afresh several. Every API response carries `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` (seconds to the minute's end); a client over its budget gets a 429 (`rate_limited`) with `Retry-After`. Optional free API keys (`X-API-Key`) for higher limits, and so we know who to tell before a change, are added when someone needs more.
 - **Stability:** `/api/v2` changes only by addition (new endpoints, parameters, columns, `meta` keys). Anything breaking is announced on the changelog page and in `meta.warnings` well ahead. Clients should ignore keys they don't know.
 - **Types:** the frontend's TypeScript types are generated from the OpenAPI schema, as `bin/types` does for props (`@/types/api`), so CI fails when the frontend and API disagree.
 - **Docs:** OpenAPI at `/api/v2/docs`, its public text kept in `app/api/docs/` (an intro, a page per endpoint, `parameters.toml`, and `fields.toml` for every response field, D91; `test_docs` checks each endpoint, parameter and field has text in the public style), with D53's attribution and links to the changelog and feedback pages (Phase 7). R, Python and curl examples per endpoint come in Phase 8, after the frontend; the downloads page has R and Python examples now.
@@ -551,4 +551,4 @@ The columns match `dd_table`'s (each day's value and running total per setting, 
 
 ## Implementation choices
 
-Made as the work landed, and recorded in PLAN.md Phase 5: model maps are finished on request from stored ingredients (D66, F), with crop stages stored per planting tier (D70); tiles pack values as Terrain-RGB with each layer's step (G1); tiles stay in Django, with no Starlette mount (§9; G4 measured Django's share as small).
+Made as the work landed, and recorded in Phase 5: model maps are finished on request from stored ingredients (D66, F), with crop stages stored per planting tier (D70); tiles pack values as Terrain-RGB with each layer's step (G1); tiles stay in Django, with no Starlette mount (§9; G4 measured Django's share as small).

@@ -1,4 +1,4 @@
-"""Seasonal products on the grid (PLAN.md Phase 4 H, D68): a once-a-season model's map for a season, whether the
+"""Seasonal products on the grid (Phase 4 H, D68): a once-a-season model's map for a season, whether the
 season is final, and its end projected from the archive's earlier seasons.
 
 A seasonal model (`ModelSpec.seasonal`; potato volunteer's winter) is finished from its stored ingredients like

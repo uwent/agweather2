@@ -1,6 +1,6 @@
 # Potato volunteer survival (`potato-volunteer`): validation
 
-Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/potato_volunteer.py`, a seasonal product (D68); its page: `potato_volunteer.md` beside it. Ported in Phase 3 (PLAN.md, Phase 3 step 5) from the Wisconsin potato volunteer tool (an R Shiny app on Wisconet's stations; copy in `tmp/R/potato-volunteer-risk/`), which it replaces; version 0.2 (2026-11-05) took MSU's window.
+Model version 0.2, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/potato_volunteer.py`, a seasonal product (D68); its page: `potato_volunteer.md` beside it. Ported in Phase 3 (Phase 3 step 5) from the Wisconsin potato volunteer tool (an R Shiny app on Wisconet's stations; copy in `tmp/R/potato-volunteer-risk/`), which it replaces; version 0.2 (2026-11-05) took MSU's window.
 
 **In short:** the rule is Michigan State University's (Kirk and Wharton): count the hours with soil below 27 °F over the winter, and 120 or more at a depth kills the tubers there; the Wisconsin tool's levels add 8 in to MSU's 2 and 4 in. The rule is ported as the tool applied it. What drives it, the hours below 27 °F, has been compared with Wisconet's soil sensors: the archive counts more of them than the stations, at 8 in about twice as many, which leans the risk low. The rule itself hasn't been checked against tubers' survival in Wisconsin.
 

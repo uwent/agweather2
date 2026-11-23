@@ -1,6 +1,6 @@
 # Alfalfa growth since cutting (`alfalfa-growth`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/alfalfa_growth.py`, run through `agmodels.crops`; its page: `alfalfa_growth.md` beside it. Ported in Phase 3 (PLAN.md, Phase 3 step 5) from the UW alfalfa tool (an R Shiny app; copy in `tmp/R/alfalfa-tool/`), which it replaces.
+Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/alfalfa_growth.py`, run through `agmodels.crops`; its page: `alfalfa_growth.md` beside it. Ported in Phase 3 (Phase 3 step 5) from the UW alfalfa tool (an R Shiny app; copy in `tmp/R/alfalfa-tool/`), which it replaces.
 
 **In short:** growing degree days (single sine, 41/86 °F) from January 1 or the last cutting, with the tool's cutting window of 900–1100 GDD. The degree days are the tool's formula exactly. Neither the window nor the degree days has been compared with alfalfa growth or forage quality measured in Wisconsin fields.
 
@@ -15,10 +15,10 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 
 ## Choices and differences
 
-- **Degree days:** single sine with a horizontal cutoff, 41/86 °F. The tool subtracts the sine above 86 °F from the sine above 41 °F, which is the same quantity (D26). Its `gdd_sine` has one ordering slip: when the minimum is above the base it returns the plain mean less the base without cutting the maximum at the upper threshold. The tool only calls it with its default upper of 150 °F, which no day reaches, so on real days its values match ours (PLAN.md).
+- **Degree days:** single sine with a horizontal cutoff, 41/86 °F. The tool subtracts the sine above 86 °F from the sine above 41 °F, which is the same quantity (D26). Its `gdd_sine` has one ordering slip: when the minimum is above the base it returns the plain mean less the base without cutting the maximum at the upper threshold. The tool only calls it with its default upper of 150 °F, which no day reaches, so on real days its values match ours (the plans, `docs/plans/`).
 - **Stages:** Growing, Ready to cut (900–1100 GDD), Past the cut window (over 1100). The tool's own text gives 800–1100 in one place and 900–1100 in the others; we follow 900–1100.
-- **Not yet ported:** the fall rule and the tool's cut scheduling, which need the climatology and a projection to the end of the season (PLAN.md Phase 6). The tool's text puts the upper fall figure at 800 GDD; Newell's article at 900.
-- **Against Enviroweather (MSU):** MSU's first-cutting model uses the simple average, base 41 °F without an upper, from March 1, with targets of 680, 750 and 970 GDD by silo type and fiber (`docs/enviroweather-models.md`). The averaging method gives fewer GDD on cool spring days, which partly explains its lower targets; which thresholds to keep is part F of `docs/models-plan.md`.
+- **Not yet ported:** the fall rule and the tool's cut scheduling, which need the climatology and a projection to the end of the season (Phase 6). The tool's text puts the upper fall figure at 800 GDD; Newell's article at 900.
+- **Against Enviroweather (MSU):** MSU's first-cutting model uses the simple average, base 41 °F without an upper, from March 1, with targets of 680, 750 and 970 GDD by silo type and fiber (`docs/enviroweather-models.md`). The averaging method gives fewer GDD on cool spring days, which partly explains its lower targets; which thresholds to keep is part F of `docs/plans/models.md`.
 
 ## Checks
 

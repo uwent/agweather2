@@ -1,4 +1,4 @@
-"""The first or last day within bounds, and the days since the last (D78; PLAN.md Phase 6 C step 4).
+"""The first or last day within bounds, and the days since the last (D78; Phase 6 C step 4).
 
 `first=above_50` on a daily layer maps each cell's first day in the window at or above 50 (in the request's units),
 `last=below_32` the last day at or below 32, `since=below_32` the days from that last day to the window's end. Bounds

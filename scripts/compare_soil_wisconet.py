@@ -1,4 +1,4 @@
-"""Soil temperature against Wisconet's stations (PLAN.md Phase 4 handoff): the archive's soil (ERA5-Land since
+"""Soil temperature against Wisconet's stations (Phase 4 handoff): the archive's soil (ERA5-Land since
 D52; HRRR's before), Open-Meteo's IFS (what fills the archive's last days and the forecast) and ERA5-Land (Open-Meteo's
 archive endpoint, ~5 days behind) at each station, by depth, season and snow cover. A comparison, not a
 basis for correction factors (Ben): a station's soil under snow is insulated, which is real but doesn't stand for

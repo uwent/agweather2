@@ -1,4 +1,4 @@
-"""Variables computed when they're read, from stored variables on the same time axis (PLAN.md Phase 6 C step 1).
+"""Variables computed when they're read, from stored variables on the same time axis (Phase 6 C step 1).
 
 Some variables are simple formulas of what the archive stores: water balance (precipitation minus ET0) is the
 first. Storing them would add a copy to every store and a rebuild whenever their formula changed, for values that

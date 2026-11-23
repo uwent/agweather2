@@ -1,4 +1,4 @@
-"""Normals: a reference period's typical weather by day of year (D61, D82; PLAN.md Phase 6 D1).
+"""Normals: a reference period's typical weather by day of year (D61, D82; Phase 6 D1).
 
 Every year's days are laid out on one calendar of 366 slots (`slot`: a leap year's day of year, from 0), so a date
 means the same slot in every year; February 29 is missing in the years without one. From that layout:

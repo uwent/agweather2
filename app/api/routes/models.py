@@ -1,4 +1,4 @@
-"""Models at points (docs/api.md, "Models"; PLAN.md Phase 5 D, D64): a model's three layers at a point through the
+"""Models at points (docs/api.md, "Models"; Phase 5 D, D64): a model's three layers at a point through the
 forecast, from our weather.
 
 One row per day (and option set, with `option_set` indexing `meta.summary.option_sets`): `date`, `kind`, the model's
@@ -447,7 +447,7 @@ def risk(
 
 @router.post("/models/{model_id}/evaluate", response=responses(TableResponse), summary="A model's core at values")
 def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Query[OutputQuery]) -> HttpResponse:
-    """The model's core at single values of its explorer inputs (the model page's interactive chart, PLAN.md Phase 3
+    """The model's core at single values of its explorer inputs (the model page's interactive chart, Phase 3
     A), from the same code as its runs: one row per combination, the inputs and what `explore` gives. Values outside
     an input's usual range run, with a warning."""
     m = runs.model_or_404(model_id)

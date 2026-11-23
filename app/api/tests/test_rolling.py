@@ -1,4 +1,4 @@
-"""Rolling windows at points and on maps (D81, PLAN.md Phase 6 D0) on the fixture archive: observed July 1–10 2025
+"""Rolling windows at points and on maps (D81, Phase 6 D0) on the fixture archive: observed July 1–10 2025
 (each day's maximum 21 °C, 2.4 mm of rain), then an NBM run to July 20 (31 °C)."""
 
 import pytest

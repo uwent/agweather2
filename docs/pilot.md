@@ -1,12 +1,12 @@
 # Phase 1 pilot: archive size and layout
 
-PLAN.md Phase 1 D, run 2026-10-27. All 744 hours of URMA analyses for July 2025 over the `wisconsin` box (245 × 236 = 57,820 cells, 8 variables), stored in a dozen Zarr layouts to choose the archive's chunking, codec and precision and to size the server.
+Phase 1 D, run 2026-10-27. All 744 hours of URMA analyses for July 2025 over the `wisconsin` box (245 × 236 = 57,820 cells, 8 variables), stored in a dozen Zarr layouts to choose the archive's chunking, codec and precision and to size the server.
 
 Scripts: `scripts/pilot_download.py` (download), `scripts/pilot_measure.py` (build each layout and time it), `scripts/pilot_report.py` (the tables). The raw hours are in `data/pilot/raw` (660 MB, packed at URMA's own precision by `scripts/pilot_encoding.py`).
 
 ## Decisions it led to
 
-1. **Hourly store: int16 packed by the catalog's scale, pcodec level 8, chunks of 720 hours × 32 × 32 cells** (now `agdata.store`'s defaults). One cell's month reads in under 4 ms, so a season of every variable stays far inside the 300 ms target. Tile-shaped chunks (24 × 256 × 256) are 15% smaller but take over 10× longer for a point series, the hourly archive's main use; daily and cumulative stores keep tile-shaped chunks for maps (PLAN.md §5.3).
+1. **Hourly store: int16 packed by the catalog's scale, pcodec level 8, chunks of 720 hours × 32 × 32 cells** (now `agdata.store`'s defaults). One cell's month reads in under 4 ms, so a season of every variable stays far inside the 300 ms target. Tile-shaped chunks (24 × 256 × 256) are 15% smaller but take over 10× longer for a point series, the hourly archive's main use; daily and cumulative stores keep tile-shaped chunks for maps (docs/architecture.md §5.3).
 2. **pcodec over zstd**: about 28% smaller than plain zstd and 11% smaller than zstd with a shuffle filter, at the same read speed. A delta along time makes zstd worse; most fields change more from hour to hour than from cell to cell at 2.5 km.
 3. **Coarse precision (D21)**: 0.1 °C, 0.1 m/s, 1 % cloud, 1° direction, 0.1 mm precip, 0.1 kPa pressure. URMA carries 0.01, mostly noise at the analysis's accuracy of about 1 °C, and noise doesn't compress. Coarse precision makes the archive 1.85× smaller (pcodec: 2.5× → 4.6× vs raw int16).
 4. **Hourly ingest writes straight into the archive.** Rewriting one hour of every variable costs 3–4 s for Wisconsin with month-long chunks, roughly 40 s for the Upper Midwest (it scales with the number of chunks). That's acceptable once an hour; a staging store compacted monthly is only worth it at CONUS scale.

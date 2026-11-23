@@ -1,4 +1,4 @@
-"""Yearly NetCDF downloads of the daily variables (PLAN.md Phase 5 H2, D69, D71), served as static files.
+"""Yearly NetCDF downloads of the daily variables (Phase 5 H2, D69, D71), served as static files.
 
 One file per daily variable and year, `DATA_DIR/downloads/daily/{year}/{name}_{year}.nc`, with the year's days
 through the last one rolled up: a past year whole, the current year to date. The values are the daily store's int16

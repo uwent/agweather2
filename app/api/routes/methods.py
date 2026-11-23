@@ -1,4 +1,4 @@
-"""How the data is made, from the code (PLAN.md Phase 6 step 2, "Methods derived from the code"): the sources by date
+"""How the data is made, from the code (Phase 6 step 2, "Methods derived from the code"): the sources by date
 (`agdata.provenance`) and the corrections we apply to them, with their held-out scores and fitted tables
 (`agdata.corrections`). Both depend only on the code (the tables are files in it), so the ETag is the code's.
 """

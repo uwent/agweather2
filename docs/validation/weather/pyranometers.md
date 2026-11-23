@@ -1,6 +1,6 @@
 # Shortwave against Wisconet's pyranometers
 
-Generated 2026-10-30 by `scripts/compare_pyranometers.py` (PLAN.md Phase 2 H). Daily totals (MJ/m²), 2025-01-01 to 2026-10-27, at 80 Wisconet stations in the `wisconsin` box: v2 (HRRR's hourly means) at the station's cell and the old API's SSEC satellite insolation at the nearest 0.1° point, against the station's `daily_solar_radiation_mj_tot`. Station days outside 0–36 MJ/m² are left out. Bias and MAE in MJ/m²; ratio is of the totals over the same days.
+Generated 2026-10-30 by `scripts/compare_pyranometers.py` (Phase 2 H). Daily totals (MJ/m²), 2025-01-01 to 2026-10-27, at 80 Wisconet stations in the `wisconsin` box: v2 (HRRR's hourly means) at the station's cell and the old API's SSEC satellite insolation at the nearest 0.1° point, against the station's `daily_solar_radiation_mj_tot`. Station days outside 0–36 MJ/m² are left out. Bias and MAE in MJ/m²; ratio is of the totals over the same days.
 
 ## Which day a Wisconet stamp closes
 

@@ -1,4 +1,4 @@
-"""What the climate endpoints share (`/climate/*`; PLAN.md Phase 6 E, D82, D86): the reference period, the pooling
+"""What the climate endpoints share (`/climate/*`; Phase 6 E, D82, D86): the reference period, the pooling
 window and percentiles a request asks for, and each point's years read for it.
 
 Points compute from the period's own years (`agdata.climatology.read_point`: the archive's past-years copies, and

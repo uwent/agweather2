@@ -1,4 +1,4 @@
-"""Codling moth (agmodels `codling-moth`) on real weather (models-plan B4, step 4).
+"""Codling moth (agmodels `codling-moth`) on real weather (models plan B4, step 4).
 
 1. NEWA on the same weather: for every complete station-season in tmp/newa/hours/ (scripts/fetch_newa.py), NEWA's
    codling moth (scripts/newa_reference.py: DD50 without an upper from January 1, first catch at 404, its management

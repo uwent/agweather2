@@ -1,6 +1,6 @@
 # Gray leaf spot (`gray-leaf-spot`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/gray_leaf_spot.py`, with its risk levels from `agmodels.probability`; gated by `corn-stages` (V10 to R3, D33); its page: `gray_leaf_spot.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_gls`, `build_gray_leaf_spot`) in Phase 3 (PLAN.md Phase 3 D step 2).
+Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/gray_leaf_spot.py`, with its risk levels from `agmodels.probability`; gated by `corn-stages` (V10 to R3, D33); its page: `gray_leaf_spot.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_gls`, `build_gray_leaf_spot`) in Phase 3 (Phase 3 D step 2).
 
 **In short:** the port reproduces the Crop Risk Tool exactly: given the tool's daily weather for 2025 at Eau Claire, the probability matches on all 365 days. The fit is credited to Damon Smith (UW–Madison) and Wade Webster (NDSU) with no published paper, so there is no source to check its numbers against. In a Wisconsin summer it barely moves: at Eau Claire it was High on every day of the 2025 season, between 99.0 and 99.9 %.
 
@@ -38,7 +38,7 @@ From the tool's fixture (computed for this report; no test holds it): over the s
 
 ## Limits and open questions
 
-- **The model saturates in summer (a doubt to resolve):** by the coefficients, at a 21-day mean minimum of 15 °C the probability passes 60 % (High) once the 30-day mean minimum dew point is above about 6 °C (43 °F), and is 99.3 % at 13 °C (`gray_leaf_spot.probability`); at Eau Claire from July 1 to August 15, 2025, it ran from 12.5 to 16.0 °C (the tool's fixture, computed for this report). A model that shows High every summer day can't tell one season or place from another. Either the fit was made on other conditions or scales, or a coefficient or unit was carried over wrongly: ask its authors for the fit and its data (PLAN.md Phase 4's review, "Citations").
+- **The model saturates in summer (a doubt to resolve):** by the coefficients, at a 21-day mean minimum of 15 °C the probability passes 60 % (High) once the 30-day mean minimum dew point is above about 6 °C (43 °F), and is 99.3 % at 13 °C (`gray_leaf_spot.probability`); at Eau Claire from July 1 to August 15, 2025, it ran from 12.5 to 16.0 °C (the tool's fixture, computed for this report). A model that shows High every summer day can't tell one season or place from another. Either the fit was made on other conditions or scales, or a coefficient or unit was carried over wrongly: ask its authors for the fit and its data (Phase 4's review, "Citations").
 - **The authors' algorithm** ("2024 Corn Gray Leaf Spot Model Algorithm", ver. 1.0, March 10, 2024, in `tmp/R/crop-risk-tool-models/`; audited in `tmp/crt-model-audit.md`) gives this equation (no units), a 60 % action threshold (adjustable 50–70 %), V10–R3, and "two models" to average though it gives only one. As written it saturates: above 99 % on every in-season day (its 50 % point is a 30-day mean minimum dew point of 5.4 °C); the authors have been asked.
 - **No published source:** the fit is unpublished; its region, years, weather and response (spores trapped, or disease) are unknown. Its temperature coefficient is negative (warmer nights lower the probability slightly), against the tool's page, which says warm weather favours the disease.
 - **No observations:** not compared with gray leaf spot in Wisconsin fields.
@@ -48,5 +48,5 @@ From the tool's fixture (computed for this report; no test holds it): over the s
 
 ```bash
 uv run pytest packages/agmodels/tests/test_field_crops.py packages/agmodels/tests/test_logistic_by_hand.py
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, PLAN.md Phase 3 F)
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, Phase 3 F)
 ```

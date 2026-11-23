@@ -1,6 +1,6 @@
 # Western bean cutworm (`western-bean-cutworm`): validation
 
-Model version 0.3, written 2026-11-21 (D98; part H2 of `docs/models-plan.md`). The model: `packages/agmodels/src/agmodels/insects/western_bean_cutworm.py`, run by the insect engine (`agmodels.phenology`, D36, D37); its page: `western_bean_cutworm.md` beside it. Versions 0.1–0.2 were VDIFN's ramp (single sine above 50 °F from May 1, (1320, 1420, 1535), Ahmad 1979's 25, 50 and 75 % flight), reported in this file's history.
+Model version 0.3, written 2026-11-21 (D98; part H2 of `docs/plans/models.md`). The model: `packages/agmodels/src/agmodels/insects/western_bean_cutworm.py`, run by the insect engine (`agmodels.phenology`, D36, D37); its page: `western_bean_cutworm.md` beside it. Versions 0.1–0.2 were VDIFN's ramp (single sine above 50 °F from May 1, (1320, 1420, 1535), Ahmad 1979's 25, 50 and 75 % flight), reported in this file's history.
 
 **In short:** rebuilt on Hanson et al. 2015's flight model, which NEWA also runs (D95): the simple average with the daily mean capped, 38/75 °F from March 1, and a curve following their log-logistic flight within 2.3 percentage points. Against DATCP's Wisconsin pheromone traps (286 trap-years, 2021–2026, not used to build it) half the flight falls a median 3 days before the end of the trap's week, inside the week in about half the trap-years and within a week of it in 95 %. NEWA's deployed model counts fewer degree days than Hanson's method on hot days and puts the flight a median 3 days later than ours.
 

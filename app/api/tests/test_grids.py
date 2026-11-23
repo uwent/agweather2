@@ -1,4 +1,4 @@
-"""Grids and the layer catalog (PLAN.md Phase 5 E) on the fixture archive: 2 × 3 cells in Fayette County, Iowa,
+"""Grids and the layer catalog (Phase 5 E) on the fixture archive: 2 × 3 cells in Fayette County, Iowa,
 observed July 1–10 2025 at 15 °C ± 6 and 0.1 mm an hour, then an NBM run at 25 °C ± 6."""
 
 import io

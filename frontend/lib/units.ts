@@ -1,4 +1,4 @@
-// Display units (PLAN.md D18). Values arrive in the unit they're stored in (SI, or °F·d for most degree
+// Display units (docs/decisions.md D18). Values arrive in the unit they're stored in (SI, or °F·d for most degree
 // days), named by symbol; this module is the only place the frontend converts them, at the display and
 // input edge. It mirrors packages/agdata/src/agdata/units.py, and both are tested against
 // packages/agdata/tests/fixtures/units_cases.json so they can't drift.

@@ -7,7 +7,7 @@ Nix 1979). Early blight risk rises once 300 P-days have accrued since emergence 
 
 Ported from the Crop Risk Tool (`calc_pdays`, `risk_for_early_blight`) with parity tests. Intended difference:
 the tool and the old API weigh P(Tmin) in the last term; Sands et al. weigh P(Tmax) (`5 P(Tmin) + 8 P(...) +
-8 P(...) + 3 P(Tmax)`), which v2 follows (see PLAN.md Phase 3 D). A day without its min or max has no P-days.
+8 P(...) + 3 P(Tmax)`), which v2 follows (see Phase 3 D). A day without its min or max has no P-days.
 """
 
 from collections.abc import Mapping

@@ -1,5 +1,5 @@
 """The root maggots (agmodels `cabbage-maggot`, `onion-maggot`, `seedcorn-maggot`) against NEWA's on the same weather
-(docs/models-plan.md part H, H1).
+(`docs/plans/models.md` part H, H1).
 
 For every complete station-season in tmp/newa/hours/ (scripts/fetch_newa.py), NEWA's maggot models
 (scripts/newa_reference.py: the simple average above 40 °F from January 1, or 3.9 °C for seedcorn maggot, and the

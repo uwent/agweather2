@@ -1,5 +1,5 @@
 """Apple stages (agmodels `apple-stages`) on real weather: against NEWA on the same station hours, and against the
-stages UW's fruit program and Wisconsin growers observed (models-plan B1, step 4; report:
+stages UW's fruit program and Wisconsin growers observed (models plan B1, step 4; report:
 docs/validation/models/apple-stages.md).
 
 1. NEWA: for every station-season in tmp/newa/hours/ (scripts/fetch_newa.py), each stage's first day by our model

@@ -1,4 +1,4 @@
-"""States and counties as masks on the grid (`region=` on maps; PLAN.md Phase 5 E), from the county grid
+"""States and counties as masks on the grid (`region=` on maps; Phase 5 E), from the county grid
 `agdata.places` already holds, so no geometry library or new boundary file is needed.
 
 Each cell takes the county under its center (a cell just over a line, or on a shore within about 10 km, takes the
@@ -186,7 +186,7 @@ def mask(region: Region, window: Window) -> np.ndarray:
     return np.isin(cell_counties(window), list(region.county_ids))
 
 
-# --- Summaries by county or state (PLAN.md Phase 6 C5) ----------------------------------------------------------
+# --- Summaries by county or state (Phase 6 C5) ----------------------------------------------------------
 
 
 @dataclass(frozen=True, kw_only=True)

@@ -1,4 +1,4 @@
-"""Degree days and freezes at points (PLAN.md Phase 5 C), and the threshold checks they share, on the fixture
+"""Degree days and freezes at points (Phase 5 C), and the threshold checks they share, on the fixture
 archive: observed days at 9–21 °C (48.2–69.8 °F) to July 9, the forecast's at 19–31 °C (66.2–87.8 °F)."""
 
 import numpy as np

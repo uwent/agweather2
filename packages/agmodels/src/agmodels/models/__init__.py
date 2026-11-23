@@ -1,1 +1,1 @@
-"""One module per model; `agmodels.registry` finds them (PLAN.md Phase 3)."""
+"""One module per model; `agmodels.registry` finds them (Phase 3)."""

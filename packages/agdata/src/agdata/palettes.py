@@ -1,4 +1,4 @@
-"""Color palettes for maps (PLAN.md Phase 5 G2; Ben, 2026-11-05 and 11-06): defined here, served to the frontend.
+"""Color palettes for maps (Phase 5 G2; Ben, 2026-11-05 and 11-06): defined here, served to the frontend.
 
 Two tables, kept apart so a palette can be reused, changed or offered to a reader on its own (Ben, 2026-11-06):
 

@@ -1,4 +1,4 @@
-"""Fire blight (agmodels `fire-blight`) against NEWA on Wisconsin's orchard stations (models-plan B3, step 4).
+"""Fire blight (agmodels `fire-blight`) against NEWA on Wisconsin's orchard stations (models plan B3, step 4).
 
 NEWA's results come from scripts/newa_reference.py on the station's own hours; ours run through the point rollup and
 the runner on the station's own hours (the method) and on the archive's hours at the station's cell (the map), as

@@ -1,4 +1,4 @@
-"""IFS's soil temperature and snow depth (D52, PLAN.md Phase 4 I): the archive's provisional hours after ERA5-Land's
+"""IFS's soil temperature and snow depth (D52, Phase 4 I): the archive's provisional hours after ERA5-Land's
 last, and the forecast's.
 
 Each new IFS run on Open-Meteo's open data is read once over the box, from the hour after ERA5-Land's last (at most

@@ -1,6 +1,6 @@
 # Gibberella ear rot and DON (`gibberella-ear-rot-don`): validation
 
-Model version 0.2, written 2026-11-18 (D98), updated 2026-11-19 for 0.2. The model: `packages/agmodels/src/agmodels/models/don.py`, with its risk levels from `agmodels.probability`; gated by `corn-stages` (R1, silking, D33); its page: `don.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_don`, `build_don`) in Phase 3 (PLAN.md Phase 3 D step 2).
+Model version 0.2, written 2026-11-18 (D98), updated 2026-11-19 for 0.2. The model: `packages/agmodels/src/agmodels/models/don.py`, with its risk levels from `agmodels.probability`; gated by `corn-stages` (R1, silking, D33); its page: `don.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_don`, `build_don`) in Phase 3 (Phase 3 D step 2).
 
 **In short:** the port reproduces the Crop Risk Tool but for one correction from the authors' algorithm (0.2: humid days at mean RH ≥ 80 %, where the tool counts > 80 %): given the tool's daily weather for 2025 at Eau Claire, the probability of deoxynivalenol (DON) above 1 ppm matches on the 344 days whose 14-day window holds no day at exactly 80 %, and differs by at most 4e-8 on the rest (the first 7 days of the year have no value in either). The fit is credited to Pierce Paul and Cristiano Nesi (Ohio State) with no published paper, so there is no source to check its numbers against, and it hasn't been compared with DON in harvested grain.
 
@@ -39,7 +39,7 @@ From the tool's fixture (computed for this report; no test holds it): over the s
 
 ## Limits and open questions
 
-- **No published source:** the fit is unpublished as far as the tool's documents show; its region, years, hybrids and weather are unknown. Some of its signs run against the tool's own page ("DON accumulation is favored when conditions after silking remain moderately warm and wet"): more days with rain and more days with a mean RH of 80 % or more each lower the probability, though the mean RH raises it. In a model with several related terms that can be right, but ask the authors for the fit (PLAN.md Phase 4's review, "Citations").
+- **No published source:** the fit is unpublished as far as the tool's documents show; its region, years, hybrids and weather are unknown. Some of its signs run against the tool's own page ("DON accumulation is favored when conditions after silking remain moderately warm and wet"): more days with rain and more days with a mean RH of 80 % or more each lower the probability, though the mean RH raises it. In a model with several related terms that can be right, but ask the authors for the fit (Phase 4's review, "Citations").
 - **No observations:** not compared with DON in Wisconsin corn.
 - **Silking is estimated:** the gate uses `corn-stages`' silking date, from a planting date (typical or the grower's); a day or two off moves the windows.
 - **Cheapest independent comparison:** DON test results from Wisconsin corn with planting or silking dates (UW Field Crops Pathology's ear rot surveys, or grain buyers' records if they can be had), against the model's probability at silking on the archive.
@@ -48,5 +48,5 @@ From the tool's fixture (computed for this report; no test holds it): over the s
 
 ```bash
 uv run pytest packages/agmodels/tests/test_field_crops.py packages/agmodels/tests/test_crops.py
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, PLAN.md Phase 3 F)
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, Phase 3 F)
 ```

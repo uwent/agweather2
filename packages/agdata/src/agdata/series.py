@@ -1,4 +1,4 @@
-"""One series from the archive and the forecast, for a point or a map day (PLAN.md Phase 4 C).
+"""One series from the archive and the forecast, for a point or a map day (Phase 4 C).
 
 Each hour is observed (the archive, through its last observed hour) or forecast (the current run after it). Each
 day is observed (every hour observed), partial (today: some of each) or forecast; a day with nothing is missing.

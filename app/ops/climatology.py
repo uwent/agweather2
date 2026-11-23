@@ -1,4 +1,4 @@
-"""The 30-year climatology's gridMET years (D82, D84; PLAN.md Phase 6 D3): what `manage.py climatology` and the
+"""The 30-year climatology's gridMET years (D82, D84; Phase 6 D3): what `manage.py climatology` and the
 January job do.
 
 `plan` says what the trailing 30 complete years need: gridMET's files for the years the archive lacks (the normal's

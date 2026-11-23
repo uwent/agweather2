@@ -1,4 +1,4 @@
-"""IFS's soil temperature shifted to meet ERA5-Land's at the seam (Q23, PLAN.md Phase 4 I).
+"""IFS's soil temperature shifted to meet ERA5-Land's at the seam (Q23, Phase 4 I).
 
 The archive's soil is ERA5-Land's up to its last hour (~5 days behind), then IFS's: the provisional hours and the
 forecast. In winter IFS reads 1.6–2.7 °C below ERA5-Land at 10 cm (docs/validation/weather/soil.md), so without this the soil

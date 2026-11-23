@@ -23,7 +23,7 @@ class SharedPropsMiddleware:
 
 class InertiaMiddleware(inertia.middleware.InertiaMiddleware):
     """inertia-django's middleware, except for the public API: it sets a CSRF cookie and `Vary: Cookie` on every
-    response, which would stop shared caches (Caddy, PLAN.md Phase 5 G) storing API answers that depend on neither."""
+    response, which would stop shared caches (Caddy, Phase 5 G) storing API answers that depend on neither."""
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         if request.path.startswith("/api/"):

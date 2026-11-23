@@ -1,4 +1,4 @@
-"""Daily shortwave against Wisconet's pyranometers (PLAN.md Phase 2 H): v2 (HRRR) and the old API (SSEC satellite
+"""Daily shortwave against Wisconet's pyranometers (Phase 2 H): v2 (HRRR) and the old API (SSEC satellite
 insolation) at each station's cell, by month. Settles v2 against SSEC's gap in winter (v2/SSEC 1.40 in early 2025).
 
 Wisconet's API is throttled, so each station-year is fetched once, slowly, and cached in tmp/wisconet/. The old
@@ -145,7 +145,7 @@ def build_report(args, days, stations, observed, v2, ssec, open_meteo) -> str:
     lines = [
         "# Shortwave against Wisconet's pyranometers",
         "",
-        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_pyranometers.py` (PLAN.md Phase 2 H). Daily totals (MJ/m²), {days[0]} to {days[-1]}, at {len(stations)} Wisconet stations in the `{args.box}` box: v2 (HRRR's hourly means) at the station's cell and the old API's SSEC satellite insolation at the nearest 0.1° point, against the station's `{FIELD}`. Station days outside {PLAUSIBLE_MJ[0]:g}–{PLAUSIBLE_MJ[1]:g} MJ/m² are left out. Bias and MAE in MJ/m²; ratio is of the totals over the same days.",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/compare_pyranometers.py` (Phase 2 H). Daily totals (MJ/m²), {days[0]} to {days[-1]}, at {len(stations)} Wisconet stations in the `{args.box}` box: v2 (HRRR's hourly means) at the station's cell and the old API's SSEC satellite insolation at the nearest 0.1° point, against the station's `{FIELD}`. Station days outside {PLAUSIBLE_MJ[0]:g}–{PLAUSIBLE_MJ[1]:g} MJ/m² are left out. Bias and MAE in MJ/m²; ratio is of the totals over the same days.",
         "",
         "## Which day a Wisconet stamp closes",
         "",

@@ -1,4 +1,4 @@
-"""Insect models as declarative specs (PLAN.md Phase 3 D, like the Crop Risk Tool's `Insect()`), run by one engine.
+"""Insect models as declarative specs (Phase 3 D, like the Crop Risk Tool's `Insect()`), run by one engine.
 
 Each insect accumulates single-sine degree days (°F) from its biofix between its thresholds. Its phenology is
 declared one of three ways:

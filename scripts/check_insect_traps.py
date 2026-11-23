@@ -1,4 +1,4 @@
-"""DATCP's field-crop moth traps, 2020–2026: first catch, flight percentiles and peak by species, site and year (models-plan part H, batch H2).
+"""DATCP's field-crop moth traps, 2020–2026: first catch, flight percentiles and peak by species, site and year (models plan part H, batch H2).
 
 Reads docs/validation/data/datcp-blacklight-traps/ (its README says where each year's tables come from): DATCP's black
 light trap network (`weekly.csv`, 6–13 sites a year, ten moth species) and its western bean cutworm pheromone trap

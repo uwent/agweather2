@@ -1,4 +1,4 @@
-"""Open-Meteo against Wisconet's stations (PLAN.md Phase 4 handoff): shortwave, temperature, humidity and ET0 at
+"""Open-Meteo against Wisconet's stations (Phase 4 handoff): shortwave, temperature, humidity and ET0 at
 each station, from the models points outside the box and WISP use (`ncep_nbm_conus`, `best_match`, and the two
 merged hour by hour, NBM first, as `agdata.sources.openmeteo` and WISP do), beside the archive (v2's grid) and,
 for ET, the old API.

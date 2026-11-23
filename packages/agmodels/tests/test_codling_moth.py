@@ -1,4 +1,4 @@
-"""Codling moth (docs/models-plan.md B4): WSU's curves, first catch by latitude (Jones et al. 2013), a grower's
+"""Codling moth (`docs/plans/models.md` B4): WSU's curves, first catch by latitude (Jones et al. 2013), a grower's
 trap date, two generations, and the second generation's size (Riedl and Croft 1978)."""
 
 import csv

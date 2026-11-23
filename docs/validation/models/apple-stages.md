@@ -1,6 +1,6 @@
 # Apple bud and bloom stages (`apple-stages`): validation
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/apple_stages.py`; its page: `apple_stages.md` beside it (not yet written). The research notes this condenses are in the project's working notes, `docs/models-plan.md` part B1 and B5 and its "Sources read".
+Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/apple_stages.py`; its page: `apple_stages.md` beside it (not yet written). The research notes this condenses are in the project's working notes, `docs/plans/models.md` part B1 and B5 and its "Sources read".
 
 **In short:** the stages begin at NEWA's degree-day thresholds, which all sit inside the ranges Cornell's Scaffolds Fruit Journal gives for McIntosh at Geneva, New York; on the same weather the stages fall on NEWA's day in 95–102 of 103 station-seasons and never more than 2 days off; against 57 stages observed at six Wisconsin sites in 2023–2026, the model was in the observed stage on 41 and within 3 days on 46, with no bias overall. Early cultivars (Zestar, Paula Red) run a few days ahead of it, as a McIntosh-timed table predicts.
 

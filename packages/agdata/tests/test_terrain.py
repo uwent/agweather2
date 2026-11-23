@@ -1,4 +1,4 @@
-"""Open water and terrain per cell (`agdata.terrain`, PLAN.md Phase 6 D6): exact water shares, which NHD features
+"""Open water and terrain per cell (`agdata.terrain`, Phase 6 D6): exact water shares, which NHD features
 count, the Great Lakes' holes filled, elevation statistics, a build from a small shapefile and DEM read back, and
 regions taking their water from the store."""
 

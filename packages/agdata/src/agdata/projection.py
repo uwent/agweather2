@@ -1,4 +1,4 @@
-"""Projection past the forecast from the archive's own earlier years (D63; PLAN.md Phase 5 D, P1).
+"""Projection past the forecast from the archive's own earlier years (D63; Phase 5 D, P1).
 
 After a series' last day with data, each earlier year's days are spliced on by calendar date, shifted by whole
 years, so a model can run on through the season once per past year (a scenario) and show the spread. A season that

@@ -1,8 +1,8 @@
 # Western flower thrips (`western-flower-thrips`): validation
 
-**Retired 2026-11-21 (version 0.2; Ben, part H of `docs/models-plan.md`):** the thrips doesn't overwinter outdoors in Wisconsin, so degree days from January 1 don't time it in the field, and its source (USPest's model) is still under development. The report below describes version 0.1 as it was.
+**Retired 2026-11-21 (version 0.2; Ben, part H of `docs/plans/models.md`):** the thrips doesn't overwinter outdoors in Wisconsin, so degree days from January 1 don't time it in the field, and its source (USPest's model) is still under development. The report below describes version 0.1 as it was.
 
-Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/insects/western_flower_thrips.py`, VDIFN's generation table run by the insect engine (`agmodels.phenology`; PLAN.md Phase 3 D, step 3); its page: `western_flower_thrips.md` beside it (VDIFN's text). The insect review that will replace or confirm the numbers is `docs/models-plan.md` part H, with `docs/insect-models.md` as its work list.
+Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/insects/western_flower_thrips.py`, VDIFN's generation table run by the insect engine (`agmodels.phenology`; Phase 3 D, step 3); its page: `western_flower_thrips.md` beside it (VDIFN's text). The insect review that will replace or confirm the numbers is `docs/plans/models.md` part H, with `docs/insect-models.md` as its work list.
 
 **In short:** ported from VDIFN unchanged. Given the same degree days its risk matches VDIFN's exactly, and its degree days match the old AgWeather API's that VDIFN read. That shows a faithful port, not a right answer: the timing hasn't been checked against its source or against field data in Wisconsin. Which species the numbers are for is unclear (below); USPest's model was marked under development, and no paper is identified.
 
@@ -17,7 +17,7 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 
 - **Degree days:** single sine (Baskerville–Emin), 45 °F, no upper threshold, from January 1: VDIFN's thresholds, computed as the old AgWeather API did.
 - **Risk:** VDIFN's: 4 generations, (340, 675, 1010), (1010, 1350, 1685), (1685, 2025, 2360), (2360, 2700, 3375) degree days (°F) as (start, peak, end); severity rises along a half sine from start to peak and falls from peak to end, rounded up to the 0–4 levels, and is 0 outside. VDIFN's text: thrips have several overlapping generations a year in Wisconsin, peaking about 675, 1,350, 2,025 and 2,700 degree days (°F).
-- **Freezes:** after day 250 (early September), severity is lowered by the number of days in the last 14 at or below −2 °C (28.4 °F), the Crop Risk Tool's rule, used for every insect still on a legacy table; VDIFN subtracted freezing days only from November (PLAN.md Phase 3 D, step 3).
+- **Freezes:** after day 250 (early September), severity is lowered by the number of days in the last 14 at or below −2 °C (28.4 °F), the Crop Risk Tool's rule, used for every insect still on a legacy table; VDIFN subtracted freezing days only from November (Phase 3 D, step 3).
 - **Generations that touch:** each ends where the next starts (1,010, 1,685 and 2,360), so severity falls to Low between peaks and rises again; a later generation overrides where they meet, as in VDIFN.
 - **Which thrips:** VDIFN's description (thrips scarring cabbage heads) and its link are about onion thrips, while the name and the spreadsheet's USPest model are western flower thrips'.
 

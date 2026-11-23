@@ -1,4 +1,4 @@
-"""Forecast runs on the grid, stitched to the archive (PLAN.md Phase 4 B, C).
+"""Forecast runs on the grid, stitched to the archive (Phase 4 B, C).
 
 Each NBM run gets its own directory, laid out like the archive (`hourly/{year}.zarr`, `daily/…`, `cumulative/…`),
 so the archive's rollup runs on it unchanged:

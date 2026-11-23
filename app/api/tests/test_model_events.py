@@ -1,4 +1,4 @@
-"""Events on model results (PLAN.md Phase 6 step 3, `api.modelevents`): `first=`, `last=` and `since=` at points
+"""Events on model results (Phase 6 step 3, `api.modelevents`): `first=`, `last=` and `since=` at points
 (`/models/{id}/run`'s `meta.summary.events`, and `milestones` without a projection) and on model maps. The fixture
 archive is observed July 1–10, 2025 (to 15Z on the 10th), then forecast to about July 21; days before July 1 have
 no data."""

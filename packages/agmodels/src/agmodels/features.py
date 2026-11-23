@@ -1,4 +1,4 @@
-"""Daily features: what the models read beyond daily min, mean and max, computed from hours (PLAN.md Phase 3 B).
+"""Daily features: what the models read beyond daily min, mean and max, computed from hours (Phase 3 B).
 
 Hourly-native, after the Crop Risk Tool's `build_daily`, with v2's windows (D74). An hourly value is stamped at the
 end of its hour (precipitation is what fell in that hour; temperature and humidity are the reading at that time), and
@@ -224,7 +224,7 @@ def fire_blight_features(
     temperature_c: np.ndarray, rh_percent: np.ndarray, precipitation_mm: np.ndarray
 ) -> dict[str, np.ndarray]:
     """Fire blight's features over a calendar day's hours: Cougarblight's hourly values summed, MaryBlyt's degree
-    hours above 65 °F (as °C·h), and hours estimated wet (RH ≥ 90 % or 0.01 in of rain: apple scab's estimate, models-plan
+    hours above 65 °F (as °C·h), and hours estimated wet (RH ≥ 90 % or 0.01 in of rain: apple scab's estimate, models plan
     B5). Any hour missing makes them missing."""
     t = np.asarray(temperature_c, dtype=float)
     rh = np.asarray(rh_percent, dtype=float)

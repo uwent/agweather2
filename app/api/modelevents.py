@@ -1,4 +1,4 @@
-"""Events on a model's results at points (PLAN.md Phase 6 step 3): `first=`, `last=` and `since=` on a model run.
+"""Events on a model's results at points (Phase 6 step 3): `first=`, `last=` and `since=` on a model run.
 
 `first=high` finds the first day the model's risk is High or above; on a crop model `first=R1` the first day at R1
 or later; any output takes bounds after its name, `first=dd_total:above_450` (in the units the output is shown in),

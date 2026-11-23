@@ -1,6 +1,6 @@
 # Tar spot (`tar-spot`): validation
 
-Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/tar_spot.py`, with its humid night hours from `agmodels.features` (`hours_rh_over_90_7pm_to_6am`) and its cold scaling and risk levels from `agmodels.probability`; gated by `corn-stages` (V10 to R3, D33); its page: `tar_spot.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_tarspot`, `build_tar_spot`) in Phase 3 (PLAN.md Phase 3 D step 2).
+Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/tar_spot.py`, with its humid night hours from `agmodels.features` (`hours_rh_over_90_7pm_to_6am`) and its cold scaling and risk levels from `agmodels.probability`; gated by `corn-stages` (V10 to R3, D33); its page: `tar_spot.md` beside it (a two-sentence stub, rewritten in part I2). Ported from the Crop Risk Tool (`tmp/R/crop-risk-tool/src/models.R`, `predict_tarspot`, `build_tar_spot`) in Phase 3 (Phase 3 D step 2).
 
 **In short:** the port reproduces the Crop Risk Tool exactly: given the tool's daily weather for 2025 at Eau Claire, the probability matches on all 365 days. That shows a faithful port, not a right model: the model hasn't been compared with tar spot observations. Read against the paper (2026-11-18), the two equations and their coefficients are its LR4 and LR6, and more humid weather lowering the probability is what the paper found; but the paper's response is an increase in tar spot severity between two ratings, not spore presence, so version 0.3 renamed the model and its output (below).
 
@@ -15,7 +15,7 @@ Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 
 ## Choices and differences
 
-- **Night hours:** the readings stamped 20:00 to 06:00 (11 hours, 7 p.m. to 6 a.m. under D74's window rule), the night the tool counts and the coefficients were fitted on. Since version 0.2 they're on CST all year, so in summer v2's night is an hour later by the clock than the tool's (PLAN.md D74).
+- **Night hours:** the readings stamped 20:00 to 06:00 (11 hours, 7 p.m. to 6 a.m. under D74's window rule), the night the tool counts and the coefficients were fitted on. Since version 0.2 they're on CST all year, so in summer v2's night is an hour later by the clock than the tool's (docs/decisions.md D74).
 - **Gridded humidity:** on the archive an hour counts as RH ≥ 90 % at 88 % (D50, `features.STATION_RH_90_AS_GRIDDED`), because the archive's RH ≥ 88 % counts as many hours as 80 Wisconet stations' RH ≥ 90 %; a station's own hours (a POSTed run) count at 90 %. The weather the fit used is unknown (Ben, 2026-10-31: perhaps IBM's EIS), so the correction applies anyway. Its effect on this model hasn't been measured.
 - **Weather:** the tool runs on Open-Meteo (about 9 km, its README); v2 on the 2.5 km archive. Not compared on the same place and days.
 - **Season and gate:** the spec's season is July 1 to August 15 (the tool's), and the risk is shown as susceptible from V10 to R3 of `corn-stages` with its 3-day margin (D33).
@@ -56,5 +56,5 @@ From the tool's fixture (computed for this report; no test holds it): over the s
 
 ```bash
 uv run pytest packages/agmodels/tests/test_field_crops.py packages/agmodels/tests/test_features.py packages/agmodels/tests/test_logistic_by_hand.py packages/agmodels/tests/test_crops.py
-Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, PLAN.md Phase 3 F)
+Rscript --no-init-file packages/agmodels/tests/fixtures/make_crt_fixtures.R   # the tool's fixtures (needs tmp/R/crop-risk-tool, Phase 3 F)
 ```

@@ -1,4 +1,4 @@
-"""The plumbing every endpoint shares (PLAN.md Phase 5 A), through the test-only API on the fixture archive."""
+"""The plumbing every endpoint shares (Phase 5 A), through the test-only API on the fixture archive."""
 
 import csv
 import io

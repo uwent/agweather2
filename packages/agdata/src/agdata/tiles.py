@@ -1,4 +1,4 @@
-"""Web map tiles of a layer (PLAN.md Phase 5 G): 256-pixel web-mercator tiles from the native grid, with each value
+"""Web map tiles of a layer (Phase 5 G): 256-pixel web-mercator tiles from the native grid, with each value
 packed into the pixel's color so the browser colors maps itself and reads values under the pointer.
 
 Each pixel takes the grid cell under its center (no averaging at low zooms: a threshold or a risk level doesn't

@@ -1,4 +1,4 @@
-"""Rolling windows over days (D81; PLAN.md Phase 6 D0): a 7-, 14- or 28-day mean, sum, minimum or maximum on every
+"""Rolling windows over days (D81; Phase 6 D0): a 7-, 14- or 28-day mean, sum, minimum or maximum on every
 day of a series, at points (`/weather/daily`, `/degree-days`) and, through the same rules, on maps and in the normals.
 
 A window of N days is trailing (the day and the N − 1 before it) or centered. A centered window of an even length

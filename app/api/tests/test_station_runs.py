@@ -1,4 +1,4 @@
-"""Models on weather sent with the request (PLAN.md Phase 5 D step 5, D58), on the fixture archive: observed hours
+"""Models on weather sent with the request (Phase 5 D step 5, D58), on the fixture archive: observed hours
 July 1–10, 2025 (to 15Z on the 10th), then the forecast."""
 
 import json

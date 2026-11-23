@@ -1,4 +1,4 @@
-"""v1's daily weather grid against v2's `/grids` on the same 0.1° points (PLAN.md Phase 5 E, the R grid caller).
+"""v1's daily weather grid against v2's `/grids` on the same 0.1° points (Phase 5 E, the R grid caller).
 
 uv run python scripts/compare_v1_grid.py --start 2026-04-01 --end 2026-10-27 [--every 7] [--out FILE]
 

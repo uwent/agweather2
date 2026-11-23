@@ -1,4 +1,4 @@
-"""Climate at points (docs/api.md, "Climate"; PLAN.md Phase 6 E, D82, D86): normals from the period's own years.
+"""Climate at points (docs/api.md, "Climate"; Phase 6 E, D82, D86): normals from the period's own years.
 
 `/climate/normals`: per point and day of a year, each variable's normal (`agdata.climatology.pooled`: the mean of
 every year's days within a window centered on the day, wrapping the year), its percentiles, and for values that

@@ -1,4 +1,4 @@
-"""Daily rollups: the catalog's daily statistics over each grid day (PLAN.md §5.4, D25, D74).
+"""Daily rollups: the catalog's daily statistics over each grid day (docs/architecture.md §5.4, D25, D74).
 
 A grid day is midnight to midnight CST (`timezones.GRID_ZONE`, all year): the hours ending 01:00 through 24:00 CST,
 06:00–06:00 UTC, the same for every cell. A store records its zones (`timezones` and `_meta/timezone`); one written

@@ -1,4 +1,4 @@
-"""Which hours make a day (PLAN.md §5.4, D74).
+"""Which hours make a day (docs/architecture.md §5.4, D74).
 
 Grid days are Central Standard Time all year (`GRID_ZONE`, UTC−6 with no daylight saving): every cell shares one
 day, so no map can show a time zone line, and every day has 24 hours. Points follow the grid's days inside the box and

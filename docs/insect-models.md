@@ -1,10 +1,10 @@
 # Insect model review
 
-The work list for PLAN.md Phase 3 D8 step 4: moving each insect from its legacy definition (a VDIFN generation table or a Crop Risk Tool stage table) to life-stage curves (D36), using the degree-day method its source used (D37). Seedcorn maggot is done and is the worked example. Last updated 2026-10-29.
+The work list for Phase 3 D8 step 4: moving each insect from its legacy definition (a VDIFN generation table or a Crop Risk Tool stage table) to life-stage curves (D36), using the degree-day method its source used (D37). Seedcorn maggot is done and is the worked example. Last updated 2026-10-29.
 
 ## Where each insect stands (part H, 2026-11-21)
 
-Part H (`docs/models-plan.md`) rebuilt every insect still on a legacy definition on its source: NEWA's models where NEWA runs the insect (D95), else the source's own method and thresholds (D37), each stage a curve (D36). Every insect but the three retired ones is now on curves; VDIFN's ramp (`generations`) remains only for the retired models. Each model's report (`docs/validation/models/<id>.md`) says what each number comes from and which are judgments; the source summaries behind the rebuilds are in `tmp/references/insects/notes/` (`newa-insects.md`, `part-h-sources.md`). UW's degree-day table (XHT1087) states no method; the modified average 50/86 its four insects run is our reading of its companion guide (XHT1086, which describes both averages). The sections after this one are the review's earlier work list (2026-10), kept for its notes.
+Part H (`docs/plans/models.md`) rebuilt every insect still on a legacy definition on its source: NEWA's models where NEWA runs the insect (D95), else the source's own method and thresholds (D37), each stage a curve (D36). Every insect but the three retired ones is now on curves; VDIFN's ramp (`generations`) remains only for the retired models. Each model's report (`docs/validation/models/<id>.md`) says what each number comes from and which are judgments; the source summaries behind the rebuilds are in `tmp/references/insects/notes/` (`newa-insects.md`, `part-h-sources.md`). UW's degree-day table (XHT1087) states no method; the modified average 50/86 its four insects run is our reading of its companion guide (XHT1086, which describes both averages). The sections after this one are the review's earlier work list (2026-10), kept for its notes.
 
 <!-- prettier-ignore -->
 | Model | Version | Degree days (°F) and start | Phenology | Source |
@@ -42,7 +42,7 @@ Part H (`docs/models-plan.md`) rebuilt every insect still on a legacy definition
 1. **Find the source** of the current numbers, and any newer or more local work. Put PDFs in `tmp/references/insects/<insect-id>/`.
 2. **Check the method:** the lower and upper thresholds, the calculation (single sine, simple average, modified average), where the upper threshold applies, the biofix, and whether the numbers came from air or soil temperatures. VDIFN computed every insect with single sine 39.2/86 °F or similar, whatever its source used. Single sine runs about 70–100 FDD ahead of the average method by May (Eau Claire, 2025).
 3. **Rebuild** each life stage's start, peak and end from the source's numbers (first emergence, 10/50/90%, peak flight). Set the generation interval from the source's adult-to-adult time. A stage with a known lag and duration is a `DerivedStage`. Add the action windows.
-4. **Record it:** citations with DOIs, checked by `test_citations --network`; a version bump and a changelog line; the intended differences in PLAN.md; drafts of the model page and topic page.
+4. **Record it:** citations with DOIs, checked by `test_citations --network`; a version bump and a changelog line; the intended differences in `docs/decisions.md` or the plan the work belongs to; drafts of the model page and topic page.
 
 **Status:** ✅ done · 🔎 source found (PDF needed) · ❓ source not identified yet.
 

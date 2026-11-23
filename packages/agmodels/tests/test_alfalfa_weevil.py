@@ -1,4 +1,4 @@
-"""Alfalfa weevil (docs/models-plan.md part H4): NEWA's method and table (D95), Harcourt 1981's stage durations and
+"""Alfalfa weevil (`docs/plans/models.md` part H4): NEWA's method and table (D95), Harcourt 1981's stage durations and
 Litsinger and Apple 1973's larval development as the curves' checks."""
 
 import numpy as np

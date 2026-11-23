@@ -1,4 +1,4 @@
-"""Degree days, chill and freezes at points (docs/api.md; PLAN.md Phase 5 C, Phase 6 C6): degree days and freezes
+"""Degree days, chill and freezes at points (docs/api.md; Phase 5 C, Phase 6 C6): degree days and freezes
 from each day's minimum and maximum temperature, for any setting; chill from the hours (`agmodels.chill`, D76).
 
 Thresholds follow the request's units (`units=us`: °F, `metric`: °C) and are checked by `api.params`: one no stored

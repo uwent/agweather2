@@ -1,4 +1,4 @@
-"""Model maps finished from the stored ingredients (PLAN.md Phase 5 F3, D47, D66): what `/grids/{model}` serves.
+"""Model maps finished from the stored ingredients (Phase 5 F3, D47, D66): what `/grids/{model}` serves.
 
 A model with ingredients (`agmodels.ingredients`) is finished day by day, so a map of days first..last needs only
 those days of each ingredient and a few of its running totals (`agdata.modelmaps`, and `agdata.cumulative` for

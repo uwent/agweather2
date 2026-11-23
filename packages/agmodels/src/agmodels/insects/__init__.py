@@ -1,4 +1,4 @@
-"""The insects (PLAN.md Phase 3 D, D35): one module per insect, each an `INSECT = Insect(...)` with its page beside it.
+"""The insects (Phase 3 D, D35): one module per insect, each an `INSECT = Insect(...)` with its page beside it.
 
 The Crop Risk Tool's three have life-stage keys; VDIFN's others are its seeds. Degree days are °F and thresholds as
 each source set them. Seedcorn maggot, alfalfa weevil and Colorado potato beetle come from the Crop Risk Tool (newer,

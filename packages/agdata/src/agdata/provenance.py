@@ -1,5 +1,5 @@
 """Where each hourly variable comes from, by date and use: the sources by date for the methods page and `/methods`
-(PLAN.md Phase 6 step 2, "Methods derived from the code").
+(Phase 6 step 2, "Methods derived from the code").
 
 One entry per source and use. `first` and `last` bound the dates a source fills, taken from the source modules'
 own constants where a source changes; None is open: from the archive's first day, or still in use. The text is

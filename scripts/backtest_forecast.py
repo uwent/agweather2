@@ -1,4 +1,4 @@
-"""Backtest of the NBM forecast against the archive (PLAN.md Phase 4 G).
+"""Backtest of the NBM forecast against the archive (Phase 4 G).
 
 For the 13z long run on every 5th day of a period, fetches NBM at one cell per old-API 0.1° point in Central time
 (`compare_legacy.central_points`), fills its hours as the forecast job does (`nbm.to_hourly`, then RH and ET0), and
@@ -713,7 +713,7 @@ def build_report(args, cycles: list[datetime]) -> str:
     lines = [
         "# Forecast backtest: NBM against the archive",
         "",
-        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/backtest_forecast.py` (PLAN.md Phase 4 G). The {args.hour}z long run on every {args.every}th day, {cycles[0]:%Y-%m-%d} to {cycles[-1]:%Y-%m-%d}: {len(runs)} runs at {n_points} cells (one per old-API 0.1° point in Central time, box `{args.box}`), {failed} forecast files unreadable. The forecast's hours are filled as the forecast job fills them and rolled up by the archive's day definitions. Lead day 1 is the first complete local day after the cycle. Errors are forecast minus archive, in stored units.",
+        f"Generated {datetime.now(UTC):%Y-%m-%d} by `scripts/backtest_forecast.py` (Phase 4 G). The {args.hour}z long run on every {args.every}th day, {cycles[0]:%Y-%m-%d} to {cycles[-1]:%Y-%m-%d}: {len(runs)} runs at {n_points} cells (one per old-API 0.1° point in Central time, box `{args.box}`), {failed} forecast files unreadable. The forecast's hours are filled as the forecast job fills them and rolled up by the archive's day definitions. Lead day 1 is the first complete local day after the cycle. Errors are forecast minus archive, in stored units.",
         "",
         "## Bias and MAE by lead day",
         "",

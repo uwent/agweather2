@@ -1,6 +1,6 @@
 # European corn borer (`european-corn-borer`): validation
 
-Model version 0.2, written 2026-11-21 (D98). The model: `packages/agmodels/src/agmodels/insects/european_corn_borer.py`, run by the insect engine (`agmodels.phenology`, D36, D37); its page: `european_corn_borer.md` beside it. Rebuilt in part H, batch H2 (`docs/models-plan.md`); the research notes this condenses are in the project's working notes (part H sources, "European corn borer").
+Model version 0.2, written 2026-11-21 (D98). The model: `packages/agmodels/src/agmodels/insects/european_corn_borer.py`, run by the insect engine (`agmodels.phenology`, D36, D37); its page: `european_corn_borer.md` beside it. Rebuilt in part H, batch H2 (`docs/plans/models.md`); the research notes this condenses are in the project's working notes (part H sources, "European corn borer").
 
 **In short:** rebuilt on Wisconsin's own degree-day lineage (UW–Madison's table, from Apple's work at Madison): the modified average, 50/86 °F, from January 1; a spring flight from 374 degree days (peak 631) and a summer flight 1,100 later (peak near 1,733), with egg masses and young larvae timed from them and a window to treat larvae before they bore in. On DATCP's black light traps, 2020–2026, the flights' midpoints fall within a day of the observed weeks in southern and central Wisconsin, where VDIFN's ran 4 and 14 days late. In the north (Wausau, Marshfield, Antigo) the traps show one flight in mid-July to mid-August, which the model's two flights don't: a rule for the univoltine north is proposed below, not built.
 

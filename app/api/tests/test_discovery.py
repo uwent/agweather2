@@ -1,4 +1,4 @@
-"""Discovery endpoints (PLAN.md Phase 5 B) on the fixture archive."""
+"""Discovery endpoints (Phase 5 B) on the fixture archive."""
 
 from datetime import timedelta
 

@@ -1,4 +1,4 @@
-"""Crop stages per planting tier on the grid (PLAN.md Phase 5 F3 step 2b, D66; corn and potato D70).
+"""Crop stages per planting tier on the grid (Phase 5 F3 step 2b, D66; corn and potato D70).
 
 Soybean and spring wheat are day-by-day state machines (soybean's photothermal development, spring wheat's GDD whose
 cap switches at Haun 2.0), so a map can't finish one day from a few stored ingredients the way `agdata.modelgrid`

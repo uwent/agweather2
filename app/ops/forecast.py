@@ -1,4 +1,4 @@
-"""Keeping the forecast current (PLAN.md Phase 4 F): the newest long NBM run built, published and recorded, and the
+"""Keeping the forecast current (Phase 4 F): the newest long NBM run built, published and recorded, and the
 published run restitched whenever the archive gains hours."""
 
 import logging

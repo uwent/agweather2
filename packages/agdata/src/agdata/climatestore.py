@@ -1,5 +1,5 @@
 """gridMET's years on the 2.5 km grid, on the archive's basis: the 30-year normal's years before the archive (D82,
-D84; PLAN.md Phase 6 D3).
+D84; Phase 6 D3).
 
 Derived from the files gridMET's adapter keeps (`agdata.sources.gridmet`): each variable regridded by the cubic
 B-spline with the coast rule, then adjusted to the archive by the overlap's fit (`fit`, D84), clamped to what the

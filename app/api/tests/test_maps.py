@@ -1,4 +1,4 @@
-"""Static map images (PLAN.md Phase 5 G3, D60) on the fixture archive (Fayette County, Iowa, July 2025)."""
+"""Static map images (Phase 5 G3, D60) on the fixture archive (Fayette County, Iowa, July 2025)."""
 
 import io
 import os

@@ -1,6 +1,6 @@
 # Corn earworm (`corn-earworm`): validation
 
-Model version 0.2, written 2026-11-21 (D98). The model: `packages/agmodels/src/agmodels/insects/corn_earworm.py`, run by the insect engine (`agmodels.phenology`, D36, D37); its page: `corn_earworm.md` beside it. Rebuilt in part H, batch H2 (`docs/models-plan.md`); the research notes this condenses are in the project's working notes (part H sources, "Corn earworm").
+Model version 0.2, written 2026-11-21 (D98). The model: `packages/agmodels/src/agmodels/insects/corn_earworm.py`, run by the insect engine (`agmodels.phenology`, D36, D37); its page: `corn_earworm.md` beside it. Rebuilt in part H, batch H2 (`docs/plans/models.md`); the research notes this condenses are in the project's working notes (part H sources, "Corn earworm").
 
 **In short:** rebuilt on Hartstack et al. 1976's development times as USPest.org runs them: single sine 55/92 °F from egg laying, larvae in the ears from 73 to 437 degree days after each egg. The eggs are spread as DATCP's pheromone traps show the main flight after its first week of 35 or more moths, and the default biofix moves from August 1 to August 15: in 2021–2026 that week came a median 15 days after August 1 and 1 day after August 15. Both are fitted to the same traps they're checked on. A migrant's arrival follows the weather to the south, so any fixed date is off by about 10 days in a typical year and by weeks in some (2025's large early-July flight); a grower's own date is better.
 

@@ -1,4 +1,4 @@
-"""Weather at points (docs/api.md, "Weather at points"; PLAN.md Phase 5 C): daily and hourly series, and totals
+"""Weather at points (docs/api.md, "Weather at points"; Phase 5 C): daily and hourly series, and totals
 over a window. Several points come back as one long table with a `point` column indexing `meta.locations`.
 
 Raw values show missing where they're missing (D45). Totals bridge gaps by each variable's method (`agdata.catalog`

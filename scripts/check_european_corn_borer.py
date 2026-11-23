@@ -1,4 +1,4 @@
-"""European corn borer's flights against DATCP's black light traps, 2020–2026, and its dates on the 1996–2025 normals (models-plan part H, batch H2).
+"""European corn borer's flights against DATCP's black light traps, 2020–2026, and its dates on the 1996–2025 normals (models plan part H, batch H2).
 
 For each black light site-year with a location (docs/validation/data/datcp-blacklight-traps/), the model runs on the
 archive's daily min and max at the site's cell from January 1. The site-year's weekly catches are split into a spring

@@ -1,6 +1,6 @@
 # Late blight disease severity values (`late-blight-dsv`): validation
 
-Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/late_blight.py`, reading the daily features `hours_rh_over_90_from_6pm` and `temperature_mean_rh_over_90_from_6pm` (`agmodels.features`); its page: `late_blight.md` beside it. The notes this condenses are PLAN.md Phase 3 D (step 1, "Late blight DSV"), D50, D74 and Phase 5's Veg Path check.
+Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/agmodels/models/late_blight.py`, reading the daily features `hours_rh_over_90_from_6pm` and `temperature_mean_rh_over_90_from_6pm` (`agmodels.features`); its page: `late_blight.md` beside it. The notes this condenses are Phase 3 D (step 1, "Late blight DSV"), D50, D74 and Phase 5's Veg Path check.
 
 **In short:** a port of the Crop Risk Tool's late blight model (Wallin's DSV table as BLITECAST uses it, with the tool's risk levels). From the tool's own inputs, v2 reproduces its daily DSVs, totals and risk exactly; v2's one intended change (humid hours and their temperature from the same day from 6 pm) moves 31 days of the tool's 2025 test year and not the date the 18-DSV threshold is reached. Against the old AgWeather API at UW Vegetable Pathology's 7 forecast locations, v2's season totals run higher, by design (gridded RH counted from 88 %, D50). The DSV table hasn't been checked in a test against Wallin's or Krause et al.'s own publications, and the model hasn't been compared with late blight outbreaks in Wisconsin.
 
@@ -19,7 +19,7 @@ Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 
 - **Table:** 0 below 7.2 °C and above 26.6 °C; 7.2–11.6 °C: 1 DSV from 16 humid hours, 2 from 19, 3 from 22; to 15.0 °C: 1 from 13 hours up to 4 from 22; to 26.6 °C: 1 from 10 up to 4 from 19. The old API's bands are half-open (7.2 to under 11.6 °C, and so on), the tool's and ours closed at the top: they differ only at exactly 11.6, 15.0 and 26.6 °C.
 - **The day:** humid hours and their mean temperature both from the day from 6 pm the evening before (readings 19:00–18:00 CST, D74), so an overnight wet period counts whole and each hour is paired with its own temperature, as Wallin pairs them. The tool counts humid hours over the calendar day and averages their temperature over the day from 8 pm; the old API used the calendar day for both.
-- **Humidity threshold:** gridded RH ≥ 88 % is counted as a station's 90 % (D50: against 80 Wisconet stations, May–September 2025–2026, the archive's RH ≥ 88 % gives as many hours as the stations' RH ≥ 90 % and their leaf-wet hours; `docs/validation/weather/humidity.md`). On the archive at Eau Claire, May 15–September 30, 2025, this raised the season's DSVs from 100 to 133 (PLAN.md, Phase 4's humidity note). Hours from station data sent to the API count at 90 %.
+- **Humidity threshold:** gridded RH ≥ 88 % is counted as a station's 90 % (D50: against 80 Wisconet stations, May–September 2025–2026, the archive's RH ≥ 88 % gives as many hours as the stations' RH ≥ 90 % and their leaf-wet hours; `docs/validation/weather/humidity.md`). On the archive at Eau Claire, May 15–September 30, 2025, this raised the season's DSVs from 100 to 133 (Phase 4's humidity note). Hours from station data sent to the API count at 90 %.
 - **Risk:** the tool's levels, from the biofix (crop emergence, from `potato-stages` when a planting date is given, else May 15, or the last fungicide spray): Very high with 21 or more DSVs in the last 14 days once the season total reaches 30; High with 14 or more once it reaches 18; Moderate at a season total of 18 (the usual first-spray threshold); Low with any DSV in the last 14 days. VDIFN's levels differ (High and Very high only after 30 season DSVs, Moderate from 3 recent DSVs) and drop to 0 after a freeze; v2 shows the model May 1 to September 30 and does not end the season at a freeze.
 - **Missing data:** a day without its inputs has no DSV (the old API scored it 0); totals sum the days that have one.
 
@@ -31,7 +31,7 @@ Model version 0.3, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 
 - **The table:** all 4,025 combinations of mean temperature (−2 to 30 °C by 0.2) and humid hours (0 to 24) give the tool's DSV exactly.
 - **A season from the tool's inputs:** with the tool's own pairing of hours and temperature, the daily DSVs, the season and 14-day totals and the risk level match the tool's on all 365 days of 2025.
-- **The pairing change, measured:** from the tool's hourly weather, with the threshold held at 90 % to isolate it, taking hours and temperature from the same day from 6 pm changes 31 daily values; May 15 to September 30 sums 55 DSVs against the tool's 47, and both reach the 18-DSV spray threshold on July 16 (the date from PLAN.md Phase 3 D; with the earlier day from 8 pm, 27 days differed and the sum was 53).
+- **The pairing change, measured:** from the tool's hourly weather, with the threshold held at 90 % to isolate it, taking hours and temperature from the same day from 6 pm changes 31 daily values; May 15 to September 30 sums 55 DSVs against the tool's 47, and both reach the 18-DSV spray threshold on July 16 (the date from Phase 3 D; with the earlier day from 8 pm, 27 days differed and the sum was 53).
 - Missing inputs give no DSV and no humid hours give 0; the risk starts at the biofix and skips missing days; grid-shaped inputs work.
 
 The tool is the model v2 replaces: this shows the port is faithful where intended, not that the tool is right (D54).
@@ -52,7 +52,7 @@ The tool is the model v2 replaces: this shows the port is faithful where intende
 
 - v2's season totals are 30 to 45 percent above the old API's (computed from the table); with the threshold back at 90 %, 5 to 20 percent above.
 - Over 1,071 point-days with both: the same daily DSV on 78 % of days (83 % at 90 %); the mean difference +0.16 DSV a day (+0.05 at 90 %).
-- The 88 % threshold accounts for about two thirds of the difference; the rest is the day from 6 pm (the old API: the calendar day) and the weather itself (v2's URMA against the old API's RTMA). PLAN.md's Phase 5 note gives 27–51 % and 3–19 % for the same comparison, from an earlier run; the table above is the current one.
+- The 88 % threshold accounts for about two thirds of the difference; the rest is the day from 6 pm (the old API: the calendar day) and the weather itself (v2's URMA against the old API's RTMA). Phase 5 note gives 27–51 % and 3–19 % for the same comparison, from an earlier run; the table above is the current one.
 
 The old API is a reference, not the truth (D54): this explains the difference Veg Path's readers will see, not which is more accurate.
 

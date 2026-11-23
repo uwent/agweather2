@@ -1,6 +1,6 @@
 # Other weather-driven pest and crop services
 
-What comparable services offer, where they fall short, and what v2 should match or do better (PLAN.md Phase 3).
+What comparable services offer, where they fall short, and what v2 should match or do better (Phase 3).
 Surveyed 2026-10-28 from their sites, documentation and extension articles. NEWA's and Enviroweather's model
 pages render in JavaScript, so their structure and documentation were reviewed rather than every results screen;
 fill gaps by using them in season.

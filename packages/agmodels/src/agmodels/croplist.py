@@ -1,4 +1,4 @@
-"""The crops: one vocabulary of ids for models, topic pages, degree-day presets and typical planting dates (PLAN.md
+"""The crops: one vocabulary of ids for models, topic pages, degree-day presets and typical planting dates (
 Phase 6 step 2, "A crop vocabulary"; D93).
 
 A crop is a plain noun (`soybean`, `sweet-corn`). A group is a crop with members (`cole-crops` holds cabbage,

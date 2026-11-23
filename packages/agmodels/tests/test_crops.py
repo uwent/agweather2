@@ -297,7 +297,7 @@ def test_spring_wheat_over_a_season():
 
 
 def newa_sine(lo, hi, base):
-    """NEWA's single sine as its site computes it (`sin` for `asin`, π as 3.14; models-plan B5), for comparison."""
+    """NEWA's single sine as its site computes it (`sin` for `asin`, π as 3.14; models plan B5), for comparison."""
     out = []
     for tmin, tmax in zip(lo, hi, strict=True):
         if tmin >= base:

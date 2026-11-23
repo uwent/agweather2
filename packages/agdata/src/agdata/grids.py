@@ -1,4 +1,4 @@
-"""Reducing a run of map steps, and degree days over the grid (`/grids/{layer}`; PLAN.md Phase 5 E).
+"""Reducing a run of map steps, and degree days over the grid (`/grids/{layer}`; Phase 5 E).
 
 The rules are the points' (`/weather/totals`, `/degree-days`), applied to every cell at once (D45, D56):
 

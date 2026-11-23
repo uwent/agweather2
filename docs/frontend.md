@@ -60,7 +60,7 @@ Priorities follow project-plan.md's launch table (P0 for April 1, 2027; P1 durin
 | Click a cell: its value, the cell's outline, and a panel with the recent days, the forecast and a chart, leading to the site page | VDIFN popup, alfalfa "Selected grid" | ✓ `/locate`, `/weather/daily`, `/models/{id}/run` |
 | Map title chip ("Tar spot risk, Nov 6, 2026"), legend with units, data credit, and the data's newest hour | Crop Risk Tool, D60 | ✓ `/layers`, `/status` |
 | Share and export: copy link; **Save image** (the map as shown, with its title, date, legend, labels the reader can drag, and the credit band, drawn on a canvas at 2× for newsletters; ported from late-blight-db); GeoTIFF or NetCDF of the view; TileJSON for GIS | late-blight-db, v1 map images | — for the image; ✓ `/grids`, `/tiles/{layer}.json` |
-| Overlays: radar, MRMS rain (24, 72 h), WPC forecast rain (1, 3, 7 days), U.S. Drought Monitor (port from WISP 3); counties; cropland (CDL) | WISP 3, Crop Risk Tool | — third-party; cropland ✗ (PLAN.md Phase 6 cropland fractions) |
+| Overlays: radar, MRMS rain (24, 72 h), WPC forecast rain (1, 3, 7 days), U.S. Drought Monitor (port from WISP 3); counties; cropland (CDL) | WISP 3, Crop Risk Tool | — third-party; cropland ✗ (Phase 6 cropland fractions) |
 | Climate layers: normal, departure from normal, percentile (U2U and MRCC departure maps) | alfalfa "Weather vs climate" | ○ climate layers |
 | Place search, my location, coordinates | all | — Nominatim (search on Enter) |
 
@@ -93,7 +93,7 @@ Priorities follow project-plan.md's launch table (P0 for April 1, 2027; P1 durin
 | Fitted curves on two clocks (D101): a fitted insect's chart shows this year's degree-day curve and the typical season by calendar date together (`clock=all`), with the gap between them said in words ("running 5 days ahead of a typical year"); its map takes either clock (`clock=`). The model page and map show the training area (`trained` on `/models`: counties or states, years, a description) as an outline, and say plainly when a place is outside it (the warning the API already gives) | Ben, 2026-11-21 | ✓ `clock` option, `trained`, warnings |
 | Explorer: sliders over a model's inputs and its response | — | ✓ `POST /models/{id}/evaluate` |
 | Topic pages: identification, life cycle, damage, management, photos (49 drafted in `content/topics`); citations rendered from footnote markers, `[^key]`, as numbered links to the front matter's keyed sources (`agmodels.pages.source_problems`; Ben, 2026-11-18) | v1 pest pages, VDIFN pest info | — content |
-| Methods page generated from the catalog, the corrections and the sources (PLAN.md Phase 6) | — | ✓ `/variables`; ✗ corrections and sources by date aren't served yet |
+| Methods page generated from the catalog, the corrections and the sources (Phase 6) | — | ✓ `/variables`; ✗ corrections and sources by date aren't served yet |
 
 ### Tools (P0 unless noted)
 
@@ -287,7 +287,7 @@ Visited 2026-11-06 with a headless browser (Playwright), late-blight-db added th
 **[Enviroweather](https://enviroweather.msu.edu/)** (Michigan State).
 
 - Station-first: a map and a dropdown of about 100 stations (retired Wisconsin ones included), a station page with current conditions (leaf wetness, wet hours today), the NWS 7-day forecast, links to hourly and daily reports, and Weather Models and Crop Models menus. Crops grouped as Fruits, Vegetables, Landscape & Nursery, Livestock, Field Crops; a mobile app. Its legacy tools are offline after a security shutdown, which leaves few models reachable today.
-- Take: crop-first grouping in the catalog. The PHP source dump in `tmp/enviroweather_src` is the model mine (PLAN.md, Enhancement: model review).
+- Take: crop-first grouping in the catalog. The PHP source dump in `tmp/enviroweather_src` is the model mine (Phase 9, "Enhancement: model review").
 - Avoid: a long station dropdown as the way in.
 
 **[NEWA](https://newa.cornell.edu/)** (Cornell): station-based IPM models for the Northeast.
@@ -351,7 +351,7 @@ Ideas from the review that aren't already in the feature tables, and what each n
 
 ## API and data work the frontend needs
 
-Rolled up as PLAN.md Phase 6 B (the work list, by priority, with sizes). All of it, P0 to P2 and the climatology, is built in Phase 6 before the pages (Phase 7), except the alfalfa planner, the crop GDD outlook, and the insect timing layers' pages, which moved to Phase 7 on November 12, 2026 to be built with their pages (the insect layers' data is Phase 6's events on model layers); model guidance moved there too, then came back to Phase 6 on November 17, 2026 as step 4's write-up for each model, with the new models: several sites per request (F4), the changelog and API-use form, methods data, model guidance, degree-day presets; the climatology and climate endpoints, the alfalfa planner (F5), the crop GDD outlook, count statistics, freeze layers, chill hours, water balance, insect timing layers, cropland fractions; county summaries, livestock heat stress, frost-odds and freeze-trend maps, soil moisture. Station networks (D59) stay after launch.
+Rolled up as Phase 6 B (the work list, by priority, with sizes). All of it, P0 to P2 and the climatology, is built in Phase 6 before the pages (Phase 7), except the alfalfa planner, the crop GDD outlook, and the insect timing layers' pages, which moved to Phase 7 on November 12, 2026 to be built with their pages (the insect layers' data is Phase 6's events on model layers); model guidance moved there too, then came back to Phase 6 on November 17, 2026 as step 4's write-up for each model, with the new models: several sites per request (F4), the changelog and API-use form, methods data, model guidance, degree-day presets; the climatology and climate endpoints, the alfalfa planner (F5), the crop GDD outlook, count statistics, freeze layers, chill hours, water balance, insect timing layers, cropland fractions; county summaries, livestock heat stress, frost-odds and freeze-trend maps, soil moisture. Station networks (D59) stay after launch.
 
 ## Open questions
 

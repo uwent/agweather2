@@ -1,6 +1,6 @@
 # Development
 
-How to set up a machine to work on AgWeather v2 and the day-to-day commands. Conventions are in [CLAUDE.md](CLAUDE.md); the design and phases in [PLAN.md](PLAN.md).
+How to set up a machine to work on AgWeather v2 and the day-to-day commands. Conventions are in [CLAUDE.md](CLAUDE.md); where things stand in [PLAN.md](the plans, `docs/plans/`), the design in [docs/architecture.md](docs/architecture.md) and the phases in [docs/plans/](docs/plans/).
 
 ## 1. Prerequisites
 
@@ -62,7 +62,7 @@ The browser tests fail on any console error (a CSP violation included) and run a
 
 ## 4. Containers
 
-The production image and stack are in `infra/` (PLAN.md §13). To try them on a laptop, with a Postgres container
+The production image and stack are in `infra/` (docs/architecture.md §13). To try them on a laptop, with a Postgres container
 in place of RDS:
 
 ```bash
@@ -157,11 +157,11 @@ uv run app/manage.py rollup --start 2025-01-01 --end 2025-01-30    # grid days, 
 
 `downloads --check` lists the yearly NetCDF downloads (`data/downloads/daily/<year>/`) that are missing or older than their daily store, and `downloads` builds them (`--variables` for some). A weekly job keeps them current, but a new server's first build is long, so run the command once.
 
-`latency` times the requests PLAN.md §3 sets targets for (a map's first tile and a kept one, a point's hourly season, every model at a point) on this archive, and says which are over (`--lat --lng --day` to choose the place and day).
+`latency` times the requests docs/architecture.md §3 sets targets for (a map's first tile and a kept one, a point's hourly season, every model at a point) on this archive, and says which are over (`--lat --lng --day` to choose the place and day).
 
 When a variable's stored scale changes in the catalog, stores written before refuse to open until they're repacked (`GridStore.rescale`). For precip, `refetch_precip --start --end --rescale` repacks and fetches the hours again at the new precision (precip files are small: about 2 minutes a month).
 
-Stored hours and days are raw: a missing hour or an incomplete day stays missing. Only the running totals estimate across gaps (up to 7 days), and they count the estimated and missing days (PLAN.md D25).
+Stored hours and days are raw: a missing hour or an incomplete day stays missing. Only the running totals estimate across gaps (up to 7 days), and they count the estimated and missing days (docs/decisions.md D25).
 
 ### Keeping current
 

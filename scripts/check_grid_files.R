@@ -1,4 +1,4 @@
-# Checks v2 grid files the way an R user opens them (PLAN.md Phase 5 E, D65): each file loads in terra, has a CRS,
+# Checks v2 grid files the way an R user opens them (Phase 5 E, D65): each file loads in terra, has a CRS,
 # and reprojects onto a lat/lon template over Wisconsin. Found 2026-11-04: 2-D lat/lon arrays in a NetCDF made GDAL
 # use them as geolocation arrays, and terra's projection collapsed to a point; api/gridfiles.py leaves them out.
 #

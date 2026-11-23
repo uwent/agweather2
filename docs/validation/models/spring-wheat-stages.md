@@ -1,6 +1,6 @@
 # Spring wheat growth stages (`spring-wheat-stages`): validation
 
-Model version 0.2, written 2026-11-18 (D98); 0.2 (2026-11-19) stopped capping the daily minimum, which NDAWN doesn't cap. The model: `packages/agmodels/src/agmodels/models/spring_wheat_stages.py`, run through `agmodels.crops` (D32–D34); its page: `spring_wheat_stages.md` beside it. Built in Phase 3 (PLAN.md, Phase 3's wheat growth stages, step 7).
+Model version 0.2, written 2026-11-18 (D98); 0.2 (2026-11-19) stopped capping the daily minimum, which NDAWN doesn't cap. The model: `packages/agmodels/src/agmodels/models/spring_wheat_stages.py`, run through `agmodels.crops` (D32–D34); its page: `spring_wheat_stages.md` beside it. Built in Phase 3 (Phase 3's wheat growth stages, step 7).
 
 **In short:** Bauer et al.'s (1984) Haun stages by growing degree days, as North Dakota's NDAWN runs them: the degree-day rule and NDAWN's stage table are reproduced exactly. Nothing else has been checked: there is no published error for the dates, no comparison with observed stages, and no legacy tool.
 
@@ -15,7 +15,7 @@ Model version 0.2, written 2026-11-18 (D98); 0.2 (2026-11-19) stopped capping th
 
 - **Stages:** NDAWN's table only: emergence at 180 GDD, a leaf every 143 GDD from leaf 2 (395, 538, …), flag leaf, boot, heading from 1567 (Haun 10.2), flowering from 1739 to 1768 (Haun 11.4 to 11.6), watery ripe at 1825 (Haun 12.0). The table stops there, so grain fill and maturity aren't modelled.
 - **The cap's switch:** the 70 °F cap applies on each day that starts with fewer than 395 GDD; the day that crosses Haun 2.0 is still counted with it.
-- **Gating margin:** 3 days, borrowed from corn, because no error is published for these dates. Wheat scab isn't gated on these stages yet (PLAN.md's model review).
+- **Gating margin:** 3 days, borrowed from corn, because no error is published for these dates. Wheat scab isn't gated on these stages yet (Phase 9's model review).
 - **Winter wheat** isn't covered (D7; it waits for sources).
 
 ## Checks
@@ -34,7 +34,7 @@ These show the code holds NDAWN's rule and numbers; they don't test the dates ag
 ## Limits and open questions
 
 - No published error for the stage dates and no comparison with observations.
-- Grain fill and maturity need another source (PLAN.md's model review).
+- Grain fill and maturity need another source (Phase 9's model review).
 - The table was developed in North Dakota; how well it fits spring wheat varieties grown in Wisconsin and Minnesota isn't known.
 - **Cheapest independent comparison:** USDA NASS's weekly Crop Progress for spring wheat in Minnesota and North Dakota (percent emerged, jointed, headed, coloring), run from the same weeks' planting progress; or NDAWN's own wheat stage predictions for a North Dakota station, run on that station's weather (a check of the port, not of the dates).
 

@@ -1,4 +1,4 @@
-"""Normal maps: each period's day-of-year statistics stored as maps (D85; PLAN.md Phase 6 D4).
+"""Normal maps: each period's day-of-year statistics stored as maps (D85; Phase 6 D4).
 
 A store per period, `data_dir/climate/normals/<period>.zarr`, an array per statistic, `<name>/<stat>`:
 

@@ -1,4 +1,4 @@
-"""Codling moth, from WSU's model (PETE) with first catch by latitude (docs/models-plan.md B4; D36, D37)."""
+"""Codling moth, from WSU's model (PETE) with first catch by latitude (`docs/plans/models.md` B4; D36, D37)."""
 
 import numpy as np
 

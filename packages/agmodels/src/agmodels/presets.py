@@ -1,5 +1,5 @@
 """Degree-day presets: the usual degree-day setting (method, base, upper threshold) for each crop and insect, when the
-count starts, and for a crop the temperature that kills it in fall, each with its source (PLAN.md Phase 6 step 2).
+count starts, and for a crop the temperature that kills it in fall, each with its source (Phase 6 step 2).
 
 They serve the degree-day calculator and the crop GDD outlook (`/degree-days/presets`). Crops' are written here:
 where we run a crop's stage model, its preset is that model's setting, so a calculator total matches the stage page
