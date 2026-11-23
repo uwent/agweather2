@@ -4,7 +4,8 @@ status: draft
 updated: 2026-11-23
 summary: Times European corn borer moth flights, egg laying and young caterpillars from degree days since January 1, and marks when to scout and treat young caterpillars before they bore into the plant, with two generations in southern and central Wisconsin and one in the north.
 sources:
-  - UW–Madison Extension's degree-day table for European corn borer (Delahaut 2012; the method and both flights)
+  - Delahaut, Degree Days for Common Fruit and Vegetable Insect Pests (University of Wisconsin Garden Facts XHT1087), University of Wisconsin–Extension, 2005, revised 2012 (both flights, egg laying and hatch)
+  - Delahaut, Calculating Degree Days (XHT1086), UW–Madison Division of Extension (the degree-day method)
   - Apple 1952 (corn borer development on canning corn by temperature accumulation, the first degree-day timing for corn borer in Wisconsin; compared)
   - Flandermeyer and Bick, UW–Madison Extension, 2025 (spray timing by degree days)
   - University of Minnesota Extension, European Corn Borer in Minnesota Field Corn (first moths at 374 degree days; the one-generation strain), and VegEdge's corn borer degree-day page (the method's origin)
@@ -24,7 +25,7 @@ European corn borer caterpillars bore into the stalks, ear shanks and ears of co
 
 ## How it works
 
-Degree days are counted from January 1 by the modified average method, base 50 °F with a cutoff at 86 °F: a day's low is raised to 50 °F and its high capped at 86 °F before they are averaged. This is the method of UW–Madison Extension's degree-day table, which the University of Minnesota's VegEdge describes as similar to the original model developed by J. W. Apple at UW–Madison.
+Degree days are counted from January 1 by the modified average method, base 50 °F with a cutoff at 86 °F: a day's low is raised to 50 °F and its high capped at 86 °F before they are averaged. This is UW–Madison Extension's method for counting degree days. Its degree-day table for vegetable and fruit insects, the source of the model's moth flights, gives only the base of 50 °F, so the model reads the table's numbers on this method. The University of Minnesota's VegEdge counts the same way and describes its corn borer model as similar to the original model developed by J. W. Apple at UW–Madison.
 
 - **Spring flight.** Moths from caterpillars that spent the winter in old stalks begin to fly at about 374 degree days. The flight peaks at 631 and is mostly over by 1,000.
 - **Eggs and young caterpillars.** Moths begin laying eggs about 76 degree days after they emerge, and the eggs hatch about 100 degree days later. Young caterpillars feed in the whorl or on leaves for about 300 degree days, until about their fourth stage (Iowa State's NCR 327). By then they have begun tunneling into leaf midribs, and soon after into stalks, shanks or ears (UW–Madison).
@@ -45,7 +46,7 @@ The [European corn borer topic page](/topics/european-corn-borer) explains the i
 
 ## Validation and caveats
 
-- Draft (model version 0.3, beta). The numbers come from UW–Madison's table, developed in Wisconsin.
+- Draft (model version 0.3, beta). The numbers come from UW–Madison Extension's degree-day table, which doesn't say what data or years they rest on.
 - In southern and central Wisconsin, the middle of each flight falls a median of 0 to 1 day from the week DATCP's black light traps caught half of that flight's moths, 2020–2026, though in single years it can be a week or more off. VDIFN's model, which this one replaces, ran a median 4 days late in spring and 14 in summer at the same traps. Black light traps catch few corn borers, so each site's record rests on a handful of moths.
 - **Northern Wisconsin.** In the northern counties most corn borers have only one generation a year. Wausau's trap caught no June moths in six years, only one flight from mid-July to mid-August. Where the model shows one flight, the middle of that flight fell a median of 0 days from the week Wausau's and other northern traps caught half their moths, though those traps caught few moths. The line between one flight and two (1,500 degree days by August 1 on the 30-year average) rests on a few northern traps; near it, fields may see either, so watch trap counts from early June. The 30-year average is updated each year, so a place near the line can change between years. In North Dakota, where most corn borers have one generation, a partial second flight came in a warm year (Hoard and Weiss, 1995), and a warm year in northern Wisconsin may bring one too.
 - J. W. Apple's original degree days for corn borer, from canning corn in Illinois and Wisconsin in 1946–1951, put each stage later than UW–Madison's table: counted the table's way on recent weather, his first spring moths come at about 585 degree days, near the table's spring peak, and his first summer moths at about 1,870. Wisconsin's black light traps in 2020–2026 fit the table's timing, so the model uses it.

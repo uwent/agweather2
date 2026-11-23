@@ -7,7 +7,9 @@ first day reaching each event of NEWA's tables) against ours on the station's da
 archive at the station's cell (what the map shows). Ours: the first day each curve reaches a share of a generation
 (`generations_adult_flight` ≥ n − 1 + share). For cabbage maggot, also the days the station's single sine above
 43 °F reaches 290 and 365 (Eckenrode and Chapman 1972's Wisconsin spring emergence) and the DD43 between our spring
-and first summer peaks (their generation: 1,176), with the days by which their generation would put the summer peak later.
+and first summer peaks (their generation: 1,176), with the days by which their generation would put the summer peak later;
+the DD40 their 1,176 DD43 spans from our spring peak, and again from there (what their generation is at our base); and
+how many station-seasons reach a fourth flight's first flies (5 %) by October 15, where the model stops at three.
 
     uv run python scripts/check_maggots.py   # writes docs/validation/models/<id>/newa.md for each
 """
@@ -15,6 +17,7 @@ and first summer peaks (their generation: 1,176), with the days by which their g
 import argparse
 import json
 import sys
+from dataclasses import replace
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -39,7 +42,7 @@ from agdata.store import DAILY, GridStore
 from agmodels import runner
 from agmodels.degree_days import degree_days_sine
 from agmodels.insects import cabbage_maggot, onion_maggot, seedcorn_maggot
-from agmodels.phenology import Insect, PhenologyModel
+from agmodels.phenology import DD_STEP, Insect, PhenologyModel, dd_grid, generation_densities
 
 # NEWA's events and the share of our generation each is compared with (generation, share of it)
 CABBAGE = {"first emergence": (1, 0.059), "25%": (1, 0.25), "spring peak": (1, 0.5), "75%": (1, 0.75), "95%": (1, 0.95), "first generation peak": (2, 0.5), "second generation peak": (3, 0.5), "third generation peak": (4, 0.5)}  # fmt: skip
@@ -123,7 +126,9 @@ def part(
     ]
     station_diffs: dict[str, list[int]] = {n: [] for n in names}
     grid_diffs: dict[str, list[int]] = {n: [] for n in names}
-    e_and_c: dict[str, list[float]] = {"first 290 DD43 − ours 5.9 %": [], "first 365 DD43 − ours 5.9 %": [], "DD43 between our spring and first summer peaks": [], "days from our first summer peak to 1,176 DD43 after our spring peak": []}  # fmt: skip
+    e_and_c: dict[str, list[float]] = {"first 290 DD43 − ours 5.9 %": [], "first 365 DD43 − ours 5.9 %": [], "DD43 between our spring and first summer peaks": [], "days from our first summer peak to 1,176 DD43 after our spring peak": [], "DD40 from our spring peak to 1,176 DD43 after it": [], "DD40 over the next 1,176 DD43": []}  # fmt: skip
+    fourth_first = fourth_flight_start(insect) if insect.id == "cabbage-maggot" else None
+    reached: list[bool] = []
     for station, year, days in station_seasons():
         lo, hi = celsius(days)
         newa = maggot(days, table, base=base, celsius=celsius_dd)["events"]
@@ -165,6 +170,16 @@ def part(
                 k = first(dd43 >= dd43[a] + 1176)
                 if k is not None:
                     e_and_c["days from our first summer peak to 1,176 DD43 after our spring peak"].append(k - b)
+            dd40 = np.cumsum(np.where(good, (np.where(good, lo + hi, 0) / 2 * 1.8 + 32 - 40).clip(min=0), 0))
+            if a is not None:
+                k = first(dd43 >= dd43[a] + 1176)
+                if k is not None:
+                    e_and_c["DD40 from our spring peak to 1,176 DD43 after it"].append(float(dd40[k] - dd40[a]))
+                    k2 = first(dd43 >= dd43[k] + 1176)
+                    if k2 is not None:
+                        e_and_c["DD40 over the next 1,176 DD43"].append(float(dd40[k2] - dd40[k]))
+            october_15 = (date(year, 10, 15) - date(year, 1, 1)).days
+            reached.append(bool(dd40[min(october_15, len(dd40) - 1)] >= fourth_first))
     summarize(lines, station_diffs, "Ours on the station's days against NEWA")
     summarize(lines, grid_diffs, "Ours on the archive at the station's cell against NEWA on the station")
     if insect.id == "cabbage-maggot":
@@ -174,6 +189,16 @@ def part(
             lines.append(
                 f"- {key}: median {np.median(v):+.0f}, 10th–90th percentile {np.percentile(v, 10):+.0f} to {np.percentile(v, 90):+.0f}, n = {len(v)}"
             )
+        lines.append(
+            f"- station-seasons whose DD40 reaches a fourth flight's first flies ({fourth_first:.0f}, 5 %; the model stops at three) by October 15: {sum(reached)} of {len(reached)}"
+        )
+
+
+def fourth_flight_start(insect: Insect) -> float:
+    """The degree days at which a fourth flight's first flies (5 %) would come without the three-flight cap."""
+    uncapped = replace(insect, max_generations=4)
+    densities = generation_densities(insect=uncapped, stage=uncapped.life_stages[0])
+    return float(np.interp(0.05, np.cumsum(densities[3]) * DD_STEP, dd_grid()))
 
 
 def main():

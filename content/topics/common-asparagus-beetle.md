@@ -18,7 +18,7 @@ sources:
     text: 'Lowenstein, D., R. Groves and P. J. Liesch. Asparagus Beetle (XHT1137). UW–Madison Division of Extension, Wisconsin Horticulture, revised 2026.'
     url: https://hort.extension.wisc.edu/articles/asparagus-beetle/
   - key: uw-degree-days
-    text: 'Delahaut, K. Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087). UW–Madison Division of Extension, Wisconsin Horticulture, revised 2012.'
+    text: 'Delahaut, K. Degree Days for Common Fruit and Vegetable Insect Pests (University of Wisconsin Garden Facts XHT1087). University of Wisconsin–Extension, 2005; revised 2012, UW–Madison Division of Extension, Wisconsin Horticulture.'
     url: https://hort.extension.wisc.edu/articles/degree-days-common-fruit-vegetable-insect-pests/
   - key: a3422-2026
     text: 'Bradford, B. Z., J. B. Colquhoun, S. A. Chapman, A. J. Gevens, R. L. Groves, D. J. Heider, G. R. W. Nice, M. D. Ruark, Y. Wang and R. Dewerff. Commercial Vegetable Production in Wisconsin—2026 (A3422). UW–Madison Division of Extension, 2026.'

@@ -30,7 +30,7 @@ sources:
     text: 'Midwest Vegetable Production Guide 2026: Cole Crops and Brassica Leafy Greens. Land-grant universities of Illinois, Indiana, Iowa, Kansas, Michigan, Minnesota, Missouri and Ohio, 2026.'
     url: https://mwveguide.org/guide
   - key: uw-degree-days
-    text: 'Delahaut, K. Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087). UW–Madison Division of Extension, Wisconsin Horticulture, revised 2012.'
+    text: 'Delahaut, K. Degree Days for Common Fruit and Vegetable Insect Pests (University of Wisconsin Garden Facts XHT1087, revised April 20, 2005). University of Wisconsin–Extension, Cooperative Extension; revised 2012, UW–Madison Division of Extension, Wisconsin Horticulture.'
     url: https://hort.extension.wisc.edu/articles/degree-days-common-fruit-vegetable-insect-pests/
   - key: agweather-imported-cabbageworm
     text: 'AgWeather. Imported cabbageworm model: validation report. UW–Madison, 2026.'

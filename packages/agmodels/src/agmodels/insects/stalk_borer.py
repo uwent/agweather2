@@ -71,6 +71,10 @@ INSECT = Insect(
             doi="10.1093/aesa/76.5.892",
         ),
         Citation(
+            text="Allen, J. C. (1976). A modified sine wave method for calculating degree days. Environmental Entomology 5, 388–396.",
+            doi="10.1093/ee/5.3.388",
+        ),
+        Citation(
             text="Dean, A. and Hodgson, E. Stalk borer. Iowa State University Extension and Outreach.",
             url="https://crops.extension.iastate.edu/encyclopedia/stalk-borer",
         ),

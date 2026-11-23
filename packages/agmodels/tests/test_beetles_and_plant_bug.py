@@ -77,9 +77,11 @@ def test_asparagus_beetle_adults_and_larvae_both_count():
     assert larvae.lag == common_asparagus_beetle.EGG == 100  # about a week at late May's rate
 
 
-def test_asparagus_beetle_has_three_generations_from_uws_days():
-    """Egg (100), larvae (300), pupa (about 120) and a few days before laying (about 80); Taylor 1979: three generations
-    in eastern Ontario."""
+def test_asparagus_beetle_has_three_generations_from_taylor_and_harcourt():
+    """Taylor and Harcourt 1978: egg (100), larvae (300) and pupa (166, their 92 °C·d), and about 30 from new adults to
+    the next eggs (their field peaks a day or two apart, Table III); Taylor 1979: three generations in eastern
+    Ontario."""
+    assert abs(common_asparagus_beetle.EGG + common_asparagus_beetle.LARVAE + 92 * 1.8 + 30 - CAB.generation_dd) <= 5
     assert CAB.generation_dd == 600 and CAB.max_generations == 3
     gens = shares(CAB)
     assert len(gens) == 3
@@ -112,14 +114,33 @@ def test_corn_rootworm_hatch_against_apple_et_al():
     assert abs(dd_at(shares(CRW)[0], 0.5) - 533) <= 3
 
 
-def test_corn_rootworm_risk_is_the_larvae_and_beetles_follow_xht1087():
-    """Larvae feed for about three weeks (350); half the beetles are out at about 1,075, the day the normals reach
-    XHT1087's 1,300 DD50 (1,054 to 1,094 above 52 °F at the three places)."""
+def test_corn_rootworm_larvae_and_pupa_follow_new_york_fields_and_the_laboratory():
+    """Larvae feed for about 550 after hatch (Davis et al. 1996: 532 from half the first instars, 616, to half the
+    pupae, 1,148); the pupa takes about 200 (Jackson and Elliott 1988: 167–195), so half the beetles are out at about
+    1,283, near New York's 1,328 (northern) and 1,381 (western)."""
     assert risk_stages(CRW) == {"Larvae feeding on roots"}
     larvae, beetles = stage(CRW, "Larvae feeding on roots"), stage(CRW, "Beetles")
-    assert (larvae.lag, larvae.duration) == (0, corn_rootworm.LARVAE)
-    assert 1054 <= 533 + beetles.lag <= 1094
-    assert beetles.lag - larvae.duration == pytest.approx(192)  # the pupa, about 11 days in July
+    assert (larvae.lag, larvae.duration) == (0, corn_rootworm.LARVAE) == (0, 550)
+    assert abs(larvae.duration - (1148 - 616)) <= 20
+    assert beetles.lag - larvae.duration == 200
+    assert 1250 <= 533 + beetles.lag <= 1328
+
+
+def test_corn_rootworm_first_beetles_are_xht1087s_adults():
+    """XHT1087: adult beetles present at 1,300 DD50, which the normals reach on the days they reach 1,054 to 1,094
+    above 52 °F; the model's beetles are then just starting (under 3 % out), and 10 % are out by about 1,140."""
+    beetles = stage(CRW, "Beetles")
+    hatch = shares(CRW)[0]
+    assert float(np.interp(1094 - beetles.lag, X, hatch)) < 0.03
+    assert abs(dd_at(hatch, 0.1) + beetles.lag - 1138) <= 3
+
+
+def test_corn_rootworm_hatch_spans_western_corn_rootworm_medians():
+    """Western corn rootworm eggs half hatched at 509 (South Dakota) to 650 (Illinois) degree days above 51.8 °F under
+    changing temperatures (Levine, Oloumi-Sadeghi and Ellis 1992, p. 2430): the model has 43 to 78 % hatched."""
+    hatch = shares(CRW)[0]
+    assert 0.40 <= float(np.interp(509, X, hatch)) <= 0.45
+    assert 0.75 <= float(np.interp(650, X, hatch)) <= 0.80
 
 
 def test_corn_rootworm_has_one_generation():
@@ -130,7 +151,7 @@ def test_corn_rootworm_has_one_generation():
 
 def test_corn_rootworm_root_digging_window_follows_the_larvae():
     (window,) = window_edges(CRW, "window_dig_and_rate_roots_for_larval_injury")
-    assert abs(window[0] - 885) <= 3 and abs(window[1] - 1123) <= 3
+    assert abs(window[0] - 1085) <= 3 and abs(window[1] - 1323) <= 3
 
 
 # --- Tarnished plant bug -------------------------------------------------------------------------------------------

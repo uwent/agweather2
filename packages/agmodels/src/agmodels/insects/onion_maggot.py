@@ -34,18 +34,22 @@ INSECT = Insect(
     # Three flights in New York (NEWA; Eckenrode et al. 1975) and Ontario (Liu et al. 1982); 27–91 % of the second
     # brood's pupae enter diapause (LaFrance and Perron 1959, in Eckenrode et al. 1975)
     max_generations=3,
-    # The spring generation does most of the damage to seedlings (NEWA; Eckenrode et al. 1975), so it weighs 1 and the
-    # summer flights 0.5: the sources say which generation matters, not by how much, so 0.5 is a judgment (Ben,
-    # 2026-11-23). The papers' figures: the second generation did a tenth or less of the first's damage in Ontario (Liu
-    # et al. 1982) and was the smallest brood in New York; the third damaged bulbs near harvest (Eckenrode et al. 1975)
-    # and in storage (Liu et al.)
-    generation_weights=(1.0, 0.5),
+    # Each generation by its damage (version 0.4; Ben, 2026-11-23), a judgment the papers bound but don't fix. The spring
+    # generation does most of the damage to seedlings (NEWA; Eckenrode et al. 1975: 47 % of 1,127 seedlings lost by July
+    # 23 at Elba, 1971), so it weighs 1. The second is the smallest brood in every New York catch (Eckenrode et al., p.
+    # 787; Fig. 2's second-brood peaks about 0.03 to 0.4 of spring's), with no midsummer injury at Elba in 1971 and no
+    # grower complaints in July and August; in Ontario's untreated bed it invaded 1–2 % of onions against the first's
+    # 22–25 % (Liu et al. 1982, Fig. 4), 0.04 to 0.09 of it. So 0.1: the damage ratio's top, the catches' lower half.
+    # The third damages bulbs near harvest (up to about 15 of 200 at Elba, Eckenrode et al. Fig. 1) and in storage, "the
+    # most destructive economically" in Ontario (Liu et al., p. 754), where it's usually escaped by harvesting first
+    # (Liu et al. harvested before its peak): 0.5, kept from version 0.3
+    generation_weights=(1.0, 0.1, 0.5),
     action_windows=(
         # NEWA: treated seed or an in-furrow treatment at planting, or row covers before flies emerge, kept three
         # weeks past the spring peak. From first emergence (5 %) to 95 % of each flight
         ActionWindow(label="Protect onion seedlings during fly flight", stage="Adult flight", between=(0.05, 0.95)),
     ),
-    version="0.3",
+    version="0.4",
     status="beta",
     # NEWA's table cites Andaloro, Rose and Eckenrode 1984 (Search: Agriculture, Cornell; not in hand, title and years unknown), built on the trapping
     # Eckenrode et al. 1975 began in 1971 in New York's muck onion fields: the last year is an estimate
@@ -64,6 +68,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-23",
             note="The summer flights weigh half as much as the spring flight in the risk, since the spring generation does most of the damage to seedlings.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-23",
+            note="The second flight weighs a tenth of the spring flight in the risk and the third half: the second generation was the smallest in New York's traps and did a tenth or less of the first's damage in Ontario (Eckenrode, Vea and Stone 1975, p. 787; Liu, McEwen and Ritcey 1982, Fig. 4), while the third damages bulbs near harvest and in storage.",
         ),
     ),
     checks=(

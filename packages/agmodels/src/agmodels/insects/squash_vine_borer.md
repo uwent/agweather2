@@ -5,7 +5,8 @@ updated: 2026-11-23
 summary: Follows squash vine borer moth flight and egg laying, and the larvae boring in the vines, from degree days since January 1 (modified average, 50/86 °F), and marks when to protect stems during egg laying, from about 825 to 1,240 degree days.
 sources:
   - Liesch and Groves, Squash Vine Borer (XHT1136), UW–Madison Division of Extension, 2026 (first moths at 900 degree days, three weeks of egg laying around 1,000)
-  - Delahaut, Degree Days for Common Fruit and Vegetable Insect Pests (XHT1087), UW–Madison Division of Extension, 2012 (the degree-day method; egg laying 900–1,000)
+  - Delahaut, Degree Days for Common Fruit and Vegetable Insect Pests (University of Wisconsin Garden Facts XHT1087), University of Wisconsin–Extension, 2005, revised 2012 (egg laying at 900–1,000 degree days, base 50 °F)
+  - Delahaut, Calculating Degree Days (XHT1086), UW–Madison Division of Extension (the degree-day method)
   - SDSU Extension, squash vine borer activity estimates (Varenhorst and others, 2023) (egg hatch and larval feeding in degree days)
   - Ruger and Leach, Squash Vine Borer (ENT-0106), Ohio State University Extension, 2026 (emergence at 1,000 degree days; compared)
   - MSU Enviroweather's squash vine borer model (the end of the flight)
@@ -26,9 +27,9 @@ Risk is the larvae's, since they do the damage; the moths don't feed. A risk of 
 
 ## How it works
 
-No research study of squash vine borer timing is known to us, so the model combines the extension guides. Degree days are counted from January 1 by the modified average (UW–Madison's method): the day's high, capped at 86 °F, and low, raised to 50 °F, are averaged, less 50 °F.
+No research study of squash vine borer timing is known to us, so the model combines the extension guides. Degree days are counted from January 1 by the modified average, UW–Madison Extension's method: the day's high, capped at 86 °F, and low, raised to 50 °F, are averaged, less 50 °F.
 
-- **Moth flight and egg laying.** UW–Madison's fact sheet expects the first moths at about 900 degree days and three weeks of egg laying around 1,000. South Dakota State and Ohio State put emergence at about 1,000, and Michigan State's model has the flight declining from 1,800 and over by 2,000. The model's first moths come at about 825 degree days, half have flown by about 1,085, three quarters by about 1,240, and the last by 1,900. Females lay eggs as they fly, so the one curve stands for both.
+- **Moth flight and egg laying.** UW–Madison's fact sheet expects the first moths at about 900 degree days and three weeks of egg laying around 1,000, and its degree-day table puts egg laying at 900 to 1,000. South Dakota State and Ohio State put emergence at about 1,000, and Michigan State's model has the flight declining from 1,800 and over by 2,000. The model's first moths come at about 825 degree days, half have flown by about 1,085, three quarters by about 1,240, and the last by 1,900. Females lay eggs as they fly, so the one curve stands for both.
 - **Larvae.** Eggs hatch about 270 degree days after they're laid, and the larvae feed inside the vines for about 660 degree days, South Dakota State's numbers.
 - **The window** runs from the first moths to three quarters of the flight, about 825 to 1,240 degree days: UW–Madison's three weeks of egg laying.
 

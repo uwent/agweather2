@@ -4,7 +4,7 @@ degree days; part H, D36, D37), checked against DATCP's black light traps."""
 from agmodels.phenology import ActionWindow, DerivedStage, Insect, LifeStage, PlaceForm
 from agmodels.spec import Change, Check, Citation, PlaceNormal, TrainingArea
 
-# First eggs 76 after the first moths (UW: 374 and 450); hatch about 100 later (Matteson and Decker 1965, Table 1:
+# First eggs 76 after the first moths (UW's table, XHT1087: 375 and 450; UMN's first moths 374); hatch about 100 later (Matteson and Decker 1965, Table 1:
 # eggs take 100–122 DD50 at constant 70–80 °F)
 EGG_LAG, EGG = 76, 100
 # Young larvae from hatch until they bore in (NCR 327's third instar, 250 after hatch, and the 4th at 300; Matteson and
@@ -31,9 +31,10 @@ INSECT = Insect(
     id="european-corn-borer",
     name="European corn borer",
     crops=("beans", "corn", "sweet-corn", "eggplant", "pepper", "potato"),
-    # UW–Madison's method (XHT1086/XHT1087, Delahaut 2012): the modified average, the minimum raised to 50 °F and the
-    # maximum capped at 86 °F, from January 1; UMN's VegEdge counts the same way, "similar to the original model from
-    # Dr. J. W. Apple, UW–Madison". Apple 1952 itself (read 2026-11-23) counted a simple average above 50 °F with no
+    # UW–Madison Extension's method (XHT1086): the modified average, the minimum raised to 50 °F and the maximum capped
+    # at 86 °F, from January 1. The table (XHT1087, Delahaut, rev. 2005; read in full 2026-11-23) gives only "base
+    # temperature = 50°F", no upper, averaging or start, so its numbers are read on XHT1086's method; UMN's VegEdge
+    # counts the same way, "similar to the original model from Dr. J. W. Apple, UW–Madison". Apple 1952 itself (read 2026-11-23) counted a simple average above 50 °F with no
     # upper from the first day averaging above 50, and his stages run later than the table's: on the archive at
     # Arlington (2016–2025) his first moths (423) fall at a median 585 on this method, and his first summer moths
     # (1,716) at 1,870, against the table's 374 and 1,400; DATCP's traps fit the table (the report). NEWA runs no corn
@@ -46,9 +47,9 @@ INSECT = Insect(
     source="UW–Madison's degree-day table for European corn borer",
     ported_from="VDIFN",
     life_stages=(
-        # UW–Madison's table (Delahaut 2012; also UMass, Hazzard 2017): first spring moths 375 (UMN 374), peak 631;
-        # the flight ends near 1,000 (the research's estimate: UMN scouts first-generation larvae to 1,000 and the
-        # summer moths begin at 1,400). This curve's 1, 50 and 99 % are 420, 645 and 911. Moths don't feed on the crop
+        # UW–Madison's table (XHT1087, Delahaut, rev. 2005 and 2012; also UMass, Hazzard 2017): first spring moths 375
+        # (UMN 374), first eggs 450, peak 631; the flight ends near 1,000 (the research's estimate: UMN scouts
+        # first-generation larvae to 1,000 and the summer moths begin at 1,400). This curve's 1, 50 and 99 % are 420, 645 and 911. Moths don't feed on the crop
         LifeStage(label="Adult flight", start=374, peak=631, end=1000, weight=0),
         # First eggs 450 (76 after the first moths) and hatch about 100 later (UW: summer eggs 1,450, hatch 1,550;
         # UMass: hatch ~100 after laying). Egg masses are what scouts count; they carry no risk of their own
@@ -126,7 +127,7 @@ INSECT = Insect(
     ),
     citations=(
         Citation(
-            text="Delahaut, K. Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087). UW–Madison Division of Extension, revised 2012.",
+            text="Delahaut, K. (2005). Degree Days for Common Fruit and Vegetable Insect Pests (University of Wisconsin Garden Facts XHT1087, revised April 20, 2005). University of Wisconsin–Extension, Cooperative Extension; revised 2012, UW–Madison Division of Extension, Wisconsin Horticulture.",
             url="https://hort.extension.wisc.edu/articles/degree-days-common-fruit-vegetable-insect-pests/",
         ),
         Citation(

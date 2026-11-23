@@ -28,15 +28,16 @@ INSECT = Insect(
     # at 14.6 °C), about ±2 SD, so an SD near 8% of a generation; the first flight's own spread (~120) is wider
     # because over-wintered emergence is drawn out (Throne and Eckenrode 1985), not because development varies
     generation_sd=60,
-    # The over-wintered flight and the spring generation's larvae do the damage, to germinating seed in spring
-    # plantings; in Iowa the F2 mostly aestivated and few flies were caught after mid-June (Funderburk et al. 1984). So
-    # the first generation weighs 1 and the later ones 0.25: the sources say which generation matters, not by how much,
-    # so 0.25 is a judgment (Ben, 2026-11-23). Read in full, Iowa's F1 flight (early June, this engine's second
-    # generation) was as large as the over-wintered one or larger (Funderburk et al., Fig. 2), and New York's mid-June
-    # peak its largest (Throne and Eckenrode 1985): docs/validation/models/seedcorn-maggot.md
-    generation_weights=(1.0, 0.25),
+    # The over-wintered flight and the first generation (the engine's second, half emerged at 1,065: early June in
+    # southern Wisconsin) weigh 1, later generations 0.25 (version 0.4; Ben, 2026-11-23). Iowa's F1 flight, 30 to 45 days
+    # after the over-wintered one, was about as large in 1980 (both over 1,000 flies a trap a day) and far larger in 1981
+    # (Funderburk et al. 1984, Fig. 2), and New York's large mid-June peak is over-wintered flies plus the offspring of
+    # April and May flies (Throne and Eckenrode 1985, p. 185). After it the F2 mostly aestivated in Iowa, with almost no
+    # flies after mid-July (Funderburk et al., p. 107–108), and the damage is to germinating seed of spring plantings.
+    # The sources say which generations matter, not by how much: 0.25 is a judgment (Ben, 2026-11-23)
+    generation_weights=(1.0, 1.0, 0.25),
     action_windows=(ActionWindow(label="Avoid planting during adult flight", stage="Adult flight"),),
-    version="0.3",
+    version="0.4",
     status="beta",
     changelog=(
         Change(
@@ -48,6 +49,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-23",
             note="The summer generations weigh a quarter as much as the over-wintered flight and the spring generation in the risk, since spring plantings take the damage and the summer generation mostly rests through the heat.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-23",
+            note="The first generation's flight in early June weighs as much as the over-wintered flight in the risk, and only the generations after it a quarter: in Iowa that June flight was as large as the spring flight or larger (Funderburk, Higley and Pedigo 1984, Fig. 2), and New York's mid-June peak was its largest (Throne and Eckenrode 1985).",
         ),
     ),
     source=CRT,

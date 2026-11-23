@@ -8,6 +8,7 @@ sources:
   - Eckenrode, Vea and Stone 1975 (fly trap catches and damage in New York onion fields, 1971–1974; NEWA's source; compared)
   - Liu, McEwen and Ritcey 1982 (development times by stage and damage by generation, Ontario; the timing of egg laying and larvae)
   - UW Vegetable Entomology's onion maggot page (three flights in Wisconsin and their degree days; management)
+  - Delahaut, Degree Days for Common Fruit and Vegetable Insect Pests (University of Wisconsin Garden Facts XHT1087), University of Wisconsin–Extension, 2005 (the same degree days; compared)
   - Salgado and Nault, Onion Maggot and Seedcorn Maggot, Cornell University, 2025 (management at planting)
   - Schuh, Hahn and Wold-Burkness, Cabbage and Onion Maggots, University of Minnesota Extension (row covers in gardens)
 ---
@@ -20,7 +21,7 @@ Onion maggot flies lay eggs at the base of onion plants, and the maggots crawl d
 - **Larval feeding**: how many maggots are feeding, timed from the flies that laid their eggs.
 - **Protect onion seedlings during fly flight**: the days from the first flies (about 5 % of a flight) until 95 % have emerged, for each flight.
 
-Risk adds the two stages together, and a risk of 1 means as active as the spring flight at its peak.
+Risk adds the two stages together, and a risk of 1 means as active as the spring flight at its peak. The second generation counts a tenth as much as the spring generation and the third half as much, by the damage each did in the research (below).
 
 ## How it works
 
@@ -36,7 +37,7 @@ In an average year (AgWeather's degree days for 1996 to 2025), the first flies c
 ## How to read it
 
 - **Protection comes at planting.** By the time damage shows, it's too late to control the maggots. Seed treatments, transplant tray drenches and in-furrow treatments at planting protect the crop; sprays against the adult flies are usually not successful, because the flies move between fields and avoid exposure.
-- **The spring flight matters most.** NEWA calls the spring generation the most destructive, able to cut stands by more than half, and says the later generations rarely damage onions. In New York and Ontario studies, though, the third generation damaged bulbs near harvest and in storage. The model counts both summer flights at half the spring flight's weight in its risk, our judgment of how much less they matter, so read the first window as the one to plan around and watch the third where onions are still in the field.
+- **The spring flight matters most.** NEWA calls the spring generation the most destructive, able to cut stands by more than half, and says the later generations rarely damage onions. In New York and Ontario studies, the second generation was the smallest and did little damage, but the third damaged bulbs near harvest and in storage. The model counts the second flight at a tenth of the spring flight's weight in its risk and the third at half, our judgment of how much less they matter, so read the first window as the one to plan around and watch the third where onions are still in the field.
 - **Row covers** should go on before the first window opens. NEWA advises keeping them on until about three weeks past the spring peak, which is about a week after the window closes. Don't use them where onions grew last year, since flies can emerge underneath.
 - **Plant new onion fields well away from last year's,** and remove cull onions and volunteers, which carry maggots into the next season.
 - **Keep a record of stand loss.** UW Vegetable Entomology treats damage of more than 5 to 10 % in last year's crop as the signal to use a preventive treatment at planting.
@@ -45,9 +46,9 @@ The [onion maggot topic page](/topics/onion-maggot) explains the insect and its 
 
 ## Validation and caveats
 
-- Draft (model version 0.3, beta). Developed from fly trap catches in onion fields in western and central New York.
+- Draft (model version 0.4, beta). Developed from fly trap catches in onion fields in western and central New York.
 - On the same weather at 34 Wisconsin NEWA stations in 2024 and 2025, the model's first flies and spring peak fall on NEWA's day, and its summer flights peak within 2 to 3 days of NEWA's (the first summer flight's first flies about 5 days later).
 - In New York fields the spring flight's midpoint averaged 712 degree days, near the model's 735, but varied from about 500 to 960 between sites and years, so flies can be active outside the model's windows. The New York broods came about 1,190 and 1,260 degree days apart, a little longer than the model's 1,100.
 - **The summer flights may be early for Wisconsin.** UW's scouting calendar puts the third flight from late August through September and its peak at about 3,230 degree days; the model's third flight peaks about 300 degree days earlier, 10 to 14 days in an average year. The model hasn't been checked against Wisconsin trap catches.
-- The summer flights' half weight in the risk is our judgment. In the New York and Ontario studies the second generation was small, doing a tenth or less of the spring generation's damage in an untreated Ontario field, while the third damaged bulbs near harvest and in storage, which Ontario's researchers found the costliest damage of all.
+- The summer flights' weights in the risk, a tenth for the second and half for the third, are our judgment. In the New York and Ontario studies the second generation was the smallest, doing a tenth or less of the spring generation's damage in an untreated Ontario field, while the third damaged bulbs near harvest and in storage, which Ontario's researchers found the costliest damage of all. Where onions are harvested before the third flight peaks, the risk it shows matters less.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

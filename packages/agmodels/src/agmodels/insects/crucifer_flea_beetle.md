@@ -4,7 +4,7 @@ status: draft
 updated: 2026-11-23
 summary: Times crucifer flea beetle adults from degree days since January 1, the overwintered beetles that feed on seedlings and transplants in spring and the new adults of late summer, and marks when to scout new plantings every one to two days.
 sources:
-  - Delahaut, Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087), UW–Madison Extension (the method and the spring beetles)
+  - Delahaut, Degree Days for Common Fruit and Vegetable Insect Pests (University of Wisconsin Garden Facts XHT1087), University of Wisconsin–Extension, 2005 (the spring beetles), and UW–Madison Extension's guide to calculating degree days (XHT1086; the method)
   - Kinoshita, Svec, Harris and McEwen 1979 (development from egg to adult and egg laying, southwestern Ontario; the summer adults' timing)
   - UMass Extension Vegetable Program, Flea Beetle Biology (the seasonal pattern in Massachusetts; compared)
   - Ulmer and Dosdall 2006 (spring and summer emergence of adults near Lethbridge, Alberta; compared)
@@ -24,7 +24,7 @@ A risk of 1 means as many beetles active as at the spring peak.
 
 ## How it works
 
-Degree days are counted from January 1 by the modified average method, base 50 °F with a cutoff at 86 °F: a day's low is raised to 50 °F and its high capped at 86 °F before they are averaged. This is the modified method in UW–Madison Extension's guide to calculating degree days, the companion to its degree-day table (Delahaut's XHT1087).
+Degree days are counted from January 1 by the modified average method, base 50 °F with a cutoff at 86 °F: a day's low is raised to 50 °F and its high capped at 86 °F before they are averaged. This is the modified method in UW–Madison Extension's guide to calculating degree days (XHT1086), the companion to its degree-day table (Delahaut's XHT1087), which gives only the base temperature.
 
 - **The spring beetles.** UW–Madison's table puts flea beetles at 150 to 200 degree days. In the model, a tenth of the overwintered beetles are active by about 145 degree days, and activity peaks at 200. The old beetles keep feeding into June and die off as they finish laying eggs.
 - **Egg laying.** The beetles begin laying eggs in the soil about 300 degree days after they become active, and lay for about 300 more. Both numbers are our estimates. In an average year, egg laying peaks in mid- to late June.

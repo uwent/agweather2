@@ -44,8 +44,8 @@ ICW = imported_cabbageworm.INSECT
 
 
 def test_imported_cabbageworm_is_uw_madisons_method():
-    """XHT1086/XHT1087: the modified average, the minimum raised to 50 °F and the maximum capped at 86 °F, from
-    January 1."""
+    """XHT1086 (XHT1087 gives only the base, 50 °F): the modified average, the minimum raised to 50 °F and the maximum
+    capped at 86 °F, from January 1."""
     assert (ICW.dd_method, ICW.base_f, ICW.upper_f, ICW.biofix) == ("modified", 50, 86, "01-01")
     assert degree_days_modified(np.array([40.0]), np.array([90.0]), base=50, upper=86)[0] == 18
 
@@ -66,12 +66,15 @@ def test_imported_cabbageworm_larvae_are_tatchells_349():
 
 
 def test_imported_cabbageworm_generations_match_its_development_and_wisconsins_records():
-    """Development times sum to 739 (the shorter readings of UW's days) to about 820; Wisconsin's iNaturalist records
-    put the flights' middles at 234, 1,066 and 1,927 on the model's degree days (scripts/check_imported_cabbageworm.py)."""
+    """Development times sum to 752 (the shorter readings of UW's days, Nealis et al. 1984's pupa) to about 835;
+    Wisconsin's iNaturalist records put the flights' middles at 234, 1,066 and 1,927 on the model's degree days
+    (scripts/check_imported_cabbageworm.py)."""
+    # Nealis, Jones and Wellington 1984, Table 1: pupa 107.0 °C·d above 10.4 °C (Vancouver)
+    assert round(107.0 * 1.8) == imported_cabbageworm.PUPA == 193
     s = stage(ICW, "Eggs")
     assert ICW.generation_dd is not None
     assert (
-        739
+        752
         <= s.lag + s.duration + stage(ICW, "Larval feeding").duration + imported_cabbageworm.PUPA
         <= ICW.generation_dd
     )

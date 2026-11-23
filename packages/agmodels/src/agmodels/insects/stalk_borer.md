@@ -21,7 +21,7 @@ Stalk borer caterpillars hatch in spring in grasses and weeds. When they outgrow
 
 ## How it works
 
-Degree days are counted from January 1 by the single-sine method, base 41 °F with no upper cutoff, the method of the studies behind the numbers (Levine 1983).
+Degree days are counted from January 1 by the single-sine method, base 41 °F with no upper cutoff. The studies behind the numbers (Levine 1983; Lasack and Pedigo 1986) used Allen's sine method, which as published is a double sine (each half day with its own minimum); on Wisconsin's weather the two reach the same totals within a day.
 
 - **Movement.** In two Iowa fields in 1984 and 1985, caterpillars were first caught moving from grassy areas into corn at about 1,100 degree days, and half had moved by about 1,590 to 1,630; little movement was seen after about 2,000 (Lasack and Pedigo 1986). UW–Madison's guide and a later review round the middle to 1,650. Iowa State puts 10 % at 1,400. The model's curve follows these: 10 % at about 1,390, half at about 1,650, nearly all by about 2,020.
 - **The window** opens when about 3 % have moved, at about 1,290 degree days, and closes when about 60 % have, at about 1,700.

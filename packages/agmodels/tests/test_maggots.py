@@ -52,16 +52,23 @@ def test_cabbage_maggots_spring_flight_follows_newas_table_and_jyoti_2003():
     assert np.interp(288, X, spring) == pytest.approx(0.059, abs=0.005)
 
 
-def test_cabbage_maggots_later_flights_follow_newas_peaks_and_stop_at_three():
-    """Three flights, as Eckenrode and Chapman 1972 trapped in Wisconsin (NEWA's New York has four): the second and
-    third within 45 of NEWA's peaks."""
+def test_cabbage_maggots_later_flights_are_a_generation_of_1275_and_stop_at_three():
+    """Version 0.4: a generation of 1,275 DD40, the mean of Jyoti et al.'s own trap-count peaks (1,212 apart on
+    Open-Meteo's weather at Geneva, above 40 °F) and Eckenrode and Chapman 1972's Wisconsin 1,176 DD43 (about 1,335
+    DD40), where NEWA adds flight lengths to the spring peak (809, 915, 838: a difference kept, D95). Three flights, as
+    Eckenrode and Chapman trapped in Wisconsin (NEWA's New York has four)."""
+    assert (CM.generation_dd, CM.generation_sd) == (1275, 128)
+    assert CM.generation_dd == pytest.approx((1212 + (1349 + 1321) / 2) / 2, abs=5)
     flights = shares(CM)
     assert len(flights) == 3
-    for g, peak in enumerate(NEWA_CM_PEAKS[:2], start=1):
-        assert abs(dd_at(flights[g], 0.5) - peak) <= 45, g
-    # generation time 850 against NEWA's 809, 915 and 838 between peaks
-    gaps = np.diff([dd_at(f, 0.5) for f in flights])
-    assert np.all(np.abs(gaps - 850) <= 5)
+    peaks = [dd_at(f, 0.5) for f in flights]
+    assert np.all(np.abs(np.diff(peaks) - 1275) <= 7)
+    # half of the second and third flights by 1,731 and 3,007: 470 and 831 after NEWA's 1,261 and 2,176
+    assert abs(peaks[1] - 1731) <= 5 and abs(peaks[2] - 3007) <= 5
+    for peak, newa in zip(peaks[1:], NEWA_CM_PEAKS[:2], strict=True):
+        assert peak - newa > 400
+    # the generation spreads by 10 %, about the spring flight's own SD
+    assert CM.generation_sd == pytest.approx(0.1 * CM.generation_dd, abs=1)  # type: ignore[operator]
 
 
 def test_cabbage_maggots_spring_flight_weighs_most():
@@ -69,22 +76,24 @@ def test_cabbage_maggots_spring_flight_weighs_most():
     m = model("cabbage-maggot")
     assert CM.generation_weights == (1.0, 0.5)
     stages = ("adult_flight", "larval_feeding")
-    spring, summer = (m.explore(dd_total=d) for d in (500, 1350))
+    spring, summer = (m.explore(dd_total=d) for d in (500, 1731))
     assert spring["risk"] == pytest.approx(sum(spring[f"activity_{k}"] for k in stages))  # the first generation alone
-    # the second flight and the spring larvae's tail: between half and all of the activity
+    # the second flight's peak, past the spring larvae: half the activity
     activity = sum(summer[f"activity_{k}"] for k in stages)
-    assert activity / 2 < summer["risk"] < 0.7 * activity
+    assert activity / 2 <= summer["risk"] < 0.6 * activity
     assert summer["risk"] < spring["risk"]
 
 
 def test_cabbage_maggot_generation_against_eckenrode_and_chapman():
     """Eckenrode and Chapman 1971: 1,112 DD43 from egg to the first egg peak at 69.8 °F (41.5 days); 1972: 1,176
-    DD43 between Wisconsin flights in the field. NEWA's 850 DD40 is shorter (a difference kept, D95): at a summer
-    mean of 70 °F it's 28 days, against their 41–45."""
-    days_newa = CM.generation_dd / (70 - 40)  # type: ignore[operator]
+    DD43 between Wisconsin flights in the field. The model's 1,275 DD40 is 42.5 days at a summer mean of 70 °F,
+    between them; NEWA's 850 would be 28."""
+    days_model = CM.generation_dd / (70 - 40)  # type: ignore[operator]
+    days_newa = 850 / (70 - 40)
     days_lab = 1112 / (69.8 - 43)
     days_field = 1176 / (70 - 43)
     assert 27 < days_newa < 30 and 41 < days_lab < 42 and 43 < days_field < 44.5
+    assert days_lab < days_model < days_field
 
 
 def test_cabbage_maggot_larvae_follow_the_flight():
@@ -146,8 +155,8 @@ def test_onion_maggot_protection_window_opens_at_first_emergence():
     assert len(windows) == 3
 
 
-def test_every_generation_weighs_alike():
-    """NEWA calls each maggot's spring flight the most damaging; the models still weigh generations alike (D37)."""
+def test_each_stage_weighs_alike_within_a_generation():
+    """Flight and larval feeding weigh 1 within a generation; the spring flight's peak is an activity of 1."""
     for insect in (CM, OM):
         model = PhenologyModel(insect=insect, summary="")
         flights = shares(insect)
@@ -170,13 +179,28 @@ def test_seedcorn_maggots_first_flight_starts_within_new_yorks_first_emergence()
     assert dd_at(spring, 0.10) >= 53 * 1.8 and dd_at(spring, 0.50) <= 197.5 * 1.8
 
 
-def test_onion_and_seedcorn_maggots_spring_generation_weighs_most():
-    """Part H, round 2: the spring generation does the damage; summer weights 0.5 (onion) and 0.25 (seedcorn), a
-    judgment."""
+def test_onion_and_seedcorn_maggots_generation_weights():
+    """Part H, round 2 (version 0.4): onion maggot's second flight 0.1 and third 0.5 (the second the smallest brood
+    and a tenth or less of the first's damage, Eckenrode et al. 1975, Liu et al. 1982; the third damages bulbs);
+    seedcorn maggot's first generation, the large early-June flight (Funderburk et al. 1984), 1 and later ones 0.25.
+    Judgments, each generation's risk scaled by its weight."""
+    from dataclasses import replace
+
     from agmodels.phenology import risk_curve
 
-    assert OM.generation_weights == (1.0, 0.5) and seedcorn_maggot.INSECT.generation_weights == (1.0, 0.25)
+    assert OM.generation_weights == (1.0, 0.1, 0.5)
+    assert seedcorn_maggot.INSECT.generation_weights == (1.0, 1.0, 0.25)
     for insect, weight in ((OM, 0.5), (seedcorn_maggot.INSECT, 0.25)):
-        plain = risk_curve(type(insect)(**{**insect.__dict__, "generation_weights": ()}))
-        late = 3 * (insect.generation_dd or 0) < X  # later generations only
+        plain = risk_curve(replace(insect, generation_weights=()))
+        late = 4 * (insect.generation_dd or 0) < X  # past the earlier generations' larvae
         np.testing.assert_allclose(risk_curve(insect)[late], plain[late] * weight, rtol=1e-6, atol=1e-9)
+    # seedcorn maggot's early-June flight (half emerged at 1,065) is as large in the risk as the spring flight
+    scm = model("seedcorn-maggot")
+    spring, june = (scm.explore(dd_total=d)["risk"] for d in (345, 1065))
+    assert june > 0.8 * spring
+    # onion maggot's second flight's peak, after the spring larvae, is low; the third's is half
+    om = model("onion-maggot")
+    second, third = (om.explore(dd_total=d) for d in (1831 + 300, 2930))
+    assert second["risk"] < 0.2 and third["risk"] == pytest.approx(
+        0.5 * third["activity_adult_flight"] + 0.5 * third["activity_larval_feeding"], rel=0.2
+    )

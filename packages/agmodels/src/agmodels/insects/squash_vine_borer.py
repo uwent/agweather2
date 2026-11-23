@@ -8,8 +8,10 @@ INSECT = Insect(
     id="squash-vine-borer",
     name="Squash vine borer",
     crops=("cucumber", "melon", "pumpkin-squash"),
-    # UW–Madison's method (XHT1086, the method of its degree-day table XHT1087): the modified average, 50/86 °F, from
-    # January 1, a stored total. UW's are the Wisconsin numbers (moths at 900, egg laying 900–1,000). South Dakota
+    # UW–Madison Extension's method (XHT1086): the modified average, 50/86 °F, from January 1, a stored total. Its
+    # degree-day table (XHT1087, Delahaut, rev. 2005; read in full 2026-11-23) gives only "base temperature = 50°F" and
+    # egg laying at 900–1,000 (chicory full bloom), so its numbers are read on XHT1086's method. UW's are the Wisconsin
+    # numbers (moths at 900, XHT1136; egg laying 900–1,000, XHT1087). South Dakota
     # State and Ohio State count the simple average above 50 °F, which reaches 1,000 a median 7 days later at
     # Arlington (10 at Rhinelander) in 2016–2025; single sine without an upper, as MSU and VDIFN, 3 to 5 days later
     base_f=50,
@@ -19,8 +21,8 @@ INSECT = Insect(
     source="UW–Madison's and other extension guides",
     ported_from="VDIFN",
     life_stages=(
-        # Moth flight and egg laying, a judgment across the guides: moths first seen at about 900 (UW–Madison XHT1136,
-        # XHT1087) or emerging at 800 (MSU) to 1,000 (UW Vegetable Entomology, SDSU, Ohio State); egg laying over about
+        # Moth flight and egg laying, a judgment across the guides: moths first seen at about 900 (UW–Madison XHT1136;
+        # XHT1087 has egg laying at 900–1,000, this curve's 16 to 35 %) or emerging at 800 (MSU) to 1,000 (UW Vegetable Entomology, SDSU, Ohio State); egg laying over about
         # three weeks centered on 1,000 (XHT1136), so continuing about a week and a half after it; MSU's flight
         # declining from 1,800 and over by 2,000. This PERT: 5 % at 824, half at 1,083, 75 % at 1,242, 95 % at 1,479,
         # the last moths by 1,900. Females lay as they fly, so the flight stands for egg laying too. Moths don't feed
@@ -68,7 +70,7 @@ INSECT = Insect(
             url="https://hort.extension.wisc.edu/articles/squash-vine-borer/",
         ),
         Citation(
-            text="Delahaut, K. (2012). Degree Days for Common Fruit and Vegetable Insect Pests (XHT1087). UW–Madison Division of Extension, Wisconsin Horticulture.",
+            text="Delahaut, K. (2005). Degree Days for Common Fruit and Vegetable Insect Pests (University of Wisconsin Garden Facts XHT1087, revised April 20, 2005). University of Wisconsin–Extension, Cooperative Extension; revised 2012, UW–Madison Division of Extension, Wisconsin Horticulture.",
             url="https://hort.extension.wisc.edu/articles/degree-days-common-fruit-vegetable-insect-pests/",
         ),
         Citation(

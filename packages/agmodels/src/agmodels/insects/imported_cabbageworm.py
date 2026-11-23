@@ -1,27 +1,32 @@
-"""Imported cabbageworm, rebuilt on UW–Madison's degree-day table (Delahaut's XHT1087) for the spring flight, with
-later generations from development times (Tatchell 1981's larvae; part H, D36, D37), checked against iNaturalist."""
+"""Imported cabbageworm, rebuilt on UW–Madison's degree-day table (Delahaut's XHT1087, 2005) for the spring flight,
+with later generations from development times (Tatchell 1981's larvae, Nealis et al. 1984's pupae; part H, D36, D37),
+checked against iNaturalist."""
 
 from agmodels.phenology import ActionWindow, DerivedStage, Insect, LifeStage
 from agmodels.spec import Change, Check, Citation, TrainingArea
 
-# Development in degree days (°F, base 50) from UW–Madison's days at about 21 DD50 a day, the normal daily total in
-# July at Arlington (modified 50/86): egg about 5 days (UW Veg Ento; "about a week", UW Hort), pupa 6–11 days (8.5),
-# and egg laying centered about 5 days after a butterfly emerges (a judgment: females lay over their 2–3 weeks). The
-# larva is Tatchell 1981's 349 °F·d above 48.9 °F (193.9 °C·d above 9.4 °C, his p. 293 and Table 2), taken as DD50
-# (the 1 °F difference is about 15 °F·d over the larval period). All but the larva are judgments. Nealis, Jones and
-# Wellington 1984 (Table 1, Vancouver) measured egg and larva together at 216.8 °C·d above 10.0 °C (390 DD50) and the
-# pupa at 107.0 above 10.4 °C (about 193): a check in the report, not used
+# Development in degree days (°F, base 50). The egg from UW–Madison's days at about 21 DD50 a day, the normal daily
+# total in July at Arlington (modified 50/86): about 5 days (UW Veg Ento; "about a week", UW Hort), and egg laying
+# centered about 5 days after a butterfly emerges (a judgment: females lay over their 2–3 weeks). The larva is Tatchell
+# 1981's 349 °F·d above 48.9 °F (193.9 °C·d above 9.4 °C, his p. 293 and Table 2), taken as DD50 (the 1 °F difference
+# is about 15 °F·d over the larval period). The pupa is Nealis, Jones and Wellington 1984's 107.0 °C·d above 10.4 °C
+# (Table 1, p. 225; Vancouver, from N. Gilbert's unpublished data): 193 °F·d above 50.7 °F, taken as DD50 (Ben,
+# 2026-11-23; it replaces 180, 8.5 days from UW's 6–11). Nealis et al. also give the egg and larva together, 216.8 °C·d
+# above 10.0 °C (390 DD50), shorter than UW's egg and Tatchell's larva (454): not used, since they don't split the egg
+# from the larva. The pupa enters only the generation time's check (the flights are 840 apart, set from Wisconsin's
+# records), so the model's output doesn't change with it
 EGG_LAYING_LAG = 105
 EGG = 105
 LARVA = 349
-PUPA = 180
+PUPA = 193
 
 INSECT = Insect(
     id="imported-cabbageworm",
     name="Imported cabbageworm",
     crops=("cole-crops",),
-    # UW–Madison's method (XHT1086/XHT1087, Delahaut 2012): the modified average, the minimum raised to 50 °F and the
-    # maximum capped at 86 °F, from January 1 (the stored `dd_modified_50_86`). NEWA runs no cabbageworm model
+    # UW–Madison's method (XHT1086; XHT1087 gives only the base, 50 °F): the modified average, the minimum raised to
+    # 50 °F and the maximum capped at 86 °F, from January 1 (the stored `dd_modified_50_86`). NEWA runs no cabbageworm
+    # model
     base_f=50,
     upper_f=86,
     dd_method="modified",
@@ -38,10 +43,10 @@ INSECT = Insect(
         # Caterpillars feed from hatch to pupation (Tatchell 1981's 349): the crop's risk
         DerivedStage(label="Larval feeding", follows="Adult flight", lag=EGG_LAYING_LAG + EGG, duration=LARVA),
     ),
-    # Flight to flight: egg laying, egg, larva and pupa, 105 + 105 + 349 + 180 = 739 with the shorter readings of
-    # UW's days, or about 820 with UW Hort's week-long egg and egg laying centered a week after emergence: a judgment,
-    # and UW's day ranges allow about 600 to 1,000. Wisconsin's iNaturalist records of butterflies have their flights'
-    # medians 832 and 861 apart (scripts/check_imported_cabbageworm.py), so 840, inside the development times' range
+    # Flight to flight: egg laying, egg, larva and pupa, 105 + 105 + 349 + 193 = 752 with the shorter readings of
+    # UW's days, or about 835 with UW Hort's week-long egg and egg laying centered a week after emergence (a
+    # judgment). Wisconsin's iNaturalist records of butterflies have their flights' medians 832 and 861 apart
+    # (scripts/check_imported_cabbageworm.py), so 840, at the top of the development times' range
     generation_dd=840,
     # No cap: UW–Madison gives usually three generations, UW Veg Ento three to six; the season's degree days limit
     # them (three flights in the normal season everywhere, a fourth begun at Arlington by October), and fall freezes
@@ -91,12 +96,16 @@ INSECT = Insect(
     ),
     citations=(
         Citation(
-            text="Delahaut, K. Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087). UW–Madison Division of Extension, Wisconsin Horticulture, revised 2012.",
+            text="Delahaut, K. (2005). Degree Days for Common Fruit and Vegetable Insect Pests (University of Wisconsin Garden Facts XHT1087, revised April 20, 2005). University of Wisconsin–Extension, Cooperative Extension; revised 2012, UW–Madison Division of Extension, Wisconsin Horticulture.",
             url="https://hort.extension.wisc.edu/articles/degree-days-common-fruit-vegetable-insect-pests/",
         ),
         Citation(
             text="Tatchell, G. M. (1981). The effects of a granulosis virus infection and temperature on the food consumption of Pieris rapae (Lep.: Pieridae). Entomophaga 26, 291–299.",
             doi="10.1007/BF02371879",
+        ),
+        Citation(
+            text="Nealis, V. G., Jones, R. E. and Wellington, W. G. (1984). Temperature and development in host-parasite relationships. Oecologia 61, 224–229.",
+            doi="10.1007/BF00396765",
         ),
         Citation(
             text="UC IPM, University of California: imported cabbageworm degree-day model (Tatchell 1981).",

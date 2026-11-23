@@ -1,8 +1,8 @@
 # Seedcorn maggot (`seedcorn-maggot`): validation
 
-Model version 0.3, generation weights added 2026-11-23 (part H, round 2); version 0.2 written 2026-11-18 (D98); NEWA's comparison and the units of New York's first-emergence numbers added 2026-11-21 (part H, H1), with no change to the model; Sanborn et al. 1982, Funderburk et al. 1984 and Throne and Eckenrode 1985 read in full 2026-11-23, with no change to the model. The model: `packages/agmodels/src/agmodels/insects/seedcorn_maggot.py`, life-stage curves (D36) run by the insect engine (`agmodels.phenology`, `PhenologyModel`) on degree days by its sources' method (D37); its page: `seedcorn_maggot.md` beside it. Rebuilt on its sources on 2026-10-29, replacing the Crop Risk Tool's step table; the notes this condenses, with the sources' numbers converted to °F·d, are in Phase 3 D8 ("Seedcorn maggot first"). The sources' PDFs are in `tmp/references/insects/`.
+Model version 0.4, generation weights added 2026-11-23 (part H, round 2: later generations 0.25 in version 0.3, and the first generation's June flight back to 1 in version 0.4 after the papers were read in full; Ben, 2026-11-23); version 0.2 written 2026-11-18 (D98); NEWA's comparison and the units of New York's first-emergence numbers added 2026-11-21 (part H, H1), with no change to the model; Sanborn et al. 1982, Funderburk et al. 1984 and Throne and Eckenrode 1985 read in full 2026-11-23, with no change to the model. The model: `packages/agmodels/src/agmodels/insects/seedcorn_maggot.py`, life-stage curves (D36) run by the insect engine (`agmodels.phenology`, `PhenologyModel`) on degree days by its sources' method (D37); its page: `seedcorn_maggot.md` beside it. Rebuilt on its sources on 2026-10-29, replacing the Crop Risk Tool's step table; the notes this condenses, with the sources' numbers converted to °F·d, are in Phase 3 D8 ("Seedcorn maggot first"). The sources' PDFs are in `tmp/references/insects/`.
 
-**In short:** the first (over-wintered) flight was set from field data, so it matches them by construction: half the flies have emerged at 345 degree days, against 347 in Wisconsin. The later flights, placed by the laboratory's adult-to-adult time rather than fitted, come at 1065 and 1785, against Wisconsin's field peaks at 1051 and 1912, and well before Iowa's second flight (1228). On the same weather our flight peaks come 3 to 6 days after the Crop Risk Tool's, mostly because of the degree-day method. Only the first flight's start is held by a test in CI (`test_maggots.py`). On the same weather at 34 Wisconsin NEWA stations, our flight starts a median 5 days before NEWA's first-emergence window opens and is half over a day before NEWA's window closes: NEWA reads New York's first-emergence numbers as °C·d, where the studies counted °F·d (below). Not compared with Wisconsin trap catches.
+**In short:** the first (over-wintered) flight was set from field data, so it matches them by construction: half the flies have emerged at 345 degree days, against 347 in Wisconsin. The later flights, placed by the laboratory's adult-to-adult time rather than fitted, come at 1065 and 1785, against Wisconsin's field peaks at 1051 and 1912, and well before Iowa's second flight (1228). On the same weather our flight peaks come 3 to 6 days after the Crop Risk Tool's, mostly because of the degree-day method. Only the first flight's start is held by a test in CI (`test_maggots.py`). On the same weather at 34 Wisconsin NEWA stations, our flight starts a median 5 days before NEWA's first-emergence window opens and is half over a day before NEWA's window closes: NEWA reads New York's first-emergence numbers as °C·d, where the studies counted °F·d (below). In the risk, the over-wintered flight and the large early-June flight of its offspring weigh 1 and later generations 0.25, a judgment. Not compared with Wisconsin trap catches.
 
 ## Sources and what we took from each
 
@@ -17,6 +17,7 @@ Model version 0.3, generation weights added 2026-11-23 (part H, round 2); versio
 | NEWA's seedcorn maggot model (newa.cornell.edu, read 2026-11-21) | Air temperature, simple average above 3.9 °C, no upper, °C·d from January 1, to July 31: 0–52 overwintering pupae, 53–197 first adult emergence, 198+ complete (Cho et al. 2025; Broatch et al. 2006) | Compared (below) |
 | The Crop Risk Tool (`src/models.R`, `scm`) | Single sine 4/30 °C from January 1; a step table peaking at 340, 1050 and 1750 (three generations); its text gives 360, 1080 and 1800 | Replaced (changelog 0.2); its 340 and 1050 are Sanborn 1981's Wisconsin peaks |
 | VDIFN (`db/seeds.rb`) | Sine-ramped generations (peak − 65, peak, peak + 450) at 360 + 720*n*, single sine 39.2/86 °F | Replaced; its 720 kept, which the laboratory's 706 supports |
+| Delahaut, K. (2005). Degree Days for Common Fruit and Vegetable Insect Pests (University of Wisconsin Garden Facts XHT1087, revised April 20, 2005). University of Wisconsin–Extension, Cooperative Extension; revised 2012, UW–Madison Division of Extension, Wisconsin Horticulture (no DOI) | "Seed Corn Maggot: Base temperature = 39°F; 200, 600 for 1st and 2nd generation flies". No method, upper threshold, start or source | Compared only: 200 is our spring flight's 10 % (201); 600 fits no event of ours or of the field studies (Wisconsin's and Iowa's first-generation flights peaked near 1,050 to 1,230), unless it counts from the spring flight. UW Vegetable Entomology's page gives other numbers (peaks at 360, 1,080, 1,800, 2,520 and 3,240, 39/86 °F from when the ground thaws), VDIFN's and the Crop Risk Tool's |
 | Enviroweather (MSU), SeedCornMaggot (`docs/enviroweather-models.md`) | Single sine 39 °F, no upper, from March 1: over-wintered flight 200–813, peak 342; generation 1 flight 901–1650, peak 1234; no source cited | Compared only |
 
 ## Choices and differences
@@ -27,7 +28,7 @@ Model version 0.3, generation weights added 2026-11-23 (part H, round 2); versio
 - **Larval feeding:** derived from the flight: from 82 degree days after it (28 before egg laying plus the egg's 54), lasting 367. The first generation's feeding runs from about 150 to 1100 and peaks near 611.
 - **Generations:** every 720 degree days, each as large as the first, spreading by an SD of 60 per generation, repeated until fall freezes end the season (D36's engine: after day 250, each day at or below −2 °C in the last 14 reduces activity, and 4 end it).
 - **Risk:** flight plus larval feeding, both weighted 1 in each generation (egg laying leads to the feeding; Ben, 2026-10-29), continuous, with 1 meaning the first flight's peak. The action window "Avoid planting during adult flight" is open from 10 % to 90 % of each generation's flight.
-- **Generation weights** (version 0.3; Ben, 2026-11-23): the over-wintered flight and the spring generation's larvae weigh 1 and each later generation 0.25, since few flies were caught in Iowa after mid-June (the F2 apparently aestivating; Funderburk et al. 1984) and the damage is to germinating seed of spring plantings. Read in full, the papers put the year's largest flight in June: Iowa's F1 flight, 30 to 45 days after the over-wintered one, was as large or larger (Fig. 2), and New York's mid-June peak was its large one (Throne and Eckenrode 1985). The engine's second generation is that F1 flight (50 % at 1,065, early June at Arlington), which the weights put at 0.25; Iowa's quiet summer begins with the generation after it. Weights of 1, 1, 0.25 would follow the papers (proposed to Ben, not made). Throne and Eckenrode don't report few summer flies: New York's July and August peaks are smaller than June's, but they give no counts. With equal generations (version 0.2) the risk stayed High to Very high all summer (Phase 3 D8); now the summer generations peak at Moderate (below). The model still times every generation as large as the first; the weight is the risk only.
+- **Generation weights** (version 0.4; Ben, 2026-11-23): the over-wintered flight and the first generation (the engine's second, half emerged at 1,065 DD: June 7 at Arlington, June 19 at Rhinelander on the normals) weigh 1, each later generation 0.25. Read in full, the papers put the year's largest flight in June: Iowa's F1 flight, 30 to 45 days after the over-wintered one, was about as large in 1980 (both over 1,000 flies a trap a day in molasses-baited traps) and far larger in 1981 (Funderburk et al. 1984, Fig. 2), and New York's large mid-June peak is over-wintered flies plus the offspring of April and May flies (Throne and Eckenrode 1985, p. 185). After it Iowa's F2 was a small, early cohort and almost no flies came after mid-July, the F2 apparently aestivating (Funderburk et al., p. 107–108); the damage is to germinating seed of spring and early-summer plantings. So 1, 1, 0.25: which generations matter is the papers', the 0.25 a judgment. Throne and Eckenrode don't report few summer flies: New York's July and August peaks are smaller than June's, but they give no counts. Version 0.3 weighed the June flight at 0.25 too (1, 0.25); version 0.2 weighted every generation alike (D37), which kept the risk High to Very high all summer (Phase 3 D8). The model still times every generation as large as the first; the weight is the risk only.
 - **Differences from the Crop Risk Tool and VDIFN** (intended, Phase 3 D8): the method; the flight starting at 70 rather than 295; a continuous risk of flight and larvae rather than steps. The tool's parity test was dropped.
 
 ## Checks
@@ -80,39 +81,39 @@ Our flight starts a median 5 days before NEWA's first-emergence window opens and
 
 ### What the weights change
 
-`uv run app/manage.py shell < scripts/generation_weights_normals.py`: the risk on the same normal totals with every generation alike (version 0.2) and with version 0.3's generation weights, at each peak of the risk through October 15, without fall freezes.
+`uv run app/manage.py shell < scripts/generation_weights_normals.py`: the risk on the same normal totals with every generation alike (version 0.2) and with version 0.4's generation weights, at each peak of the risk through October 15, without fall freezes; version 0.3's (1, 0.25) from the previous run of the same script.
 
 <!-- prettier-ignore -->
-| Place | Peak | Equal generations | Weighted |
-| --- | --- | --- | --- |
-| Arlington | May 7 | 1.38 (Very high) | 1.38 (Very high) |
-| Arlington | June 10 | 1.33 (Very high) | 0.33 (Moderate) |
-| Arlington | July 4 | 1.28 (Very high) | 0.32 (Moderate) |
-| Arlington | July 27 | 1.24 (Very high) | 0.31 (Moderate) |
-| Arlington | August 19 | 1.21 (Very high) | 0.30 (Moderate) |
-| Arlington | September 15 | 1.18 (Very high) | 0.30 (Moderate) |
-| Arlington | Days at High or above | 181 | 40 |
-| Hancock | May 12 | 1.38 (Very high) | 1.38 (Very high) |
-| Hancock | June 14 | 1.33 (Very high) | 0.33 (Moderate) |
-| Hancock | July 9 | 1.28 (Very high) | 0.32 (Moderate) |
-| Hancock | August 2 | 1.24 (Very high) | 0.31 (Moderate) |
-| Hancock | August 27 | 1.21 (Very high) | 0.30 (Moderate) |
-| Hancock | September 27 | 1.18 (Very high) | 0.30 (Moderate) |
-| Hancock | Days at High or above | 176 | 39 |
-| Rhinelander | May 20 | 1.38 (Very high) | 1.38 (Very high) |
-| Rhinelander | June 22 | 1.33 (Very high) | 0.33 (Moderate) |
-| Rhinelander | July 18 | 1.28 (Very high) | 0.32 (Moderate) |
-| Rhinelander | August 13 | 1.24 (Very high) | 0.31 (Moderate) |
-| Rhinelander | September 13 | 1.21 (Very high) | 0.30 (Moderate) |
-| Rhinelander | Days at High or above | 167 | 38 |
+| Place | Peak | Equal generations | Version 0.3 (1, 0.25) | Version 0.4 (1, 1, 0.25) |
+| --- | --- | --- | --- | --- |
+| Arlington | May 7 | 1.38 (Very high) | 1.38 (Very high) | 1.38 (Very high) |
+| Arlington | June 10 | 1.33 (Very high) | 0.33 (Moderate) | 1.33 (Very high) |
+| Arlington | July 4 | 1.28 (Very high) | 0.32 (Moderate) | 0.32 (Moderate) |
+| Arlington | July 27 | 1.24 (Very high) | 0.31 (Moderate) | 0.31 (Moderate) |
+| Arlington | August 19 | 1.21 (Very high) | 0.30 (Moderate) | 0.30 (Moderate) |
+| Arlington | September 15 | 1.18 (Very high) | 0.30 (Moderate) | 0.30 (Moderate) |
+| Arlington | Days at High or above | 181 | 40 | 67 |
+| Hancock | May 12 | 1.38 (Very high) | 1.38 (Very high) | 1.38 (Very high) |
+| Hancock | June 14 | 1.33 (Very high) | 0.33 (Moderate) | 1.33 (Very high) |
+| Hancock | July 9 | 1.28 (Very high) | 0.32 (Moderate) | 0.32 (Moderate) |
+| Hancock | August 2 | 1.24 (Very high) | 0.31 (Moderate) | 0.31 (Moderate) |
+| Hancock | August 27 | 1.21 (Very high) | 0.30 (Moderate) | 0.30 (Moderate) |
+| Hancock | September 27 | 1.18 (Very high) | 0.30 (Moderate) | 0.30 (Moderate) |
+| Hancock | Days at High or above | 176 | 39 | 66 |
+| Rhinelander | May 20 | 1.38 (Very high) | 1.38 (Very high) | 1.38 (Very high) |
+| Rhinelander | June 22 | 1.33 (Very high) | 0.33 (Moderate) | 1.33 (Very high) |
+| Rhinelander | July 18 | 1.28 (Very high) | 0.32 (Moderate) | 0.32 (Moderate) |
+| Rhinelander | August 13 | 1.24 (Very high) | 0.31 (Moderate) | 0.31 (Moderate) |
+| Rhinelander | September 13 | 1.21 (Very high) | 0.30 (Moderate) | 0.30 (Moderate) |
+| Rhinelander | Days at High or above | 167 | 38 | 66 |
 
-The spring generation stays Very high; each summer generation now peaks at Moderate, and a season has about 40 days at High or above instead of nearly every day from early May to October.
+The spring generation and the June flight with its larvae stay Very high, from late April into early July in the south; each later generation peaks at Moderate. A season has about 66 days at High or above, against about 40 in version 0.3 and nearly every day from early May to October with equal generations.
 
 ## Limits and open questions
 
 - **No field check in Wisconsin:** the over-wintered flight is fitted to Wisconsin's and New York's numbers, and the later flights are checked only against two published sets of peaks: Sanborn's Wisconsin flights (from his 1981 dissertation, as Funderburk et al. report them) and 2 years of traps in Iowa.
 - **Air, not soil:** the insects develop in soil cooler than the air (Funderburk et al. 1984), so later generations may come later than shown, as Iowa's did.
-- **The later generations' weight (0.25)** is a judgment, and it starts a generation too early: Iowa's F1 flight in early June was as large as or larger than the over-wintered flight, and few flies came after mid-June (Funderburk et al. 1984, Fig. 2); New York's largest peak was in mid-June (Throne and Eckenrode 1985). The model weighs that June flight at 0.25 (above).
+- **The later generations' weight (0.25)** is a judgment: the papers say the generations after the June flight were small in Iowa (the F2 mostly aestivating; Funderburk et al. 1984), not how much less damage they do. New York's July and August peaks (Throne and Eckenrode 1985) were smaller than June's but uncounted, and Wisconsin's three to five generations (UW Vegetable Entomology) suggest summer flights here may matter more than in Iowa.
 - **The model page** says larval feeding is heaviest "around 650" (the curve peaks near 611).
 - **NEWA's units** (above) are for the courtesy email to NEWA, with its soil-temperature description against its air computation and its table against its hidden per-crop guide (255–434 adults, 461–1030 first generation).
 - **Cheapest independent comparison** now: dated flight records, such as Olaya-Arenas et al. 2024's and Cho et al. 2025's New York traps (if the papers give sites and dates) on Open-Meteo's weather, or Wisconsin trap catches if any are kept.

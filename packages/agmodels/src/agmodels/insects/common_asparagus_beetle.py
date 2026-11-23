@@ -1,5 +1,6 @@
 """Common asparagus beetle, rebuilt on UW–Madison's degree-day table (Delahaut's XHT1087) for the overwintered beetles'
-egg laying on spears, with larvae and later generations from UW–Madison's development times (part H, D36, D37)."""
+egg laying on spears, with larvae and later generations from Taylor and Harcourt 1978's development times (part H,
+D36, D37)."""
 
 from agmodels.phenology import ActionWindow, DerivedStage, Insect, LifeStage
 from agmodels.spec import Change, Check, Citation, TrainingArea
@@ -7,7 +8,8 @@ from agmodels.spec import Change, Check, Citation, TrainingArea
 # Taylor and Harcourt 1978 (Ottawa, laboratory, base 10 °C; p. 62): egg 58 °C·d (104 °F·d above 50 °F), larval
 # instars 21 + 26 + 32 + 88 = 167 (301; the fourth includes the prepupa in the soil), pupa 92 (166). VDIFN's window
 # (105, 250, 405) and its new adults at about 570 are these sums from egg laying. The model's egg and larvae round them
-# (UW–Madison's week for the egg, about 14 degree days a day in late May at Arlington, gives the same 100)
+# (UW–Madison's week for the egg, about 14 degree days a day in late May at Arlington, gives the same 100). The pupa,
+# 166 (their 92 °C·d), and the days from new adults to their first eggs make up the rest of a generation (below)
 EGG = 100
 LARVAE = 300
 
@@ -15,8 +17,9 @@ INSECT = Insect(
     id="common-asparagus-beetle",
     name="Common asparagus beetle",
     crops=("asparagus",),
-    # UW–Madison's method (XHT1086/XHT1087, Delahaut 2012): the modified average, the minimum raised to 50 °F and the
-    # maximum capped at 86 °F, from January 1 (the stored `dd_modified_50_86`). NEWA runs no asparagus beetle model
+    # UW–Madison's method (XHT1086; XHT1087 gives only the 50 °F base): the modified average, the minimum raised to 50 °F
+    # and the maximum capped at 86 °F, from January 1 (the stored `dd_modified_50_86`). NEWA runs no asparagus beetle
+    # model
     base_f=50,
     upper_f=86,
     dd_method="modified",
@@ -32,10 +35,11 @@ INSECT = Insect(
         # Larvae feed on spears and ferns from hatch until they drop to the soil to pupate
         DerivedStage(label="Larvae", follows="Adults feeding and laying eggs", lag=EGG, duration=LARVAE),
     ),
-    # Adult to adult: the egg (100), the larvae (300), the pupa (about a week, 120 at June's rate) and a few days of
-    # feeding before the new beetles lay (about 80), 600, a judgment from UW's days. Taylor and Harcourt 1978's sums
-    # (egg to adult 317 °C·d, 571 °F·d, with a pupa of 166, not 120) and their field peaks near Ottawa in 1976 (each
-    # generation's adults peaking 1 to 2 days before the next generation's eggs, Table III) give about the same 600
+    # Adult to adult, from Taylor and Harcourt 1978: the egg (100), the larvae (300), the pupa (166, their 92 °C·d;
+    # egg to adult 317 °C·d, 571 °F·d) and the days from new adults to the next eggs, about 30: in their field counts
+    # near Ottawa in 1976 each generation's adults peaked 1 to 2 days before the next generation's eggs (July 2 and 4,
+    # August 6 and 7; Table III), 20 to 40 degree days at July's normal 20 a day at Arlington. 596, kept at 600. (Version 0.2 split the same
+    # 600 as a pupa of 120 and 80 before laying, from UW's days)
     generation_dd=600,
     # Three generations at most: Taylor 1979 found three in eastern Ontario; UW–Madison gives two to three. At 600 a
     # generation, southern Wisconsin's normal season (about 2,500 degree days by September 15 at Arlington) would
@@ -66,7 +70,7 @@ INSECT = Insect(
         Check(
             kind="published",
             against="UW–Madison's degree-day table for asparagus beetle (Delahaut, XHT1087)",
-            result="The table's egg laying at 150 to 240 degree days is the overwintered beetles' 10 and 50 %, at 149 and 239. The egg (100) and larvae (300) round Taylor and Harcourt 1978's 104 and 301 degree days. The time between generations (600) is their egg to adult (571) plus the day or two from each generation's adults to the next one's eggs in their field counts near Ottawa.",
+            result="The table's egg laying at 150 to 240 degree days is the overwintered beetles' 10 and 50 %, at 149 and 239. The egg (100) and larvae (300) round Taylor and Harcourt 1978's 104 and 301 degree days. The time between generations (600) is their egg to adult (571, with a pupa of 166) plus about 30 for the day or two from each generation's adults to the next one's eggs in their field counts near Ottawa.",
             report="docs/validation/models/common-asparagus-beetle.md#against-its-sources-numbers",
         ),
         Check(
@@ -78,7 +82,7 @@ INSECT = Insect(
     ),
     citations=(
         Citation(
-            text="Delahaut, K. Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087). UW–Madison Division of Extension, Wisconsin Horticulture, revised 2012.",
+            text="Delahaut, K. (2005). Degree Days for Common Fruit and Vegetable Insect Pests (University of Wisconsin Garden Facts XHT1087, revised April 20, 2005). University of Wisconsin–Extension, Cooperative Extension; revised 2012, UW–Madison Division of Extension, Wisconsin Horticulture.",
             url="https://hort.extension.wisc.edu/articles/degree-days-common-fruit-vegetable-insect-pests/",
         ),
         Citation(

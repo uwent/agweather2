@@ -21,8 +21,9 @@ INSECT = Insect(
     id="crucifer-flea-beetle",
     name="Crucifer flea beetle",
     crops=("cole-crops",),
-    # UW–Madison's method (XHT1086/XHT1087, Delahaut 2012): the modified average, 50/86 °F, from January 1 (stored).
-    # Kinoshita et al.'s threshold, 51.8 °F on soil temperatures, isn't stored; its sum is converted (above)
+    # UW–Madison's method (XHT1086; XHT1087 gives only the base, 50 °F): the modified average, 50/86 °F, from
+    # January 1 (stored). Kinoshita et al.'s threshold, 51.8 °F on soil temperatures, isn't stored; its sum is converted
+    # (above)
     base_f=50,
     upper_f=86,
     dd_method="modified",
@@ -31,7 +32,7 @@ INSECT = Insect(
     source="UW–Madison's degree-day table and Kinoshita et al. 1979",
     life_stages=(
         # First generation: overwintered adults becoming active and feeding on seedlings and transplants. XHT1087's
-        # "150–200 DD50" are this curve's 10 % (144) and peak (200); the end is a judgment (the old beetles feed into
+        # "Fleabeetles … 150-200 DD50" (2005; no species, no event named) are this curve's 10 % (144) and peak (200); the end is a judgment (the old beetles feed into
         # June and die off as they finish laying). The second generation is the new summer adults
         LifeStage(label="Adults feeding", start=100, peak=200, end=600),
         # Egg laying in the soil at the base of host plants; the larvae feed on root hairs and rarely matter
@@ -52,7 +53,7 @@ INSECT = Insect(
     version="0.2",
     status="beta",
     # XHT1087 gives no years for its numbers; the span runs from Kinoshita et al.'s field seasons (1974–1975) to the
-    # table's last revision (2012). Ontario has no code here, so only Wisconsin is named
+    # table's last revision (2012; the handout read is the 2005 revision). Ontario has no code here, so only Wisconsin is named
     trained=TrainingArea(
         description="adult activity in Wisconsin, as UW–Madison's degree-day table gives it, and development measured in the laboratory and field in southwestern Ontario",
         years=(1974, 2012),
@@ -81,7 +82,7 @@ INSECT = Insect(
     ),
     citations=(
         Citation(
-            text="Delahaut, K. Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087). UW–Madison Division of Extension, Wisconsin Horticulture, revised 2012.",
+            text="Delahaut, K. (2005). Degree Days for Common Fruit and Vegetable Insect Pests (University of Wisconsin Garden Facts XHT1087, revised April 20, 2005). University of Wisconsin–Extension, Cooperative Extension; revised 2012, UW–Madison Division of Extension, Wisconsin Horticulture.",
             url="https://hort.extension.wisc.edu/articles/degree-days-common-fruit-vegetable-insect-pests/",
         ),
         Citation(

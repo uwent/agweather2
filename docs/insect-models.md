@@ -11,24 +11,24 @@ Part H (`docs/plans/models.md`) rebuilt every insect still on a legacy definitio
 | --- | --- | --- | --- | --- |
 | `alfalfa-weevil` | 0.2 | simple average 48, no upper, Jan 1 | curves (hatch, larvae, pupae, adults) | NEWA (Carruthers' table, Harcourt 1981) |
 | `aphid-pvy-vectors` | 0.3 | single sine 39.2/86, Jan 1 | fitted curve, two clocks (D101) | Bradford and Groves (suction traps) |
-| `black-cutworm` | 0.3 | single sine 50/86, trap date (default May 1, fitted to DATCP's traps) | curves; a "present" window while caterpillars can cut | Luckmann et al. 1976; DATCP's pheromone traps |
+| `black-cutworm` | 0.4 | single sine 50/86, trap date (default May 1, fitted to DATCP's traps) | curves; a "present" window while caterpillars can cut (about 289–787 after the capture) | egg Luckmann et al. 1976; larvae Kaster and Showers 1984 (outdoor spring times); DATCP's pheromone traps |
 | `cabbage-looper` | 0.3 | single sine 50/90, trap date (default July 15) | curves, every 912; weights 0.5, 1, 0.5 | USPest `cbl` (Toba et al. 1973) |
-| `cabbage-maggot` | 0.3 | simple average 40, no upper, Jan 1 | curves, every 850 (3 at most); weights 1, 0.5 | NEWA (Jyoti, Shelton and Barnard 2003) |
+| `cabbage-maggot` | 0.4 | simple average 40, no upper, Jan 1 | curves, every 1,275 (3 at most); weights 1, 0.5 | spring flight NEWA (Jyoti, Shelton and Barnard 2003); generation from Jyoti et al.'s trapped peaks and Eckenrode and Chapman 1972 (NEWA's 850 replaced, D104) |
 | `codling-moth` | 0.1 | single sine 50/86, first catch (estimated) | curves, every 1084 (2) | WSU (Jones et al.) |
 | `colorado-potato-beetle` | 0.3 | single sine 52/86, Jan 1 | fitted curves, two clocks | Bradford and Groves (scouting) |
 | `common-asparagus-beetle` | 0.2 | modified 50/86, Jan 1 | curves, every 600 (3) | UW's degree-day table (Delahaut), whose egg, larvae and generation are Taylor and Harcourt 1978's sums |
 | `corn-earworm` | 0.2 | single sine 55/92, egg laying (default Aug 15) | curves | Hartstack et al. 1976 via USPest; DATCP's pheromone traps |
-| `corn-rootworm` | 0.2 | single sine 52, no upper, Jan 1 | curves | Apple, Walgenbach and Knee 1971; Chiang and Sisson 1968 |
+| `corn-rootworm` | 0.3 | single sine 52, no upper, Jan 1 | curves; larvae 550, pupa 200 | hatch Apple, Walgenbach and Knee 1971 (Chiang and Sisson 1968); larvae Davis, Brenes and Allee 1996; pupa Jackson and Elliott 1988; western hatch checked (Wilde 1971; Levine et al. 1992) |
 | `crucifer-flea-beetle` | 0.2 | modified 50/86, Jan 1 | curves, every 1350 (2) | UW's table; Kinoshita et al. 1979 |
 | `european-corn-borer` | 0.3 | modified 50/86, Jan 1 | curves, every 1100 (2); one flight where the normal by August 1 is below 1,500 | UW's degree-day table (not Apple 1952's numbers, which run 1–3 weeks later; read 2026-11-23) |
 | `green-peach-aphid` | 0.1 | single sine 39.2/86, Jan 1 | fitted curve, calendar by default | Bradford and Groves (suction traps) |
-| `imported-cabbageworm` | 0.3 | modified 50/86, Jan 1 | curves, every 840; weights 0.5, 1, 0.5 | UW's degree-day table; Tatchell 1981 |
+| `imported-cabbageworm` | 0.3 | modified 50/86, Jan 1 | curves, every 840; weights 0.5, 1, 0.5 | XHT1087 (Delahaut 2005) on UW's method (XHT1086); Tatchell 1981 (larva); Nealis et al. 1984 (pupa) |
 | `japanese-beetle` | 0.2 | single sine 50/92, Jan 1 | curve | USPest `jpb` version 2 (Minnesota traps) |
 | `mint-flea-beetle` | 0.2 | single sine 41, no upper, Jan 1 | curves | USPest `mfb` |
 | `mint-root-borer` | 0.2 | single sine 50, no upper, Apr 1 | curves | USPest `mrb`; Tollerup et al. 2013 |
-| `onion-maggot` | 0.3 | simple average 40, no upper, Jan 1 | curves, every 1100 (3); weights 1, 0.5 | NEWA (Eckenrode et al. 1975) |
+| `onion-maggot` | 0.4 | simple average 40, no upper, Jan 1 | curves, every 1100 (3); weights 1, 0.1, 0.5 | NEWA (Eckenrode et al. 1975) |
 | `potato-aphid` | 0.1 | single sine 39.2/86, Jan 1 | fitted curve, two clocks | Bradford and Groves (scouting) |
-| `seedcorn-maggot` | 0.3 | simple average 39/84.2, Jan 1 | curves, every 720; weights 1, 0.25 | Sanborn, Funderburk; checked against NEWA |
+| `seedcorn-maggot` | 0.4 | simple average 39/84.2, Jan 1 | curves, every 720; weights 1, 1, 0.25 | Sanborn, Funderburk; checked against NEWA |
 | `spotted-wing-drosophila` | 0.2 | single sine 45/86, Jan 1 | fitted curve | Kamiyama et al. 2020, refitted |
 | `squash-vine-borer` | 0.2 | modified 50/86, Jan 1 | curves | UW, SDSU, MSU, Ohio State (a judgment across them) |
 | `stalk-borer` | 0.2 | single sine 41, no upper, Jan 1 | curve (caterpillars moving into corn) | Lasack and Pedigo 1986; Iowa State, A3646 |
@@ -63,11 +63,11 @@ Part H (`docs/plans/models.md`) rebuilt every insect still on a legacy definitio
 | Corn rootworm | 52/none, Jan 1, (329, 472, 636) | UC IPM `ma-n_corn_rootworm` (events with 90% ranges) | ? (UC IPM page to read) | 🔎 |
 | Crucifer flea beetle | 50/none, Jan 1, 2 gens | UC IPM `ma-crucifer_flea_beetle`; Ulmer & Dosdall 2006 | ? (UC IPM page to read) | 🔎 |
 | European corn borer | 50/86, Jan 1, 2 gens | Univ. Kentucky EF-106; Matteson & Decker 1965; Anderson et al. 1982 | ? | 🔎 |
-| Imported cabbageworm | 50/none, Jan 1, 2 gens | Spreadsheet: "XHT1087" (unknown) | ? | ❓ Ben |
+| Imported cabbageworm | 50/none, Jan 1, 2 gens | Spreadsheet: XHT1087 (Delahaut 2005, UW Garden Facts: base temperatures only) | UW's method (XHT1086), inferred | answered 2026-11-23 |
 | Japanese beetle | 50/none, Jan 1, (970, 1600, 2150) | USPest `jpb` (OSU analysis of lab and field studies); Régnière et al. 1981 | Sine **50/92** °F (spreadsheet 50/100) | 🔎 |
 | Mint flea beetle | 41/none, Jan 1, (1475, 1675, 1880) | USPest `mfb` from Berry et al. (OSU) | Sine 41/103 °F | ❓ paper |
 | Mint root borer | 50/none, Apr 1, (430, 1280, 2150) | USPest `mrb` from Berry et al. (OSU); Tollerup et al. 2013 | Sine 50 °F | ❓ paper |
-| Onion maggot | 39.2/86, Jan 1, 2 gens | Spreadsheet: "XHT1087" (unknown), 40/86; Eckenrode et al. 1975; Liu et al. 1982 | Liu: Allen's sine above 4 °C (39.2 °F); 4.38 °C is the laboratory threshold | read 2026-11-23 |
+| Onion maggot | 39.2/86, Jan 1, 2 gens | Spreadsheet: XHT1087 (Delahaut 2005, UW Garden Facts), 40/86; Eckenrode et al. 1975; Liu et al. 1982 | Liu: Allen's sine above 4 °C (39.2 °F); 4.38 °C is the laboratory threshold | read 2026-11-23 |
 | Spotted wing drosophila | 45/86, Jan 1, (1276, 3180, 4000) | Kamiyama et al. 2020 (VDIFN's link); Tochen et al. 2014 | see paper | 🔎 (open access) |
 | Squash vine borer | 50/none, Jan 1, (750, 900, 1000) | Spreadsheet links only UW vegento | ? | ❓ |
 | Stalk borer | 41/86, Jan 1, (1110, 1400, 1700) | Old UW AgWeather thermal model; Levine 1983 | 5 °C | 🔎 |
@@ -144,7 +144,7 @@ Ordered roughly by how many insects they unblock and how far the current model m
 - **Aphid PVY vectors:** Bradford and Groves, unpublished analysis (now cited). Candidates for comparison: Mondal et al. 2016, _Environmental Entomology_ 45, 1445–1462 ([10.1093/ee/nvw131](https://doi.org/10.1093/ee/nvw131)); Yoho et al. 2026, _Journal of Economic Entomology_ ([10.1093/jee/toag257](https://doi.org/10.1093/jee/toag257)).
 - **Corn earworm:** Hartstack, A. W. et al. (1976), the MOTHZV-2 simulation (a USDA report with no DOI), via USPest.
 - **Corn rootworm:** UC IPM's northern corn rootworm page (to read for its source).
-- **Imported cabbageworm and onion maggot:** the spreadsheet cites "XHT1087". What is it?
+- **Imported cabbageworm and onion maggot:** the spreadsheet cites "XHT1087". **Answered 2026-11-23:** Delahaut, K., Degree Days for Common Fruit and Vegetable Insect Pests, UW Garden Facts XHT1087 (revised April 20, 2005), a two-page handout of degree days with base temperatures only (no method, upper threshold, start date or sources); its cabbageworm entry repeats its asparagus beetle entry word for word.
 - **Mint flea beetle and mint root borer:** "Berry et al." (Oregon State) via USPest; the paper isn't identified.
 - **Variegated cutworm:** Coop, L. B. and Berry, R. E. (1987), via USPest; probably an OSU report.
 - **Tarnished plant bug:** Simko, B. (2000), via USPest; probably an extension report.

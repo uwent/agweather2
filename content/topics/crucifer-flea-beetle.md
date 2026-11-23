@@ -9,7 +9,7 @@ summary: A tiny, shiny black beetle that jumps when disturbed and chews small ro
 image: images/crucifer-flea-beetle.jpg
 image_credit: 'Shot-hole damage from crucifer flea beetles on a Chinese cabbage leaf. Photo by Whitney Cranshaw, Colorado State University, Bugwood.org (image 1243031), via Wikimedia Commons (File:Phyllotreta cruciferae (02).jpg), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/).'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Flea Beetles. Updated 2026.'
@@ -27,7 +27,7 @@ sources:
     text: 'Midwest Vegetable Production Guide 2026: Cole Crops and Brassica Leafy Greens. Land-grant universities of Illinois, Indiana, Iowa, Kansas, Michigan, Minnesota, Missouri and Ohio, 2026.'
     url: https://mwveguide.org/guide
   - key: uw-degree-days
-    text: 'Delahaut, K. Degree Days for Common Fruit & Vegetable Insect Pests (XHT1087). UW–Madison Division of Extension, Wisconsin Horticulture, revised 2012.'
+    text: 'Delahaut, K. Degree Days for Common Fruit and Vegetable Insect Pests (University of Wisconsin Garden Facts XHT1087, revised April 20, 2005). University of Wisconsin–Extension, Cooperative Extension; revised 2012, UW–Madison Division of Extension, Wisconsin Horticulture.'
     url: https://hort.extension.wisc.edu/articles/degree-days-common-fruit-vegetable-insect-pests/
   - key: kinoshita-1979
     text: 'Kinoshita, G. B., H. J. Svec, C. R. Harris and F. L. McEwen. Biology of the crucifer flea beetle, Phyllotreta cruciferae (Coleoptera: Chrysomelidae), in southwestern Ontario. The Canadian Entomologist 111: 1395–1407, 1979.'
