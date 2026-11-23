@@ -299,6 +299,9 @@ class Insect:
                 raise ValueError(f"{self.id}: a place form's stages carry the insect's labels, in order")
             if not isinstance(f.life_stages[0], LifeStage):
                 raise ValueError(f"{self.id}: a place form's first stage needs its own start, peak and end")
+            if [s.weight for s in f.life_stages] != [s.weight for s in self.life_stages]:
+                # the risk without generation weights sums the insect's stages' weights over either form's activity
+                raise ValueError(f"{self.id}: a place form's stages carry the insect's weights")
 
 
 class InsectModel:
@@ -490,7 +493,7 @@ class PhenologyModel(InsectModel):
             *(
                 (
                     Quantity(name=f.name, label=f.label, unit="index"),
-                    Quantity(name=f.normal.key, label=_capitalized(f.normal.label), unit="degF_day"),
+                    Quantity(name=f.normal.key, label=_capitalized(f.normal.label), unit=f.normal.unit),
                 )
                 if (f := i.place_form)
                 else ()
@@ -526,8 +529,7 @@ class PhenologyModel(InsectModel):
             read = evaluate(insect=self.insect, dd_total=timed)
             if (f := self.insect.place_form) is not None:
                 normal, here = self._place_form(values)
-                other = evaluate(insect=form_insect(self.insect), dd_total=timed)
-                read = {name: np.where(here, other[name], value) for name, value in read.items()}
+                read = _with_form(read, insect=form_insect(self.insect), dd_total=timed, here=here)
                 extra[f.name] = np.where(np.isnan(total), np.nan, here.astype(float))
                 extra[f.normal.key] = np.where(np.isnan(total), np.nan, normal)
         for name, value in read.items():
@@ -573,7 +575,9 @@ class PhenologyModel(InsectModel):
         """The place's normal (NaN where it isn't known) and whether the place form applies (never where unknown)."""
         f = self.insect.place_form
         assert f is not None
-        normal = np.asarray(values.get(f.normal.key, np.nan), dtype=float)
+        if f.normal.key not in values:  # every caller passes it, NaN where it isn't known: never silently two flights
+            raise KeyError(f"{self.insect.id} needs the place's {f.normal.key} (NaN where it isn't known)")
+        normal = np.asarray(values[f.normal.key], dtype=float)
         with np.errstate(invalid="ignore"):
             return normal, np.isfinite(normal) & (normal < f.below)
 
@@ -771,10 +775,28 @@ def risk_curve(insect: Insect) -> np.ndarray:
 def weighted_risk(insect: Insect, dd: np.ndarray, here: np.ndarray | None) -> np.ndarray:
     """`risk_curve` at each total (degree days from the stages' start), the place form's where `here` is true."""
     x = dd_grid()
+    dd = np.asarray(dd, dtype=float)
     value = np.interp(dd, x, risk_curve(insect))
-    if insect.place_form is not None and here is not None:
-        value = np.where(here, np.interp(dd, x, risk_curve(form_insect(insect))), value)
+    if insect.place_form is not None and here is not None and np.any(here):
+        where = np.broadcast_to(here, dd.shape)
+        value[where] = np.interp(dd[where], x, risk_curve(form_insect(insect)))
     return value
+
+
+def _with_form(
+    read: dict[str, np.ndarray], *, insect: Insect, dd_total: np.ndarray, here: np.ndarray
+) -> dict[str, np.ndarray]:
+    """`read` (`evaluate`'s curves) with the place form's (`insect`, `form_insect`'s) where `here` is true, evaluated
+    only at those cells' totals: a map where no cell takes the form costs nothing more (`here` broadcasts against the
+    totals, a map's as 1 × y × x). `read`'s arrays are written in place."""
+    if not here.any():
+        return read
+    total = np.asarray(dd_total, dtype=float)
+    where = np.broadcast_to(here, total.shape)
+    other = evaluate(insect=insect, dd_total=total[where])
+    for name, value in read.items():  # `evaluate`'s own arrays, written in place
+        value[where] = other[name]
+    return read
 
 
 @cache

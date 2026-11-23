@@ -15,7 +15,8 @@ from typing import Literal
 from agmodels.ingredients import DegreeDays
 from agmodels.spec import Citation
 
-Start = Literal["planting", "january_1", "biofix"]
+# "date": always the date in `biofix`, which a grower doesn't choose (a model whose biofix is fixed, `Biofix.fixed`)
+Start = Literal["planting", "january_1", "biofix", "date"]
 Group = Literal["crop", "insect"]
 
 
@@ -36,7 +37,7 @@ class DegreeDayPreset:
     label: str  # public: the crop or insect and what the count is for
     setting: DegreeDays
     starts: Start  # when the count usually starts
-    biofix: str | None = None  # MM-DD: the default start of a count from a biofix
+    biofix: str | None = None  # MM-DD: the default start of a count from a biofix, or the fixed start ("date")
     model: str | None = None  # the stage or insect model whose setting this is
     notes: str = ""  # public: where sources differ, what the count is used for
     citations: tuple[Citation, ...]
@@ -308,8 +309,8 @@ CROP_PRESETS: tuple[DegreeDayPreset, ...] = (
 
 @cache
 def insect_presets() -> tuple[DegreeDayPreset, ...]:
-    """One preset per insect model, from its degree-day setting and biofix; a model whose id extends another's with
-    the same setting and start (`colorado-potato-beetle-adults` beside `colorado-potato-beetle`) is left out."""
+    """One preset per insect model, from its degree-day setting and biofix (a fixed one starts on its `date`); a model
+    whose id extends another's with the same setting and start (`colorado-potato-beetle-adults` beside `colorado-potato-beetle`) is left out."""
     from agmodels.registry import all_models
 
     found: list[DegreeDayPreset] = []
@@ -319,6 +320,7 @@ def insect_presets() -> tuple[DegreeDayPreset, ...]:
         if spec.group != "insect" or len(settings) != 1 or spec.status == "retired":
             continue
         biofix = spec.biofix.default if spec.biofix is not None else None
+        fixed = spec.biofix is not None and spec.biofix.fixed
         same = [p for p in found if model_id.startswith(p.id + "-") and p.setting == settings[0] and p.biofix == biofix]
         if same:
             continue
@@ -329,7 +331,7 @@ def insect_presets() -> tuple[DegreeDayPreset, ...]:
                 crops=spec.crops,
                 label=spec.name,
                 setting=settings[0],
-                starts="biofix" if biofix is not None else "january_1",
+                starts="date" if fixed else "biofix" if biofix is not None else "january_1",
                 biofix=biofix,
                 model=model_id,
                 notes=spec.summary,

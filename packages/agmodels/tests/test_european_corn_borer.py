@@ -22,7 +22,8 @@ def test_degree_days_are_uw_madisons_modified_average_from_january_1():
     np.testing.assert_allclose(
         degree_days_modified(np.array([40.0, 70.0]), np.array([70.0, 95.0]), base=50, upper=86), [10, 28]
     )
-    out = MODEL.outputs({"air_temperature_min": np.array([4.4, 21.1]), "air_temperature_max": np.array([21.1, 35.0])})
+    weather = {"air_temperature_min": np.array([4.4, 21.1]), "air_temperature_max": np.array([21.1, 35.0])}
+    out = MODEL.outputs(weather | {INSECT.place_form.normal.key: np.array(np.nan)})  # type: ignore[union-attr]
     np.testing.assert_allclose(out["dd"], [10, 28], atol=0.05)
 
 

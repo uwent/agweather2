@@ -26,7 +26,7 @@ itself complete last. It's stale when its years, a year's copy, the gridMET fit 
 """
 
 import shutil
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -421,7 +421,11 @@ def read_map(
     """A stored statistic (`<name>/<stat>`) for a calendar day (`day`'s slot; a single map takes None) over
     `window` (default the store's), float64 in its unit, NaN where missing. A KeyError for one the store lacks."""
     group = zarr.open_group(path(data_dir, period), mode="r")
-    attrs: dict[str, Any] = dict(group.attrs)
+    return _read(group, dict(group.attrs), name, day, window)
+
+
+def _read(group: Any, attrs: dict[str, Any], name: str, day: date | None, window: Window | None) -> np.ndarray:
+    """`read_map` from an open store (`group`, with its `attrs`)."""
     array = group[name]
     assert isinstance(array, zarr.Array)
     w = Window(**attrs["window"])
@@ -460,18 +464,31 @@ def stamp(data_dir: Path, period: str) -> str | None:
 def read_within(data_dir: Path, period: str, name: str, day: date | None, window: Window) -> np.ndarray:
     """`read_map` over any window: NaN where it reaches past the store's (the normals cover the area their years
     do, which can be less than the archive's)."""
-    attrs = info(data_dir, period)
-    if attrs is None:
+    found = _opened(data_dir, period)
+    if found is None:
         raise KeyError(f"{period} isn't built")
+    return _within(*found, name=name, day=day, window=window)
+
+
+def _opened(data_dir: Path, period: str) -> tuple[Any, dict[str, Any]] | None:
+    """A built store, open, and its attributes (`info`'s), or None."""
+    try:
+        group = zarr.open_group(path(data_dir, period), mode="r")
+    except (FileNotFoundError, GroupNotFoundError):
+        return None
+    attrs: dict[str, Any] = dict(group.attrs)
+    return (group, attrs) if attrs.get("complete") else None
+
+
+def _within(group: Any, attrs: dict[str, Any], *, name: str, day: date | None, window: Window) -> np.ndarray:
+    """`read_within` from an open store."""
     w = Window(**attrs["window"])
     out = np.full(window.shape, np.nan)
     j0, j1 = max(window.j0, w.j0), min(window.j1, w.j1)
     i0, i1 = max(window.i0, w.i0), min(window.i1, w.i1)
     if j0 < j1 and i0 < i1:
         inner = Window(j0=j0, j1=j1, i0=i0, i1=i1)
-        out[j0 - window.j0 : j1 - window.j0, i0 - window.i0 : i1 - window.i0] = read_map(
-            data_dir, period, name, day, inner
-        )
+        out[j0 - window.j0 : j1 - window.j0, i0 - window.i0 : i1 - window.i0] = _read(group, attrs, name, day, inner)
     return out
 
 
@@ -515,28 +532,40 @@ def percentile_among(value: np.ndarray, deciles: list[np.ndarray]) -> np.ndarray
 def place_normal(data_dir: Path, normal: PlaceNormal, window: Window) -> np.ndarray:
     """A model's normal of the place over `window`: the period's mean running total of the variable from January 1
     through the normal's day. NaN where the normals don't reach, or everywhere if the period isn't built."""
-    if info(data_dir, normal.period) is None:
-        return np.full(window.shape, np.nan)
-    month, day = (int(p) for p in normal.through.split("-"))
-    try:
-        return read_within(
-            data_dir, normal.period, f"{normal.variable}/mean", date(climatology.LEAP, month, day), window
-        )
-    except KeyError:
-        return np.full(window.shape, np.nan)
+    return read_place_normals(data_dir, (normal,), window)[normal]
+
+
+def read_place_normals(data_dir: Path, wanted: Sequence[PlaceNormal], window: Window) -> dict[PlaceNormal, np.ndarray]:
+    """Each of `wanted` over `window` (`place_normal`), each period's store opened once."""
+    opened: dict[str, tuple[Any, dict[str, Any]] | None] = {}
+    out = {}
+    for normal in wanted:
+        if normal.period not in opened:
+            opened[normal.period] = _opened(data_dir, normal.period)
+        store = opened[normal.period]
+        month, day = (int(p) for p in normal.through.split("-"))
+        try:
+            if store is None:
+                raise KeyError(normal.period)
+            out[normal] = _within(
+                *store, name=f"{normal.variable}/mean", day=date(climatology.LEAP, month, day), window=window
+            )
+        except KeyError:  # the period isn't built, or its store lacks the variable
+            out[normal] = np.full(window.shape, np.nan)
+    return out
 
 
 def place_normals(data_dir: Path, spec: ModelSpec, window: Window) -> dict[str, np.ndarray]:
     """Every place normal a model reads over `window`, by key."""
-    return {n.key: place_normal(data_dir, n, window) for n in spec.place_normals}
+    return {n.key: v for n, v in read_place_normals(data_dir, spec.place_normals, window).items()}
 
 
-def place_normals_at(data_dir: Path, spec: ModelSpec, cell: tuple[int, int] | None) -> dict[str, float]:
-    """Every place normal a model reads at a grid cell (j, i), by key; NaN off the grid (None) or where missing."""
-    if not spec.place_normals:
-        return {}
+def place_normals_at(
+    data_dir: Path, wanted: Sequence[PlaceNormal], cell: tuple[int, int] | None
+) -> dict[PlaceNormal, float]:
+    """Each of `wanted` at a grid cell (j, i); NaN off the grid (None) or where missing."""
     if cell is None:
-        return {n.key: float("nan") for n in spec.place_normals}
+        return {n: float("nan") for n in wanted}
     j, i = cell
-    found = place_normals(data_dir, spec, Window(j0=j, j1=j + 1, i0=i, i1=i + 1))
-    return {key: float(values[0, 0]) for key, values in found.items()}
+    found = read_place_normals(data_dir, wanted, Window(j0=j, j1=j + 1, i0=i, i1=i + 1))
+    return {n: float(values[0, 0]) for n, values in found.items()}

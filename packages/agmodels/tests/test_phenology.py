@@ -268,7 +268,9 @@ def _form_insect():
     from agmodels.phenology import PlaceForm
     from agmodels.spec import PlaceNormal
 
-    normal = PlaceNormal(variable="dd_modified_50_86", through="08-01", label="the normal", missing="No normal here.")
+    normal = PlaceNormal(
+        variable="dd_modified_50_86", unit="degF_day", through="08-01", label="the normal", missing="No normal here."
+    )
     one = LifeStage(label="Adult flight", start=900, peak=1400, end=1900)
     form = PlaceForm(
         name="one_flight",
@@ -349,3 +351,125 @@ def test_a_fixed_biofix_is_declared_in_the_spec():
     m = PhenologyModel(insect=replace(INSECT, biofix="03-01", biofix_fixed=True), summary="")
     assert m.SPEC.biofix is not None and m.SPEC.biofix.fixed
     assert PhenologyModel(insect=INSECT, summary="").SPEC.biofix.fixed is False  # type: ignore[union-attr]
+
+
+def test_a_place_form_is_evaluated_only_where_it_applies_with_the_same_outputs():
+    """The form's curves are read only at its cells and scattered back (a map where no cell takes it costs nothing
+    more): the outputs match reading both forms everywhere and choosing per cell, on a grid mixing both forms, an
+    unknown normal and days without a total."""
+    from agmodels.phenology import form_insect
+
+    insect, normal = _form_insect()
+    m = PhenologyModel(insect=replace(insect, generation_dd=720.0), summary="")
+    rng = np.random.default_rng(1)
+    total = np.cumsum(rng.uniform(0, 40, (60, 4, 5)), axis=0)
+    total[3:6, 1, 2] = np.nan
+    cells = np.array([[1400.0, 1600.0, np.nan, 1499.0, 1500.0]] * 4)[None]  # (1, y, x), as a map passes it
+    grid = {"dd_total": total, "dd": np.zeros(total.shape), m.FREEZE: np.ones(total.shape), normal.key: cells}
+    new = m.finish(grid)
+    here = np.isfinite(cells) & (cells < 1500)
+    own, other = evaluate(insect=m.insect, dd_total=total), evaluate(insect=form_insect(m.insect), dd_total=total)
+    for name, value in own.items():  # the full evaluation it replaces
+        np.testing.assert_array_equal(new[name], np.where(here, other[name], value), err_msg=name)
+    np.testing.assert_array_equal(
+        m.risk(new), np.sum([s.weight * new[f"activity_{s.key}"] for s in m.insect.life_stages], axis=0)
+    )
+    # nowhere: the insect's own curves, and the form's never read
+    south = m.finish(grid | {normal.key: np.full((1, 4, 5), 1600.0)})
+    for name, value in own.items():
+        np.testing.assert_array_equal(south[name], value, err_msg=name)
+    # with generation weights, the risk's curve too
+    weighted = PhenologyModel(insect=replace(m.insect, generation_weights=(1.0, 0.5)), summary="")
+    from agmodels.phenology import risk_curve
+
+    risk = weighted.risk(weighted.finish(grid))
+    x = dd_grid()
+    expected = np.where(
+        here,
+        np.interp(total, x, risk_curve(form_insect(weighted.insect))),
+        np.interp(total, x, risk_curve(weighted.insect)),
+    )
+    np.testing.assert_array_equal(risk, np.where(np.isnan(total), np.nan, expected))
+
+
+def test_a_place_normal_never_supplied_is_refused_not_taken_as_missing():
+    """A caller that forgets the normal would get two flights everywhere without a word: `finish` raises; NaN passed
+    explicitly is the fallback, with the run's warning."""
+    insect, normal = _form_insect()
+    m = PhenologyModel(insect=insect, summary="")
+    base = {"dd_total": np.array([360.0]), "dd": np.zeros(1), m.FREEZE: np.ones(1)}
+    with pytest.raises(KeyError, match=normal.key):
+        m.finish(base)
+    assert m.finish(base | {normal.key: np.array(np.nan)})["one_flight"].tolist() == [0]
+
+
+def test_a_place_forms_stages_carry_the_insects_weights():
+    """The risk without generation weights sums the insect's stages' weights over either form's activity."""
+    insect, _ = _form_insect()
+    f = insect.place_form
+    assert f is not None
+    with pytest.raises(ValueError, match="weights"):
+        replace(insect, place_form=replace(f, life_stages=(f.life_stages[0], replace(f.life_stages[1], weight=1.0))))
+
+
+def _fixed_model_and_weather():
+    from datetime import date, timedelta
+    from typing import cast
+
+    from agmodels.spec import Model
+
+    m = cast(Model, PhenologyModel(insect=replace(INSECT, biofix="03-01", biofix_fixed=True), summary=""))
+    dates = [date(2025, 1, 1) + timedelta(days=k) for k in range(200)]
+    daily = {"air_temperature_min": np.full(200, 10.0), "air_temperature_max": np.full(200, 25.0)}
+    return m, dates, daily
+
+
+def _fixed_run(biofix):
+    from agmodels import runner
+
+    m, dates, daily = _fixed_model_and_weather()
+    return runner.run(m, dates=dates, daily=daily, latitude=45.0, biofix=biofix)
+
+
+def _fixed_scenarios(biofix):
+    from agmodels import scenarios
+
+    m, dates, daily = _fixed_model_and_weather()
+    two = {name: np.stack([v, v + 1], axis=1) for name, v in daily.items()}
+    return scenarios.run_scenarios(m, dates=dates, daily=two, latitude=45.0, biofix=biofix)
+
+
+def test_the_runner_refuses_another_date_for_a_fixed_biofix():
+    """Below the API, so scenarios, sites and alerts can't bypass it: the default date is the same run, and accepted."""
+    from datetime import date
+
+    from agmodels.runner import FixedBiofixError
+
+    assert _fixed_run(None).biofix == date(2025, 3, 1)
+    assert _fixed_run(date(2025, 3, 1)).biofix == date(2025, 3, 1)
+    with pytest.raises(FixedBiofixError, match="03-01"):
+        _fixed_run(date(2025, 4, 1))
+    with pytest.raises(FixedBiofixError):
+        _fixed_scenarios(date(2025, 4, 1))
+    assert len(_fixed_scenarios(date(2025, 3, 1))) == 2
+
+
+def test_scenarios_carry_the_places_normal_and_its_warning():
+    from datetime import date, timedelta
+    from typing import cast
+
+    from agmodels import scenarios
+    from agmodels.spec import Model
+
+    insect, normal = _form_insect()
+    m = cast(Model, PhenologyModel(insect=insect, summary=""))
+    dates = [date(2025, 1, 1) + timedelta(days=k) for k in range(250)]
+    one = {"air_temperature_min": np.full(250, 12.0), "air_temperature_max": np.full(250, 26.0)}
+    daily = {name: np.stack([v, v - 2], axis=1) for name, v in one.items()}
+    north = scenarios.run_scenarios(m, dates=dates, daily=daily, latitude=45.0, place={normal.key: 1400.0})
+    unknown = scenarios.run_scenarios(m, dates=dates, daily=daily, latitude=45.0)
+    assert [r.outputs["one_flight"][200] for r in north] == [1, 1]
+    assert [r.outputs[normal.key][200] for r in north] == [1400, 1400]
+    assert all(r.place_warnings == () for r in north)
+    assert [r.outputs["one_flight"][200] for r in unknown] == [0, 0]
+    assert all(r.place_warnings == ("No normal here.",) for r in unknown)

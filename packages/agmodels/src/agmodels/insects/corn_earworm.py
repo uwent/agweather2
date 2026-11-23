@@ -64,7 +64,7 @@ INSECT = Insect(
     ),
     citations=(
         Citation(
-            text="Hartstack, A. W., et al. (1976). MOTHZV-2: a computer simulation of Heliothis zea and Heliothis virescens population dynamics. USDA Agricultural Research Service (not read; its rates as USPest.org and UC IPM give them).",
+            text="Hartstack, A. W., et al. (1976). MOTHZV-2: a computer simulation of Heliothis zea and Heliothis virescens population dynamics. USDA Agricultural Research Service, ARS-S-127.",
         ),
         Citation(
             text="USPest.org, Oregon State University: corn earworm degree-day model (Hartstack et al. 1976).",

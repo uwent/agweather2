@@ -81,8 +81,8 @@ def test_asparagus_beetle_has_three_generations_from_taylor_and_harcourt():
     """Taylor and Harcourt 1978: egg (100), larvae (300) and pupa (166, their 92 °C·d), and about 30 from new adults to
     the next eggs (their field peaks a day or two apart, Table III); Taylor 1979: three generations in eastern
     Ontario."""
-    assert abs(common_asparagus_beetle.EGG + common_asparagus_beetle.LARVAE + 92 * 1.8 + 30 - CAB.generation_dd) <= 5
     assert CAB.generation_dd == 600 and CAB.max_generations == 3
+    assert abs(common_asparagus_beetle.EGG + common_asparagus_beetle.LARVAE + 92 * 1.8 + 30 - CAB.generation_dd) <= 5
     gens = shares(CAB)
     assert len(gens) == 3
     assert abs((dd_at(gens[1], 0.5) - dd_at(gens[0], 0.5)) - 600) <= 10

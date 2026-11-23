@@ -31,7 +31,7 @@ In an average year (AgWeather's degree days for 1996 to 2025), the first moths c
 ## How to read it
 
 - **The model may run late.** In California peppermint it put the peak flight 10 to 25 days after the traps' in most cases, and 90 % of the catch two weeks to a month after. Whether it runs late in Wisconsin isn't known, so set traps before the window opens, and sample larvae by what your traps and soil samples show rather than by the model's dates alone.
-- From the window's opening, use pheromone-baited sticky traps or a sweep net to see when moths are flying. Moth catches have no treatment threshold of their own; read them with the field's history to plan control of the eggs and young larvae.
+- Use pheromone-baited sticky traps, set out before the window opens, or a sweep net to see when moths are flying. Moth catches have no treatment threshold of their own; read them with the field's history to plan control of the eggs and young larvae.
 - Decide on treatment from the larvae. Sample after harvest, from late August through mid-September, when most larvae are big enough to find but haven't yet done much damage: dig square-foot samples of soil to the depth of the rhizomes, sift them and count the larvae. The Pacific Northwest handbook suggests treating at two to four larvae per square foot, depending on the age and vigor of the stand, other pests and stresses, and the price of mint oil.
 - Commercial Vegetable Production in Wisconsin doesn't cover this insect. Check that any product is registered for mint in Wisconsin before you use it.
 

@@ -102,7 +102,7 @@ INSECT = Insect(
             note="Rebuilt on Luckmann et al. 1976: from a significant moth capture (May 1 without a date, from DATCP's pheromone traps), egg laying, leaf-feeding caterpillars and cutting caterpillars (fourth instar to pupation, 306 to 729 degree days after an egg is laid), single sine 50/86 °F. Replaces VDIFN's window (300, 700, 1,000 degree days from May 15), which peaked after cutting ends.",
         ),
         Change(
-            version="0.4",
+            version="0.3",
             date="2026-11-23",
             note="A window to scout and treat while caterpillars can cut plants: from the first caterpillars big enough to cut (about 310 degree days after the capture) until 90 % have pupated (about 900).",
         ),

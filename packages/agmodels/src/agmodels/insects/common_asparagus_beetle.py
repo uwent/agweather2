@@ -38,8 +38,8 @@ INSECT = Insect(
     # Adult to adult, from Taylor and Harcourt 1978: the egg (100), the larvae (300), the pupa (166, their 92 °C·d;
     # egg to adult 317 °C·d, 571 °F·d) and the days from new adults to the next eggs, about 30: in their field counts
     # near Ottawa in 1976 each generation's adults peaked 1 to 2 days before the next generation's eggs (July 2 and 4,
-    # August 6 and 7; Table III), 20 to 40 degree days at July's normal 20 a day at Arlington. 596, kept at 600. (Version 0.2 split the same
-    # 600 as a pupa of 120 and 80 before laying, from UW's days)
+    # August 6 and 7; Table III), 20 to 40 degree days at July's normal 20 a day at Arlington. 596, kept at 600. (Until 2026-11-23 version 0.2
+    # split the same 600 as a pupa of 120 and 80 before laying, from UW's days)
     generation_dd=600,
     # Three generations at most: Taylor 1979 found three in eastern Ontario; UW–Madison gives two to three. At 600 a
     # generation, southern Wisconsin's normal season (about 2,500 degree days by September 15 at Arlington) would
@@ -76,7 +76,7 @@ INSECT = Insect(
         Check(
             kind="published",
             against="UW–Madison's and Commercial Vegetable Production in Wisconsin's descriptions of the season, on AgWeather's 1996–2025 normals",
-            result="The beetles become active in late April in southern Wisconsin and early May in the north, and half are out by May 10 at Arlington and May 20 at Rhinelander, as UW–Madison and A3422 describe (adults in April to early May). The second generation's beetles peak in mid to late June and the third in mid to late July.",
+            result="The beetles become active in late April in southern Wisconsin and early May in the north, and half are out by May 10 at Arlington and May 20 at Rhinelander, as UW–Madison and A3422 describe (adults in April to early May). The second generation's beetles peak in late June (early July at Rhinelander) and the third in late July (early August at Rhinelander).",
             report="docs/validation/models/common-asparagus-beetle.md#on-the-normals",
         ),
     ),

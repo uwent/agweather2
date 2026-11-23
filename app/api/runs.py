@@ -22,7 +22,7 @@ from agdata.planting import CROPS, TIERS, PlantingDate, planting_crop, typical_p
 from agdata.series import RunSpec
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
-from agmodels.runner import stage_date_option
+from agmodels.runner import FixedBiofixError, check_biofix, stage_date_option
 from agmodels.spec import Model, ModelSpec, Option
 from api.errors import ApiError, quoted
 
@@ -95,13 +95,16 @@ def plan(
         raise ApiError(
             "not_applicable", f"The {spec.name} model doesn't take a biofix date. Leave out 'biofix'.", "biofix"
         )
-    if biofix is not None and spec.biofix is not None and spec.biofix.fixed:
+    try:  # the runner refuses it too (`runner.check_biofix`), whatever calls it; this says so in the API's words
+        check_biofix(spec, biofix)
+    except FixedBiofixError:
+        assert spec.biofix is not None
         month, day = (int(p) for p in spec.biofix.default.split("-"))
         raise ApiError(
             "not_applicable",
             f"The {spec.name} model always counts from {date(2001, month, day):%B} {day}, so it doesn't take a biofix date. Leave out {quoted('biofix')}.",
             "biofix",
-        )
+        ) from None
 
     axes: list[tuple[str, list[Any]]] = [("planting_date", plantings)]
     axes += [*own.items(), *crop_opts.items()]

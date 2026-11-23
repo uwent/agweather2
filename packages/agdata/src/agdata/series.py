@@ -36,7 +36,7 @@ from agmodels import runner
 from agmodels.registry import model as find_model
 from agmodels.runner import ModelRun
 from agmodels.scenarios import run_scenarios
-from agmodels.spec import ModelSpec
+from agmodels.spec import ModelSpec, PlaceNormal
 
 HOUR = timedelta(hours=1)
 MAX_RUN_AGE = timedelta(hours=12)  # past this a run's forecast isn't used (D43; the job runs every 6 hours)
@@ -821,6 +821,7 @@ def runs_at_point(
     first, names = days_needed(runs, start)
     days = read_days(first, end, names)
     county = county_at(latitude, longitude)
+    place = place_reader(data_dir, latitude, longitude)
     results = []
     for run in runs:
         m = find_model(run.model_id)
@@ -844,7 +845,7 @@ def runs_at_point(
                 crop_options=run.crop_options,
                 in_region=in_region,
                 gap_fill=GAP_FILL,
-                place=place_at(data_dir, m.SPEC, latitude, longitude),
+                place=place(m.SPEC),
             )
         )
         results[-1].sources, results[-1].corrections = days.sources, days.corrections
@@ -856,11 +857,26 @@ def place_at(data_dir: Path | None, spec: ModelSpec, latitude: float, longitude:
     """The normals of the place a model reads (`ModelSpec.place_normals`) at the point's cell, from the normal maps
     (`normals.place_normals_at`, the same values a map reads): NaN outside the grid or the normals' area, and
     without a data folder."""
-    if not spec.place_normals:
-        return {}
-    if data_dir is None:
-        return {n.key: float("nan") for n in spec.place_normals}
-    return normals.place_normals_at(data_dir, spec, NDFD.cell_of(latitude, longitude))
+    return place_reader(data_dir, latitude, longitude)(spec)
+
+
+def place_reader(data_dir: Path | None, latitude: float, longitude: float) -> Callable[[ModelSpec], dict[str, float]]:
+    """`place_at` for one point and many runs: each normal is read once at the point's cell, however many runs
+    (models, option sets) read it."""
+    cell = NDFD.cell_of(latitude, longitude) if data_dir is not None else None
+    found: dict[PlaceNormal, float] = {}
+
+    def read(spec: ModelSpec) -> dict[str, float]:
+        wanted = [n for n in spec.place_normals if n not in found]
+        if wanted:
+            found.update(
+                normals.place_normals_at(data_dir, wanted, cell)
+                if data_dir is not None
+                else {n: float("nan") for n in wanted}
+            )
+        return {n.key: found[n] for n in spec.place_normals}
+
+    return read
 
 
 def outside_training_area(spec: ModelSpec, county: County | None) -> bool:
@@ -922,6 +938,7 @@ def projected_runs(
         {name: days.values[name][:kept] for name in names}, days.kinds[:kept], scenarios_found
     )
     dates = days.dates[:kept] + scenarios_found.dates
+    place = place_reader(data_dir, latitude, longitude)
     out = []
     for run in runs:
         m = find_model(run.model_id)
@@ -940,7 +957,7 @@ def projected_runs(
             crop_options=run.crop_options,
             in_region=in_region,
             gap_fill=GAP_FILL,
-            place=place_at(data_dir, m.SPEC, latitude, longitude),
+            place=place(m.SPEC),
         )
         for r in found:
             r.sources, r.corrections = days.sources, days.corrections

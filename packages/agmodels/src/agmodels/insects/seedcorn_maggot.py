@@ -53,7 +53,7 @@ INSECT = Insect(
         Change(
             version="0.4",
             date="2026-11-23",
-            note="The first generation's flight in early June weighs as much as the over-wintered flight in the risk, and only the generations after it a quarter: in Iowa that June flight was as large as the spring flight or larger (Funderburk, Higley and Pedigo 1984, Fig. 2), and New York's mid-June peak was its largest (Throne and Eckenrode 1985).",
+            note="The first generation's flight in early June weighs as much as the over-wintered flight in the risk, and only the generations after it a quarter: in Iowa that June flight was as large as the spring flight or larger (Funderburk, Higley and Pedigo 1984, Fig. 2), and New York's mid-June peak is a large one (Throne and Eckenrode 1985).",
         ),
     ),
     source=CRT,

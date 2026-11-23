@@ -44,3 +44,21 @@ def test_each_insect_model_gives_a_preset_with_its_setting_and_biofix():
     modelled = {m for m, mod in all_models().items() if mod.SPEC.group == "insect" and mod.SPEC.status != "retired"}
     # western bean cutworm's capped mean (Hanson et al. 2015) isn't a calculator method, so it has no preset
     assert set(insects) == modelled - {"western-bean-cutworm"}
+
+
+def test_a_fixed_biofix_is_a_fixed_date_not_the_users(monkeypatch):
+    """A model whose biofix is fixed (`Biofix.fixed`) starts on its date, which the preset doesn't offer as the
+    user's to choose. Western bean cutworm, the one today, has no preset (its capped mean isn't a calculator method),
+    so a stand-in with a sine setting."""
+    from dataclasses import replace
+
+    from agmodels import registry
+    from agmodels.phenology import model_for
+    from agmodels.presets import insect_presets
+
+    weevil = all_models()["alfalfa-weevil"]
+    fixed = model_for(replace(weevil.insect, id="fixed-weevil", biofix="03-01", biofix_fixed=True), summary="")  # type: ignore[attr-defined]
+    monkeypatch.setattr(registry, "all_models", lambda: {"alfalfa-weevil": weevil, "fixed-weevil": fixed})
+    found = {p.id: p for p in insect_presets.__wrapped__()}
+    assert (found["fixed-weevil"].starts, found["fixed-weevil"].biofix) == ("date", "03-01")
+    assert found["alfalfa-weevil"].starts == "biofix"

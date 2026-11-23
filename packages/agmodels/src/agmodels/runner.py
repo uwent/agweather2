@@ -87,6 +87,22 @@ def default_biofix(spec: ModelSpec, start: date) -> date | None:
     return biofix if (month, day) >= first else date(begins + 1, month, day)
 
 
+class FixedBiofixError(ValueError):
+    """A biofix date given to a model whose biofix is fixed (`Biofix.fixed`) that isn't its default date."""
+
+
+def check_biofix(spec: ModelSpec, biofix: date | None) -> None:
+    """Refuses a grower's biofix for a model whose biofix is fixed (`Biofix.fixed`: western bean cutworm's March 1),
+    whatever calls the runner (the API, scenarios, sites, alerts): a date equal to the default in its own season is
+    the same run, and accepted."""
+    if biofix is None or spec.biofix is None or not spec.biofix.fixed:
+        return
+    if biofix != default_biofix(spec, biofix):
+        raise FixedBiofixError(
+            f"{spec.id} always counts from {spec.biofix.default} (MM-DD); it takes no other biofix, got {biofix}"
+        )
+
+
 def first_day_needed(m: Model, start: date, biofix: date | None = None, planting: date | None = None) -> date:
     """The first day `run` needs for outputs from `start`: the earliest of start less the lookback, the biofix and
     the planting date (for a gated or stage-anchored model)."""
@@ -121,9 +137,11 @@ def run(
     (`stage_date`, which replaces the crop's stages when given). `gap_fill` gives each input's estimate for
     missing days (the catalog's `GAP_FILL`); inputs without one are passed as they are. `place` gives the place's
     fixed values the model reads (`ModelSpec.place_normals`, by key); one missing or NaN is passed as NaN, and the
-    run carries its warning."""
+    run carries its warning. A biofix other than the default for a model whose biofix is fixed raises
+    `FixedBiofixError` (`check_biofix`)."""
     m = find_model(m) if isinstance(m, str) else m
     spec = m.SPEC
+    check_biofix(spec, biofix)
     dates = list(dates)
     day_kinds: list[str | None] = list(kinds) if kinds is not None else [None] * len(dates)
     start = start or dates[0]

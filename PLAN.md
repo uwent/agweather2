@@ -37,17 +37,19 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 
 **This session (2026-11-23):**
 
-- **Part H round 2 (D103), built and merged:** Ben answered part H's ten questions (all as proposed). Two agents built them in worktrees (brief `tmp/briefs/h2-build-brief.md`, reports in `tmp/h2/`): a normal of each place read by models (`PlaceNormal`), European corn borer 0.3 with one flight where the normal by August 1 is below 1,500 (Wausau's traps a median 0 days off), weights per generation (both maggots, seedcorn maggot, cabbageworm, looper, 0.3), cabbage maggot capped at three flights, a "present" window (black cutworm 0.3), a fixed biofix the API refuses (western bean cutworm), `tarnished-plant-bug` retired, labels and cautions on six more. The whole suite passes (4,178); `rebuild --check` and `ingredients --check` are clean (the weights apply when a model is evaluated).
-- The plans were reorganized (Ben, 2026-11-23, after WISP 3's): this file is the handoff; decisions and questions in `docs/decisions.md`; architecture in `docs/architecture.md`; each phase and side plan in `docs/plans/`. The models plan and the humidity plan no longer carry handoffs of their own (the models plan's old one is its "Record").
+- **Plans reorganized** (after WISP 3's): this file is the handoff; decisions and questions in `docs/decisions.md`; architecture in `docs/architecture.md`; each phase and side plan in `docs/plans/`, which carry status, not handoffs.
+- **Part H round 2 (D103):** Ben's ten answers built by agents in worktrees: a normal of each place read by models (`PlaceNormal`, `PlaceForm`; corn borer's one flight where the normal by August 1 is below 1,500), weights per generation, a "present" window (black cutworm), a fixed biofix (western bean cutworm), `tarnished-plant-bug` retired.
+- **The papers read in full (D104):** Ben fetched 40 papers and UW's XHT1087 handout; agents read each against its models (reports in `tmp/papers/`), then built Ben's approved changes: cabbage maggot 0.5 (a generation of 1,275 DD40 instead of NEWA's 850; a partial fourth flight ended by fall freezes), seedcorn maggot 0.4 and onion maggot 0.4 (weights), corn rootworm 0.3 (larvae 550, pupa 200), black cutworm 0.4 (Kaster and Showers' outdoor times). XHT1087 gives base temperatures only (the modified average is our reading).
+- **Review of the day's work** (reports in `tmp/review/`): cold checks of all 20 changed insects' pages, reports and topic pages (about 60 corrections, no output changes: stale wording from earlier versions, overclaimed sources such as XHT1086 and A3646, dates out of step with the code); a code review of the engine changes, all eight findings fixed (`/risk` now warns when the normal is missing; the one-flight form evaluated only where it applies, halving corn borer's map cost; the fixed biofix enforced in the runner; a run must be given its normal; normals read once per point). The whole suite passes (4,200), pyright clean, `rebuild --check` clean.
 
 **Next, in order** (proposed 2026-11-23; see Ben's open choices):
 
-1. **Cold checks of round 2's changed pages** (`tmp/briefs/verify-brief.md`; the seven 0.3 insects, tarnished plant bug's retirement, the cautions), at most four agents at once.
-2. **Step 7's launch-box profile** first of the engineering, since it can change how maps are stored: a synthetic `upper_midwest` archive, then `manage.py latency` and the jobs. Apple scab's map takes 8 s and fire blight's 19 s over Wisconsin today; the box has 11.7× the cells.
-3. **Step 5**, site services: changelog and announcements, the API use form, the verification archive, Open-Meteo when NBM is stale, Open-Meteo usage.
-4. **Step 6**, new sources: soil moisture (send the ERA5-Land requests early: the CDS queue takes hours) and cropland fractions.
-5. **Step 7's rest** and the **end-of-phase review** (code, docs, tests), then Phase 7.
-6. Alongside, as answers arrive: models parts C–G and J ([docs/plans/models.md](docs/plans/models.md), each planned first), D100's humidity correction ([docs/plans/humidity.md](docs/plans/humidity.md), step 1: is URMA the right target in Oklahoma).
+1. **Step 7's launch-box profile** first of the engineering, since it can change how maps are stored: a synthetic `upper_midwest` archive, then `manage.py latency` and the jobs. Apple scab's map takes 8 s and fire blight's 19 s over Wisconsin today; the box has 11.7× the cells. Corn borer's map needs the normals over the launch box (Wisconsin only now: elsewhere two flights with a warning).
+2. **Step 5**, site services: changelog and announcements, the API use form, the verification archive, Open-Meteo when NBM is stale, Open-Meteo usage.
+3. **Step 6**, new sources: soil moisture (send the ERA5-Land requests early: the CDS queue takes hours) and cropland fractions.
+4. **Step 7's rest** and the **end-of-phase review** (code, docs, tests), then Phase 7.
+5. Alongside, as answers arrive: models parts C–G and J ([docs/plans/models.md](docs/plans/models.md), each planned first), D100's humidity correction ([docs/plans/humidity.md](docs/plans/humidity.md), step 1: is URMA the right target in Oklahoma).
+6. Small: a top-level `"biofix"` in a JSON POST body is ignored without a word (only `options.biofix` is read; pre-existing): refuse or read it. `scripts/maggot_normals.py` could carry the fourth flight's freeze table (now from a scratch script; the report gives the recipe).
 
 **Where things stand:**
 
@@ -63,7 +65,9 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 ## Ben's open choices
 
 - **The order above** (proposed 2026-11-23): steps 5–7 as the gate to the frontend, with models parts C–G and J alongside Phase 7 rather than before it (Ben, 2026-11-17, had put all of step 4 before the frontend).
-- **A fourth cabbage maggot flight?** (D104) At 1,275 DD40 a generation, the three-flight cap (Wisconsin's count in Eckenrode and Chapman 1972) binds in 60 of 67 station-seasons: a fourth flight would start in mid- to late September in southern and central Wisconsin, and the model doesn't show it (a risk to fall crucifers). Keep the cap, or show a partial fourth flight?
+- **Lake Winnebago in the normals:** inland lakes carry a lake-cooled normal (URMA's years have values over them; gridMET's coast rule covers only the Great Lakes), so corn borer's map shows a one-flight patch over Lake Winnebago (22 isolated cells). Fix: build the normals with the terrain store's water mask and fill water cells from land neighbours by the coast rule (a `normals.VERSION` bump and rebuilding `last5`, `last10`, `last30`), or, cheaper, mask the normals with `regions.water` when read (drops the patch, keeps the shore's cooled values).
+- **Generation weights** are judgments (TODO.md): the looper's halve the season's only caterpillar peak north of Arlington.
+- **Black cutworm's "DATCP uses nine moths"** has no source on DATCP's trap page: find one or drop it.
 - **The Crop Risk Tool audit's questions for the authors** (`tmp/crt-model-audit.md`).
 - **Cabbage maggot transplant timing:** UW's pages against A3422.
 - **Spotted wing drosophila** (its report): three trap-seasons that look copied (P Mulch / P Plant Path 2016 and 2018, P Fence / Seaq Hiland 2017: check the field sheets); hold at the peak after it, rather than the fitted decline resting on 2015 alone; an erratum to the journal; newer counts (berries, into October, outside Door County).

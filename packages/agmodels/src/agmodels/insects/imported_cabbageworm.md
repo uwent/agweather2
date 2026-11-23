@@ -21,7 +21,7 @@ The imported cabbageworm is the caterpillar of the cabbage white butterfly, and 
 - **Larval feeding**: caterpillars feeding on the crop. This is the risk.
 - **Scout for eggs and young caterpillars**: the days from 10 % to 90 % of each generation's eggs hatched, when small caterpillars are appearing.
 
-Risk follows the caterpillars, not the butterflies. A risk of 1 means as many caterpillars feeding as at the spring generation's peak.
+Risk follows the caterpillars, not the butterflies. The second generation's caterpillars count fully and the others' at half (see below), so a risk of 1 means as many second-generation caterpillars feeding as at the spring generation's peak, and the spring generation's own peak shows as 0.5.
 
 ## How it works
 
@@ -48,7 +48,7 @@ The [imported cabbageworm topic page](/topics/imported-cabbageworm) explains the
 - Draft (model version 0.3, beta). The spring flight comes from UW–Madison's degree-day table for Wisconsin; caterpillar development was measured in the laboratory in England.
 - **Butterflies in Wisconsin.** On the same degree days, iNaturalist records of cabbage white butterflies in Wisconsin (2016 to 2026, corrected for how many people were looking) put the middle of the spring flight at 234 degree days, against the model's 239. The time between later flights was set from the same records, so their agreement there isn't an independent test.
 - **The second flight may come earlier than UW–Madison describes.** In an average year the model's second flight comes in early July in southern Wisconsin, a week or two before UW's mid-July; the iNaturalist records agree with the model.
-- **Some steps are estimates.** UW–Madison's table doesn't say which part of the flight its 150 to 240 degree days cover, or where they come from, and the timing of egg laying and the egg comes from development times in days, converted to degree days. The same laboratory study in Vancouver that gives the chrysalis (Nealis and others, 1984) put the egg and caterpillar together at about 390 degree days, a little faster than the model's steps.
+- **Some steps are estimates.** UW–Madison's table doesn't say which part of the flight its 150 to 240 degree days cover, or where they come from. It gives the same numbers and the same indicator plants for the asparagus beetle's egg laying, so they may mark a spring period shared by several pests rather than a measured flight of this butterfly; the iNaturalist records are what support them here. The timing of egg laying and the egg come from development times in days, converted to degree days. The same laboratory study in Vancouver that gives the chrysalis (Nealis and others, 1984) put the egg and caterpillar together at about 390 degree days, faster than the model's 454.
 - The half weight of the first and third generations in the risk is our judgment of UW–Madison's statement that the second does the most damage; the source doesn't say by how much. Spring caterpillars can still need control.
 - The model hasn't been compared with counts of caterpillars in fields.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

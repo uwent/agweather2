@@ -195,9 +195,28 @@ def test_a_model_reads_the_places_normal_and_warns_without_it(client, archive, m
     without = post(client, "models/european-corn-borer/run", _season_body()).json()
     assert without["data"]["one_flight"] == [0] * 9
     assert ONE_FLIGHT_NORMAL.missing in without["meta"]["warnings"]
-    monkeypatch.setattr(normals, "place_normal", lambda data_dir, normal, window: np.full(window.shape, 1400.0))
+    monkeypatch.setattr(
+        normals,
+        "read_place_normals",
+        lambda data_dir, wanted, window: {n: np.full(window.shape, 1400.0) for n in wanted},
+    )
     north = post(client, "models/european-corn-borer/run", _season_body()).json()
     assert north["data"]["one_flight"] == [1] * 9
     assert north["data"][ONE_FLIGHT_NORMAL.key] == [pytest.approx(1400 / 1.8, abs=0.01)] * 9  # metric: °C·d
     assert ONE_FLIGHT_NORMAL.missing not in north["meta"]["warnings"]
     assert north["data"]["activity_adult_flight"] != without["data"]["activity_adult_flight"]
+
+
+def test_a_fixed_biofix_is_refused_in_a_posted_run(client, archive):
+    """Western bean cutworm always counts from March 1: another date is refused in the API's words, and March 1
+    itself is the same run (the runner refuses any other, `runner.check_biofix`)."""
+    refused = post(client, "models/western-bean-cutworm/run", _season_body() | {"options": {"biofix": "2025-04-01"}})
+    error = refused.json()["errors"][0]
+    assert refused.status_code == 422 and (error["code"], error["param"]) == ("not_applicable", "biofix")
+    assert (
+        error["message"]
+        == "The Western bean cutworm model always counts from March 1, so it doesn't take a biofix date. Leave out 'biofix'."
+    )
+    same = post(client, "models/western-bean-cutworm/run", _season_body() | {"options": {"biofix": "2025-03-01"}})
+    plain = post(client, "models/western-bean-cutworm/run", _season_body())
+    assert same.status_code == 200 and same.json()["data"] == plain.json()["data"]

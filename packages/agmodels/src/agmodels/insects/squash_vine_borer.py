@@ -40,7 +40,7 @@ INSECT = Insect(
     status="beta",
     trained=TrainingArea(
         description="extension guides' timing in Wisconsin, South Dakota, Ohio and Michigan",
-        years=(2012, 2026),
+        years=(2005, 2026),  # XHT1087's 2005 printing to the guides read in 2026
         states=("WI", "SD", "OH", "MI"),
     ),
     changelog=(
@@ -54,7 +54,7 @@ INSECT = Insect(
         Check(
             kind="published",
             against="The extension guides' timing: UW–Madison (moths at 900, three weeks of egg laying around 1,000), South Dakota State and Ohio State (moths emerge at 1,000) and Michigan State (emergence 800, decline from 1,800, complete 2,000)",
-            result="Our first moths (5 %) come at 824 degree days and half have flown at 1,083; the protection window runs from 824 to 1,242, three weeks around 1,000 in an average Wisconsin July, and the last moths fly by 1,900. The curve was drawn to these numbers; no field data were used.",
+            result="Our first moths (5 %) come at 824 degree days and half have flown at 1,083; the protection window runs from 824 to 1,242, three weeks around 1,000 from late June to mid-July in an average Wisconsin year, and the last moths fly by 1,900. The curve was drawn to these numbers; no field data were used.",
             report="docs/validation/models/squash-vine-borer.md#against-its-sources-numbers",
         ),
         Check(

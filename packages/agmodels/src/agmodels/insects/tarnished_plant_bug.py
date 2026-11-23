@@ -79,7 +79,7 @@ INSECT = Insect(
         Check(
             kind="published",
             against="UW–Madison's descriptions of the season, on AgWeather's 1996–2025 normals",
-            result="The first nymphs appear in mid-May at Arlington, as UW–Madison's fruit program reports in strawberries, but young nymphs peak only in late May in the south and early June in the north. The model has about four generations at Arlington and three at Rhinelander, against the four to five UW–Madison counts in the Midwest.",
+            result="The first nymphs appear in early May at Arlington, about a week before the mid-May that UW–Madison's fruit program reports in strawberries, and young nymphs peak in late May in the south and early June in the north. The model has about four generations at Arlington and three at Rhinelander, against the four to five UW–Madison counts in the Midwest.",
             report="docs/validation/models/tarnished-plant-bug.md#on-the-normals",
         ),
     ),

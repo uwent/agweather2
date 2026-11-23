@@ -42,7 +42,7 @@ The [common asparagus beetle topic page](/topics/common-asparagus-beetle) explai
 
 ## Validation and caveats
 
-- Draft (model version 0.2, beta). The spring beetles' 10 % and half match the 150 and 240 degree days in UW–Madison's table. The egg, larvae and pupa follow a laboratory study in Ottawa (Taylor and Harcourt 1978), and the time between generations adds the day or two between beetles and the next eggs in its field counts in one season near Ottawa.
+- Draft (model version 0.2, beta). The spring beetles' 10 % and half match the 150 and 240 degree days in UW–Madison's table. The table doesn't say where those numbers come from, and it gives the same numbers and indicator plants for the imported cabbageworm's butterflies, so they may mark a spring period shared by several pests rather than this beetle's own egg laying. The egg, larvae and pupa follow a laboratory study in Ottawa (Taylor and Harcourt 1978), and the time between generations adds the day or two between beetles and the next eggs in its field counts in one season near Ottawa.
 - On the long-term averages the beetles come out in late April in the south and early May in the north, as UW–Madison and Commercial Vegetable Production in Wisconsin describe. The model hasn't been compared with field counts in Wisconsin.
 - The spotted asparagus beetle, which appears later, isn't modeled.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

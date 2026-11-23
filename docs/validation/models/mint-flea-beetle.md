@@ -70,7 +70,7 @@ The handbook's larvae feed until early June and its adults emerge in late June a
 - **Every spread is a judgment:** USPest gives only the start of hatch, of larvae leaving and of emergence.
 - **Air, not soil:** the larvae and pupae develop in the soil, which USPest's air degree days stand in for.
 - **Developed in the Pacific Northwest**, partly validated; Berry et al.'s work isn't online.
-- Mint is a small crop in Wisconsin; whether to keep the model is Ben's question 1 in part H's plan.
+- Mint is a small crop in Wisconsin; whether to keep the model was Ben's question 1 in part H's plan, and he kept it (2026-11-23, D103).
 
 ## Reproducing
 

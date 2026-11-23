@@ -4,6 +4,7 @@
 
 from datetime import date
 
+import numpy as np
 import pytest
 
 from api.tests.fixture_archive import POINT
@@ -174,3 +175,22 @@ def test_a_projection_at_several_points_has_each_points_summary(client, projecti
     assert set(data["point"]) == {0, 1} and "projection" not in meta["summary"]
     for point in meta["summary"]["points"]:
         assert point["projection"]["years"] == [2023, 2024] and point["projection"]["milestones"]
+
+
+def test_a_projection_carries_the_places_normal_and_its_warning(client, projection_archive, monkeypatch):
+    """`series.projected_runs`: each past year's path reads the normal of the place at the point, as a plain run does."""
+    from agdata import normals
+    from agmodels.insects.european_corn_borer import ONE_FLIGHT_NORMAL
+
+    params = {"lat": LAT, "lng": LNG, "start": "2025-07-05", "end": "2025-08-20", "projection": "years"}
+    without = get(client, "european-corn-borer", **params).json()
+    assert ONE_FLIGHT_NORMAL.missing in without["meta"]["warnings"]
+    assert "projection" in without["data"]["kind"] and set(without["data"]["one_flight"]) == {0}
+    monkeypatch.setattr(
+        normals,
+        "read_place_normals",
+        lambda data_dir, wanted, window: {n: np.full(window.shape, 1400.0) for n in wanted},
+    )
+    north = get(client, "european-corn-borer", **params).json()
+    assert ONE_FLIGHT_NORMAL.missing not in north["meta"]["warnings"]
+    assert set(north["data"]["one_flight"]) == {1} and set(north["data"]["year"]) == {2023, 2024}

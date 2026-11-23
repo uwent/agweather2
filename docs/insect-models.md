@@ -13,7 +13,7 @@ Part H (`docs/plans/models.md`) rebuilt every insect still on a legacy definitio
 | `aphid-pvy-vectors` | 0.3 | single sine 39.2/86, Jan 1 | fitted curve, two clocks (D101) | Bradford and Groves (suction traps) |
 | `black-cutworm` | 0.4 | single sine 50/86, trap date (default May 1, fitted to DATCP's traps) | curves; a "present" window while caterpillars can cut (about 289–787 after the capture) | egg Luckmann et al. 1976; larvae Kaster and Showers 1984 (outdoor spring times); DATCP's pheromone traps |
 | `cabbage-looper` | 0.3 | single sine 50/90, trap date (default July 15) | curves, every 912; weights 0.5, 1, 0.5 | USPest `cbl` (Toba et al. 1973) |
-| `cabbage-maggot` | 0.4 | simple average 40, no upper, Jan 1 | curves, every 1,275 (3 at most); weights 1, 0.5 | spring flight NEWA (Jyoti, Shelton and Barnard 2003); generation from Jyoti et al.'s trapped peaks and Eckenrode and Chapman 1972 (NEWA's 850 replaced, D104) |
+| `cabbage-maggot` | 0.5 | simple average 40, no upper, Jan 1 | curves, every 1,275 (4 at most, the fourth ended partway by fall freezes); weights 1, 0.5 | spring flight NEWA (Jyoti, Shelton and Barnard 2003); generation from Jyoti et al.'s trapped peaks and Eckenrode and Chapman 1972 (NEWA's 850 replaced, D104) |
 | `codling-moth` | 0.1 | single sine 50/86, first catch (estimated) | curves, every 1084 (2) | WSU (Jones et al.) |
 | `colorado-potato-beetle` | 0.3 | single sine 52/86, Jan 1 | fitted curves, two clocks | Bradford and Groves (scouting) |
 | `common-asparagus-beetle` | 0.2 | modified 50/86, Jan 1 | curves, every 600 (3) | UW's degree-day table (Delahaut), whose egg, larvae and generation are Taylor and Harcourt 1978's sums |
@@ -157,6 +157,6 @@ Ordered roughly by how many insects they unblock and how far the current model m
 - **Cabbage looper:** VDIFN's thresholds (50/90) and generation spacing (790) match Toba et al.'s egg-to-adult time (791.5 FDD). Its biofix (May 15) needs a source, since loopers migrate north.
 - **Black cutworm:** the sources' threshold is 10.4 °C (50.7 °F), and the biofix should be a significant moth capture, not May 15. Story et al. found larvae in the field "far ahead" of lab-based predictions.
 - **Variegated cutworm:** VDIFN's 900 is Simonet's first flight; the field adult-to-adult time is 1,260.
-- **Onion maggot:** Liu et al. use single sine at 4.4 °C (39.9 °F), so this one may stay single sine.
+- **Onion maggot:** Liu et al. use Allen's sine above 4 °C (39.2 °F; 4.38 °C is their laboratory threshold); the model runs NEWA's simple average above 40 °F.
 - **Alfalfa weevil:** the Crop Risk Tool uses 48 °F, as Whitford and Quisenberry do (max-min). Litsinger and Apple is the Wisconsin study to check it against.
 - **Spotted wing drosophila:** Kamiyama et al. 2020 is open access and from the UW group, so it should be the source to follow.

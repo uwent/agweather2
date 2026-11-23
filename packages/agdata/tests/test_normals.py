@@ -177,3 +177,73 @@ def test_a_stopped_build_leaves_the_current_store(built, tmp_path):
     np.testing.assert_array_equal(normals.read_map(tmp_path, "last5", "et0/mean", date(2025, 6, 1)), before)
     assert normals.status(tmp_path, "last5", YEARS, set(YEARS)) is None
     assert sorted(p.name for p in normals.path(tmp_path, "last5").parent.iterdir()) == ["last5.zarr"]
+
+
+# --- A model's place normals (`agmodels.spec.PlaceNormal`), read from a built store -------------------------------
+
+
+def _normal(**changes):
+    from dataclasses import replace
+
+    from agmodels.spec import PlaceNormal
+
+    normal = PlaceNormal(
+        variable="dd_modified_50_86",
+        unit="degF_day",
+        through="08-01",
+        label="the normal",
+        missing="No normal here.",
+        period="last5",
+    )
+    return replace(normal, **changes)
+
+
+def test_a_place_normal_is_the_periods_mean_total_through_its_day(built):
+    """August 1's slot: each year's modified 50/86 total from January 1 through August 1 (day 213 or 214), averaged."""
+    from agmodels.degree_days import degree_days_modified
+
+    data_dir, _ = built
+    totals = []
+    for year in YEARS:
+        f = fields(year, shape=(1, 1))
+        n = (date(year, 8, 1) - date(year, 1, 1)).days + 1
+        lo, hi = f["air_temperature_min"][:n, 0, 0] * 1.8 + 32, f["air_temperature_max"][:n, 0, 0] * 1.8 + 32
+        totals.append(degree_days_modified(lo, hi, base=50.0, upper=86.0).sum())
+    got = normals.place_normal(data_dir, _normal(), WINDOW)
+    assert got.shape == WINDOW.shape
+    np.testing.assert_allclose(got, np.mean(totals), atol=0.5)  # packed to 0.5 °F·d
+    july = normals.place_normal(data_dir, _normal(through="07-31"), WINDOW)
+    assert (july < got).all()  # a day earlier, a day's total less
+
+
+def test_a_place_normal_is_missing_past_the_store_and_where_nothing_was_built(built):
+    data_dir, _ = built
+    edge = Window(j0=WINDOW.j1 - 2, j1=WINDOW.j1 + 3, i0=WINDOW.i1 - 1, i1=WINDOW.i1 + 1)  # partly outside
+    got = normals.place_normal(data_dir, _normal(), edge)
+    assert got.shape == (5, 2)
+    assert np.isfinite(got[:2, :1]).all() and np.isnan(got[2:]).all() and np.isnan(got[:, 1:]).all()
+    assert np.isnan(normals.place_normal(data_dir, _normal(period="last30"), WINDOW)).all()  # not built
+    assert np.isnan(normals.place_normal(data_dir, _normal(variable="dd_sine_99"), WINDOW)).all()  # no such array
+    assert np.isnan(normals.place_normal(data_dir / "elsewhere", _normal(), WINDOW)).all()  # no store at all
+
+
+def test_a_points_normals_are_read_once_for_all_its_runs(built, monkeypatch):
+    """`series.place_reader`: each normal once at the point's cell, its store opened once, however many runs read it;
+    NaN off the grid."""
+    from agdata import series
+    from agdata.grid import NDFD
+
+    data_dir, _ = built
+    first, second = _normal(), _normal(through="07-01")
+    spec = type("Spec", (), {"place_normals": (first, second)})()  # a model's spec, as the reader reads it
+    opened = []
+    real = normals._opened
+    monkeypatch.setattr(normals, "_opened", lambda *a: opened.append(a) or real(*a))
+    lat, lng = NDFD.latlon(WINDOW.j0 + 3, WINDOW.i0 + 4)
+    read = series.place_reader(data_dir, float(lat), float(lng))
+    runs = [read(spec) for _ in range(4)]  # type: ignore[arg-type]
+    assert len(opened) == 1 and all(r == runs[0] for r in runs)
+    grid = normals.place_normal(data_dir, first, WINDOW)
+    assert runs[0][first.key] == grid[3, 4] and runs[0][second.key] < runs[0][first.key]
+    off = series.place_reader(data_dir, 10.0, 10.0)(spec)  # type: ignore[arg-type]
+    assert all(np.isnan(v) for v in off.values())

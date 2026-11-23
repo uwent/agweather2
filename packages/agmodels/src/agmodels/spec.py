@@ -203,6 +203,9 @@ class PlaceNormal:
     `missing`, and the caller passes that on as a warning."""
 
     variable: str  # a running total the normals keep, e.g. "dd_modified_50_86"
+    unit: (
+        UnitSymbol  # the variable's stored unit, as the catalog declares it (`agdata.catalog`; a registry test checks)
+    )
     through: str  # MM-DD, the day the total is read (through its end)
     label: str  # public text: "the 30-year normal degree days (modified average, 50/86 °F) from January 1 to August 1"
     missing: str  # public text, a warning where the normal isn't available, saying what the model does instead

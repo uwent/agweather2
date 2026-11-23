@@ -127,7 +127,11 @@ def update(
 
 
 def _season(m, spec, inputs, planted: np.ndarray, begin: date, n: int, band: Window, options) -> dict[str, np.ndarray]:
-    """The model's outputs on days begin.. over the band, each cell from its planting day (NaN before)."""
+    """The model's outputs on days begin.. over the band, each cell from its planting day (NaN before). A model that
+    reads normals of the place (`ModelSpec.place_normals`) is refused: its stored stages would go stale when the
+    normals move each January, and nothing here would say so."""
+    if spec.place_normals:
+        raise ValueError(f"{spec.id} reads normals of the place, which stored crop stages can't follow")
     lat = NDFD.window_latlon(band)[0]
     dates = [begin + timedelta(days=k) for k in range(n)]
     doy = np.array([d.timetuple().tm_yday for d in dates], dtype=float)

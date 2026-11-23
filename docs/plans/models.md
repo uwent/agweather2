@@ -6,7 +6,7 @@ Phase 6 step 4 ([phase-6-frontend-plan-and-data.md](phase-6-frontend-plan-and-da
 
 ## Status
 
-**2026-11-23.** Parts A, B, H, I1 and I2 are done; part H's second round (Ben's answers of 2026-11-23, D103) is built and merged; its pages wait for a cold check. Open: parts C–G and J, all stubs, each planned before it's built. What's next and what waits on Ben or outside people is in PLAN.md's handoff, the only handoff; the session-by-session record that used to be this section's is at the end of this file ("Record").
+**2026-11-23.** Parts A, B, H, I1 and I2 are done; part H's second round (D103) and the papers read in full (D104) are built, and every changed page was checked cold on 2026-11-23. Open: parts C–G and J, all stubs, each planned before it's built. What's next and what waits on Ben or outside people is in PLAN.md's handoff, the only handoff; the session-by-session record that used to be this section's is at the end of this file ("Record").
 
 ---
 

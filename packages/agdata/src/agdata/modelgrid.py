@@ -295,7 +295,7 @@ def _base(data_dir, spec: ModelSpec, first: date, last: date, window: Window, no
     return base, reader
 
 
-def _finished(spec, base, dates, outputs, risk, level, reader, cells=None) -> ModelDays:
+def _finished(spec, base, dates, outputs, risk, level, reader, cells=None, place=None) -> ModelDays:
     """A ModelDays from outputs computed outside `model_days`: missing days (nothing stored anywhere) have no kind."""
     primary = outputs[spec.outputs[0].name]
     kinds = [None if np.isnan(primary[k]).all() else kind for k, kind in enumerate(base.kinds)]
@@ -314,6 +314,7 @@ def _finished(spec, base, dates, outputs, risk, level, reader, cells=None) -> Mo
         forecast=base.forecast,
         run_from=base.run_from,
         reads=reader.reads,
+        place=place or {},
     )
 
 
@@ -352,6 +353,7 @@ def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Win
         own = cell_biofix(first)
         cells = np.where(np.isnan(own), cells, own)
     reach = spec.lookback_days  # days of weather before the biofix a run reads
+    place = normals.place_normals(data_dir, spec, window)  # each cell's normals the model reads, (y, x)
     outputs = {q.name: np.full((n, *window.shape), np.nan) for q in spec.outputs}
     starts = np.unique(cells[np.isfinite(cells)])
     if starts.size:
@@ -372,6 +374,7 @@ def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Win
                 "day_of_year": np.array([d.timetuple().tm_yday for d in days[k0:]], dtype=float),
                 "year": np.array([d.year for d in days[k0:]], dtype=float),
             }
+            context |= {key: v[group][None] for key, v in place.items()}  # (1, cells), as the group's inputs
             given |= {name: context[name] for name in spec.context if name in context}
             found = m.outputs(given, biofix_index=(biofix - a).days - k0)
             shown = (first - a).days - k0
@@ -385,7 +388,9 @@ def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Win
     if spec.risk is not None:
         risk = np.asarray(m.risk(outputs), dtype=float)
         level = np.where(np.isfinite(risk), risk, np.nan)
-    return _finished(spec, base, dates, outputs, risk, level, reader, cells=np.broadcast_to(cells, (n, *window.shape)))
+    return _finished(
+        spec, base, dates, outputs, risk, level, reader, cells=np.broadcast_to(cells, (n, *window.shape)), place=place
+    )
 
 
 def _crop_stages(data_dir, sown: _Planting, first: date, last: date, now) -> np.ndarray:

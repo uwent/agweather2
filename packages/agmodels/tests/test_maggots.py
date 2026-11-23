@@ -52,23 +52,54 @@ def test_cabbage_maggots_spring_flight_follows_newas_table_and_jyoti_2003():
     assert np.interp(288, X, spring) == pytest.approx(0.059, abs=0.005)
 
 
-def test_cabbage_maggots_later_flights_are_a_generation_of_1275_and_stop_at_three():
+def test_cabbage_maggots_later_flights_are_a_generation_of_1275_and_stop_at_four():
     """Version 0.4: a generation of 1,275 DD40, the mean of Jyoti et al.'s own trap-count peaks (1,212 apart on
     Open-Meteo's weather at Geneva, above 40 °F) and Eckenrode and Chapman 1972's Wisconsin 1,176 DD43 (about 1,335
-    DD40), where NEWA adds flight lengths to the spring peak (809, 915, 838: a difference kept, D95). Three flights, as
-    Eckenrode and Chapman trapped in Wisconsin (NEWA's New York has four)."""
+    DD40), where NEWA adds flight lengths to the spring peak (809, 915, 838: a difference kept, D95). Version 0.5: four
+    flights, as NEWA's New York has; the fourth comes in the fall, and the engine's fall freezes end it partway."""
     assert (CM.generation_dd, CM.generation_sd) == (1275, 128)
     assert CM.generation_dd == pytest.approx((1212 + (1349 + 1321) / 2) / 2, abs=5)
+    assert CM.max_generations == 4
     flights = shares(CM)
-    assert len(flights) == 3
+    assert len(flights) == 4
     peaks = [dd_at(f, 0.5) for f in flights]
     assert np.all(np.abs(np.diff(peaks) - 1275) <= 7)
-    # half of the second and third flights by 1,731 and 3,007: 470 and 831 after NEWA's 1,261 and 2,176
-    assert abs(peaks[1] - 1731) <= 5 and abs(peaks[2] - 3007) <= 5
-    for peak, newa in zip(peaks[1:], NEWA_CM_PEAKS[:2], strict=True):
+    # half of the second, third and fourth flights by 1,731, 3,007 and 4,283: 470, 831 and 1,269 after NEWA's 1,261,
+    # 2,176 and 3,014
+    assert abs(peaks[1] - 1731) <= 5 and abs(peaks[2] - 3007) <= 5 and abs(peaks[3] - 4283) <= 5
+    for peak, newa in zip(peaks[1:], NEWA_CM_PEAKS, strict=True):
         assert peak - newa > 400
+    # the fourth flight's first flies (5 %) at 3,880, in September in southern Wisconsin (October 15's normal total at
+    # Arlington is 4,438)
+    assert abs(dd_at(flights[3], 0.05) - 3880) <= 5
     # the generation spreads by 10 %, about the spring flight's own SD
     assert CM.generation_sd == pytest.approx(0.1 * CM.generation_dd, abs=1)  # type: ignore[operator]
+
+
+def test_cabbage_maggots_fourth_flight_ends_with_fall_freezes():
+    """Nothing in the generations ends the fourth flight: the engine's freeze factor does. After day 250, each day in
+    the last 14 at or below −2 °C takes a quarter off its activity and the risk, held at the lowest; at four the
+    season is complete and the window closes, with the flight part emerged."""
+    m = PhenologyModel(insect=CM, summary="")
+    n = 320  # January 1 to November 16
+    doy = np.arange(1.0, n + 1)
+    # no degree days to April, 23 a day (63.3 °F) to September 30, about 4,200 in all, and none after: the fourth
+    # flight's activity holds where the season left it until freezes end it
+    warm = (doy > 90) & (doy < 274)
+    tmax = np.where(warm, 23.0, 7.0)
+    tmin = np.where(warm, 11.5, 0.0)
+    tmin[305:309] = -4.0  # four freezing nights from November 2
+    inputs = {"air_temperature_min": tmin, "air_temperature_max": tmax, "day_of_year": doy, "latitude": np.array(43.3), "year": np.full(n, 2025.0)}  # fmt: skip
+    out = m.outputs({k: inputs[k] for k in ("air_temperature_min", "air_temperature_max", *m.SPEC.context)})
+    risk = m.risk(out)
+    fourth = np.asarray(out["generations_adult_flight"]) - 3
+    window = np.asarray(out["window_protect_seedlings_and_transplants_during_fly_flight"])
+    before, after = 304, 308  # the day before the freezes, and the fourth
+    assert 0.05 < fourth[before] < 0.95  # part of the fourth flight emerged
+    assert out["activity_adult_flight"][before] > 0 and window[before] == 1 and risk[before] > 0
+    assert out["freeze_factor"][after] == 0 and out["season_complete"][after] == 1
+    assert out["activity_adult_flight"][after] == 0 and window[after] == 0 and risk[after] == 0
+    assert np.all(np.asarray(out["freeze_factor"])[after:] == 0)  # held: no flight comes back
 
 
 def test_cabbage_maggots_spring_flight_weighs_most():
@@ -106,9 +137,10 @@ def test_cabbage_maggot_larvae_follow_the_flight():
 
 def test_cabbage_maggot_protection_window_runs_from_first_emergence_to_95_percent():
     windows = window_edges(CM, "window_protect_seedlings_and_transplants_during_fly_flight")
-    assert len(windows) == 3
+    assert len(windows) == 4
     first, last = windows[0]
     assert abs(first - 288) <= 6 and abs(last - 697) <= 6  # NEWA's first emergence and 95 %
+    assert windows[3] == (3880, 4717)  # the fourth flight's, closed early by fall freezes in most seasons
 
 
 # --- Onion maggot --------------------------------------------------------------------------------------------------

@@ -1375,11 +1375,11 @@ export interface PresetInfo {
    */
   stored: boolean
   /**
-   * When the count usually starts: `planting`, `january_1`, or `biofix` (a date set by an event in the insect's season, such as the first moths caught in a trap; `biofix` gives the date we use unless you set one). `notes` says when a crop is counted from another day too, such as alfalfa from its last cutting.
+   * When the count usually starts: `planting`, `january_1`, `biofix` (a date set by an event in the insect's season, such as the first moths caught in a trap; `biofix` gives the date we use unless you set one), or `date` (always the date in `biofix`, because the model's thresholds were fitted to a count from that day). `notes` says when a crop is counted from another day too, such as alfalfa from its last cutting.
    */
   starts: string
   /**
-   * For a count from a biofix: the day we use unless you set one, as `MM-DD`. Null otherwise.
+   * For a count from a biofix: the day we use unless you set one, as `MM-DD`. For a count that always starts on one date, that date. Null otherwise.
    */
   biofix: string | null
   /**

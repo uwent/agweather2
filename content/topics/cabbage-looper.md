@@ -17,7 +17,7 @@ summary: A moth that migrates into Wisconsin from the south each summer; its gre
 image: images/cabbage-looper.jpg
 image_credit: 'Cabbage looper caterpillar on a damaged leaf. Photo by Alton N. Sparks, Jr., University of Georgia, Bugwood.org (image 1327034), via Wikimedia Commons (File:Trichoplusia ni larva.jpg), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/).'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-23
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cabbage Looper. Updated 2026.'
@@ -91,6 +91,6 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-The [cabbage looper model](/models/cabbage-looper) is USPest.org's cabbage looper model, built on laboratory development times.[^uspest-cbl][^toba-1973] It counts degree days at a base of 50 °F with an upper limit of 90 °F from the first moth caught in a pheromone trap. Without a trap date it starts on July 15, when UW–Madison says the moths begin arriving; that's a typical arrival, not a forecast, and in Minnesota moths can come in early July.[^uw-hort][^umn-caterpillars] Egg laying begins about 120 degree days after the first catch, caterpillars hatch about 100 degree days after an egg is laid and feed for about 420, and a new generation starts every 912 degree days until fall freezes end the season. The risk is the caterpillars feeding, and a window marks when small caterpillars are hatching.[^agweather-cabbage-looper]
+The [cabbage looper model](/models/cabbage-looper) is USPest.org's cabbage looper model, built on laboratory development times.[^uspest-cbl][^toba-1973] It counts degree days at a base of 50 °F with an upper limit of 90 °F from the first moth caught in a pheromone trap. Without a trap date it starts on July 15, when UW–Madison says the moths begin arriving; that's a typical arrival, not a forecast, and in Minnesota moths can come in early July.[^uw-hort][^umn-caterpillars] Egg laying begins about 120 degree days after the first catch, caterpillars hatch about 100 degree days after an egg is laid and feed for about 420, and a new generation starts every 912 degree days until fall freezes end the season. The risk is the caterpillars feeding, with the second generation's counted most since UW–Madison says it does the most damage, and a window marks when small caterpillars are hatching.[^agweather-cabbage-looper]
 
 On AgWeather's long-term averages (degree days for 1996 to 2025) and the July 15 start, the first generation's caterpillars peak in early to mid-August, and the second generation, which UW–Madison says does the most damage, lays its eggs in early to mid-September in southern and central Wisconsin.[^agweather-cabbage-looper][^uw-hort] We found no Wisconsin trap or scouting records to check the timing against, and moths that arrive later in the summer can lay eggs outside the model's windows. If you trap, enter your first catch; either way, base sprays on your own scouting.

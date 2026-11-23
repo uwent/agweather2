@@ -400,6 +400,7 @@ def risk(
             "projection_years",
         )
     }
+    place_warnings: set[str] = set()  # a normal of the place a model reads, missing here (`ModelSpec.place_normals`)
     for the_plan, results, bands in zip(plans, grouped, projected_years, strict=True):
         spec = the_plan.model.SPEC
         assert spec.risk is not None
@@ -408,6 +409,8 @@ def risk(
             in_season = None if r.in_season is None else bool(r.in_season[0])
             if not asked and (in_season is False or r.reason == "outside the model's region"):
                 continue
+            if not r.reason:
+                place_warnings.update(r.place_warnings)
             level = None if r.level is None or r.level[0] != r.level[0] else int(r.level[0])
             gate = None if r.susceptibility is None else r.susceptibility[0]
             rows["model"].append(spec.id)
@@ -438,7 +441,7 @@ def risk(
             location=location,
             summary={"models": len(rows["model"]), **({"option_sets": sets} if sets else {})},
             sources=list(some.sources) if some else [],
-            warnings=[*notes, *sorted({w for p in plans for w in p.warnings})],
+            warnings=[*notes, *sorted({w for p in plans for w in p.warnings}), *sorted(place_warnings)],
             filename=f"agweather-risk-{day}",
             etag=etag,
         ),

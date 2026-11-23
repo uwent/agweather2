@@ -67,8 +67,8 @@ MODELS = (
             "spring 95 %": (1, 0.95),
             "2nd flight 50 %": (2, 0.5),
             "3rd flight 50 %": (3, 0.5),
-            "4th flight 5 % (uncapped)": (4, 0.05),
-            "4th flight 50 % (uncapped)": (4, 0.5),
+            "4th flight 5 %": (4, 0.05),
+            "4th flight 50 %": (4, 0.5),
         },
     ),
     (

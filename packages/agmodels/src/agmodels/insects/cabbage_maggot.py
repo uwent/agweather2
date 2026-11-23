@@ -35,7 +35,7 @@ INSECT = Insect(
     # not times between peaks; the paper gives no generation time. Its own Fig. 3 peaks, on Open-Meteo's weather at
     # Geneva counted above 40 °F, are 1,040 and 1,055–1,237 apart from spring to F1 and 1,597 and 974–1,156 from F1 to
     # F2 (a mean of 1,212, the 2000 ranges by their midpoints; that archive ran 4–11 % below the farm's station). Eckenrode
-    # and Chapman 1972's Wisconsin generation, 1,176 DD43 (Arnold's correction), is a median 1,349 DD40 from the spring
+    # and Chapman 1972's Wisconsin generation, 1,176 DD43 (Arnold's correction), is a median 1,350 DD40 from the spring
     # peak to the first summer flight and 1,321 from it to the second on the Wisconsin NEWA stations' days (single sine
     # above 43 °F for theirs). 1,275 is the two studies' mean, each counted once: (1,212 + 1,335) / 2. UW's XHT1087
     # (300, 1,476, 2,652 DD43) is the same Wisconsin 1,176 apart
@@ -43,13 +43,18 @@ INSECT = Insect(
     # Eckenrode and Chapman 1972: the spring emergence pattern repeats in later generations, so they spread little;
     # 10 % of a generation, as version 0.2's 85 was of 850 (about the spring flight's own SD, 125)
     generation_sd=128,
-    # Three flights at most (part H, round 2; Ben, 2026-11-23): Eckenrode and Chapman 1972 trapped three in Wisconsin
-    # (spring, F1 from early July, F2 from mid-August, small), against New York's four (NEWA; Jyoti et al. 2003). At
-    # 1,275 a generation a fourth flight's first flies (5 %) would come at 3,880 DD40: on the normals about September 14
-    # at Arlington and September 26 at Hancock, not by October 15 at Rhinelander (scripts/maggot_normals.py), and by
-    # October 15 in 60 of 67 Wisconsin NEWA station-seasons, 2024 and 2025 (scripts/check_maggots.py). So the cap binds
-    # in most seasons in the south, on a fourth flight that would come in the fall
-    max_generations=3,
+    # Four flights at most (version 0.5; Ben, 2026-11-23): Eckenrode and Chapman 1972 trapped three in Wisconsin
+    # (spring, F1 from early July, F2 from mid-August, small), New York has four (NEWA; Jyoti et al. 2003). At 1,275 a
+    # generation the fourth flight's first flies (5 %) come at about 3,880 DD40, in September in southern and central
+    # Wisconsin (scripts/maggot_normals.py, scripts/check_maggots.py), so a fall flight on fall crucifers is shown in
+    # part. Nothing in the generations ends it: the engine's end of season does (agmodels.phenology.freeze_factor).
+    # Activity is read off the curve at the season's total, so as fall days stop adding degree days it holds where it
+    # is; from day 251 the freeze factor, max(0, 1 − f/4) for f days in the last 14 with a minimum at or below −2 °C,
+    # held at its lowest that year, scales the activity and the risk, and once four such days fall within 14 it is 0:
+    # the window closes and the season is complete. On the archive, 2016–2025, by then a median 93 % of the fourth
+    # flight had emerged at Arlington (32 to 100 %), 56 % at Hancock (3 to 89 %) and 2 % at Rhinelander (0 to 17 %). A
+    # fifth (5 % at about 5,100) would come past any Wisconsin season
+    max_generations=4,
     generation_weights=(1.0, 0.5),
     action_windows=(
         # NEWA: highest risk around peak flights; protect seedlings, transplants and root crops then. From first
@@ -58,7 +63,7 @@ INSECT = Insect(
             label="Protect seedlings and transplants during fly flight", stage="Adult flight", between=(0.05, 0.95)
         ),
     ),
-    version="0.4",
+    version="0.5",
     status="beta",
     trained=TrainingArea(description="water-pan trap catches in upstate New York", years=(1999, 2000), states=("NY",)),
     changelog=(
@@ -77,12 +82,17 @@ INSECT = Insect(
             date="2026-11-23",
             note="A generation of 1,275 degree days (SD 128) instead of NEWA's 850, which adds each flight's length to the spring peak: the mean of the flight peaks in Jyoti, Shelton and Barnard's own trap counts (Fig. 3; 1,212 apart on Open-Meteo's weather at Geneva) and Eckenrode and Chapman's 1972 Wisconsin generation (1,176 above 43 °F, about 1,335 above 40 °F). The second and third flights come about two and four weeks later.",
         ),
+        Change(
+            version="0.5",
+            date="2026-11-23",
+            note="A fourth flight, as in New York, where versions 0.3 and 0.4 stopped at three: in southern and central Wisconsin its first flies come in September, and fall freezes end it partway, so it shows in part on fall crops. It weighs half, as the other summer flights do.",
+        ),
     ),
     checks=(
         Check(
             kind="published",
             against="NEWA's cabbage maggot table, whose spring flight comes from trap catches in upstate New York (Jyoti, Shelton and Barnard 2003)",
-            result="The spring flight passes 10, 25, 50, 75 and 95 % emergence within 13 degree days of the published points, and NEWA's first emergence at 288 comes at 5.9 % of the flight. The later flights are half emerged at 1,731 and 3,007, a generation of 1,275 apart, where NEWA's table has 1,261 and 2,176 (it adds each flight's length to the spring peak); the model stops at three flights, where NEWA has a fourth (3,014).",
+            result="The spring flight passes 10, 25, 50, 75 and 95 % emergence within 13 degree days of the published points, and NEWA's first emergence at 288 comes at 5.9 % of the flight. The later flights are half emerged at 1,731, 3,007 and 4,283, a generation of 1,275 apart, where NEWA's table has 1,261, 2,176 and 3,014 (it adds each flight's length to the spring peak). Both have four flights; the fourth comes in the fall, and freezes end it partway.",
             report="docs/validation/models/cabbage-maggot.md#against-its-sources-numbers",
         ),
         Check(
@@ -100,7 +110,7 @@ INSECT = Insect(
         Check(
             kind="system",
             against="NEWA's cabbage maggot model on the weather of 34 Wisconsin NEWA stations, 2024 and 2025",
-            result="The spring flight reproduces NEWA's: first emergence and its 25 to 95 % points fall on NEWA's day at the median. The summer flights peak a median 15 and 26 days after NEWA's, by design: the model's generation is 1,275 degree days, NEWA's 850.",
+            result="The spring flight reproduces NEWA's: first emergence and its 25 to 95 % points fall on NEWA's day at the median. The later flights peak a median 15, 26 and 46 days after NEWA's, by design: the model's generation is 1,275 degree days, NEWA's 850.",
             report="docs/validation/models/cabbage-maggot.md#against-newa-on-the-same-weather",
         ),
     ),

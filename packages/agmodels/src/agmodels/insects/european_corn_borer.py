@@ -22,6 +22,7 @@ LARVA = 300
 ONE_FLIGHT_BELOW = 1500
 ONE_FLIGHT_NORMAL = PlaceNormal(
     variable="dd_modified_50_86",
+    unit="degF_day",
     through="08-01",
     label="the 30-year normal total of degree days (modified average, 50/86 °F) from January 1 through August 1",
     missing="European corn borer has one flight a year where the 30-year normal degree days from January 1 through August 1 are below 1,500 (°F), and two elsewhere. We don't have that normal for this location or for part of this area, so the model shows two flights there.",
@@ -31,8 +32,8 @@ INSECT = Insect(
     id="european-corn-borer",
     name="European corn borer",
     crops=("beans", "corn", "sweet-corn", "eggplant", "pepper", "potato"),
-    # UW–Madison Extension's method (XHT1086): the modified average, the minimum raised to 50 °F and the maximum capped
-    # at 86 °F, from January 1. The table (XHT1087, Delahaut, rev. 2005; read in full 2026-11-23) gives only "base
+    # The modified of the two methods UW–Madison Extension's XHT1086 describes (it names no preference), the one
+    # Flandermeyer and Bick use for corn borer: the minimum raised to 50 °F and the maximum capped at 86 °F, from January 1. The table (XHT1087, Delahaut, rev. 2005; read in full 2026-11-23) gives only "base
     # temperature = 50°F", no upper, averaging or start, so its numbers are read on XHT1086's method; UMN's VegEdge
     # counts the same way, "similar to the original model from Dr. J. W. Apple, UW–Madison". Apple 1952 itself (read 2026-11-23) counted a simple average above 50 °F with no
     # upper from the first day averaging above 50, and his stages run later than the table's: on the archive at
@@ -161,6 +162,10 @@ INSECT = Insect(
         Citation(
             text="Bessin, R. European Corn Borer Development Model (ENTFACT-106). University of Kentucky (VDIFN's numbers; compared).",
             url="https://entomology.ca.uky.edu/files/ef106.pdf",
+        ),
+        Citation(
+            text="Matteson, J. W. and Decker, G. C. (1965). Development of the European corn borer at controlled constant and variable temperatures. Journal of Economic Entomology 58, 344–349.",
+            doi="10.1093/jee/58.2.344",
         ),
     ),
 )

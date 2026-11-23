@@ -24,7 +24,8 @@ INSECT = Insect(
         # 75 and 95 % at 2,377, 2,577, 2,704, 2,838 and 3,077 °F·d; NEWA adds 10 % 2,455 and 90 % 2,977). This PERT
         # follows it within 2.3 percentage points from 1,800 to 3,800 (fitted 2026-11-21); moths fly, but don't feed
         LifeStage(label="Adult flight", start=2247, peak=2685, end=3285, weight=0),
-        # Females lay on corn near tasseling and the eggs hatch 5 to 7 days later (UW–Madison, A3646): six days at
+        # Females lay on corn near tasseling and the eggs hatch 5 to 7 days later (UW Vegetable Entomology; A3646 has
+        # eggs tan for 2–5 days, then purple 12–24 hours before hatch): six days at
         # about 33 degree days a day, Arlington's July 15–August 1 rate on the normals. No published duration in degree
         # days; egg masses (and the small larvae just out of them) are what scouts count and sprays must catch
         DerivedStage(label="Egg masses", follows="Adult flight", lag=0, duration=200),

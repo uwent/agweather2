@@ -29,7 +29,7 @@ Risk adds the two stages together. Flight counts because egg-laying leads to the
 The model counts degree days from January 1 by the method its sources use: the day's average temperature above 39 °F (3.9 °C), with both the high and the low capped at 84 °F (29 °C) first. This matters. Single-sine degree days, which AgWeather used for this model before, run 70–100 degree days ahead in spring, and would put each event about a week early.
 
 - **First flight.** The over-wintered flies start emerging around 70 degree days (54–94 in New York; Olaya-Arenas et al. 2024). Half have emerged by about 345 (347 in Wisconsin, Sanborn 1981 in Funderburk et al. 1984) and 90% by 495. The curve ends at 650.
-- **Larvae.** Females lay eggs a few days after emerging, and eggs hatch about 54 degree days later; together about 82. Larvae then feed for about 367 degree days before pupating (Sanborn et al. 1982). So larvae from the first flight are feeding from about 150 to 1,100 degree days, most of them around 650.
+- **Larvae.** Females lay eggs a few days after emerging, and eggs hatch about 54 degree days later; together about 82. Larvae then feed for about 367 degree days before pupating (Sanborn et al. 1982). So larvae from the first flight are feeding from about 150 to 1,100 degree days, most of them around 600.
 - **Later generations.** Each generation takes about 720 degree days from adult to adult (706 in the lab; Funderburk et al. 1984). The model repeats the first generation every 720 degree days until fall freezes end the season, letting each generation spread a little more than the one before, because individuals develop at slightly different rates (Sanborn et al. 1982). Every generation is assumed to be as large as the first.
 - **The end of the season.** After early September, each day at or below 28 °F reduces activity, and four such days within two weeks end the season for good.
 
@@ -37,8 +37,8 @@ The model counts degree days from January 1 by the method its sources use: the d
 
 - Plan plantings of susceptible crops (beans, peas, sweet corn, cucurbits, onions and others) outside the **avoid planting** windows where you can, especially in fields with fresh manure, an incorporated cover crop or green manure, or heavy weeds.
 - If planting during a window can't be avoided, that's when an insecticide seed treatment earns its keep, and when shallow planting into warm soil (faster emergence) helps most.
-- The over-wintered flight in spring and its offspring's flight in early to mid-June carry the most risk. In Iowa and New York that June flight was the year's largest, so plantings delayed into late May or June are exposed to it, and the model counts it as fully as the spring flight.
-- Later generations count a quarter as much in the risk, our judgment of the finding that few flies were caught after mid-July in Iowa, where the summer generation mostly rests through the heat. Their windows still show when flies are active, for late plantings.
+- The over-wintered flight in spring and its offspring's flight in early to mid-June carry the most risk. In Iowa that June flight was as large as the spring flight or larger, and in New York the June peak is a large one, so plantings delayed into late May or June are exposed to it, and the model counts it as fully as the spring flight.
+- Later generations count a quarter as much in the risk, our judgment of the finding that few flies were caught after mid-July in Iowa, where the summer generation appeared to rest through the heat. Their windows still show when flies are active, for late plantings.
 
 ## Validation and caveats
 

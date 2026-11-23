@@ -572,13 +572,39 @@ def test_a_map_reads_each_cells_normal_and_warns_where_its_missing(client, archi
     assert ONE_FLIGHT_NORMAL.missing in body["meta"]["warnings"], body
     assert set(body["data"]["european-corn-borer"]) <= {0, None}
 
-    def field(data_dir, normal, window):
+    def field(data_dir, wanted, window):
         values = np.full(window.shape, 1600.0)
         values[:, : max(0, WINDOW.i0 + 1 - window.i0)] = 1400.0  # the window's first column
-        return values
+        return dict.fromkeys(wanted, values)
 
-    monkeypatch.setattr(normals, "place_normal", field)
+    monkeypatch.setattr(normals, "read_place_normals", field)
     body = get(client, "european-corn-borer", date="2025-07-06", output="one_flight", cells="true").json()
     assert ONE_FLIGHT_NORMAL.missing not in body["meta"]["warnings"]
     found = dict(zip(body["data"]["i"], body["data"]["european-corn-borer"], strict=True))
     assert found[WINDOW.i0] == 1 and found[WINDOW.i0 + 1] == 0, body["data"]
+
+
+def test_a_maps_etag_follows_the_normals_of_the_place_it_reads(client, archive, monkeypatch):
+    """A model reading normals of the place (`ModelSpec.place_normals`): rebuilding them changes the map's ETag."""
+    from agdata import normals
+
+    first = get(client, "european-corn-borer", date="2025-07-03", output="one_flight", cells="true")
+    again = get(
+        client,
+        "european-corn-borer",
+        http_headers={"If-None-Match": first["ETag"]},
+        date="2025-07-03",
+        output="one_flight",
+        cells="true",
+    )
+    assert again.status_code == 304
+    monkeypatch.setattr(normals, "stamp", lambda data_dir, period: f"{period}:rebuilt")
+    rebuilt = get(
+        client,
+        "european-corn-borer",
+        http_headers={"If-None-Match": first["ETag"]},
+        date="2025-07-03",
+        output="one_flight",
+        cells="true",
+    )
+    assert rebuilt.status_code == 200 and rebuilt["ETag"] != first["ETag"]

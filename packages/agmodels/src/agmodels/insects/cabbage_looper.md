@@ -20,7 +20,7 @@ Cabbage looper moths don't survive Wisconsin winters. They fly in from the south
 - **Larval feeding**: caterpillars feeding on the crop. This is the risk.
 - **Scout for small caterpillars**: the days from 10 % to 90 % of each generation's eggs hatched.
 
-A risk of 1 means as many caterpillars feeding as at the first generation's peak.
+The second generation's caterpillars count fully and the others' at half (see below), so a risk of 1 means as many second-generation caterpillars feeding as at the first generation's peak, and the first generation's own peak shows as 0.5.
 
 ## How it works
 

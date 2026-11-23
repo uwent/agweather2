@@ -4,7 +4,7 @@
 
 Model version 0.2, written 2026-11-21 (D98; part H, batch H5). The model: `packages/agmodels/src/agmodels/insects/tarnished_plant_bug.py`, run by the insect engine (`agmodels.phenology`, D36); its page: `tarnished_plant_bug.md` beside it. Version 0.1 was VDIFN's one window (275, 1,000, 2,000 degree days, single sine 52 °F from January 1), checked only against VDIFN; this report replaces that one.
 
-**In short:** the generations of _Lygus lineolaris_ from Ugine 2012's development times at constant temperatures (nymphs 393 degree days above 52 °F, adults 540, a generation 640), with the spring hatch placed so that young nymphs peak at 275, the number UW–Madison's vegetable newsletter uses. That 275 comes from Simko's model of a western lygus bug in Oregon and Idaho: **no source gives a spring degree-day timing for this species**, so the first generation's timing is unsupported, and everything after it inherits that. On the normals the first nymphs appear in mid-May at Arlington, as UW–Madison's fruit program reports in strawberries. We recommend retiring the model unless a spring timing for _L. lineolaris_ turns up.
+**In short:** the generations of _Lygus lineolaris_ from Ugine 2012's development times at constant temperatures (nymphs 393 degree days above 52 °F, adults 540, a generation 640), with the spring hatch placed so that young nymphs peak at 275, the number UW–Madison's vegetable newsletter uses. That 275 comes from Simko's model of a western lygus bug in Oregon and Idaho: **no source gives a spring degree-day timing for this species**, so the first generation's timing is unsupported, and everything after it inherits that. On the normals the first nymphs appear in early May at Arlington (May 5), about a week before the mid-May UW–Madison's fruit program reports in strawberries. We recommend retiring the model unless a spring timing for _L. lineolaris_ turns up.
 
 ## Sources and what we took from each
 
@@ -60,7 +60,7 @@ On AgWeather's 1996–2025 normals (`/api/v2/climate/normals`, single sine 52 °
 | Fourth hatch, 50 % (2,136) | September 13 | October 6 | not reached |
 | Normal total, October 15 | 2,390 | 2,173 | 1,816 |
 
-The first nymphs appear in mid-May at Arlington, as UW–Madison's fruit program reports in strawberries, but young nymphs peak only in late May in the south and early June in the north. The model has about four generations at Arlington and three at Rhinelander, against the four to five UW–Madison counts in the Midwest. Version 0.1's window opened about May 26 at Arlington and June 5 at Rhinelander and peaked about July 10 at Arlington.
+The first nymphs appear in early May at Arlington (May 5), about a week before the mid-May that UW–Madison's fruit program reports in strawberries ("generally in mid-May", once temperatures reach about 68 °F), and young nymphs peak in late May in the south and early June in the north. The model has about four generations at Arlington and three at Rhinelander, against the four to five UW–Madison counts in the Midwest. Version 0.1's window opened about May 26 at Arlington and June 5 at Rhinelander and peaked about July 10 at Arlington.
 
 ## Limits and open questions
 

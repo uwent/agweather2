@@ -442,3 +442,45 @@ def test_the_models_list_says_where_a_fitted_model_was_trained(client):
     beetle = next(m for m in data if m["id"] == "colorado-potato-beetle")
     assert beetle["trained"]["years"] == [2014, 2025] and "55001" in beetle["trained"]["counties"]
     assert next(m for m in data if m["id"] == "early-blight-pdays")["trained"] is None
+
+
+def test_a_fixed_biofix_equal_to_its_date_is_accepted(client, archive):
+    same = get(client, "western-bean-cutworm", biofix="2025-03-01", start="2025-07-01", end="2025-07-03")
+    plain = get(client, "western-bean-cutworm", start="2025-07-01", end="2025-07-03")
+    assert same.status_code == 200 and same.json()["data"] == plain.json()["data"]
+
+
+def _normal_at_the_point(monkeypatch, value: float) -> None:
+    from agdata import normals
+
+    monkeypatch.setattr(
+        normals,
+        "read_place_normals",
+        lambda data_dir, wanted, window: {n: np.full(window.shape, value) for n in wanted},
+    )
+
+
+def test_risk_warns_where_a_models_normal_of_the_place_is_missing(client, archive, monkeypatch):
+    """`/risk` says what a model did without the normal it reads (`ModelSpec.place_normals`), as a run does."""
+    from agmodels.insects.european_corn_borer import ONE_FLIGHT_NORMAL
+
+    params = {"lat": LAT, "lng": LNG, "date": "2025-07-08", "models": "european-corn-borer,tar-spot"}
+    without = client.get("/api/v2/risk", params).json()
+    assert without["meta"]["warnings"].count(ONE_FLIGHT_NORMAL.missing) == 1, without["meta"]["warnings"]
+    _normal_at_the_point(monkeypatch, 1400.0)
+    given = client.get("/api/v2/risk", params).json()
+    assert ONE_FLIGHT_NORMAL.missing not in given["meta"]["warnings"]
+    tar_spot = client.get("/api/v2/risk", params | {"models": "tar-spot"}).json()
+    assert ONE_FLIGHT_NORMAL.missing not in tar_spot["meta"]["warnings"]
+
+
+def test_a_points_etag_follows_the_normals_of_the_place_it_reads(client, archive, monkeypatch):
+    from agdata import normals
+
+    params = {"lat": LAT, "lng": LNG, "start": "2025-07-01", "end": "2025-07-03"}
+    first = client.get("/api/v2/models/european-corn-borer/run", params)
+    again = client.get("/api/v2/models/european-corn-borer/run", params, HTTP_IF_NONE_MATCH=first["ETag"])
+    assert again.status_code == 304
+    monkeypatch.setattr(normals, "stamp", lambda data_dir, period: f"{period}:rebuilt")
+    rebuilt = client.get("/api/v2/models/european-corn-borer/run", params, HTTP_IF_NONE_MATCH=first["ETag"])
+    assert rebuilt.status_code == 200 and rebuilt["ETag"] != first["ETag"]

@@ -46,8 +46,8 @@ The [tarnished plant bug topic page](/topics/tarnished-plant-bug) explains the i
 
 ## Validation and caveats
 
-- Retired (model version 0.3). Before it was retired (version 0.2, beta), the development times are those of a laboratory colony from Mississippi reared on green beans at constant temperatures, converted to degree days above 52 °F; field development in Wisconsin may differ.
-- **The spring timing has no source for this species.** We found no study or extension source that times the tarnished plant bug's spring generation by degree days. The model's first nymphs appear in mid-May at Arlington, as UW–Madison's fruit program reports in strawberries, but the 275 that places them most likely comes from a model of a different lygus bug, and every later generation follows from it.
+- Retired (model version 0.3; version 0.2 was beta). Its development times were those of a laboratory colony from Mississippi reared on green beans at constant temperatures, converted to degree days above 52 °F; field development in Wisconsin may differ.
+- **The spring timing has no source for this species.** We found no study or extension source that times the tarnished plant bug's spring generation by degree days. The model's first nymphs appeared in early May at Arlington, about a week before the mid-May that UW–Madison's fruit program reports in strawberries, and the 275 that places them most likely comes from a model of a different lygus bug, and every later generation follows from it.
 - The overwintered adults and the sudden influx when alfalfa is cut aren't in the model.
 - The model hasn't been compared with field counts in Wisconsin.
 - Weather data come from a grid of cells about 1.5 miles (2.5 km) across, not from a station in your field.

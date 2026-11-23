@@ -26,7 +26,7 @@ Model version 0.2, written 2026-11-21 (D98; part H, H5); UW–Madison's degree-d
 - **Larvae in vines** (a `DerivedStage`, weight 1): from 270 degree days after each moth (SDSU's hatch, 245–300 after laying; UW's one to two weeks) for 660 (SDSU's feeding inside the plant; UW's two to six weeks). SDSU counts these on the simple average, slightly fewer per day than the modified; the difference is within the range SDSU gives.
 - **One generation** (all the Wisconsin, Michigan and South Dakota guides).
 - **Action window:** "Protect stems during egg laying", from 5 % (824) to 75 % (1,242) of the flight: UW–Madison's three weeks of egg laying around 1,000, treating when moths are first seen. Later moths still lay eggs (MSU, the iNaturalist records); the page says to keep stems protected while moths are seen.
-- **Training area:** the extension guides' states (Wisconsin, South Dakota, Ohio, Michigan) and years (2012, XHT1087, to 2026).
+- **Training area:** the extension guides' states (Wisconsin, South Dakota, Ohio, Michigan) and years (2005, XHT1087's printing, to 2026).
 
 ## Checks
 
@@ -36,7 +36,7 @@ Model version 0.2, written 2026-11-21 (D98; part H, H5); UW–Madison's degree-d
 
 - Our first moths (5 %) come at 824 degree days (test: between MSU's 800 and UW's 900) and half have flown at 1,083 (test: 1,000 to 1,100, the guides' 1,000); 75 % at 1,242 (test: 1,200 to 1,280, a week and a half past 1,000); the last moths fly by 1,900 (test: by MSU's 2,000).
 - The larvae hatch 270 degree days after laying (SDSU's 245–300) and feed for 660.
-- The protection window runs from 824 to 1,242, three weeks around 1,000 in an average Wisconsin July (June 21 to July 12 at Arlington, below).
+- The protection window runs from 824 to 1,242, three weeks around 1,000 from late June to mid-July in an average Wisconsin year (June 21 to July 12 at Arlington, below).
 - The curve was drawn to these numbers; no field data were used.
 
 ### Against iNaturalist records

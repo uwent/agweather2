@@ -41,7 +41,7 @@ The [corn earworm topic page](/topics/corn-earworm) explains the insect, its sco
 
 ## Validation and caveats
 
-- Draft (model version 0.2, beta). The caterpillars' development times come from work in Texas; USPest.org rates the model partly validated in the Pacific Northwest. Caterpillars reared in sweet corn ears in western Oregon took about as long to grow (Coop and others, 1993), though single caterpillars took up to about a week less or more. They haven't been checked against caterpillars in Wisconsin fields.
+- Draft (model version 0.2, beta). The caterpillars' development times come from work in Texas; USPest.org rates the model partly validated in the Pacific Northwest. Caterpillars reared in sweet corn ears in western Oregon took about as long to grow (Coop and others, 1993), though single caterpillars took from about a week less to about two weeks more in late-summer weather. They haven't been checked against caterpillars in Wisconsin fields.
 - The August 15 default and the spread of egg laying were set from DATCP's pheromone traps, 2021–2026; across those years the main flight's first big week came from late July to early September. Checking against the same traps shows the fit, not a test on new years. The old default, August 1, came a median 15 days before that week.
 - DATCP's traps go up around July 1, so the default says nothing about the June flight.
 - The model follows one flight's eggs. Moths can arrive in more than one wave; a later wave needs a later date.

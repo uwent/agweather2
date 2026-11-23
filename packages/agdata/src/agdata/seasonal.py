@@ -168,6 +168,7 @@ def project(
     values["day_of_year"] = np.full((n, 1, 1), float(end_day.timetuple().tm_yday))
     values["year"] = np.full((n, 1, 1), float(end_day.year))
     values["biofix_day_of_year"] = np.full((n, 1, 1), float(season.first.timetuple().tm_yday))
+    values |= {key: v[None] for key, v in found.place.items()}  # the normals the map read (`ModelSpec.place_normals`)
     outputs = {k: np.broadcast_to(v, (n, *window.shape)) for k, v in m.finish(values, **found.options).items()}  # type: ignore[attr-defined]
     known = np.all([np.isfinite(v) for v in stacked.values()], axis=0)  # (seasons, y, x)
     counted = known.sum(axis=0)

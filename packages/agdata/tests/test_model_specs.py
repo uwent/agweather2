@@ -78,3 +78,32 @@ def test_names_are_current():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert module.TARGET.read_text() == module.render(), "agmodels/names.py is stale: run bin/types"
+
+
+PLACE_NORMALS = sorted(
+    {(model_id, n) for model_id, m in all_models().items() for n in m.SPEC.place_normals}, key=lambda p: p[1].key
+)
+
+
+@pytest.mark.parametrize(("model_id", "normal"), PLACE_NORMALS, ids=[f"{m}:{n.key}" for m, n in PLACE_NORMALS])
+def test_each_normal_of_the_place_is_one_the_normal_maps_keep(model_id, normal):
+    """A model's `PlaceNormal`: a running total the normal maps store (`agdata.normals`) in a period with maps, read
+    on a real day, in the catalog's unit, which the output naming it carries."""
+    from datetime import date
+
+    from agdata import climatology, normals
+    from agdata.catalog import CUMULATIVE_VARIABLES
+
+    assert normal.variable in normals.RUNNING_NAMES, f"{model_id}: the normals keep no running total {normal.variable}"
+    assert f"{normal.variable}/mean" in {s.name for s in normals.stats(normal.period)}
+    assert normal.period in climatology.MAPPED, f"{model_id}: {normal.period} has no normal maps"
+    month, day = (int(p) for p in normal.through.split("-"))
+    date(climatology.LEAP, month, day)  # raises for a day that isn't one
+    assert normal.unit == CUMULATIVE_VARIABLES[normal.variable].unit
+    outputs = {q.name: q for q in all_models()[model_id].SPEC.outputs}
+    assert normal.key not in outputs or outputs[normal.key].unit == normal.unit
+    assert normal.key in all_models()[model_id].SPEC.context
+
+
+def test_some_model_reads_a_normal_of_the_place():
+    assert PLACE_NORMALS  # European corn borer's one-flight normal: the tests above check something

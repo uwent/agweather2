@@ -9,14 +9,14 @@ from agmodels.spec import Change, Check, Citation, TrainingArea
 # 532 from half the first instars (616) to half the pupae (1,148; Tables 3 and 4, air, sine above 11 °C from January
 # 1), above Jackson and Elliott 1988's 371–478 for western corn rootworm larvae on fresh corn seedlings at 18–27 °C
 # (Table 1), as field larvae should be. At the normal rate from mid-June to mid-July (18 a day at Arlington, 15 at
-# Rhinelander) it's about a month, longer than the three weeks UW Vegetable Entomology and A3646 give each larva
+# Rhinelander) it's about a month, longer than the three weeks UW Vegetable Entomology gives each larva
 LARVAE = 550
 # Hatch to beetle: the larvae (550) and the pupa in its soil cell, about 200 (Jackson and Elliott 1988: 167–195 at
 # 18–27 °C; Davis et al.'s fields: 180–233 from half the pupae to half the beetles). Half the beetles are then out at
 # about 1,283 (533 + 750), near Davis et al.'s 1,328 (northern) and 1,381 (western), and 10 % at about 1,140, which
 # the 1996–2025 normals reach at Arlington within the old three-year Arlington study's first beetles (July 16–24, UW
 # Vegetable Entomology). UW–Madison's table (Delahaut 2005, XHT1087: "adult beetles present at 1300 DD50", by
-# XHT1086's modified average, 50/86 °F, from January 1) then reads as the first beetles: the normals reach it on the
+# the modified of XHT1086's two methods, 50/86 °F, from January 1) then reads as the first beetles: the normals reach it on the
 # days they reach 1,054 to 1,094 above 52 °F, when 0 to 3 % of the model's beetles are out
 HATCH_TO_BEETLE = 750
 # Beetles live and feed for weeks; 700 (about six weeks in July and August) is a judgment

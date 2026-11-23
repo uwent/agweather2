@@ -9,7 +9,7 @@ archive at the station's cell (what the map shows). Ours: the first day each cur
 43 °F reaches 290 and 365 (Eckenrode and Chapman 1972's Wisconsin spring emergence) and the DD43 between our spring
 and first summer peaks (their generation: 1,176), with the days by which their generation would put the summer peak later;
 the DD40 their 1,176 DD43 spans from our spring peak, and again from there (what their generation is at our base); and
-how many station-seasons reach a fourth flight's first flies (5 %) by October 15, where the model stops at three.
+how many station-seasons reach a fourth flight's first flies (5 %) by October 15 (the model shows a fourth flight since version 0.5, ended partway by fall freezes).
 
     uv run python scripts/check_maggots.py   # writes docs/validation/models/<id>/newa.md for each
 """
@@ -119,6 +119,14 @@ def part(
         f"## {insect.name}",
         "",
         "Each cell: NEWA / ours on the station's days / ours on the archive at the station's cell.",
+        *(
+            [
+                "",
+                "NEWA's generation peaks are matched with ours in order, so its third generation peak (its fourth flight) is set beside our fourth flight's 50 %.",
+            ]
+            if insect.id == "cabbage-maggot"
+            else []
+        ),
         "",
         "<!-- prettier-ignore -->",
         "| Station | Year | " + " | ".join(names) + " |",
@@ -190,12 +198,12 @@ def part(
                 f"- {key}: median {np.median(v):+.0f}, 10th–90th percentile {np.percentile(v, 10):+.0f} to {np.percentile(v, 90):+.0f}, n = {len(v)}"
             )
         lines.append(
-            f"- station-seasons whose DD40 reaches a fourth flight's first flies ({fourth_first:.0f}, 5 %; the model stops at three) by October 15: {sum(reached)} of {len(reached)}"
+            f"- station-seasons whose DD40 reaches a fourth flight's first flies ({fourth_first:.0f}, 5 %) by October 15: {sum(reached)} of {len(reached)}"
         )
 
 
 def fourth_flight_start(insect: Insect) -> float:
-    """The degree days at which a fourth flight's first flies (5 %) would come without the three-flight cap."""
+    """The degree days at which a fourth flight's first flies (5 %) come (the model shows four flights since version 0.5)."""
     uncapped = replace(insect, max_generations=4)
     densities = generation_densities(insect=uncapped, stage=uncapped.life_stages[0])
     return float(np.interp(0.05, np.cumsum(densities[3]) * DD_STEP, dd_grid()))

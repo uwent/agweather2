@@ -383,3 +383,40 @@ def test_stored_stage_days_are_the_stages_first_days_and_a_store_without_them_sa
     planted = np.isfinite(p)
     assert np.isinf(without.cell_biofix[0][planted]).all()
     assert np.isnan(without.level[0][planted]).all()
+
+
+PLACE_MODELS = sorted(i for i, m in modelgrid.mapped().items() if m.SPEC.place_normals)
+
+
+def test_models_reading_normals_of_the_place_are_mapped_only_by_paths_that_supply_them():
+    """A model reading normals of the place (`ModelSpec.place_normals`) refuses to run without them (`finish`), so
+    each map path must pass them: `model_days` and `_anchored_days` read them per cell, `seasonal.project` takes the
+    map's; the stored crop tiers (`croptiers`) can't follow normals that move each January, and refuse."""
+    from types import SimpleNamespace
+
+    assert PLACE_MODELS
+    for model_id in PLACE_MODELS:
+        spec = modelgrid.mapped()[model_id].SPEC
+        assert model_id not in modelmaps.TIER_MODELS, model_id
+        assert spec.ingredients or model_id in modelgrid.ON_REQUEST, model_id
+    spec = SimpleNamespace(id="stored-crop", place_normals=(object(),))
+    with pytest.raises(ValueError, match="normals of the place"):
+        croptiers._season(None, spec, {}, np.zeros(WINDOW.shape), FIRST, 1, WINDOW, {})
+
+
+@pytest.mark.parametrize("model_id", PLACE_MODELS)
+def test_a_map_passes_each_cells_normal_of_the_place_to_the_model(built, model_id, monkeypatch):
+    from agdata import normals
+
+    root, _ = built
+    monkeypatch.setattr(
+        normals,
+        "read_place_normals",
+        lambda data_dir, wanted, window: {n: np.full(window.shape, 1234.0) for n in wanted},
+    )
+    found = modelgrid.model_map(root, model_id, DAYS[1], DAYS[1], WINDOW, tier=None)
+    for n in modelgrid.mapped()[model_id].SPEC.place_normals:
+        assert (found.place[n.key] == 1234).all()
+        if n.key in found.outputs:
+            shown = found.outputs[n.key][np.isfinite(found.outputs[n.key])]
+            assert shown.size and (shown == 1234).all()
