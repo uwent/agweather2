@@ -476,3 +476,25 @@ def find_spec(model_id: str):
     from agmodels.registry import model
 
     return model(model_id).SPEC
+
+
+def test_spans_taken_cell_by_cell_are_the_whole_maps_spans():
+    """D5: `_cell_spans` takes each cell's pair from two days' totals; `_spans` made a map per pair."""
+    from agdata.grid import Window
+
+    window = Window(j0=0, j1=3, i0=0, i1=4)
+    rng = np.random.default_rng(2)
+    days = [date(2025, 1, 1) + timedelta(days=k) for k in range(200)]
+    totals = {d: np.cumsum(rng.uniform(0, 5, (200, 3, 4)), axis=0)[k] for k, d in enumerate(days)}
+    totals[date(2025, 5, 3)][1, 1] = np.nan  # a day without a total at one cell
+    pairs = [
+        (date(2025, 1, 1), date(2025, 6, 1)),
+        (date(2025, 4, 10), date(2025, 6, 1)),
+        (date(2025, 5, 4), date(2025, 7, 1)),
+    ]
+    group = rng.integers(0, len(pairs), window.size)
+    cells = np.arange(window.size)
+    fetch = lambda wanted: {d: totals[d] for d in wanted}  # noqa: E731
+    whole = modelgrid._spans(fetch, list(pairs), window)  # (pairs, y, x)
+    expected = whole.reshape(len(pairs), -1)[group, cells]
+    np.testing.assert_array_equal(modelgrid._cell_spans(fetch, pairs, group, cells), expected)

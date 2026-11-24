@@ -743,7 +743,18 @@ def _accumulated(reader: _Reader, spec: ModelSpec, a: Accumulation, dates: list[
         starts = np.unique(start[started])
         firsts = [date.fromordinal(int(u)) for u in starts]
         ends = [min(d, until_day(a.until, f)) if a.until is not None else d for f in firsts]
-        pairs: list[tuple[date | None, date]] = list(zip(firsts, ends, strict=True))
+        within = list(zip(firsts, ends, strict=True))
+        if all(f.year == e.year for f, e in within):  # each a difference of two days' totals, cell by cell
+            cells = np.flatnonzero(started.ravel())
+            group = np.searchsorted(starts, start.ravel()[cells])  # each started cell's pair
+            sums = _cell_spans(total, within, group, cells)
+            if a.how == "mean":
+                counts = _cell_spans(known, within, group, cells)
+                with np.errstate(invalid="ignore", divide="ignore"):
+                    sums = np.where(counts > 0, sums / counts, np.nan)
+            out[k].reshape(-1)[cells] = sums
+            continue
+        pairs: list[tuple[date | None, date]] = list(within)
         sums = _spans(total, pairs, reader.window)
         if a.how == "mean":
             counts = _spans(known, pairs, reader.window)
@@ -752,6 +763,37 @@ def _accumulated(reader: _Reader, spec: ModelSpec, a: Accumulation, dates: list[
         for u, v in zip(starts, sums, strict=True):
             cells = started & (start == u)
             out[k][cells] = v[cells]
+    return out
+
+
+def _cell_spans(total, pairs: list[tuple[date, date]], group: np.ndarray, cells: np.ndarray) -> np.ndarray:
+    """`_spans` for pairs within one year each, taken only at the cells that use them (`cells`, flat indices into
+    the window, each with its pair's index in `group`): each cell's total on its pair's last day less its total the
+    day before its first (nothing before January 1). `_spans` made a whole map per pair, and a crop's emergence
+    varies across the launch box by a hundred days (early blight's week took 5 s of a 7 s first tile)."""
+    needed = sorted({e for _, e in pairs} | {f - timedelta(days=1) for f, _ in pairs if (f.month, f.day) != (1, 1)})
+    found = total(needed)
+    index = {d: k for k, d in enumerate(needed)}
+    ends = np.array([index[e] for _, e in pairs])[group]
+    before = np.array([index.get(f - timedelta(days=1), -1) for f, _ in pairs])[group]  # -1: from January 1
+
+    def at(which: np.ndarray) -> np.ndarray:
+        """Each cell's total on its day `which` (an index into `needed`; NaN for -1), each day's map read once
+        for just the cells that need it."""
+        out = np.full(cells.size, np.nan)
+        order = np.argsort(which, kind="stable")
+        days, starts = np.unique(which[order], return_index=True)
+        for k, (day, lo) in enumerate(zip(days, starts, strict=True)):
+            if day < 0:
+                continue
+            hi = starts[k + 1] if k + 1 < len(starts) else order.size
+            picked = order[lo:hi]
+            out[picked] = found[needed[day]].reshape(-1)[cells[picked]]
+        return out
+
+    out = at(ends)
+    later = before >= 0  # a first day of January 1 has nothing before it
+    out[later] = out[later] - np.nan_to_num(at(before)[later])
     return out
 
 
