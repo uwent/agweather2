@@ -49,7 +49,6 @@ PROVISIONAL = frozenset({"rtma", "ifs"})
 # Chunks (time steps, y, x): hourly for point reads (a cell's month is one chunk), daily for map tiles.
 # pcodec compresses the packed int16 values 25-45% better than zstd at the same speed (docs/pilot.md).
 DEFAULT_CHUNKS: dict[Step, tuple[int, int, int]] = {"hour": (720, 32, 32), "day": (1, 256, 256)}
-HOURLY_CHUNK_COLUMNS = DEFAULT_CHUNKS["hour"][2]  # work over the window is divided in these (`coverage.parts`)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -263,12 +262,15 @@ class GridStore:
         values: dict[str, np.ndarray],
         source: str | None,
         window: Window | None = None,
+        record: bool = True,
     ) -> None:
         """Writes consecutive steps from `start`: each array is (steps, y, x) over the window (default the
         store's; a sub-window writes part of each step), in the stored unit.
 
         `source` marks every written step; pass None and call `set_sources` when steps came from different sources.
         A store over a coverage preset's window keeps its cells outside the mask missing (`coverage.outside`, D105).
+        With `record` False only the values are written, not when or from what (a block written in a worker
+        process, `agdata.blocks`): the caller calls `record` for them.
         """
         t0 = self.index_of(start)
         now = datetime.now(UTC).timestamp()
@@ -290,9 +292,20 @@ class GridStore:
             if excluded is not None:
                 block = np.where(excluded, np.nan, block)
             self._array(name)[t0:t1, rows, cols] = v.encode(block)
-            self._array(f"_meta/{name}.written")[t0:t1] = now
+            if record:
+                self.record([name], start, t1 - t0, source, now)
+
+    def record(
+        self, names: Iterable[str], start: datetime | date, steps: int, source: str | None, now: float | None = None
+    ) -> None:
+        """Stamps `steps` steps from `start` of each variable as written now (and from `source`, unless None), as
+        `write` does for what it writes."""
+        t0 = self.index_of(start)
+        now = datetime.now(UTC).timestamp() if now is None else now
+        for name in names:
+            self._array(f"_meta/{name}.written")[t0 : t0 + steps] = now
             if source is not None:
-                self._array(f"_meta/{name}.source")[t0:t1] = SOURCES[source]
+                self._array(f"_meta/{name}.source")[t0 : t0 + steps] = SOURCES[source]
 
     def set_sources(self, name: str, start: datetime | date, sources: list[str | None]) -> None:
         """Records which source filled each step from `start` (None: nothing)."""

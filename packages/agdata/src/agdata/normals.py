@@ -274,7 +274,7 @@ def _single(values: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
 
 
 def _blocks(window: Window, size: int) -> Iterator[Window]:
-    yield from coverage.parts(window, size, size)  # those with a covered cell (D105)
+    yield from coverage.parts(window, size)  # those with a covered cell (D105)
 
 
 def _encode(values: np.ndarray, scale: float) -> np.ndarray:

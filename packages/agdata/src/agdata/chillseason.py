@@ -15,12 +15,14 @@ October 1, so its missing hours say how much of the season it lacks.
 """
 
 from datetime import date, timedelta
+from functools import partial
 from pathlib import Path
 
 import numpy as np
 
+from agdata import blocks
 from agdata.catalog import CUMULATIVE_VARIABLES
-from agdata.daily import _bands, _HourlyReader
+from agdata.daily import _HourlyReader
 from agdata.grid import Window
 from agdata.store import CUMULATIVE, DAILY, GridStore
 from agdata.timezones import GRID_ZONE, day_bounds
@@ -28,7 +30,7 @@ from agmodels import chill
 
 NAMES = ("chill_portions", "chill_state", "chill_missing_hours")
 SEASON_MONTH = 10  # October 1
-DAYS_PER_READ = 31  # hours read a month at a time per band
+DAYS_PER_READ = 31  # hours read a month at a time per block
 
 
 def season_start(day: date) -> date:
@@ -82,24 +84,54 @@ def _update_season(
     # nothing is written for them (a reader finds no data there, which is what there is)
     skipped_hours = 24.0 * (data_from - start).days if base is None else 0.0
     start = max(start, data_from) if base is None else start
-    hourly = _HourlyReader(data_dir)
-    for band in _bands(window):
-        state, total, missing = _start_values(base, band, window)
-        missing = missing + skipped_hours
-        days: list[np.ndarray] = []
-        day = start
-        while day <= end:
-            n = min(DAYS_PER_READ, (end - day).days + 1)
-            begin = day_bounds(day, GRID_ZONE)[0]
-            hours = hourly.read("air_temperature", begin, begin + timedelta(hours=24 * n), band)
-            for k in range(n):
-                portions, state, gaps = chill.dynamic(hours[24 * k : 24 * (k + 1)], state)
-                total = total + portions.sum(axis=0)
-                missing = missing + gaps
-                days.append(np.stack([total, state, missing]))
-            day += timedelta(days=n)
-        _write(data_dir, window, band, start, np.stack(days))  # (days, 3, y, x)
+    from agdata.cumulative import open_or_create_cumulative
+
+    stores = {year: open_or_create_cumulative(data_dir, year, window) for year in range(start.year, end.year + 1)}
+    chains = [
+        [
+            (
+                None,
+                partial(
+                    _season_block, data_dir, window, _start_values(base, part, window), skipped_hours, start, end, part
+                ),
+            )
+        ]
+        for part in blocks.blocks(window)
+    ]
+    spans: set[tuple[int, date, int]] = set()
+    blocks.run(chains, lambda _, written: spans.update(written))
+    for year, first_day, n in spans:
+        stores[year].record(NAMES, first_day, n, source="derived")
     return start, end
+
+
+def _season_block(
+    data_dir: Path,
+    window: Window,
+    starting: tuple[np.ndarray, np.ndarray, np.ndarray],
+    skipped_hours: float,
+    start: date,
+    end: date,
+    part: Window,
+) -> list[tuple[int, date, int]]:
+    """Computes and writes one block's chill days start..end from its starting state, total and missing hours (a
+    task for `blocks.run`); returns what it wrote, (year, first day, days) for each year."""
+    state, total, missing = starting
+    missing = missing + skipped_hours
+    hourly = _HourlyReader(data_dir)
+    days: list[np.ndarray] = []
+    day = start
+    while day <= end:
+        n = min(DAYS_PER_READ, (end - day).days + 1)
+        begin = day_bounds(day, GRID_ZONE)[0]
+        hours = hourly.read("air_temperature", begin, begin + timedelta(hours=24 * n), part)
+        for k in range(n):
+            portions, state, gaps = chill.dynamic(hours[24 * k : 24 * (k + 1)], state)
+            total = total + portions.sum(axis=0)
+            missing = missing + gaps
+            days.append(np.stack([total, state, missing]))
+        day += timedelta(days=n)
+    return _write(data_dir, window, part, start, np.stack(days))  # (days, 3, y, x)
 
 
 def rebuild(data_dir: Path, window: Window, years: list[int]) -> None:
@@ -114,13 +146,18 @@ def _start_values(base: dict[str, np.ndarray] | None, band: Window, window: Wind
         zeros = np.zeros(band.shape)
         return zeros, zeros.copy(), zeros.copy()
     rows = slice(band.j0 - window.j0, band.j1 - window.j0)
-    total, state, missing = (np.nan_to_num(base[name][rows]) for name in NAMES)
+    cols = slice(band.i0 - window.i0, band.i1 - window.i0)
+    total, state, missing = (np.nan_to_num(base[name][rows, cols]) for name in NAMES)
     return state, total, missing
 
 
-def _write(data_dir: Path, window: Window, band: Window, start: date, stacked: np.ndarray) -> None:
+def _write(
+    data_dir: Path, window: Window, band: Window, start: date, stacked: np.ndarray
+) -> list[tuple[int, date, int]]:
+    """Writes the values only, year by year; returns (year, first day, days) for the caller to `record`."""
     from agdata.cumulative import open_or_create_cumulative
 
+    written = []
     day = start
     k = 0
     while k < stacked.shape[0]:
@@ -128,9 +165,13 @@ def _write(data_dir: Path, window: Window, band: Window, start: date, stacked: n
         n = min(stacked.shape[0] - k, (year_end - day).days + 1)
         store = open_or_create_cumulative(data_dir, day.year, window)
         block = stacked[k : k + n]
-        store.write(day, {name: block[:, m] for m, name in enumerate(NAMES)}, source="derived", window=band)
+        store.write(
+            day, {name: block[:, m] for m, name in enumerate(NAMES)}, source="derived", window=band, record=False
+        )
+        written.append((day.year, day, n))
         k += n
         day += timedelta(days=n)
+    return written
 
 
 def _read_day(data_dir: Path, day: date, window: Window) -> dict[str, np.ndarray] | None:

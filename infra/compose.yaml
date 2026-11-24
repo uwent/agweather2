@@ -17,6 +17,7 @@ x-app: &app
     SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY}
     ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost}
     SERVICE_BOX: ${SERVICE_BOX:-wisconsin}
+    BLOCK_WORKERS: ${BLOCK_WORKERS:-1}  # worker processes for jobs over the grid's blocks (agdata.blocks), a few GB each
     OPEN_METEO_API_KEY: ${OPEN_METEO_API_KEY:-}
     COPERNICUS_API_KEY: ${COPERNICUS_API_KEY:-}
   volumes:

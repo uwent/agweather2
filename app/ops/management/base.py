@@ -5,6 +5,7 @@
 - `--background`: the same command started detached, its output in a log under `data/runs/`;
 - a record of the run in `data/runs/` with its events, which `manage.py archive` and the dashboard (`ops.tui`) read;
 - the write lock taken with a wait that says whose lock it's waiting for, labelled with this command;
+- `--block-workers`: worker processes for work over the grid's blocks (`agdata.blocks`);
 - a first SIGTERM (`archive stop`, the dashboard) asks a `stoppable` command to stop after its current block;
 - date arguments checked, and a nonzero exit when anything failed (so a script or cron line notices).
 """
@@ -20,6 +21,7 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError, OutputWrapper
 
+from agdata import blocks
 from agdata.grid import service_window
 from agdata.progress import Reporter
 from ops import locks, runs
@@ -40,6 +42,12 @@ class ReportingCommand(BaseCommand):
             help="print only warnings, failures and the summary (for jobs and background runs)",
         )
         if self.tracked:
+            parser.add_argument(
+                "--block-workers",
+                type=int,
+                default=None,
+                help="worker processes for work over the grid's blocks (default: BLOCK_WORKERS, else 1); each takes a few GB at peak",
+            )
             parser.add_argument(
                 "--background",
                 action="store_true",
@@ -71,6 +79,8 @@ class ReportingCommand(BaseCommand):
             return self.launch_background()
         if not self.is_tracked(options):
             return super().execute(*args, **options)
+        if options.get("block_workers") is not None:
+            blocks.set_workers(positive(options["block_workers"], "--block-workers"))
         argv = [a for a in getattr(self, "_argv", []) if a != "--quiet"]
         locks.set_label(" ".join([self.command_name, *argv]))
         self.run_record = runs.start(settings.DATA_DIR, self.command_name, argv)
@@ -91,6 +101,7 @@ class ReportingCommand(BaseCommand):
                 summary = f"{type(error).__name__}: {error}"
             raise
         finally:
+            blocks.set_workers(None)
             self.report.close()
             self._restore_signals(previous)
             runs.finish(settings.DATA_DIR, self.run_record, ok, summary)

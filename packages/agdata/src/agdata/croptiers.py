@@ -10,8 +10,8 @@ cell's typical planting date for the tier (`agdata.planting.planting_map`; NaN w
 default options (soybean MG 2.0 until location-adjusted maturity, D66).
 
 Each update recomputes the season from planting (simple and exact; option (a), Ben 2026-11-05): cells are grouped
-by planting day and each group runs once from it, over bands of the daily store's chunk rows. `ops.tasks`
-runs it in its own job after the ingest, outside the ingest's write lock (computing outside, writing inside), only
+by planting day and each group runs once from it, a square block (`agdata.blocks`) at a time. `ops.tasks`
+runs it in its own job after the ingest, taking the write lock a block (or a wave of blocks) at a time, only
 while a crop is in season; the forecast run gets its own from its first day, continuing from the archive's days
 before. `modelmaps.build` builds a past year's with the rest of its ingredients.
 
@@ -23,15 +23,16 @@ ordinals, inf if not reached by the update's last day, NaN unplanted; `reached`)
 from collections.abc import Callable
 from contextlib import AbstractContextManager, nullcontext
 from datetime import date, timedelta
+from functools import partial
 from pathlib import Path
 from typing import Any, cast
 
 import numpy as np
 import zarr
 
-from agdata import coverage, modelmaps, planting
+from agdata import blocks, modelmaps, planting
 from agdata.grid import NDFD, Window
-from agdata.store import HOURLY_CHUNK_COLUMNS, INGREDIENTS, GridStore
+from agdata.store import INGREDIENTS, GridStore
 from agmodels.crops import CropModel, stage_days
 from agmodels.registry import model as find_model
 
@@ -75,18 +76,16 @@ def update(
 ) -> list[str]:
     """Recomputes each tier's season of `year` through `last` (the last day with weather) and writes it: the
     archive's, or with `run` the forecast run's days from `run_first` (weather from the run from then, the
-    archive's before). Computing happens outside `lock`, writing inside it; only days from `since` are written (an
+    archive's before). Blocks run while `lock` is held (`blocks.run`'s `hold`); only days from `since` are written (an
     hourly update rewrites the days whose weather can have changed, `REWRITE_DAYS`; each day of each variable is a
     chunk, so writing a season is most of the time). Returns the variables written."""
     root = run if run is not None else data_dir
     store_window = modelmaps._store_window(root, data_dir, year, window)
-    rows = modelmaps._chunk_rows(store_window)
-    written: list[str] = []
+    with (lock or nullcontext)():
+        store = modelmaps.open_or_create(root, year, store_window)  # made here, before a worker writes to it
+    parts = blocks.blocks(window)
+    chains = []
     for model_id, crop in CROPS.items():
-        m = find_model(model_id)
-        spec = m.SPEC
-        options = {o.name: o.default for o in spec.options}
-        names = [q.name for q in spec.inputs]
         _, season_end = season(model_id, year)
         end = min(last, season_end)
         # Each tier with planting dates here and days to write: (its planting map, the first day written)
@@ -101,28 +100,61 @@ def update(
                 tiers[tier] = (sown, write_from)
         if not tiers:
             continue
-        # The inputs are read once a band from the earliest planting of any tier, and each tier runs from them
+        # The inputs are read once a block from the earliest planting of any tier, and each tier runs from them
         begin = min(date.fromordinal(int(np.nanmin(sown))) for sown, _ in tiers.values())
-        n = (end - begin).days + 1
-        for band in coverage.parts(window, rows, align=HOURLY_CHUNK_COLUMNS):
-            y0, x0 = band.j0 - window.j0, band.i0 - window.i0
-            inputs = {
-                name: modelmaps._filled(name, modelmaps._read(data_dir, run, run_first, name, begin, n, band))
-                for name in names
+        for part in parts:
+            y0, x0 = part.j0 - window.j0, part.i0 - window.i0
+            planted = {
+                tier: (sown[y0 : y0 + part.shape[0], x0 : x0 + part.shape[1]], write_from)
+                for tier, (sown, write_from) in tiers.items()
             }
-            for tier, (sown, write_from) in tiers.items():
-                planted = sown[y0 : y0 + band.shape[0], x0 : x0 + band.shape[1]]
-                found = _season(m, spec, inputs, planted, begin, n, band, options)
-                k = (write_from - begin).days
-                values = {modelmaps.tier_key(model_id, q, tier): v[k:] for q, v in found.items()}
-                reached = _reached_days(m, found["stage"], planted, begin)
-                with (lock or nullcontext)():
-                    store = modelmaps.open_or_create(root, year, store_window)
-                    store.write(write_from, values, source="derived", window=band)
-                    store.mark_current(list(values))
-                    _write_reached(store, model_id, tier, band, reached, end)
-                written += [name for name in values if name not in written]
+            task = partial(_tiers_block, data_dir, root, run, run_first, year, model_id, begin, end, planted, part)
+            chains.append([((model_id, part), task)])
+    written: list[str] = []
+
+    def handle(key, found: dict[str, tuple[date, list[str], np.ndarray]]) -> None:
+        model_id, part = key
+        for tier, (write_from, names, reached) in found.items():
+            store.record(names, write_from, (min(last, season(model_id, year)[1]) - write_from).days + 1, "derived")
+            store.mark_current(names)
+            _write_reached(store, model_id, tier, part, reached, min(last, season(model_id, year)[1]))
+            written.extend(name for name in names if name not in written)
+
+    blocks.run(chains, handle, hold=lock)
     return written
+
+
+def _tiers_block(
+    data_dir: Path,
+    root: Path,
+    run: Path | None,
+    run_first: date | None,
+    year: int,
+    model_id: str,
+    begin: date,
+    end: date,
+    planted: dict[str, tuple[np.ndarray, date]],
+    part: Window,
+) -> dict[str, tuple[date, list[str], np.ndarray]]:
+    """Computes and writes one crop's tiers over a block, days begin..end, each tier's from its first day written
+    (a task for `blocks.run`); returns each tier's first day written, the variables and its stages' first days."""
+    m = find_model(model_id)
+    spec = m.SPEC
+    options = {o.name: o.default for o in spec.options}
+    n = (end - begin).days + 1
+    inputs = {
+        q.name: modelmaps._filled(q.name, modelmaps._read(data_dir, run, run_first, q.name, begin, n, part))
+        for q in spec.inputs
+    }
+    store = GridStore.open(root, INGREDIENTS, year, modelmaps.variables())
+    out = {}
+    for tier, (sown, write_from) in planted.items():
+        found = _season(m, spec, inputs, sown, begin, n, part, options)
+        k = (write_from - begin).days
+        values = {modelmaps.tier_key(model_id, q, tier): v[k:] for q, v in found.items()}
+        store.write(write_from, values, source="derived", window=part, record=False)
+        out[tier] = (write_from, list(values), _reached_days(m, found["stage"], sown, begin))
+    return out
 
 
 def _season(m, spec, inputs, planted: np.ndarray, begin: date, n: int, band: Window, options) -> dict[str, np.ndarray]:

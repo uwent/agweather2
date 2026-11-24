@@ -5,13 +5,15 @@ A grid day is midnight to midnight CST (`timezones.GRID_ZONE`, all year): the ho
 before D74 holds each cell's local zone, and `rebuild --stale` moves it to the grid's (`on_grid_days`).
 Days stay raw: min, max and mean need `DAILY_MIN_HOURS` of the day's hours and sums need every hour, or the day
 is NaN; estimates across gaps belong to the running totals (`agdata.cumulative`). The daily store for a year
-holds that year's local days, so local Dec 31 reads the next year's first UTC hours. The window is rolled up
-in bands of rows so a large box fits in memory.
+holds that year's local days, so local Dec 31 reads the next year's first UTC hours. The window is rolled up a
+pass of up to MAX_DAYS_PER_PASS days and a square block (`agdata.blocks`) at a time, so memory doesn't grow with the
+window, and blocks run in worker processes when `blocks.workers()` is more than one.
 """
 
 import warnings
 from collections.abc import Callable, Collection, Iterator
 from datetime import UTC, date, datetime, timedelta
+from functools import partial
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -19,16 +21,15 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import zarr
 
-from agdata import coverage
+from agdata import blocks, coverage
 from agdata.catalog import DAILY_MIN_HOURS, DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES, DailyStatistic
 from agdata.gaps import estimate_et0_hourly_mm
 from agdata.grid import NDFD, Window
-from agdata.store import DAILY, HOURLY, HOURLY_CHUNK_COLUMNS, GridStore
+from agdata.store import DAILY, HOURLY, GridStore
 from agdata.timezones import GRID_ZONE, day_bounds, evening_bounds, overnight_bounds, scab_bounds
 from agmodels import features
 from agmodels.weather import relative_humidity_percent
 
-BAND_ROWS = 128
 MAX_DAYS_PER_PASS = 31
 HOUR = timedelta(hours=1)
 ESTIMATE_CONTEXT = timedelta(hours=30)  # hours read around a pass for the ET0 estimate's cloudiness
@@ -84,21 +85,40 @@ def rollup_days(data_dir: Path, window: Window, first: date, last: date, names: 
     its own is skipped, so rolling up from the day before a backfill's first day doesn't make a store for the year
     before the archive."""
     hourly = _HourlyReader(data_dir)
-    written = 0
-    for days in _passes(first, last):
-        if hourly.store(days[0].year) is None:
-            continue
-        store = open_or_create_daily(data_dir, days[0].year, window)
-        has_value: dict[str, np.ndarray] = {}
-        for band, out in _rolled(hourly, window, days, names):
-            store.write(days[0], out, source=None, window=band)
-            for name, values in out.items():
-                some = np.isfinite(values).any(axis=(1, 2))
-                has_value[name] = some | has_value.get(name, np.zeros(len(days), dtype=bool))
-        for name, some in has_value.items():
-            store.set_sources(name, days[0], ["derived" if x else None for x in some])
-        written += len(days)
-    return written
+    passes = [days for days in _passes(first, last) if hourly.store(days[0].year) is not None]
+    stores = {k: open_or_create_daily(data_dir, days[0].year, window) for k, days in enumerate(passes)}
+    parts = blocks.blocks(window)
+    left = {k: len(parts) for k in stores}
+    has_value: dict[int, dict[str, np.ndarray]] = {k: {} for k in stores}
+
+    def handle(key, some: dict[str, np.ndarray]) -> None:
+        k = key
+        for name, found in some.items():
+            has_value[k][name] = found | has_value[k].get(name, np.zeros(len(passes[k]), dtype=bool))
+        left[k] -= 1
+        if not left[k]:  # the pass is whole: its days are stamped once every block is written
+            for name, found in has_value.pop(k).items():
+                stores[k].record([name], passes[k][0], len(passes[k]), source=None)
+                stores[k].set_sources(name, passes[k][0], ["derived" if x else None for x in found])
+
+    chains = [
+        [(k, partial(_rollup_block, data_dir, window, days, names, part))]
+        for k, days in enumerate(passes)
+        for part in parts
+    ]
+    blocks.run(chains, handle)
+    return sum(len(days) for days in passes)
+
+
+def _rollup_block(
+    data_dir: Path, window: Window, days: list[date], names: Collection[str] | None, part: Window
+) -> dict[str, np.ndarray]:
+    """Rolls up one block's pass and writes its values (a task for `blocks.run`); returns whether each variable
+    has a value on each day."""
+    out = next(_rolled(_HourlyReader(data_dir), window, days, names, [part]))[1]
+    store = GridStore.open(data_dir, DAILY, days[0].year, DAILY_VARIABLES.values())
+    store.write(days[0], out, source=None, window=part, record=False)
+    return {name: np.isfinite(values).any(axis=(1, 2)) for name, values in out.items()}
 
 
 def days_from_hours(
@@ -171,9 +191,14 @@ def hourly_read_for(names: Collection[str] | None) -> list[str]:
 
 
 def _rolled(
-    hourly: "_HourlyReader", window: Window, days: list[date], names: Collection[str] | None = None
+    hourly: "_HourlyReader",
+    window: Window,
+    days: list[date],
+    names: Collection[str] | None = None,
+    parts: Collection[Window] | None = None,
 ) -> Iterator[tuple[Window, dict[str, np.ndarray]]]:
-    """Each band of the window and its days' daily variables (every one, or `names`), (days, rows, columns). Every
+    """Each block of the window (or each of `parts`) and its days' daily variables (every one, or `names`), (days,
+    rows, columns). Every
     cell shares a day's windows (grid days, CST): the calendar day, the day from 6 pm and noon to noon
     (`agdata.timezones`). Only the hourly variables the wanted ones need are read."""
     wanted = set(DAILY_VARIABLES) if names is None else set(names)
@@ -184,7 +209,7 @@ def _rolled(
     scabs = [scab_bounds(day, GRID_ZONE) for day in days]
     span_start, span_stop = calendar[0][0], calendar[-1][1] + HOUR
     feature_start = min(span_start, evenings[0][0], overnights[0][0], scabs[0][0])
-    for band in _bands(window):
+    for band in blocks.blocks(window) if parts is None else parts:
         out: dict[str, np.ndarray] = {}
         for name in VARIABLES:
             stats = [s for s in DAILY_STATISTICS.values() if s.hourly == name and s.variable.name in wanted]
@@ -195,16 +220,7 @@ def _rolled(
                 for s in stats:
                     out[s.variable.name] = _each_day(hours, span_start, calendar, s)
         if _ET0_ESTIMATE in wanted:
-            out[_ET0_ESTIMATE] = np.full_like(out["et0_sum"], np.nan)
-            short = np.flatnonzero(np.isnan(out["et0_sum"]).any(axis=(1, 2)))
-            if short.size:
-                # Only over the days missing some ET0, with context: the estimate's arrays are many times the hours'
-                d0, d1 = int(short[0]), int(short[-1]) + 1
-                start = calendar[d0][0] - ESTIMATE_CONTEXT
-                stop = calendar[d1 - 1][1] + HOUR + ESTIMATE_CONTEXT
-                et0 = _estimated_et0_hours(hourly, start, stop, band)
-                estimate = _each_day(et0, start, calendar[d0:d1], DAILY_STATISTICS["et0_sum"])
-                out[_ET0_ESTIMATE][d0:d1] = np.where(np.isnan(out["et0_sum"][d0:d1]), estimate, np.nan)
+            out[_ET0_ESTIMATE] = _et0_estimate(hourly, window, band, out["et0_sum"], calendar)
         if groups:
             read = {name for group in groups for name in _GROUP_HOURS[group]}
             hours = {name: hourly.read(name, feature_start, span_stop, band) for name in read}
@@ -290,13 +306,31 @@ def _each_day(hours: np.ndarray, first_hour: datetime, spans: list[Span], s: Dai
     )
 
 
-def _estimated_et0_hours(hourly: "_HourlyReader", start: datetime, stop: datetime, band: Window) -> np.ndarray:
+def _et0_estimate(
+    hourly: "_HourlyReader", window: Window, band: Window, total: np.ndarray, calendar: list[Span]
+) -> np.ndarray:
+    """The day's ET0 with missing hours estimated where its total (days, y, x) is missing, NaN elsewhere. Computed
+    only over the days and covered cells missing some ET0, with ESTIMATE_CONTEXT of hours around them, since the
+    estimate's arrays are many times the hours' (and a store's cells outside the coverage have no ET0 on any day)."""
+    out = np.full_like(total, np.nan)
+    short = np.isnan(total) & coverage.covered(window, band)
+    cells = short.any(axis=0)
+    if not cells.any():
+        return out
+    when = np.flatnonzero(short.any(axis=(1, 2)))
+    d0, d1 = int(when[0]), int(when[-1]) + 1
+    start = calendar[d0][0] - ESTIMATE_CONTEXT
+    stop = calendar[d1 - 1][1] + HOUR + ESTIMATE_CONTEXT
     names = ("et0", "air_temperature", "dew_point", "wind_speed", "surface_pressure", "shortwave_radiation")
-    inputs = [hourly.read(name, start, stop, band) for name in names]
+    inputs = [hourly.read(name, start, stop, band)[:, cells] for name in names]  # (hours, cells)
     first = np.datetime64(start.replace(tzinfo=None), "s")
     hour_end = first + np.arange((stop - start) // HOUR) * np.timedelta64(3600, "s")
-    lat, lon = NDFD.window_latlon(band)
-    return estimate_et0_hourly_mm(hour_end, lat, lon, *inputs)
+    lat, lon = (v[cells] for v in NDFD.window_latlon(band))
+    et0 = estimate_et0_hourly_mm(hour_end, lat, lon, *inputs)
+    estimate = _each_day(et0, start, calendar[d0:d1], DAILY_STATISTICS["et0_sum"])  # (days, cells)
+    span = out[d0:d1]
+    span[:, cells] = np.where(np.isnan(total[d0:d1][:, cells]), estimate, np.nan)
+    return out
 
 
 def daily_statistic(hours: np.ndarray, s: DailyStatistic) -> np.ndarray:
@@ -350,8 +384,3 @@ def _passes(first: date, last: date) -> Iterator[list[date]]:
             run.append(day)
             day += timedelta(days=1)
         yield run
-
-
-def _bands(window: Window) -> Iterator[Window]:
-    """Bands of BAND_ROWS, trimmed to the coverage's cells (`coverage.parts`, in the hourly store's chunk columns)."""
-    yield from coverage.parts(window, BAND_ROWS, align=HOURLY_CHUNK_COLUMNS)

@@ -74,7 +74,9 @@ One table in `agdata.catalog`: name, long name, stored unit, dtype and scale/off
 | `daily-by-time/{year}.zarr` | day × y × x, daily min and max only | 32 × 256 × 256 | A season over the map (custom DD maps); a cache of the daily store's values, kept by `update_days` (`agdata.timecopy`) |
 | `daily-by-point/{year}.zarr` | variable × day × y × x, settled years | all × year × 16 × 16 | A point's past years (projection, climatology; `agdata.pastyears`) |
 
-Zarr v3, int16 with pcodec (docs/pilot.md); a sharding codec if file counts get large. Every hour carries a source flag (urma, rtma, nbm, openmeteo) and an ingest timestamp, so the archive can be revised (RTMA → URMA) idempotently.
+Zarr v3, int16 with pcodec (docs/pilot.md); a sharding codec if file counts get large.
+
+Jobs that compute over the grid (the rollup, running totals, chill portions, the models' ingredients and crop tiers, the past-years copies) work in **square blocks of 256 cells** from the store window's corner (`agdata.blocks`): the daily chunk, so a block's write fills whole chunks, and eight hourly chunks a side. Over the coverage mask only blocks with a covered cell are kept, so a job's memory follows a block (~3.8 GB at peak for a 31-day rollup pass), not the window's width, and its work follows the coverage. Every daily statistic, feature and model works on each cell's own series, so blocks are independent: `BLOCK_WORKERS` (or a command's `--block-workers`) runs them in that many worker processes. A worker writes its block's values (`GridStore.write(record=False)`) and the calling process records the writes, creates stores and arrays and holds the write lock, so no chunk and no `_meta` array has two writers. Every hour carries a source flag (urma, rtma, nbm, openmeteo) and an ingest timestamp, so the archive can be revised (RTMA → URMA) idempotently.
 
 ### 5.4 Time and days
 

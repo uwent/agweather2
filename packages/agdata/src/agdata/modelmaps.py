@@ -18,32 +18,32 @@ it from the stored day before: any day's update gives what building the year giv
 
 Inputs are each daily variable's, gaps filled as the runner fills them (D45). An update from day `first` reads
 LOOKBACK_DAYS of weather before it, recomputes from the earliest day a change can reach (cotton reads days ahead),
-and continues the running totals, counts and minimums from the stored day before. It works in bands of the stores'
-chunk rows (a daily chunk is read once and written whole) and blocks of days (BLOCK_CELL_DAYS), each continuing
-the last.
+and continues the running totals, counts and minimums from the stored day before. It works in square blocks
+(`agdata.blocks`: a daily chunk is read once and written whole), each in spans of days (BLOCK_CELL_DAYS) continuing
+the last, and blocks run in worker processes when `blocks.workers()` is more than one.
 """
 
 from collections.abc import Callable, Iterable
 from contextlib import AbstractContextManager, nullcontext
 from dataclasses import dataclass
 from datetime import date, timedelta
-from functools import cache
+from functools import cache, partial
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
-from agdata import coverage
+from agdata import blocks
 from agdata.catalog import DAILY_VARIABLES, GAP_FILL, Variable
 from agdata.grid import Window
-from agdata.store import DAILY, DEFAULT_CHUNKS, HOURLY_CHUNK_COLUMNS, INGREDIENTS, GridStore
+from agdata.store import DAILY, INGREDIENTS, GridStore
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps, fill_zero
 from agmodels.ingredients import LOOKBACK_DAYS, Ingredient
 from agmodels.registry import all_models
 from agmodels.spec import Model
 
 # Cells × days computed at once: over Wisconsin (58,000 cells) blocks of 45 days, 2.8 GB at peak with the lookback;
-# a band of more cells (the launch box's 256 rows) takes fewer days, down to MIN_BLOCK_DAYS
+# a 256-cell block (65,536 cells) takes 39 days
 BLOCK_CELL_DAYS = 2_600_000
 MIN_BLOCK_DAYS = 8
 
@@ -249,24 +249,59 @@ def update(
     if run is None:
         write_from = _resume_from(data_dir, write_from, entries)
     root = run if run is not None else data_dir
-    store_window = _store_window(root, data_dir, write_from.year, window)
-    rows = _chunk_rows(store_window)
-    block_days = max(MIN_BLOCK_DAYS, BLOCK_CELL_DAYS // (rows * window.shape[1]))
-    blocks = []
+    parts = blocks.blocks(window)
+    block_days = max(MIN_BLOCK_DAYS, BLOCK_CELL_DAYS // max([p.size for p in parts], default=1))
+    spans = []
     day = write_from
     while day <= last:
-        blocks.append((day, min(last, day + timedelta(days=block_days - 1))))
-        day = blocks[-1][1] + timedelta(days=1)
-    work = [(b, band) for b in blocks for band in coverage.parts(window, rows, align=HOURLY_CHUNK_COLUMNS)]
+        spans.append((day, min(last, day + timedelta(days=block_days - 1))))
+        day = spans[-1][1] + timedelta(days=1)
+    for year in range(write_from.year, last.year + 1):  # made here, before a worker writes to one
+        open_or_create(root, year, _store_window(root, data_dir, year, window))
+    keys = [s.key for s in entries]
+    chains = [
+        [
+            (None, partial(_update_block, data_dir, run, run_first, part, begin, end, ahead, keys))
+            for begin, end in spans
+        ]
+        for part in parts
+    ]
+    total = sum(len(chain) for chain in chains)
+    done = 0
+
+    def handle(_, written: list[tuple[int, date, int, list[str]]]) -> None:
+        nonlocal done
+        for year, first_day, n, names in written:
+            open_or_create(root, year, _store_window(root, data_dir, year, window)).record(
+                names, first_day, n, source="derived"
+            )
+        done += 1
+        if progress is not None:
+            progress(done, total)
+
+    blocks.run(chains, handle, hold=lock)
+    return write_from, last
+
+
+def _update_block(
+    data_dir: Path,
+    run: Path | None,
+    run_first: date | None,
+    part: Window,
+    begin: date,
+    end: date,
+    ahead: int,
+    keys: list[str],
+) -> list[tuple[int, date, int, list[str]]]:
+    """Computes and writes one block's ingredients on days begin..end (a task for `blocks.run`), continuing from
+    the stored day before; returns what it wrote, (year, first day, days, names) for each year."""
+    wanted = set(keys)
+    entries = [s for s in stored().values() if s.key in wanted]
     computing = _computing(entries)
     names = sorted({q.name for m, _ in computing for q in m.SPEC.inputs})
-    for done, ((begin, end), band) in enumerate(work):
-        values = _compute(data_dir, run, run_first, band, begin, end, ahead, computing, names)
-        with (lock or nullcontext)():
-            _write(data_dir, root, band, begin, values, entries, run is not None)
-        if progress is not None:
-            progress(done + 1, len(work))
-    return write_from, last
+    values = _compute(data_dir, run, run_first, part, begin, end, ahead, computing, names)
+    root = run if run is not None else data_dir
+    return _write(data_dir, root, part, begin, values, entries, run is not None)
 
 
 def build_year(data_dir: Path, window: Window, year: int, **kwargs) -> tuple[date, date] | None:
@@ -373,11 +408,6 @@ def _version(text: str) -> int:
     return major * 1000 + minor
 
 
-def _chunk_rows(window: Window) -> int:
-    """Rows per band: a daily chunk's (the whole window when it's smaller), so each chunk is read once per band."""
-    return min(DEFAULT_CHUNKS["day"][1], window.shape[0])
-
-
 def _computing(entries: list[Stored]) -> list[tuple[Model, list[Stored]]]:
     """The models to run and what each gives: a shared ingredient from its first model only."""
     by_model: dict[str, list[Stored]] = {}
@@ -441,10 +471,11 @@ def _filled(name: str, values: np.ndarray) -> np.ndarray:
     return flat.reshape(values.shape)
 
 
-def _write(data_dir, root, band, begin, values, entries, is_run) -> None:
+def _write(data_dir, root, band, begin, values, entries, is_run) -> list[tuple[int, date, int, list[str]]]:
     """Writes days from `begin` year by year: daily values as stored (an accumulated one at its total's step);
     minimums held, and totals and counts continued, from the stored day before (zero on January 1). A run continues
-    the archive's."""
+    the archive's. Only the values: returns (year, first day, days, names) for the caller to `record`."""
+    written = []
     n = next(iter(values.values())).shape[0] if values else 0
     dates = [begin + timedelta(days=k) for k in range(n)]
     for year in sorted({d.year for d in dates}):
@@ -470,7 +501,9 @@ def _write(data_dir, root, band, begin, values, entries, is_run) -> None:
             if s.known:
                 base = _previous(data_dir, root, f"{s.key}.known", day_before, band, is_run) if continuing else 0
                 out[f"{s.key}.known"] = np.nan_to_num(base) + np.cumsum(known, axis=0)
-        store.write(first, out, source="derived", window=band)
+        store.write(first, out, source="derived", window=band, record=False)
+        written.append((year, first, k1 - k0, list(out)))
+    return written
 
 
 def _store_window(root: Path, data_dir: Path, year: int, band: Window) -> Window:

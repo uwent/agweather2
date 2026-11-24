@@ -17,11 +17,12 @@ left empty.
 from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import date, timedelta
+from functools import partial
 from pathlib import Path
 
 import numpy as np
 
-from agdata import chillseason, coverage, timecopy
+from agdata import blocks, chillseason, coverage, timecopy
 from agdata.catalog import (
     CUMULATIVE_VARIABLES,
     DAILY_VARIABLES,
@@ -34,14 +35,14 @@ from agdata.computed import DAILY_COMPUTED
 from agdata.daily import rollup_days
 from agdata.grid import Window
 from agdata.qc import fill_short_gaps
-from agdata.store import CUMULATIVE, DAILY, HOURLY_CHUNK_COLUMNS, GridStore, steps_in_year
+from agdata.store import CUMULATIVE, DAILY, GridStore, steps_in_year
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 
 MAX_BRIDGE_DAYS = 7
 # The daily variables the running totals are built from (D25-D27, D75)
 INPUTS = ("air_temperature_min", "air_temperature_max", "et0_sum", "precipitation_sum", "et0_sum_estimate")
 WATER_BALANCE = DAILY_COMPUTED["water_balance"]
-BAND_CELL_DAYS = 3_000_000  # cells × days per band: about 300 bytes each at peak, so about 1 GB
+BAND_CELL_DAYS = 3_000_000  # cells × days computed at once: about 300 bytes each at peak, so about 1 GB
 
 
 def open_or_create_cumulative(data_dir: Path, year: int, window: Window) -> GridStore:
@@ -70,13 +71,33 @@ def rebuild_year(data_dir: Path, window: Window, year: int, changed_from: date |
     skip = 0
     if changed_from is not None and changed_from.year == year:
         skip = max(0, min((changed_from - date(year, 1, 1)).days - MAX_BRIDGE_DAYS, n - 1))
-    rows = max(1, BAND_CELL_DAYS // ((n + 2 * MAX_BRIDGE_DAYS) * window.shape[1]))
-    for band in coverage.parts(window, rows, align=HOURLY_CHUNK_COLUMNS):
-        tmin, tmax, et0, precip, et0_estimate = (days.read_with_neighbours(name, band, n) for name in INPUTS)
-        out = running_totals(tmin, tmax, et0, precip, et0_estimate)
-        out = {name: values[skip:] for name, values in out.items()}
-        store.write(date(year, 1, 1) + timedelta(days=skip), out, source="derived", window=band)
+    first = date(year, 1, 1) + timedelta(days=skip)
+    names: set[str] = set()
+    chains = [[(None, partial(_totals_block, data_dir, year, n, skip, window, part))] for part in blocks.blocks(window)]
+    blocks.run(chains, lambda _, written: names.update(written))
+    store.record(sorted(names), first, n - skip, source="derived")
     return last
+
+
+def _totals_block(data_dir: Path, year: int, n: int, skip: int, window: Window, part: Window) -> list[str]:
+    """Computes and writes one block's running totals for days skip..n − 1 of the year (a task for
+    `blocks.run`), in bands of its rows that keep to BAND_CELL_DAYS; returns the variables written. The block is
+    written whole (a chunk is written once), from days `skip` on."""
+    days = _DailyYear(data_dir, year)
+    rows = max(1, min(part.shape[0], BAND_CELL_DAYS // ((n + 2 * MAX_BRIDGE_DAYS) * part.shape[1])))
+    out: dict[str, np.ndarray] = {}
+    for j in range(part.j0, part.j1, rows):
+        band = Window(j0=j, j1=min(j + rows, part.j1), i0=part.i0, i1=part.i1)
+        if not coverage.covered(window, band).any():
+            continue
+        tmin, tmax, et0, precip, et0_estimate = (days.read_with_neighbours(name, band, n) for name in INPUTS)
+        for name, values in running_totals(tmin, tmax, et0, precip, et0_estimate).items():
+            target = out.setdefault(name, np.full((n - skip, *part.shape), np.nan, dtype=np.float32))
+            target[:, j - part.j0 : band.j1 - part.j0] = values[skip:]
+    if out:
+        store = GridStore.open(data_dir, CUMULATIVE, year, CUMULATIVE_VARIABLES.values())
+        store.write(date(year, 1, 1) + timedelta(days=skip), out, source="derived", window=part, record=False)
+    return list(out)
 
 
 def running_totals(

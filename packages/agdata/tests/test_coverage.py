@@ -85,23 +85,27 @@ def test_a_store_over_the_coverage_keeps_cells_outside_it_missing_and_their_chun
     assert len(stored) == len(blocks) - empty + touched  # July 1's covered chunks, and July 2's
 
 
-def test_work_over_the_coverage_skips_blocks_outside_it_and_trims_bands():
-    """`coverage.parts`: every covered cell is in exactly one part; blocks with none are left out, bands trimmed to
-    whole chunk columns; any other window is divided whole."""
-    for rows, cols, align in ((128, None, 32), (16, 16, 1), (128, 128, 1)):
-        found = coverage.parts(UM.window, rows, cols, align=align)
+def test_work_over_the_coverage_skips_blocks_outside_it():
+    """`coverage.parts`: squares from the window's corner, every covered cell in exactly one; squares with none are
+    left out; any other window is divided whole."""
+    for size in (16, 256):
+        found = coverage.parts(UM.window, size)
         seen = np.zeros(UM.window.shape, dtype=int)
         for p in found:
             seen[p.j0 - UM.window.j0 : p.j1 - UM.window.j0, p.i0 - UM.window.i0 : p.i1 - UM.window.i0] += 1
             assert UM.over(p).any()
-            if cols is None:
-                assert (p.i0 - UM.window.i0) % align == 0 and (
-                    (p.i1 - UM.window.i0) % align == 0 or p.i1 == UM.window.i1
-                )
+            assert (p.j0 - UM.window.j0) % size == 0 and (p.i0 - UM.window.i0) % size == 0
+            assert p.shape[0] == size or p.j1 == UM.window.j1
+            assert p.shape[1] == size or p.i1 == UM.window.i1
         assert (seen[UM.mask] == 1).all() and seen.max() == 1
-        assert seen.sum() < UM.window.size  # something was left out
+    assert len(coverage.parts(UM.window, 16)) < -(-UM.window.shape[0] // 16) * -(-UM.window.shape[1] // 16)
     wi = service_window("wisconsin")
     whole = coverage.parts(wi, 100)
     assert [(p.j0, p.j1, p.i0, p.i1) for p in whole] == [
-        (wi.j0 + k, min(wi.j0 + k + 100, wi.j1), wi.i0, wi.i1) for k in range(0, wi.shape[0], 100)
+        (wi.j0 + a, min(wi.j0 + a + 100, wi.j1), wi.i0 + b, min(wi.i0 + b + 100, wi.i1))
+        for a in range(0, wi.shape[0], 100)
+        for b in range(0, wi.shape[1], 100)
     ]
+    assert coverage.covered(wi, whole[0]).all()
+    corner = coverage.parts(UM.window, 256)[0]
+    assert (coverage.covered(UM.window, corner) == UM.over(corner)).all()

@@ -29,7 +29,7 @@ import zarr
 from zarr.codecs.numcodecs import PCodec
 from zarr.errors import GroupNotFoundError
 
-from agdata import coverage
+from agdata import blocks, coverage
 from agdata.areas import Area, combine
 from agdata.catalog import DAILY_VARIABLES, FILL, Variable
 from agdata.grid import Window
@@ -37,7 +37,9 @@ from agdata.store import DAILY, GridStore, StoreLayout
 
 PAST = StoreLayout(kind="daily-by-point", step="day")
 CELLS = 16  # chunk side, in cells
-TILE = 128  # cells per side of each block copied (a multiple of CELLS)
+# Cells a side of each block copied: half a 256-cell block (`agdata.blocks`), a multiple of CELLS. A block holds every
+# variable's year at once (the copy's chunks hold them all), ~2.5 GB at peak; a whole 256-cell block took 10 GB
+TILE = blocks.SIZE // 2
 
 
 def years_on_disk(data_dir: Path, layout: StoreLayout) -> list[int]:
@@ -195,7 +197,7 @@ def _build(data_dir: Path, year: int, progress: Callable[[int, int], None] | Non
 
 
 def _tiles(window: Window) -> Iterable[Window]:
-    return coverage.parts(window, TILE, TILE)  # those with a covered cell (D105)
+    return [t for b in blocks.blocks(window) for t in coverage.parts(b, TILE) if coverage.covered(window, t).any()]
 
 
 @dataclass
