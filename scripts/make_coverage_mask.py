@@ -4,8 +4,8 @@ The cells whose centers lie within BUFFER_KM of the 12 Midwest states and Kentuc
 cartographic boundaries, buffered on an equal-area projection so 50 km is 50 km on the ground), and the Great Lakes
 that buffer reaches (the wave-height water, `agdata.coast.water`, connected to it: Superior, Michigan, Huron and
 Erie, not Ontario), so lake maps aren't cut into bands, and any cell the mask encloses (gaps in the wave-height
-water). The file keeps the mask over its bounding window, which is
-the window the stores take.
+water). The file keeps the mask over its bounding rectangle rounded out to the grid-wide lattice of 256-cell blocks
+(`coverage.on_lattice`, D107), which is the window the stores take.
 
     uv run python scripts/make_coverage_mask.py
 """
@@ -21,6 +21,7 @@ import shapefile
 import shapely
 
 from agdata.coast import water
+from agdata.coverage import on_lattice
 from agdata.grid import NDFD, Window
 from agdata.progress import Reporter
 
@@ -88,7 +89,11 @@ def main() -> int:
     report.detail(f"{holes.sum():,} cells enclosed by the mask filled")
     mask |= holes
     rows, cols = np.nonzero(mask)
-    window = Window(j0=int(rows.min()), j1=int(rows.max()) + 1, i0=int(cols.min()), i1=int(cols.max()) + 1)
+    extent = Window(j0=int(rows.min()), j1=int(rows.max()) + 1, i0=int(cols.min()), i1=int(cols.max()) + 1)
+    window = on_lattice(extent)
+    report.detail(
+        f"the mask's extent {extent.shape[0]} × {extent.shape[1]} at ({extent.j0}, {extent.i0}), on the lattice {window.shape[0]} × {window.shape[1]} at ({window.j0}, {window.i0})"
+    )
     inside = mask[window.slices]
     buffer = io.BytesIO()
     np.savez_compressed(
@@ -100,7 +105,7 @@ def main() -> int:
         source=np.array(STATES_ZIP.name),
     )
     OUT.write_bytes(buffer.getvalue())
-    done = f"{inside.sum():,} cells in a window of {window.shape[0]} × {window.shape[1]} ({inside.mean():.0%}); wrote {OUT.name} ({OUT.stat().st_size / 1e3:.0f} kB)"
+    done = f"{inside.sum():,} cells in a window of {window.shape[0]} × {window.shape[1]} ({inside.mean():.0%}, {inside.sum() / extent.size:.0%} of the extent); wrote {OUT.name} ({OUT.stat().st_size / 1e3:.0f} kB)"
     return 0 if report.finish(done) else 1
 
 

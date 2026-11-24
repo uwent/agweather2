@@ -39,13 +39,36 @@ def test_the_mask_covers_the_states_their_buffer_and_the_great_lakes(place, lat,
     assert UM.contains(*cell) is covered, place
 
 
-def test_the_window_is_the_masks_bounding_rectangle():
+def test_the_window_is_the_masks_bounding_rectangle_on_the_block_lattice():
+    """D107: the window is the mask's extent rounded out to the grid-wide lattice of 256-cell blocks."""
     assert service_window("upper_midwest") == UM.window
-    assert UM.mask[0].any() and UM.mask[-1].any() and UM.mask[:, 0].any() and UM.mask[:, -1].any()
+    w, e = UM.window, UM.extent
+    assert all(v % coverage.LATTICE == 0 for v in (w.j0, w.j1, w.i0, w.i1))
+    assert w == coverage.on_lattice(e)
+    assert (
+        w.j0 <= e.j0 < w.j0 + 256
+        and w.j1 - 256 < e.j1 <= w.j1
+        and w.i0 <= e.i0 < w.i0 + 256
+        and w.i1 - 256 < e.i1 <= w.i1
+    )
+    inside = UM.over(e)
+    assert inside[0].any() and inside[-1].any() and inside[:, 0].any() and inside[:, -1].any()
+    assert inside.sum() == UM.mask.sum()
+    assert coverage.extent(w) == e
     assert 400_000 < UM.mask.sum() < 500_000  # D105: about 447,000 cells
     wi = service_window("wisconsin")
     assert UM.over(wi).all()  # Wisconsin's box is inside the coverage
     assert coverage.of("wisconsin").mask.all() and coverage.of("wisconsin").window == wi
+    assert coverage.extent(wi) == wi  # a box's window is all covered
+
+
+def test_on_lattice_rounds_out_and_stops_at_the_grids_edges():
+    assert coverage.on_lattice(Window(j0=256, j1=512, i0=0, i1=256)) == Window(j0=256, j1=512, i0=0, i1=256)
+    assert coverage.on_lattice(Window(j0=300, j1=301, i0=10, i1=600)) == Window(j0=256, j1=512, i0=0, i1=768)
+    ny, nx = NDFD.window.shape
+    assert coverage.on_lattice(Window(j0=ny - 5, j1=ny, i0=nx - 5, i1=nx)) == Window(
+        j0=ny // 256 * 256, j1=ny, i0=nx // 256 * 256, i1=nx
+    )
 
 
 def test_only_a_coverage_presets_window_masks_its_stores():
@@ -87,17 +110,23 @@ def test_a_store_over_the_coverage_keeps_cells_outside_it_missing_and_their_chun
 
 def test_work_over_the_coverage_skips_blocks_outside_it():
     """`coverage.parts`: squares from the window's corner, every covered cell in exactly one; squares with none are
-    left out; any other window is divided whole."""
+    left out, and those kept are trimmed to their covered cells in 32-cell steps, so no 32-cell chunk (nor any
+    smaller one dividing it) is split between two parts; any other window is divided whole."""
     for size in (16, 256):
         found = coverage.parts(UM.window, size)
         seen = np.zeros(UM.window.shape, dtype=int)
         for p in found:
             seen[p.j0 - UM.window.j0 : p.j1 - UM.window.j0, p.i0 - UM.window.i0 : p.i1 - UM.window.i0] += 1
             assert UM.over(p).any()
-            assert (p.j0 - UM.window.j0) % size == 0 and (p.i0 - UM.window.i0) % size == 0
-            assert p.shape[0] == size or p.j1 == UM.window.j1
-            assert p.shape[1] == size or p.i1 == UM.window.i1
+            sj, si = p.j0 - (p.j0 - UM.window.j0) % size, p.i0 - (p.i0 - UM.window.i0) % size  # its square's corner
+            assert p.j1 <= sj + size and p.i1 <= si + size  # inside one square
+            step = min(size, coverage.TRIM)
+            assert (p.j0 - sj) % step == 0 and (p.i0 - si) % step == 0
+            assert (p.j1 - sj) % step == 0 or p.j1 == min(sj + size, UM.window.j1)
+            assert (p.i1 - si) % step == 0 or p.i1 == min(si + size, UM.window.i1)
         assert (seen[UM.mask] == 1).all() and seen.max() == 1
+    trimmed = coverage.parts(UM.window, 256)
+    assert sum(p.size for p in trimmed) <= UM.extent.size  # no more work than the extent, for all the margin
     assert len(coverage.parts(UM.window, 16)) < -(-UM.window.shape[0] // 16) * -(-UM.window.shape[1] // 16)
     wi = service_window("wisconsin")
     whole = coverage.parts(wi, 100)

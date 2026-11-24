@@ -26,8 +26,9 @@ from pathlib import Path
 import h5netcdf
 import numpy as np
 
+from agdata import coverage
 from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, FILL
-from agdata.grid import NDFD
+from agdata.grid import NDFD, Window
 from agdata.layers import NOT_LAYERS
 from agdata.pastyears import years_on_disk
 from agdata.store import DAILY, GridStore
@@ -176,15 +177,15 @@ def write_grid(data_dir: Path, store: GridStore, now: datetime) -> Path:
     """`daily/grid.nc`: each cell's latitude and longitude (its center) and local time zone, on the same grid as
     every year's files, for plotting without a projection library (D71). Every file's days are CST (D74); the zone
     is for showing a cell's hours on its own clock."""
-    zones, zone_index = window_timezones(store.window)
-    window = store.window
+    window = coverage.extent(store.window)
+    zones, zone_index = window_timezones(window)
     jj, ii = np.arange(window.j0, window.j1), np.arange(window.i0, window.i1)
     lat, lon = NDFD.latlon(*np.meshgrid(jj, ii, indexing="ij"))
     path = folder(data_dir) / GRID_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".nc.tmp")
     with h5netcdf.File(temporary, "w") as f:
-        _grid(f, store)
+        _grid(f, window)
         f.attrs.update(
             _attrs("The grid of AgWeather's yearly files: each cell's latitude, longitude and time zone", now)
         )
@@ -206,9 +207,8 @@ def write_grid(data_dir: Path, store: GridStore, now: datetime) -> Path:
     return path
 
 
-def _grid(f: h5netcdf.File, store: GridStore) -> None:
-    """The native grid's projected coordinates and its projection (`api.gridfiles`)."""
-    window = store.window
+def _grid(f: h5netcdf.File, window: Window) -> None:
+    """The native grid's projected coordinates over `window` and its projection (`api.gridfiles`)."""
     ny, nx = window.shape
     jj, ii = np.arange(window.j0, window.j1), np.arange(window.i0, window.i1)
     x0, y0 = NDFD.origin
@@ -235,11 +235,12 @@ def _attrs(title: str, now: datetime) -> dict[str, str]:
 
 def _write(path: Path, store: GridStore, name: str, n: int, first: date, now: datetime) -> None:
     v = DAILY_VARIABLES[name]
-    ny, nx = store.window.shape
+    window = coverage.extent(store.window)  # the covered cells' rectangle, without a coverage window's margin (D107)
+    ny, nx = window.shape
     statistic = DAILY_STATISTICS[name].stat if name in DAILY_STATISTICS else None  # hour counts aren't statistics
     with h5netcdf.File(path, "w") as f:
         f.dimensions = {"time": n}
-        _grid(f, store)
+        _grid(f, window)
         f.attrs.update(
             {
                 **_attrs(f"{v.long_name}, {first.year}", now),
@@ -275,7 +276,7 @@ def _write(path: Path, store: GridStore, name: str, n: int, first: date, now: da
             data.attrs["cell_methods"] = f"time: {CF_STATS[statistic]}"
         for start in range(0, n, BLOCK_DAYS):
             stop = min(start + BLOCK_DAYS, n)
-            data[start:stop] = store.read_packed(name, start, stop)
+            data[start:stop] = store.read_packed(name, start, stop, window=window)
 
 
 def _packed(value: float, scale: float, offset: float) -> np.int16:

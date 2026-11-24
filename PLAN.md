@@ -9,7 +9,7 @@ This file is where things stand and what's next: the one handoff, Ben's open cho
 <!-- prettier-ignore -->
 | Doc | Holds |
 | --- | --- |
-| [docs/decisions.md](docs/decisions.md) | Why: the recorded decisions (D1–D106) and the questions put to Ben (Q1–Q41). A new decision takes the next D number |
+| [docs/decisions.md](docs/decisions.md) | Why: the recorded decisions (D1–D107) and the questions put to Ben (Q1–Q41). A new decision takes the next D number |
 | [docs/architecture.md](docs/architecture.md) | How the system is laid out (§3–13: data, ingest, forecast, models, API, web app, jobs, testing, deployment) |
 | [docs/plans/](docs/plans/) | The work, by phase in build order (Phases 1–5 done, 6 current, 7–9 sketches), and the plans that run beside a phase (models, humidity). Its README says what each holds and its status |
 | [docs/api.md](docs/api.md) | The API v2 contract |
@@ -42,7 +42,7 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 - **The papers read in full (D104):** Ben fetched 40 papers and UW's XHT1087 handout; agents read each against its models (reports in `tmp/papers/`), then built Ben's approved changes: cabbage maggot 0.5 (a generation of 1,275 DD40 instead of NEWA's 850; a partial fourth flight ended by fall freezes), seedcorn maggot 0.4 and onion maggot 0.4 (weights), corn rootworm 0.3 (larvae 550, pupa 200), black cutworm 0.4 (Kaster and Showers' outdoor times). XHT1087 gives base temperatures only (the modified average is our reading).
 - **Review of the day's work** (reports in `tmp/review/`): cold checks of all 20 changed insects' pages, reports and topic pages (about 60 corrections, no output changes: stale wording from earlier versions, overclaimed sources such as XHT1086 and A3646, dates out of step with the code); a code review of the engine changes, all eight findings fixed (`/risk` now warns when the normal is missing; the one-flight form evaluated only where it applies, halving corn borer's map cost; the fixed biofix enforced in the runner; a run must be given its normal; normals read once per point). The whole suite passes (4,200), pyright clean, `rebuild --check` clean.
 
-**Later the same day (branch `phase-6-blocks`, from `phase-6`):** step 7 B's profile archive crashed WSL on its first rollup; every job over the grid now works in 256-cell blocks in a pool of worker processes (D106, `agdata.blocks`, `BLOCK_WORKERS`). Timings in the phase plan's step 7 B. Open: **Q41** (align the coverage window to a grid-wide 256-cell lattice before the server's backfill, so adding states later doesn't rewrite stores); merge `phase-6-blocks` into `phase-6` when Ben has looked.
+**Later the same day (branch `phase-6-blocks`, from `phase-6`):** step 7 B's profile archive crashed WSL on its first rollup; every job over the grid now works in 256-cell blocks in a pool of worker processes (D106, `agdata.blocks`, `BLOCK_WORKERS`). Timings in the phase plan's step 7 B. **2026-11-24:** Ben answered Q41: the coverage window now lies on the grid-wide 256-cell lattice (D107, 768 × 1280); blocks are trimmed to their covered cells, downloads cover the mask's extent, and `tmp/launchbox` is rebuilt on the new window. Merge `phase-6-blocks` into `phase-6` when Ben has looked.
 
 **Next, in order** (Ben, 2026-11-23: step 7's profile next, in a fresh session; the rest of the order proposed, see Ben's open choices):
 

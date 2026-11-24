@@ -2,9 +2,11 @@
 
 Jobs that compute over the grid (the rollup, the running totals, the models' ingredients, chill portions, the crop
 tiers, the past-years copies) divide a window into squares of SIZE cells from its southwest corner (`blocks`). SIZE is
-the daily stores' chunk, so a block's write fills whole chunks, and a multiple of the hourly store's 32 × 32, so its
-reads take whole chunks too. Over a coverage preset's window only the squares with a covered cell are kept
-(`coverage.parts`, D105): the work follows the coverage, and cells added to it later are whole new blocks.
+the daily stores' chunk, so each chunk is written by one block, and a multiple of the hourly store's 32 × 32, so its
+reads take whole chunks too. Over a coverage preset's window, which lies on the grid-wide lattice of SIZE cells
+(D107), the squares are the same squares of the grid in every store; only those with a covered cell are kept, each
+trimmed to its covered cells in 32-cell steps (`coverage.parts`, D105): the work follows the coverage, and cells added
+to it later are whole new blocks.
 
 Every daily statistic, feature and model works on each cell's own series, so a block's result doesn't depend on its
 neighbours: blocks run in any order and in separate processes. `run` hands tasks to a pool of `workers()` processes
@@ -29,7 +31,7 @@ from typing import Any
 from agdata import coverage
 from agdata.grid import Window
 
-SIZE = 256  # cells a side: the daily stores' chunk (`store.DEFAULT_CHUNKS`)
+SIZE = coverage.LATTICE  # 256 cells a side: the daily stores' chunk (`store.DEFAULT_CHUNKS`)
 
 Task = tuple[Hashable, Callable[[], Any]]  # a key for the caller and a picklable call (`functools.partial`)
 
@@ -38,7 +40,7 @@ _workers: int | None = None
 
 def blocks(window: Window) -> list[Window]:
     """The window's squares of SIZE cells from its corner (smaller at the north and east edges), in row order; over
-    a coverage preset's window, only those with a covered cell."""
+    a coverage preset's window, only those with a covered cell, trimmed to them."""
     return coverage.parts(window, SIZE)
 
 

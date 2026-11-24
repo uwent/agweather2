@@ -134,3 +134,26 @@ def test_after_a_build_nothing_is_left_wanted_even_a_variable_never_given_a_valu
     assert store.written("et0_sum_estimate") is not None and not store.has_data("et0_sum_estimate").any()
     downloads.build_wanted(data_dir, NOW, names)
     assert downloads.wanted(data_dir, NOW, names) == []
+
+
+def test_over_a_coverage_window_files_take_only_the_masks_extent(tmp_path):
+    """D107: the coverage's window is rounded out to the block lattice; the files leave that margin out."""
+    from agdata import coverage
+
+    um = coverage.preset("upper_midwest")
+    variable = DAILY_VARIABLES["air_temperature_max"]
+    store = GridStore.create(tmp_path, DAILY, 2025, um.window, [variable])
+    rng = np.random.default_rng(0)
+    for k in range(2):
+        store.write(date(2025, 1, 1 + k), {variable.name: rng.uniform(-10, 10, um.window.shape)}, source="urma")
+    entry = downloads.build(tmp_path, "air_temperature_max", 2025, NOW)
+    assert entry is not None
+    downloads.write_grid(tmp_path, store, NOW)
+    e = um.extent
+    expected = store.read_steps("air_temperature_max", 0, 2, window=e)
+    with xr.open_dataset(tmp_path / "downloads" / entry.path) as ds:
+        assert ds["air_temperature_max"].shape == (2, *e.shape)
+        np.testing.assert_allclose(ds["air_temperature_max"].values, expected, atol=0.01)
+        assert float(ds["x"][0]) == NDFD.origin[0] + e.i0 * NDFD.dx
+    with xr.open_dataset(tmp_path / "downloads" / downloads.GRID_FILE) as grid:
+        assert grid["lat"].shape == e.shape
