@@ -1,7 +1,9 @@
-"""Apple scab's and fire blight's seasons on the grid, kept in the ingredients store (Phase 6 step 7 D3, D109).
+"""Apple scab's, fire blight's and red crown rot's seasons on the grid, kept in the ingredients store (Phase 6 step 7
+D3, D5, D109).
 
-Both carry a state day to day from each cell's biofix (apple scab from green tip, from apple's stages; fire blight
-from January 1), so a map can't be finished from a few days' ingredients as `agdata.modelgrid` does for the rest.
+Each carries a state day to day from each cell's biofix (apple scab from green tip, from apple's stages; fire blight
+from January 1; red crown rot from soybean's R1 at the mid planting tier, its default: `modelmaps.SEASON_TIERS`), so
+a map can't be finished from a few days' ingredients as `agdata.modelgrid` does for the rest.
 Computed on request over the launch box, a map took minutes and, before it was done in blocks, tens of GB (it
 crashed the development machine). Instead their outputs and risk are kept for every day of the season
 (`modelmaps.SEASON_MODELS`, `season_key`), as `agdata.croptiers` keeps crop stages, and a map reads them.
@@ -32,12 +34,21 @@ BIOFIX = "_season_biofix"  # in each ingredients store: `{model_id}`, each cell'
 RUN_STAMP = "seasonmaps.first_day"  # in a forecast run: the first day its seasons were computed from
 
 
+# The days kept for a model whose spec sets no season: red crown rot's 31 days either side of soybean's R1
+SEASONS = {"red-crown-rot": ("05-15", "10-15")}
+
+
 def season(model_id: str, year: int) -> tuple[date, date]:
-    """The model's season (its spec's) in `year`."""
+    """The days of `year` a model's season is kept for: its spec's season, or `SEASONS`'."""
     spec = find_model(model_id).SPEC
-    assert spec.season is not None
-    first, last = ((int(p) for p in s.split("-")) for s in spec.season)
+    found = spec.season or SEASONS[model_id]
+    first, last = ((int(p) for p in s.split("-")) for s in found)
     return date(year, *first), date(year, *last)
+
+
+def tier(model_id: str) -> str | None:
+    """The planting tier a model's season is kept for (None: it takes none)."""
+    return modelmaps.SEASON_TIERS.get(model_id)
 
 
 def in_season(day: date) -> bool:
@@ -46,11 +57,10 @@ def in_season(day: date) -> bool:
 
 
 def names(model_id: str) -> list[str]:
-    """The variables a model's season is kept in: its outputs, then its risk."""
+    """The variables a model's season is kept in: its outputs, then its risk where it has one."""
     spec = find_model(model_id).SPEC
-    return [modelmaps.season_key(model_id, q.name) for q in spec.outputs] + [
-        modelmaps.season_key(model_id, modelmaps.SEASON_RISK)
-    ]
+    risk = [modelmaps.season_key(model_id, modelmaps.SEASON_RISK)] if spec.risk is not None else []
+    return [modelmaps.season_key(model_id, q.name) for q in spec.outputs] + risk
 
 
 def update(
@@ -119,11 +129,11 @@ def _season_block(
     returns the variables written and each cell's biofix (y, x)."""
     from agdata import modelgrid  # it reads the seasons this module keeps
 
-    found = modelgrid.model_map(data_dir, model_id, first, end, part, tier=None, now=now, compute=True)
+    found = modelgrid.model_map(data_dir, model_id, first, end, part, tier=tier(model_id), now=now, compute=True)
     k = (write_from - first).days
     values = {modelmaps.season_key(model_id, name): v[k:] for name, v in found.outputs.items()}
-    assert found.risk is not None
-    values[modelmaps.season_key(model_id, modelmaps.SEASON_RISK)] = found.risk[k:]
+    if found.risk is not None:
+        values[modelmaps.season_key(model_id, modelmaps.SEASON_RISK)] = found.risk[k:]
     store = GridStore.open(root, INGREDIENTS, write_from.year, modelmaps.variables())
     store.write(write_from, values, source="derived", window=part, record=False)
     biofix = found.cell_biofix[-1] if found.cell_biofix is not None else np.full(part.shape, np.nan)

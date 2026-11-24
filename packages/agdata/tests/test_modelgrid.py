@@ -437,8 +437,8 @@ def test_a_map_passes_each_cells_normal_of_the_place_to_the_model(built, model_i
             assert shown.size and (shown == 1234).all()
 
 
-@pytest.mark.parametrize("model_id", ["apple-scab", "fire-blight"])
-def test_a_stored_season_is_the_map_computed_on_request(built, tmp_path, model_id, monkeypatch):
+@pytest.mark.parametrize(("model_id", "tier"), [("apple-scab", None), ("fire-blight", None), ("red-crown-rot", "mid")])
+def test_a_stored_season_is_the_map_computed_on_request(built, tmp_path, model_id, tier, monkeypatch):
     """D109: apple scab's and fire blight's seasons are kept (`agdata.seasonmaps`) and their maps read them; past
     what's kept, a map is computed on request as before."""
     import shutil
@@ -456,20 +456,25 @@ def test_a_stored_season_is_the_map_computed_on_request(built, tmp_path, model_i
     )
     units = {q.name: q.unit for q in find_spec(model_id).outputs}
     for first, last in ((DAYS[0], DAYS[0]), (DAYS[0], DAYS[1])):
-        stored = modelgrid.model_map(root, model_id, first, last, WINDOW, tier=None)
+        stored = modelgrid.model_map(root, model_id, first, last, WINDOW, tier=tier)
         assert computed_on_request == []
-        computed = modelgrid.model_map(root, model_id, first, last, WINDOW, tier=None, compute=True)
+        computed = modelgrid.model_map(root, model_id, first, last, WINDOW, tier=tier, compute=True)
         computed_on_request.clear()
         assert stored.dates == computed.dates and stored.kinds == computed.kinds
         for name, values in computed.outputs.items():
             np.testing.assert_allclose(
                 stored.outputs[name], values, atol=ATOL.get(units[name], 0.01), equal_nan=True, err_msg=name
             )
-        np.testing.assert_array_equal(stored.risk, computed.risk)
+        if computed.risk is not None:
+            np.testing.assert_array_equal(stored.risk, computed.risk)
         assert stored.cell_biofix is not None and computed.cell_biofix is not None
         np.testing.assert_array_equal(stored.cell_biofix[-1], computed.cell_biofix[-1])
-    modelgrid.model_map(root, model_id, DAYS[2], DAYS[2], WINDOW, tier=None)  # past what's kept
+    modelgrid.model_map(root, model_id, DAYS[2], DAYS[2], WINDOW, tier=tier)  # past what's kept
     assert computed_on_request
+    if tier is not None:  # another tier isn't kept
+        computed_on_request.clear()
+        modelgrid.model_map(root, model_id, DAYS[0], DAYS[0], WINDOW, tier="early")
+        assert computed_on_request
 
 
 def find_spec(model_id: str):

@@ -258,7 +258,11 @@ def model_map(
     stored through the days asked for, else computed as `compute` asks (the job storing it). A model computed on
     request (`ON_REQUEST`) runs a block at a time (`agdata.blocks`) and the blocks are put together: it reads a
     season of days, and over a whole launch-size window that was tens of GB (D109)."""
-    if model_id in modelmaps.SEASON_MODELS and not compute:
+    if (
+        model_id in modelmaps.SEASON_MODELS
+        and not compute
+        and (tiered(model_id) is None or tier == seasonmaps.tier(model_id))
+    ):
         found = _stored_season(data_dir, model_id, first, last, window, now, stores)
         if found is not None:
             return found
@@ -428,10 +432,12 @@ def _stored_season(data_dir, model_id: str, first: date, last: date, window: Win
     outputs = {
         q.name: np.stack([found[modelmaps.season_key(model_id, q.name)][d] for d in dates]) for q in spec.outputs
     }
-    risk = np.stack([found[keys[-1]][d] for d in dates])
+    risk = level = None
+    if spec.risk is not None:
+        risk = np.stack([found[modelmaps.season_key(model_id, modelmaps.SEASON_RISK)][d] for d in dates])
+        level = np.where(np.isfinite(risk), risk, np.nan)
     root = reader.run_path if last >= reader.cut and reader.run_path is not None else data_dir
     cells = seasonmaps.biofix(root, model_id, first.year, window)
-    level = np.where(np.isfinite(risk), risk, np.nan)
     return _finished(
         spec, base, dates, outputs, risk, level, reader, cells=np.broadcast_to(cells, (len(dates), *window.shape))
     )

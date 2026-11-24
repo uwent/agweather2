@@ -180,7 +180,9 @@ def keys_reading(names: Iterable[str]) -> list[str]:
 # Models whose whole seasons are kept (`agdata.seasonmaps`, D109): each carries a state day to day from each cell's
 # biofix, so a map couldn't be finished from a few days' ingredients, and computing one on request over the launch box
 # took minutes and tens of GB
-SEASON_MODELS = ("apple-scab", "fire-blight")
+SEASON_MODELS = ("apple-scab", "fire-blight", "red-crown-rot")
+# A crop-gated one is kept for its default planting tier only (others are computed on request)
+SEASON_TIERS: dict[str, str] = {"red-crown-rot": "mid"}
 _SEASON_OUTPUTS: dict[str, tuple[float, float, float]] = {  # `{model}.{output}`: scale, valid min and max
     "apple-scab.infection": (1, 0, 1),
     "apple-scab.maturity": (0.01, 0, 100),
@@ -198,8 +200,13 @@ _SEASON_OUTPUTS: dict[str, tuple[float, float, float]] = {  # `{model}.{output}`
     "fire-blight.degree_hours": (0.5, 0, 16000),
     "fire-blight.symptoms_dd": (0.5, 0, 16000),
     "fire-blight.bloom": (1, 0, 2),
+    "red-crown-rot.incidence": (0.01, 0, 100),
+    "red-crown-rot.temperature_mean_reproductive": (0.01, -60, 60),
+    "red-crown-rot.precipitation_vegetative": (0.1, 0, 3000),
+    "red-crown-rot.precipitation_reproductive": (0.1, 0, 3000),
+    "red-crown-rot.precipitation_days_missing": (1, 0, 400),
 }
-SEASON_RISK = "risk"  # each model's risk is kept too, computed before the outputs are packed (thresholds stay exact)
+SEASON_RISK = "risk"  # a model's risk is kept too, computed before the outputs are packed (thresholds stay exact)
 
 
 def season_key(model_id: str, output: str) -> str:
@@ -213,9 +220,9 @@ def season_variables() -> list[Variable]:
     out = []
     for model_id in SEASON_MODELS:
         spec = models[model_id].SPEC
-        assert spec.risk is not None
         kept = [(q.name, q.label, q.unit, *_SEASON_OUTPUTS[season_key(model_id, q.name)]) for q in spec.outputs]
-        kept.append((SEASON_RISK, "Risk", "index", 1, 0, len(spec.risk.levels)))
+        if spec.risk is not None:
+            kept.append((SEASON_RISK, "Risk", "index", 1, 0, len(spec.risk.levels)))
         for name, label, unit, scale, low, high in kept:
             out.append(
                 Variable(
