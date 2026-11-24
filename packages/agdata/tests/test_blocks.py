@@ -33,6 +33,22 @@ def test_run_handles_each_task_with_its_key_and_keeps_each_chain_in_order(n):
 
 
 @pytest.mark.parametrize("n", [1, 2])
+def test_run_reports_each_task_handled(n):
+    reported: list[tuple[int, int]] = []
+    chains = [[(k, double(k)) for k in range(2)], [(9, double(9))]]
+    blocks.run(chains, lambda *_: None, n=n, progress=lambda done, total: reported.append((done, total)))
+    assert reported == [(1, 3), (2, 3), (3, 3)]
+
+
+def test_blocks_come_largest_first():
+    from agdata import coverage
+
+    found = blocks.blocks(coverage.preset("upper_midwest").window)
+    assert [p.size for p in found] == sorted((p.size for p in found), reverse=True)
+    assert found[0].shape == (blocks.SIZE, blocks.SIZE)
+
+
+@pytest.mark.parametrize("n", [1, 2])
 def test_run_starts_nothing_once_stopped_and_raises_a_tasks_error(n):
     seen = []
     chains = [[(k, double(k))] for k in range(6)]

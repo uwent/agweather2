@@ -18,5 +18,11 @@ class Command(ReportingCommand):
         window = self.window(options["box"])
         self.report.step(f"Rolling up {first} to {last} ({(last - first).days + 1} days)")
         with self.lock():
-            years = update_days(settings.DATA_DIR, window, first, last)
+            years = update_days(
+                settings.DATA_DIR,
+                window,
+                first,
+                last,
+                progress=lambda stage, done, n: self.report.progress(stage, done, n),
+            )
         self.finish(f"rolled up {first} to {last} and rebuilt the running totals of {years or 'no years'}")

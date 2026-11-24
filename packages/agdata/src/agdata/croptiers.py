@@ -73,6 +73,7 @@ def update(
     run_first: date | None = None,
     lock: Callable[[], AbstractContextManager] | None = None,
     since: date | None = None,
+    progress: Callable[[int, int], None] | None = None,
 ) -> list[str]:
     """Recomputes each tier's season of `year` through `last` (the last day with weather) and writes it: the
     archive's, or with `run` the forecast run's days from `run_first` (weather from the run from then, the
@@ -120,7 +121,7 @@ def update(
             _write_reached(store, model_id, tier, part, reached, min(last, season(model_id, year)[1]))
             written.extend(name for name in names if name not in written)
 
-    blocks.run(chains, handle, hold=lock)
+    blocks.run(chains, handle, hold=lock, progress=progress)
     return written
 
 

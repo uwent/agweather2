@@ -194,7 +194,7 @@ def test_a_stoppable_command_finishes_its_block_on_the_first_stop(settings, tmp_
     settings.DATA_DIR = tmp_path
     seen = {}
 
-    def update_days(data, window, first, last):
+    def update_days(data, window, first, last, progress=None):
         os.kill(os.getpid(), signal.SIGTERM)  # `archive stop` arrives mid-block
         seen["stopping"] = command.stopping.is_set()
         return [2025]
@@ -248,7 +248,7 @@ def test_the_ingredients_command_builds_what_isnt_current(settings, tmp_path, mo
 
     def build(data, window, year, lock, progress):
         with lock():
-            progress(1, 1)
+            progress("ingredients", 1, 1)
         built.append(year)
         return date(year, 1, 1), date(year, 7, 1)
 

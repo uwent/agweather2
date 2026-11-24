@@ -319,11 +319,14 @@ def build(
     window: Window,
     year: int,
     lock: Callable[[], AbstractContextManager] | None = None,
-    progress: Callable[[int, int], None] | None = None,
+    progress: Callable[[str, int, int], None] | None = None,
 ) -> tuple[date, date] | None:
     """A year's ingredients from January 1 and its crops' stages per planting tier (`agdata.croptiers`), marked
     current (D29), and the next year's January, whose windows reach back into this one."""
     from agdata import croptiers  # it uses this module
+
+    def stage(name: str) -> Callable[[int, int], None] | None:  # `progress(stage, done, total)` by stage
+        return None if progress is None else partial(progress, name)
 
     tiers = {v.name for v in tier_variables()}
     reason = status(data_dir, year)
@@ -332,12 +335,12 @@ def build(
         rolled = _rolled_days(data_dir, year)
         if stale <= tiers and rolled is not None:  # only the crops' tiers: the rest is current
             last = date(year, 1, 1) + timedelta(days=int(rolled[-1]))
-            croptiers.update(data_dir, window, year, last, lock=lock)
+            croptiers.update(data_dir, window, year, last, lock=lock, progress=stage("crop stages"))
             return date(year, 1, 1), last
-    days = build_year(data_dir, window, year, lock=lock, progress=progress)
+    days = build_year(data_dir, window, year, lock=lock, progress=stage("ingredients"))
     if days is None:
         return None
-    croptiers.update(data_dir, window, year, days[1], lock=lock)
+    croptiers.update(data_dir, window, year, days[1], lock=lock, progress=stage("crop stages"))
     with (lock or nullcontext)():
         store = GridStore.open(data_dir, INGREDIENTS, year, variables(), add_missing=True)
         store.mark_current([v.name for v in variables()])

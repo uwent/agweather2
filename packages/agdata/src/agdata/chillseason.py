@@ -14,6 +14,7 @@ run continues the archive's (`agdata.forecast`). A season reaching back before t
 October 1, so its missing hours say how much of the season it lacks.
 """
 
+from collections.abc import Callable
 from datetime import date, timedelta
 from functools import partial
 from pathlib import Path
@@ -44,7 +45,12 @@ def season_end(day: date) -> date:
 
 
 def update(
-    data_dir: Path, window: Window, first: date, last: date, base_dir: Path | None = None
+    data_dir: Path,
+    window: Window,
+    first: date,
+    last: date,
+    base_dir: Path | None = None,
+    progress: Callable[[int, int], None] | None = None,
 ) -> tuple[date, date] | None:
     """Recomputes chill portions from `first` through `last` (or the last day `data_dir`'s daily store has rolled
     up, if that's earlier), and on through the days already written after them to their season's end; returns the
@@ -57,7 +63,7 @@ def update(
     written: tuple[date, date] | None = None
     day = first
     while day <= min(last, rolled):
-        found = _update_season(data_dir, window, day, min(last, season_end(day)), rolled, base_dir)
+        found = _update_season(data_dir, window, day, min(last, season_end(day)), rolled, base_dir, progress)
         if found is not None:
             written = (found[0] if written is None else written[0], found[1])
         elif base_dir is not None:
@@ -67,7 +73,13 @@ def update(
 
 
 def _update_season(
-    data_dir: Path, window: Window, first: date, last: date, rolled: date, base_dir: Path | None
+    data_dir: Path,
+    window: Window,
+    first: date,
+    last: date,
+    rolled: date,
+    base_dir: Path | None,
+    progress: Callable[[int, int], None] | None = None,
 ) -> tuple[date, date] | None:
     """`update` within one season (first..last in it)."""
     end = min(max(last, _last_written(data_dir, first)), rolled)
@@ -99,7 +111,7 @@ def _update_season(
         for part in blocks.blocks(window)
     ]
     spans: set[tuple[int, date, int]] = set()
-    blocks.run(chains, lambda _, written: spans.update(written))
+    blocks.run(chains, lambda _, written: spans.update(written), progress=progress)
     for year, first_day, n in spans:
         stores[year].record(NAMES, first_day, n, source="derived")
     return start, end

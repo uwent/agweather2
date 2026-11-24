@@ -46,7 +46,7 @@ class Command(ReportingCommand):
                     window,
                     year,
                     lock=lambda: self.lock(polite=True),
-                    progress=lambda done, n, y=year: self.report.progress(str(y), done, n),
+                    progress=lambda stage, done, n, y=year: self.report.progress(f"{y} {stage}", done, n),
                 )
             except (OSError, ValueError) as error:
                 self.report.fail(str(year), error)

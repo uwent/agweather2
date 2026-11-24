@@ -236,7 +236,7 @@ def fill(
                 window,
                 plan.year,
                 lock=lambda: lock(polite=True),
-                progress=lambda done, n: report.progress(f"ingredients {plan.year}", done, n),
+                progress=lambda stage, done, n: report.progress(f"{plan.year} {stage}", done, n),
             )
             report.step(f"{plan.year}: models' ingredients built in {time.monotonic() - began:.0f} s")
         if past and not stopping.is_set():

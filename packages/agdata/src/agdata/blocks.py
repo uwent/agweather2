@@ -39,9 +39,12 @@ _workers: int | None = None
 
 
 def blocks(window: Window) -> list[Window]:
-    """The window's squares of SIZE cells from its corner (smaller at the north and east edges), in row order; over
-    a coverage preset's window, only those with a covered cell, trimmed to them."""
-    return coverage.parts(window, SIZE)
+    """The window's squares of SIZE cells from its corner (smaller at the north and east edges), largest first (in
+    row order among equals); over a coverage preset's window, only those with a covered cell, trimmed to them.
+
+    Largest first, so a pool's last tasks are the small ones: trimmed blocks range from 32 × 32 cells to whole
+    squares, and in row order a whole square started last ran on alone while the other workers waited."""
+    return sorted(coverage.parts(window, SIZE), key=lambda part: -part.size)
 
 
 def set_workers(n: int | None) -> None:
@@ -62,13 +65,23 @@ def run(
     stop: Callable[[], bool] | None = None,
     hold: Callable[[], AbstractContextManager] | None = None,
     n: int | None = None,
+    progress: Callable[[int, int], None] | None = None,
 ) -> bool:
     """Runs each chain's tasks in order, calling `handle(key, result)` in this process as each finishes, up to `n`
     (default `workers()`) at a time in worker processes, or inline with one. With `hold` (a write lock's factory),
     tasks run only while it's held: inline, each task in its own hold; in the pool, waves of `n` tasks, released
     between waves so others waiting for it get their turn. Once `stop()` is true no task starts; tasks already
     running finish and are handled. Returns False if stopped before every task ran. A task's exception is raised
-    here once the tasks already running finish."""
+    here once the tasks already running finish. `progress(done, total)` follows each task handled."""
+    total, done = sum(len(chain) for chain in chains), 0
+
+    def handled(key: Hashable, result: Any) -> None:
+        nonlocal done
+        handle(key, result)
+        done += 1
+        if progress is not None:
+            progress(done, total)
+
     n = min(n or workers(), sum(1 for chain in chains if chain))
     shared = hold is not None  # waves only to let others take the lock between them
     hold = hold or nullcontext
@@ -79,7 +92,7 @@ def run(
                     return False
                 with hold():
                     result = call()
-                    handle(key, result)
+                    handled(key, result)
         return True
     ready = deque((c, 0) for c, chain in enumerate(chains) if chain)
     # spawn, not fork: the parent may hold zarr's and Numba's threads, and a forked copy of a held lock deadlocks
@@ -88,7 +101,7 @@ def run(
             if stop is not None and stop():
                 return False
             with hold():
-                _wave(pool, chains, ready, handle, stop, n, n if shared else None)
+                _wave(pool, chains, ready, handled, stop, n, n if shared else None)
     return True
 
 

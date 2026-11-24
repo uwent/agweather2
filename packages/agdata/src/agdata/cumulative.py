@@ -14,7 +14,7 @@ missing days let a range report "N days estimated" with the same subtraction. Da
 left empty.
 """
 
-from collections.abc import Collection
+from collections.abc import Callable, Collection
 from dataclasses import dataclass
 from datetime import date, timedelta
 from functools import partial
@@ -55,7 +55,13 @@ def open_or_create_cumulative(data_dir: Path, year: int, window: Window) -> Grid
     return store
 
 
-def rebuild_year(data_dir: Path, window: Window, year: int, changed_from: date | None = None) -> date | None:
+def rebuild_year(
+    data_dir: Path,
+    window: Window,
+    year: int,
+    changed_from: date | None = None,
+    progress: Callable[[int, int], None] | None = None,
+) -> date | None:
     """Rebuilds a year's running totals from its daily store; returns the last day with data (None: no data).
 
     Totals are always summed from Jan 1, but only days from `changed_from` (less the bridging reach, since an
@@ -74,7 +80,7 @@ def rebuild_year(data_dir: Path, window: Window, year: int, changed_from: date |
     first = date(year, 1, 1) + timedelta(days=skip)
     names: set[str] = set()
     chains = [[(None, partial(_totals_block, data_dir, year, n, skip, window, part))] for part in blocks.blocks(window)]
-    blocks.run(chains, lambda _, written: names.update(written))
+    blocks.run(chains, lambda _, written: names.update(written), progress=progress)
     store.record(sorted(names), first, n - skip, source="derived")
     return last
 
@@ -202,6 +208,7 @@ def update_days(
     last: date,
     ingredients: bool = True,
     names: Collection[str] | None = None,
+    progress: Callable[[str, int, int], None] | None = None,
 ) -> list[int]:
     """Rolls up local days first..last and updates what reads them: the season-read copy of the minimum and maximum
     (`agdata.timecopy`), every year whose running totals they reach (a year's first and last days bridge into its
@@ -210,22 +217,31 @@ def update_days(
 
     By default every daily variable, after new hours (ingest, a fill). With `names` (a rebuild of stale daily
     variables) only those are rolled up and only what reads them follows (`steps_for`): the hours didn't change, so
-    chill portions don't either."""
+    chill portions don't either. `progress(stage, done, total)` follows each stage's blocks."""
     from agdata import modelmaps  # it reads the model registry: import only when used
 
     steps = steps_for(names)
-    rollup_days(data_dir, window, first, last, names)
+
+    def stage(name: str) -> Callable[[int, int], None] | None:
+        return None if progress is None else partial(progress, name)
+
+    rollup_days(data_dir, window, first, last, names, progress=stage("days"))
     if steps.timecopy:
         timecopy.update(data_dir, first, last)
     rebuilt = []
     if steps.totals:
         reach = timedelta(days=MAX_BRIDGE_DAYS)
         years = list(range((first - reach).year, (last + reach).year + 1))
-        rebuilt = [year for year in years if rebuild_year(data_dir, window, year, changed_from=first) is not None]
+        rebuilt = [
+            year
+            for year in years
+            if rebuild_year(data_dir, window, year, changed_from=first, progress=stage(f"running totals {year}"))
+            is not None
+        ]
     if steps.chill:
-        chillseason.update(data_dir, window, first, last)  # the Dynamic model's chill, forward from `first`
+        chillseason.update(data_dir, window, first, last, progress=stage("chill portions"))  # forward from `first`
     if ingredients and (steps.ingredients is None or steps.ingredients):
-        modelmaps.update(data_dir, window, first, last, keys=steps.ingredients)
+        modelmaps.update(data_dir, window, first, last, keys=steps.ingredients, progress=stage("ingredients"))
     return rebuilt
 
 

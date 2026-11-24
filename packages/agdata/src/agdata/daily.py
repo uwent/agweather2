@@ -76,14 +76,21 @@ def move_to_grid_days(store: GridStore) -> None:
     store.stale |= set(store.variables)
 
 
-def rollup_days(data_dir: Path, window: Window, first: date, last: date, names: Collection[str] | None = None) -> int:
+def rollup_days(
+    data_dir: Path,
+    window: Window,
+    first: date,
+    last: date,
+    names: Collection[str] | None = None,
+    progress: Callable[[int, int], None] | None = None,
+) -> int:
     """Rolls up grid days first..last (inclusive) from the hourly store into the daily store, every daily variable
     or only `names` (a rebuild of stale ones: the others keep their values and write times, so nothing that reads
     only them goes stale); returns the number of days written. Hours not in the hourly store count as missing. A
     day's variable is marked `derived` only if some cell has a value (so a day not yet observed, such as today with
     too few hours, reads as not rolled up, and the running totals stop before it). A year with no hourly store of
     its own is skipped, so rolling up from the day before a backfill's first day doesn't make a store for the year
-    before the archive."""
+    before the archive. `progress(done, total)` follows each block of each pass."""
     hourly = _HourlyReader(data_dir)
     passes = [days for days in _passes(first, last) if hourly.store(days[0].year) is not None]
     stores = {k: open_or_create_daily(data_dir, days[0].year, window) for k, days in enumerate(passes)}
@@ -106,7 +113,7 @@ def rollup_days(data_dir: Path, window: Window, first: date, last: date, names: 
         for k, days in enumerate(passes)
         for part in parts
     ]
-    blocks.run(chains, handle)
+    blocks.run(chains, handle, progress=progress)
     return sum(len(days) for days in passes)
 
 

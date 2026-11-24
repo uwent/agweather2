@@ -45,7 +45,7 @@ def data_dir(settings, tmp_path):
 def test_a_command_waits_for_a_held_lock_and_says_whose_it_is(data_dir, monkeypatch):
     from ops.management.commands import rollup
 
-    monkeypatch.setattr(rollup, "update_days", lambda *args: [2025])
+    monkeypatch.setattr(rollup, "update_days", lambda *args, **kw: [2025])
     monkeypatch.setattr("ops.locks.time.sleep", lambda seconds: threading.Event().wait(0.05))
     holder = hold_write_lock(data_dir)
     timer = threading.Timer(0.3, holder.close)
@@ -67,7 +67,7 @@ def test_a_command_gives_up_when_the_lock_stays_held(data_dir, monkeypatch):
     from ops.management.commands import rollup
 
     monkeypatch.setattr(base, "LOCK_WAIT_S", 0.1)
-    monkeypatch.setattr(rollup, "update_days", lambda *args: pytest.fail("ran without the lock"))
+    monkeypatch.setattr(rollup, "update_days", lambda *args, **kw: pytest.fail("ran without the lock"))
     holder = hold_write_lock(data_dir)
     try:
         with pytest.raises(CommandError, match="another job or command is writing"):
@@ -84,7 +84,7 @@ def test_rollup_includes_its_end_day_and_reports_the_years_rebuilt(data_dir, mon
 
     calls = []
     monkeypatch.setattr(
-        rollup, "update_days", lambda data, window, first, last: calls.append((data, first, last)) or [2024, 2025]
+        rollup, "update_days", lambda data, window, first, last, **kw: calls.append((data, first, last)) or [2024, 2025]
     )
     out, err = run("rollup", "--start", "2024-12-30", "--end", "2025-01-02", "--box", BOX)
     assert calls == [(data_dir, date(2024, 12, 30), date(2025, 1, 2))]  # the end is a day rolled up, not a bound
@@ -97,7 +97,9 @@ def test_rollup_of_a_single_day_is_allowed(data_dir, monkeypatch):
     from ops.management.commands import rollup
 
     calls = []
-    monkeypatch.setattr(rollup, "update_days", lambda data, window, first, last: calls.append((first, last)) or [])
+    monkeypatch.setattr(
+        rollup, "update_days", lambda data, window, first, last, **kw: calls.append((first, last)) or []
+    )
     out, _ = run("rollup", "--start", "2025-07-01", "--end", "2025-07-01", "--box", BOX)
     assert calls == [(date(2025, 7, 1), date(2025, 7, 1))]
     assert "(1 days)" in out and "no years" in out
@@ -106,7 +108,7 @@ def test_rollup_of_a_single_day_is_allowed(data_dir, monkeypatch):
 def test_quiet_keeps_steps_off_stdout(data_dir, monkeypatch):
     from ops.management.commands import rollup
 
-    monkeypatch.setattr(rollup, "update_days", lambda *args: [2025])
+    monkeypatch.setattr(rollup, "update_days", lambda *args, **kw: [2025])
     out, err = run("rollup", "--start", "2025-07-01", "--end", "2025-07-02", "--box", BOX, "--quiet")
     # Steps stay off the terminal; the summary is the one line left
     assert "Rolling up" not in out and len(out.splitlines()) == 1 and "Done in" in out

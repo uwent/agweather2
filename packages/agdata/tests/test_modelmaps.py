@@ -223,7 +223,9 @@ def test_a_years_build_runs_from_january_and_its_status_says_what_it_needs(tmp_p
     monkeypatch.setattr(GridStore, "stale_variables", classmethod(lambda cls, *args: tiers))
     monkeypatch.setattr(modelmaps, "build_year", lambda *args, **kwargs: pytest.fail("rebuilt the whole year"))
     updated = []
-    monkeypatch.setattr(croptiers, "update", lambda data_dir, window, year, last, lock: updated.append((year, last)))
+    monkeypatch.setattr(
+        croptiers, "update", lambda data_dir, window, year, last, lock, progress: updated.append((year, last))
+    )
     assert modelmaps.status(tmp_path, 2026) == f"{len(tiers)} stale variables"
     assert modelmaps.build(tmp_path, WINDOW, 2026) == (date(2026, 1, 1), date(2026, 1, 6))
     assert updated == [(2026, date(2026, 1, 6))]
