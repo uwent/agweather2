@@ -156,6 +156,21 @@ def test_apple_scabs_map_starts_at_each_cells_green_tip(built):
     assert np.isfinite(maturity[-1]).all() and (maturity[-1] > 0).all()
 
 
+@pytest.mark.parametrize("model_id", ["apple-scab", "fire-blight"])
+def test_a_model_computed_on_request_is_the_same_a_block_at_a_time(built, model_id, monkeypatch):
+    """D109: an on-request model's map runs a block at a time and is put together, the same as over the window."""
+    root, _ = built
+    whole = modelgrid.model_map(root, model_id, DAYS[0], DAYS[1], WINDOW, tier=None)
+    monkeypatch.setattr(modelgrid.blocks, "SIZE", 1)  # a cell a block
+    assert len(modelgrid.blocks.blocks(WINDOW)) == WINDOW.size
+    split = modelgrid.model_map(root, model_id, DAYS[0], DAYS[1], WINDOW, tier=None)
+    assert split.dates == whole.dates and split.kinds == whole.kinds
+    for name, values in whole.outputs.items():
+        np.testing.assert_array_equal(split.outputs[name], values, err_msg=name)
+    np.testing.assert_array_equal(split.risk, whole.risk)
+    np.testing.assert_array_equal(split.cell_biofix, whole.cell_biofix)
+
+
 def test_days_before_a_models_biofix_are_missing(built):
     root, _ = built
     found = modelgrid.model_days(root, "corn-earworm", date(2025, 7, 30), date(2025, 7, 31), WINDOW)  # biofix 08-15

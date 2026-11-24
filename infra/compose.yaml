@@ -26,6 +26,10 @@ x-app: &app
 services:
   web:
     <<: *app
+    # A request that runs away is killed inside the container (and its uvicorn worker restarted) before it can take
+    # the server's memory (D109); no swap past the limit
+    mem_limit: ${WEB_MEMORY:-12g}
+    memswap_limit: ${WEB_MEMORY:-12g}
     # Migrations and static files (into the volume Caddy serves) before the server starts; there is one web container
     command: sh -c "python app/manage.py migrate --noinput && python app/manage.py collectstatic --noinput --clear --verbosity 0 && exec uvicorn --app-dir app config.asgi:application --host 0.0.0.0 --port 8000 --workers ${WEB_WORKERS:-2} --lifespan off --proxy-headers --forwarded-allow-ips '*'"
     healthcheck:
@@ -40,6 +44,9 @@ services:
   worker:
     <<: *app
     command: python app/manage.py jobs start  # status, a catch-up run of every job, then the worker
+    # The jobs' block workers take a few GB each (BLOCK_WORKERS); the limit keeps a runaway job inside the container
+    mem_limit: ${WORKER_MEMORY:-32g}
+    memswap_limit: ${WORKER_MEMORY:-32g}
     depends_on:
       web:
         condition: service_healthy

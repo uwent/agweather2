@@ -34,7 +34,7 @@ from typing import cast
 
 import numpy as np
 
-from agdata import croptiers, modelmaps, normals, planting, regions, series
+from agdata import blocks, croptiers, modelmaps, normals, planting, regions, series
 from agdata import units as agunits
 from agdata.grid import Window
 from agdata.grids import cube_terms
@@ -251,7 +251,18 @@ def model_map(
     a crop model starts at each cell's typical planting date (soybean's and spring wheat's stored per tier,
     `agdata.croptiers`), a stage-anchored biofix is the day the crop reaches that stage from it (not started until
     then), and a stage-gated disease gets `susceptibility` (D33) from the crop's stages. Cells without a typical
-    date take the spec's defaults, as a point given no planting date (a stored crop has no stages there)."""
+    date take the spec's defaults, as a point given no planting date (a stored crop has no stages there).
+
+    A model computed on request (`ON_REQUEST`) runs a block at a time (`agdata.blocks`) and the blocks are put
+    together: it reads a season of days, and over a whole launch-size window that was tens of GB (D109)."""
+    if model_id in ON_REQUEST:
+        parts = blocks.blocks(window)
+        if len(parts) > 1 or (parts and parts[0] != window):
+            found = [
+                model_map(data_dir, model_id, first, last, part, options, tier=tier, now=now, stores=stores)
+                for part in parts
+            ]
+            return _merged(window, parts, found)
     spec = find_model(model_id).SPEC
     crop = tiered(model_id)
     sown = None if tier is None or crop is None else _Planting(crop_id=crop[0], crop=crop[1], tier=tier, window=window)
@@ -277,6 +288,51 @@ def model_map(
     if sown is not None and spec.susceptible is not None:
         found.outputs["susceptibility"] = _susceptibility(data_dir, spec, sown, first, last, now)
     return found
+
+
+def _merged(window: Window, parts: list[Window], found: list[ModelDays]) -> ModelDays:
+    """Blocks' maps (`parts` of `window`) as one over the window: missing where no block reaches."""
+    one = found[0]
+    n = len(one.dates)
+
+    def whole(arrays: list[np.ndarray | None]) -> np.ndarray | None:
+        if arrays[0] is None:
+            return None
+        shape = (*arrays[0].shape[:-2], *window.shape)
+        flags = arrays[0].dtype == bool  # in_region: False where no block reaches
+        out = (
+            np.zeros(shape, dtype=bool)
+            if flags
+            else np.full(shape, np.nan, dtype=np.result_type(arrays[0], np.float32))
+        )
+        for part, values in zip(parts, arrays, strict=True):
+            assert values is not None
+            out[..., part.j0 - window.j0 : part.j1 - window.j0, part.i0 - window.i0 : part.i1 - window.i0] = values
+        return out
+
+    def each(get: Callable[[ModelDays], dict[str, np.ndarray]]) -> dict[str, np.ndarray]:
+        return {name: cast(np.ndarray, whole([get(f)[name] for f in found])) for name in get(one)}
+
+    kinds = [next((f.kinds[k] for f in found if f.kinds[k] is not None), None) for k in range(n)]
+    return ModelDays(
+        dates=one.dates,
+        kinds=kinds,
+        outputs=each(lambda f: f.outputs),
+        risk=whole([f.risk for f in found]),
+        level=whole([f.level for f in found]),
+        biofix=one.biofix,
+        cell_biofix=whole([f.cell_biofix for f in found]),
+        in_season=one.in_season,
+        in_region=None if one.in_region is None else whole([f.in_region for f in found]),
+        stale=any(f.stale for f in found),
+        sources=one.sources,
+        forecast=one.forecast,
+        run_from=one.run_from,
+        reads=sum(f.reads for f in found),
+        options=one.options,
+        accumulated=each(lambda f: f.accumulated),
+        place=each(lambda f: f.place),
+    )
 
 
 def _base(data_dir, spec: ModelSpec, first: date, last: date, window: Window, now, stores, names=()):

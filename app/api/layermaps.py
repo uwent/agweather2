@@ -1564,6 +1564,7 @@ def event_states(c: "Computed") -> np.ndarray | None:
 MAP_CACHE_SIZE = 24
 _maps: "OrderedDict[str, Computed]" = OrderedDict()
 _maps_lock = threading.Lock()
+_computing: dict[str, threading.Lock] = {}  # maps being computed, by key: one at a time each
 
 
 def cached(a: LayerAsk, window: Window, now: datetime, data_stamp: Any) -> Computed:
@@ -1571,16 +1572,37 @@ def cached(a: LayerAsk, window: Window, now: datetime, data_stamp: Any) -> Compu
     # The bounds as resolved: `days_above_86` or `below_10` mean another bound in another `units`
     key = json.dumps([a.echo(), a.count_bounds, data_stamp, [window.j0, window.j1, window.i0, window.i1]], default=str)
     with _maps_lock:
-        found = _maps.get(key)
+        found = _kept(a, key)
         if found is not None:
-            _maps.move_to_end(key)
-            a.warnings += [n for n in found.notes if n not in a.warnings]
             return found
-    found = compute(a, window, now)
-    with _maps_lock:
-        _maps[key] = found
-        while len(_maps) > MAP_CACHE_SIZE:
-            _maps.popitem(last=False)
+        computing = _computing.setdefault(key, threading.Lock())
+    # One computation of a map at a time (D109): a second request waits for the first and takes its result, rather
+    # than starting another beside it (a request past the time limit keeps computing in its thread)
+    with computing:
+        with _maps_lock:
+            found = _kept(a, key)
+            if found is not None:
+                return found
+        try:
+            found = compute(a, window, now)
+        except BaseException:
+            with _maps_lock:
+                _computing.pop(key, None)
+            raise
+        with _maps_lock:  # kept before the lock goes, so a request arriving now finds it
+            _maps[key] = found
+            while len(_maps) > MAP_CACHE_SIZE:
+                _maps.popitem(last=False)
+            _computing.pop(key, None)  # a request already waiting holds the lock and finds the result kept
+    return found
+
+
+def _kept(a: LayerAsk, key: str) -> Computed | None:
+    """The map kept under `key`, with its notes added to the request's warnings (`_maps_lock` held)."""
+    found = _maps.get(key)
+    if found is not None:
+        _maps.move_to_end(key)
+        a.warnings += [n for n in found.notes if n not in a.warnings]
     return found
 
 

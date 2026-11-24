@@ -232,3 +232,38 @@ def test_a_middle_in_scale_pins_the_palettes_middle_color(client, archive):
     assert above["domain"][0] == -40.0 and above["domain"][1] > 50 and above["domain_middle"] == -40.0
     legend = client.get("/api/v2/tiles/air_temperature_max/legend.png", {"time": "2025-07-08", "scale": "0,32,100"})
     assert legend.status_code == 200 and legend["Content-Type"] == "image/png"
+
+
+def test_a_map_asked_for_twice_at_once_is_computed_once(monkeypatch):
+    """D109: a second request for a map being computed waits and takes its result."""
+    import threading
+    import time
+    from datetime import UTC, datetime
+    from types import SimpleNamespace
+    from typing import Any, cast
+
+    from agdata.grid import Window
+    from api import layermaps
+
+    calls = []
+
+    def compute(a, window, now):
+        calls.append(window)
+        time.sleep(0.3)
+        return SimpleNamespace(notes=["computed"])
+
+    monkeypatch.setattr(layermaps, "compute", compute)
+    ask = lambda: SimpleNamespace(echo=lambda: {"layer": "test-once"}, count_bounds=None, warnings=[])  # noqa: E731
+    window = Window(j0=0, j1=1, i0=0, i1=1)
+    found = []
+    now = datetime(2025, 7, 1, tzinfo=UTC)
+    threads = [
+        threading.Thread(target=lambda: found.append(layermaps.cached(cast(Any, ask()), window, now, "x")))
+        for _ in range(3)
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(calls) == 1 and len(found) == 3 and found[0] is found[1] is found[2]
+    assert layermaps._computing == {}
