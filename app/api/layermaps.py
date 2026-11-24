@@ -37,7 +37,7 @@ from agdata import computed, modelgrid, modelmaps, normals, palettes, regions, r
 from agdata import units as agunits
 from agdata.daily import days_from_hours
 from agdata.grid import Window
-from agdata.grids import cube_terms, degree_days, reduce
+from agdata.grids import cube_terms, degree_days, degree_days_total, reduce
 from agdata.layers import DEGREE_DAYS, LAYERS, SUSCEPTIBILITY, Layer, LayerOutput
 from agdata.planting import planting_crop, planting_map
 from agdata.rolling import Roll
@@ -1465,7 +1465,7 @@ def _degree_days(first, last, window, stat, setting, gaps, cubes, data_dir, now,
         total = np.zeros(window.shape)
         for name, sign in zip(names, (1, -1), strict=False):
             total += sign * _cube_change(data_dir, name, first, last, window, now, stores)
-        if not np.isnan(total).any():
+        if not np.isnan(total[regions.covered(window)]).any():  # cells outside the coverage are always missing
             estimated = _cube_change(data_dir, "temperature_estimated_days", first, last, window, now, stores)
             missing = _cube_change(data_dir, "temperature_missing_days", first, last, window, now, stores)
             extra = {"estimated_days": estimated, "missing_days": missing}
@@ -1475,6 +1475,12 @@ def _degree_days(first, last, window, stat, setting, gaps, cubes, data_dir, now,
     hi = series.grid_days(data_dir, DAILY, "air_temperature_max", first, last, window, now, stores)
     _fresh(lo, LAYERS["air_temperature_min"], DAILY, window, data_dir, stores)
     _fresh(hi, LAYERS["air_temperature_max"], DAILY, window, data_dir, stores)
+    if stat == "sum":  # unusable days add nothing; a cell with none usable is missing (summed in the kernel)
+        value, estimated_days, missing_days = degree_days_total(
+            lo.values, hi.values, setting.method, setting.base_f, setting.upper_f, gaps
+        )
+        extra = {"estimated_days": estimated_days, "missing_days": missing_days}
+        return value[None], lo.kinds, extra, lo.sources, lo.forecast, lo.steps, False
     dd, estimated, usable = degree_days(lo.values, hi.values, setting.method, setting.base_f, setting.upper_f, gaps)
     if stat is None:
         return dd, lo.kinds, {}, lo.sources, lo.forecast, lo.steps, False
@@ -1482,10 +1488,7 @@ def _degree_days(first, last, window, stat, setting, gaps, cubes, data_dir, now,
         value, extra = _counted(dd, bounds, "day")
         extra["estimated_days"] = estimated.sum(axis=0)
         return value, lo.kinds, extra, lo.sources, lo.forecast, lo.steps, False
-    if stat == "sum":  # unusable days add nothing; a cell with none usable is missing
-        value = np.where(usable.any(axis=0), np.where(usable, dd, 0.0).sum(axis=0, dtype=np.float64), np.nan)
-    else:
-        value, _, _ = reduce(dd, stat, None)
+    value, _, _ = reduce(dd, stat, None)
     extra = {"estimated_days": estimated.sum(axis=0), "missing_days": (~usable).sum(axis=0)}
     return value[None], lo.kinds, extra, lo.sources, lo.forecast, lo.steps, False
 

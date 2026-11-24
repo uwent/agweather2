@@ -9,8 +9,9 @@ The rules are the points' (`/weather/totals`, `/degree-days`), applied to every 
 - Degree days for any setting come from each day's minimum and maximum, gaps bridged the same way, in °F. A day
   that can't be bridged adds nothing to a sum and is counted missing.
 
-Only cells with a gap are filled (`fill_cells`): a season over Wisconsin is 17 million cell-days, and filling every
-cell took a second where there were no gaps at all.
+Only cells with a gap and a value are filled (`fill_cells`): a season over Wisconsin is 17 million cell-days, and
+filling every cell took a second where there were no gaps at all; over the launch box the cells outside the coverage
+(no value on any day) were half the window.
 """
 
 from collections.abc import Callable
@@ -20,7 +21,7 @@ import numpy as np
 
 from agdata.catalog import DD_AVERAGE_SETTINGS_F, DD_MODIFIED_PAIRS_F, DD_SINE_THRESHOLDS_F, GAP_FILL, dd_name
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
-from agmodels.degree_days_grid import degree_days_c
+from agmodels.degree_days_grid import degree_days_c, degree_days_sum_c
 from agmodels.gaps import MAX_GAP_DAYS, GapFill, fill_short_gaps, fill_zero
 
 Stat = Literal["sum", "mean", "min", "max"]
@@ -42,7 +43,11 @@ def fill_cells(
     values = np.asarray(values, dtype=np.float64)
     flat = values.reshape(values.shape[0], -1)
     out, filled = flat.copy(), np.zeros(flat.shape, dtype=bool)
-    gappy = np.flatnonzero(np.isnan(flat).any(axis=0))
+    missing = np.isnan(flat)
+    gappy = missing.any(axis=0)
+    if method != "zero":  # a cell with no value has nothing to bridge (a zero fill gives it zeros)
+        gappy &= ~missing.all(axis=0)
+    gappy = np.flatnonzero(gappy)
     if gappy.size:
         if method == "zero":
             out[:, gappy], filled[:, gappy] = fill_zero(flat[:, gappy])
@@ -80,11 +85,39 @@ def degree_days(
     """(each day's degree days in °F·d, estimated, usable), each (days, y, x), from daily min and max in °C. A day
     is estimated where either temperature was bridged; unusable days are NaN. The degree days are one parallel pass
     (`agmodels.degree_days_grid`, the NumPy methods' formulas); gaps are bridged a band of rows at a time."""
+    lo, hi, known, usable = _bridged(tmin_c, tmax_c, gaps)
+    dd = degree_days_c(lo, hi, method, base_f, upper_f)
+    dd[~usable] = np.nan
+    return dd, usable & ~known, usable
+
+
+def degree_days_total(
+    tmin_c: np.ndarray, tmax_c: np.ndarray, method: DDMethod, base_f: float, upper_f: float | None, gaps: Gaps
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """(the sum of the days' degree days in °F·d, estimated days, missing days), each (y, x): what `degree_days`
+    then a sum over the usable days gives (NaN where none is), to the bit, summed in the kernel
+    (`degree_days_sum_c`) without the days' degree days or a float64 copy of them (D4: a season's custom
+    degree-day map over the launch box held ~2 GB of them)."""
+    lo, hi, known, usable = _bridged(tmin_c, tmax_c, gaps)
+    total, count = degree_days_sum_c(lo, hi, method, base_f, upper_f)
+    n = lo.shape[0]
+    value = np.where(count > 0, total, np.nan)
+    return value, (usable & ~known).sum(axis=0), n - count
+
+
+def _bridged(
+    tmin_c: np.ndarray, tmax_c: np.ndarray, gaps: Gaps
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Daily min and max (float32, °C) with short gaps bridged unless `gaps` is missing, as days known before and
+    usable after, each (days, y, x)."""
     lo = np.asarray(tmin_c, dtype=np.float32)
     hi = np.asarray(tmax_c, dtype=np.float32)
     known = np.isfinite(lo) & np.isfinite(hi)
     usable = known
-    gappy = np.flatnonzero(~known.all(axis=0).ravel()) if gaps == "estimate" else np.zeros(0, dtype=int)
+    # Cells with a missing day and a known one: a cell with none (outside the coverage) has nothing to bridge, and
+    # over the launch box's window those were most of the cells and most of a season map's time
+    some = known.any(axis=0) & ~known.all(axis=0)
+    gappy = np.flatnonzero(some.ravel()) if gaps == "estimate" else np.zeros(0, dtype=int)
     if gappy.size:  # bridge only the cells with a missing day, a block of them at a time (D45's fill)
         n = lo.shape[0]
         lo, hi = lo.reshape(n, -1).copy(), hi.reshape(n, -1).copy()  # a day missing either is missing both
@@ -95,9 +128,7 @@ def degree_days(
             hi[:, cells] = fill_cells(np.where(both, hi[:, cells], np.nan))[0]
         lo, hi = lo.reshape(known.shape), hi.reshape(known.shape)
         usable = np.isfinite(lo) & np.isfinite(hi)
-    dd = degree_days_c(lo, hi, method, base_f, upper_f)
-    dd[~usable] = np.nan
-    return dd, usable & ~known, usable
+    return lo, hi, known, usable
 
 
 def cube_terms(method: DDMethod, base_f: float, upper_f: float | None) -> tuple[str, str | None] | None:

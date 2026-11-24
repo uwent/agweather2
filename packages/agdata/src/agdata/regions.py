@@ -142,6 +142,15 @@ def use_coverage(spec: Callable[[], str] | None) -> None:
     _coverage_spec = spec
 
 
+def covered(window: Window) -> np.ndarray:
+    """The window's cells the service covers (`use_coverage`), (y, x); every cell when it isn't set."""
+    if _coverage_spec is None:
+        return np.ones(window.shape, dtype=bool)
+    from agdata import coverage
+
+    return coverage.of(_coverage_spec()).over(window)
+
+
 def _terrain():
     from agdata import terrain
 

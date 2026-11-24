@@ -76,3 +76,23 @@ def test_settings_kept_as_running_totals():
 def test_reduce_keeps_the_cells_shape(stat: Stat):
     value, estimated, missing = reduce(np.ones((3, 4, 5)), stat, "et0_sum")
     assert value.shape == estimated.shape == missing.shape == (4, 5)
+
+
+@pytest.mark.parametrize("gaps", ["estimate", "missing"])
+def test_a_season_total_of_degree_days_is_the_sum_of_its_days(gaps):
+    """`degree_days_total` (summed in the kernel) against `degree_days` then the sum the map took before."""
+    from agdata.grids import degree_days, degree_days_total
+
+    rng = np.random.default_rng(8)
+    lo = rng.uniform(-5, 20, (60, 4, 5)).astype(np.float32)
+    hi = (lo + rng.uniform(2, 15, lo.shape)).astype(np.float32)
+    lo[rng.random(lo.shape) < 0.05] = np.nan
+    hi[10:13, 2, 2] = np.nan  # a short gap
+    lo[:, 3, 4] = np.nan  # a cell with no day (outside the coverage)
+    dd, estimated, usable = degree_days(lo, hi, "sine", 50.0, 86.0, gaps)
+    value, estimated_days, missing_days = degree_days_total(lo, hi, "sine", 50.0, 86.0, gaps)
+    expected = np.where(usable.any(axis=0), np.where(usable, dd, 0.0).sum(axis=0, dtype=np.float64), np.nan)
+    np.testing.assert_array_equal(value, expected)
+    np.testing.assert_array_equal(estimated_days, estimated.sum(axis=0))
+    np.testing.assert_array_equal(missing_days, (~usable).sum(axis=0))
+    assert np.isnan(value[3, 4])

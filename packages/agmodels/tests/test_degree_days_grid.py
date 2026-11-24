@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
-from agmodels.degree_days_grid import degree_days_c
+from agmodels.degree_days_grid import degree_days_c, degree_days_sum_c
 
 NUMPY = {"sine": degree_days_sine, "average": degree_days_average, "modified": degree_days_modified}
 
@@ -34,3 +34,16 @@ def test_the_kernel_matches_the_numpy_methods(method, base, upper):
 def test_the_kernel_refuses_shapes_that_differ():
     with pytest.raises(ValueError, match="differ in shape"):
         degree_days_c(np.zeros((2, 2)), np.zeros((2, 3)), "sine", 50.0, None)
+
+
+@pytest.mark.parametrize("method", list(NUMPY))
+@pytest.mark.parametrize(("base", "upper"), [(50.0, 86.0), (32.0, None)])
+def test_the_summing_kernel_is_the_sum_of_the_days_to_the_bit(method, base, upper):
+    lo, hi = _temperatures(np.random.default_rng(5))
+    lo[:, 1, 1] = np.nan  # a cell with no usable day
+    each = degree_days_c(lo, hi, method, base, upper)
+    usable = np.isfinite(lo) & np.isfinite(hi)  # a crossed day is usable and NaN, so its cell's sum is NaN
+    total, count = degree_days_sum_c(lo, hi, method, base, upper)
+    np.testing.assert_array_equal(total, np.where(usable, each, 0.0).sum(axis=0, dtype=np.float64))
+    np.testing.assert_array_equal(count, usable.sum(axis=0))
+    assert total[1, 1] == 0 and count[1, 1] == 0

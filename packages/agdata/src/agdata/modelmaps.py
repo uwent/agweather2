@@ -528,10 +528,14 @@ def _filled(name: str, values: np.ndarray) -> np.ndarray:
     if method is None:
         return values
     flat = values.reshape(values.shape[0], -1)
-    gappy = np.flatnonzero(np.isnan(flat).any(axis=0))
+    missing = np.isnan(flat)
+    gappy = missing.any(axis=0)
+    if method == "interpolate":  # a cell with no value (outside the coverage) has nothing to bridge
+        gappy &= ~missing.all(axis=0)
+    gappy = np.flatnonzero(gappy)
     if gappy.size:
         fill: Callable = (lambda v: fill_short_gaps(v, MAX_GAP_DAYS)) if method == "interpolate" else fill_zero
-        flat[:, gappy] = fill(flat[:, gappy])[0]
+        flat[:, gappy] = fill(np.take(flat, gappy, axis=1))[0]
     return flat.reshape(values.shape)
 
 
