@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from django.conf import settings
 from procrastinate.contrib.django import app
 
-from agdata import croptiers, pastyears, series
+from agdata import croptiers, pastyears, seasonmaps, series
 from agdata.store import DAILY
 from ops.era5land import refresh_era5land
 from ops.forecast import refresh_forecast, restitch_current
@@ -145,8 +145,8 @@ def update_climatology(timestamp: int) -> None:
 
 @app.task(queue="maintenance", queueing_lock="update_crop_tiers", task_middleware=JOB_MIDDLEWARE)
 def update_crop_tiers(timestamp: int) -> None:
-    """Crop stages per planting tier (`agdata.croptiers`, D66, D70) through the archive's last day and the
-    forecast run's, while a crop is in season. Queued by the ingest after it rolls up days and by the forecast after
+    """Crop stages per planting tier (`agdata.croptiers`, D66, D70) and apple scab's and fire blight's seasons
+    (`agdata.seasonmaps`, D109) through the archive's last day and the forecast run's, while in season. Queued by the ingest after it rolls up days and by the forecast after
     it publishes a run (D108); its own job (~15 s over Wisconsin, ~8 min on the launch box), so their lock isn't
     held for it: computed outside the lock, written inside (in waves of blocks)."""
     try:
@@ -157,14 +157,14 @@ def update_crop_tiers(timestamp: int) -> None:
         store = stores.get(settings.DATA_DIR, DAILY, years[-1])
         if store is None:
             return
-        done = croptiers.refresh(
-            settings.DATA_DIR,
-            store.window,
-            datetime.fromtimestamp(timestamp, UTC).date(),
-            lock=_waiting_lock("job update_crop_tiers"),
-        )
+        today = datetime.fromtimestamp(timestamp, UTC).date()
+        lock = _waiting_lock("job update_crop_tiers")
+        done = croptiers.refresh(settings.DATA_DIR, store.window, today, lock=lock)
         if done:
             logger.info("crop tiers written: %s", {where: len(names) for where, names in done.items()})
+        seasons = seasonmaps.refresh(settings.DATA_DIR, store.window, today, lock=lock)
+        if seasons:
+            logger.info("disease seasons written: %s", {where: len(names) for where, names in seasons.items()})
     except WriteLocked as error:
         logger.warning("update_crop_tiers skipped: %s", error)
 

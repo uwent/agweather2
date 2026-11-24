@@ -34,7 +34,7 @@ from typing import cast
 
 import numpy as np
 
-from agdata import blocks, croptiers, modelmaps, normals, planting, regions, series
+from agdata import blocks, croptiers, modelmaps, normals, planting, regions, seasonmaps, series
 from agdata import units as agunits
 from agdata.grid import Window
 from agdata.grids import cube_terms
@@ -246,6 +246,7 @@ def model_map(
     tier: str | None = "mid",
     now=None,
     stores: series.Stores | None = None,
+    compute: bool = False,
 ) -> ModelDays:
     """A model's map with each place's own settings (D66): with a planting `tier` (early, mid, late; None for none),
     a crop model starts at each cell's typical planting date (soybean's and spring wheat's stored per tier,
@@ -253,13 +254,21 @@ def model_map(
     then), and a stage-gated disease gets `susceptibility` (D33) from the crop's stages. Cells without a typical
     date take the spec's defaults, as a point given no planting date (a stored crop has no stages there).
 
-    A model computed on request (`ON_REQUEST`) runs a block at a time (`agdata.blocks`) and the blocks are put
-    together: it reads a season of days, and over a whole launch-size window that was tens of GB (D109)."""
+    A season-stored model (`modelmaps.SEASON_MODELS`, `agdata.seasonmaps`) is read from its stored season where it's
+    stored through the days asked for, else computed as `compute` asks (the job storing it). A model computed on
+    request (`ON_REQUEST`) runs a block at a time (`agdata.blocks`) and the blocks are put together: it reads a
+    season of days, and over a whole launch-size window that was tens of GB (D109)."""
+    if model_id in modelmaps.SEASON_MODELS and not compute:
+        found = _stored_season(data_dir, model_id, first, last, window, now, stores)
+        if found is not None:
+            return found
     if model_id in ON_REQUEST:
         parts = blocks.blocks(window)
         if len(parts) > 1 or (parts and parts[0] != window):
             found = [
-                model_map(data_dir, model_id, first, last, part, options, tier=tier, now=now, stores=stores)
+                model_map(
+                    data_dir, model_id, first, last, part, options, tier=tier, now=now, stores=stores, compute=True
+                )
                 for part in parts
             ]
             return _merged(window, parts, found)
@@ -390,6 +399,44 @@ def _stored_days(data_dir, sown: _Planting, first: date, last: date, now, stores
     return _finished(spec, base, dates, outputs, None, None, reader, cells=planted)
 
 
+def _stored_season(data_dir, model_id: str, first: date, last: date, window: Window, now, stores) -> ModelDays | None:
+    """A season-stored model's map from what `agdata.seasonmaps` keeps, or None where it isn't kept for the days
+    asked (outside its season, before the job has run, or past what's stored): the archive's through the day before
+    the forecast run's first, the run's from it."""
+    m = find_model(model_id)
+    spec = m.SPEC
+    if first.year != last.year:
+        return None
+    start, end = seasonmaps.season(model_id, first.year)
+    if first < start or last > end:
+        return None
+    keys = seasonmaps.names(model_id)
+    base, reader = _base(data_dir, spec, first, last, window, now, stores, keys)
+    dates = [first + timedelta(days=k) for k in range(len(base.steps))]
+    archive_last = min(last, reader.cut - timedelta(days=1))
+    if first <= archive_last:
+        through = seasonmaps.stored_through(data_dir, model_id, first.year)
+        if through is None or through < archive_last:
+            return None
+    if last >= reader.cut:
+        if reader.run_path is None:
+            return None
+        through = seasonmaps.stored_through(reader.run_path, model_id, first.year)
+        if through is None or through < last:
+            return None
+    found = {name: reader.days(INGREDIENTS, name, dates) for name in keys}
+    outputs = {
+        q.name: np.stack([found[modelmaps.season_key(model_id, q.name)][d] for d in dates]) for q in spec.outputs
+    }
+    risk = np.stack([found[keys[-1]][d] for d in dates])
+    root = reader.run_path if last >= reader.cut and reader.run_path is not None else data_dir
+    cells = seasonmaps.biofix(root, model_id, first.year, window)
+    level = np.where(np.isfinite(risk), risk, np.nan)
+    return _finished(
+        spec, base, dates, outputs, risk, level, reader, cells=np.broadcast_to(cells, (len(dates), *window.shape))
+    )
+
+
 # Models with neither ingredients nor stored outputs, computed on request from the days around their biofix (red crown
 # rot from R1; apple scab from green tip and fire blight from January 1, states carried day to day)
 ON_REQUEST = ("red-crown-rot", "apple-scab", "fire-blight")
@@ -418,24 +465,42 @@ def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Win
         raw = {q.name: reader.days(DAILY, q.name, days) for q in spec.inputs}
         series_ = {name: np.stack([v[d] for d in days]) for name, v in raw.items()}
         filled = {name: modelmaps._filled(name, v.copy()) for name, v in series_.items()}
+        # Cells in biofix order, so each group is a run of columns (days, cells): picking a group's cells out of
+        # (days, y, x) with a mask took ~2 s an array over a block, and a model with many biofix days has many groups
+        order = np.argsort(cells.ravel(), kind="stable")
+        ranked = cells.ravel()[order]
+        nd = len(days)
+        by_cell = {name: np.take(v.reshape(nd, -1), order, axis=1) for name, v in filled.items()}
+        missing = {name: np.isnan(np.take(v.reshape(nd, -1), order, axis=1)) for name, v in series_.items()}
+        place_by_cell = {key: v.ravel()[order] for key, v in place.items()}
+        ranked_out = {q.name: np.full((n, cells.size), np.nan) for q in spec.outputs}
         for u in starts:
             biofix = date.fromordinal(int(u))
             if biofix > last:
                 continue
-            group = cells == u
+            lo, hi = int(np.searchsorted(ranked, u, side="left")), int(np.searchsorted(ranked, u, side="right"))
             k0 = max(0, (biofix - a).days - reach)
-            given = {name: v[k0:, group] for name, v in filled.items()}
-            given |= {f"{name}_estimated": np.isnan(series_[name][k0:, group]) for name in filled}
+            given = {name: v[k0:, lo:hi] for name, v in by_cell.items()}
+            given |= {f"{name}_estimated": missing[name][k0:, lo:hi] for name in filled}
             context = {
                 "day_of_year": np.array([d.timetuple().tm_yday for d in days[k0:]], dtype=float),
                 "year": np.array([d.year for d in days[k0:]], dtype=float),
             }
-            context |= {key: v[group][None] for key, v in place.items()}  # (1, cells), as the group's inputs
+            context |= {key: v[lo:hi][None] for key, v in place_by_cell.items()}  # (1, cells), as the inputs
             given |= {name: context[name] for name in spec.context if name in context}
             found = m.outputs(given, biofix_index=(biofix - a).days - k0)
+            # The run's row j is days[k0 + j]; the asked day i is days[(first - a).days + i]. A group whose run starts
+            # after `first` (a late biofix) fills only the days from its start
             shown = (first - a).days - k0
+            i0 = max(0, -shown)
             for name, v in found.items():
-                outputs[name][:, group] = np.asarray(v, dtype=float)[shown : shown + n]
+                v = np.asarray(v, dtype=float)
+                count = min(n - i0, len(v) - (shown + i0))
+                if count > 0:
+                    ranked_out[name][i0 : i0 + count, lo:hi] = v[shown + i0 : shown + i0 + count]
+        for name, v in ranked_out.items():
+            flat = outputs[name].reshape(n, -1)
+            flat[:, order] = v
     ordinals = np.array([d.toordinal() for d in dates], dtype=float)[:, None, None]
     before = ordinals < cells[None]  # not started, as at a point (inf: R1 not reached)
     for v in outputs.values():

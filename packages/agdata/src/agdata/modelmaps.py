@@ -177,6 +177,61 @@ def keys_reading(names: Iterable[str]) -> list[str]:
     return [s.key for s in stored().values() if {q.name for q in models[s.model_id].SPEC.inputs} & wanted]
 
 
+# Models whose whole seasons are kept (`agdata.seasonmaps`, D109): each carries a state day to day from each cell's
+# biofix, so a map couldn't be finished from a few days' ingredients, and computing one on request over the launch box
+# took minutes and tens of GB
+SEASON_MODELS = ("apple-scab", "fire-blight")
+_SEASON_OUTPUTS: dict[str, tuple[float, float, float]] = {  # `{model}.{output}`: scale, valid min and max
+    "apple-scab.infection": (1, 0, 1),
+    "apple-scab.maturity": (0.01, 0, 100),
+    "apple-scab.released": (0.01, 0, 100),
+    "apple-scab.released_today": (0.01, 0, 100),
+    "apple-scab.wet_hours": (1, 0, 30000),
+    "apple-scab.wet_temperature": (0.01, -60, 60),
+    "apple-scab.dd_total": (0.5, 0, 16000),
+    "apple-scab.season": (1, 0, 1),
+    "fire-blight.cougarblight": (0.5, 0, 16000),
+    "fire-blight.eip": (0.5, 0, 16000),
+    "fire-blight.maryblyt": (1, 0, 3),
+    "fire-blight.wetting": (1, 0, 1),
+    "fire-blight.infection_possible": (1, 0, 1),
+    "fire-blight.degree_hours": (0.5, 0, 16000),
+    "fire-blight.symptoms_dd": (0.5, 0, 16000),
+    "fire-blight.bloom": (1, 0, 2),
+}
+SEASON_RISK = "risk"  # each model's risk is kept too, computed before the outputs are packed (thresholds stay exact)
+
+
+def season_key(model_id: str, output: str) -> str:
+    """Where a season-stored model's output (or `risk`) is kept: `{model_id}.{output}`."""
+    return f"{model_id}.{output}"
+
+
+@cache
+def season_variables() -> list[Variable]:
+    models = all_models()
+    out = []
+    for model_id in SEASON_MODELS:
+        spec = models[model_id].SPEC
+        assert spec.risk is not None
+        kept = [(q.name, q.label, q.unit, *_SEASON_OUTPUTS[season_key(model_id, q.name)]) for q in spec.outputs]
+        kept.append((SEASON_RISK, "Risk", "index", 1, 0, len(spec.risk.levels)))
+        for name, label, unit, scale, low, high in kept:
+            out.append(
+                Variable(
+                    name=season_key(model_id, name),
+                    long_name=f"{spec.name}: {label}",
+                    unit=unit,
+                    scale=scale,
+                    valid_min=low,
+                    valid_max=high,
+                    derived=True,
+                    version=_version(spec.version),
+                )
+            )
+    return out
+
+
 def tier_key(model_id: str, output: str, tier: str) -> str:
     """Where a crop model's output for a planting tier is kept: `{model_id}.{output}.{tier}`."""
     return f"{model_id}.{output}.{tier}"
@@ -208,7 +263,7 @@ def tier_variables() -> list[Variable]:
 
 @cache
 def variables() -> list[Variable]:
-    return [v for s in stored().values() for v in s.variables()] + tier_variables()
+    return [v for s in stored().values() for v in s.variables()] + tier_variables() + season_variables()
 
 
 def open_or_create(root: Path, year: int, window: Window) -> GridStore:
@@ -324,24 +379,29 @@ def build(
 ) -> tuple[date, date] | None:
     """A year's ingredients from January 1 and its crops' stages per planting tier (`agdata.croptiers`), marked
     current (D29), and the next year's January, whose windows reach back into this one."""
-    from agdata import croptiers  # it uses this module
+    from agdata import croptiers, seasonmaps  # they use this module
 
     def stage(name: str) -> Callable[[int, int], None] | None:  # `progress(stage, done, total)` by stage
         return None if progress is None else partial(progress, name)
 
     tiers = {v.name for v in tier_variables()}
+    seasons = {v.name for v in season_variables()}
     reason = status(data_dir, year)
     if reason is not None and (reason.endswith("stale variables") or reason == NO_STAGE_DAYS):
         stale = GridStore.stale_variables(data_dir, INGREDIENTS, year, variables())
         rolled = _rolled_days(data_dir, year)
-        if stale <= tiers and rolled is not None:  # only the crops' tiers: the rest is current
+        if stale <= tiers | seasons and rolled is not None:  # only the stored seasons: the rest is current
             last = date(year, 1, 1) + timedelta(days=int(rolled[-1]))
-            croptiers.update(data_dir, window, year, last, lock=lock, progress=stage("crop stages"))
+            if stale & tiers or reason == NO_STAGE_DAYS:
+                croptiers.update(data_dir, window, year, last, lock=lock, progress=stage("crop stages"))
+            if stale & seasons:
+                seasonmaps.update(data_dir, window, year, last, lock=lock, progress=stage("disease seasons"))
             return date(year, 1, 1), last
     days = build_year(data_dir, window, year, lock=lock, progress=stage("ingredients"))
     if days is None:
         return None
     croptiers.update(data_dir, window, year, days[1], lock=lock, progress=stage("crop stages"))
+    seasonmaps.update(data_dir, window, year, days[1], lock=lock, progress=stage("disease seasons"))
     with (lock or nullcontext)():
         store = GridStore.open(data_dir, INGREDIENTS, year, variables(), add_missing=True)
         store.mark_current([v.name for v in variables()])

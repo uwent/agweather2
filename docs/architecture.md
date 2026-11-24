@@ -111,6 +111,7 @@ UTC everywhere in storage. Grid days are Central Standard Time all year, midnigh
 - DD: sine/average/modified methods; fixed base/upper pairs get cumulative cubes, arbitrary ones run on the fly with Numba.
 - Insects: declarative specs (DD base/upper, biofix, stage thresholds, freeze adjustment), like CPN's `Insect()`.
 - Tests: parity against old API outputs and R `.rds` fixtures; sweep snapshots that also render the about pages.
+- **Maps of models:** most are finished from a few days of stored ingredients (`agdata.modelmaps`). Models that carry a state day to day keep their whole season instead: crop stages per planting tier (`agdata.croptiers`) and apple scab and fire blight (`agdata.seasonmaps`), kept by the job after each update and forecast run. A map is offered only within a budget of storage and compute (D109): no request holds the whole window over a season, and a model that can't be stored reasonably is offered at points only.
 
 ---
 

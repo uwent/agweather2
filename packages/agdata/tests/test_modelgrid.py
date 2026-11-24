@@ -435,3 +435,44 @@ def test_a_map_passes_each_cells_normal_of_the_place_to_the_model(built, model_i
         if n.key in found.outputs:
             shown = found.outputs[n.key][np.isfinite(found.outputs[n.key])]
             assert shown.size and (shown == 1234).all()
+
+
+@pytest.mark.parametrize("model_id", ["apple-scab", "fire-blight"])
+def test_a_stored_season_is_the_map_computed_on_request(built, tmp_path, model_id, monkeypatch):
+    """D109: apple scab's and fire blight's seasons are kept (`agdata.seasonmaps`) and their maps read them; past
+    what's kept, a map is computed on request as before."""
+    import shutil
+
+    from agdata import seasonmaps
+
+    root = tmp_path / "root"
+    shutil.copytree(built[0], root)
+    assert seasonmaps.update(root, WINDOW, 2025, DAYS[1])
+    assert seasonmaps.stored_through(root, model_id, 2025) == DAYS[1]
+    computed_on_request = []
+    real = modelgrid._anchored_days
+    monkeypatch.setattr(
+        modelgrid, "_anchored_days", lambda *args, **kwargs: computed_on_request.append(1) or real(*args, **kwargs)
+    )
+    units = {q.name: q.unit for q in find_spec(model_id).outputs}
+    for first, last in ((DAYS[0], DAYS[0]), (DAYS[0], DAYS[1])):
+        stored = modelgrid.model_map(root, model_id, first, last, WINDOW, tier=None)
+        assert computed_on_request == []
+        computed = modelgrid.model_map(root, model_id, first, last, WINDOW, tier=None, compute=True)
+        computed_on_request.clear()
+        assert stored.dates == computed.dates and stored.kinds == computed.kinds
+        for name, values in computed.outputs.items():
+            np.testing.assert_allclose(
+                stored.outputs[name], values, atol=ATOL.get(units[name], 0.01), equal_nan=True, err_msg=name
+            )
+        np.testing.assert_array_equal(stored.risk, computed.risk)
+        assert stored.cell_biofix is not None and computed.cell_biofix is not None
+        np.testing.assert_array_equal(stored.cell_biofix[-1], computed.cell_biofix[-1])
+    modelgrid.model_map(root, model_id, DAYS[2], DAYS[2], WINDOW, tier=None)  # past what's kept
+    assert computed_on_request
+
+
+def find_spec(model_id: str):
+    from agmodels.registry import model
+
+    return model(model_id).SPEC
