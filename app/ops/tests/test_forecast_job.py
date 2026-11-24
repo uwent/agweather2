@@ -1,5 +1,6 @@
 import json
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 import pytest
 
@@ -101,18 +102,41 @@ def test_the_forecast_job_is_periodic_and_takes_the_lock(tmp_path, settings, mon
         tasks.ingest_forecast(int(NOW.timestamp()))
 
 
-def test_the_hourly_job_restitches_the_forecast_after_new_hours(tmp_path, settings, monkeypatch):
+def test_the_hourly_job_restitches_the_forecast_and_queues_crop_stages_only_after_an_update(
+    tmp_path, settings, monkeypatch
+):
     from ops import tasks
 
     settings.DATA_DIR = tmp_path
-    stitched = []
+    stitched, queued = [], []
     monkeypatch.setattr(tasks, "restitch_current", lambda data_dir, box: stitched.append(box))
-    monkeypatch.setattr(tasks, "refresh_recent", lambda *args: [])
-    tasks.ingest_recent(int(NOW.timestamp()))
-    assert stitched == []  # nothing new
     monkeypatch.setattr(tasks, "refresh_recent", lambda *args: ["a record"])
+    monkeypatch.setattr(tasks.update_crop_tiers, "defer", lambda **kwargs: queued.append(kwargs))
+    monkeypatch.setattr(tasks, "update_if_due", lambda *args: [])
     tasks.ingest_recent(int(NOW.timestamp()))
-    assert stitched == [settings.SERVICE_BOX]
+    assert stitched == [] and queued == []  # new hours, but no update due (D108)
+    monkeypatch.setattr(tasks, "update_if_due", lambda *args: [NOW.date()])
+    tasks.ingest_recent(int(NOW.timestamp()))
+    assert stitched == [settings.SERVICE_BOX] and queued == [{"timestamp": int(NOW.timestamp())}]
+
+
+def test_a_forecast_build_rolls_up_the_days_behind_first(tmp_path, monkeypatch):
+    from ops import forecast as ops_forecast
+
+    order = []
+    monkeypatch.setattr(
+        ops_forecast, "update_if_due", lambda data_dir, box, now, force: order.append(("update", force)) or []
+    )
+
+    def build(data_dir, window, cycle, soil):
+        order.append(("build", cycle))
+        raise RuntimeError("stop here")
+
+    monkeypatch.setattr(ops_forecast.forecast, "current_run", lambda data_dir: None)
+    monkeypatch.setattr(ops_forecast.IngestRecord.objects, "filter", lambda **kw: SimpleNamespace(exists=lambda: False))
+    monkeypatch.setattr(ops_forecast.IngestRecord.objects, "create", lambda **kw: SimpleNamespace(**kw))
+    ops_forecast.refresh_forecast(tmp_path, "wisconsin", NOW, find_cycle=lambda now: CYCLE, build=build)
+    assert order == [("update", True), ("build", CYCLE)]
 
 
 def test_restitch_current_does_nothing_without_a_published_run(tmp_path, monkeypatch):

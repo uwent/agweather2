@@ -9,8 +9,20 @@ doesn't blank a season's risk.
 import numpy as np
 
 
+def cumsum_days(values: np.ndarray, dtype=None) -> np.ndarray:
+    """`np.cumsum(values, axis=0, dtype=dtype)` to the bit, but over a grid (days, y, x) a day at a time: NumPy's
+    running sum along the first axis of a 3-D array runs ~15× slower than adding each day's map to the one before."""
+    values = np.asarray(values)
+    out = np.array(values, dtype=dtype or np.cumsum(values[:1], axis=0).dtype)
+    if out.ndim < 2:
+        return np.cumsum(out, axis=0, out=out)
+    for k in range(1, len(out)):
+        np.add(out[k - 1], out[k], out=out[k])
+    return out
+
+
 def running_total(values: np.ndarray, start: int = 0) -> np.ndarray:
-    total = np.cumsum(_from(values, start, fill=0.0), axis=0)
+    total = cumsum_days(_from(values, start, fill=0.0))
     return _before(total, start)
 
 
@@ -33,7 +45,7 @@ def _from(values: np.ndarray, start: int, fill: float) -> np.ndarray:
 
 
 def _window(values: np.ndarray, days: int) -> np.ndarray:
-    total = np.cumsum(values, axis=0)
+    total = cumsum_days(values)
     shifted = np.concatenate([np.zeros((days, *values.shape[1:])), total[:-days]])[: values.shape[0]]
     return total - shifted
 

@@ -16,6 +16,7 @@ from typing import Protocol, cast
 
 import numpy as np
 
+from agmodels.accumulate import cumsum_days
 from agmodels.spec import ModelSpec, Option
 
 
@@ -97,7 +98,7 @@ def susceptibility(
         span = days.reshape(-1, *([1] * (s.ndim - 1)))
         inside = inside | ((span >= start) & (span <= start + extend_days))
     # any susceptible day within margin_days either side: a window count over the padded series
-    count = np.cumsum(np.concatenate([np.zeros((1, *s.shape[1:])), inside.astype(float)]), axis=0)
+    count = cumsum_days(np.concatenate([np.zeros((1, *s.shape[1:])), inside.astype(float)]))
     upper = np.minimum(days + margin_days + 1, n)
     lower = np.maximum(days - margin_days, 0)
     near = (count[upper] - count[lower]) > 0

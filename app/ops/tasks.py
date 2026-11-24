@@ -9,9 +9,10 @@ from agdata.store import DAILY
 from ops.era5land import refresh_era5land
 from ops.forecast import refresh_forecast, restitch_current
 from ops.ifs import refresh_ifs
-from ops.ingest import refresh_recent
+from ops.ingest import refresh_recent, update_if_due
 from ops.jobruns import JOB_MIDDLEWARE
 from ops.locks import WriteLocked, write_lock
+from ops.models import IngestRecord
 
 logger = logging.getLogger(__name__)
 
@@ -30,26 +31,36 @@ def _waiting_lock(label: str):
 @app.periodic(cron="40 * * * *")  # after RTMA's hour is usually published
 @app.task(queue="ingest", queueing_lock="ingest_recent", task_middleware=JOB_MIDDLEWARE)
 def ingest_recent(timestamp: int) -> None:
-    """Keeps the archive current: the last week's missing and RTMA-only hours, then their days and totals, then the
-    published forecast run's stitch to them."""
+    """Keeps the archive current: the last week's missing and RTMA-only hours every hour; when an update is due
+    (a day just over, or hours waiting six hours: D108), their days, totals and ingredients, the published forecast
+    run's stitch to them, and then the crop stages."""
+    now = datetime.fromtimestamp(timestamp, UTC)
     try:
         with write_lock(settings.DATA_DIR, wait=JOB_LOCK_WAIT_S, label="job ingest_recent"):
-            records = refresh_recent(settings.DATA_DIR, settings.SERVICE_BOX, datetime.fromtimestamp(timestamp, UTC))
-            if records:
+            refresh_recent(settings.DATA_DIR, settings.SERVICE_BOX, now)
+            updated = update_if_due(settings.DATA_DIR, settings.SERVICE_BOX, now)
+            if updated:
                 restitch_current(settings.DATA_DIR, settings.SERVICE_BOX)
     except WriteLocked as error:
         logger.warning("ingest_recent skipped: %s", error)
+        return
+    if updated:
+        update_crop_tiers.defer(timestamp=timestamp)
 
 
 @app.periodic(cron="15,45 * * * *")  # cheap when nothing's new; picks up late and missed runs
 @app.task(queue="ingest", queueing_lock="ingest_forecast", task_middleware=JOB_MIDDLEWARE)
 def ingest_forecast(timestamp: int) -> None:
-    """Builds and publishes the newest long NBM run (D38) once it's complete, if it isn't current already."""
+    """Builds and publishes the newest long NBM run (D38) once it's complete, if it isn't current already, after
+    rolling up any days behind their hours (D108); then the crop stages."""
     try:
         with write_lock(settings.DATA_DIR, wait=JOB_LOCK_WAIT_S, label="job ingest_forecast"):
-            refresh_forecast(settings.DATA_DIR, settings.SERVICE_BOX, datetime.fromtimestamp(timestamp, UTC))
+            record = refresh_forecast(settings.DATA_DIR, settings.SERVICE_BOX, datetime.fromtimestamp(timestamp, UTC))
     except WriteLocked as error:
         logger.warning("ingest_forecast skipped: %s", error)
+        return
+    if record is not None and record.status != IngestRecord.Status.FAILED:
+        update_crop_tiers.defer(timestamp=timestamp)
 
 
 @app.periodic(cron="20 */6 * * *")  # ERA5-Land publishes once a day; a run with nothing new asks nothing
@@ -132,12 +143,12 @@ def update_climatology(timestamp: int) -> None:
     logger.info("climatology: %d files fetched, %d years derived", len(p.fetch), derived)
 
 
-@app.periodic(cron="55 * * * *")  # after the hour's ingest (:40) and the forecast's (:45)
 @app.task(queue="maintenance", queueing_lock="update_crop_tiers", task_middleware=JOB_MIDDLEWARE)
 def update_crop_tiers(timestamp: int) -> None:
-    """Crop stages per planting tier (`agdata.croptiers`, D66, D70) through the archive's last day
-    and the forecast run's, while a crop is in season. Its own job (~15 s over Wisconsin, ~10× on the launch box),
-    so the ingest's lock isn't held for it: computed outside the lock, written inside."""
+    """Crop stages per planting tier (`agdata.croptiers`, D66, D70) through the archive's last day and the
+    forecast run's, while a crop is in season. Queued by the ingest after it rolls up days and by the forecast after
+    it publishes a run (D108); its own job (~15 s over Wisconsin, ~8 min on the launch box), so their lock isn't
+    held for it: computed outside the lock, written inside (in waves of blocks)."""
     try:
         stores = series.Stores(["air_temperature_min"])
         years = series.archive_years(settings.DATA_DIR)

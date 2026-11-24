@@ -111,7 +111,7 @@ def test_last_observed_hour(tmp_path, fx):
     assert forecast.last_observed_hour(tmp_path, datetime(2025, 7, 1, tzinfo=UTC)) is None  # over two weeks back
 
 
-def test_building_in_strips_matches_the_whole_window(copy_of_july_archive, fx, monkeypatch):
+def test_building_in_parts_matches_the_whole_window(copy_of_july_archive, fx, monkeypatch):
     from agdata.sources import nbm
 
     tmp_path, cycle = copy_of_july_archive, CYCLE
@@ -125,8 +125,8 @@ def test_building_in_strips_matches_the_whole_window(copy_of_july_archive, fx, m
             values |= {name: truth.values[name][n] + rows for name in nbm.NAMES if name != "precipitation"}
         return values
 
-    monkeypatch.setattr(forecast, "BAND_CELLS", 3)  # one row per strip
-    assert forecast.band_rows(WINDOW) == 1
+    monkeypatch.setattr(forecast, "PART_SIZE", 1)  # a cell per part
+    assert len(forecast.parts(WINDOW)) == WINDOW.size
     built = forecast.build_run(tmp_path, WINDOW, cycle, step=step, workers=4, pressure_kpa=98.0)
     assert not (built / "scratch.zarr").exists()
     stored = {

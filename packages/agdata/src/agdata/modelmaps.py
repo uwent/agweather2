@@ -37,6 +37,7 @@ from agdata import blocks
 from agdata.catalog import DAILY_VARIABLES, GAP_FILL, Variable
 from agdata.grid import Window
 from agdata.store import DAILY, INGREDIENTS, GridStore
+from agmodels.accumulate import cumsum_days
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps, fill_zero
 from agmodels.ingredients import LOOKBACK_DAYS, Ingredient
 from agmodels.registry import all_models
@@ -500,10 +501,10 @@ def _write(data_dir, root, band, begin, values, entries, is_run) -> list[tuple[i
             known = np.isfinite(v)
             if s.total:
                 base = _previous(data_dir, root, f"{s.key}.total", day_before, band, is_run) if continuing else 0
-                out[f"{s.key}.total"] = np.nan_to_num(base) + np.cumsum(np.where(known, v, 0.0), axis=0)
+                out[f"{s.key}.total"] = np.nan_to_num(base) + cumsum_days(np.where(known, v, 0.0))
             if s.known:
                 base = _previous(data_dir, root, f"{s.key}.known", day_before, band, is_run) if continuing else 0
-                out[f"{s.key}.known"] = np.nan_to_num(base) + np.cumsum(known, axis=0)
+                out[f"{s.key}.known"] = np.nan_to_num(base) + cumsum_days(known)
         store.write(first, out, source="derived", window=band, record=False)
         written.append((year, first, k1 - k0, list(out)))
     return written

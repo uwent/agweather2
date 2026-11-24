@@ -12,6 +12,7 @@ from django.utils import timezone
 from agdata import forecast
 from agdata.grid import service_window
 from agdata.sources import ifs, nbm
+from ops.ingest import update_if_due
 from ops.models import IngestRecord
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ def refresh_forecast(
         logger.warning("the %s run failed to build less than %s ago; not retrying yet", cycle, RETRY_FAILED_AFTER)
         return None
     window = service_window(box)
+    update_if_due(data_dir, box, now, force=True)  # the run stitches to the archive's days as they stand (D108)
     started = timezone.now()
     try:
         latest = ifs.latest_path(data_dir)

@@ -262,7 +262,7 @@ def last_stored(data_dir: Path, year: int, root: Path | None = None) -> date | N
 def refresh(
     data_dir: Path, window: Window, today: date, lock: Callable[[], AbstractContextManager] | None = None
 ) -> dict[str, list[str]]:
-    """What the hourly job does: the archive's season through its last rolled-up day (only the last REWRITE_DAYS
+    """What the crop stages job does (after an update or a new forecast run, D108): the archive's season through its last rolled-up day (only the last REWRITE_DAYS
     rewritten once the season before them is stored) and the current forecast run's, while a crop is in season.
     Returns the variables written, by where."""
     from agdata import series  # reads the forecast run

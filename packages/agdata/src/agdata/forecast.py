@@ -19,13 +19,14 @@ import os
 import shutil
 from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
+from functools import partial
 from pathlib import Path
 
 import numpy as np
 import requests
 import zarr
 
-from agdata import calibration, chillseason, interpolate, modelmaps, shortwave
+from agdata import blocks, calibration, chillseason, coverage, interpolate, modelmaps, shortwave
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
 from agdata.cumulative import INPUTS, MAX_BRIDGE_DAYS, open_or_create_cumulative, running_totals
 from agdata.daily import rollup_days
@@ -41,7 +42,7 @@ from agmodels.weather import et0_hourly_series, relative_humidity_percent
 
 HOUR = timedelta(hours=1)
 PRESSURE_DAYS = 30  # the archive's days whose mean surface pressure stands in for the forecast's (NBM has none)
-BAND_CELLS = 15_000  # cells per strip when building a run: ~1 GB at peak over 264 hours
+PART_SIZE = 128  # cells a side of the parts a run is derived in: 16,384 cells, ~1.1 GB at peak over 264 hours
 # Sources of a run's forecast hours, by variable; the rest are NBM's
 SOURCE_OF = {
     "soil_temperature_4cm": "ifs",
@@ -132,7 +133,7 @@ def write_run(
 ) -> Path:
     """Writes a run already filled to every hour (the whole window in memory) into its own directory, replacing
     any earlier attempt, then stitches it to the archive and rolls up its days. Not yet published: call `publish`.
-    `build_run` does the same from NBM in strips of rows, for windows too large to hold."""
+    `build_run` does the same from NBM in parts, for windows too large to hold."""
     path = _fresh_run_dir(data_dir, hourly.cycle)
     times = hourly.valid_times
     pressure = _pressure(data_dir, window, times[0], pressure_kpa)
@@ -185,11 +186,6 @@ def adjust_hours(
     return HourlyRun(cycle=hourly.cycle, values=values, filled=hourly.filled, extras=hourly.extras)
 
 
-def band_rows(window: Window) -> int:
-    """Rows per strip: about BAND_CELLS cells, so a strip's 264 hours of every variable fit in about a GB."""
-    return max(1, min(window.shape[0], BAND_CELLS // window.shape[1]))
-
-
 def build_run(
     data_dir: Path,
     window: Window,
@@ -201,22 +197,19 @@ def build_run(
     session_factory=requests.Session,
 ) -> Path:
     """Fetches a long NBM run into the run's directory (with `soil`'s soil and snow at its valid times: IFS's,
-    D52), fills its
-    hours and derives the rest a strip of rows at a time, then stitches it to the archive and rolls up its days.
+    D52), fills its hours and derives the rest in parts over the coverage (`parts`, in `agdata.blocks`' pool), then
+    stitches it to the archive and rolls up its days.
 
-    The fetch writes each step straight to a scratch array chunked by step and strip, so threads never share a
-    chunk and no step is held whole; the scratch is deleted once the strips are written."""
+    The fetch writes each step straight to a scratch array chunked by step and block, so threads never share a
+    chunk and no step is held whole, and a part reads whole chunks; the scratch is deleted once the parts are
+    written."""
     path = _fresh_run_dir(data_dir, cycle)
-    rows = band_rows(window)
     scratch = zarr.open_group(path / "scratch.zarr", mode="w")
     names = [*nbm.FETCHED, *(SOIL if soil else ())]
+    side = (min(blocks.SIZE, window.shape[0]), min(blocks.SIZE, window.shape[1]))
     raw = {
         name: scratch.create_array(
-            name,
-            shape=(nbm.HORIZON_HOURS, *window.shape),
-            chunks=(1, rows, window.shape[1]),
-            dtype="float32",
-            fill_value=np.nan,
+            name, shape=(nbm.HORIZON_HOURS, *window.shape), chunks=(1, *side), dtype="float32", fill_value=np.nan
         )
         for name in names
     }
@@ -228,19 +221,70 @@ def build_run(
         for name, values in soil(times, window).items():
             raw[name][:] = values
     pressure = _pressure(data_dir, window, times[0], pressure_kpa)
-    lat, lon = NDFD.window_latlon(window)
+    for year in range(times[0].year, times[-1].year + 1):
+        open_or_create_hourly(path, year, window)  # made here, before a worker writes to one
+    chains = [
+        [(None, partial(_derive_part, path, window, cycle, times, names, pressure[_local(window, part)], part))]
+        for part in parts(window)
+    ]
     present: dict[str, np.ndarray] = {}
-    for j in range(window.j0, window.j1, rows):
-        band = Window(j0=j, j1=min(j + rows, window.j1), i0=window.i0, i1=window.i1)
-        y = slice(j - window.j0, band.j1 - window.j0)
-        part = nbm.Run(cycle=cycle, values={n: np.asarray(raw[n][:, y]) for n in nbm.FETCHED})
-        filled = adjust_hours(nbm.to_hourly(part, lat[y], lon[y], pressure[y]), lat[y], lon[y], pressure[y])
-        strip_soil = {n: np.asarray(raw[n][:, y]) for n in names if n not in nbm.FETCHED}
-        for name, steps in _write_hours(path, window, band, times, filled.values, strip_soil, pressure[y]).items():
+
+    def handle(_, found: dict[str, np.ndarray]) -> None:
+        for name, steps in found.items():
             present[name] = present[name] | steps if name in present else steps
+
+    blocks.run(chains, handle)
+    for year in range(times[0].year, times[-1].year + 1):  # the workers wrote the values only
+        store = open_or_create_hourly(path, year, window)
+        begin, k0, k1 = _year_steps(times, year)
+        store.record(present, begin, k1 - k0, source=None)
     shutil.rmtree(path / "scratch.zarr")
     _finish(data_dir, path, window, cycle, times, present, failed=run.failed)
     return path
+
+
+def parts(window: Window) -> list[Window]:
+    """The parts a run's hours are derived in: `agdata.blocks`' blocks (over the coverage only, largest first) in
+    squares of PART_SIZE, those with a covered cell."""
+    return [
+        square
+        for block in blocks.blocks(window)
+        for square in coverage.parts(block, PART_SIZE)
+        if coverage.covered(window, square).any()
+    ]
+
+
+def _local(window: Window, part: Window) -> tuple[slice, slice]:
+    return slice(part.j0 - window.j0, part.j1 - window.j0), slice(part.i0 - window.i0, part.i1 - window.i0)
+
+
+def _year_steps(times: list[datetime], year: int) -> tuple[datetime, int, int]:
+    """The run's first hour in `year` and its steps k0..k1 there."""
+    first = times[0]
+    begin = max(first, datetime(year, 1, 1, tzinfo=UTC))
+    end = min(times[-1] + HOUR, datetime(year + 1, 1, 1, tzinfo=UTC))
+    return begin, (begin - first) // HOUR, (end - first) // HOUR
+
+
+def _derive_part(
+    path: Path,
+    window: Window,
+    cycle: datetime,
+    times: list[datetime],
+    names: list[str],
+    pressure: np.ndarray,
+    part: Window,
+) -> dict[str, np.ndarray]:
+    """One part of a run (a task for `blocks.run`): its fetched hours from the scratch, filled, adjusted and
+    derived, its values written (not recorded); returns which steps of each variable have a value."""
+    scratch = zarr.open_group(path / "scratch.zarr", mode="r")
+    y, x = _local(window, part)
+    raw = {name: np.asarray(scratch[name][:, y, x]) for name in names}  # type: ignore[index]
+    lat, lon = NDFD.window_latlon(part)
+    run = nbm.Run(cycle=cycle, values={n: raw[n] for n in nbm.FETCHED})
+    filled = adjust_hours(nbm.to_hourly(run, lat, lon, pressure), lat, lon, pressure)
+    soil = {n: raw[n] for n in names if n not in nbm.FETCHED}
+    return _write_hours(path, window, part, times, filled.values, soil, pressure, record=False)
 
 
 def _fresh_run_dir(data_dir: Path, cycle: datetime) -> Path:
@@ -268,9 +312,11 @@ def _write_hours(
     values: dict[str, np.ndarray],
     soil: dict[str, np.ndarray],
     pressure: np.ndarray,
+    record: bool = True,
 ) -> dict[str, np.ndarray]:
-    """Derives pressure, RH and ET0 for a strip of the window's rows and writes every variable's hours; returns,
-    per variable, which steps have any value (for the sources, set once every strip is written)."""
+    """Derives pressure, RH and ET0 over a part of the window and writes every variable's hours (`record`: their
+    write times too); returns, per variable, which steps have any value (for the sources, set once every part is
+    written)."""
     values = dict(values) | dict(soil)
     values["surface_pressure"] = np.broadcast_to(pressure, (len(times), *band.shape))
     values["relative_humidity"] = relative_humidity_percent(values["air_temperature"], values["dew_point"])
@@ -287,15 +333,12 @@ def _write_hours(
             values["shortwave_radiation"],
         )
     present: dict[str, np.ndarray] = {}
-    first = times[0]
-    for year in range(first.year, times[-1].year + 1):
+    for year in range(times[0].year, times[-1].year + 1):
         store = open_or_create_hourly(path, year, window)
-        begin = max(first, datetime(year, 1, 1, tzinfo=UTC))
-        end = min(times[-1] + HOUR, datetime(year + 1, 1, 1, tzinfo=UTC))
-        k0, k1 = (begin - first) // HOUR, (end - first) // HOUR
+        begin, k0, k1 = _year_steps(times, year)
         for name, series in values.items():
             cleaned, _ = check_range(VARIABLES[name], series[k0:k1])
-            store.write(begin, {name: cleaned}, source=None, window=band)
+            store.write(begin, {name: cleaned}, source=None, window=band, record=record)
             steps = np.isfinite(cleaned).reshape(k1 - k0, -1).any(axis=1)
             present.setdefault(name, np.zeros(len(times), dtype=bool))[k0:k1] |= steps
     return present

@@ -21,6 +21,7 @@ from collections.abc import Mapping
 
 import numpy as np
 
+from agmodels.accumulate import cumsum_days
 from agmodels.spec import (
     Biofix,
     Change,
@@ -167,13 +168,13 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
     before_series = WINDOW - (r1 - veg_start)  # days of the window before the series starts are missing too
 
     veg_total = known[veg_start:r1].sum(axis=0) if r1 > veg_start else np.full(precip.shape[1:], np.nan)
-    veg_running = np.cumsum(np.where(in_veg, known, 0), axis=0)
+    veg_running = cumsum_days(np.where(in_veg, known, 0))
     precipitation_vegetative = np.where(day < veg_start, np.nan, np.where(in_veg, veg_running, veg_total))
 
     temperature_rep = _cumulative_mean(np.where(in_rep, temperature, np.nan))
-    rep_elapsed = np.cumsum(in_rep, axis=0)
+    rep_elapsed = cumsum_days(in_rep)
     with np.errstate(invalid="ignore", divide="ignore"):
-        rep_running = np.cumsum(np.where(in_rep, known, 0), axis=0)
+        rep_running = cumsum_days(np.where(in_rep, known, 0))
         precipitation_rep = np.where(rep_elapsed > 0, rep_running, np.nan)  # so far, not prorated
 
     veg_missing = missing[veg_start:r1].sum(axis=0) + before_series
@@ -182,8 +183,8 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
         np.nan,
         np.where(
             in_veg,
-            np.cumsum(in_veg & missing, axis=0) + before_series,
-            veg_missing + np.cumsum(in_rep & missing, axis=0),
+            cumsum_days(in_veg & missing) + before_series,
+            veg_missing + cumsum_days(in_rep & missing),
         ),
     )
     final = r1 + WINDOW - 1  # the last day of the window from R1
@@ -209,6 +210,6 @@ def explore(temperature_reproductive: float, precipitation_vegetative: float, pr
 
 def _cumulative_mean(values: np.ndarray) -> np.ndarray:
     """Mean of the values so far, NaN until the first (the tool's `cummean_na`)."""
-    count = np.cumsum(np.isfinite(values), axis=0)
+    count = cumsum_days(np.isfinite(values))
     with np.errstate(invalid="ignore", divide="ignore"):
-        return np.where(count > 0, np.cumsum(np.nan_to_num(values), axis=0) / count, np.nan)
+        return np.where(count > 0, cumsum_days(np.nan_to_num(values)) / count, np.nan)

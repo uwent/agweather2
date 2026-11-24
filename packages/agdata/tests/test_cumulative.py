@@ -210,3 +210,22 @@ def test_the_last_day_of_a_year_is_bridged_once_the_next_year_has_the_day_after(
         1,
         0,
     )
+
+
+def test_totals_from_a_later_day_are_the_whole_years_to_the_bit():
+    """An update writes only its last days (`skip`): the days before are summed once, not kept, and what's written
+    must be exactly what a whole year's running sum gives."""
+    rng = np.random.default_rng(3)
+    shape = (60 + 2 * MAX_BRIDGE_DAYS, 3, 4)
+    tmin = rng.uniform(-5, 15, shape).astype(np.float32)
+    tmax = (tmin + rng.uniform(2, 15, shape)).astype(np.float32)
+    et0 = rng.uniform(0, 6, shape).astype(np.float32)
+    precip = rng.uniform(0, 20, shape).astype(np.float32)
+    for series in (tmin, tmax, et0, precip):
+        series[rng.random(shape) < 0.05] = np.nan
+    whole = running_totals(tmin, tmax, et0, precip)
+    for skip in (1, 37, 59, 60):
+        part = running_totals(tmin, tmax, et0, precip, skip=skip)
+        assert part.keys() == whole.keys()
+        for name, values in whole.items():
+            np.testing.assert_array_equal(part[name], values[skip:], err_msg=f"{name} from day {skip}")

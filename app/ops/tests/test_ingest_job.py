@@ -53,17 +53,50 @@ def no_retry_wait(monkeypatch):
 
 
 @pytest.mark.django_db
-def test_a_first_run_fills_the_last_week_and_rolls_it_up(tmp_path):
+def test_a_first_run_fills_the_last_week_and_its_days_are_rolled_up_once_due(tmp_path):
     records = refresh_recent(tmp_path, BOX, NOW, fetch=fake_fetch(), urma_published=lambda when: False)
     assert len(records) == 1
     record = records[0]
     assert (record.kind, record.status, record.hours) == ("hourly", "ok", 7 * 24)
     assert record.first_hour == NEWEST - timedelta(days=7) + timedelta(hours=1)
     assert record.sources["air_temperature"] == {"urma": 168}
-    daily = open_or_create_daily(tmp_path, 2025, service_window(BOX))
+    assert IngestRecord.objects.count() == 1
+    window = service_window(BOX)
+    found = ops_ingest.behind(tmp_path, window, NOW)  # nothing rolled up yet (D108)
+    assert found.days[0] == date(2025, 7, 8) and found.days[-1] == date(2025, 7, 15)
+    assert found.ended == date(2025, 7, 14) and found.due(NOW)  # yesterday has all its hours and no values
+    assert ops_ingest.update_if_due(tmp_path, BOX, NOW) == found.days
+    daily = open_or_create_daily(tmp_path, 2025, window)
     mean = daily.read_block("air_temperature_mean", daily.index_of(date(2025, 7, 13)))
     np.testing.assert_allclose(mean, 22)
-    assert IngestRecord.objects.count() == 1
+    assert ops_ingest.behind(tmp_path, window, NOW).days == []
+    assert ops_ingest.update_if_due(tmp_path, BOX, NOW) == []
+
+
+@pytest.mark.django_db
+def test_a_new_hour_waits_for_its_day_unless_forced(tmp_path):
+    refresh_recent(tmp_path, BOX, NOW, fetch=fake_fetch(), urma_published=lambda when: False)
+    ops_ingest.update_if_due(tmp_path, BOX, NOW)
+    later = NOW + timedelta(hours=1)
+    refresh_recent(tmp_path, BOX, later, fetch=fake_fetch(), urma_published=lambda when: False)
+    found = ops_ingest.behind(tmp_path, service_window(BOX), later)
+    assert found.days == [date(2025, 7, 15)] and found.ended is None  # today, still going
+    assert found.waiting_since is not None
+    assert not found.due(found.waiting_since + ops_ingest.UPDATE_EVERY - timedelta(minutes=1))
+    assert found.due(found.waiting_since + ops_ingest.UPDATE_EVERY)
+    assert ops_ingest.update_if_due(tmp_path, BOX, later) == []  # written a moment ago
+    assert ops_ingest.update_if_due(tmp_path, BOX, later, force=True) == [date(2025, 7, 15)]  # a forecast build
+
+
+def test_a_day_is_over_at_midnight_cst():
+    from agdata.timezones import GRID_ZONE, day_bounds
+
+    assert day_bounds(date(2025, 7, 14), GRID_ZONE) == (
+        datetime(2025, 7, 14, 7, tzinfo=UTC),
+        datetime(2025, 7, 15, 6, tzinfo=UTC),
+    )
+    empty = ops_ingest.Behind(days=[], waiting_since=None, ended=None)
+    assert not empty.due(NOW)
 
 
 @pytest.mark.django_db
@@ -95,7 +128,6 @@ def test_a_run_that_raises_is_recorded_as_failed(tmp_path, monkeypatch):
         raise RuntimeError("disk full")
 
     monkeypatch.setattr(ops_ingest, "ingest_block", broken)
-    monkeypatch.setattr(ops_ingest, "update_days", lambda *args: [])
     (record,) = refresh_recent(tmp_path, BOX, NOW, fetch=fake_fetch(), urma_published=lambda when: False)
     assert record.status == "failed" and "disk full" in record.error
 

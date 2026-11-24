@@ -36,6 +36,7 @@ from agdata.daily import rollup_days
 from agdata.grid import Window
 from agdata.qc import fill_short_gaps
 from agdata.store import CUMULATIVE, DAILY, GridStore, steps_in_year
+from agmodels.accumulate import cumsum_days
 from agmodels.degree_days import degree_days_average, degree_days_modified, degree_days_sine
 
 MAX_BRIDGE_DAYS = 7
@@ -97,9 +98,9 @@ def _totals_block(data_dir: Path, year: int, n: int, skip: int, window: Window, 
         if not coverage.covered(window, band).any():
             continue
         tmin, tmax, et0, precip, et0_estimate = (days.read_with_neighbours(name, band, n) for name in INPUTS)
-        for name, values in running_totals(tmin, tmax, et0, precip, et0_estimate).items():
+        for name, values in running_totals(tmin, tmax, et0, precip, et0_estimate, skip=skip).items():
             target = out.setdefault(name, np.full((n - skip, *part.shape), np.nan, dtype=np.float32))
-            target[:, j - part.j0 : band.j1 - part.j0] = values[skip:]
+            target[:, j - part.j0 : band.j1 - part.j0] = values
     if out:
         store = GridStore.open(data_dir, CUMULATIVE, year, CUMULATIVE_VARIABLES.values())
         store.write(date(year, 1, 1) + timedelta(days=skip), out, source="derived", window=part, record=False)
@@ -112,10 +113,14 @@ def running_totals(
     et0_mm: np.ndarray,
     precip_mm: np.ndarray,
     et0_estimate_mm: np.ndarray | None = None,
+    *,
+    skip: int = 0,
 ) -> dict[str, np.ndarray]:
     """The cumulative store's variables from daily series (days, y, x) padded with MAX_BRIDGE_DAYS of neighbours
-    on each side (NaN where there are none); the result covers the unpadded days. `et0_estimate_mm` is the daily
-    store's ET0 with missing hours estimated, used where `et0_mm` is missing."""
+    on each side (NaN where there are none); the result covers the unpadded days from `skip` on (the days before
+    are summed, not kept: an update writes only its last days, and a running sum along days is ~10× the cost of a
+    plain one). `et0_estimate_mm` is the daily store's ET0 with missing hours estimated, used where `et0_mm` is
+    missing."""
     pad = MAX_BRIDGE_DAYS
     year = slice(pad, tmin_c.shape[0] - pad)
     out: dict[str, np.ndarray] = {}
@@ -126,13 +131,13 @@ def running_totals(
     lo_f, hi_f = lo[year] * 1.8 + 32, hi[year] * 1.8 + 32
     usable = np.isfinite(lo_f) & np.isfinite(hi_f)
     for t in DD_SINE_THRESHOLDS_F:
-        out[dd_name("sine", t)] = _cumsum(degree_days_sine(lo_f, hi_f, t), usable)
+        out[dd_name("sine", t)] = _cumsum(degree_days_sine(lo_f, hi_f, t), usable, skip)
     for base, upper in DD_MODIFIED_PAIRS_F:
-        out[dd_name("modified", base, upper)] = _cumsum(degree_days_modified(lo_f, hi_f, base, upper), usable)
+        out[dd_name("modified", base, upper)] = _cumsum(degree_days_modified(lo_f, hi_f, base, upper), usable, skip)
     for base, upper in DD_AVERAGE_SETTINGS_F:
-        out[dd_name("average", base, upper)] = _cumsum(degree_days_average(lo_f, hi_f, base, upper), usable)
-    out["temperature_estimated_days"] = np.cumsum(usable & ~known[year], axis=0, dtype=np.int16)
-    out["temperature_missing_days"] = np.cumsum(~usable, axis=0, dtype=np.int16)
+        out[dd_name("average", base, upper)] = _cumsum(degree_days_average(lo_f, hi_f, base, upper), usable, skip)
+    out["temperature_estimated_days"] = _count(usable & ~known[year], skip)
+    out["temperature_missing_days"] = _count(~usable, skip)
 
     if et0_estimate_mm is not None:
         et0_mm_or_estimate = np.where(np.isfinite(et0_mm), et0_mm, et0_estimate_mm)
@@ -140,27 +145,41 @@ def running_totals(
         et0_mm_or_estimate = et0_mm
     et0, _ = fill_short_gaps(et0_mm_or_estimate, MAX_BRIDGE_DAYS)
     et0 = et0[year]
-    out["et0"] = _cumsum(et0, np.isfinite(et0))
-    out["et0_estimated_days"] = np.cumsum(np.isfinite(et0) & ~np.isfinite(et0_mm[year]), axis=0, dtype=np.int16)
-    out["et0_missing_days"] = np.cumsum(~np.isfinite(et0), axis=0, dtype=np.int16)
+    out["et0"] = _cumsum(et0, np.isfinite(et0), skip)
+    out["et0_estimated_days"] = _count(np.isfinite(et0) & ~np.isfinite(et0_mm[year]), skip)
+    out["et0_missing_days"] = _count(~np.isfinite(et0), skip)
 
     precip = precip_mm[year]
-    out["precipitation"] = _cumsum(precip, np.isfinite(precip))
-    out["precipitation_missing_days"] = np.cumsum(~np.isfinite(precip), axis=0, dtype=np.int16)
+    out["precipitation"] = _cumsum(precip, np.isfinite(precip), skip)
+    out["precipitation_missing_days"] = _count(~np.isfinite(precip), skip)
 
     # Over the padded days, so a gap in rain at the year's edge is filled as within it
     balance, filled = WATER_BALANCE.for_total({"precipitation_sum": precip_mm, "et0_sum": et0_mm_or_estimate})
     balance, usable = balance[year], np.isfinite(balance[year])
     estimated = usable & (filled[year] | ~np.isfinite(et0_mm[year]))  # an ET0 from part of a day's hours too
-    out["water_balance"] = _cumsum(balance, usable)
-    out["water_balance_estimated_days"] = np.cumsum(estimated, axis=0, dtype=np.int16)
-    out["water_balance_missing_days"] = np.cumsum(~usable, axis=0, dtype=np.int16)
+    out["water_balance"] = _cumsum(balance, usable, skip)
+    out["water_balance_estimated_days"] = _count(estimated, skip)
+    out["water_balance_missing_days"] = _count(~usable, skip)
     return out
 
 
-def _cumsum(values: np.ndarray, usable: np.ndarray) -> np.ndarray:
-    """Summed in float64 and kept as float32 (exact to about 0.001 at 16,000, far inside the stored 0.5)."""
-    return np.cumsum(np.where(usable, values, 0.0), axis=0, dtype=np.float64).astype(np.float32)
+def _cumsum(values: np.ndarray, usable: np.ndarray, skip: int = 0) -> np.ndarray:
+    """The running sum over days from `skip` on, summed in float64 and kept as float32 (exact to about 0.001 at
+    16,000, far inside the stored 0.5). The days before `skip` are added up first, day by day as a running sum
+    would (a sum along the first axis isn't pairwise), so the result is the running sum's to the bit."""
+    days = np.where(usable, values, 0.0).astype(np.float64)
+    out = days[skip:]
+    if skip and len(out):
+        out[0] += days[:skip].sum(axis=0)  # the running sum on the day before, then on from it
+    return cumsum_days(out).astype(np.float32)
+
+
+def _count(flags: np.ndarray, skip: int = 0) -> np.ndarray:
+    """The running count of `flags` over days from `skip` on."""
+    out = flags[skip:].astype(np.int16)
+    if skip and len(out):
+        out[0] += flags[:skip].sum(axis=0, dtype=np.int16)
+    return cumsum_days(out)
 
 
 class _DailyYear:

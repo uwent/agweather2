@@ -42,6 +42,7 @@ from agdata.climatology import SLOTS, layout
 from agdata.grid import Window
 from agdata.sources import gridmet
 from agdata.store import DAILY, GridStore, StoreLayout
+from agmodels.accumulate import cumsum_days
 
 LAYOUT = StoreLayout(kind="climate/gridmet", step="day")
 VERSION = 2  # of `derive`: bump when its output changes, and every year is derived again (2: `LEFT_OUT`)
@@ -108,7 +109,7 @@ def _pooled(values: np.ndarray) -> np.ndarray:
     """(366, …) → each slot's sum over its centered POOL_DAYS window, wrapping the year."""
     before = POOL_DAYS // 2
     padded = np.concatenate([values[-before:], values, values[: POOL_DAYS - 1 - before]])
-    sums = np.cumsum(padded, axis=0, dtype=np.float64)
+    sums = cumsum_days(padded, dtype=np.float64)
     sums = np.concatenate([np.zeros((1, *values.shape[1:])), sums])
     return sums[POOL_DAYS:] - sums[:-POOL_DAYS]
 
