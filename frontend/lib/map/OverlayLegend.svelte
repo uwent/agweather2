@@ -11,7 +11,7 @@
   {#if legend.kind === 'ramp'}
     <div>
       <div class="h-2.5 rounded-sm" style:background="linear-gradient(to right, {legend.colors.join(', ')})"></div>
-      <div class="text-ink-muted mt-0.5 flex justify-between text-xs">
+      <div class="mt-0.5 flex justify-between text-xs text-ink-muted">
         <span>{legend.start}</span><span>{legend.end}</span>
       </div>
     </div>
@@ -25,13 +25,13 @@
           </li>
         {/each}
       </ul>
-      <p class="text-ink-muted text-xs">Each color starts at the amount shown, in {units.label('in')}</p>
+      <p class="text-xs text-ink-muted">Each color starts at the amount shown, in {units.label('in')}</p>
     </div>
   {:else}
     <ul class="space-y-0.5 text-xs">
       {#each legend.items as item (item.label)}
         <li class="flex items-center gap-1.5">
-          <span class="border-line size-3 rounded-sm border" style:background={item.color}></span>{item.label}
+          <span class="size-3 rounded-sm border border-line" style:background={item.color}></span>{item.label}
         </li>
       {/each}
     </ul>

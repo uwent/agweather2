@@ -15,17 +15,17 @@
 </script>
 
 <section
-  class="border-line bg-surface focus-visible:outline-brand-500 pointer-events-auto flex max-h-full flex-col overflow-hidden rounded-lg border
-    shadow-xl focus-visible:outline-2"
+  class="pointer-events-auto flex max-h-full flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-xl
+    focus-visible:outline-2 focus-visible:outline-brand-500"
   aria-labelledby={titleId}
   tabindex="-1"
   data-map-panel
 >
-  <header class="border-line bg-surface-raised flex items-start justify-between gap-2 border-b px-3 py-2">
+  <header class="flex items-start justify-between gap-2 border-b border-line bg-surface-raised px-3 py-2">
     <div class="min-w-0">{@render header()}</div>
     <button
       type="button"
-      class="text-ink-muted hover:bg-surface hover:text-ink -mr-1 rounded-md px-2 py-1 text-lg leading-none"
+      class="-mr-1 rounded-md px-2 py-1 text-lg leading-none text-ink-muted hover:bg-surface hover:text-ink"
       aria-label="Close"
       onclick={onclose}
     >

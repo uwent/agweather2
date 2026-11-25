@@ -48,14 +48,14 @@
   let open = $state(false)
 </script>
 
-<div class="border-line bg-surface-raised flex h-full flex-col rounded-lg border p-3">
+<div class="flex h-full flex-col rounded-lg border border-line bg-surface-raised p-3">
   <div class="flex items-start justify-between gap-2">
     <h3 class="text-sm font-medium">{title} {@render subtitle?.()}</h3>
     <div class="-mt-1 -mr-1 flex shrink-0 items-center">
       {#if modified}
         <button
           type="button"
-          class="text-ink-muted hover:bg-surface hover:text-ink focus-visible:outline-brand-600 inline-flex size-6 items-center justify-center rounded-full focus-visible:outline-2"
+          class="inline-flex size-6 items-center justify-center rounded-full text-ink-muted hover:bg-surface hover:text-ink focus-visible:outline-2 focus-visible:outline-brand-600"
           aria-label="Reset {title} chart"
           title="Reset chart"
           onclick={() => chart?.reset()}
@@ -82,7 +82,7 @@
   {@render controls?.()}
   <button
     type="button"
-    class="text-brand-600 mt-auto self-end pt-1 text-xs hover:underline"
+    class="mt-auto self-end pt-1 text-xs text-brand-600 hover:underline"
     aria-haspopup="dialog"
     onclick={() => (open = true)}
   >

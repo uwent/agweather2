@@ -32,8 +32,8 @@
 
 <Popover.Root bind:open onOpenChange={opened}>
   <Popover.Trigger
-    class="border-line bg-surface-raised text-ink hover:border-frame focus-visible:outline-brand-600 inline-flex items-center gap-1.5 rounded-md border px-2.5
-      py-1 text-sm focus-visible:outline-2 {className}"
+    class="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface-raised px-2.5 py-1 text-sm text-ink
+      hover:border-frame focus-visible:outline-2 focus-visible:outline-brand-600 {className}"
   >
     <svg
       viewBox="0 0 24 24"
@@ -62,11 +62,11 @@
         field?.focus()
         field?.select()
       }}
-      class="border-line bg-surface-raised text-ink z-50 w-80 max-w-[calc(100vw-2rem)] rounded-md border p-3 text-sm
+      class="z-50 w-80 max-w-[calc(100vw-2rem)] rounded-md border border-line bg-surface-raised p-3 text-sm text-ink
         shadow-lg"
     >
       <label id="share-{uid}" for="share-link-{uid}" class="block font-semibold">Link to this view</label>
-      <p class="text-ink-muted mt-1 text-xs">Anyone with this link sees the page with your current settings.</p>
+      <p class="mt-1 text-xs text-ink-muted">Anyone with this link sees the page with your current settings.</p>
       <div class="mt-2 flex gap-2">
         <input
           bind:this={field}
@@ -74,19 +74,19 @@
           type="text"
           readonly
           value={link}
-          class="border-line bg-surface text-ink min-w-0 flex-1 rounded-md border px-2 py-1 text-xs"
+          class="min-w-0 flex-1 rounded-md border border-line bg-surface px-2 py-1 text-xs text-ink"
           onfocus={(event) => event.currentTarget.select()}
         />
         <button
           type="button"
-          class="bg-brand-600 text-surface hover:bg-brand-700 focus-visible:outline-brand-600 rounded-md px-3 py-1 text-sm
-            font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
+          class="rounded-md bg-brand-600 px-3 py-1 text-sm font-semibold text-surface hover:bg-brand-700
+            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
           onclick={copy}
         >
           Copy
         </button>
       </div>
-      <p class="text-ink-muted mt-2 text-xs" role="status">{status}</p>
+      <p class="mt-2 text-xs text-ink-muted" role="status">{status}</p>
     </Popover.Content>
   </Popover.Portal>
 </Popover.Root>

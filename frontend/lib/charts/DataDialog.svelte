@@ -65,7 +65,7 @@
       <button type="button" class={action} aria-label="Copy to clipboard: {name}" onclick={copy}>
         Copy to clipboard
       </button>
-      <span class="text-ink-muted text-xs" role="status">
+      <span class="text-xs text-ink-muted" role="status">
         {copied === 'yes'
           ? 'Copied: paste it into a spreadsheet.'
           : copied === 'failed'
@@ -77,22 +77,22 @@
       <!-- Focusable so keyboard users can scroll it (WCAG 2.1.1) -->
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
       <div
-        class="border-line max-h-[60dvh] overflow-auto rounded-sm border text-xs"
+        class="max-h-[60dvh] overflow-auto rounded-sm border border-line text-xs"
         tabindex="0"
         role="region"
         aria-label="{label} by day"
       >
         <table class="w-full tabular-nums">
           <caption class="sr-only">{label} by day, newest first</caption>
-          <thead class="bg-surface-raised text-ink-muted sticky top-0 z-10">
+          <thead class="sticky top-0 z-10 bg-surface-raised text-ink-muted">
             <tr class="text-right">
-              <th scope="col" class="bg-surface-raised sticky left-0 px-2 py-1 text-left font-medium">Date</th>
+              <th scope="col" class="sticky left-0 bg-surface-raised px-2 py-1 text-left font-medium">Date</th>
               {#each rows.columns as column (column)}
                 <th scope="col" class="px-2 py-1 font-medium">{column}</th>
               {/each}
             </tr>
           </thead>
-          <tbody class="divide-line divide-y">
+          <tbody class="divide-y divide-line">
             {#each rows.rows as row (row.date)}
               <tr class="text-right {row.forecast ? 'bg-surface text-ink-muted' : ''}">
                 <th

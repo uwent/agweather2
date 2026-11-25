@@ -7,14 +7,14 @@
 </script>
 
 <div
-  class="border-line bg-surface-raised flex overflow-hidden rounded-md border text-xs shadow-sm"
+  class="flex overflow-hidden rounded-md border border-line bg-surface-raised text-xs shadow-sm"
   role="group"
   aria-label="Basemap"
 >
   {#each BASEMAPS as { key, name } (key)}
     <button
       type="button"
-      class="px-2.5 py-1.5 {value === key ? 'bg-brand-600 dark:text-surface text-white' : 'hover:bg-surface'}"
+      class="px-2.5 py-1.5 {value === key ? 'bg-brand-600 text-white dark:text-surface' : 'hover:bg-surface'}"
       aria-pressed={value === key}
       onclick={() => value !== key && onchange(key)}
     >

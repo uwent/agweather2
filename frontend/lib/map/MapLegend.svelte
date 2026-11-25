@@ -23,8 +23,8 @@
 
 {#if shown.length}
   <div
-    class="bg-surface-raised/90 text-ink ring-line pointer-events-none absolute bottom-2 left-2
-      max-w-[calc(100%-4rem)] space-y-0.5 rounded-md px-2 py-1 text-xs shadow-md ring-1"
+    class="pointer-events-none absolute bottom-2 left-2 max-w-[calc(100%-4rem)] space-y-0.5 rounded-md
+      bg-surface-raised/90 px-2 py-1 text-xs text-ink shadow-md ring-1 ring-line"
   >
     {#each shown as row, index (index)}
       <p class="flex flex-wrap gap-x-3">

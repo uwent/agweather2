@@ -3,7 +3,7 @@
 </script>
 
 <!-- University branding above every page, with the light/dark toggle -->
-<div class="bg-uw-red dark:bg-uw-red-dark text-white">
+<div class="bg-uw-red text-white dark:bg-uw-red-dark">
   <div
     class="mx-auto flex h-9 max-w-6xl items-center justify-between px-4 text-xs font-medium tracking-wide sm:text-sm"
   >

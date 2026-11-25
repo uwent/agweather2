@@ -19,15 +19,15 @@
 
 {#snippet details(overlay: Overlay)}
   {@const status = overlays.status[overlay.id]}
-  <div class="border-line mt-2 space-y-2 border-l-2 pl-3">
+  <div class="mt-2 space-y-2 border-l-2 border-line pl-3">
     {#if status === 'unavailable'}
-      <p class="text-danger text-xs">
+      <p class="text-xs text-danger">
         This layer isn't loading right now. Switch it off and on to try again, or check back later.
       </p>
     {/if}
     {#if overlays.times[overlay.id]}<p class="text-xs font-medium">{overlays.times[overlay.id]}</p>{/if}
     <OverlayLegend legend={overlay.legend} {units} />
-    <p class="text-ink-muted text-xs">{overlay.description}</p>
+    <p class="text-xs text-ink-muted">{overlay.description}</p>
     <label class="flex items-center gap-2 text-xs">
       <span class="text-ink-muted">Opacity</span>
       <input
@@ -58,8 +58,8 @@
 {/snippet}
 
 <fieldset class="space-y-1">
-  <legend class="text-ink-muted mb-1 text-xs font-medium tracking-wide uppercase">Data overlays</legend>
-  <p class="text-ink-muted mb-1.5 text-xs">
+  <legend class="mb-1 text-xs font-medium tracking-wide text-ink-muted uppercase">Data overlays</legend>
+  <p class="mb-1.5 text-xs text-ink-muted">
     Point at the map, or tap it, to see the overlay's value there. Overlays come straight from public services, not from
     AgWeather, and can be slow or unavailable at times.
   </p>

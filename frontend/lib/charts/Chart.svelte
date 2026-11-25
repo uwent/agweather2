@@ -17,8 +17,6 @@
   // modified (every chart in it would offer a reset); zoomed says whether the group is zoomed, and
   // reset() puts the whole group back. inView: the days in view once zoomed (indexes into the x
   // axis), undefined while it shows the days it opened on.
-  // eslint-plugin-svelte 3.23 reads the bindable props' defaults as useless assignments (WISP's 3.24 doesn't)
-  /* eslint-disable no-useless-assignment */
   let {
     build,
     height = '18rem',
@@ -36,7 +34,6 @@
     inView?: ChartView
     group?: string
   } = $props()
-  /* eslint-enable no-useless-assignment */
 
   let element: HTMLDivElement
   let chart: ECharts | undefined = $state()

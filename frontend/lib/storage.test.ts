@@ -1,4 +1,4 @@
-// WISP 3: app/frontend/lib/storage.test.ts (copied)
+// Ported from WISP 3: app/frontend/lib/storage.test.ts
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { readStored, writeStored } from './storage'

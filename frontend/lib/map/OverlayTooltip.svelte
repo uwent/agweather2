@@ -35,7 +35,7 @@
 </script>
 
 <div
-  class="border-line bg-surface-raised pointer-events-none absolute z-30 max-w-64 rounded-md border px-2.5 py-1.5 text-xs
+  class="pointer-events-none absolute z-30 max-w-64 rounded-md border border-line bg-surface-raised px-2.5 py-1.5 text-xs
     shadow-lg"
   style:left="{left}px"
   style:top="{top}px"
@@ -49,8 +49,8 @@
       {@const shown = describe(item.value, item.none)}
       <div>
         <dt class="text-ink-muted">{item.name}</dt>
-        <dd class="flex items-center gap-1.5 font-medium {shown.muted ? 'text-ink-muted font-normal' : ''}">
-          {#if shown.color}<span class="border-line size-2.5 shrink-0 rounded-sm border" style:background={shown.color}
+        <dd class="flex items-center gap-1.5 font-medium {shown.muted ? 'font-normal text-ink-muted' : ''}">
+          {#if shown.color}<span class="size-2.5 shrink-0 rounded-sm border border-line" style:background={shown.color}
             ></span>{/if}{shown.text}
         </dd>
       </div>

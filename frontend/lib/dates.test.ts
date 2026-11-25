@@ -1,12 +1,15 @@
+// Ported from WISP 3 (adapted): app/frontend/lib/dates.test.ts
 import { describe, expect, it } from 'vitest'
 
-import { addDays, daysBetween, formatDate, relativeDay } from './dates'
+import { addDays, daysBetween, formatDate, localDate, relativeDay } from './dates'
 
 describe('dates', () => {
   it('adds days across months and leap days, as calendar dates', () => {
     expect(addDays('2026-06-30', 1)).toBe('2026-07-01')
+    expect(addDays('2026-02-28', 1)).toBe('2026-03-01')
     expect(addDays('2028-02-28', 1)).toBe('2028-02-29')
     expect(addDays('2026-03-08', 1)).toBe('2026-03-09') // daylight saving starts in the US
+    expect(addDays('2026-03-08', -1)).toBe('2026-03-07')
     expect(addDays('2026-01-01', -1)).toBe('2025-12-31')
   })
 
@@ -28,5 +31,13 @@ describe('dates', () => {
     expect(relativeDay('2026-07-07', '2026-07-10')).toBe('3 days ago')
     expect(relativeDay('2026-07-11', '2026-07-10')).toBe('tomorrow')
     expect(relativeDay('2026-07-13', '2026-07-10')).toBe('in 3 days')
+  })
+})
+
+describe('localDate', () => {
+  it("gives the browser's calendar date, not UTC's", () => {
+    // 9 pm local on Jul 10 is Jul 11 in UTC west of Greenwich; the date shown is the local one
+    expect(localDate(new Date(2026, 6, 10, 21, 30))).toBe('2026-07-10')
+    expect(localDate(new Date(2026, 0, 5))).toBe('2026-01-05')
   })
 })

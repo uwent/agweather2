@@ -13,8 +13,8 @@
 
 {#if label && anchor}
   <div
-    class="bg-surface-raised text-ink ring-line pointer-events-none absolute z-10 w-max max-w-80 space-y-0.5 rounded-md px-2
-      py-1 text-xs shadow-md ring-1 {label.flip ? '-translate-x-full' : ''}"
+    class="pointer-events-none absolute z-10 w-max max-w-80 space-y-0.5 rounded-md bg-surface-raised px-2 py-1 text-xs
+      text-ink shadow-md ring-1 ring-line {label.flip ? '-translate-x-full' : ''}"
     style:left="{anchor.x}px"
     style:top="{anchor.y + 2}px"
     aria-hidden="true"

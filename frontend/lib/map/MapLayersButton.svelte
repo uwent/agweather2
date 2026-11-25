@@ -37,8 +37,8 @@
   <div class="relative">
     <button
       type="button"
-      class="border-line bg-surface-raised hover:bg-surface flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs
-      shadow-sm {open ? 'ring-brand-500 ring-2' : ''}"
+      class="flex items-center gap-1.5 rounded-md border border-line bg-surface-raised px-2.5 py-1.5 text-xs shadow-sm
+      hover:bg-surface {open ? 'ring-2 ring-brand-500' : ''}"
       bind:this={button}
       aria-expanded={open}
       aria-controls={id}
@@ -55,14 +55,14 @@
       >
         <path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" />
       </svg>
-      Layers{#if count}<span class="bg-brand-600 dark:text-surface rounded-full px-1.5 text-white">{count}</span>{/if}
+      Layers{#if count}<span class="rounded-full bg-brand-600 px-1.5 text-white dark:text-surface">{count}</span>{/if}
     </button>
     {#if open}
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions (Escape from any control inside) -->
       <div
         {id}
-        class="border-line bg-surface-raised absolute top-full left-0 z-20 mt-1 max-h-[min(70vh,32rem)] w-72 space-y-4 overflow-y-auto
-        rounded-md border p-3 text-sm shadow-lg"
+        class="absolute top-full left-0 z-20 mt-1 max-h-[min(70vh,32rem)] w-72 space-y-4 overflow-y-auto rounded-md border
+        border-line bg-surface-raised p-3 text-sm shadow-lg"
         role="group"
         aria-label="Map layers"
         onkeydown={(event) => {
@@ -75,7 +75,7 @@
           <h2 class="font-medium">Map layers</h2>
           <button
             type="button"
-            class="text-ink-muted hover:text-ink rounded-sm px-1.5 text-lg leading-none"
+            class="rounded-sm px-1.5 text-lg leading-none text-ink-muted hover:text-ink"
             aria-label="Close map layers"
             onclick={close}
           >
@@ -85,7 +85,7 @@
         {@render children?.()}
         {#if basemap === 'imagery'}
           <fieldset>
-            <legend class="text-ink-muted mb-1 text-xs font-medium tracking-wide uppercase">Basemap</legend>
+            <legend class="mb-1 text-xs font-medium tracking-wide text-ink-muted uppercase">Basemap</legend>
             <label class="flex items-start gap-2">
               <input
                 type="checkbox"
@@ -95,7 +95,7 @@
               />
               <span>
                 Roads and place names
-                <span class="text-ink-muted block text-xs">Over the satellite imagery, from OpenStreetMap</span>
+                <span class="block text-xs text-ink-muted">Over the satellite imagery, from OpenStreetMap</span>
               </span>
             </label>
           </fieldset>

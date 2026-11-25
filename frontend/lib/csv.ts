@@ -1,16 +1,14 @@
-// WISP 3: app/frontend/lib/csv.ts (copied)
-// CSV files built in the browser (a weather chart's data). They open with frontmatter as the
-// server's exports do (CsvExport): a title line, "Label: value" lines, then a blank line before the
-// data. Values are as stored, like those exports.
+// Ported from WISP 3 (adapted): app/frontend/lib/csv.ts
+// CSV files built in the browser (a chart's data). They open with frontmatter: a title line,
+// "Label: value" lines, then a blank line before the data. Values are as shown on the page.
 
 export type CsvValue = string | number | null | undefined
 
-export const SOURCE =
-  'WISP, the Wisconsin Irrigation Scheduling Program (University of Wisconsin–Madison); weather modeled by Open-Meteo'
+export const SOURCE = 'AgWeather, University of Wisconsin–Madison'
 
 /**
  * Text a spreadsheet would read as a formula (=, +, -, @, or a leading tab or return) gets a quote;
- * numbers written as text ("-4.5") don't, as they can't run anything. Same rule as CsvExport#text.
+ * numbers written as text ("-4.5") don't, as they can't run anything. Same rule as WISP 3's CsvExport#text.
  */
 const escaped = (value: string) => (/^[=+\-@\t\r]/.test(value) && !/^-?\d+(\.\d+)?$/.test(value) ? `'${value}` : value)
 
@@ -24,7 +22,7 @@ export function toCsv(rows: CsvValue[][]): string {
   return rows.map((row) => row.map(cell).join(',')).join('\r\n') + '\r\n'
 }
 
-/** "2026-07-10 14:30" in the browser's time zone, as the server writes "Exported" */
+/** "2026-07-10 14:30" in the browser's time zone, for an "Exported" line */
 export function exportedAt(now = new Date()): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`

@@ -236,7 +236,7 @@
 
 <section class="space-y-4">
   <h1 class="text-2xl font-semibold">Map and chart demo</h1>
-  <p class="text-ink-muted max-w-prose text-sm">
+  <p class="max-w-prose text-sm text-ink-muted">
     A development page for reviewing the map and chart parts ported from WISP 3. The orange box stands in for a data
     layer: the basemap's borders and place names should draw above it.
   </p>
@@ -244,7 +244,7 @@
   <div
     bind:this={wrapper}
     bind:clientWidth={mapWidth}
-    class="border-line bg-surface relative h-[28rem] w-full overflow-hidden rounded-lg border sm:h-[32rem]"
+    class="relative h-112 w-full overflow-hidden rounded-lg border border-line bg-surface sm:h-128"
   >
     <div bind:this={container} class="size-full" role="application" aria-label="Demo map of the coverage"></div>
     <div class="pointer-events-none absolute top-2 left-2 flex w-[calc(100%-4rem)] flex-col gap-2">
@@ -264,7 +264,7 @@
     {/if}
     {#if overlays.notice}
       <div
-        class="border-line bg-surface-raised absolute right-2 bottom-8 left-2 flex items-start gap-2 rounded-md border p-2 text-sm shadow-lg sm:left-auto sm:max-w-sm"
+        class="absolute inset-x-2 bottom-8 flex items-start gap-2 rounded-md border border-line bg-surface-raised p-2 text-sm shadow-lg sm:left-auto sm:max-w-sm"
         role="status"
       >
         <p class="flex-1">{overlays.notice}</p>
@@ -272,8 +272,10 @@
           type="button"
           class="text-ink-muted hover:text-ink"
           aria-label="Dismiss"
-          onclick={() => overlays.dismiss()}>✕</button
+          onclick={() => overlays.dismiss()}
         >
+          ✕
+        </button>
       </div>
     {/if}
   </div>

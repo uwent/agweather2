@@ -1,5 +1,22 @@
+// Ported from WISP 3 (adapted): app/frontend/lib/dates.ts
+import { page } from '@inertiajs/svelte'
+
 // Dates arrive from Django as ISO strings ("2026-07-01"). They are calendar dates, not instants, so
 // they're handled as UTC midnights to avoid shifting a day in the browser's time zone.
+
+// Today on the grid (the shared `today` prop: midnight to midnight CST all year, D74), so every page agrees
+// with the archive on what today is wherever the browser is; the browser's own date outside a page
+export function today(): string {
+  return page?.props?.today ?? localDate(new Date())
+}
+
+// The calendar date where the browser is (isoDate gives UTC's, a day ahead in the evening here)
+export function localDate(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+export const currentYear = (): number => Number(today().slice(0, 4))
 
 export function parseDate(iso: string): Date {
   const [year, month, day] = iso.slice(0, 10).split('-').map(Number)

@@ -3,6 +3,8 @@
 // input edge. It mirrors packages/agdata/src/agdata/units.py, and both are tested against
 // packages/agdata/tests/fixtures/units_cases.json so they can't drift.
 
+import { unitSystem } from './unitSystem.svelte'
+
 export type UnitSystem = 'metric' | 'imperial'
 
 type Unit = {
@@ -125,6 +127,10 @@ export type Units = {
   label: (stored: string) => string
   /** The stored value in display units (unrounded), or null */
   toDisplay: (stored: string, value: number | null | undefined) => number | null
+  /** A display-unit value back to the stored unit */
+  toStored: (stored: string, shown: number) => number
+  /** The decimal places a value stored in `stored` is shown to (inches 2, millimeters 1): a box's precision */
+  digits: (stored: string) => number
   /** "72 °F", or "72" with unit: false; "—" for missing values */
   format: (stored: string, value: number | null | undefined, options?: { digits?: number; unit?: boolean }) => string
   /** A display value for an input box: rounded, no unit, '' for null */
@@ -142,6 +148,8 @@ export function units(system: UnitSystem = 'imperial'): Units {
     system,
     label: (stored) => shown(stored).label,
     toDisplay,
+    toStored: (stored, value) => convert(value, displayUnit(stored, system), stored) as number,
+    digits: (stored) => shown(stored).digits,
     format(stored, value, { digits, unit: withUnit = true } = {}) {
       const display = toDisplay(stored, value)
       if (display === null) return MISSING
@@ -158,6 +166,13 @@ export function units(system: UnitSystem = 'imperial'): Units {
       return { ok: true, value: convert(parsed.value, displayUnit(stored, system), stored) }
     },
   }
+}
+
+/** The reader's units (US unless they chose metric in Settings, in this browser). It reads a reactive
+ * preference, so a component keeps it current with $derived: `const units = $derived(currentUnits())`
+ * (WISP 3's currentUnits, which reads the signed-in user's setting) */
+export function currentUnits(): Units {
+  return units(unitSystem())
 }
 
 /** A plain number typed by the user: blank is null */

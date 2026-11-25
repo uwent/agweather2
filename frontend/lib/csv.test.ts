@@ -1,4 +1,4 @@
-// WISP 3: app/frontend/lib/csv.test.ts (copied)
+// Ported from WISP 3 (adapted): app/frontend/lib/csv.test.ts
 import { describe, expect, it } from 'vitest'
 
 import { exportedAt, frontmatter, toCsv } from './csv'
@@ -14,15 +14,15 @@ describe('CSV files', () => {
   })
 
   it('opens with a title, the details that have a value, and a blank line', () => {
-    expect(frontmatter('WISP weather', { System: 'North', Operation: null, Units: 'in' })).toEqual([
-      ['WISP weather'],
-      ['System: North'],
+    expect(frontmatter('AgWeather data', { Site: 'Hancock', Group: null, Units: 'in' })).toEqual([
+      ['AgWeather data'],
+      ['Site: Hancock'],
       ['Units: in'],
       [],
     ])
   })
 
-  it('writes times as the server does', () => {
+  it("writes the time in the browser's zone", () => {
     expect(exportedAt(new Date(2026, 6, 10, 9, 5))).toBe('2026-07-10 09:05')
   })
 })

@@ -65,12 +65,12 @@
 <div>
   {#if places}
     <ul
-      class="border-line bg-surface-raised mb-1 overflow-hidden rounded-md border text-sm shadow-lg"
+      class="mb-1 overflow-hidden rounded-md border border-line bg-surface-raised text-sm shadow-lg"
       aria-label="Places found"
     >
       {#each places as place (place.label)}
         <li>
-          <button type="button" class="hover:bg-brand-50 block w-full px-3 py-2 text-left" onclick={() => goTo(place)}>
+          <button type="button" class="block w-full px-3 py-2 text-left hover:bg-brand-50" onclick={() => goTo(place)}>
             {place.label}
           </button>
         </li>
@@ -78,12 +78,12 @@
     </ul>
   {/if}
   {#if searchError}
-    <p class="bg-surface-raised text-danger mb-1 rounded-md px-3 py-1.5 text-xs shadow-sm">
+    <p class="mb-1 rounded-md bg-surface-raised px-3 py-1.5 text-xs text-danger shadow-sm">
       {searchError}
     </p>
   {/if}
   <!-- 90% opaque: the most see-through that keeps the placeholder and "Go" at 4.5:1 over any imagery -->
-  <div class="border-line bg-surface-raised/90 flex overflow-hidden rounded-md border shadow-sm backdrop-blur-sm">
+  <div class="flex overflow-hidden rounded-md border border-line bg-surface-raised/90 shadow-sm backdrop-blur-sm">
     <input
       type="search"
       bind:value={query}
@@ -94,7 +94,7 @@
     />
     <button
       type="button"
-      class="text-ink hover:bg-brand-50 px-3 text-sm font-medium disabled:opacity-60"
+      class="px-3 text-sm font-medium text-ink hover:bg-brand-50 disabled:opacity-60"
       onclick={search}
       disabled={searching}
     >
