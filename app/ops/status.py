@@ -29,6 +29,7 @@ from ops.health import failures_since, ingest_health
 from ops.ifs import last_read
 from ops.locks import parse_holder, waiting
 from ops.openmeteo_usage import PeriodUsage, period_usage, short_line, warnings_for
+from ops.verification import verification_health
 
 STALLED_AFTER_S = 60  # a running job whose worker hasn't sent a heartbeat this long was left by a stopped worker
 
@@ -68,11 +69,12 @@ def snapshot(data_dir: Path, now: datetime) -> Status:
     forecast, forecast_problems = forecast_health(data_dir, now)
     run, _seam = last_read(data_dir)
     usage = period_usage(now)
+    _scores, verification_problems = verification_health(data_dir, now)  # as /up has them (D113)
     return Status(
         now=now,
         ingest=ingest,
         forecast=forecast,
-        problems=problems + forecast_problems + warnings_for(usage),
+        problems=problems + forecast_problems + verification_problems + warnings_for(usage),
         daily_through=daily_through(data_dir, now.year),
         era5land_through=last_hour_from(data_dir, now.year, SOIL[0], "era5land"),
         ifs_run=run,
