@@ -1,4 +1,4 @@
-"""ECMWF IFS HRES soil temperature and snow depth on the grid, from Open-Meteo's open data (D52, Q22, D53).
+"""ECMWF IFS HRES soil temperature, soil moisture and snow depth on the grid, from Open-Meteo's open data (D52, Q22, D53).
 
 Open-Meteo keeps IFS on its native O1280 grid (~9 km) at `s3://openmeteo/data/ecmwf_ifs/<variable>/chunk_<k>.om`:
 each file is (1, 6 599 680 cells, 504 hours), chunk k starting k × 504 hours after 1970-01-01 00Z, values at each
@@ -36,7 +36,7 @@ import zarr
 from agdata import soil_seam
 from agdata.coast import KERNEL_OFFSETS, Weights, bspline, finish, land_only
 from agdata.grid import NDFD, Window
-from agdata.ingest import SOIL
+from agdata.ingest import SOIL, SOIL_MOISTURE
 from agdata.sources import era5land
 from agdata.sources.openmeteo import RINGS, SOIL_LAYERS, _ring_latitude, soil_at_depths
 
@@ -46,7 +46,7 @@ BUCKET = "openmeteo/data/ecmwf_ifs"
 CHUNK_HOURS = 504
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 HOUR = timedelta(hours=1)
-VARIABLES = (*SOIL_LAYERS, "snow_depth")
+VARIABLES = (*SOIL_LAYERS, "snow_depth", *SOIL_MOISTURE)  # the bucket's moisture layers are named as the catalog's
 LONG_RUN_HOURS = 240  # 00Z and 12Z
 SHORT_RUN_HOURS = 144  # 06Z and 18Z
 READ_ATTEMPTS = 4  # a chunk's file being replaced mid-read is retried this many times in all
@@ -179,12 +179,14 @@ class Read:
     raw: dict[str, np.ndarray]  # variable → (points, hours)
 
     def hours(self, start: int = 0, stop: int | None = None) -> era5land.Hours:
-        """Hours start..stop-1 on the window: the catalog's soil depths (°C) and `snow_depth` (cm)."""
+        """Hours start..stop-1 on the window: the catalog's soil depths (°C), `snow_depth` (cm) and soil moisture
+        layers (m³/m³)."""
         stop = len(self.times) if stop is None else stop
         on_window = {name: self.weights.apply(values[:, start:stop], self.needed) for name, values in self.raw.items()}
         layers = {name: on_window[name] for name in SOIL_LAYERS}
         out = {name: value for name, (value, _) in soil_at_depths(layers).items()}
         out["snow_depth"] = era5land.no_negative_snow(on_window["snow_depth"]) * 100  # m → cm
+        out |= {name: on_window[name] for name in SOIL_MOISTURE if name in on_window}
         return era5land.Hours(times=self.times[start:stop], values=out)
 
 
@@ -369,6 +371,8 @@ def latest_at(path: Path, times: list[datetime], window: Window) -> dict[str, np
         return out
     lo, hi = int(index[inside].min()), int(index[inside].max()) + 1
     for name in SOIL:
+        if name not in group:
+            continue  # a read kept before the variable was read (soil moisture): missing until the next run
         block = np.asarray(group[name][lo:hi])  # type: ignore[index]
         if block.shape[1:] != window.shape:
             raise ValueError(f"{path} was read for another window")

@@ -2,8 +2,8 @@
 
 One call handles a block of consecutive hours in one year (a backfill does a month at a time; the hourly job a
 few hours). Each hour comes from URMA, or RTMA where URMA hasn't published it yet; precip from RTMA before URMA's
-hourly precip begins (D23); shortwave from HRRR; soil temperature and snow depth from the ERA5-Land and IFS
-jobs (D52), not here. Hours are range-checked and packed to int16
+hourly precip begins (D23); shortwave from HRRR; soil temperature, soil moisture and snow depth from the
+ERA5-Land and IFS jobs (D52), not here. Hours are range-checked and packed to int16
 as they arrive, so a month of the window fits in memory; spikes are removed per variable over the whole block,
 then RH, the corrected shortwave (D48) and ET0 are derived. Gaps stay gaps (D25): estimates belong to the
 running totals. Every variable records each hour's source.
@@ -41,8 +41,10 @@ HOUR = timedelta(hours=1)
 
 # Every variable of the hourly store, in catalog order
 HOURLY_VARIABLES: list[Variable] = list(VARIABLES.values())
-# Soil temperature and snow depth: written by the ERA5-Land and IFS jobs (D52), never by the hourly ingest
-SOIL = ("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm", "snow_depth")
+# Soil temperature, snow depth and soil moisture: written by the ERA5-Land and IFS jobs (D52), never by the hourly
+# ingest. The first is the one whose sources mark ERA5-Land's last hour (the seam, `era5land_through`).
+SOIL_MOISTURE = ("soil_moisture_0_to_7cm", "soil_moisture_7_to_28cm", "soil_moisture_28_to_100cm")
+SOIL = ("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm", "snow_depth", *SOIL_MOISTURE)
 SEPARATE = SOIL
 
 
@@ -279,7 +281,9 @@ def _keep_stored(
 
 def write_soil(store: GridStore, hours: "era5land.Hours", source: str) -> int:
     """Writes soil and snow hours (D52) that fall in the store's year, with `source`: `era5land` replaces anything,
-    `ifs` (provisional) anything but ERA5-Land's hours. The hours must be consecutive. Returns the hours written."""
+    `ifs` (provisional) anything but ERA5-Land's hours, variable by variable. Variables the hours don't carry (soil
+    moisture from a file downloaded before it was asked for) are left as they are. The hours must be consecutive.
+    Returns the hours written."""
     inside = [n for n, t in enumerate(hours.times) if t.year == store.year]
     if not inside:
         return 0
@@ -288,21 +292,23 @@ def write_soil(store: GridStore, hours: "era5land.Hours", source: str) -> int:
         raise ValueError("soil hours must be consecutive")
     start = hours.times[first]
     t0 = store.index_of(start)
-    keep = np.zeros(last - first, dtype=bool)
-    if source != "era5land":
-        keep = np.array([s == "era5land" for s in store.sources(SOIL[0], t0, t0 + last - first)])
-    for name in SOIL:
-        cleaned, _ = check_range(store.variables[name], hours.values[name][first:last])
+    written = 0
+    for name in (n for n in SOIL if n in hours.values):
         stored_sources = store.sources(name, t0, t0 + last - first)
+        keep = np.zeros(last - first, dtype=bool)
+        if source != "era5land":
+            keep = np.array([s == "era5land" for s in stored_sources])
+        written = max(written, int((~keep).sum()))
+        cleaned, _ = check_range(store.variables[name], hours.values[name][first:last])
         if keep.any():
             cleaned = np.where(keep[:, None, None], store.read_steps(name, t0, t0 + last - first), cleaned)
-        written = [
+        labels = [
             stored_sources[n] if keep[n] else (source if np.isfinite(cleaned[n]).any() else None)
             for n in range(last - first)
         ]
         store.write(start, {name: cleaned}, source=None)
-        store.set_sources(name, start, written)
-    return int((~keep).sum())
+        store.set_sources(name, start, labels)
+    return written
 
 
 def era5land_through(store: GridStore) -> datetime | None:

@@ -8,7 +8,7 @@ from ops.management.base import ReportingCommand, check_range, parse_day, positi
 
 
 class Command(ReportingCommand):
-    help = "Fill the archive's soil temperature and snow depth from ERA5-Land (D52) for a date range: a month per CDS request, several in flight, each written and rolled up as it arrives. Resumable: days whose every ERA5-Land variable is already in are skipped. Requests queue at the CDS for minutes to tens of minutes. Exits nonzero if any request failed (rerun to retry them). A first stop drops the requests not yet answered."
+    help = "Fill the archive's soil temperature, soil moisture and snow depth from ERA5-Land (D52) for a date range: a month per CDS request, several in flight, each written and rolled up as it arrives. Resumable: days whose every ERA5-Land variable is already in are skipped. Requests queue at the CDS for minutes to tens of minutes. Exits nonzero if any request failed (rerun to retry them). A first stop drops the requests not yet answered."
     stoppable = True
 
     def add_arguments(self, parser):
@@ -20,7 +20,7 @@ class Command(ReportingCommand):
         parser.add_argument(
             "--rederive",
             action="store_true",
-            help="derive the hourly soil and snow again from ERA5-Land as kept (D79), without downloading",
+            help="derive the hourly soil and snow again from ERA5-Land as kept (D79), without downloading (soil moisture only where it was downloaded)",
         )
         parser.add_argument(
             "--downloads",

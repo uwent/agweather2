@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import pytest
+import zarr
 
 from agdata import era5store
 from agdata.grid import LatLonGrid
@@ -39,3 +40,26 @@ def test_a_store_keeps_its_grid(tmp_path):
     with pytest.raises(ValueError, match="new store"):
         era5store.write(tmp_path, native(datetime(2025, 7, 2, tzinfo=UTC), 2, other))
     assert era5store.read(tmp_path, datetime(2024, 7, 1, tzinfo=UTC), datetime(2024, 7, 1, 1, tzinfo=UTC)) is None
+
+
+def with_moisture(hours: Native, water: float) -> Native:
+    shape = hours.values["stl1"].shape
+    moisture = {name: np.full(shape, water, dtype=np.float32) for name in ("swvl1", "swvl2", "swvl3")}
+    return Native(times=hours.times, grid=hours.grid, values=hours.values | moisture)
+
+
+def test_a_store_from_before_soil_moisture_gains_it_and_a_file_without_it_leaves_it_alone(tmp_path):
+    first = datetime(2025, 7, 1, tzinfo=UTC)
+    era5store.write(tmp_path, native(first, 4))
+    group = zarr.open_group(era5store.path(tmp_path, 2025), mode="r+")
+    for name in ("swvl1", "swvl2", "swvl3"):
+        del group[name]  # as a store made before soil moisture was asked for
+    old = era5store.read(tmp_path, first, first + 3 * HOUR)
+    assert old is not None and set(old.values) == {"stl1", "stl2", "stl3", "sde"}
+
+    era5store.write(tmp_path, with_moisture(native(first, 2), 0.31))  # a month downloaded again
+    era5store.write(tmp_path, native(first, 4))  # an older file written over it: no soil moisture in it
+    back = era5store.read(tmp_path, first, first + 3 * HOUR)
+    assert back is not None
+    np.testing.assert_allclose(back.values["swvl2"][:, 0, 0], [0.31, 0.31, np.nan, np.nan])
+    assert zarr.open_group(era5store.path(tmp_path, 2025), mode="r")["swvl1"].attrs["units"] == "m3 m-3"

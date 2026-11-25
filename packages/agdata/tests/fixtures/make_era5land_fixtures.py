@@ -3,8 +3,8 @@ COPERNICUS_API_KEY in the environment or .env).
 
 uv run python packages/agdata/tests/fixtures/make_era5land_fixtures.py
 
-- era5land_milwaukee.grib: 2025-12-16 (snow on the ground), every hour, soil levels 1-3 and snow depth over
-  `MILWAUKEE`, a window from the city out over Lake Michigan (so it has shore and open water)
+- era5land_milwaukee.grib: 2025-12-16 (snow on the ground), every hour, soil temperature and moisture levels 1-3
+  and snow depth over `MILWAUKEE`, a window from the city out over Lake Michigan (so it has shore and open water)
 - era5land_milwaukee_lsm.npz: ERA5-Land's land-sea mask cropped to the same request area
 """
 

@@ -1,11 +1,14 @@
-"""IFS's soil temperature shifted to meet ERA5-Land's at the seam (Q23, Phase 4 I).
+"""IFS's soil temperature and soil moisture shifted to meet ERA5-Land's at the seam (Q23, Phase 4 I; moisture since
+2026-11-24).
 
 The archive's soil is ERA5-Land's up to its last hour (~5 days behind), then IFS's: the provisional hours and the
 forecast. In winter IFS reads 1.6–2.7 °C below ERA5-Land at 10 cm (docs/validation/weather/soil.md), so without this the soil
 steps down at the seam. Each cell's IFS soil is shifted by the difference in ERA5-Land's last hour, times a weight
 that fades with the hours since it: how much of the difference at the seam is still there that much later, fitted on
 the archive (ERA5-Land) against Open-Meteo's IFS at 80 Wisconet stations (`scripts/compare_soil_wisconet.py
---fit-seam`). Snow depth isn't shifted.
+--fit-seam`). Soil moisture is shifted the same way, its weights fitted on Open-Meteo's ERA5-Land minus its IFS at the
+same stations (`scripts/compare_soil_moisture_wisconet.py --fit-seam`, docs/validation/weather/soil-moisture.md: IFS
+is 0.04–0.07 m³/m³ drier on average and the difference lasts for weeks), and never below 0. Snow depth isn't shifted.
 """
 
 import json
@@ -16,7 +19,9 @@ from pathlib import Path
 import numpy as np
 
 TABLE_PATH = Path(__file__).parent / "data" / "ifs_soil_seam.json"
-VARIABLES = ("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm")
+TEMPERATURE = ("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm")
+MOISTURE = ("soil_moisture_0_to_7cm", "soil_moisture_7_to_28cm", "soil_moisture_28_to_100cm")
+VARIABLES = (*TEMPERATURE, *MOISTURE)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -47,10 +52,12 @@ def weights(name: str, lead_hours: np.ndarray, seam: Table | None = None) -> np.
 def shift(
     values: np.ndarray, offset: np.ndarray, lead_hours: np.ndarray, name: str, seam: Table | None = None
 ) -> np.ndarray:
-    """IFS's hours (time, y, x) shifted by each cell's `offset` (ERA5-Land − IFS in the seam's hour, °C; NaN where
-    either was missing, which leaves the cell as it is) faded by the weight at each hour's lead."""
+    """IFS's hours (time, y, x) shifted by each cell's `offset` (ERA5-Land − IFS in the seam's hour, in the variable's
+    unit; NaN where either was missing, which leaves the cell as it is) faded by the weight at each hour's lead. Soil
+    moisture shifted below 0 is 0."""
     w = weights(name, lead_hours, seam).astype(np.float32)
-    return values + np.nan_to_num(offset, nan=0.0)[None, :, :] * w[:, None, None]
+    shifted = values + np.nan_to_num(offset, nan=0.0)[None, :, :] * w[:, None, None]
+    return np.maximum(shifted, 0.0) if name in MOISTURE else shifted
 
 
 def fit(difference: np.ndarray, lead_hours: np.ndarray, starts: np.ndarray | None = None) -> np.ndarray:

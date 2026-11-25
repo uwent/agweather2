@@ -52,6 +52,9 @@ _SUBJECTS = {
     "soil_temperature_10cm": "Soil temperature, 10 cm (3.9 in)",
     "soil_temperature_30cm": "Soil temperature, 30 cm (11.8 in)",
     "snow_depth": "Snow depth",
+    "soil_moisture_0_to_7cm": "Soil moisture, 0 to 7 cm (0 to 2.8 in)",
+    "soil_moisture_7_to_28cm": "Soil moisture, 7 to 28 cm (2.8 to 11 in)",
+    "soil_moisture_28_to_100cm": "Soil moisture, 28 to 100 cm (11 to 39 in)",
     "et0": "Reference evapotranspiration (ET0)",
     "water_balance": "Water balance (precipitation minus reference evapotranspiration)",
     "thi": "Temperature humidity index",
@@ -119,6 +122,7 @@ _FAMILY_SOURCES = (
     ("soil_temperature", "Soil temperature from ERA5-Land, with ECMWF IFS for the latest days"),
     ("hours_soil", "Soil temperature from ERA5-Land, with ECMWF IFS for the latest days"),
     ("snow_depth", "Snow depth from ERA5-Land, with ECMWF IFS for the latest days"),
+    ("soil_moisture", "Soil moisture from ERA5-Land, with ECMWF IFS for the latest days"),
     (
         "et0",
         "Reference evapotranspiration (FAO-56) computed from air temperature, humidity and wind from URMA/RTMA and solar radiation from HRRR",

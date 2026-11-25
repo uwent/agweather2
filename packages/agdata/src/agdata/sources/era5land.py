@@ -1,10 +1,15 @@
-"""ERA5-Land from the Copernicus Climate Data Store: soil temperature and snow depth for the archive (D52).
+"""ERA5-Land from the Copernicus Climate Data Store: soil temperature, soil moisture and snow depth for the archive
+(D52).
 
 ECMWF's land reanalysis on a 0.1° latitude/longitude grid, hourly, about 5 days behind real time. Its soil layers
 are 0–7, 7–28 and 28–100 cm (`soil_temperature_level_1` … `_3`, GRIB `stl1` … `stl3`, K), taken to the catalog's
 4, 10 and 30 cm as Open-Meteo's IFS layers are (`openmeteo.soil_at_depths`); snow depth is `snow_depth` (`sde`, m
 of snow, not water). Against 80 Wisconet stations it matched their soil best of HRRR, IFS and ERA5-Land
-(docs/validation/weather/soil.md).
+(docs/validation/weather/soil.md). Soil moisture is each layer's volumetric water (`volumetric_soil_water_layer_1`
+… `_3`, GRIB `swvl1` … `swvl3`, m³/m³), kept by layer (`soil_moisture_0_to_7cm` …): a layer's mean water is what the
+model computes, and against Wisconet's sensors interpolating between layers gained nothing
+(docs/validation/weather/soil-moisture.md). Files downloaded before moisture was asked for hold only `BASE`'s
+variables, and read as such.
 
 Checked 2026-10-31 (`reanalysis-era5-land`, GRIB, `download_format: unarchived`):
 - Soil comes as GRIB1 and snow depth as GRIB2, both `regular_ll` scanning north to south; snow depth's longitudes
@@ -42,12 +47,21 @@ LAYERS = {  # GRIB short name → Open-Meteo's layer name (the same layers as IF
     "stl2": "soil_temperature_7_to_28cm",
     "stl3": "soil_temperature_28_to_100cm",
 }
+MOISTURE = {  # GRIB short name → the catalog's variable (m³/m³ as received; Open-Meteo's IFS names them the same)
+    "swvl1": "soil_moisture_0_to_7cm",
+    "swvl2": "soil_moisture_7_to_28cm",
+    "swvl3": "soil_moisture_28_to_100cm",
+}
 REQUEST_VARIABLES = {
     "stl1": "soil_temperature_level_1",
     "stl2": "soil_temperature_level_2",
     "stl3": "soil_temperature_level_3",
     "sde": "snow_depth",
+    "swvl1": "volumetric_soil_water_layer_1",
+    "swvl2": "volumetric_soil_water_layer_2",
+    "swvl3": "volumetric_soil_water_layer_3",
 }
+BASE = ("stl1", "stl2", "stl3", "sde")  # in every file; soil moisture only in files asked for since 2026-11-24
 
 
 @dataclass(kw_only=True)
@@ -185,7 +199,7 @@ def read_land_mask(path: Path) -> LandMask:
 @dataclass(kw_only=True)
 class Native:
     """ERA5-Land as received: hours at `times` on its 0.1° grid (south to north), by GRIB short name (`stl1`..`stl3`
-    in K, `sde` in m), water included (D79)."""
+    in K, `sde` in m, `swvl1`..`swvl3` in m³/m³ when the file has them), water included (D79)."""
 
     times: list[datetime]
     grid: LatLonGrid
@@ -193,7 +207,8 @@ class Native:
 
 
 def read_native(path: Path) -> Native | None:
-    """A downloaded file's hours as received (None if it holds none)."""
+    """A downloaded file's hours as received (None if it holds none): every hour must have `BASE`'s variables, and
+    the others it has (soil moisture) every hour or none."""
     fields: dict[datetime, dict[str, np.ndarray]] = defaultdict(dict)
     grid: LatLonGrid | None = None
     with open(path, "rb") as f:
@@ -213,10 +228,11 @@ def read_native(path: Path) -> Native | None:
     times = sorted(fields)
     if grid is None:
         return None
-    missing = {when: set(REQUEST_VARIABLES) - set(fields[when]) for when in times if len(fields[when]) < 4}
+    present = [name for name in REQUEST_VARIABLES if name in BASE or any(name in fields[t] for t in times)]
+    missing = {when: set(present) - set(fields[when]) for when in times if len(fields[when]) < len(present)}
     if missing:
         raise ValueError(f"{path}: hours missing variables: {missing}")
-    values = {name: np.stack([fields[t][name] for t in times]).astype(np.float32) for name in REQUEST_VARIABLES}
+    values = {name: np.stack([fields[t][name] for t in times]).astype(np.float32) for name in present}
     return Native(times=times, grid=grid, values=values)
 
 
@@ -227,9 +243,9 @@ def read(path: Path, window: Window, land: LandMask) -> Hours:
 
 
 def derive(native: Native, window: Window, land: LandMask) -> Hours:
-    """ERA5-Land's hours on the window by the coast rule (`agdata.coast`, D79): the catalog's soil depths (°C) and
-    `snow_depth` (cm), each a cubic B-spline over ERA5-Land's land points only, the nearest within 40 km at the
-    coast, missing on water."""
+    """ERA5-Land's hours on the window by the coast rule (`agdata.coast`, D79): the catalog's soil depths (°C),
+    `snow_depth` (cm) and, when the hours have them, the soil moisture layers (m³/m³), each a cubic B-spline over
+    ERA5-Land's land points only, the nearest within 40 km at the coast, missing on water."""
     weights = coast_weights(native.grid, window, land)
     needed = weights.needed
     out: dict[str, np.ndarray] = {}
@@ -241,6 +257,9 @@ def derive(native: Native, window: Window, land: LandMask) -> Hours:
     for catalog_name, (value, _) in soil_at_depths(layers).items():
         out[catalog_name] = value
     out["snow_depth"] = no_negative_snow(on_window["sde"]) * 100  # m → cm
+    for name, catalog_name in MOISTURE.items():
+        if name in on_window:
+            out[catalog_name] = on_window[name]
     return Hours(times=list(native.times), values=out)
 
 

@@ -8,6 +8,7 @@ from agdata.grid import NDFD, Window
 from agdata.ingest import (
     HOURLY_VARIABLES,
     SOIL,
+    SOIL_MOISTURE,
     Hour,
     blocks,
     era5land_through,
@@ -231,6 +232,7 @@ def soil_hours(start: datetime, count: int, soil_c: float = 1.5) -> era5land.Hou
     shape = (count, *WINDOW.shape)
     values = {name: np.full(shape, soil_c) for name in SOIL}
     values["snow_depth"] = np.full(shape, 12.0)
+    values |= {name: np.full(shape, 0.3) for name in SOIL_MOISTURE}
     return era5land.Hours(times=[start + timedelta(hours=n) for n in range(count)], values=values)
 
 
@@ -257,6 +259,20 @@ def test_ifs_fills_in_but_never_over_era5land(tmp_path):
     write_soil(store, soil_hours(START + timedelta(hours=12), 12, soil_c=2.0), "era5land")
     assert store.sources("snow_depth")[t0 : t0 + 24] == ["era5land"] * 24
     assert era5land_through(store) == START + timedelta(hours=23)
+
+
+def test_hours_without_soil_moisture_leave_it_as_it_was(tmp_path):
+    # ERA5-Land derived again from a month kept before soil moisture was asked for
+    store = open_or_create_hourly(tmp_path, 2025, WINDOW)
+    write_soil(store, soil_hours(START, 6), "era5land")
+    older = soil_hours(START, 6, soil_c=3.0)
+    for name in SOIL_MOISTURE:
+        del older.values[name]
+    assert write_soil(store, older, "era5land") == 6
+    t0 = store.index_of(START)
+    np.testing.assert_allclose(store.read_point("soil_temperature_10cm", 901, 1401, t0, t0 + 6), 3.0)
+    np.testing.assert_allclose(store.read_point("soil_moisture_7_to_28cm", 901, 1401, t0, t0 + 6), 0.3)
+    assert store.sources("soil_moisture_0_to_7cm")[t0 : t0 + 6] == ["era5land"] * 6
 
 
 def test_soil_hours_outside_the_year_are_left_to_its_store(tmp_path):

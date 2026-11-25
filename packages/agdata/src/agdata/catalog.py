@@ -265,6 +265,23 @@ VARIABLES: dict[str, Variable] = {
                 "ifs": "snow_depth (agdata.sources.ifs): provisional days and the forecast",
             },
         ),
+        *(
+            Variable(
+                name=f"soil_moisture_{top}_to_{bottom}cm",
+                long_name=f"Soil moisture, {top} to {bottom} cm",
+                unit="m3_m3",
+                scale=0.001,
+                valid_min=0,
+                valid_max=1,
+                daily=("mean",),
+                notes=f"The volume of water in the soil from {top} to {bottom} cm, as a share of the soil's volume (0.30 is 30%), for the model's soil, not a field's. Includes frozen water.",
+                sources={
+                    "era5land": f"volumetric_soil_water_layer_{layer} (agdata.sources.era5land)",
+                    "ifs": f"IFS HRES soil_moisture_{top}_to_{bottom}cm (agdata.sources.ifs): provisional days and the forecast",
+                },
+            )
+            for layer, (top, bottom) in enumerate(((0, 7), (7, 28), (28, 100)), start=1)
+        ),
         Variable(
             name="et0",
             long_name="FAO-56 grass reference evapotranspiration in the hour",

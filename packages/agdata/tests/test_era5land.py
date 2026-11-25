@@ -26,7 +26,15 @@ def hours() -> era5land.Hours:
 def test_a_day_reads_as_24_hours_by_valid_time(hours):
     # Snow depth is stamped as the previous day's 00Z plus a step and soil as an analysis; both key on validity
     assert hours.times == [datetime(2025, 12, 16, h, tzinfo=UTC) for h in range(24)]
-    assert set(hours.values) == {"soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm", "snow_depth"}
+    assert set(hours.values) == {
+        "soil_temperature_4cm",
+        "soil_temperature_10cm",
+        "soil_temperature_30cm",
+        "snow_depth",
+        "soil_moisture_0_to_7cm",
+        "soil_moisture_7_to_28cm",
+        "soil_moisture_28_to_100cm",
+    }
     assert all(v.shape == (24, *MILWAUKEE.shape) for v in hours.values.values())
 
 
@@ -50,11 +58,36 @@ def test_our_water_is_missing_and_every_land_cell_has_a_value(hours):
 def test_a_file_reads_as_received_then_derives(hours):
     native = era5land.read_native(FIXTURES / "era5land_milwaukee.grib")
     assert native is not None and native.times == hours.times
-    assert set(native.values) == {"stl1", "stl2", "stl3", "sde"} and native.values["stl1"].dtype == np.float32
+    assert set(native.values) == set(era5land.REQUEST_VARIABLES) and native.values["stl1"].dtype == np.float32
     assert np.isfinite(native.values["stl1"]).all()  # water included, as received
     land = era5land.LandMask.load(FIXTURES / "era5land_milwaukee_lsm.npz")
     derived = era5land.derive(native, MILWAUKEE, land)
     np.testing.assert_array_equal(derived.values["snow_depth"], hours.values["snow_depth"])
+
+
+def test_soil_moisture_is_each_layers_water_on_land_only(hours):
+    native = era5land.read_native(FIXTURES / "era5land_milwaukee.grib")
+    assert native is not None
+    lake = native.values["swvl1"][0, 0, -1]
+    assert lake == pytest.approx(0.01, abs=1e-4)  # ERA5-Land's water points carry a token 0.01 m³/m³
+    on_water = coast.water(MILWAUKEE)
+    for name in era5land.MOISTURE.values():
+        water = hours.values[name]
+        assert np.isfinite(water[:, ~on_water]).all() and np.isnan(water[:, on_water]).all()
+        # m³/m³ as received; a wet December's loam, and none of the lake's token value reaches the shore (D79)
+        assert np.nanmin(water) > 0.15 and np.nanmax(water) < 0.5
+
+
+def test_a_file_from_before_soil_moisture_was_asked_for_reads_without_it(tmp_path):
+    land = era5land.LandMask.load(FIXTURES / "era5land_milwaukee_lsm.npz")
+    older = write_messages(
+        tmp_path / "older.grib", FIXTURES / "era5land_milwaukee.grib", keep=lambda name, when: name in era5land.BASE
+    )
+    native = era5land.read_native(older)
+    assert native is not None and set(native.values) == set(era5land.BASE)
+    derived = era5land.derive(native, MILWAUKEE, land)
+    assert not any(name.startswith("soil_moisture") for name in derived.values)
+    assert "soil_temperature_10cm" in derived.values
 
 
 def test_depths_come_from_the_layers_as_ifs_does():
@@ -204,6 +237,15 @@ def test_an_hour_missing_one_of_the_variables_is_refused_not_half_filled(tmp_pat
     with pytest.raises(ValueError, match="hours missing variables") as error:
         era5land.read(cut, MILWAUKEE, land)
     assert "2025, 12, 16, 3, 0" in str(error.value) and "{'sde'}" in str(error.value)
+    # Soil moisture is all or nothing too: a file with it in some hours is refused
+    cut = write_messages(
+        tmp_path / "cut_moisture.grib",
+        FIXTURES / "era5land_milwaukee.grib",
+        keep=lambda name, when: not (name == "swvl2" and when.hour == 5),
+    )
+    with pytest.raises(ValueError, match="hours missing variables") as error:
+        era5land.read(cut, MILWAUKEE, land)
+    assert "{'swvl2'}" in str(error.value)
 
 
 def test_messages_on_different_grids_are_refused(tmp_path):

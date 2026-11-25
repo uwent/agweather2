@@ -54,6 +54,7 @@ export const UNITS: Record<string, Unit> = {
   plants_ac: u('plants/ac', 'plant_density', 0, 1 / 0.40468564224),
   km2: u('km²', 'area', 0),
   mi2: u('sq mi', 'area', 0, 2.589988110336),
+  m3_m3: u('m³/m³', 'water_content', 2), // volumetric soil water
   percent: u('%', 'fraction', 0),
   deg: u('°', 'angle', 0),
   day: u('d', 'duration', 0),

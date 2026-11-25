@@ -106,7 +106,9 @@ def point_days(
 def _cached(cell, endpoint: str, first: date, last: date, now: datetime, session) -> openmeteo.Hours:
     row = WeatherCellCache.objects.filter(cell=cell.key, endpoint=endpoint, first_day=first).first()
     if row is not None and row.last_day >= last and (row.expires_at is None or row.expires_at > now):
-        return _unpack(bytes(row.data))
+        held = _unpack(bytes(row.data))
+        if all(name in held.values for name in openmeteo.SOIL_MOISTURE):  # rows cached before it are fetched again
+            return held
     try:
         hours, calls = openmeteo.fetch(
             endpoint,

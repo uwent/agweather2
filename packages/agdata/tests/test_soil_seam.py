@@ -22,6 +22,16 @@ def test_shift_fades_each_cells_offset_and_leaves_cells_without_one():
     np.testing.assert_allclose(out[:, 0, 1], 3.0)
 
 
+def test_soil_moisture_is_never_shifted_below_zero():
+    seam = soil_seam.Table(
+        version=2, lead_hours=np.array([0.0, 24.0]), weight={"soil_moisture_0_to_7cm": np.array([1.0, 0.8])}
+    )
+    values = np.array([[[0.12, 0.30, np.nan]]], dtype=np.float32)
+    offset = np.array([[-0.2, -0.05, -0.1]])
+    out = soil_seam.shift(values, offset, np.array([0.0]), "soil_moisture_0_to_7cm", seam)
+    np.testing.assert_allclose(out[0, 0], [0.0, 0.25, np.nan], atol=1e-6)
+
+
 def test_fit_recovers_how_much_of_a_difference_persists():
     rng = np.random.default_rng(0)
     phi = 0.98  # per hour: after h hours, phi**h of the difference remains

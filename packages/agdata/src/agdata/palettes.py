@@ -238,6 +238,7 @@ class Use:
 USES: dict[str, Use] = {
     "temperature": Use(palette="BuYlRd", day=(-30, 40)),
     "soil_temperature": Use(palette="BuYlRd", day=(-15, 35)),
+    "soil_moisture": Use(palette="BrBG", day=(0.05, 0.5)),  # m³/m³: dry brown, wet blue-green
     "dew_point_depression": Use(palette="BrBG", reverse=True, day=(0, 20)),
     "humidity": Use(palette="BrBG", day=(0, 100), bounded=True),
     "precipitation": Use(palette="YlGnBu", day=(0, 50), hour=(0, 25)),
