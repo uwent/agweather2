@@ -820,7 +820,7 @@ def _day_of_year(ordinals: np.ndarray) -> np.ndarray:
 
 
 def _region_mask(spec: ModelSpec, window: Window) -> np.ndarray | None:
-    return _states_mask(spec.region, window) if spec.region else None
+    return _areas_mask(spec.region, window) if spec.region else None
 
 
 def training_mask(spec: ModelSpec, window: Window) -> np.ndarray | None:
@@ -831,19 +831,11 @@ def training_mask(spec: ModelSpec, window: Window) -> np.ndarray | None:
 
 @cache
 def _areas_mask(codes: tuple[str, ...], window: Window) -> np.ndarray:
-    """Cells in any of the states or counties (postal codes or five-digit FIPS), cached."""
+    """Cells in any of the states or counties (postal codes or five-digit FIPS), cached (~0.2 s for a box and 17
+    states)."""
     found = [regions.find(code) for code in codes]
     masks = [regions.mask(r, window) for r in found if r is not None]
     mask = np.any(masks, axis=0) if masks else np.zeros(window.shape, dtype=bool)
-    mask.setflags(write=False)
-    return mask
-
-
-@cache
-def _states_mask(states: tuple[str, ...], window: Window) -> np.ndarray:
-    """Cells in any of the states (cached: ~0.2 s for a box and 17 states)."""
-    found = [regions.find(code) for code in states]
-    mask = np.any([regions.mask(r, window) for r in found if r is not None], axis=0)
     mask.setflags(write=False)
     return mask
 
