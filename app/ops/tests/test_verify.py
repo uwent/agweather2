@@ -118,6 +118,15 @@ def test_verification_health_summarizes_and_alarms(kept):
 
 
 @pytest.mark.django_db
+def test_jobs_status_has_verifications_problems_as_up_does(kept):
+    from ops import status
+
+    archive_day(kept, DAY, tmax=16.0)
+    score(kept, NOW)
+    assert "forecast air_temperature_max lead-1 MAE 6.0 °C over 7 days" in status.snapshot(kept, NOW).problems
+
+
+@pytest.mark.django_db
 def test_up_shows_verification_once_there_is_some(kept, client, settings):
     settings.DATA_DIR = kept
     score(kept, datetime.now(UTC))

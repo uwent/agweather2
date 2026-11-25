@@ -109,7 +109,7 @@ def in_archive(latitude: float, longitude: float, first: date, last: date) -> bo
 @dataclass(kw_only=True)
 class FallbackBudget:
     """One request's allowance for fetching Open-Meteo for points in the box (the soil past the run's, D44, and the
-    forecast in place of a stale run, D114): fetches start only within `seconds` of the first and until one fails,
+    forecast in place of a stale run, D114): fetches start only within `seconds` of its making (the request's first read) and until one fails,
     after which the rest of the request's points go without (their answers say so) rather than each waiting out
     Open-Meteo's timeout. The cell cache's answers cost nothing and are always read."""
 

@@ -39,7 +39,7 @@ from api.locations import describe, describe_days
 from api.params import AreaQuery, DaysQuery, OutputQuery, PointsQuery, SeriesQuery, resolve_biofix
 from api.routes.weather import FORECAST_DAYS, MAX_DAYS, EventsQuery, check_size, envelope_parts, located
 from api.schemas import TableResponse, responses
-from ops.points import day_zone, models_at_point, models_at_points, projected_at_point
+from ops.points import FallbackBudget, day_zone, models_at_point, models_at_points, projected_at_point
 
 router = Router(tags=["Models"])
 
@@ -186,8 +186,9 @@ def run(
     locations = located(where, needed, last, options, area=around)
     zones = [day_zone(lat, lng, options.day_basis) for lat, lng in sites]
     if mode:
+        budget = FallbackBudget()  # the points share one request's time for Open-Meteo (D114)
         found = [
-            _run_site(p, lat, lng, first, last, now, mode, zone, options.forecast, trim_end, around)
+            _run_site(p, lat, lng, first, last, now, mode, zone, options.forecast, trim_end, around, budget=budget)
             for p, (lat, lng), zone in zip(plans, sites, zones, strict=True)
         ]
     else:  # every point's weather on one read (`ops.points.models_at_points`)
@@ -913,11 +914,21 @@ def _revalidate(request, plans, computed, sites, first, last, now, projecting: b
 
 
 def _execute(
-    plans: list[runs.Plan], lat: float, lng: float, first: date, last: date, now, zone: str, area=None
+    plans: list[runs.Plan],
+    lat: float,
+    lng: float,
+    first: date,
+    last: date,
+    now,
+    zone: str,
+    area=None,
+    budget: FallbackBudget | None = None,
 ) -> list[list[ModelRun]]:
     """Every plan's runs on one read of the weather (days on `zone`'s clock), split back per plan."""
     every = [r for p in plans for r in p.runs]
-    results = models_at_point(lat, lng, every, first, last, now, planting_default=False, zone=zone, area=area)
+    results = models_at_point(
+        lat, lng, every, first, last, now, planting_default=False, zone=zone, area=area, budget=budget
+    )
     grouped, k = [], 0
     for p in plans:
         grouped.append(results[k : k + len(p.runs)])
@@ -1174,8 +1185,11 @@ def _run_site(
     forecast: bool,
     trim_end: bool,
     area=None,
+    budget: FallbackBudget | None = None,
 ) -> SiteRun:
-    found, notes = _projected([the_plan], lat, lng, first, last, now, mode, zone, area) if mode else (None, [])
+    found, notes = (
+        _projected([the_plan], lat, lng, first, last, now, mode, zone, area, budget=budget) if mode else (None, [])
+    )
     if found is not None:
         results = found[0].results
         return SiteRun(
@@ -1187,7 +1201,7 @@ def _run_site(
             notes=notes,
             paths=found[0].paths,
         )
-    results = _execute([the_plan], lat, lng, first, last, now, zone, area)[0]
+    results = _execute([the_plan], lat, lng, first, last, now, zone, area, budget=budget)[0]
     kept = max(points.keep(r.kinds, forecast, trim_end) for r in results)
     return SiteRun(results=results, kept=kept, labels=_labels(results), notes=notes)
 
@@ -1283,11 +1297,20 @@ def _season_end(spec, first: date) -> date:
 
 
 def _projected(
-    plans: list[runs.Plan], lat: float, lng: float, first: date, last: date, now, mode: str, zone: str, area=None
+    plans: list[runs.Plan],
+    lat: float,
+    lng: float,
+    first: date,
+    last: date,
+    now,
+    mode: str,
+    zone: str,
+    area=None,
+    budget: FallbackBudget | None = None,
 ) -> tuple[list[Projected] | None, list[str]]:
     """Each plan's runs carried past the forecast on the archive's earlier years, or None outside the archive."""
     every = [r for p in plans for r in p.runs]
-    found = projected_at_point(lat, lng, every, first, last, now, zone=zone, area=area)
+    found = projected_at_point(lat, lng, every, first, last, now, zone=zone, area=area, budget=budget)
     if found is None:
         return None, [NO_PROJECTION]
     warnings = []

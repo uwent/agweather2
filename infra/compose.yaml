@@ -22,7 +22,10 @@ x-app: &app
     OPEN_METEO_MONTHLY_CALLS: ${OPEN_METEO_MONTHLY_CALLS:-}  # the plan (D115); blank: the defaults in config/settings.py
     OPEN_METEO_DAILY_CALLS: ${OPEN_METEO_DAILY_CALLS:-}
     OPEN_METEO_BILLING_DAY: ${OPEN_METEO_BILLING_DAY:-}
+    OPEN_METEO_FALLBACK: ${OPEN_METEO_FALLBACK:-}  # 0: points in the box take no forecast from Open-Meteo while ours is stale (D114)
     COPERNICUS_API_KEY: ${COPERNICUS_API_KEY:-}
+    API_RATE_LIMIT: ${API_RATE_LIMIT:-}  # blank for each: the defaults in config/settings.py
+    API_TIME_LIMIT: ${API_TIME_LIMIT:-}
   volumes:
     - data:/data
 

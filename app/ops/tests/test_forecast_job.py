@@ -80,7 +80,10 @@ def test_a_failed_cycle_isnt_rebuilt_for_a_while_unless_asked(tmp_path):
 
 
 def test_forecast_health(tmp_path, settings):
-    assert forecast_health(tmp_path, NOW) == ({"state": "not started"}, [])
+    assert forecast_health(tmp_path, NOW) == ({"state": "not started", "points_fallback": False}, [])
+    settings.OPEN_METEO_FALLBACK = True  # with no run at all, points take Open-Meteo's forecast too (D114)
+    assert forecast_health(tmp_path, NOW)[0]["points_fallback"] is True
+    settings.OPEN_METEO_FALLBACK = False
     forecast.publish(tmp_path, fake_build()(tmp_path, None, CYCLE))
     body, problems = forecast_health(tmp_path, NOW)
     assert body["age_hours"] == 1.2 and body["cycle"] == CYCLE.isoformat() and problems == []

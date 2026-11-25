@@ -103,6 +103,18 @@ def test_after_one_failure_the_requests_other_points_do_not_wait_on_open_meteo(c
     assert response.json()["meta"]["warnings"] == [points.STALE_UNAVAILABLE]
 
 
+def test_a_projection_at_several_points_shares_one_budget_for_open_meteo(client, unreachable):
+    """Each point of a projection ran on its own budget, so an unreachable Open-Meteo cost every point its own
+    tries; the points share the request's (D114)."""
+    other = (POINT[0] + 0.02, POINT[1] + 0.02)
+    response = client.get(
+        "/api/v2/models/early-blight-pdays/run",
+        {"points": f"{LAT},{LNG};{other[0]},{other[1]}", "biofix": "2025-07-02", "projection": "true"},
+    )
+    assert response.status_code == 200, response.json()
+    assert len(unreachable) == 1  # the first point's first call; the second point's skipped
+
+
 def test_hourly_weather_runs_through_open_meteos_hours(client, stale):
     response = client.get(
         "/api/v2/weather/hourly",
