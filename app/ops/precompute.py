@@ -12,7 +12,7 @@ import time
 from dataclasses import dataclass, field
 
 from django.conf import settings
-from django.test import Client
+from django.test import Client, override_settings
 
 from agdata import coverage
 from agdata.grid import NDFD
@@ -57,7 +57,14 @@ class Done:
 
 
 def run() -> Done:
-    """Asks for one tile of every layer and day in the lists (computing and keeping each map); returns what it did."""
+    """Asks for one tile of every layer and day in the lists (computing and keeping each map); returns what it did.
+    Without the API's time limit: past it, the route answers 503 and leaves its map computing in a thread, and the
+    next map would start beside it."""
+    with override_settings(API_TIME_LIMIT=None):
+        return _run()
+
+
+def _run() -> Done:
     client = Client(HTTP_HOST=_host())
     extent = coverage.of(settings.SERVICE_BOX).extent
     lat, lng = NDFD.latlon((extent.j0 + extent.j1) // 2, (extent.i0 + extent.i1) // 2)
