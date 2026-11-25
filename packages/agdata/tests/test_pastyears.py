@@ -12,7 +12,7 @@ import pytest
 from agdata import pastyears
 from agdata.catalog import DAILY_VARIABLES
 from agdata.store import DAILY, GridStore
-from agdata.testing import WINDOW
+from agdata.testing import WINDOW, keep_only
 
 NAMES = ["air_temperature_min", "air_temperature_max", "precipitation_sum", "hours_rh_over_90"]
 
@@ -21,12 +21,15 @@ NAMES = ["air_temperature_min", "air_temperature_max", "precipitation_sum", "hou
 def built(tmp_path_factory, fx_module):
     root = tmp_path_factory.mktemp("two-years")
     fx_module.archive(root, datetime(2023, 12, 20, tzinfo=UTC), datetime(2024, 1, 15, tzinfo=UTC), warm=10)
+    for year in (2023, 2024):  # a copy reads every daily variable's year: only those read here (~4 s a build less)
+        keep_only(root, DAILY, year, NAMES)
     return root
 
 
 @pytest.fixture
 def two_years(built, tmp_path):
-    """The archive's hours Dec 20, 2023 to Jan 15, 2024, rolled up: a copy each test may change (~10 s to build)."""
+    """The archive's hours Dec 20, 2023 to Jan 15, 2024, rolled up (the daily stores holding only NAMES): a copy
+    each test may change (~10 s to build)."""
     return shutil.copytree(built, tmp_path / "archive")
 
 
