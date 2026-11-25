@@ -1,4 +1,4 @@
-"""Writers that bypass `GridStore.write` keep cells outside the coverage missing themselves (CLAUDE.md, D105)."""
+"""Writers that bypass `GridStore.write` keep cells outside the coverage missing themselves (CLAUDE.md, D105); reads in the block pool add nothing."""
 
 from datetime import date
 
@@ -33,3 +33,15 @@ def test_a_crops_stage_days_are_missing_outside_the_coverage(tmp_path, monkeypat
     found = croptiers.reached(tmp_path, "soybean-stages", "mid", 2025, WINDOW)
     assert found is not None
     assert np.isnan(found[0][:, :, :2]).all() and np.isinf(found[0][:, :, 2:]).all()
+
+
+def test_a_blocks_daily_read_adds_nothing_to_the_store(tmp_path):
+    # Reads in the block pool's workers mustn't add arrays: two workers adding one would race (`agdata.blocks`)
+    from agdata import modelmaps
+    from agdata.store import DAILY
+
+    GridStore.create(tmp_path, DAILY, 2025, WINDOW, [DAILY_VARIABLES["air_temperature_min"]])
+    found = modelmaps._read(tmp_path, None, None, "air_temperature_max", date(2025, 5, 1), 3, WINDOW)
+    assert np.isnan(found).all()
+    assert not (DAILY.path(tmp_path, 2025) / "air_temperature_max").exists()
+    assert modelmaps._store_window(tmp_path, tmp_path, 2025, Window(j0=900, j1=901, i0=1400, i1=1401)) == WINDOW
