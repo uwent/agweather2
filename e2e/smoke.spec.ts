@@ -133,6 +133,8 @@ test('the map explorer shows a layer and a clicked cell', async ({ page }) => {
   // Stepping a day moves the date (the controls' stepper on a wide screen, the bar's under the map on a phone)
   await page.getByRole('button', { name: 'Forward 1 day' }).click()
   await expect(page.getByText('Nov 21, 2026', { exact: true })).toBeVisible()
+  // The title says what the map is; how far the data reaches is the date control's
+  await expect(page.getByTestId('title-chip')).not.toContainText('Observed through')
   // The map's values by county, below the fold
   await page.getByRole('heading', { name: 'This map by county' }).scrollIntoViewIfNeeded()
   await expect(page.getByRole('table', { name: /by county in Wisconsin/ })).toContainText('Dane County')

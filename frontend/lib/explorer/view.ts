@@ -275,5 +275,11 @@ export function isForecast(when: string, layer: Pick<LayerInfo, 'range'>): boole
   return when.length > 10 ? when.slice(0, 13) > last.slice(0, 13) : when > last.slice(0, 10)
 }
 
+/** Whether a map's `{time}` (a day, an hour, `start..end`, or `latest`) ends in the forecast */
+export function timeIsForecast(time: string, layer: Pick<LayerInfo, 'range'>): boolean {
+  if (time === 'latest') return false
+  return isForecast(time.split('..').at(-1)!, layer)
+}
+
 /** The month (1–12) of an ISO date */
 export const monthOf = (iso: string) => parseDate(iso).getUTCMonth() + 1

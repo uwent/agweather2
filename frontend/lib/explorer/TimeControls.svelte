@@ -3,6 +3,8 @@
   import { addDays } from '@/lib/dates'
   import type { LayerInfo } from '@/types/api'
 
+  import DateSlider from './DateSlider.svelte'
+  import { dayTimeline, hourTimeline, inYear, isRecent, recentTimeline, yearsOf } from './timeline'
   import TimeStepper from './TimeStepper.svelte'
   import {
     dayBounds,
@@ -17,10 +19,13 @@
     statFor,
     stepTo,
   } from './view'
-  import { formatDay, formatHour } from './words'
+  import { availableWords, formatDay, formatHour, observedLabel } from './words'
 
-  // When the map shows (Phase 7 track 2 step 3): a day, a range of days combined by a statistic, the season to
-  // date, or an hour of an hourly layer, within the layer's archive and forecast.
+  // When the map shows (Phase 7 track 2 step 3; the date control fleshed out after Ben's alfalfa tool, 2026-11-26):
+  // a day, a range of days combined by a statistic, the season to date, or an hour of an hourly layer. The date as
+  // typed, the year, a slider over the year's days (an hourly layer's week of hours) with the forecast's part
+  // hatched and its boundary labelled, the stepper, and in words what the layer reaches: the archive's first day to
+  // the forecast's last.
   let {
     view,
     layer,
@@ -38,6 +43,9 @@
   const bounds = $derived(dayBounds(layer))
   const day = $derived(dayOf(view, layer) ?? today)
   const hour = $derived(view.hour ?? layer.range.last?.slice(0, 13) ?? '')
+  const years = $derived(yearsOf(layer))
+  const observed = $derived(observedLabel(layer))
+  const available = $derived(availableWords(layer))
 
   const SPAN_LABELS: Record<Span, string> = {
     day: 'Day',
@@ -59,7 +67,62 @@
     value: h,
     label: formatHour(`2026-01-01T${String((h + 6) % 24).padStart(2, '0')}`, false),
   }))
+
+  // The band a range or season shows on the slider
+  const band = $derived.by((): [string, string] | null => {
+    if (span === 'range') return [rangeStart(view, day), day]
+    if (span === 'season') return [seasonStart(view, layer, day), day]
+    return null
+  })
+  // Moving the day: a range keeps its length
+  const toDay = (next: string) => onchange(stepTo(view, layer, next))
+
+  // The slider's window: the recent weeks and the forecast (the first choice, so the forecast's days have room), or
+  // a whole year as the alfalfa tool's; the recent weeks only while the day is in them
+  let wantRecent = $state(true)
+  const recent = $derived(wantRecent && span !== 'season' && isRecent(day, layer))
+  const dayLine = $derived(recent ? recentTimeline(layer) : dayTimeline(layer, day))
+  function chooseWindow(choice: string) {
+    if (choice === 'recent') {
+      wantRecent = true
+      if (!isRecent(day, layer) && layer.range.last) toDay(layer.range.last.slice(0, 10))
+    } else {
+      wantRecent = false
+      toDay(inYear(day, Number(choice), layer))
+    }
+  }
 </script>
+
+{#snippet year()}
+  {#if years.length > 1}
+    <div class="space-y-1">
+      <label for="time-year" class="block font-medium">Timeline</label>
+      <select
+        id="time-year"
+        class="rounded-md sm:text-sm"
+        value={recent ? 'recent' : day.slice(0, 4)}
+        onchange={(event) => chooseWindow(event.currentTarget.value)}
+      >
+        {#if span !== 'season'}<option value="recent">Recent weeks</option>{/if}
+        {#each years as y (y)}<option value={String(y)}>{y}</option>{/each}
+      </select>
+    </div>
+  {/if}
+{/snippet}
+
+{#snippet slider(timeline: ReturnType<typeof dayTimeline>, value: string, label: string, onslide: (w: string) => void)}
+  {#if timeline}
+    <DateSlider
+      {timeline}
+      {value}
+      {band}
+      {label}
+      {observed}
+      describe={timeline.unit === 'day' ? formatDay : formatHour}
+      onchange={onslide}
+    />
+  {/if}
+{/snippet}
 
 <section class="space-y-3" aria-labelledby="time-heading">
   <h2 id="time-heading" class="text-base font-semibold">When</h2>
@@ -101,7 +164,10 @@
         </select>
       </div>
     </div>
-    {#if hour}<TimeStepper {layer} when={hour} {today} onstep={(next) => onchange({ hour: next })} />{/if}
+    {#if hour}
+      {@render slider(hourTimeline(layer, hour), hour, 'Hour on the timeline', (next) => onchange({ hour: next }))}
+      <TimeStepper {layer} when={hour} {today} onstep={(next) => onchange({ hour: next })} />
+    {/if}
   {:else if span === 'range'}
     {@const start = rangeStart(view, day)}
     <div class="flex flex-wrap items-end gap-2 text-sm">
@@ -129,6 +195,7 @@
           onchange={(event) => event.currentTarget.value && onchange({ date: event.currentTarget.value })}
         />
       </div>
+      {@render year()}
       {#if stats.length}
         <div class="space-y-1">
           <label for="time-stat" class="block font-medium">Combine by</label>
@@ -143,7 +210,10 @@
         </div>
       {/if}
     </div>
-    <div class="flex flex-wrap gap-2 text-sm" role="group" aria-label="Quick ranges">
+    {@render slider(dayLine, day, 'Last day on the timeline', toDay)}
+    <TimeStepper {layer} when={day} {today} onstep={toDay} />
+    <div class="flex flex-wrap items-center gap-2 text-sm" role="group" aria-label="Quick ranges">
+      <span class="text-ink-muted">The last</span>
       {#each QUICK as days (days)}
         <button
           type="button"
@@ -154,7 +224,6 @@
         </button>
       {/each}
     </div>
-    <TimeStepper {layer} when={day} {today} onstep={(next) => onchange(stepTo(view, layer, next))} />
   {:else if span === 'day' || span === 'season'}
     <div class="flex flex-wrap items-end gap-2 text-sm">
       {#if span === 'season'}
@@ -174,9 +243,13 @@
           onchange={(event) => event.currentTarget.value && onchange({ date: event.currentTarget.value })}
         />
       </div>
+      {@render year()}
     </div>
-    <TimeStepper {layer} when={day} {today} onstep={(next) => onchange({ date: next })} />
+    {@render slider(dayLine, day, span === 'season' ? 'Last day on the timeline' : 'Day on the timeline', toDay)}
+    <TimeStepper {layer} when={day} {today} onstep={toDay} />
   {:else}
     <p class="text-sm text-ink-muted">This map has no date.</p>
   {/if}
+
+  {#if span && available}<p class="text-xs text-ink-muted" data-testid="date-reach">{available}</p>{/if}
 </section>

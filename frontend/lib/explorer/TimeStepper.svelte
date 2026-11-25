@@ -61,7 +61,10 @@
   </div>
   <p class="text-sm">
     <span class="font-medium">{hourly ? formatHour(when) : formatDay(when)}</span>
-    {#if forecast}<span class="ml-1 rounded-sm bg-brand-100 px-1.5 py-0.5 text-xs font-medium text-brand-700">
+    {#if forecast}<span
+        data-testid="forecast-badge"
+        class="ml-1 rounded-sm bg-brand-100 px-1.5 py-0.5 text-xs font-medium text-brand-700"
+      >
         Forecast
       </span>{/if}
   </p>

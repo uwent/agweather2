@@ -37,6 +37,7 @@
     stepperWhen,
     stepTo,
     tileRequest,
+    timeIsForecast,
     type TileRequest,
     VIEW_FIELDS,
   } from '@/lib/explorer/view'
@@ -167,9 +168,10 @@
   const title = $derived(info?.title ?? shownLayer?.title ?? layer?.title ?? 'Map')
   const when = $derived(shown && shownLayer ? timeWords(shown.time, shown.stat, latestOf(shownLayer), hourly) : '')
   const through = $derived(layer ? dataThrough(layer) : null)
+  const shownForecast = $derived(shown && shownLayer ? timeIsForecast(shown.time, shownLayer) : false)
   // What the map shows beyond its name, in the API's words (its `subtitle`); the date in words only until it comes
   const subtitle = $derived(info?.subtitle ?? '')
-  const announcement = $derived(shown ? `Map of ${title}, ${subtitle || when}` : '')
+  const announcement = $derived(shown ? `Map of ${title}, ${subtitle || when}${shownForecast ? ', forecast' : ''}` : '')
 
   // A shared link's map view and overlay
   let placed = false
@@ -473,7 +475,7 @@
         }}
       >
         {#snippet header()}
-          <TitleChip {title} {subtitle} {through} notes={info?.warnings.length ?? 0} />
+          <TitleChip {title} {subtitle} forecast={shownForecast} notes={info?.warnings.length ?? 0} />
         {/snippet}
         {#snippet controls()}
           <PlaceSearch {map} onplace={(p) => chooseSearched(p.label, p.center[1], p.center[0])} />

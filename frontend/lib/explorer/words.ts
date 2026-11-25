@@ -26,6 +26,29 @@ export function dataThrough(layer: Pick<LayerInfo, 'range' | 'time_axis'>): stri
   return forecast_through ? `${observed} · forecast to ${when(forecast_through)}` : observed
 }
 
+/** What a layer's maps can show, for the date control: "You can map any day from Jan 1, 2016 to Dec 6, 2026. Days
+ * through Nov 24, 2026 are observed; later days are a forecast." */
+export function availableWords(layer: Pick<LayerInfo, 'range' | 'time_axis'>): string | null {
+  const { first, last, forecast_through } = layer.range
+  if (!first || !last) return null
+  const hourly = layer.time_axis === 'hour'
+  const when = (iso: string) => (hourly ? formatHour(iso) : formatDay(iso))
+  const unit = hourly ? 'hour' : 'day'
+  const reach = `You can map any ${unit} from ${when(first)} to ${when(forecast_through ?? last)}.`
+  if (!forecast_through || forecast_through <= last) return `${reach} All of them are observed.`
+  return `${reach} ${hourly ? 'Hours' : 'Days'} through ${when(last)} are observed; later ${unit}s are a forecast.`
+}
+
+/** The forecast's boundary on the date control: "Observed through Nov 24", "Observed through Nov 25, 2 p.m. CST" */
+export function observedLabel(layer: Pick<LayerInfo, 'range' | 'time_axis'>): string | null {
+  const last = layer.range.last
+  if (!last) return null
+  if (layer.time_axis !== 'hour') return `Observed through ${formatDate(last.slice(0, 10))}`
+  const at = new Date(`${last.slice(0, 13)}:00:00Z`)
+  at.setUTCHours(at.getUTCHours() - 6)
+  return `Observed through ${formatDate(at.toISOString())}, ${formatHour(last, false)}`
+}
+
 /** What the map's time is in words: "Nov 25, 2026", "Jul 1 to Jul 14, 2026 (total)", "Jan 1 to Jul 8, 2026" */
 export function timeWords(time: string, stat: string | null, latest: string | null, hourly: boolean): string {
   if (time === 'latest') {

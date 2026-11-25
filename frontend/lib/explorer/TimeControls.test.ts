@@ -28,13 +28,83 @@ describe('TimeControls', () => {
     expect(onchange).toHaveBeenLastCalledWith({ date: addDays(last, -7) })
     await fireEvent.click(screen.getByRole('button', { name: 'Forward 1 day' }))
     expect(onchange).toHaveBeenLastCalledWith({ date: addDays(last, 1) })
-    expect(screen.queryByText('Forecast')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('forecast-badge')).not.toBeInTheDocument()
   })
 
   it('shows the forecast label past the last observed day', () => {
     const daily = layer('air_temperature_min')
     controls(daily.id, { date: addDays(daily.range.last!.slice(0, 10), 1) })
-    expect(screen.getByText('Forecast')).toBeInTheDocument()
+    expect(screen.getByTestId('forecast-badge')).toHaveTextContent('Forecast')
+    expect(screen.getByRole('slider', { name: 'Day on the timeline' })).toHaveAttribute(
+      'aria-valuetext',
+      'Nov 25, 2026, forecast',
+    )
+  })
+
+  it('says what the layer reaches, and marks the forecast’s boundary on the slider', () => {
+    controls('air_temperature_min', { date: '2026-11-20' })
+    expect(screen.getByTestId('date-reach')).toHaveTextContent(
+      'You can map any day from Jan 1, 2016 to Dec 6, 2026. Days through Nov 24, 2026 are observed; later days are a forecast.',
+    )
+    expect(screen.getByTestId('forecast-boundary')).toHaveTextContent('Observed through Nov 24')
+    expect(screen.getByTestId('forecast-boundary')).toHaveTextContent('Forecast')
+    expect(screen.getByTestId('forecast-segment')).toBeInTheDocument()
+  })
+
+  it('moves the day by the slider’s keys, held to the forecast’s last day', async () => {
+    const onchange = controls('air_temperature_min', { date: '2026-11-20' })
+    const slider = screen.getByRole('slider', { name: 'Day on the timeline' })
+    expect(slider).toHaveAttribute('aria-valuetext', 'Nov 20, 2026')
+    await fireEvent.keyDown(slider, { key: 'ArrowRight' })
+    expect(onchange).toHaveBeenLastCalledWith({ date: '2026-11-21' })
+    await fireEvent.keyDown(slider, { key: 'PageDown' })
+    expect(onchange).toHaveBeenLastCalledWith({ date: '2026-11-13' })
+    await fireEvent.keyDown(slider, { key: 'End' })
+    expect(onchange).toHaveBeenLastCalledWith({ date: '2026-12-06' })
+    // The recent weeks' first day
+    await fireEvent.keyDown(slider, { key: 'Home' })
+    expect(onchange).toHaveBeenLastCalledWith({ date: '2026-10-14' })
+  })
+
+  it('shows the recent weeks first, and a whole year when one is chosen', async () => {
+    const onchange = controls('air_temperature_min', { date: '2026-11-20' })
+    const timeline = screen.getByRole('combobox', { name: 'Timeline' })
+    expect(timeline).toHaveValue('recent')
+    expect(screen.getByText('Oct 14')).toBeInTheDocument()
+    await fireEvent.change(timeline, { target: { value: '2026' } })
+    expect(onchange).toHaveBeenLastCalledWith({ date: '2026-11-20' })
+    expect(timeline).toHaveValue('2026')
+    expect(screen.getByText('Jan')).toBeInTheDocument()
+    await fireEvent.keyDown(screen.getByRole('slider', { name: 'Day on the timeline' }), { key: 'Home' })
+    expect(onchange).toHaveBeenLastCalledWith({ date: '2026-01-01' })
+  })
+
+  it('chooses a year, keeping the day of the year; a past year has no forecast', async () => {
+    const onchange = controls('air_temperature_min', { date: '2026-07-08' })
+    await fireEvent.change(screen.getByRole('combobox', { name: 'Timeline' }), { target: { value: '2020' } })
+    expect(onchange).toHaveBeenLastCalledWith({ date: '2020-07-08' })
+  })
+
+  it('has no forecast on a past year’s slider', () => {
+    controls('air_temperature_min', { date: '2020-07-08' })
+    expect(screen.queryByTestId('forecast-boundary')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('forecast-segment')).not.toBeInTheDocument()
+  })
+
+  it('shows a range as a band and slides its end, keeping its length', async () => {
+    const onchange = controls('air_temperature_min', { span: 'range', date: '2026-07-14', start: '2026-07-08' })
+    expect(screen.getByTestId('date-band')).toBeInTheDocument()
+    await fireEvent.keyDown(screen.getByRole('slider', { name: 'Last day on the timeline' }), { key: 'ArrowLeft' })
+    expect(onchange).toHaveBeenLastCalledWith({ date: '2026-07-13', start: '2026-07-07' })
+  })
+
+  it('shows the season to date as a band from January 1', () => {
+    controls('degree_days', { span: 'season', date: '2026-07-14' })
+    expect(screen.getByTestId('date-band')).toBeInTheDocument()
+    expect(screen.getByRole('slider', { name: 'Last day on the timeline' })).toHaveAttribute(
+      'aria-valuetext',
+      'Jul 14, 2026',
+    )
   })
 
   it('offers a range with a statistic, and moves a range by its length', async () => {
@@ -62,5 +132,14 @@ describe('TimeControls', () => {
     expect(screen.getByRole('combobox', { name: 'Hour' })).toHaveValue('12')
     await fireEvent.click(screen.getByRole('button', { name: 'Back 6 hours' }))
     expect(onchange).toHaveBeenLastCalledWith({ hour: '2026-07-08T12' })
+    const slider = screen.getByRole('slider', { name: 'Hour on the timeline' })
+    expect(slider).toHaveAttribute('aria-valuetext', 'noon CST, Jul 8, 2026')
+    await fireEvent.keyDown(slider, { key: 'PageUp' })
+    expect(onchange).toHaveBeenLastCalledWith({ hour: '2026-07-09T00' })
+  })
+
+  it('shows an hourly layer’s newest hours with the forecast after them', () => {
+    controls('air_temperature_hourly', { span: 'hour' })
+    expect(screen.getByTestId('forecast-boundary')).toHaveTextContent('Observed through Nov 25, 2 p.m. CST')
   })
 })
