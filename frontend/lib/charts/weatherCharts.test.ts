@@ -173,6 +173,27 @@ describe('panelOption', () => {
     expect(html).toContain('36 °F') // °F to whole degrees
   })
 
+  it('labels a long run of hours once a day, at local midnight', () => {
+    const start = Date.parse('2026-11-20T00:00Z')
+    const long: Table = {
+      ...hours,
+      days: Array.from({ length: 100 }, (_, i) => ({
+        date: new Date(start + i * 3_600_000).toISOString().replace(':00.000Z', 'Z'),
+        kind: 'observed' as const,
+        values: { air_temperature: 1 },
+        estimated: new Set<string>(),
+        missing: new Set<string>(),
+      })),
+    }
+    const axis = (
+      option(panel('temperature', true), long) as unknown as {
+        xAxis: { axisLabel: { interval: (i: number, d: string) => boolean } }[]
+      }
+    ).xAxis[0].axisLabel
+    const shown = long.days.filter((day, i) => axis.interval(i, day.date)).map((day) => day.date)
+    expect(shown).toEqual(['2026-11-20T06:00Z', '2026-11-21T06:00Z', '2026-11-22T06:00Z', '2026-11-23T06:00Z'])
+  })
+
   it('says Missing in the tooltip where there is no value, and which days are forecast', () => {
     const o = option(panel('precipitation'))
     const missing = days.days.findIndex((day) => day.values.precipitation_sum === null)

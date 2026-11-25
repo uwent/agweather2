@@ -332,10 +332,14 @@ export function panelOption(panel: WeatherPanel, table: Table, options: PanelOpt
 
   const legendNames = [...upper, ...rolled, ...below].map((series) => series.name)
   const legendShown = legendNames.length > 1
-  const top = legendShown ? 32 : 14
+  const top = legendShown ? 46 : 22 // room for the legend, then the unit above the axis
+  // Over more than three days of hours, a label at each local midnight, naming the day
+  const midnight = (date: string) => !/a\.m\.|p\.m\.|Noon/.test(rowLabel(date, timeZone, { short: true }))
+  const byDay = table.hourly && days.length > 72
   const axisLabel = {
     ...base.axisLabel,
     formatter: (date: string) => rowLabel(date, timeZone, { short: true }),
+    ...(byDay ? { interval: (_: number, date: string) => midnight(date) } : {}),
   }
   const upperUnit = unitLabel(table, units, upperSeries[0]?.column ?? firstColumn)
   const lowerUnit = lowerSeries[0] ? unitLabel(table, units, lowerSeries[0].column) : ''
