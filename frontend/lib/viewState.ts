@@ -14,8 +14,8 @@
 //
 //   const view = viewState({
 //     layer: field(codecs.string, 'air_temperature_max'),
-//     date: field(codecs.date, null as string | null),
-//     at: field(codecs.latLng(), null as LatLng | null),
+//     date: field(codecs.date, null),
+//     at: field(codecs.latLng(), null),
 //     zoom: field(codecs.number({ digits: 2 }), 6, 'z'),
 //   })
 //   $view.layer; view.patch({ date: '2026-07-08' }); view.shareUrl()
@@ -134,8 +134,10 @@ export const codecs = {
 export type Field<T> = { codec: Codec<NonNullable<T>>; default: T; param?: string }
 export type Fields<S> = { [K in keyof S]: Field<S[K]> }
 
-export function field<T>(codec: Codec<NonNullable<T>>, defaultValue: T, param?: string): Field<T> {
-  return { codec, default: defaultValue, param }
+export function field<V>(codec: Codec<V>, defaultValue: NoInfer<V>, param?: string): Field<V>
+export function field<V>(codec: Codec<V>, defaultValue: null, param?: string): Field<V | null>
+export function field<V>(codec: Codec<V>, defaultValue: V | null, param?: string): Field<V | null> {
+  return { codec: codec as Codec<NonNullable<V>>, default: defaultValue, param }
 }
 
 function entries<S>(fields: Fields<S>): [keyof S & string, Field<S[keyof S]>][] {
@@ -154,7 +156,7 @@ export function defaults<S>(fields: Fields<S>): S {
 }
 
 /** The settings that differ from their defaults, as query parameters, in the order the fields are declared */
-export function toQuery<S>(fields: Fields<S>, state: S): URLSearchParams {
+export function toQuery<S>(fields: Fields<S>, state: NoInfer<S>): URLSearchParams {
   const query = new URLSearchParams()
   for (const [key, spec] of entries(fields)) {
     const text = formatted(spec, state[key])
@@ -177,7 +179,11 @@ export function fromQuery<S>(fields: Fields<S>, query: string | URLSearchParams)
 }
 
 /** The full link to a view: `path` (the current page's by default) with every setting not at its default */
-export function shareUrl<S>(fields: Fields<S>, state: S, options: { path?: string; origin?: string } = {}): string {
+export function shareUrl<S>(
+  fields: Fields<S>,
+  state: NoInfer<S>,
+  options: { path?: string; origin?: string } = {},
+): string {
   const path = options.path ?? window.location.pathname
   const origin = options.origin ?? window.location.origin
   const query = toQuery(fields, state).toString()

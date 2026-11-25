@@ -3,25 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const replace = vi.fn()
 vi.mock('@inertiajs/core', () => ({ router: { replace: (...args: unknown[]) => replace(...args) } }))
 
-import {
-  codecs,
-  defaults,
-  field,
-  fromQuery,
-  replaceAddress,
-  shareUrl,
-  toQuery,
-  viewState,
-  type LatLng,
-  type DateRange,
-} from './viewState'
+import { codecs, defaults, field, fromQuery, replaceAddress, shareUrl, toQuery, viewState } from './viewState'
 
 const fields = {
   layer: field(codecs.string, 'air_temperature_max'),
   stat: field(codecs.oneOf(['sum', 'mean', 'max'] as const), 'mean'),
-  date: field(codecs.date, null as string | null),
-  range: field(codecs.dateRange, null as DateRange | null),
-  at: field(codecs.latLng(), null as LatLng | null),
+  date: field(codecs.date, null),
+  range: field(codecs.dateRange, null),
+  at: field(codecs.latLng(), null),
   zoom: field(codecs.number({ digits: 2, min: 0, max: 22 }), 6, 'z'),
   roll: field(codecs.list(codecs.integer({ min: 1 })), [] as number[]),
   forecast: field(codecs.boolean, true),
