@@ -2,6 +2,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 
 from django.conf import settings
+from procrastinate import exceptions as procrastinate_errors
 from procrastinate.contrib.django import app
 
 from agdata import croptiers, pastyears, seasonmaps, series
@@ -28,6 +29,18 @@ def _waiting_lock(label: str):
     return lambda: write_lock(settings.DATA_DIR, wait=DOWNLOAD_LOCK_WAIT_S, label=label)
 
 
+def queue_next(task, timestamp: int) -> bool:
+    """Queues a follow-on job, unless a run of it is already waiting (its queueing lock): that run reads the data as
+    it is when it starts, so it covers this one. Without this, the ingest or forecast job that finished its work
+    failed on `AlreadyEnqueued` when both queued the crop stages close together."""
+    try:
+        task.defer(timestamp=timestamp)
+    except procrastinate_errors.AlreadyEnqueued:
+        logger.info("%s already queued", task.name)
+        return False
+    return True
+
+
 @app.periodic(cron="40 * * * *")  # after RTMA's hour is usually published
 @app.task(queue="ingest", queueing_lock="ingest_recent", task_middleware=JOB_MIDDLEWARE)
 def ingest_recent(timestamp: int) -> None:
@@ -45,7 +58,7 @@ def ingest_recent(timestamp: int) -> None:
         logger.warning("ingest_recent skipped: %s", error)
         return
     if updated:
-        update_crop_tiers.defer(timestamp=timestamp)
+        queue_next(update_crop_tiers, timestamp=timestamp)
 
 
 @app.periodic(cron="15,45 * * * *")  # cheap when nothing's new; picks up late and missed runs
@@ -60,7 +73,7 @@ def ingest_forecast(timestamp: int) -> None:
         logger.warning("ingest_forecast skipped: %s", error)
         return
     if record is not None and record.status != IngestRecord.Status.FAILED:
-        update_crop_tiers.defer(timestamp=timestamp)
+        queue_next(update_crop_tiers, timestamp=timestamp)
 
 
 @app.periodic(cron="20 */6 * * *")  # ERA5-Land publishes once a day; a run with nothing new asks nothing
@@ -167,7 +180,7 @@ def update_crop_tiers(timestamp: int) -> None:
             logger.info("disease seasons written: %s", {where: len(names) for where, names in seasons.items()})
     except WriteLocked as error:
         logger.warning("update_crop_tiers skipped: %s", error)
-    precompute_maps.defer(timestamp=timestamp)  # the maps read what it wrote
+    queue_next(precompute_maps, timestamp=timestamp)  # the maps read what it wrote
 
 
 @app.task(queue="maintenance", queueing_lock="precompute_maps", task_middleware=JOB_MIDDLEWARE)
