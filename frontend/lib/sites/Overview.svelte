@@ -11,8 +11,9 @@
   import { isForecast, tableRows, unitSymbol, type Day, type Table } from '../tableRows'
   import { currentUnits } from '../units'
   import Failed from './Failed.svelte'
-  import { request } from './request.svelte'
+  import { request, type Request } from './request.svelte'
   import RiskList from './RiskList.svelte'
+  import { riskSpans, rowsOn } from '../riskSpan'
   import { riskRows } from './text'
 
   // The Overview tab: the past week and the days ahead (ForecastStrip), the latest hour, rain and reference ET
@@ -25,12 +26,17 @@
     today,
     latest,
     models,
+    risk,
+    loadRisk,
   }: {
     lat: number
     lng: number
     today: string
     latest: { table: Table; day: Day } | null
     models: SiteModel[]
+    /** The page's `/risk` from two weeks back through the forecast, shared with the Models tab */
+    risk: Request<TableResponse>
+    loadRisk: () => void
   } = $props()
 
   const units = $derived(currentUnits())
@@ -39,7 +45,6 @@
   const daily = request<TableResponse>()
   const week = request<TableResponse>()
   const year = request<TableResponse>()
-  const risk = request<TableResponse>()
 
   const yesterday = $derived(addDays(today, -1))
   const january = $derived(`${today.slice(0, 4)}-01-01`)
@@ -66,7 +71,6 @@
   const loadWeek = () => week.load(totals(addDays(today, -7)))
   // On January 1 there's no day of the year done yet
   const loadYear = () => (today > january ? year.load(totals(january)) : undefined)
-  const loadRisk = () => risk.load((signal) => get<TableResponse>('/risk', { ...point, date: today }, { signal }))
 
   // Again whenever the point or the day changes, as text: Inertia hands the page equal props again after it
   // mounts, which mustn't refetch. The loads write the state they read, so they run untracked.
@@ -77,10 +81,9 @@
       loadDaily()
       loadWeek()
       loadYear()
-      loadRisk()
     })
   })
-  onDestroy(() => [daily, week, year, risk].forEach((r) => r.cancel()))
+  onDestroy(() => [daily, week, year].forEach((r) => r.cancel()))
 
   const strip = $derived(daily.value.data ? tableRows(daily.value.data) : null)
   const past = $derived(strip?.days.filter((day) => day.kind === 'observed') ?? [])
@@ -231,7 +234,14 @@
     {#if risk.value.status === 'failed'}
       <Failed {...risk.value} retry={loadRisk} />
     {:else if risk.value.data}
-      <RiskList rows={riskRows(risk.value.data)} {models} />
+      <RiskList
+        rows={riskRows(rowsOn(risk.value.data, today))}
+        spans={riskSpans(risk.value.data, today)}
+        {models}
+        {today}
+        {lat}
+        {lng}
+      />
     {:else}
       <div class="h-24 animate-pulse rounded-md bg-surface-raised" aria-hidden="true"></div>
     {/if}

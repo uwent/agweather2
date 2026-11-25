@@ -1,13 +1,34 @@
 <script lang="ts">
   import type { SiteModel } from '@/types'
 
+  import RiskStrip from '../components/RiskStrip.svelte'
+  import { trendWords, type ModelRisk } from '../riskSpan'
+  import { siteKey, siteModelUrl } from '../siteKey'
   import { riskColor, type RiskRow } from './text'
 
   // "Risk now": each model with a risk above the lowest today, in words first ("High risk") with the level's
   // color beside it, highest first; the lowest level's models in one line, so the list leads with what needs
   // attention; then how many have no level today (out of season, or a crop stage model). A model whose days
-  // are missing says how many.
-  let { rows, models }: { rows: RiskRow[]; models: SiteModel[] } = $props()
+  // are missing says how many. Each name links to the model at this site; a raised risk has its sparkline from two
+  // weeks back through the forecast, with the trend in words.
+  let {
+    rows,
+    models,
+    spans = new Map(),
+    today = '',
+    lat,
+    lng,
+  }: {
+    rows: RiskRow[]
+    models: SiteModel[]
+    spans?: Map<string, ModelRisk>
+    today?: string
+    lat: number
+    lng: number
+  } = $props()
+
+  const key = $derived(siteKey(lat, lng))
+  const href = (model: string) => siteModelUrl(key, model)
 
   const catalog = $derived(new Map(models.map((model) => [model.id, model])))
   const withLevel = $derived(rows.filter((row) => row.level !== null && row.label))
@@ -33,10 +54,23 @@
           aria-hidden="true"
         ></span>
         <span class="min-w-0 flex-1">
-          <strong class="font-semibold">{`${row.label} risk`}</strong>{`: ${row.name}.`}
+          <strong class="font-semibold">{`${row.label} risk`}</strong>{': '}<a href={href(row.model)} class="underline">
+            {row.name}
+          </a>{'.'}
+          {#if spans.get(row.model)}<span class="text-ink-muted">
+              {` ${trendWords(spans.get(row.model)!, today)}.`}
+            </span>{/if}
           {#if row.missingDays}<span class="text-ink-muted">{` Includes ${days(row.missingDays)}.`}</span>{/if}
         </span>
-        <!-- The risk sparkline through the forecast goes here once /risk takes `end=` (Phase 7 track 3, Q1) -->
+        {#if (spans.get(row.model)?.days.length ?? 0) > 1}
+          <RiskStrip
+            class="mt-1 w-24 shrink-0 sm:w-40"
+            days={spans.get(row.model)!.days}
+            levels={levels(row)}
+            {today}
+            label={`${row.name}, two weeks back through the forecast: ${trendWords(spans.get(row.model)!, today)}.`}
+          />
+        {/if}
       </li>
     {/each}
     {#each lowestByLabel as [label, group] (label)}
@@ -47,7 +81,12 @@
           aria-hidden="true"
         ></span>
         <span class="min-w-0 flex-1">
-          <strong class="font-semibold">{`${label} risk`}</strong>{`: ${group.map((row) => row.name).join(', ')}.`}
+          <strong class="font-semibold">{`${label} risk`}</strong>{': '}{#each group as row, k (row.model)}<a
+              href={href(row.model)}
+              class="underline"
+            >
+              {row.name}
+            </a>{k < group.length - 1 ? ', ' : '.'}{/each}
         </span>
       </li>
     {/each}

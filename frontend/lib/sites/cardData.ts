@@ -3,6 +3,7 @@
 
 import { addDays } from '@/lib/dates'
 import { riskRank } from '@/lib/riskLevels'
+import { riskSpans, rowsOn, type RiskDay } from '@/lib/riskSpan'
 import type { EffectivePrefs } from '@/lib/sites.svelte'
 import type { ModelEntry } from '@/types'
 import type { TableResponse } from '@/types/api'
@@ -32,6 +33,8 @@ export type RiskRow = {
   label: string
   /** The number of levels in its scale, for the color */
   levels: number
+  /** Its days from two weeks back through the forecast, for the sparkline (an answer over several days) */
+  days?: RiskDay[]
 }
 
 export type RiskSummary = {
@@ -43,15 +46,18 @@ export type RiskSummary = {
   none: number
 }
 
-/** The card's risks from a `/risk` answer: the `top` highest by where they sit on their scale (ties by name), the rest
- * counted. Hidden models, and models not in the catalog (retired), are dropped. */
+/** The card's risks from a `/risk` answer: the `top` highest today by where they sit on their scale (ties by name),
+ * the rest counted. Hidden models, and models not in the catalog (retired), are dropped. An answer over several days
+ * (`start`, Q1) gives each row its days for the sparkline. */
 export function topRisks(
   body: TableResponse,
   catalog: readonly ModelEntry[],
   hidden: readonly string[] = [],
   top = 3,
+  today?: string,
 ): RiskSummary {
-  const c = columns(body)
+  const spans = today && !Array.isArray(body.data) && body.data.date ? riskSpans(body, today) : null
+  const c = columns(today ? rowsOn(body, today) : body)
   const ids = (c.model ?? []) as string[]
   const rows: RiskRow[] = []
   let none = 0
@@ -61,12 +67,13 @@ export function topRisks(
     if (hidden.includes(id) || !entry) return
     const level = c.risk_level?.[k]
     const label = c.risk_label?.[k]
-    if (typeof level !== 'number' || typeof label !== 'string') {
+    // Out of season (a model the site's preferences name, which the API answers for all year) counts as no risk
+    if (typeof level !== 'number' || typeof label !== 'string' || c.in_season?.[k] === false) {
       none++
       return
     }
     const levels = entry.risk_levels.length
-    rows.push({ model: id, name: String(c.name?.[k] ?? id), level, label, levels })
+    rows.push({ model: id, name: String(c.name?.[k] ?? id), level, label, levels, days: spans?.get(id)?.days })
   })
   rows.sort((a, b) => riskRank(b.level, b.levels) - riskRank(a.level, a.levels) || a.name.localeCompare(b.name))
   return { top: rows.slice(0, top), more: Math.max(0, rows.length - top), none }

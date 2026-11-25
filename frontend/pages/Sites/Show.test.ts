@@ -89,7 +89,7 @@ describe('the site page', () => {
     ])
     for (const [path, params] of get.mock.calls) if (path.startsWith('/weather')) expect(params.units).toBe('metric')
     const [, risks] = get.mock.calls.find(([path]) => path === '/risk')!
-    expect(risks).toMatchObject({ lat: 44.12, lng: -89.52, date: '2026-11-25' })
+    expect(risks).toMatchObject({ lat: 44.12, lng: -89.52, start: '2026-11-11' })
     // The fixture's millimeters since January 1, in inches
     const inches = (totals.data.precipitation_sum[0] / 25.4).toFixed(2)
     await vi.waitFor(() => expect(screen.getByRole('table')).toHaveTextContent(`Since January 1${inches} in`))
