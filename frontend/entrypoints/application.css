@@ -5,6 +5,7 @@
 /* Red Hat Text for body copy, Red Hat Display for headings: self-hosted variable fonts */
 @import '@fontsource-variable/red-hat-text';
 @import '@fontsource-variable/red-hat-display';
+@import './data.css';
 
 @plugin '@tailwindcss/typography';
 @plugin '@tailwindcss/forms';
