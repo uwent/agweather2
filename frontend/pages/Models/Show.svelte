@@ -237,8 +237,9 @@
       <section id="inputs" aria-labelledby="inputs-title" class="scroll-mt-24 space-y-3">
         <h2 id="inputs-title" class="text-2xl font-semibold">The weather it uses</h2>
         <p>
-          The model reads these daily values from AgWeather’s weather data for each location
-          {props.inputs.length ? '' : '(none: it needs only the date)'}.
+          {props.inputs.length
+            ? 'The model reads these daily values from AgWeather’s weather data for each location.'
+            : 'The model reads no weather: it needs only the date.'}
         </p>
         <ul class="space-y-2">
           {#each props.inputs as input (input.name)}
@@ -286,8 +287,9 @@
           <ul class="space-y-2">
             {#each props.changelog as change (change.version)}
               <li>
-                <span class="font-medium">{`Version ${change.version}`}</span>
-                <span class="text-sm text-ink-muted">{`, ${longDate(change.date)}`}</span>
+                <span class="font-medium">{`Version ${change.version}`}</span><span class="text-sm text-ink-muted">
+                  {`, ${longDate(change.date)}`}
+                </span>
                 <span class="block">{change.note}</span>
               </li>
             {/each}
@@ -337,7 +339,7 @@
       >
         <h2 id="open-at-a-site-title" class="text-xl font-semibold">Open at a site</h2>
         <p class="text-sm">See this model’s results through the season and the forecast for one location.</p>
-        <OpenAtSite modelId={props.id} modelName={props.name} />
+        <OpenAtSite modelId={props.id} />
       </section>
 
       {#if props.updated}

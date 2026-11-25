@@ -84,11 +84,19 @@
 
   {#if sections.length === 0}
     <p>No models match. Try another crop or fewer words.</p>
+  {:else if sections.length > 3}
+    <nav aria-label="Crops on this page">
+      <ul class="flex flex-wrap gap-x-3 gap-y-1 text-sm">
+        {#each sections as section (section.id)}
+          <li><a href="#crop-{section.id}" class="text-brand-600 underline hover:text-brand-700">{section.name}</a></li>
+        {/each}
+      </ul>
+    </nav>
   {/if}
 
   {#each sections as section (section.id)}
     <section class="space-y-3 border-t border-line pt-4" aria-labelledby="crop-{section.id}">
-      <h2 id="crop-{section.id}" class="text-xl font-semibold">{section.name}</h2>
+      <h2 id="crop-{section.id}" class="scroll-mt-24 text-xl font-semibold">{section.name}</h2>
       <div class="grid gap-x-8 gap-y-4 lg:grid-cols-2">
         {#each section.groups as entry (entry.group.id)}
           <section aria-labelledby="crop-{section.id}-{entry.group.id}">

@@ -7,7 +7,7 @@
   import { siteLabel, sites } from '@/lib/sites.svelte'
   import FindPlace from '@/lib/sites/FindPlace.svelte'
 
-  let { modelId, modelName }: { modelId: string; modelName: string } = $props()
+  let { modelId }: { modelId: string } = $props()
 
   function go(place: PickedPlace) {
     const url = siteModelUrl(siteKey(place.lat, place.lng), modelId)
@@ -16,12 +16,7 @@
 </script>
 
 <div class="space-y-3">
-  <FindPlace
-    id="model-site-search"
-    label={`Run ${modelName} for a place`}
-    placeholder="A town, address or coordinates"
-    onpick={go}
-  />
+  <FindPlace id="model-site-search" label="Find a place" placeholder="A town, address or coordinates" onpick={go} />
   {#if sites.length}
     <div class="text-sm">
       <p class="text-ink-muted">Or choose one of your sites:</p>
