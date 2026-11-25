@@ -13,7 +13,8 @@
   import { Link } from '@inertiajs/svelte'
 
   import { routes } from '@/lib/routes'
-  import { addSite, siteAt } from '@/lib/sites.svelte'
+  import { addSite, groups, setInGroup, siteAt } from '@/lib/sites.svelte'
+  import SiteGroups from '@/lib/sites/SiteGroups.svelte'
   import { coordinates, placeName } from '@/lib/sites/text'
 
   import { modelPath, sitePath, siteModelPath } from './links'
@@ -31,6 +32,7 @@
     placeError,
     searched = null,
     model = null,
+    group = null,
     onclear,
   }: {
     /** The point chosen (a click, or a place found by search) */
@@ -46,6 +48,8 @@
     searched?: string | null
     /** The map's model, for the links to its page and to it at this site */
     model?: { id: string; name: string } | null
+    /** The name of the group of sites the map shows; a site saved here goes into it when it's one of yours */
+    group?: string | null
     onclear: () => void
   } = $props()
 
@@ -67,8 +71,13 @@
     status = ''
   })
 
+  // The map's group, when it's one of the reader's own (a shared link's group may not be)
+  const ownGroup = $derived(group ? groups.find((g) => g.name.toLowerCase() === group.toLowerCase()) : undefined)
+  let choosingGroups = $state(false)
+
   function save() {
     const result = addSite({ lat, lng, name: name ?? coordinates(lat, lng) })
+    if (result.ok && ownGroup) setInGroup(ownGroup.id, result.value.key, true)
     status = result.ok ? `Saved as ${result.value.name}.` : result.message
   }
 
@@ -129,9 +138,26 @@
           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
         onclick={save}
       >
-        Save this site
+        {ownGroup ? `Save this site in ${ownGroup.name}` : 'Save this site'}
       </button>
     {/if}
   </div>
+  {#if saved}
+    <div class="mt-1 text-sm">
+      <button
+        type="button"
+        class={linkClass}
+        aria-expanded={choosingGroups}
+        onclick={() => (choosingGroups = !choosingGroups)}
+      >
+        {`Groups${groups.some((g) => g.siteKeys.includes(saved.key)) ? ` (${groups.filter((g) => g.siteKeys.includes(saved.key)).length})` : ''}`}
+      </button>
+      {#if choosingGroups}
+        <div class="mt-1">
+          <SiteGroups siteKey={saved.key} label={saved.name || coordinates(saved.lat, saved.lng)} />
+        </div>
+      {/if}
+    </div>
+  {/if}
   <p class="text-sm" role="status">{saved ? '' : status}</p>
 </section>

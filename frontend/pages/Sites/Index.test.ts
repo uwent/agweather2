@@ -71,7 +71,7 @@ beforeEach(() => {
 
 describe('the sites page', () => {
   it('explains how to add a site when there are none', () => {
-    render(Index, { models, crops: [] })
+    render(Index, { models, crops: [], settings: [] })
     expect(screen.getByRole('heading', { name: 'No sites yet' })).toBeVisible()
     expect(screen.getByRole('button', { name: 'Export CSV' })).toBeDisabled()
     expect(get).not.toHaveBeenCalled()
@@ -80,7 +80,7 @@ describe('the sites page', () => {
   it('shows each card’s weather and top risks, the weather for several sites in one request', async () => {
     addSite({ lat: 43.07, lng: -89.4, name: 'Home farm' })
     addSite({ lat: 44.5, lng: -89.5, name: 'Hancock' })
-    render(Index, { models, crops: [] })
+    render(Index, { models, crops: [], settings: [] })
     const card = (await screen.findByRole('listitem', { name: 'Home farm' })) as HTMLElement
     expect(await within(card).findAllByText('86 °F / 59 °F', {}, { timeout: 2000 })).toHaveLength(2)
     expect(within(card).getAllByText('Precipitation 1.00 in')).toHaveLength(2)
@@ -109,7 +109,7 @@ describe('the sites page', () => {
         : Promise.resolve(weather(params.points!.split(';').length)),
     )
     addSite({ lat: 43.07, lng: -89.4, name: 'Home farm' })
-    render(Index, { models, crops: [] })
+    render(Index, { models, crops: [], settings: [] })
     expect(await screen.findByText('Too many requests. Please wait.')).toBeVisible()
     expect(screen.getByRole('button', { name: 'Try again in 20 s' })).toBeDisabled()
   })
@@ -117,7 +117,7 @@ describe('the sites page', () => {
   it('moves a card and keeps the order', async () => {
     addSite({ lat: 43, lng: -89, name: 'A' })
     addSite({ lat: 44, lng: -89, name: 'B' })
-    render(Index, { models, crops: [] })
+    render(Index, { models, crops: [], settings: [] })
     await fireEvent.click(screen.getByRole('button', { name: 'Move A down' }))
     expect(sites.map((s) => s.name)).toEqual(['B', 'A'])
     expect(screen.getByRole('status', { hidden: true })).toHaveTextContent('A moved to position 2 of 2.')
@@ -126,7 +126,7 @@ describe('the sites page', () => {
 
   it('removes a site after asking', async () => {
     addSite({ lat: 43, lng: -89, name: 'A' })
-    render(Index, { models, crops: [] })
+    render(Index, { models, crops: [], settings: [] })
     await fireEvent.click(screen.getByRole('button', { name: 'Remove A' }))
     await fireEvent.click(screen.getByRole('button', { name: 'Remove A' }))
     expect(sites).toHaveLength(0)

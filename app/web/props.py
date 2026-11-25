@@ -90,6 +90,7 @@ class HomeProps(Props):
 class SitesIndexProps(Props):
     models: list[ModelEntry]
     crops: list[CropEntry]
+    settings: list["ModelSettings"] = Field(description="The models with settings, for the preferences panels.")
 
 
 class MapExplorerProps(Props):
@@ -123,6 +124,7 @@ class SiteProps(Props):
     name: str | None = Field(default=None, description="The `?name=` of a shared link, trimmed; None without one.")
     models: list[SiteModel]
     crops: list[SiteCrop]
+    settings: list["ModelSettings"] = Field(description="The models with settings, for the preferences panel.")
 
 
 # --- The model catalog and model pages (web.modelpages, track 4) ---------------------------------------------------
@@ -307,6 +309,18 @@ class ModelPlanting(Props):
     crop: str = Field(description="The crop's name.")
     typical_dates: bool = Field(description="Whether `early`, `mid` and `late` typical dates exist for it.")
     options: list[ModelOption] = Field(description="The crop model's own options, sent to the run too.")
+
+
+class ModelSettings(Props):
+    """A model's settings as the preferences panels offer them (for all sites, a group or a site): the same fields as
+    its page at a site, without the rest of its content."""
+
+    id: str
+    name: str
+    group: str
+    biofix: SiteModelBiofix | None
+    planting: ModelPlanting | None
+    options: list[ModelOption]
 
 
 class CropStageInfo(Props):

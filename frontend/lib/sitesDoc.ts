@@ -32,8 +32,11 @@ export type Prefs = {
   hiddenModels?: string[]
   /** A model's options by name (`{ 'late-blight-dsv': { protection_days: '7' } }`) */
   options?: Record<string, Record<string, string>>
-  /** A planting date, YYYY-MM-DD */
+  /** A planting date for every model that takes one: YYYY-MM-DD, or `early`, `mid` or `late` for the place's typical
+   * dates */
   planting?: string
+  /** The map's layer for a group's map view (a `/layers` id) */
+  layer?: string
 }
 
 export type SitesDoc = {
@@ -155,6 +158,7 @@ function readPrefs(value: unknown): Prefs {
     }
   }
   if (typeof value.planting === 'string') prefs.planting = value.planting
+  if (typeof value.layer === 'string') prefs.layer = value.layer
   return prefs
 }
 

@@ -203,6 +203,20 @@ export function removeGroup(id: string): Outcome {
   return { ok: true, value: undefined }
 }
 
+/** Moves a group to `index` in the list (clamped to its ends). The order matters: where two groups set a single
+ * value (a planting date, a model's option), the first one's wins. */
+export function moveGroup(id: string, index: number): Outcome {
+  if (sitesState.readOnly) return { ok: false, message: READ_ONLY_MESSAGE }
+  const from = doc.groups.findIndex((g) => g.id === id)
+  if (from < 0) return { ok: false, message: 'That group no longer exists.' }
+  const to = Math.max(0, Math.min(doc.groups.length - 1, index))
+  if (to === from) return { ok: true, value: undefined }
+  const [group] = doc.groups.splice(from, 1)
+  doc.groups.splice(to, 0, $state.snapshot(group))
+  save()
+  return { ok: true, value: undefined }
+}
+
 /** Puts a site in a group or takes it out */
 export function setInGroup(id: string, key: string, member: boolean): Outcome {
   if (sitesState.readOnly) return { ok: false, message: READ_ONLY_MESSAGE }
@@ -234,6 +248,16 @@ export function setPrefs(level: PrefsLevel, patch: { [K in keyof Prefs]?: Prefs[
     if (value === null || value === undefined) delete current[field]
     else (current as Record<string, unknown>)[field] = structuredClone(value)
   }
+  save()
+  return { ok: true, value: undefined }
+}
+
+/** Clears a level's own choices, so it follows the levels above it again ("Reset to my defaults") */
+export function resetPrefs(level: PrefsLevel): Outcome {
+  if (sitesState.readOnly) return { ok: false, message: READ_ONLY_MESSAGE }
+  if (level.kind === 'all') doc.prefs.all = {}
+  else if (level.kind === 'group') delete doc.prefs.groups[level.id]
+  else delete doc.prefs.sites[level.key]
   save()
   return { ok: true, value: undefined }
 }

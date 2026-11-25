@@ -44,6 +44,7 @@
   import { shortTitle } from '@/lib/explorer/catalog'
   import DataMap, { type DataInfo, type DataPick, type DataScale } from '@/lib/map/DataMap.svelte'
   import { motion } from '@/lib/motion'
+  import { drawGroup, groupBounds } from '@/lib/sites/groupMap'
   import { currentUnits } from '@/lib/units'
   import { viewState } from '@/lib/viewState'
   import type { LayerInfo, LayersResponse, PaletteInfo } from '@/types/api'
@@ -181,6 +182,43 @@
     if (!view.fromLink) return
     if (c && z !== null) m.jumpTo({ center: [c.lng, c.lat], zoom: z })
     dataMap.showOverlay(overlay)
+  })
+
+  // A group's sites (F12): marked and named, and the map framed to them when the group arrives (not when a shared
+  // link also gives the sharer's center and zoom, which the effect above shows)
+  let framed: string | null = null
+  $effect(() => {
+    const m = map
+    const group = $view.group
+    if (!m) return
+    untrack(() => {
+      const draw = () => {
+        try {
+          drawGroup(m, group)
+        } catch {
+          m.once('idle', draw)
+        }
+      }
+      draw()
+      const key = group ? JSON.stringify(group) : null
+      if (key === framed) return
+      framed = key
+      const bounds = group ? groupBounds(group) : null
+      const { c, z } = $view
+      if (bounds && !(view.fromLink && c && z !== null)) m.fitBounds(bounds, { padding: 80, maxZoom: 10, duration: 0 })
+    })
+  })
+  // A basemap switch replaces the style, and the sites with it
+  $effect(() => {
+    const m = map
+    if (!m) return
+    const redraw = () => {
+      if ($view.group) drawGroup(m, $view.group)
+    }
+    m.on('style.load', redraw)
+    return () => {
+      m.off('style.load', redraw)
+    }
   })
 
   function shareUrl() {
@@ -407,6 +445,16 @@
     </div>
     {#if wide.current}<ShareButton url={shareUrl} />{/if}
   </div>
+  {#if $view.group}
+    <p class="flex flex-wrap items-center gap-x-3 text-sm" data-testid="map-group">
+      <span>
+        {`Showing the group ${$view.group.name}: ${$view.group.sites.length === 1 ? '1 site' : `${$view.group.sites.length} sites`}, named on the map.`}
+      </span>
+      <button type="button" class="text-ink-muted underline hover:text-ink" onclick={() => change({ group: null })}>
+        Stop showing the group
+      </button>
+    </p>
+  {/if}
 {/snippet}
 
 {#snippet failed()}
@@ -430,6 +478,7 @@
       {placeError}
       searched={searchedName}
       model={mapModel}
+      group={$view.group?.name ?? null}
       onclear={() => change({ at: null })}
     />
   {/if}

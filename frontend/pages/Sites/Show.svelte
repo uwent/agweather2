@@ -21,7 +21,7 @@
   // (Weather). Its content (the point, a shared link's name, the models' catalog) comes as props; its numbers
   // from the API (D117). The tab and the Weather tab's settings are the page's view, kept per browser tab and
   // given in full by Share (D118).
-  let { lat, lng, name, models, crops }: SiteProps = $props()
+  let { lat, lng, name, models, crops, settings }: SiteProps = $props()
 
   const today = $derived(gridToday())
 
@@ -112,7 +112,17 @@
 </svelte:head>
 
 <div class="space-y-6">
-  <SiteHeader {lat} {lng} name={name ?? null} {location} latest={latest?.day.date ?? null} {shareUrl} />
+  <SiteHeader
+    {lat}
+    {lng}
+    name={name ?? null}
+    {location}
+    latest={latest?.day.date ?? null}
+    {shareUrl}
+    {models}
+    {crops}
+    {settings}
+  />
   {#if locate.value.status === 'failed'}
     <p class="text-sm text-ink-muted" role="status">{locate.value.message}</p>
   {/if}
