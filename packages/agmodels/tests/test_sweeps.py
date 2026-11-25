@@ -25,6 +25,23 @@ def run_sweep(model) -> list[dict]:
     return rows
 
 
+def same_rows(found: list[dict], saved: list[dict]) -> bool:
+    """The sweep's rows match the snapshot's, outputs within 1e-9 (a value rounded to 9 places can land on either side
+    of a rounding boundary on another machine's math library: CI's moved cotton-planting's by one in the last place)."""
+
+    def close(a, b) -> bool:
+        if isinstance(a, float) and isinstance(b, float | int) and not isinstance(b, bool):
+            return math.isclose(a, b, rel_tol=1e-12, abs_tol=2e-9)
+        return a == b
+
+    return len(found) == len(saved) and all(
+        f["inputs"] == s["inputs"]
+        and f["outputs"].keys() == s["outputs"].keys()
+        and all(close(v, s["outputs"][k]) for k, v in f["outputs"].items())
+        for f, s in zip(found, saved, strict=True)
+    )
+
+
 @pytest.mark.parametrize("model_id", sorted(all_models()))
 def test_sweep_matches_its_snapshot(model_id, update_snapshots):
     model = all_models()[model_id]
@@ -37,7 +54,7 @@ def test_sweep_matches_its_snapshot(model_id, update_snapshots):
         path.write_text(f'{{"version": {json.dumps(current["version"])}, "rows": [\n{rows}\n]}}\n')  # a row per line
         return
     saved = json.loads(path.read_text())
-    if current["rows"] != saved["rows"]:
+    if not same_rows(current["rows"], saved["rows"]):
         assert current["version"] != saved["version"], (
             f"{model_id}'s outputs changed but its version is still {saved['version']}: if intended, bump the version, add a changelog line and run with --update-snapshots"
         )

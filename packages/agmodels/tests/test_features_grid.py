@@ -73,4 +73,6 @@ def test_the_cci_kernel_matches_livestock_cci():
     found = cci_grid(t, rh, wind, sun)
     expected = livestock.cci(t, rh, wind, sun)
     assert found.dtype == np.float64 and found.shape == shape
-    np.testing.assert_array_equal(found, expected)  # the same libm calls in the same order: equal to the bit
+    # The same libm calls in the same order, equal to the bit on one machine; another CPU's math library (CI's) can differ
+    # in the last bit, so the check allows a few ulps
+    np.testing.assert_allclose(found, expected, rtol=1e-14, atol=0)
