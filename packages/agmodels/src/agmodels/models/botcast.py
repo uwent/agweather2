@@ -219,7 +219,7 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
 
 def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> np.ndarray:
     total = with_accumulations(outputs, SPEC.accumulations, biofix_index)["dsi_total"]
-    return np.where(np.isnan(total), np.nan, steps_over(total, 10, 20, 30, 40))
+    return steps_over(total, 10, 20, 30, 40)
 
 
 def explore(temperature: float, hours: float, hot: float, dry_yesterday: float) -> dict[str, float]:
