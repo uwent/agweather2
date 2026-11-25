@@ -76,6 +76,14 @@ One table in `agdata.catalog`: name, long name, stored unit, dtype and scale/off
 
 Zarr v3, int16 with pcodec (docs/pilot.md); a sharding codec if file counts get large.
 
+Two static stores, built once from outside sources over the coverage's extent and rebuilt only when the source or the box changes, sit beside the archive (not under the write lock; each built beside its path and renamed into place):
+
+<!-- prettier-ignore -->
+| Store | Built by | Holds |
+| --- | --- | --- |
+| `terrain.zarr` | `manage.py terrain` (`agdata.terrain`, D6) | Each cell's open-water share (NHDPlus V2.1) and elevation statistics, and a 31.7 m DEM for points |
+| `cropland.zarr` | `manage.py cropland` (`agdata.cropland`, D116) | Each cell's cropland from USDA NASS's Cropland Data Layer over the five newest years (2021–2025, rolled forward each February): `observed`, `cultivated` (NASS's Cultivated Layer rule) and, for every `croplist` id the CDL has a class for, `<crop>_mean` (the average share planted) and `<crop>_any` (the share in that crop in any year); uint16 hundredths of a percent. Every 30 m pixel counts in the cell holding its centre; shares are missing where under half the cell has CDL data. Read with `cropland.load(data_dir).share(crop, stat, window)`; nothing serves it yet (Phase 7's overlay, cropland-weighted summaries, potato planting on the grid) |
+
 Jobs that compute over the grid (the rollup, running totals, chill portions, the models' ingredients and crop tiers, the past-years copies) work in **square blocks of 256 cells** from the store window's corner (`agdata.blocks`): the daily chunk, so a block's write fills whole chunks, and eight hourly chunks a side. Over the coverage mask only blocks with a covered cell are kept, so a job's memory follows a block (~3.8 GB at peak for a 31-day rollup pass), not the window's width, and its work follows the coverage. Every daily statistic, feature and model works on each cell's own series, so blocks are independent: `BLOCK_WORKERS` (or a command's `--block-workers`) runs them in that many worker processes. A worker writes its block's values (`GridStore.write(record=False)`) and the calling process records the writes, creates stores and arrays and holds the write lock, so no chunk and no `_meta` array has two writers. Every hour carries a source flag (urma, rtma, nbm, openmeteo) and an ingest timestamp, so the archive can be revised (RTMA → URMA) idempotently.
 
 ### 5.4 Time and days
