@@ -7,10 +7,10 @@ provisional days after ERA5-Land's last and the forecast. Read with `omfiles` (G
 `agdata[ifs]` extra and imported only here (D53).
 
 Files are chunked 6 cells × 504 hours, so a read over the launch box is thousands of small range requests per file
-(~7,300, 1.5 KB each): one after another that was ~12 minutes a file and ~4 hours a read. `read_points` reads every
+(~7,300, 1.5 KB each): one after another that was ~11 minutes a file and ~3 hours a read. `read_points` reads every
 file at once through `omfiles.OmFileReaderAsync` (`S3Chunks`), a ring per read, with REQUESTS_AT_ONCE requests in
 flight over all of them, each bounded in time and tries, each pinned to the version of the file it opened (`_Pinned`),
-and the whole read to READ_DEADLINE.
+and the whole read to READ_DEADLINE: ~1.5 minutes over the launch box (2026-11-25).
 
 Checked 2026-10-31 against Open-Meteo's API (`models=ecmwf_ifs`) at a cell in northern Wisconsin: chunk 988's
 deep soil matched for 360 hours within 0.03 °C (the API adjusts for elevation). The files hold hours past the
@@ -60,9 +60,13 @@ VARIABLES = (*SOIL_LAYERS, "snow_depth", *SOIL_MOISTURE)  # the bucket's moistur
 LONG_RUN_HOURS = 240  # 00Z and 12Z
 SHORT_RUN_HOURS = 144  # 06Z and 18Z
 READ_ATTEMPTS = 4  # a chunk's file being replaced mid-read is retried this many times in all
-READ_DEADLINE = 45 * 60  # s: a read still going after this is abandoned (the job fails; the next run tries again)
+READ_DEADLINE = (
+    20 * 60
+)  # s (a read takes ~1.5 min): a read still going after this is abandoned (the job fails; the next run tries again)
 RINGS_AT_ONCE = 32  # ring reads in flight per chunk file (each is a few dozen range requests)
-REQUESTS_AT_ONCE = 32  # range requests in flight to S3 over the whole read
+REQUESTS_AT_ONCE = (
+    64  # range requests in flight to S3 over the whole read (launch box, 2026-11-25: 32 → 153 s, 64 → 80 s, 128 → 54 s)
+)
 REQUEST_TIMEOUT = 60  # s: one range request's whole time, botocore's own retries included
 REQUEST_ATTEMPTS = 3  # a range request that times out or fails in transit is sent this many times in all
 REQUEST_BACKOFF = 1.0  # s, times the attempt: the wait before a range request is sent again
