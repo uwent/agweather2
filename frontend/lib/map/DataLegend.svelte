@@ -56,7 +56,7 @@
     <div class="relative mt-0.5 h-4">
       {#each ticks as tick (tick.value)}
         <span
-          class="absolute top-0 tabular-nums {tick.at < 0.05
+          class="absolute top-0 whitespace-nowrap tabular-nums {tick.at < 0.05
             ? ''
             : tick.at > 0.95
               ? '-translate-x-full'
