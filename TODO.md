@@ -57,6 +57,9 @@ Things only you can do, by phase. Where things stand and why: [PLAN.md](PLAN.md)
 
 - [ ] **Soil moisture into the archive** (2026-11-25; D110): `uv run app/manage.py era5land --start 2016-01-01 --end 2026-11-20 --concurrent 3 --background` asks the CDS for every month again with the moisture layers (~130 requests, hours of queueing; resumable; each month is written and rolled up as it arrives; the kept ERA5-Land store grows ~75%). Then `uv run app/manage.py downloads` and `uv run app/manage.py rebuild --check` (should list nothing). IFS needs nothing: its next run writes moisture.
 
+- [ ] **Step 5's site services, locally** (2026-11-25): `uv run app/manage.py migrate` is done on the dev database (ops 0006–0007, updates 0001). Optionally write a first changelog entry in the admin (Updates and feedback → Changelog entries, tick Published), and run `uv run app/manage.py verify --keep-current` so the run already published is kept without waiting for the next one.
+- [ ] **Step 5 on the server** (with the next deploy): set `OPEN_METEO_API_KEY` in `infra/.env` (the plan's defaults, 5,000,000 calls a month renewing on the 12th, need nothing more; if the plan changes, set `OPEN_METEO_MONTHLY_CALLS` and `OPEN_METEO_BILLING_DAY` there). Allow ~5 GB on the data volume for `data/forecast/verify`. After deploying, check `/admin/ops/openmeteousage/` and `curl -s https://<host>/up | jq .open_meteo`, and after a week `uv run app/manage.py verify --report --days 7 --by-cycle`.
+
 ## Backburner (time-consuming; not soon)
 
 - [ ] **Onion thrips data** (2026-11-19, for the planned model in `docs/plans/models.md` part G): your lab's untreated-check onion thrips counts by date and site, with spray dates and irrigation records, to fit a base and test a heavy-rain term.

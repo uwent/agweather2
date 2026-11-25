@@ -28,10 +28,14 @@ Ben, 2026-11-12: Phase 6 now finishes the general backend services; endpoints th
 
 5. **Site-wide services and the forecast's operations.**
 
-- [ ] **Changelog and announcements** (a Django model, admin, served to the changelog page and linked from the API docs) and the **"Tell us how you use the API" form** (saved for review in admin; project-plan P0). S.
-- [ ] **Verification archive** (from Phase 4 B): each run's daily values (min, max, precip, DD and the model features) kept for 45 days, to report forecast error by lead time as the archive arrives (feeds `/up` and an admin page later).
-- [ ] **Open-Meteo when NBM is stale** (from Phase 4 E): inside the box, Open-Meteo is the fallback when NBM is stale, for points only. The grid shows no forecast rather than mixing sources.
-- [ ] **Open-Meteo usage** (from Phase 4 F): requests per day go to the admin page, with a warning at 80% of the month's plan.
+- [x] **Changelog and announcements** (a Django model, admin, served to the changelog page and linked from the API docs) and the **"Tell us how you use the API" form** (saved for review in admin; project-plan P0). S.
+  - Done 2026-11-25 (D112): the `updates` app (`ChangelogEntry`, `ApiUseReport`, their admin), `GET /api/v2/changelog`, the Atom feed `/changelog.atom`, stub pages `/changelog` and `/api-use` (Phase 7 designs them; the banner, a nav link and email to staff and to `notify` reports are Phase 7's), the API docs' links moved there from `/api/changes` and `/api/feedback`.
+- [x] **Verification archive** (from Phase 4 B): each run's daily values (min, max, precip, DD and the model features) kept for 45 days, to report forecast error by lead time as the archive arrives (feeds `/up` and an admin page later).
+  - Done 2026-11-25 (D113): `agdata.verification`, `ops.verification`, `ForecastScore`, the daily `score_forecasts` job, `manage.py verify` (`--check`, `--rescore`, `--report --by-cycle`, `--keep-current`), `/up`'s `forecast.verification`. All four long runs over the whole covered grid (~5 GB). The pooled-scores admin page is Phase 7's; the copy's time under the lock at publish over the launch box isn't measured yet.
+- [x] **Open-Meteo when NBM is stale** (from Phase 4 E): inside the box, Open-Meteo is the fallback when NBM is stale, for points only. The grid shows no forecast rather than mixing sources.
+  - Done 2026-11-25 (D114): `agdata.series`' `fill_forecast`, `ops.points.forecast_filler` and `FallbackBudget` (~10 s a request), warnings on every point route, no 503 when Open-Meteo is down (soil too), `/status` `forecast.fallback`; with it the `cells_days` per-cell day kinds fix and `openmeteo.spans` skipping needless history.
+- [x] **Open-Meteo usage** (from Phase 4 F): requests per day go to the admin page, with a warning at 80% of the month's plan.
+  - Done 2026-11-25 (D115): `ops.openmeteo_usage` (`OpenMeteoUsage`, `fetch_counted` with a guard test), every attempt counted, the billing month from the 12th, warnings in admin, `/up`, `jobs` and the dashboard, and the daily log.
 
 6. **New sources** (the ERA5-Land soil moisture requests queue at the CDS for hours, so send them early).
 
