@@ -18,7 +18,7 @@ def form_view(request: HttpRequest):
 
 
 def form_page(request: HttpRequest):
-    return render(request, "Home", HomeProps(api_docs_url="/docs"))
+    return render(request, "Home", HomeProps(api_docs_url="/docs", maps=[], in_season=[]))
 
 
 urlpatterns = [path("form/submit", form_view), path("form", form_page)]

@@ -241,25 +241,35 @@
   {/if}
 
   <div class="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line pt-2 text-sm">
-    <a href={siteUrl(site.key)} class="relative font-medium text-brand-600 underline hover:text-brand-700">
-      Weather and models<span class="sr-only"> for {label}</span>
+    <a
+      href={siteUrl(site.key)}
+      class="font-medium text-brand-600 underline hover:text-brand-700"
+      aria-label="Weather and models for {label}"
+    >
+      Weather and models
     </a>
     {#if !readOnly}
       {#if confirming}
         <span class="ml-auto flex items-center gap-2">
           <span>Remove this site?</span>
-          <button type="button" class="relative font-medium text-danger-ink underline" onclick={() => onremove(site)}>
-            Remove<span class="sr-only"> {label}</span>
+          <button
+            type="button"
+            class="font-medium text-danger-ink underline"
+            aria-label="Remove {label}"
+            onclick={() => onremove(site)}
+          >
+            Remove
           </button>
           <button type="button" class="underline" onclick={() => (confirming = false)}>Keep</button>
         </span>
       {:else}
         <button
           type="button"
-          class="relative ml-auto text-ink-muted underline hover:text-ink"
+          class="ml-auto text-ink-muted underline hover:text-ink"
+          aria-label="Remove {label}"
           onclick={() => (confirming = true)}
         >
-          Remove<span class="sr-only"> {label}</span>
+          Remove
         </button>
       {/if}
     {/if}

@@ -59,25 +59,28 @@
                 <span class="ml-auto flex gap-3">
                   <button
                     type="button"
-                    class="relative underline"
+                    class="underline"
+                    aria-label="Choose sites for {group.name}"
                     aria-expanded={choosing === group.id}
                     onclick={() => (choosing = choosing === group.id ? null : group.id)}
                   >
-                    Choose sites<span class="sr-only"> for {group.name}</span>
+                    Choose sites
                   </button>
                   <button
                     type="button"
-                    class="relative underline"
+                    class="underline"
+                    aria-label="Rename {group.name}"
                     onclick={() => (renaming = { id: group.id, name: group.name })}
                   >
-                    Rename<span class="sr-only"> {group.name}</span>
+                    Rename
                   </button>
                   <button
                     type="button"
-                    class="relative text-danger-ink underline"
+                    class="text-danger-ink underline"
+                    aria-label="Delete {group.name}"
                     onclick={() => removeGroup(group.id)}
                   >
-                    Delete<span class="sr-only"> {group.name}</span>
+                    Delete
                   </button>
                 </span>
               {/if}
