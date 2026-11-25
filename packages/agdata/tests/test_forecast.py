@@ -253,6 +253,22 @@ def test_a_cell_the_archive_has_no_pressure_for_gets_a_typical_value(tmp_path):
     assert (forecast._pressure(tmp_path, WINDOW, first, None) == FALLBACK_PRESSURE_KPA).all()  # no archive either
 
 
+def test_publishing_keeps_the_run_readers_are_on_and_a_newer_build(tmp_path):
+    # paths[0] is current, paths[1] a build that never published, paths[3] a newer build still running while
+    # paths[2] is published: the one older run kept is paths[1], but readers are on paths[0] and the newer build
+    # writes to paths[3], so neither may be deleted
+    cycles = [datetime(2025, 7, 10, h, tzinfo=UTC) for h in (1, 7, 13, 19)]
+    paths = [forecast.run_path(tmp_path, c) for c in cycles]
+    for p in paths:
+        p.mkdir(parents=True)
+    forecast.publish(tmp_path, paths[0])
+    forecast.publish(tmp_path, paths[2])
+    assert all(p.exists() for p in paths)
+    assert forecast.current_run(tmp_path) == paths[2].resolve()
+    forecast.publish(tmp_path, paths[3])  # paths[2] was current and is the one older kept; the rest go
+    assert [p.exists() for p in paths] == [False, False, True, True]
+
+
 def test_publishing_clears_a_pointer_left_by_a_crashed_publish(tmp_path):
     run = forecast.run_path(tmp_path, datetime(2025, 7, 10, 7, tzinfo=UTC))
     run.mkdir(parents=True)
