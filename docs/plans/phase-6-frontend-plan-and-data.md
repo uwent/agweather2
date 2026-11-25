@@ -209,3 +209,55 @@ Until the frontend exists, `/maps/{layer}.png` is how we look at the archive, so
 
 
 - **Exit:** the remaining backend work (above) built, documented and tested, with an end-of-phase review (CLAUDE.md) and the launch-box performance review. (Until 2026-11-12: the spec and decisions settled; B–H built. A's site groups and architecture decisions, F's tools and model page content moved to Phase 7 that day.)
+
+## Code review (2026-11-25/26, end of Phase 6)
+
+Ben, 2026-11-25: run the end-of-phase review now, with models parts C–G and J alongside Phase 7 rather than before it (settling PLAN.md's open choice). Four agents, one track each, in worktrees off `phase-6`, each finding checked against the code before it was fixed; then live measurements on the dev archive and the launch-box profile archive. Scope: `git log 16196b0..phase-6` (Phase 5's close to now). Suite after the merges: 4,411 passed, 90 skipped, 3 min 46 s at `-n 4`.
+
+**Code: `agdata` and `agmodels`** (11 fixes, each with a test)
+
+- [x] Step 7's four small code debts: `forecast.publish` keeps the run readers were on when builds overlap (it deleted by name); `GridStore.rescale` restartable (the old scale and the steps done kept in the array's attributes, the new scale set last); `lookup.steps_over` keeps NaN (botcast's wrapper removed); `GridStore.sources()` caching was already fixed (112 calls, 0.5 s, against 1,616 and ~10 s).
+- [x] The coverage mask (D105) in direct writers: `seasonmaps._write_biofix` and `croptiers._write_reached` stored `inf` outside it; `climatestore.derive` left gridMET's derived years unmasked while the archive's past-years copies are masked, and the normals pool both (the dev archive's gridMET years re-derived 2026-11-26, 2.2 h).
+- [x] A block-pool race: `modelmaps._read` and `_store_window` opened daily stores in the workers with `add_missing=True`, so two workers could add a new catalog variable's array to one store; they open only what they read, read-only.
+- [x] `croptiers.update` marked its variables current after the first block, before the rest were written.
+- [x] Apple scab's maturity: `_normal_cdf` was `np.vectorize(math.erf)` (~10 s a block per season); `agmodels.normal` keeps it as the reference and adds a Numba kernel for 4,096 values or more, equal to the bit (no output changed). `timecopy.update` copies packed values.
+- [x] `modelgrid._states_mask` (a copy of `_areas_mask`) removed.
+- Not done: `croptiers.refresh` and `seasonmaps.refresh` share a structure (low value).
+
+**Code: the app, scripts, infra** (7 fixes, each with a test where it can have one)
+
+- [x] A projection at several points made an Open-Meteo budget per point (D114 says one per request).
+- [x] `/up`'s three sections from three parallel branches: the not-started forecast body lacked `points_fallback`; `jobs status` and the dashboard lacked verification's problems.
+- [x] `precompute_maps` asked for maps under the API's time limit: a map past 30 s answered 503 and kept computing while the job started the next.
+- [x] `infra/compose.yaml` passed neither `OPEN_METEO_FALLBACK`, `API_TIME_LIMIT` nor `API_RATE_LIMIT`, and a blank value crashed `float("")`; `OPEN_METEO_MONTHLY_CALLS=0` divided by zero (refused at start now).
+- [x] A follow-on job already queued failed the job queuing it (`AlreadyEnqueued` on `update_crop_tiers`, seen in `bin/dev`): `tasks.queue_next`. `manage.py forecast` now queues the crop stages and maps as the job does.
+- [x] `layermaps.cached`: a failed compute could drop a newer request's lock.
+- [x] `manage.py verify` failed from the command line in every mode (its `check()` replaced Django's system checks; `call_command` skips them, so the tests passed): renamed, and a test holds every command to `BaseCommand.check`.
+- [x] The web process warms `features_grid`'s and `agmodels.normal`'s kernels too.
+- Checked and fine: the `updates` app's escaping, CSRF and spam limits; `spans`; `ingest`; `verification`; the `MAX_*` caps; the API docs' text.
+
+**Documentation** (~70 stale facts, checked against the code): CLAUDE.md 4 (what `jobs start` queues; the Numba gotcha; "Phase 6 D6", not decision D6), architecture.md 14 (no Herbie; grid days; rate limits in the app; grid formats; nClimGrid unused; §4's apps; §5.3's stores), api.md 2, decisions 9 dated notes (D83–D85, D96, D99, D107, D109, Q37, Q39), plans 6, frontend.md's status column 17, DEVELOPMENT.md and `.env.example` 5, module docstrings 13. The API's public text needed nothing; every model has its report.
+
+**Tests**
+
+- [x] Test archives hold only the variables a test reads (`agdata.testing.keep_only`): past years 75 → 32 s, an area's past years 7.8 → 0.5 s, the projection's copies 14 → 1.8 s, ERA5-Land's job once per module 54 → 30 s.
+- [x] `test_takes` reached for the network: frogeye leaf spot's request began before the archive, went to Open-Meteo, failed, and the test passed on the echoed parameters (with real days, maturity group without a planting date is 2.0, as documented). Fixed, and a root-conftest fixture now fails any test that tried the network, DNS included.
+- [x] Gaps closed: `ops.climatology.run`'s failure and stop paths, `seasonmaps.refresh`. Coverage 96%. Two ResourceWarnings closed.
+- Later (Phase 9): zarr creates ~14 ms an array, which dominates test archives; the projection fixture's ~40 s.
+
+**Measured live (2026-11-26)**
+
+<!-- prettier-ignore -->
+| Measurement | Now | Before |
+| --- | --- | --- |
+| A day's update, Wisconsin | 108 s end to end (102 s under the lock) | — |
+| A day's update, launch box (`update_days`, warm) | 173 s | 196 s (D1), 356 s before |
+| The same, cold, with the restitch, crop tiers, seasons and maps | 22 min (630 s under the lock) | — |
+| Stored seasons, launch box | 308 s, 12.2 GB peak over 2 workers | 211–240 s |
+| A forecast run, launch box | 14.0 min, 3.6 GB largest process, 1.5 GB on disk | ~13 min comparable (D1), 21 min before |
+| The verification copy under the lock (D113) | 3.75 s over the launch box, 23 MB a run | estimated tens of seconds |
+| IFS over the launch box | 8.4 GB largest process; the read ~4 h (7,304 sequential ~0.1 s range requests a variable-chunk) | ~14 GB estimated |
+| The projection, all 56 models at Madison | 1.31–1.61 s warm, 2.7 s cold | < 1 s target; 1.3 s |
+| `manage.py latency` | 12 of 12 met | all met |
+
+- [ ] **For Ben (2026-11-26):** the IFS read over the launch box (concurrent range reads and a bound on each request's wait, before the server's backfill); requests past the time limit piling up (a per-process cap); missing temperature counted as 0 degree days in apple scab and fire blight past the runner's 7-day gap fill; `series.Stores` adding arrays from requests outside the lock; the ten-year projection (1.4 s: move to Phase 7, where pages ask per model). PLAN.md lists them with recommendations.
