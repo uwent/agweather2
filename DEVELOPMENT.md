@@ -46,7 +46,7 @@ bin/agwx                              # the data dashboard (section 6); bin/agwx
 bin/ci                                # every check, in CI's order; stops at the first failure
 bin/e2e                               # Playwright on a production build and the agweather2_e2e database
 bin/e2e smoke.spec.ts --project desktop
-bin/types                             # after changing a props.py; commit frontend/types/generated
+bin/types                             # after changing a props.py or a page URL; commit frontend/types/generated and frontend/lib/routes.ts
 uv run app/manage.py createsuperuser  # for /admin
 uv run pytest packages/agmodels       # one package's tests
 uv run pytest --network               # also the tests that read NOAA's bucket (not run in CI)
