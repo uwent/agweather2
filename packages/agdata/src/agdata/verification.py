@@ -103,6 +103,7 @@ def _ingredient(key: str) -> Variable:
 
 
 def kept_variable(name: str) -> Variable:
+    """A kept variable by name: a daily variable's catalog entry, or a model ingredient's daily values."""
     return DAILY_VARIABLES[name] if name in DAILY_VARIABLES else _ingredient(name)
 
 
