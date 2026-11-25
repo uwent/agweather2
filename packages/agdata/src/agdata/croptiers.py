@@ -117,11 +117,13 @@ def update(
         model_id, part = key
         for tier, (write_from, names, reached) in found.items():
             store.record(names, write_from, (min(last, season(model_id, year)[1]) - write_from).days + 1, "derived")
-            store.mark_current(names)
             _write_reached(store, model_id, tier, part, reached, min(last, season(model_id, year)[1]))
             written.extend(name for name in names if name not in written)
 
     blocks.run(chains, handle, hold=lock, progress=progress)
+    if written:  # current once every block is written (each mark rewrites the array's metadata)
+        with (lock or nullcontext)():
+            store.mark_current(written)
     return written
 
 
