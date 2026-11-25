@@ -182,6 +182,26 @@ def test_gaps_in_the_inputs_are_estimated_and_reported():
         "red-crown-rot", dates=DATES, daily=daily, latitude=LATITUDE, start=r1, biofix=r1, gap_fill=methods
     )
     assert long.missing["air_temperature_mean"].nonzero()[0].tolist() == list(range(5, 15))
+    assert long.missing_before == {}
+
+    # Shown from a later day, the ten days are before it: not shown, but counted (D56)
+    later = runner.run(
+        "red-crown-rot",
+        dates=DATES,
+        daily=daily,
+        latitude=LATITUDE,
+        start=r1 + timedelta(days=20),
+        biofix=r1,
+        gap_fill=methods,
+    )
+    assert "air_temperature_mean" not in later.missing and later.missing_before == {"air_temperature_mean": 10}
+
+
+def test_days_missing_before_the_start_count_only_with_a_value_after_them():
+    daily = np.array([1.0, np.nan, 2.0, np.nan, np.nan])
+    assert runner.missing_before({"t": daily}, ["t"], shown=5) == {"t": 1}  # the last two: the data's end
+    scenarios = np.array([[1.0, 1.0], [np.nan, np.nan], [np.nan, 3.0], [4.0, np.nan]])
+    assert runner.missing_before({"t": scenarios}, ["t"], shown=3) == {"t": 2}  # the most of any scenario
 
 
 def _model_inputs(m, *, shape: tuple[int, ...] = ()) -> dict[str, np.ndarray]:

@@ -220,3 +220,56 @@ def test_a_fixed_biofix_is_refused_in_a_posted_run(client, archive):
     same = post(client, "models/western-bean-cutworm/run", _season_body() | {"options": {"biofix": "2025-03-01"}})
     plain = post(client, "models/western-bean-cutworm/run", _season_body())
     assert same.status_code == 200 and same.json()["data"] == plain.json()["data"]
+
+
+def _june(hole: range, **rest) -> dict:
+    """June 1–25, 2025 at 10–25 °C, without the days in `hole` (day numbers)."""
+    days = [f"2025-06-{d:02d}" for d in range(1, 26)]
+    lows = [None if d in hole else 10.0 for d in range(1, 26)]
+    highs = [None if d in hole else 25.0 for d in range(1, 26)]
+    return body_for(daily={"date": days, "air_temperature_min": lows, "air_temperature_max": highs}, **rest)
+
+
+def test_days_missing_past_the_fill_are_flagged_and_warned(client, archive):
+    """D56: a 10-day hole is longer than the fill's 7 days, so the running total adds nothing for it."""
+    body = post(client, "models/early-blight-pdays/run", _june(range(5, 15), options={"biofix": "2025-06-01"})).json()
+    data = body["data"]
+    assert data["air_temperature_max_missing"] == [5 <= d < 15 for d in range(1, 26)]
+    assert data["air_temperature_min_missing"] == data["air_temperature_max_missing"]
+    assert "air_temperature_max_estimated" not in data
+    assert body["meta"]["summary"]["missing_by_input"] == {"air_temperature_min": 10, "air_temperature_max": 10}
+    warning = next(w for w in body["meta"]["warnings"] if "gaps longer than the 7 days" in w)
+    assert warning == (
+        "The weather data have 10 days of 'air_temperature_min' and 'air_temperature_max' missing, in gaps longer than the 7 days we fill with estimates, so the model's running totals add nothing for those days and may run behind. Its results after them may be late. The columns ending in '_missing' mark the days shown."
+    )
+
+
+def test_a_short_hole_is_estimated_and_not_warned(client, archive):
+    body = post(client, "models/early-blight-pdays/run", _june(range(5, 10), options={"biofix": "2025-06-01"})).json()
+    data = body["data"]
+    assert sum(data["air_temperature_max_estimated"]) == 5
+    assert "air_temperature_max_missing" not in data and "missing_by_input" not in body["meta"]["summary"]
+    assert not any("gaps longer than" in w for w in body["meta"]["warnings"])
+
+
+def test_days_missing_before_the_first_day_shown_still_warn(client, archive):
+    """The hole is before `start`: no row shows it, but the totals from the biofix rest on it."""
+    body = post(
+        client,
+        "models/early-blight-pdays/run",
+        _june(range(5, 15), start="2025-06-20", options={"biofix": "2025-06-01"}),
+    ).json()
+    assert body["data"]["date"][0] == "2025-06-20" and "air_temperature_max_missing" not in body["data"]
+    assert body["meta"]["summary"]["missing_by_input"] == {"air_temperature_min": 10, "air_temperature_max": 10}
+    assert any("gaps longer than the 7 days" in w for w in body["meta"]["warnings"])
+
+
+def test_days_missing_at_the_end_are_flagged_but_not_warned(client, archive):
+    """Days after the last day with data aren't a gap the totals fall behind on."""
+    body = post(
+        client,
+        "models/early-blight-pdays/run",
+        _june(range(16, 26), end="2025-06-25", options={"biofix": "2025-06-01"}),
+    ).json()
+    assert "missing_by_input" not in body["meta"]["summary"]
+    assert not any("gaps longer than" in w for w in body["meta"]["warnings"])
