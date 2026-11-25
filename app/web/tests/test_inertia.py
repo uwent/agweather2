@@ -1,11 +1,13 @@
 import json
 import re
+from datetime import UTC, datetime
 
 import pytest
 from django.http import HttpRequest
 from django.urls import path
 
 from web.inertia import redirect_with_errors, render
+from web.middleware import grid_today
 from web.props import HomeProps
 
 INERTIA = {"X-Inertia": "true", "X-Inertia-Version": "dev"}
@@ -37,6 +39,7 @@ def test_first_load_embeds_page_with_shared_props(client):
     assert page["props"]["api_docs_url"] == "/api/v2/docs"
     assert page["props"]["app"] == {"version": "dev", "service_box": "wisconsin"}
     assert page["props"]["errors"] == {}
+    assert page["props"]["today"] == grid_today().isoformat()
 
 
 @pytest.mark.django_db
@@ -75,3 +78,16 @@ def test_theme_script_carries_the_csp_nonce(client):
     nonce = re.search(r"'nonce-([^']+)'", csp)
     assert nonce
     assert f'<script nonce="{nonce.group(1)}">' in response.content.decode()
+
+
+def test_grid_today_is_central_standard_time_all_year(monkeypatch):
+    import web.middleware
+
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            # 05:30 UTC on July 2 is 23:30 CST on July 1 (CDT would already be July 2's 00:30)
+            return datetime(2026, 7, 2, 5, 30, tzinfo=UTC)
+
+    monkeypatch.setattr(web.middleware, "datetime", Clock)
+    assert grid_today().isoformat() == "2026-07-01"

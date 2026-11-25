@@ -31,4 +31,8 @@ export interface HomeProps {
 }
 export interface SharedProps {
   app: AppInfo
+  /**
+   * The grid's current day: midnight to midnight Central Standard Time all year (D74).
+   */
+  today: string
 }
