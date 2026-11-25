@@ -11,6 +11,8 @@ export { expect } from '@playwright/test'
 
 // A plain green 256 px tile for the satellite basemap
 const imageryTile = readFileSync(new URL('./fixtures/imagery-tile.png', import.meta.url))
+// A data tile of the daily minimum temperature over Wisconsin (the map explorer)
+const dataTile = readFileSync(new URL('./fixtures/data-tile.png', import.meta.url))
 
 const cors = { 'Access-Control-Allow-Origin': '*' }
 
@@ -49,6 +51,24 @@ export const test = base.extend({
         }),
       )
     }
+    // The map explorer's API calls, answered from recorded responses (the test server has no archive). Only the
+    // endpoints the map uses: the rest of the API answers for real.
+    const api = (name: string) => JSON.parse(readFileSync(new URL(name, import.meta.url), 'utf8'))
+    const recorded: [string, () => unknown][] = [
+      ['**/api/v2/layers', () => api('../frontend/test/fixtures/layers.json')],
+      ['**/api/v2/models', () => api('../frontend/test/fixtures/models.json')],
+      ['**/api/v2/crops', () => api('../frontend/test/fixtures/crops.json')],
+      ['**/api/v2/degree-days/presets', () => api('../frontend/test/fixtures/presets.json')],
+      ['**/api/v2/palettes', () => api('./fixtures/palettes.json')],
+      ['**/api/v2/tiles/*.json?*', () => api('./fixtures/tilejson.json')],
+      ['**/api/v2/locate?*', () => api('./fixtures/locate.json')],
+      ['**/api/v2/weather/daily?*', () => api('./fixtures/daily.json')],
+      ['**/api/v2/degree-days?*', () => api('./fixtures/daily.json')],
+    ]
+    for (const [pattern, body] of recorded) await context.route(pattern, (route) => route.fulfill({ json: body() }))
+    await context.route('**/api/v2/tiles/*/*/*/*/*.png*', (route) =>
+      route.fulfill({ body: dataTile, contentType: 'image/png' }),
+    )
     await use(context)
   },
 })

@@ -14,6 +14,7 @@ from web import views as web
 urlpatterns = [
     path("", web.home, name="home"),
     path("up", ops.up, name="up"),
+    path("map", web.map_explorer, name="map"),
     path("changelog", updates.changelog, name="changelog"),
     path("changelog.atom", ChangelogFeed(), name="changelog-feed"),
     path("api-use", updates.api_use, name="api-use"),
@@ -30,7 +31,3 @@ urlpatterns = [
 if settings.DEBUG or settings.TESTING:
     # The yearly downloads (ops.downloads); in production Caddy serves them from the data volume
     urlpatterns.append(re_path(r"^downloads/(?P<path>.+)$", ops.download, name="downloads"))
-
-if settings.DEBUG:
-    # A page for reviewing the map and chart parts ported from WISP 3 (Phase 7 wave 1); wave 2 replaces it
-    urlpatterns.append(path("dev/map", web.dev_map_demo, name="dev-map-demo"))

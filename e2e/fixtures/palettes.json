@@ -1,0 +1,190 @@
+[
+  {
+    "id": "BuYlRd",
+    "kind": "diverging",
+    "colors": [
+      "#313695",
+      "#4575b4",
+      "#74add1",
+      "#abd9e9",
+      "#e0f3f8",
+      "#ffffbf",
+      "#fee090",
+      "#fdae61",
+      "#f46d43",
+      "#d73027",
+      "#a50026"
+    ],
+    "description": "Blue through pale yellow to red",
+    "source": "ColorBrewer RdYlBu, reversed",
+    "colorblind_safe": true
+  },
+  {
+    "id": "BrBG",
+    "kind": "diverging",
+    "colors": ["#543005", "#995d13", "#cfa255", "#f0deb2", "#f5f5f5", "#b5e3dc", "#5bb2a8", "#0e726a", "#003c30"],
+    "description": "Brown through white to blue-green",
+    "source": "ColorBrewer BrBG",
+    "colorblind_safe": true
+  },
+  {
+    "id": "YlGnBu",
+    "kind": "sequential",
+    "colors": ["#d6efb3", "#aadeb7", "#73c8bd", "#41b6c4", "#2498c1", "#2072b2", "#234da0", "#1f2f88", "#081d58"],
+    "description": "Light yellow-green to deep blue",
+    "source": "ColorBrewer YlGnBu, from 0.2",
+    "colorblind_safe": true
+  },
+  {
+    "id": "YlOrBr",
+    "kind": "sequential",
+    "colors": ["#fee391", "#fecc60", "#feae3c", "#f98f24", "#ec7014", "#d45506", "#b24003", "#8c3005", "#662506"],
+    "description": "Pale yellow through orange to brown",
+    "source": "ColorBrewer YlOrBr, from 0.25",
+    "colorblind_safe": true
+  },
+  {
+    "id": "PuBu",
+    "kind": "sequential",
+    "colors": ["#d0d1e6", "#b1c2de", "#8db3d5", "#64a3cb", "#3690c0", "#1178b4", "#04659e", "#035180", "#023858"],
+    "description": "Pale lavender to deep blue",
+    "source": "ColorBrewer PuBu, from 0.25",
+    "colorblind_safe": true
+  },
+  {
+    "id": "Greys",
+    "kind": "sequential",
+    "colors": ["#f3f3f3", "#e3e3e3", "#d1d1d1", "#bbbbbb", "#9e9e9e", "#838383", "#696969", "#505050", "#2e2e2e"],
+    "description": "Light to dark gray",
+    "source": "ColorBrewer Greys, from 0.1 to 0.85",
+    "colorblind_safe": true
+  },
+  {
+    "id": "Greens",
+    "kind": "sequential",
+    "colors": ["#f7fcf5", "#e5f5e0", "#c7e9c0", "#a1d99b", "#74c476", "#41ab5d", "#238b45", "#006d2c", "#00441b"],
+    "description": "Pale to deep green",
+    "source": "ColorBrewer Greens",
+    "colorblind_safe": true
+  },
+  {
+    "id": "RdPu",
+    "kind": "sequential",
+    "colors": ["#fff7f3", "#fde0dd", "#fcc5c0", "#fa9fb5", "#f768a1", "#dd3497", "#ae017e", "#7a0177", "#49006a"],
+    "description": "Pale pink to deep purple",
+    "source": "ColorBrewer RdPu",
+    "colorblind_safe": true
+  },
+  {
+    "id": "viridis",
+    "kind": "sequential",
+    "colors": ["#440154", "#472d7b", "#3b528b", "#2c728e", "#21918c", "#28ae80", "#5ec962", "#addc30", "#fde725"],
+    "description": "Dark purple through teal to yellow",
+    "source": "matplotlib viridis",
+    "colorblind_safe": true
+  },
+  {
+    "id": "inferno",
+    "kind": "sequential",
+    "colors": ["#2b0b57", "#59106e", "#84206b", "#ae305c", "#d54a41", "#f06f20", "#fc9f07", "#f7d340", "#fcffa4"],
+    "description": "Dark purple through red and orange to pale yellow",
+    "source": "matplotlib inferno, from 0.15",
+    "colorblind_safe": true
+  },
+  {
+    "id": "magma",
+    "kind": "sequential",
+    "colors": ["#251255", "#52137c", "#7c2382", "#a8327d", "#d5446d", "#f4675c", "#fd9a6a", "#fecc8f", "#fcfdbf"],
+    "description": "Dark purple through pink to pale yellow",
+    "source": "matplotlib magma, from 0.15",
+    "colorblind_safe": true
+  },
+  {
+    "id": "twilight",
+    "kind": "cyclic",
+    "colors": [
+      "#e2d9e2",
+      "#b3c6ce",
+      "#7ca2c2",
+      "#6276ba",
+      "#5e45a6",
+      "#4e186f",
+      "#2f1436",
+      "#581647",
+      "#8e2c50",
+      "#b25652",
+      "#c68a6d",
+      "#d4bcac"
+    ],
+    "description": "Around the compass, back to where it started",
+    "source": "matplotlib twilight",
+    "colorblind_safe": true
+  },
+  {
+    "id": "BuRd_2",
+    "kind": "categorical",
+    "colors": ["#4575b4", "#d73027"],
+    "description": "Blue, red",
+    "source": "ColorBrewer RdYlBu, 2 of its 11 classes",
+    "colorblind_safe": true
+  },
+  {
+    "id": "BuYlRd_3",
+    "kind": "categorical",
+    "colors": ["#4575b4", "#fee090", "#d73027"],
+    "description": "Blue, yellow, red",
+    "source": "ColorBrewer RdYlBu, 3 of its 11 classes",
+    "colorblind_safe": true
+  },
+  {
+    "id": "BuYlRd_4",
+    "kind": "categorical",
+    "colors": ["#4575b4", "#fee090", "#f46d43", "#a50026"],
+    "description": "Blue, yellow, orange, dark red",
+    "source": "ColorBrewer RdYlBu, 4 of its 11 classes",
+    "colorblind_safe": true
+  },
+  {
+    "id": "BuYlRd_5",
+    "kind": "categorical",
+    "colors": ["#4575b4", "#abd9e9", "#fee090", "#f46d43", "#a50026"],
+    "description": "Blue, light blue, yellow, orange, dark red",
+    "source": "ColorBrewer RdYlBu, 5 of its 11 classes",
+    "colorblind_safe": true
+  },
+  {
+    "id": "GyOrRd_3",
+    "kind": "categorical",
+    "colors": ["#d9d9d9", "#fdae61", "#d73027"],
+    "description": "Gray, orange, red",
+    "source": "ColorBrewer Greys and RdYlBu",
+    "colorblind_safe": true
+  },
+  {
+    "id": "rainbow",
+    "kind": "sequential",
+    "colors": [
+      "#a100c7",
+      "#6e00dc",
+      "#1f3dfa",
+      "#00c7c7",
+      "#00d18c",
+      "#a1e633",
+      "#e6dc33",
+      "#f08229",
+      "#f00000",
+      "#dc0063"
+    ],
+    "description": "Violet through blue, green, yellow and orange to crimson",
+    "source": "AgWeather v1's maps (gnuplot)",
+    "colorblind_safe": false
+  },
+  {
+    "id": "GnYlRd",
+    "kind": "sequential",
+    "colors": ["#00cc00", "#ffd700", "#cc0000"],
+    "description": "Green through gold to red",
+    "source": "VDIFN's spectral maps",
+    "colorblind_safe": false
+  }
+]

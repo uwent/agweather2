@@ -1,0 +1,80 @@
+{
+  "meta": {
+    "request": { "lat": 43.07, "lng": -89.4 },
+    "params": { "lat": 43.07, "lng": -89.4, "points": null },
+    "location": {
+      "lat": 43.07,
+      "lng": -89.4,
+      "cell": { "j": 913, "i": 1477, "lat": 43.0706, "lng": -89.3973 },
+      "in_box": true,
+      "timezone": "America/Chicago",
+      "county": "Dane County",
+      "state": "WI",
+      "elevation_m": 262.6,
+      "cell_elevation_m": 263.2,
+      "water_percent": 24
+    },
+    "units": {},
+    "summary": {},
+    "sources": [],
+    "warnings": [],
+    "attribution": "AgWeather, University of Wisconsin–Madison. Weather from NOAA (URMA, RTMA, HRRR, NBM), Open-Meteo (CC BY 4.0) and ECMWF; contains modified Copernicus Climate Change Service information 2026.",
+    "api_version": "2.0",
+    "generated_at": "2026-11-25T21:43:29Z",
+    "compute_ms": 18
+  },
+  "data": {
+    "lat": 43.07,
+    "lng": -89.4,
+    "cell": { "j": 913, "i": 1477, "lat": 43.0706, "lng": -89.3973 },
+    "in_box": true,
+    "timezone": "America/Chicago",
+    "county": "Dane County",
+    "state": "WI",
+    "elevation_m": 262.6,
+    "cell_elevation_m": 263.2,
+    "water_percent": 24,
+    "day_basis": null,
+    "days": null,
+    "corners": [
+      [43.06018, -89.41267],
+      [43.05929, -89.38307],
+      [43.08092, -89.38184],
+      [43.08182, -89.41145]
+    ],
+    "planting": [
+      {
+        "crop": "corn",
+        "early": "05-03",
+        "typical": "05-08",
+        "late": "05-15",
+        "level": "county",
+        "source": "Deines, J. M. et al. (2023), Remote Sensing of Environment 291, 113551 (https://doi.org/10.1016/j.rse.2023.113551; data CC BY 4.0, https://doi.org/10.5281/zenodo.7790257): median over 2000–2020"
+      },
+      {
+        "crop": "soybean",
+        "early": "05-11",
+        "typical": "05-17",
+        "late": "05-23",
+        "level": "county",
+        "source": "Deines, J. M. et al. (2023), Remote Sensing of Environment 291, 113551 (https://doi.org/10.1016/j.rse.2023.113551; data CC BY 4.0, https://doi.org/10.5281/zenodo.7790257): median over 2000–2020"
+      },
+      {
+        "crop": "winter-wheat",
+        "early": "10-05",
+        "typical": "10-07",
+        "late": "10-10",
+        "level": "state",
+        "source": "USDA NASS (2010), Usual Planting and Harvesting Dates for U.S. Field Crops, Agricultural Handbook 628: 1990–2009 crop progress"
+      },
+      {
+        "crop": "potato",
+        "early": "04-07",
+        "typical": "04-24",
+        "late": "05-14",
+        "level": "location",
+        "source": "UW Vegetable Pathology, Vegetable Crop Updates (vegpath.plantpath.wisc.edu): early, mid and late planting dates by location in each season's early and late blight table, mean over 2020–2026"
+      }
+    ]
+  }
+}

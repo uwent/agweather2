@@ -51,6 +51,12 @@ export type TileJson = {
   domain_unit?: string
   domain_middle?: number
   encoding: TileEncoding
+  /** What the map shows beyond its name (the date or range and settings); optional until the API sends it */
+  subtitle?: string | null
+  /** A longer note on how the map was made; optional */
+  caption?: string | null
+  /** The API's warnings about the map, in its words; optional */
+  warnings?: string[]
 }
 
 /** What a pixel holds: a value in the stored unit, 'none' (code 1) or null (missing) */
