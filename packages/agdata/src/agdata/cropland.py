@@ -175,7 +175,8 @@ def fetch(
     year: int, dest: Path, progress: Callable[[int, int], None] | None = None, timeout_s: float = 60.0, tries: int = 5
 ) -> int:
     """Downloads a year's zip to `dest` through a .part file, resuming one left by an earlier try (an HTTP range)
-    and checking the length the server gave; renamed once whole. Returns its size in bytes."""
+    and checking the length the server gave; renamed once whole. A dropped connection or a server error (5xx) is
+    tried again, up to `tries` in all, after a wait. Returns its size in bytes."""
     import requests
 
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -205,6 +206,12 @@ def fetch(
         except (requests.ConnectionError, requests.Timeout, requests.exceptions.ChunkedEncodingError):
             if attempt == tries - 1:
                 raise
+            _wait_before_retry(attempt)
+            continue
+        except requests.HTTPError as error:  # NASS's server answers 500 now and then; a retry gets the file
+            if error.response is None or error.response.status_code < 500 or attempt == tries - 1:
+                raise
+            _wait_before_retry(attempt)
             continue
         if part.stat().st_size == total:
             break
@@ -213,6 +220,15 @@ def fetch(
         raise OSError(f"{dest.name}: got {size:,} bytes of {total if total is not None else '?'}; rerun to resume")
     part.rename(dest)
     return size
+
+
+RETRY_WAIT_S = 10.0
+
+
+def _wait_before_retry(attempt: int) -> None:
+    import time
+
+    time.sleep(RETRY_WAIT_S * (attempt + 1))
 
 
 def extracted(data_dir: Path) -> Path:

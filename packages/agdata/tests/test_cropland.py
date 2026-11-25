@@ -125,8 +125,10 @@ class _Response:
         return False
 
     def raise_for_status(self):
+        import requests
+
         if self.status_code >= 400:
-            raise OSError(self.status_code)
+            raise requests.HTTPError(str(self.status_code), response=self)  # type: ignore[arg-type]
 
     def iter_content(self, chunk_size: int):
         for k in range(0, len(self.body), 4):
@@ -157,6 +159,15 @@ def test_a_fetch_resumes_a_part_file_with_a_range(tmp_path, monkeypatch):
         response = _Response(body, 0, 200)
         response.headers["Content-Length"] = "99"
         return response
+
+    answers = iter([500, 200])
+
+    def flaky(url, headers, stream, timeout):
+        return _Response(body, 0, next(answers))
+
+    monkeypatch.setattr(requests, "get", flaky)
+    monkeypatch.setattr(cropland, "RETRY_WAIT_S", 0)
+    assert cropland.fetch(2023, tmp_path / "cdl" / cropland.zip_name(2023)) == len(body)  # a 500 is tried again
 
     monkeypatch.setattr(requests, "get", short)
     with pytest.raises(OSError, match="rerun to resume"):
