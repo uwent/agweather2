@@ -9,7 +9,7 @@ This file is where things stand and what's next: the one handoff, Ben's open cho
 <!-- prettier-ignore -->
 | Doc | Holds |
 | --- | --- |
-| [docs/decisions.md](docs/decisions.md) | Why: the recorded decisions (D1–D115) and the questions put to Ben (Q1–Q41). A new decision takes the next D number |
+| [docs/decisions.md](docs/decisions.md) | Why: the recorded decisions (D1–D116) and the questions put to Ben (Q1–Q41). A new decision takes the next D number |
 | [docs/architecture.md](docs/architecture.md) | How the system is laid out (§3–13: data, ingest, forecast, models, API, web app, jobs, testing, deployment) |
 | [docs/plans/](docs/plans/) | The work, by phase in build order (Phases 1–5 done, 6 current, 7–9 sketches), and the plans that run beside a phase (models, humidity). Its README says what each holds and its status |
 | [docs/api.md](docs/api.md) | The API v2 contract |
@@ -40,6 +40,7 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 - **Changelog and the API-use form (D112):** a new `updates` app; `/api/v2/changelog`, `/changelog.atom`, stub pages `/changelog` and `/api-use` (Phase 7 designs them, and adds the banner, a nav link and the emails).
 - **Verification archive (D113):** every published long run's lead days 1–10 kept 45 days (~5 GB), scored daily into `ForecastScore`, `manage.py verify`, `/up`'s `forecast.verification` with a lead-1 alarm at 3 °C. Not measured yet: the copy's time under the lock at publish over the launch box (estimated tens of seconds). Scoring 01/07/19Z is new (D39/D49 were fitted on 13Z): compare with `verify --report --by-cycle` once a week of scores is in.
 - **Open-Meteo when NBM is stale (D114):** points in the box take Open-Meteo's forecast past the observed hours; a failure is a warning, not a 503 (soil too). Fixed with it: `cells_days` took each zone's day kinds from its first cell. CLAUDE.md's rule on fetching in a request updated (Ben). Worth a changelog entry once deployed.
+- **Cropland fractions (D116, step 6):** `data/cropland.zarr` built here from the CDL's 2021–2025 (zips kept in `data/cdl/`, 9.7 GB; 8 min with 4 workers); each crop's mean and any-year share and cultivated land per cell. Checked over Wisconsin: cultivated within 0.14 points of NASS's Cultivated Layer; five-year means above NASS's planted acreage (corn +7%, soybean +5%, potato +13%), so `_mean` is a relative share. `--box upper_midwest` is needed here (`SERVICE_BOX` is `wisconsin`). Two real-data bugs found and fixed: 2025's file has a wider extent, and only 2025 classes the Great Lakes as water.
 - **Open-Meteo usage (D115):** every attempt counted by day (`fetch_counted`, a guard test holds every caller to it); billing month from the 12th; warnings at 80% or on pace to pass, in admin, `/up`, `jobs`, the dashboard and the log.
 
 **Earlier (2026-11-24 and 25): step 7's launch-box profile, B through D** (numbers in the phase plan's step 7; the story in `tmp/session-log.md`):
@@ -55,13 +56,13 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 
 1. **Step 7 G's end-of-phase review waits** (Ben, 2026-11-25) until steps 5 and 6 and models parts C–G and J are done, so it covers them too; step 7's other items are closed. F is done (NHDPlus units, requests cropped to the extent; the buffer's Canadian cells lack 2016–2018 precipitation, elevation and a 30-year normal: noted, no fill proposed). Not measured yet: an IFS read's peak memory on the launch box (needs a live read), and a day's update and a forecast run end to end since D6.
 2. **Soil moisture** is built and merged (D110, D111); the archive fills when Ben runs the ERA5-Land backfill (TODO.md). Nothing about soil is to be fixed further now: Ben will revisit soil temperature and moisture together, possibly with Wisconet's station-trained models (Phase 9's backlog).
-3. **Step 6**, new sources: cropland fractions (soil moisture above).
+3. **Cropland's follow-ons**, each planned first: potato planting on the grid (needs a soil-DD normal: `last10` from the archive or the rule refitted on air temperature), cropland-weighted summaries and normals, the overlay (Phase 7; Ben's question of serving the 30 m CDL ourselves vs CropScape's map service, D116), models' service areas.
 4. Alongside, as answers arrive: models parts C–G and J ([docs/plans/models.md](docs/plans/models.md), each planned first), D100's humidity correction ([docs/plans/humidity.md](docs/plans/humidity.md), step 1: is URMA the right target in Oklahoma).
 5. Small: a top-level `"biofix"` in a JSON POST body is ignored without a word (only `options.biofix` is read; pre-existing): refuse or read it. `scripts/maggot_normals.py` could carry the fourth flight's freeze table (now from a scratch script; the report gives the recipe).
 
 **Where things stand:**
 
-- Phases 1–5 have no open boxes. Phase 6: steps 1–3 done (the API contract, discovery data, events on model layers); step 4's parts A, B (apple), H (all 19 legacy insects on their sources, D102), I1 and I2 (a report and page for every model) done; step 5 done (D112–D115); step 6 open (soil moisture built, cropland fractions to do); step 7 closed but for G, the end-of-phase review.
+- Phases 1–5 have no open boxes. Phase 6: steps 1–3 done (the API contract, discovery data, events on model layers); step 4's parts A, B (apple), H (all 19 legacy insects on their sources, D102), I1 and I2 (a report and page for every model) done; step 5 done (D112–D115); step 6 done (soil moisture D110–D111, cropland D116; the archive's ERA5-Land backfill is Ben's); step 7 closed but for G, the end-of-phase review.
 - Every model is `beta` and every topic page `status: draft` until launch (D46).
 - A test reaches for the network: `app/api/tests/test_takes.py::test_a_models_options_and_its_crop_models_are_listed` (frogeye leaf spot) tries an outside address, which pytest-socket blocks, so it passes with a warning; it predates round 2. Find what it calls and give it a fixture.
 - The API's public docs at `/api/v2/docs` come from `app/api/docs/` (`test_docs` checks completeness and style); public text follows CLAUDE.md's "Writing for the public".

@@ -305,3 +305,50 @@ def fake_run(data_dir, cycle: datetime, values: dict[str, dict[date, np.ndarray]
     (path / "run.json").write_text(json.dumps(info))
     write_days(path, values)
     return path
+
+
+def cdl_raster(path, window: Window, classes: np.ndarray, shift_m: float = 0.0, margin: int = 20) -> "Path":
+    """A Cropland Data Layer year as NASS's (Albers, 30 m, uint8 classes, LZW, tiled) over `window` and `margin`
+    pixels around it, each pixel's class its centre's cell's in `classes` ((y, x) over the window; 0 outside it),
+    the cell found exactly (pyproj at every pixel). `shift_m` moves the raster east off the 30 m lattice."""
+    from pathlib import Path
+
+    import rasterio
+    from rasterio.transform import from_origin
+
+    from agdata import cropland
+
+    r0, r1, c0, c1 = cropland.pixel_window(window, west=0.0, north=0.0)  # a lattice whose corner is (0, 0)
+    west, north = (c0 - margin) * cropland.PIXEL + shift_m, -(r0 - margin) * cropland.PIXEL
+    height, width = r1 - r0 + 2 * margin, c1 - c0 + 2 * margin
+    xs = west + (np.arange(width) + 0.5) * cropland.PIXEL
+    ys = north - (np.arange(height) + 0.5) * cropland.PIXEL
+    fj, fi = cropland._albers_to_grid()(*np.meshgrid(xs, ys))
+    j, i = np.floor(fj + 0.5).astype(int), np.floor(fi + 0.5).astype(int)
+    inside = (j >= window.j0) & (j < window.j1) & (i >= window.i0) & (i < window.i1)
+    values = np.zeros((height, width), dtype=np.uint8)
+    values[inside] = np.asarray(classes, dtype=np.uint8)[j[inside] - window.j0, i[inside] - window.i0]
+    path = Path(path)
+    with rasterio.open(
+        path, "w", driver="GTiff", width=width, height=height, count=1, dtype="uint8", crs=cropland.ALBERS,
+        transform=from_origin(west, north, cropland.PIXEL, cropland.PIXEL), compress="lzw", tiled=True,
+        blockxsize=64, blockysize=64,
+    ) as out:  # fmt: skip
+        out.write(values, 1)
+    return path
+
+
+def cdl_zip(data_dir, year: int, raster) -> "Path":
+    """A year's zip in `data/cdl/` laid out as NASS's: the raster beside a pyramid, a world file and metadata."""
+    import zipfile
+
+    from agdata import cropland
+
+    dest = cropland.zip_path(data_dir, year)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(dest, "w", compression=zipfile.ZIP_DEFLATED) as z:
+        z.write(raster, arcname=f"{year}_30m_cdls.tif")
+        z.writestr(f"{year}_30m_cdls.tif.ovr", b"pyramid")
+        z.writestr(f"{year}_30m_cdls.tfw", "30\n0\n0\n-30\n0\n0\n")
+        z.writestr(f"metadata_CDL{year % 100}.htm", "<html></html>")
+    return dest

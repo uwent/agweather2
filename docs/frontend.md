@@ -60,7 +60,7 @@ Priorities follow project-plan.md's launch table (P0 for April 1, 2027; P1 durin
 | Click a cell: its value, the cell's outline, and a panel with the recent days, the forecast and a chart, leading to the site page | VDIFN popup, alfalfa "Selected grid" | ✓ `/locate`, `/weather/daily`, `/models/{id}/run` |
 | Map title chip ("Tar spot risk, Nov 6, 2026"), legend with units, data credit, and the data's newest hour | Crop Risk Tool, D60 | ✓ `/layers`, `/status` |
 | Share and export: copy link; **Save image** (the map as shown, with its title, date, legend, labels the reader can drag, and the credit band, drawn on a canvas at 2× for newsletters; ported from late-blight-db); GeoTIFF or NetCDF of the view; TileJSON for GIS | late-blight-db, v1 map images | — for the image; ✓ `/grids`, `/tiles/{layer}.json` |
-| Overlays: radar, MRMS rain (24, 72 h), WPC forecast rain (1, 3, 7 days), U.S. Drought Monitor (port from WISP 3); counties; cropland (CDL) | WISP 3, Crop Risk Tool | — third-party; cropland ✗ (Phase 6 cropland fractions) |
+| Overlays: radar, MRMS rain (24, 72 h), WPC forecast rain (1, 3, 7 days), U.S. Drought Monitor (port from WISP 3); counties; cropland (CDL) | WISP 3, Crop Risk Tool | — third-party; cropland ◐ each cell's crop shares built (`data/cropland.zarr`, D116), the overlay layer planned with Phase 7's maps (whether to serve the 30 m CDL ourselves or use CropScape's map service is open) |
 | Climate layers: normal, departure from normal, percentile (U2U and MRCC departure maps) | alfalfa "Weather vs climate" | ○ climate layers |
 | Place search, my location, coordinates | all | — Nominatim (search on Enter) |
 
