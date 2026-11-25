@@ -171,3 +171,21 @@ def test_a_kept_read_for_another_window_is_refused(tmp_path):
     ifs.save_latest(path, kept_hours(2), run=START)
     with pytest.raises(ValueError, match="another window"):
         ifs.latest_at(path, [START], Window(j0=900, j1=903, i0=1400, i1=1405))
+
+
+def test_over_a_coverage_only_its_extent_is_read(monkeypatch):
+    from agdata import coverage
+
+    whole = ifs.read(START, START, WINDOW, all_land(), lambda v, c: LinearField(c))
+    part = Window(j0=901, j1=904, i0=1402, i1=1406)  # standing in for a coverage's extent
+    monkeypatch.setattr(coverage, "extent", lambda w: part if w == WINDOW else w)
+    ifs._coast.clear()
+    read = ifs.read_points(START, START, WINDOW, all_land(), lambda v, c: LinearField(c))
+    np.testing.assert_array_equal(read.needed, ifs.coast_weights(part, all_land()).needed)  # only the part's points
+    cropped = read.hours().values["soil_temperature_10cm"][0]
+    y, x = slice(1, 4), slice(2, 6)
+    np.testing.assert_array_equal(cropped[y, x], whole.values["soil_temperature_10cm"][0][y, x])
+    outside = np.ones(WINDOW.shape, dtype=bool)
+    outside[y, x] = False
+    assert np.isnan(cropped[outside]).all()
+    ifs._coast.clear()

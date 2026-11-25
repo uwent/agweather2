@@ -116,3 +116,42 @@ def test_extent_covers_the_windows_curved_edges():
     assert box.south == pytest.approx(lat.min()) and box.east == pytest.approx(lon.max())
     wider = gridmet.extent(window)
     assert wider.south == pytest.approx(box.south - gridmet.MARGIN)
+
+
+def test_over_a_coverage_only_its_extent_is_asked_for_and_regridded(monkeypatch):
+    from agdata import coverage
+
+    window = Window(j0=1000, j1=1010, i0=1400, i1=1412)
+    part = Window(j0=1002, j1=1007, i0=1403, i1=1410)  # standing in for a coverage's extent
+    box = gridmet.extent(window)
+    lat = np.arange(np.floor(box.south * 24), np.ceil(box.north * 24) + 1) / 24
+    lon = np.arange(np.floor(box.west * 24), np.ceil(box.east * 24) + 1) / 24
+    grid = LatLonGrid(name="t", first_lat=lat[0], first_lon=lon[0], step=gridmet.STEP, ny=lat.size, nx=lon.size)
+    field = np.arange(lat.size * lon.size, dtype=np.float32).reshape(1, lat.size, lon.size)
+    year = gridmet.Year(source=gridmet.BY_NAME["tmmx"], days=[date(2001, 1, 1)], values=field, grid=grid)
+    whole = gridmet.regrid(year, window)[0]
+    monkeypatch.setattr(coverage, "extent", lambda w: part if w == window else w)
+    gridmet._weights.clear()
+    asked = gridmet.extent(window)
+    assert asked.south > box.south and asked.east < box.east  # the request shrinks to the part
+    cropped = gridmet.regrid(year, window)[0]
+    y, x = slice(2, 7), slice(3, 10)
+    np.testing.assert_array_equal(cropped[y, x], whole[y, x])  # the part as before
+    outside = np.ones(window.shape, dtype=bool)
+    outside[y, x] = False
+    assert np.isnan(cropped[outside]).all()  # the rest missing
+
+
+def test_the_launch_coverages_requests_cover_its_extent_not_its_window():
+    from agdata import coverage
+    from agdata.sources import era5land
+
+    window = coverage.preset("upper_midwest").window
+    extent = coverage.extent(window)
+    lat, lon = NDFD.window_latlon(extent)
+    box = gridmet.extent(window, margin=0.0)
+    assert box.south == pytest.approx(lat.min()) and box.west == pytest.approx(lon.min())
+    _, west, south, _ = era5land.area(window)
+    assert south <= lat.min() - era5land.AREA_MARGIN + 0.1 and west <= lon.min() - era5land.AREA_MARGIN + 0.1
+    window_lat, window_lon = NDFD.window_latlon(window)
+    assert west > window_lon.min() and south > window_lat.min()  # smaller than the window's

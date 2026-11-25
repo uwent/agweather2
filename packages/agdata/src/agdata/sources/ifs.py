@@ -33,8 +33,8 @@ from typing import Any
 import numpy as np
 import zarr
 
-from agdata import soil_seam
-from agdata.coast import KERNEL_OFFSETS, Weights, bspline, finish, land_only
+from agdata import coverage, soil_seam
+from agdata.coast import KERNEL_OFFSETS, Weights, bspline, finish, land_only, padded
 from agdata.grid import NDFD, Window
 from agdata.ingest import SOIL
 from agdata.sources import era5land
@@ -127,6 +127,9 @@ def coast_weights(window: Window, land: era5land.LandMask) -> Weights:
     """The window's weights by the coast rule (`agdata.coast`, D79): land neighbours only, the nearest land point
     within 40 km where none is, nothing on water. Kept per window and mask."""
     key = (window, land.grid, hash(land.fraction.tobytes()))
+    part = coverage.extent(window)
+    if key not in _coast and part != window:  # over a coverage's window, its extent only
+        _coast[key] = padded(coast_weights(part, land), part, window)
     if key not in _coast:
         spline = weights_for(window)
         points = np.unique(spline.cells)

@@ -107,6 +107,20 @@ def land_only(weights: Weights, is_land: np.ndarray) -> Weights:
     return Weights(cells=weights.cells, weights=np.where(is_land, weights.weights, 0.0))
 
 
+def padded(inner: Weights, part: Window, window: Window) -> Weights:
+    """Weights built over a part of `window` (a coverage's extent, `coverage.extent`), put on the whole window: the
+    cells outside the part get no weight, so they're missing, as a store over a coverage keeps them anyway. A source
+    is then asked only for what the part needs."""
+    k = inner.cells.shape[0]
+    cells = np.zeros((k, *window.shape), dtype=inner.cells.dtype)
+    weights = np.zeros((k, *window.shape), dtype=inner.weights.dtype)
+    y = slice(part.j0 - window.j0, part.j1 - window.j0)
+    x = slice(part.i0 - window.i0, part.i1 - window.i0)
+    cells[:, y, x] = inner.cells
+    weights[:, y, x] = inner.weights
+    return Weights(cells=cells, weights=weights)
+
+
 def finish(
     weights: Weights, window: Window, land_points: np.ndarray, point_lat: np.ndarray, point_lon: np.ndarray
 ) -> tuple[Weights, np.ndarray]:

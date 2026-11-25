@@ -97,6 +97,47 @@ UNITS: tuple[Unit, ...] = (
         ),
     ),
     Unit(
+        id="05",
+        folder="NHDPlusMS/NHDPlus05",
+        snapshot="NHDPlusV21_MS_05_NHDSnapshot_06.7z",
+        box=Box(south=34.9, west=-90.4, north=42.5, east=-77.9),
+        subregions=(
+            Subregion(
+                id="05a",
+                file="NHDPlusV21_MS_05_05a_NEDSnapshot_01.7z",
+                box=Box(south=34.7, west=-89.7, north=39.6, east=-81.9),
+            ),
+            Subregion(
+                id="05b",
+                file="NHDPlusV21_MS_05_05b_NEDSnapshot_01.7z",
+                box=Box(south=37.3, west=-89.3, north=41.8, east=-83.7),
+            ),
+            Subregion(
+                id="05c",
+                file="NHDPlusV21_MS_05_05c_NEDSnapshot_01.7z",
+                box=Box(south=36.3, west=-86.0, north=41.3, east=-80.2),
+            ),
+            Subregion(
+                id="05d",
+                file="NHDPlusV21_MS_05_05d_NEDSnapshot_01.7z",
+                box=Box(south=35.4, west=-84.0, north=43.1, east=-76.1),
+            ),
+        ),
+    ),
+    Unit(
+        id="06",
+        folder="NHDPlusMS/NHDPlus06",
+        snapshot="NHDPlusV21_MS_06_NHDSnapshot_09.7z",
+        box=Box(south=34.1, west=-88.7, north=37.2, east=-81.5),
+        subregions=(
+            Subregion(
+                id="06a",
+                file="NHDPlusV21_MS_06_06a_NEDSnapshot_01.7z",
+                box=Box(south=33.3, west=-89.1, north=38.0, east=-80.5),
+            ),
+        ),
+    ),
+    Unit(
         id="07",
         folder="NHDPlusMS/NHDPlus07",
         snapshot="NHDPlusV21_MS_07_NHDSnapshot_08.7z",
@@ -120,6 +161,29 @@ UNITS: tuple[Unit, ...] = (
         ),
     ),
     Unit(
+        id="08",
+        folder="NHDPlusMS/NHDPlus08",
+        snapshot="NHDPlusV21_MS_08_NHDSnapshot_07.7z",
+        box=Box(south=28.5, west=-94.3, north=37.9, east=-87.9),
+        subregions=(
+            Subregion(
+                id="03g",
+                file="NHDPlusV21_MS_08_03g_NEDSnapshot_01.7z",
+                box=Box(south=29.7, west=-91.2, north=33.8, east=-88.1),
+            ),
+            Subregion(
+                id="08a",
+                file="NHDPlusV21_MS_08_08a_NEDSnapshot_01.7z",
+                box=Box(south=28.7, west=-94.6, north=35.1, east=-88.3),
+            ),
+            Subregion(
+                id="08b",
+                file="NHDPlusV21_MS_08_08b_NEDSnapshot_01.7z",
+                box=Box(south=31.8, west=-92.9, north=38.4, east=-87.3),
+            ),
+        ),
+    ),
+    Unit(
         id="09",
         folder="NHDPlusSR",
         snapshot="NHDPlusV21_SR_09_NHDSnapshot_07.7z",
@@ -129,6 +193,95 @@ UNITS: tuple[Unit, ...] = (
                 id="09a",
                 file="NHDPlusV21_SR_09_09a_NEDSnapshot_01.7z",
                 box=Box(south=44.2, west=-109.5, north=53.3, east=-88.8),
+            ),
+        ),
+    ),
+    Unit(
+        id="10U",
+        folder="NHDPlusMS/NHDPlus10U",
+        snapshot="NHDPlusV21_MS_10U_NHDSnapshot_07.7z",
+        box=Box(south=41.5, west=-114.1, north=49.1, east=-95.6),
+        subregions=(
+            Subregion(
+                id="10e",
+                file="NHDPlusV21_MS_10U_10e_NEDSnapshot_03.7z",
+                box=Box(south=41.2, west=-106.0, north=48.5, east=-95.2),
+            ),
+            Subregion(
+                id="10f",
+                file="NHDPlusV21_MS_10U_10f_NEDSnapshot_03.7z",
+                box=Box(south=42.0, west=-107.6, north=49.5, east=-98.3),
+            ),
+            Subregion(
+                id="10g",
+                file="NHDPlusV21_MS_10U_10g_NEDSnapshot_03.7z",
+                box=Box(south=41.5, west=-112.9, north=48.9, east=-102.6),
+            ),
+            Subregion(
+                id="10h",
+                file="NHDPlusV21_MS_10U_10h_NEDSnapshot_03.7z",
+                box=Box(south=44.7, west=-115.0, north=50.9, east=-102.3),
+            ),
+            Subregion(
+                id="10i",
+                file="NHDPlusV21_MS_10U_10i_NEDSnapshot_03.7z",
+                box=Box(south=43.5, west=-116.2, north=50.7, east=-108.8),
+            ),
+        ),
+    ),
+    Unit(
+        id="10L",
+        folder="NHDPlusMS/NHDPlus10L",
+        snapshot="NHDPlusV21_MS_10L_NHDSnapshot_06.7z",
+        box=Box(south=37.0, west=-109.2, north=43.7, east=-90.0),
+        subregions=(
+            Subregion(
+                id="10a",
+                file="NHDPlusV21_MS_10L_10a_NEDSnapshot_01.7z",
+                box=Box(south=36.6, west=-96.6, north=41.8, east=-89.4),
+            ),
+            Subregion(
+                id="10b",
+                file="NHDPlusV21_MS_10L_10b_NEDSnapshot_01.7z",
+                box=Box(south=37.7, west=-104.6, north=42.6, east=-93.7),
+            ),
+            Subregion(
+                id="10c",
+                file="NHDPlusV21_MS_10L_10c_NEDSnapshot_01.7z",
+                box=Box(south=37.9, west=-110.5, north=44.2, east=-99.8),
+            ),
+            Subregion(
+                id="10d",
+                file="NHDPlusV21_MS_10L_10d_NEDSnapshot_01.7z",
+                box=Box(south=39.8, west=-103.2, north=44.1, east=-94.3),
+            ),
+        ),
+    ),
+    Unit(
+        id="11",
+        folder="NHDPlusMS/NHDPlus11",
+        snapshot="NHDPlusV21_MS_11_NHDSnapshot_06.7z",
+        box=Box(south=31.0, west=-106.6, north=39.4, east=-90.2),
+        subregions=(
+            Subregion(
+                id="11a",
+                file="NHDPlusV21_MS_11_11a_NEDSnapshot_02.7z",
+                box=Box(south=30.6, west=-104.6, north=36.5, east=-91.8),
+            ),
+            Subregion(
+                id="11b",
+                file="NHDPlusV21_MS_11_11b_NEDSnapshot_02.7z",
+                box=Box(south=33.8, west=-106.3, north=37.8, east=-94.6),
+            ),
+            Subregion(
+                id="11c",
+                file="NHDPlusV21_MS_11_11c_NEDSnapshot_02.7z",
+                box=Box(south=33.8, west=-97.8, north=39.4, east=-89.5),
+            ),
+            Subregion(
+                id="11d",
+                file="NHDPlusV21_MS_11_11d_NEDSnapshot_02.7z",
+                box=Box(south=34.7, west=-107.6, north=40.2, east=-95.7),
             ),
         ),
     ),
@@ -177,7 +330,9 @@ def read_water(shapefiles: Iterable[Path], box: Box) -> list[shapely.Geometry]:
 
     found: list[shapely.Geometry] = []
     for path in shapefiles:
-        reader = shapefile.Reader(str(path))
+        reader = shapefile.Reader(
+            str(path), encodingErrors="replace"
+        )  # names in Latin-1 (unit 08: "Lac à Cypres"); only the types are read
         names = [f[0] for f in reader.fields[1:]]
         ftype, fcode = names.index("FTYPE"), names.index("FCODE")
         for shape_record in reader.iterShapeRecords():

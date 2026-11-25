@@ -27,7 +27,8 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata.coast import KERNEL_OFFSETS, Weights, bspline, finish, land_only
+from agdata import coverage
+from agdata.coast import KERNEL_OFFSETS, Weights, bspline, finish, land_only, padded
 from agdata.grid import NDFD, LatLonGrid, Window
 from agdata.sources.grib import eccodes
 from agdata.sources.openmeteo import soil_at_depths
@@ -59,8 +60,9 @@ class Hours:
 
 
 def area(window: Window) -> list[float]:
-    """The CDS `area` ([north, west, south, east], on the 0.1° grid) covering a window with a margin."""
-    lat, lon = NDFD.window_latlon(window)
+    """The CDS `area` ([north, west, south, east], on the 0.1° grid) covering a window with a margin: over a
+    coverage's window, only its extent (`coverage.extent`), as `coast_weights` reads no more."""
+    lat, lon = NDFD.window_latlon(coverage.extent(window))
     north = math.ceil((float(lat.max()) + AREA_MARGIN) / STEP) * STEP
     south = math.floor((float(lat.min()) - AREA_MARGIN) / STEP) * STEP
     west = math.floor((float(lon.min()) - AREA_MARGIN) / STEP) * STEP
@@ -252,6 +254,10 @@ def coast_weights(grid: LatLonGrid, window: Window, land: LandMask) -> Weights:
     rule; kept per grid, window and mask."""
     key = (grid, window, land.grid, hash(land.fraction.tobytes()))
     if key in _coast:
+        return _coast[key]
+    part = coverage.extent(window)
+    if part != window:  # over a coverage's window, its extent only (the rest is missing in the store anyway)
+        _coast[key] = padded(coast_weights(grid, part, land), part, window)
         return _coast[key]
     is_land = land.on(grid).ravel()
     lat, lon = NDFD.window_latlon(window)

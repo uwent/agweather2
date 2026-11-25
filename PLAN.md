@@ -46,11 +46,12 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 
 **Next, in order:**
 
-1. **Step 7 F** (sources over the mask, before the server's backfill) and **G** (the rest of step 7, the end-of-phase review). Not measured yet: an IFS read's peak memory on the launch box (needs a live read), and a day's update and a forecast run end to end since D6.
-2. **Step 5**, site services: changelog and announcements, the API use form, the verification archive, Open-Meteo when NBM is stale, Open-Meteo usage.
-3. **Step 6**, new sources: soil moisture (send the ERA5-Land requests early: the CDS queue takes hours) and cropland fractions.
-4. Alongside, as answers arrive: models parts C–G and J ([docs/plans/models.md](docs/plans/models.md), each planned first), D100's humidity correction ([docs/plans/humidity.md](docs/plans/humidity.md), step 1: is URMA the right target in Oklahoma).
-5. Small: a top-level `"biofix"` in a JSON POST body is ignored without a word (only `options.biofix` is read; pre-existing): refuse or read it. `scripts/maggot_normals.py` could carry the fourth flight's freeze table (now from a scratch script; the report gives the recipe).
+1. **Step 7 G** (the rest of step 7, then the end-of-phase review). F is done (NHDPlus units, requests cropped to the extent; the buffer's Canadian cells lack 2016–2018 precipitation, elevation and a 30-year normal: noted, no fill proposed). Not measured yet: an IFS read's peak memory on the launch box (needs a live read), and a day's update and a forecast run end to end since D6.
+2. **Soil moisture** (step 6's item, Ben 2026-11-25): an agent is building it in a worktree branch off `phase-6` (validation against Wisconet and Open-Meteo first, then the archive); merge its branch and record its decisions.
+3. **Step 5**, site services: changelog and announcements, the API use form, the verification archive, Open-Meteo when NBM is stale, Open-Meteo usage.
+4. **Step 6**, new sources: cropland fractions (soil moisture above).
+5. Alongside, as answers arrive: models parts C–G and J ([docs/plans/models.md](docs/plans/models.md), each planned first), D100's humidity correction ([docs/plans/humidity.md](docs/plans/humidity.md), step 1: is URMA the right target in Oklahoma).
+6. Small: a top-level `"biofix"` in a JSON POST body is ignored without a word (only `options.biofix` is read; pre-existing): refuse or read it. `scripts/maggot_normals.py` could carry the fourth flight's freeze table (now from a scratch script; the report gives the recipe).
 
 **Where things stand:**
 

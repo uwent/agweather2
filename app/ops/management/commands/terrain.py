@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from agdata import coast, terrain
+from agdata import coast, coverage, terrain
 from ops.management.base import ReportingCommand
 
 
@@ -15,7 +15,9 @@ class Command(ReportingCommand):
 
     def handle(self, *args, **options):
         data_dir = settings.DATA_DIR
-        window = self.window(options["box"])
+        window = coverage.extent(
+            self.window(options["box"])
+        )  # a coverage's extent: readers pad the rest (`Terrain.crop`)
         reason = "asked for" if options["rebuild"] else terrain.status(data_dir, window)
         missing = terrain.missing_archives(data_dir, window)
         needed = terrain.archives_for(window)

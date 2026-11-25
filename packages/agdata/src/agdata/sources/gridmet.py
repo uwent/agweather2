@@ -25,7 +25,8 @@ import h5netcdf
 import h5py
 import numpy as np
 
-from agdata.coast import KERNEL_OFFSETS, Weights, bspline, finish, land_only
+from agdata import coverage
+from agdata.coast import KERNEL_OFFSETS, Weights, bspline, finish, land_only, padded
 from agdata.grid import NDFD, Box, LatLonGrid, Window
 
 URL = "https://www.northwestknowledge.net/metdata/data/{name}_{year}.nc"
@@ -116,8 +117,9 @@ def _text(value: Any) -> Any:
 
 
 def extent(window: Window, margin: float = MARGIN) -> Box:
-    """The latitudes and longitudes a window's cells reach (its edges curve on the Lambert grid), plus `margin`."""
-    lat, lon = NDFD.window_latlon(window)
+    """The latitudes and longitudes a window's cells reach (its edges curve on the Lambert grid), plus `margin`; over
+    a coverage's window, only its extent's (`coverage.extent`), as `weights` reads no more."""
+    lat, lon = NDFD.window_latlon(coverage.extent(window))
     return Box(
         south=float(np.min(lat)) - margin,
         west=float(np.min(lon)) - margin,
@@ -250,6 +252,10 @@ def weights(grid: LatLonGrid, window: Window, land: np.ndarray) -> Weights:
     `land` (ny, nx: gridMET's points with values); kept per grid, window and land."""
     key = (grid, window, hash(np.packbits(land).tobytes()))
     if key in _weights:
+        return _weights[key]
+    part = coverage.extent(window)
+    if part != window:  # over a coverage's window, its extent only (the rest is missing in the store anyway)
+        _weights[key] = padded(weights(grid, part, land), part, window)
         return _weights[key]
     is_land = land.ravel()
     lat, lon = NDFD.window_latlon(window)
