@@ -1,5 +1,6 @@
 """Model maps finished from the stored ingredients (`agdata.modelgrid`): the same as running each model at a cell."""
 
+from contextlib import contextmanager
 from datetime import date, timedelta
 
 import numpy as np
@@ -167,7 +168,16 @@ def test_a_model_computed_on_request_is_the_same_a_block_at_a_time(built, model_
     whole = modelgrid.model_map(root, model_id, DAYS[0], DAYS[1], WINDOW, tier=None)
     monkeypatch.setattr(modelgrid.blocks, "SIZE", 1)  # a cell a block
     assert len(modelgrid.blocks.blocks(WINDOW)) == WINDOW.size
-    split = modelgrid.model_map(root, model_id, DAYS[0], DAYS[1], WINDOW, tier=None)
+    entered: list[str] = []
+
+    @contextmanager
+    def gate():  # the web app's limit on heavy computations (`api.heavy`) holds the blocks' whole computation
+        entered.append("in")
+        yield
+        entered.append("out")
+
+    split = modelgrid.model_map(root, model_id, DAYS[0], DAYS[1], WINDOW, tier=None, on_request=gate)
+    assert entered == ["in", "out"]
     assert split.dates == whole.dates and split.kinds == whole.kinds
     for name, values in whole.outputs.items():
         np.testing.assert_array_equal(split.outputs[name], values, err_msg=name)

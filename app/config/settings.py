@@ -76,6 +76,13 @@ REQUEST_LOG = os.environ.get("REQUEST_LOG", "1" if ENV == "development" else "0"
 # The API's time limit (api.timelimit): seconds before a request still running is answered with a 503; 0 turns it
 # off. Off in tests (their own turn it on). Caddy's response_header_timeout (infra/Caddyfile) is the outer bound.
 API_TIME_LIMIT: float | None = None if TESTING else (float(os.environ.get("API_TIME_LIMIT") or "30") or None)
+# A client with this many requests still running past the time limit (in one web process) is refused with a 429
+# until one finishes (api.timelimit); 0 turns it off
+API_OVERRUN_LIMIT: int | None = int(os.environ.get("API_OVERRUN_LIMIT") or "2") or None
+# Computations that can take GBs (api.heavy: maps computed on request, long ranges over large areas) take one of this
+# many slots per web process, waiting up to API_HEAVY_WAIT seconds for one before a 503; 0 turns the limit off
+API_HEAVY_SLOTS: int | None = int(os.environ.get("API_HEAVY_SLOTS") or "1") or None
+API_HEAVY_WAIT = float(os.environ.get("API_HEAVY_WAIT") or "5")
 
 INSTALLED_APPS = [
     "django.contrib.admin",

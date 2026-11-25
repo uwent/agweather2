@@ -26,6 +26,9 @@ x-app: &app
     COPERNICUS_API_KEY: ${COPERNICUS_API_KEY:-}
     API_RATE_LIMIT: ${API_RATE_LIMIT:-}  # blank for each: the defaults in config/settings.py
     API_TIME_LIMIT: ${API_TIME_LIMIT:-}
+    API_OVERRUN_LIMIT: ${API_OVERRUN_LIMIT:-}
+    API_HEAVY_SLOTS: ${API_HEAVY_SLOTS:-}
+    API_HEAVY_WAIT: ${API_HEAVY_WAIT:-}
   volumes:
     - data:/data
 

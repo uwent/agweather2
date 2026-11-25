@@ -70,11 +70,14 @@ def hour_text(when: datetime) -> str:
 
 class ApiError(Exception):
     """A request the API can't answer as asked: `code` is a stable machine name (`out_of_range`, `unknown_variable`),
-    `param` the query parameter at fault, if one is."""
+    `param` the query parameter at fault, if one is; `retry_after` (seconds) sets `Retry-After`."""
 
-    def __init__(self, code: str, message: str, param: str | None = None, status: int = 422):
+    def __init__(
+        self, code: str, message: str, param: str | None = None, status: int = 422, retry_after: int | None = None
+    ):
         super().__init__(message)
         self.code, self.message, self.param, self.status = code, message, param, status
+        self.retry_after = retry_after
 
     def item(self) -> dict[str, Any]:
         return {"code": self.code, "param": self.param, "message": self.message}
@@ -91,7 +94,16 @@ def install(api: NinjaAPI) -> None:
 
     @api.exception_handler(ApiError)
     def api_error(request: HttpRequest, exc: ApiError) -> HttpResponse:
-        return envelope.error_response(request, [exc.item()], status=exc.status)
+        if exc.code == "busy":
+            logging.getLogger("api.heavy").warning(
+                "API request refused, no slot for a heavy computation (%s): %s",
+                getattr(exc, "what", ""),
+                request.get_full_path(),
+            )
+        response = envelope.error_response(request, [exc.item()], status=exc.status)
+        if exc.retry_after is not None:
+            response["Retry-After"] = str(exc.retry_after)
+        return response
 
     @api.exception_handler(NinjaValidationError)
     def invalid(request: HttpRequest, exc: NinjaValidationError) -> HttpResponse:

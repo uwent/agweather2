@@ -1,11 +1,14 @@
 """Per-client rate limits (`api.ratelimit`, D69)."""
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from django.db import DatabaseError
+from asgiref.sync import sync_to_async
+from django.db import DatabaseError, connection
+from django.test.client import AsyncClient
 
-from api import ratelimit
+from api import ratelimit, timelimit
 from ops.models import ApiUsage
 from ops.tasks import housekeeping
 
@@ -96,3 +99,68 @@ def test_usage_older_than_a_week_is_pruned():
     ApiUsage.objects.create(client=CLIENT, minute=now, requests=1, cost=1)
     housekeeping.func(timestamp=0)
     assert list(ApiUsage.objects.values_list("minute", flat=True)) == [now]
+
+
+def test_a_request_is_charged_in_the_minute_it_finishes(client, limited, monkeypatch):
+    """A request running on past its minute's end charges its cost to the next minute, not the one already over."""
+    limited.API_RATE_LIMIT = 100
+    limited.API_RATE_UNIT_MS = 0.001  # any request takes thousands of units
+    arrival = datetime(2026, 11, 25, 12, 0, tzinfo=UTC)
+    minutes = iter([(arrival, 1), (arrival + timedelta(minutes=1), 55)])
+    monkeypatch.setattr(ratelimit, "_minute_now", lambda: next(minutes))
+    response = _get(client)
+    first = ApiUsage.objects.get(client=CLIENT, minute=arrival)
+    later = ApiUsage.objects.get(client=CLIENT, minute=arrival + timedelta(minutes=1))
+    assert (first.requests, first.cost) == (1, 1)
+    assert later.requests == 0 and later.cost > 10
+    assert response["RateLimit-Reset"] == "55"
+    assert response["RateLimit-Remaining"] == "0"  # the finishing minute's cost
+
+
+def test_a_charge_settled_twice_adds_only_the_time_since(settings, monkeypatch):
+    settings.API_RATE_UNIT_MS = 100
+    minute = datetime(2026, 11, 25, 12, 0, tzinfo=UTC)
+    monkeypatch.setattr(ratelimit, "_minute_now", lambda: (minute, 30))
+    ApiUsage.objects.create(client=CLIENT, minute=minute, requests=1, cost=1)
+    clock = iter([100.25, 100.95, 101.0])
+    monkeypatch.setattr(ratelimit.time, "perf_counter", lambda: next(clock))
+    charge = ratelimit.Charge(client=CLIENT, minute=minute, total=1, started=100.0)
+    assert charge.settle() == (3, 30)  # 250 ms: 2 more
+    assert charge.settle() == (10, 30)  # 950 ms: 7 more
+    assert charge.settle() == (11, 30)  # 1,000 ms: 1 more
+    assert ApiUsage.objects.get(client=CLIENT).cost == 11
+
+
+def _cost_of(client: str) -> int:
+    try:
+        return ApiUsage.objects.get(client=client).cost
+    finally:
+        connection.close()  # this thread's own
+
+
+@pytest.mark.urls("api.tests.routes")
+@pytest.mark.django_db(transaction=True)  # the charge as the limit passes is written from another thread
+def test_a_request_past_the_time_limit_is_charged_as_the_limit_passes_and_again_when_it_finishes(settings):
+    settings.API_RATE_LIMIT = None
+    settings.API_RATE_UNIT_MS = 100
+    local = "127.0.0.1"  # AsyncClient's address
+
+    async def go():
+        await AsyncClient().get("/api/test/sleep")  # warms the process (its first request imports the routes)
+        settings.API_TIME_LIMIT = 0.3
+        settings.API_RATE_LIMIT = 1000
+        settings.API_RATE_EXEMPT = []
+        response = await AsyncClient().get("/api/test/sleep?seconds=1.2")
+        at_limit = await sync_to_async(_cost_of, thread_sensitive=False)(local)  # the view's thread is still busy
+        for _ in range(100):
+            if not timelimit.overrunning():
+                break
+            await asyncio.sleep(0.05)
+        await sync_to_async(lambda: connection.close())()  # the view's thread's (the test client keeps it open)
+        return response, at_limit
+
+    response, at_limit = asyncio.run(go())
+    assert response.status_code == 503
+    assert 3 <= at_limit <= 6  # 1 on arrival, 2 or 3 for the time to the limit
+    assert int(response["RateLimit-Remaining"]) == 1000 - at_limit
+    assert 13 <= sum(ApiUsage.objects.values_list("cost", flat=True)) <= 16  # 1 plus 12 or so for its 1.2 s
