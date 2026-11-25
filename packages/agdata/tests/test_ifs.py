@@ -1,3 +1,5 @@
+import asyncio
+import time
 from datetime import UTC, datetime, timedelta
 
 import numpy as np
@@ -98,7 +100,7 @@ def test_a_chunk_replaced_mid_read_is_opened_again_and_reread():
         return Replaced(chunk) if opened.count(variable) == 1 else LinearField(chunk)
 
     hours = ifs.read(START, START, WINDOW, all_land(), open_chunk, retry_wait=0)
-    assert opened == [v for v in ifs.VARIABLES for _ in range(2)]
+    assert sorted(opened) == sorted(v for v in ifs.VARIABLES for _ in range(2))  # read at once, in any order
     assert np.isfinite(hours.values["soil_temperature_10cm"]).all()
 
 
@@ -192,3 +194,177 @@ def test_over_a_coverage_only_its_extent_is_read(monkeypatch):
     outside[y, x] = False
     assert np.isnan(cropped[outside]).all()
     ifs._coast.clear()
+
+
+# Reads through `S3Chunks`: a small real .om file (as Open-Meteo's: (1, cells, hours), chunked 6 cells × the hours)
+# served by a fake of s3fs's async filesystem, which answers ranges and IfMatch as S3 does.
+
+CELLS, STEPS = 1200, 24
+PATH = f"{ifs.BUCKET}/soil_temperature_0_to_7cm/chunk_988.om"
+
+
+def om_file(tmp_path, seed: int) -> tuple[bytes, np.ndarray]:
+    """A file's bytes and its values as read back (omfiles packs to 0.01, so compare with what it reads)."""
+    import omfiles
+
+    path = tmp_path / f"chunk_{seed}.om"
+    data = np.random.default_rng(seed).normal(loc=5, size=(1, CELLS, STEPS)).astype(np.float32)
+    writer = omfiles.OmFileWriter(str(path))
+    writer.close(writer.write_array(data, chunks=[1, 6, STEPS], scale_factor=100))
+    return path.read_bytes(), np.asarray(omfiles.OmFileReader(str(path))[0, :, :])
+
+
+class Body:
+    def __init__(self, data: bytes):
+        self.data = data
+
+    async def read(self) -> bytes:
+        return self.data
+
+    def close(self) -> None:
+        pass
+
+
+class FakeS3:
+    """Open-Meteo's bucket as `S3FileSystem(asynchronous=True)._call_s3` answers it: `head_object`, and
+    `get_object` of a byte range, refused with S3's 412 (as s3fs translates it) once the file's ETag isn't the one
+    sent. `hang` makes the first that many range requests never answer; `replace_after` swaps the file for
+    `replacement` after that many."""
+
+    def __init__(self, data: bytes, hang: int = 0, replace_after: int | None = None, replacement: bytes = b""):
+        self.data, self.etag = data, '"v1"'
+        self.hang, self.replace_after, self.replacement = hang, replace_after, replacement
+        self.gets = self.in_flight = self.peak = 0
+
+    def split_path(self, path):
+        bucket, key = path.split("/", 1)
+        return bucket, key, None
+
+    async def _call_s3(self, method, Bucket, Key, Range=None, IfMatch=None):
+        from botocore.exceptions import ClientError
+        from s3fs.errors import translate_boto_error
+
+        assert f"{Bucket}/{Key}" == PATH
+        if method == "head_object":
+            return {"ETag": self.etag, "ContentLength": len(self.data)}
+        assert method == "get_object" and Range is not None and IfMatch is not None
+        self.gets += 1
+        if self.replace_after is not None and self.gets > self.replace_after:
+            self.data, self.etag, self.replace_after = self.replacement, '"v2"', None
+        self.in_flight += 1
+        self.peak = max(self.peak, self.in_flight)
+        try:
+            await asyncio.sleep(60 if self.gets <= self.hang else 0.001)
+            if IfMatch != self.etag:
+                message = "At least one of the pre-conditions you specified did not hold"
+                error = ClientError({"Error": {"Code": "PreconditionFailed", "Message": message}}, "GetObject")
+                raise translate_boto_error(error)
+            start, end = (int(x) for x in Range.removeprefix("bytes=").split("-"))
+            return {"Body": Body(self.data[start : end + 1])}
+        finally:
+            self.in_flight -= 1
+
+
+def cells_and_rings():
+    """Some cells, grouped in runs as a window's rings are (each ring's cells contiguous and increasing)."""
+    needed = np.sort(np.random.default_rng(0).choice(CELLS, size=400, replace=False))
+    return needed, needed // 150
+
+
+def read_cells(chunks: ifs.S3Chunks, t0: int = 2, t1: int = 20) -> np.ndarray:
+    needed, rings = cells_and_rings()
+
+    async def go():
+        try:
+            reader = await chunks("soil_temperature_0_to_7cm", 988)
+            return await ifs._read_cells(reader=reader, needed=needed, rings=rings, t0=t0, t1=t1, rings_at_once=8)
+        finally:
+            await chunks.aclose()
+
+    return asyncio.run(go())
+
+
+def test_a_concurrent_read_gives_what_a_read_ring_by_ring_does(tmp_path):
+    data, values = om_file(tmp_path, seed=1)
+    needed, _ = cells_and_rings()
+    s3 = FakeS3(data)
+    got = read_cells(ifs.S3Chunks(requests_at_once=5, make_fs=lambda: s3))
+    np.testing.assert_array_equal(got, values[needed, 2:20])
+    assert 1 < s3.peak <= 5  # requests overlapped, never more than allowed
+
+
+def test_a_file_replaced_mid_read_fails_the_read_rather_than_mixing_versions(tmp_path):
+    data, _ = om_file(tmp_path, seed=1)
+    replacement, _ = om_file(tmp_path, seed=2)
+    s3 = FakeS3(data, replace_after=3, replacement=replacement)
+    with pytest.raises(RuntimeError, match="FileExpired"):
+        read_cells(ifs.S3Chunks(make_fs=lambda: s3))
+
+
+def test_a_chunk_replaced_mid_read_is_read_again_whole_from_the_new_file(tmp_path):
+    data, _ = om_file(tmp_path, seed=1)
+    replacement, new_values = om_file(tmp_path, seed=2)
+    needed, rings = cells_and_rings()
+    s3 = FakeS3(data, replace_after=3, replacement=replacement)
+    chunks = ifs.S3Chunks(make_fs=lambda: s3)
+
+    async def go():
+        try:
+            return await ifs._read_chunk(
+                open_chunk=chunks,
+                variable="soil_temperature_0_to_7cm",
+                chunk=988,
+                span=(needed, rings, 0, STEPS),
+                retry_wait=0,
+                rings_at_once=8,
+                deadline=time.monotonic() + 60,
+            )
+        finally:
+            await chunks.aclose()
+
+    np.testing.assert_array_equal(asyncio.run(go()), new_values[needed])
+
+
+def test_a_request_that_never_answers_is_sent_again(tmp_path, monkeypatch):
+    monkeypatch.setattr(ifs, "REQUEST_TIMEOUT", 0.05)
+    monkeypatch.setattr(ifs, "REQUEST_BACKOFF", 0)
+    data, values = om_file(tmp_path, seed=1)
+    needed, _ = cells_and_rings()
+    s3 = FakeS3(data, hang=2)
+    got = read_cells(ifs.S3Chunks(requests_at_once=1, make_fs=lambda: s3))
+    np.testing.assert_array_equal(got, values[needed, 2:20])
+    s3 = FakeS3(data, hang=10**6)
+    with pytest.raises(RuntimeError, match="TimeoutError"):
+        read_cells(ifs.S3Chunks(requests_at_once=1, make_fs=lambda: s3))
+    assert s3.gets == ifs.REQUEST_ATTEMPTS
+
+
+class Slow(LinearField):
+    """A chunk whose reads take a second each."""
+
+    async def read_array(self, key):
+        await asyncio.sleep(1)
+        return self[key]
+
+
+def test_a_read_past_its_deadline_stops_with_a_clear_error():
+    closed = []
+
+    class Opener:
+        def __call__(self, variable, chunk):
+            return Slow(chunk)
+
+        async def aclose(self):
+            closed.append(True)
+
+    started = time.monotonic()
+    with pytest.raises(ifs.ReadTimedOut, match="deadline"):
+        ifs.read_points(START, START, WINDOW, all_land(), Opener(), deadline=0.1)
+    assert time.monotonic() - started < 0.9 and closed == [True]
+
+
+def test_a_chunk_that_fails_with_no_time_left_isnt_retried():
+    started = time.monotonic()
+    with pytest.raises(ifs.ReadTimedOut, match="no time left"):
+        ifs.read_points(START, START, WINDOW, all_land(), lambda v, c: Replaced(c), retry_wait=5, deadline=2)
+    assert time.monotonic() - started < 1

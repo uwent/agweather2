@@ -1,3 +1,4 @@
+import asyncio
 import shutil
 from contextlib import nullcontext
 from datetime import UTC, date, datetime, timedelta
@@ -210,3 +211,30 @@ def test_ifs_reads_the_same_run_again_when_era5land_moves_the_seam(refreshed, mo
     assert read() is True and read() is False
     current["seam"] = next(seams)
     assert read() is True and read() is False
+
+
+class Stalled(Constant):
+    """A fake IFS chunk whose reads never finish."""
+
+    async def read_array(self, key):
+        await asyncio.sleep(3600)
+
+
+def test_an_ifs_read_past_its_deadline_fails_the_job_and_keeps_the_last_read(data_dir, monkeypatch):
+    from agdata.sources import ifs
+    from ops.ifs import refresh_ifs
+
+    monkeypatch.setattr(ifs, "READ_DEADLINE", 0.1)
+    run = datetime(2025, 12, 21, 6, tzinfo=UTC)
+    with pytest.raises(ifs.ReadTimedOut, match="the next run tries again"):
+        refresh_ifs(
+            data_dir,
+            BOX,
+            NOW,
+            None,
+            opener=lambda v, c: Stalled(3.0),
+            meta=lambda: {"last_run_initialisation_time": run.timestamp()},
+            lock=nullcontext,
+        )
+    latest = ifs.latest_path(data_dir)
+    assert not latest.exists() and not latest.with_name(latest.name + ".part").exists()

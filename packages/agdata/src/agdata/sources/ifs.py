@@ -6,6 +6,12 @@ hour instantaneous (as ours, the hour ending then). Past hours are each run's fi
 provisional days after ERA5-Land's last and the forecast. Read with `omfiles` (GPL-2.0-only), which is the optional
 `agdata[ifs]` extra and imported only here (D53).
 
+Files are chunked 6 cells × 504 hours, so a read over the launch box is thousands of small range requests per file
+(~7,300, 1.5 KB each): one after another that was ~12 minutes a file and ~4 hours a read. `read_points` reads every
+file at once through `omfiles.OmFileReaderAsync` (`S3Chunks`), a ring per read, with REQUESTS_AT_ONCE requests in
+flight over all of them, each bounded in time and tries, each pinned to the version of the file it opened (`_Pinned`),
+and the whole read to READ_DEADLINE.
+
 Checked 2026-10-31 against Open-Meteo's API (`models=ecmwf_ifs`) at a cell in northern Wisconsin: chunk 988's
 deep soil matched for 360 hours within 0.03 °C (the API adjusts for elevation). The files hold hours past the
 newest run's end (older runs' long leads and stale values), so reads stop at `run_end`: a 00Z or 12Z run reaches
@@ -19,11 +25,15 @@ weight, as IFS's lake points carry the lake's temperature; a cell with none on l
 within 40 km; our water is missing.
 """
 
+import asyncio
+import errno
+import inspect
 import json
 import logging
 import shutil
 import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from functools import cache
@@ -50,8 +60,16 @@ VARIABLES = (*SOIL_LAYERS, "snow_depth", *SOIL_MOISTURE)  # the bucket's moistur
 LONG_RUN_HOURS = 240  # 00Z and 12Z
 SHORT_RUN_HOURS = 144  # 06Z and 18Z
 READ_ATTEMPTS = 4  # a chunk's file being replaced mid-read is retried this many times in all
+READ_DEADLINE = 45 * 60  # s: a read still going after this is abandoned (the job fails; the next run tries again)
+RINGS_AT_ONCE = 32  # ring reads in flight per chunk file (each is a few dozen range requests)
+REQUESTS_AT_ONCE = 32  # range requests in flight to S3 over the whole read
+REQUEST_TIMEOUT = 60  # s: one range request's whole time, botocore's own retries included
+REQUEST_ATTEMPTS = 3  # a range request that times out or fails in transit is sent this many times in all
+REQUEST_BACKOFF = 1.0  # s, times the attempt: the wait before a range request is sent again
 
-Opener = Callable[[str, int], Any]  # (variable, chunk) → something sliced [0, cells, hours]
+Opener = Callable[
+    [str, int], Any
+]  # (variable, chunk) → a reader (or a coroutine giving one): `read_array` (sync or async) or indexing, [0, cells, hours]
 
 
 def ring_points(j: int) -> int:
@@ -160,15 +178,88 @@ def run_end(meta: dict) -> datetime:
     return max(newest + SHORT_RUN_HOURS * HOUR, newest - 6 * HOUR + LONG_RUN_HOURS * HOUR)
 
 
-def _read_cells(reader, needed: np.ndarray, rings: np.ndarray, t0: int, t1: int) -> np.ndarray:
-    """The `needed` flat cells' steps t0..t1 from one file, ring by ring (each ring's cells are contiguous)."""
+class ReadTimedOut(TimeoutError):
+    """A read that passed its deadline (READ_DEADLINE): it's abandoned, and the next run of the job tries again."""
+
+
+async def _slice(reader, key: tuple) -> np.ndarray:
+    """reader[key] from an async reader (`read_array`, a coroutine) or a plain one (indexing, as the tests' fakes)."""
+    read_array = getattr(reader, "read_array", None)
+    out = read_array(key) if read_array is not None else reader[key]
+    if inspect.isawaitable(out):
+        out = await out
+    return np.asarray(out, dtype=np.float32)
+
+
+def _first_leaf(error: BaseException) -> BaseException:
+    while isinstance(error, BaseExceptionGroup):
+        error = error.exceptions[0]
+    return error
+
+
+async def _read_cells(
+    reader, needed: np.ndarray, rings: np.ndarray, t0: int, t1: int, rings_at_once: int
+) -> np.ndarray:
+    """The `needed` flat cells' steps t0..t1 from one file, a read per ring (each ring's cells are contiguous), up to
+    `rings_at_once` of them in flight; the first to fail cancels the rest, and its error is raised."""
     out = np.empty((len(needed), t1 - t0), dtype=np.float32)
-    for ring in np.unique(rings):
-        rows = np.flatnonzero(rings == ring)
+    gate = asyncio.Semaphore(rings_at_once)
+
+    async def ring_read(rows: np.ndarray) -> None:
         lo, hi = int(needed[rows[0]]), int(needed[rows[-1]])
-        block = np.asarray(reader[0, lo : hi + 1, t0:t1], dtype=np.float32)
+        async with gate:
+            block = await _slice(reader=reader, key=(0, slice(lo, hi + 1), slice(t0, t1)))
         out[rows] = block[needed[rows] - lo]
+
+    try:
+        async with asyncio.TaskGroup() as group:
+            for ring in np.unique(rings):
+                group.create_task(ring_read(np.flatnonzero(rings == ring)))
+    except BaseExceptionGroup as errors:
+        raise _first_leaf(errors) from errors
     return out
+
+
+async def _read_chunk(
+    open_chunk: Opener,
+    variable: str,
+    chunk: int,
+    span: tuple[np.ndarray, np.ndarray, int, int],
+    retry_wait: float,
+    rings_at_once: int,
+    deadline: float,
+) -> np.ndarray:
+    """One chunk file's cells and steps (`span`: the cells, their rings, the first step and the one after the last).
+    Open-Meteo rewrites a chunk's file in place as runs come in, so a read that finds its file replaced (or can't
+    decode it) opens the chunk again and rereads it, `retry_wait` seconds later, up to READ_ATTEMPTS times; never past
+    the read's deadline (`time.monotonic()`)."""
+    needed, rings, t0, t1 = span
+    for attempt in range(1, READ_ATTEMPTS + 1):
+        try:
+            reader = open_chunk(variable, chunk)
+            if inspect.isawaitable(reader):
+                reader = await reader
+            return await _read_cells(
+                reader=reader, needed=needed, rings=rings, t0=t0, t1=t1, rings_at_once=rings_at_once
+            )
+        except RuntimeError as error:  # omfiles wraps I/O errors, `FileExpired` among them, in its own
+            if attempt == READ_ATTEMPTS:
+                raise
+            if time.monotonic() + retry_wait >= deadline:
+                raise ReadTimedOut(
+                    f"IFS {variable} chunk {chunk} unreadable and no time left to retry: {error}"
+                ) from error
+            logger.warning(
+                "IFS %s chunk %d unreadable (attempt %d of %d), retrying in %gs: %s",
+                variable,
+                chunk,
+                attempt,
+                READ_ATTEMPTS,
+                retry_wait,
+                error,
+            )
+        await asyncio.sleep(retry_wait)
+    raise AssertionError("unreachable")
 
 
 @dataclass(kw_only=True)
@@ -200,39 +291,66 @@ def read_points(
     land: era5land.LandMask,
     open_chunk: Opener,
     retry_wait: float = 60,
+    deadline: float | None = None,
+    rings_at_once: int = RINGS_AT_ONCE,
 ) -> Read:
     """IFS's hours first..last at the points the window's cells take (`Read.hours` puts them on the window).
 
-    Open-Meteo rewrites a chunk's file in place as runs come in, so a read that finds its file replaced (or can't
-    decode it) opens the chunk again and rereads it, `retry_wait` seconds later, up to READ_ATTEMPTS times."""
+    Every variable's chunks are read at once, each a read per ring with up to `rings_at_once` rings of a file in
+    flight (`S3Chunks` bounds the requests themselves). A chunk whose file is replaced mid-read is read again
+    (`_read_chunk`). A read still going after `deadline` seconds (READ_DEADLINE) raises `ReadTimedOut`."""
     weights = coast_weights(window, land)
     needed = weights.needed
-    offsets = ring_offsets()
-    rings = np.searchsorted(offsets, needed, side="right") - 1
+    rings = np.searchsorted(ring_offsets(), needed, side="right") - 1
     n = int((last - first) / HOUR) + 1
-    raw: dict[str, np.ndarray] = {}
-    for variable in VARIABLES:
-        values = np.full((len(needed), n), np.nan, dtype=np.float32)
-        for chunk, t0, t1, at in chunk_span(first, last):
-            for attempt in range(1, READ_ATTEMPTS + 1):
-                try:
-                    values[:, at : at + (t1 - t0)] = _read_cells(open_chunk(variable, chunk), needed, rings, t0, t1)
-                    break
-                except RuntimeError as error:  # omfiles wraps I/O errors, `FileExpired` among them, in its own
-                    if attempt == READ_ATTEMPTS:
-                        raise
-                    logger.warning(
-                        "IFS %s chunk %d unreadable (attempt %d of %d), retrying in %gs: %s",
-                        variable,
-                        chunk,
-                        attempt,
-                        READ_ATTEMPTS,
-                        retry_wait,
-                        error,
-                    )
-                    time.sleep(retry_wait)
-        raw[variable] = values
+    seconds = READ_DEADLINE if deadline is None else deadline
+    raw = {variable: np.full((len(needed), n), np.nan, dtype=np.float32) for variable in VARIABLES}
+
+    async def read_all() -> None:
+        ends = time.monotonic() + seconds
+
+        async def one(variable: str, chunk: int, t0: int, t1: int, at: int) -> None:
+            values = await _read_chunk(
+                open_chunk=open_chunk,
+                variable=variable,
+                chunk=chunk,
+                span=(needed, rings, t0, t1),
+                retry_wait=retry_wait,
+                rings_at_once=rings_at_once,
+                deadline=ends,
+            )
+            raw[variable][:, at : at + (t1 - t0)] = values
+
+        try:
+            async with asyncio.timeout(seconds):
+                async with asyncio.TaskGroup() as group:
+                    for variable in VARIABLES:
+                        for chunk, t0, t1, at in chunk_span(first, last):
+                            group.create_task(one(variable, chunk, t0, t1, at))
+        except TimeoutError as error:
+            raise ReadTimedOut(
+                f"IFS read stopped after {seconds:g} s, its deadline; the next run tries again"
+            ) from error
+        except BaseExceptionGroup as errors:
+            raise _first_leaf(errors) from errors
+        finally:
+            close = getattr(open_chunk, "aclose", None)
+            if close is not None:
+                await close()
+
+    _run(read_all())
     return Read(times=[first + k * HOUR for k in range(n)], weights=weights, needed=needed, raw=raw)
+
+
+def _run(coroutine) -> None:
+    """Runs a coroutine to its end from sync code, on a thread of its own if this one already runs an event loop."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        asyncio.run(coroutine)
+        return
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pool.submit(asyncio.run, coroutine).result()
 
 
 def read(
@@ -244,41 +362,158 @@ def read(
     retry_wait: float = 60,
 ) -> era5land.Hours:
     """IFS's hours first..last on the window, all at once (`read_points` for a read made a slice at a time)."""
-    return read_points(first, last, window, land, open_chunk, retry_wait).hours()
+    return read_points(
+        first=first, last=last, window=window, land=land, open_chunk=open_chunk, retry_wait=retry_wait
+    ).hours()
 
 
 class _Pinned:
-    """What `OmFileReader.from_fsspec` reads through (`size`, `cat_file`), held to the version of the file it opened.
+    """What `OmFileReaderAsync.from_fsspec` reads through (`_size`, `_cat_file`), held to the version of the file it
+    opened, with the requests bounded in number, time and tries.
 
-    The filesystem's own `cat_file` reads whatever is there now, so a file replaced partway through a read mixes the
-    old file's index with the new one's bytes ("Decoder error: Corrupted data", 2026-11-02). An opened s3fs file
-    sends its ETag with every range (`IfMatch`) and raises `FileExpired` once the file has changed."""
+    The filesystem's own `_cat_file` reads whatever is there now, so a file replaced partway through a read would mix
+    the old file's index with the new one's bytes ("Decoder error: Corrupted data", 2026-11-02). Each range is sent
+    with the ETag seen at open (`IfMatch`), and S3's 412 once the file has changed raises `FileExpired` (which omfiles
+    wraps in a RuntimeError, and `_read_chunk` then reads the chunk again). A request that takes longer than
+    REQUEST_TIMEOUT, or fails in transit, is sent again, REQUEST_ATTEMPTS times in all."""
 
-    def __init__(self, file):
-        self.file = file
+    def __init__(self, *, fs, path: str, etag: str, size: int, gate: asyncio.Semaphore):
+        self.fs, self.path, self.etag, self.size, self.gate = fs, path, etag, size, gate
 
-    def size(self, path: str) -> int:
-        return self.file.size
+    async def _size(self, path: str) -> int:
+        return self.size
 
-    def cat_file(self, path: str, start: int, end: int) -> bytes:
-        return self.file._fetch_range(start, end)  # stateless, unlike seek and read
+    async def _cat_file(self, path: str, start: int | None = None, end: int | None = None, **kwargs) -> bytes:
+        from s3fs.utils import FileExpired  # agdata[ifs]
+
+        start = 0 if start is None else start
+        end = self.size if end is None else end
+        if end <= start:
+            return b""
+        try:
+            return await _s3_call(
+                fs=self.fs,
+                gate=self.gate,
+                method="get_object",
+                path=self.path,
+                Range=f"bytes={start}-{end - 1}",
+                IfMatch=self.etag,
+            )
+        except OSError as error:
+            if _precondition_failed(error):
+                raise FileExpired(filename=self.path, e_tag=self.etag) from error
+            raise
+
+
+async def _s3_call(*, fs, gate: asyncio.Semaphore, method: str, path: str, **kwargs) -> Any:
+    """`fs._call_s3(method, …)` on the path (a `get_object`'s body read whole), one of the `gate`'s requests in
+    flight, sent again if it takes longer than REQUEST_TIMEOUT or fails in transit, REQUEST_ATTEMPTS times in all."""
+    bucket, key, _ = fs.split_path(path)
+    async with gate:
+        for attempt in range(1, REQUEST_ATTEMPTS + 1):
+            try:
+                async with asyncio.timeout(REQUEST_TIMEOUT):
+                    response = await fs._call_s3(method, Bucket=bucket, Key=key, **kwargs)
+                    if method != "get_object":
+                        return response
+                    try:
+                        return await response["Body"].read()
+                    finally:
+                        response["Body"].close()
+            except Exception as error:
+                if attempt == REQUEST_ATTEMPTS or not _transient(error):
+                    raise
+                logger.info(
+                    "IFS %s %s %s failed (attempt %d of %d), sending again: %r",
+                    method,
+                    path,
+                    kwargs.get("Range", ""),
+                    attempt,
+                    REQUEST_ATTEMPTS,
+                    error,
+                )
+                await asyncio.sleep(REQUEST_BACKOFF * attempt)
+    raise AssertionError("unreachable")
+
+
+def _precondition_failed(error: Exception) -> bool:
+    """S3's 412 as s3fs translates it (as `S3File._fetch_range` reads it)."""
+    return isinstance(error, OSError) and error.errno == errno.EINVAL and "pre-condition" in str(error).lower()
+
+
+def _transient(error: Exception) -> bool:
+    """Worth sending again: a timeout, a dropped connection or a server error, not a missing file or a refusal."""
+    if isinstance(error, (FileNotFoundError, PermissionError)):
+        return False
+    if isinstance(error, OSError):  # TimeoutError and s3fs's translations of S3's errors
+        return error.errno != errno.EINVAL
+    return type(error).__module__.split(".")[0] in ("botocore", "aiobotocore", "aiohttp")
+
+
+def _s3_config(requests_at_once: int) -> dict:
+    """botocore's settings for Open-Meteo's bucket: bounded connects and reads (s3fs's defaults left a read waiting
+    20+ minutes on sockets that never connected, 2026-11-24), retries of throttling and server errors, and a
+    connection pool as large as the requests in flight."""
+    return {
+        "connect_timeout": 10,
+        "read_timeout": 30,
+        "retries": {"max_attempts": 3, "mode": "standard"},
+        "max_pool_connections": requests_at_once,
+    }
+
+
+class S3Chunks:
+    """Opens Open-Meteo's chunk files on AWS (anonymous) for async reads (`omfiles.OmFileReaderAsync`), each pinned
+    to the version it opened (`_Pinned`), with at most `requests_at_once` range requests in flight over all of them.
+    The S3 session belongs to the event loop of the read that first opens a file, and `aclose` (called by
+    `read_points` at its end) closes it; needs `agdata[ifs]`."""
+
+    def __init__(self, requests_at_once: int = REQUESTS_AT_ONCE, make_fs: Callable[[], Any] | None = None):
+        self.requests_at_once = requests_at_once
+        self.make_fs = make_fs or self._s3
+        self.fs: Any = None
+        self.gate: asyncio.Semaphore | None = None
+
+    def _s3(self):
+        import s3fs  # agdata[ifs]
+
+        fs = s3fs.S3FileSystem(
+            anon=True, asynchronous=True, skip_instance_cache=True, config_kwargs=_s3_config(self.requests_at_once)
+        )
+        fs.retries = 1  # botocore retries (`_s3_config`) and `_Pinned`'s own; s3fs's wrapper would multiply them
+        return fs
+
+    async def __call__(self, variable: str, chunk: int):
+        import omfiles  # agdata[ifs]; GPL-2.0-only (D53)
+
+        if self.fs is None:
+            self.fs = self.make_fs()
+            self.gate = asyncio.Semaphore(self.requests_at_once)
+        assert self.gate is not None
+        path = f"{BUCKET}/{variable}/chunk_{chunk}.om"
+        try:
+            head = await _s3_call(fs=self.fs, gate=self.gate, method="head_object", path=path)
+        except Exception as error:  # as omfiles reports a failed read, so `_read_chunk` opens the chunk again
+            raise RuntimeError(f"IFS {path} couldn't be opened: {error!r}") from error
+        pinned = _Pinned(fs=self.fs, path=path, etag=head["ETag"], size=int(head["ContentLength"]), gate=self.gate)
+        return await omfiles.OmFileReaderAsync.from_fsspec(pinned, path)
+
+    async def aclose(self) -> None:
+        fs, self.fs, self.gate = self.fs, None, None
+        creator = getattr(fs, "_s3creator", None)
+        if creator is not None:
+            await creator.__aexit__(None, None, None)
 
 
 def s3_opener() -> tuple[Opener, Callable[[], dict]]:
     """Readers of Open-Meteo's files on AWS (anonymous) and of its `static/meta.json`; needs `agdata[ifs]`."""
-    import fsspec  # agdata[ifs]
-    import omfiles  # agdata[ifs]; GPL-2.0-only (D53)
-
-    fs = fsspec.filesystem("s3", anon=True)
-
-    def open_chunk(variable: str, chunk: int):
-        path = f"{BUCKET}/{variable}/chunk_{chunk}.om"
-        return omfiles.OmFileReader.from_fsspec(_Pinned(fs.open(path, "rb", cache_type="none")), path)
+    import s3fs  # agdata[ifs]
 
     def meta() -> dict:
-        return json.loads(fs.cat(f"{BUCKET}/static/meta.json"))
+        fs = s3fs.S3FileSystem(anon=True, skip_instance_cache=True, config_kwargs=_s3_config(1))
+        return json.loads(fs.cat_file(f"{BUCKET}/static/meta.json"))
 
-    return open_chunk, meta
+    return S3Chunks(), meta
 
 
 def latest_path(data_dir: Path) -> Path:
