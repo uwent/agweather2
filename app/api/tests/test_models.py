@@ -339,6 +339,39 @@ def test_risk_for_models_asked_includes_why_there_is_none(client, archive):
     assert data["reason"][0] == "outside the model's region" and data["risk_level"][0] is None
 
 
+def test_risk_through_the_forecast_is_a_row_per_model_and_day(client, archive):
+    """`start`/`end` (Phase 7 track 3 Q1): each model's risk on each day, from one run per model, the same as the
+    one-day answers; days past the forecast are left out."""
+    params = {"lat": LAT, "lng": LNG, "models": "early-blight-pdays,tar-spot"}
+    body = client.get("/api/v2/risk", {**params, "start": "2025-07-06"}).json()
+    data, meta = body["data"], body["meta"]
+    n = meta["summary"]["days"]
+    assert meta["summary"]["models"] == 2 and len(data["date"]) == 2 * n
+    assert data["model"] == ["early-blight-pdays"] * n + ["tar-spot"] * n
+    assert data["date"][0] == "2025-07-06" and data["date"][n - 1] == meta["request"]["end"] > "2025-07-10"
+    kinds = data["kind"][:n]
+    assert kinds[0] == "observed" and kinds[-1] == "forecast" and None not in kinds  # trimmed to the forecast's end
+    assert not any("projection" in w for w in meta["warnings"])  # the default end isn't news
+    one = client.get("/api/v2/risk", {**params, "date": "2025-07-08"}).json()["data"]
+    assert "date" not in one  # the one-day answer keeps its shape
+    k = data["date"].index("2025-07-08")
+    assert [data["risk_level"][k], data["risk_level"][k + n]] == one["risk_level"]
+    assert [data["missing_days"][k], data["missing_days"][k + n]] == one["missing_days"]
+    asked = client.get("/api/v2/risk", {**params, "start": "2025-07-06", "end": "2025-07-31"}).json()
+    assert asked["meta"]["request"]["end"] == meta["request"]["end"] and asked["data"] == data
+    assert any("'projection=true'" in w for w in asked["meta"]["warnings"])
+
+
+def test_risk_over_days_is_checked(client, archive):
+    params = {"lat": LAT, "lng": LNG, "models": "tar-spot"}
+    years = client.get("/api/v2/risk", {**params, "start": "2025-12-30", "end": "2026-01-02"})
+    assert years.status_code == 422 and years.json()["errors"][0]["param"] == "end"
+    both = client.get("/api/v2/risk", {**params, "date": "2025-07-08", "end": "2025-07-12"})
+    assert both.status_code == 422 and both.json()["errors"][0]["code"] == "conflict"
+    backwards = client.get("/api/v2/risk", {**params, "start": "2025-07-12", "end": "2025-07-08"})
+    assert backwards.status_code == 422 and backwards.json()["errors"][0]["param"] == "start"
+
+
 def test_risk_with_a_planting_date_shows_susceptibility(client, archive):
     data = client.get(
         "/api/v2/risk",

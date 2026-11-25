@@ -185,9 +185,11 @@ format = "The format of the response: only `json` is available, because the resu
 
 [models_risk]
 points = "Not used: risk is reported for one location, given by `lat` and `lng`."
-date = "The day to report, as YYYY-MM-DD. The default is today. A day past the forecast needs `projection=true`."
+date = "The day to report, as YYYY-MM-DD. The default is today. A day past the forecast needs `projection=true`. Give `start` or `end` instead for every day of a period."
+start = "For every day of a period, in place of `date`: the first day, as YYYY-MM-DD. The default is today. The start and end must be in the same calendar year."
+end = "For every day of a period, in place of `date`: the last day, as YYYY-MM-DD. The default is the forecast's last day. Without `projection=true`, the results end with the forecast's last day whatever the end."
 models = "The models to report, separated by commas, or `all`. The default is every model that is in season and covers the location's region."
-projection = "With `true`, a `date` past the forecast reports each model's median risk across the earlier years in the archive."
+projection = "With `true`, a `date` past the forecast, or the days of a period past it, report each model's median risk across the earlier years in the archive."
 
 [models_evaluate]
 units = "The unit system of the input values you send and of the results: `us` (the default) or `metric`."

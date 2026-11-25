@@ -138,6 +138,12 @@ def test_risk_past_the_forecast(client, projection_archive):
     hole = client.get("/api/v2/risk", {**params, "date": "2025-08-01", "projection": "true"}).json()["data"]
     # Inside 2023's hole: early blight's daily P-days need that day; tar spot's 30-day means span the gap
     assert hole["projection_years"] == [1, 2]
+    days = {"start": "2025-08-09", "end": "2025-08-11", "projection": "true"}
+    models = {"lat": LAT, "lng": LNG, "models": params["models"]}
+    ranged = client.get("/api/v2/risk", {**models, **days}).json()["data"]
+    assert ranged["date"] == ["2025-08-09", "2025-08-10", "2025-08-11"] * 2
+    assert set(ranged["kind"]) == {"projection"} and ranged["projection_years"][1] == 2
+    assert [ranged["risk_level"][1], ranged["risk_level"][4]] == data["risk_level"]  # Aug 10, as the one-day answer
 
 
 def test_the_copies_laid_out_for_points_give_the_same_projection(client, projection_archive, tmp_path):

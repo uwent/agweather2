@@ -342,9 +342,9 @@ def run_several(
 def risk(
     request: HttpRequest,
     where: Query[PointsQuery],
+    when: Query[DaysQuery],
     output: Query[OutputQuery],
     area: Query[AreaQuery],
-    date: date | None = None,
     models: str | None = None,
     planting_date: str | None = None,
     projection: str | None = None,
@@ -355,101 +355,149 @@ def risk(
     (why there's no risk). `date` defaults to today. Without `models`, only those in season and in their region; with
     it (`models=a,b` or `all`), every one asked. The Crop Risk Tool's dashboard and the alerts' query. With
     `projection=true`, a `date` past the forecast takes each model's P50 across the archive's earlier years (D63),
-    with `projection_years` saying how many."""
+    with `projection_years` saying how many.
+
+    With `start` or `end` (Phase 7 track 3 Q1: a site card's risk through the forecast in one request), a row per
+    model and day from `start` (default today) through `end` (default the forecast's last day), within one calendar
+    year, led by a `date` column; each model runs once over the span. Without `projection`, days past the forecast's
+    last day with data are left out (with a warning when `end` asked for them); without `models`, a model is listed
+    if it's in season on any day shown."""
     lat, lng = _one_point(where)
     now = clock.now()
-    day = date or now.date()
+    today = now.date()
+    ranged = when.start is not None or when.end is not None
+    mode = projection_mode(projection)
+    first = when.date or when.start or today
+    if not ranged:
+        last = first
+    elif when.end is not None:
+        last = when.end
+    else:
+        last = min(max(first, today + timedelta(days=FORECAST_DAYS)), date(first.year, 12, 31))
+    if first > last:
+        raise ApiError(
+            "out_of_order",
+            f"The start date ({day_text(first)}) is after the end date ({day_text(last)}). Choose a start date on or before the end date.",
+            "start",
+        )
+    if first.year != last.year:
+        raise ApiError(
+            "invalid",
+            f"Risk is given within one calendar year, and {day_text(first)} and {day_text(last)} are in different years. Choose a start and end in the same year.",
+            "end",
+        )
     asked = models is not None
     chosen = [m for m in _models(models or "all") if m.SPEC.risk is not None]
     plans = [
-        runs.plan(m, request.GET, lat, lng, day.year, biofix=None, planting=planting_date, lenient=True) for m in chosen
+        runs.plan(m, request.GET, lat, lng, first.year, biofix=None, planting=planting_date, lenient=True)
+        for m in chosen
     ]
-    if sum(len(p.runs) for p in plans) > MAX_RUNS:
-        raise ApiError("too_many", too_many_runs(sum(len(p.runs) for p in plans)), "models")
-    computed = {**where.echo(), "date": day, "models": [m.SPEC.id for m in chosen] if asked else "in season"}
-    mode = projection_mode(projection)
+    total = sum(len(p.runs) for p in plans)
+    if total > MAX_RUNS:
+        raise ApiError("too_many", too_many_runs(total), "models")
+    days = (last - first).days + 1
+    when_asked: dict[str, Any] = {"start": first, "end": last} if ranged else {"date": first}
+    computed = {**where.echo(), **when_asked, "models": [m.SPEC.id for m in chosen] if asked else "in season"}
     computed |= {"planting_date": planting_date, "units": output.units, "projection": mode and "band"}
     days_on = SeriesQuery(day_basis=day_basis)
     computed |= days_on.echo() | area.echo()
     around = area.ask(output.units)
     etag, unchanged, needed = _revalidate(
-        request, plans, computed, [(lat, lng)], day, day, now, projecting=bool(mode), area=around
+        request, plans, computed, [(lat, lng)], first, last, now, projecting=bool(mode), area=around
     )
     if unchanged is not None:
         return unchanged
-    location = located(where, needed, day, days_on, area=around)[0]
+    location = located(where, needed, last, days_on, area=around)[0]
     zone = day_zone(lat, lng, day_basis)
-    found, notes = _projected(plans, lat, lng, day, day, now, "band", zone, around) if mode else (None, [])
-    projected_years = [None] * len(plans)
+    found, notes = _projected(plans, lat, lng, first, last, now, "band", zone, around) if mode else (None, [])
+    projected_years: list[Any] = [None] * len(plans)
     if found is not None:
         grouped = [f.results for f in found]
         projected_years = [f.bands for f in found]
     else:
-        grouped = _execute(plans, lat, lng, day, day, now, zone, around)
-    rows: dict[str, list[Any]] = {
-        name: []
-        for name in (
-            "model",
-            "option_set",
-            "name",
-            "group",
-            "version",
-            "kind",
-            "risk_level",
-            "risk_label",
-            "risk_value",
-            "susceptibility",
-            "in_season",
-            "reason",
-            "projection_years",
-            "missing_days",
-        )
-    }
+        grouped = _execute(plans, lat, lng, first, last, now, zone, around)
+    shown = days
+    if ranged and found is None:  # through the forecast's last day with data at most
+        kept = max((points.keep(r.kinds, True, True) for rs in grouped for r in rs), default=0)
+        if 0 < kept < days:
+            shown = kept
+            computed["end"] = first + timedelta(days=kept - 1)
+            if when.end is not None:
+                notes = [
+                    *notes,
+                    f"The forecast runs through {day_text(computed['end'])}, so the results end there. Add 'projection=true' to carry them on to {day_text(last)} with the weather of earlier years.",
+                ]
+    names = ["date"] if ranged else []
+    names += [
+        "model",
+        "option_set",
+        "name",
+        "group",
+        "version",
+        "kind",
+        "risk_level",
+        "risk_label",
+        "risk_value",
+        "susceptibility",
+        "in_season",
+        "reason",
+        "projection_years",
+        "missing_days",
+    ]
+    rows: dict[str, list[Any]] = {name: [] for name in names}
+    listed = 0
     place_warnings: set[str] = set()  # a normal of the place a model reads, missing here (`ModelSpec.place_normals`)
     behind: dict[str, int] = {}  # per model with any, the most days missing past the fill of any input (D56)
     for the_plan, results, bands in zip(plans, grouped, projected_years, strict=True):
         spec = the_plan.model.SPEC
         assert spec.risk is not None
         for k, r in enumerate(results):
-            years_behind = int(bands[k].years[0]) if bands and bands[k].years.size and bands[k].years[0] > 0 else None
-            in_season = None if r.in_season is None else bool(r.in_season[0])
-            if not asked and (in_season is False or r.reason == "outside the model's region"):
+            seasons_in = [None if r.in_season is None else bool(r.in_season[d]) for d in range(shown)]
+            out_of_season = False in seasons_in and True not in seasons_in
+            if not asked and (out_of_season or r.reason == "outside the model's region"):
                 continue
             if not r.reason:
                 place_warnings.update(r.place_warnings)
-            level = None if r.level is None or r.level[0] != r.level[0] else int(r.level[0])
-            gate = None if r.susceptibility is None else r.susceptibility[0]
-            rows["model"].append(spec.id)
-            rows["option_set"].append(k if len(results) > 1 else None)
-            rows["name"].append(spec.name)
-            rows["group"].append(spec.group)
-            rows["version"].append(spec.version)
-            rows["kind"].append(r.kinds[0])
-            rows["risk_level"].append(level)
-            rows["risk_label"].append(None if level is None else spec.risk.levels[level])
-            continuous = spec.risk.thresholds and r.risk is not None
-            rows["risk_value"].append(float(r.risk[0]) if continuous and r.risk is not None else float("nan"))
-            rows["susceptibility"].append(None if gate is None or gate != gate else SUSCEPTIBILITY.get(float(gate)))
-            rows["in_season"].append(in_season)
-            rows["reason"].append(r.reason)
-            rows["projection_years"].append(years_behind)
-            gaps = {} if r.reason else days_behind(r, gap_flags(r, 1))
-            rows["missing_days"].append(max(gaps.values(), default=0) if not r.reason else None)
-            if gaps:
-                behind[spec.id] = max(behind.get(spec.id, 0), *gaps.values())
+            listed += 1
+            years = bands[k].years if bands else None
+            for d in range(shown):
+                years_behind = int(years[d]) if years is not None and years.size > d and years[d] > 0 else None
+                level = None if r.level is None or r.level[d] != r.level[d] else int(r.level[d])
+                gate = None if r.susceptibility is None else r.susceptibility[d]
+                if ranged:
+                    rows["date"].append(first + timedelta(days=d))
+                rows["model"].append(spec.id)
+                rows["option_set"].append(k if len(results) > 1 else None)
+                rows["name"].append(spec.name)
+                rows["group"].append(spec.group)
+                rows["version"].append(spec.version)
+                rows["kind"].append(r.kinds[d] if d < len(r.kinds) else None)
+                rows["risk_level"].append(level)
+                rows["risk_label"].append(None if level is None else spec.risk.levels[level])
+                continuous = spec.risk.thresholds and r.risk is not None
+                rows["risk_value"].append(float(r.risk[d]) if continuous and r.risk is not None else float("nan"))
+                rows["susceptibility"].append(None if gate is None or gate != gate else SUSCEPTIBILITY.get(float(gate)))
+                rows["in_season"].append(seasons_in[d])
+                rows["reason"].append(r.reason)
+                rows["projection_years"].append(years_behind)
+                gaps = {} if r.reason else days_behind(r, gap_flags(r, d + 1))
+                rows["missing_days"].append(max(gaps.values(), default=0) if not r.reason else None)
+                if gaps:
+                    behind[spec.id] = max(behind.get(spec.id, 0), *gaps.values())
     columns = [
         Column(name=name, values=values, unit="index" if name == "risk_value" else None)
         for name, values in rows.items()
     ]
     some = grouped[0][0] if grouped and grouped[0] else None
     sets = {p.model.SPEC.id: p.option_sets for p in plans if p.option_sets}
+    summary: dict[str, Any] = {"models": listed, **({"days": shown} if ranged else {})}
     return respond(
         request,
         Result(
             request=computed,
             columns=columns,
             location=location,
-            summary={"models": len(rows["model"]), **({"option_sets": sets} if sets else {})},
+            summary={**summary, **({"option_sets": sets} if sets else {})},
             sources=list(some.sources) if some else [],
             warnings=[
                 *notes,
@@ -458,7 +506,7 @@ def risk(
                 *sorted(place_warnings),
                 *([risk_missing_text(behind)] if behind else []),
             ],
-            filename=f"agweather-risk-{day}",
+            filename=f"agweather-risk-{first}" + (f"-{computed['end']}" if ranged else ""),
             etag=etag,
         ),
     )
