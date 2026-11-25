@@ -3,6 +3,7 @@
 // map, the cell panel's series and a shared link all read the view the same way.
 
 import { addDays, parseDate } from '@/lib/dates'
+import { OVERLAY_ORDER, type OverlayId } from '@/lib/map/overlays'
 import { codecs, field, type Fields, type LatLng } from '@/lib/viewState'
 import type { LayerInfo } from '@/types/api'
 
@@ -51,6 +52,9 @@ export type ExplorerView = {
   /** The map's center and zoom, carried by a shared link */
   c: LatLng | null
   z: number | null
+  /** The data overlay a shared link shows (radar, rain, the Drought Monitor); the basemap stays the reader's own.
+   * Written only by Share: the map keeps its overlay in this browser's map settings */
+  overlay: OverlayId | null
 }
 
 const option = {
@@ -90,6 +94,7 @@ export const VIEW_FIELDS: Fields<ExplorerView> = {
   at: field(codecs.latLng(4), null),
   c: field(codecs.latLng(3), null),
   z: field(codecs.number({ digits: 2, min: 0, max: 22 }), null),
+  overlay: field(codecs.oneOf(OVERLAY_ORDER), null),
 }
 
 /** The degree-day setting a first visit and the Degree days tab start from */
@@ -239,6 +244,28 @@ export function stepHour(hour: string, hours: number, layer: Pick<LayerInfo, 'ra
   if (first && next < first) next = first
   if (last && next > last) next = last
   return next
+}
+
+/** The day (or an hourly layer's hour) the time stepper moves: the view's, else the layer's latest */
+export function stepperWhen(view: ExplorerView, layer: LayerInfo, today: string): string | null {
+  const span = spanFor(view, layer)
+  if (span === 'hour') return view.hour ?? layer.range.last?.slice(0, 13) ?? null
+  if (span === null) return null
+  return dayOf(view, layer) ?? today
+}
+
+/** The view's change for a step to `when`: a range keeps its length, moving its first day with its last */
+export function stepTo(view: ExplorerView, layer: LayerInfo, when: string): Partial<ExplorerView> {
+  const span = spanFor(view, layer)
+  if (span === 'hour') return { hour: when }
+  if (span === 'range') {
+    const end = dayOf(view, layer)
+    if (end) {
+      const length = Math.round((Date.parse(end) - Date.parse(rangeStart(view, end))) / 86_400_000)
+      return { date: when, start: addDays(when, -length) }
+    }
+  }
+  return { date: when }
 }
 
 /** Whether a day (or hour) is past the last observed one: a forecast */

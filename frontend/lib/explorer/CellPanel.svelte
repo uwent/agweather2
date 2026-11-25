@@ -10,36 +10,77 @@
 </script>
 
 <script lang="ts">
+  import { Link } from '@inertiajs/svelte'
+
+  import { routes } from '@/lib/routes'
+  import { addSite, siteAt } from '@/lib/sites.svelte'
+  import { coordinates, placeName } from '@/lib/sites/text'
+
+  import { modelPath, sitePath, siteModelPath } from './links'
+
   // The clicked cell in words (Phase 7 track 2 step 6): its value first, then where it is ("Dane County, WI ·
-  // 43.07° N, 89.40° W"), with a link to its chart below. A site page link comes with track 3.
+  // 43.07° N, 89.40° W"), and links on: the cell's chart below, the site's page, saving it as a site, and for a
+  // model's map the model's page and the model at this site.
   let {
+    lat,
+    lng,
     value,
     title,
     when,
     place,
     placeError,
+    searched = null,
+    model = null,
     onclear,
   }: {
+    /** The point chosen (a click, or a place found by search) */
+    lat: number
+    lng: number
     /** The value as the reader sees it ("38 °F", "High"), or null while it loads */
     value: string | null
     title: string
     when: string
     place: CellPlace | null
     placeError: string | null
+    /** The name of the place found by search, where the point came from one */
+    searched?: string | null
+    /** The map's model, for the links to its page and to it at this site */
+    model?: { id: string; name: string } | null
     onclear: () => void
   } = $props()
 
   const where = $derived.by(() => {
-    if (!place) return null
-    const county = [place.county, place.state].filter(Boolean).join(', ')
-    const at = place.cell
+    const county = placeName(place)
+    const at = place?.cell
       ? `${Math.abs(place.cell.lat).toFixed(2)}° ${place.cell.lat >= 0 ? 'N' : 'S'}, ${Math.abs(place.cell.lng).toFixed(2)}° ${place.cell.lng < 0 ? 'W' : 'E'}`
       : ''
     return [county, at].filter(Boolean).join(' · ')
   })
+
+  // The site's name: the place searched for, else its county
+  const name = $derived(searched || placeName(place))
+  const saved = $derived(siteAt(lat, lng))
+  let status = $state('')
+  $effect(() => {
+    // A new point starts without the last one's message
+    void [lat, lng]
+    status = ''
+  })
+
+  function save() {
+    const result = addSite({ lat, lng, name: name ?? coordinates(lat, lng) })
+    status = result.ok ? `Saved as ${result.value.name}.` : result.message
+  }
+
+  const linkClass = 'text-brand-600 underline hover:text-brand-700'
 </script>
 
-<section class="rounded-md border border-line bg-surface p-3" aria-labelledby="cell-heading" data-testid="cell-panel">
+<section
+  class="rounded-md border border-line bg-surface p-3"
+  aria-labelledby="cell-heading"
+  data-testid="cell-panel"
+  tabindex="-1"
+>
   <div class="flex items-start justify-between gap-2">
     <h2 id="cell-heading" class="text-base font-semibold">The cell you chose</h2>
     <button
@@ -52,16 +93,45 @@
     </button>
   </div>
   <p class="mt-1 text-lg font-semibold">{value ?? 'Loading…'}</p>
-  <p class="text-sm">{title}, {when}</p>
+  <p class="text-sm">{when ? `${title}, ${when}` : title}</p>
+  {#if searched}<p class="text-sm">{searched}</p>{/if}
   {#if where}<p class="text-sm text-ink-muted">{where}</p>{/if}
   {#if placeError}<p class="text-sm text-danger-ink">{placeError}</p>{/if}
   {#if place && !place.in_box}
     <p class="mt-1 text-sm text-ink-muted">
-      This place is outside the area AgWeather maps, so the map has no value here.
+      This place is outside the area AgWeather maps, so the map has no value here. Its site page has its weather from
+      Open-Meteo.
     </p>
   {/if}
-  <p class="mt-2 text-sm">
-    <a href="#cell-chart" class="underline">See this cell's recent days and forecast</a>
-    <!-- TODO(track 3): "Open this site" through routes.site() once the site pages land -->
-  </p>
+  <ul class="mt-2 space-y-1 text-sm">
+    <li><a href="#cell-chart" class={linkClass}>See this cell's recent days and forecast</a></li>
+    <li><Link href={sitePath(lat, lng, saved ? null : name)} class={linkClass}>Open this site</Link></li>
+    {#if model}
+      <li>
+        <Link href={siteModelPath(lat, lng, model.id, saved ? null : name)} class={linkClass}>
+          {model.name} at this site
+        </Link>
+      </li>
+      <li><Link href={modelPath(model.id)} class={linkClass}>About this model</Link></li>
+    {/if}
+  </ul>
+  <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+    {#if saved}
+      <p>
+        {`Saved as ${saved.name || coordinates(saved.lat, saved.lng)}. `}<Link href={routes.sites()} class={linkClass}>
+          Your sites
+        </Link>
+      </p>
+    {:else}
+      <button
+        type="button"
+        class="rounded-md border border-line px-2.5 py-1 font-medium hover:bg-brand-50
+          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+        onclick={save}
+      >
+        Save this site
+      </button>
+    {/if}
+  </div>
+  <p class="text-sm" role="status">{saved ? '' : status}</p>
 </section>

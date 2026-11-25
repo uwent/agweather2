@@ -15,6 +15,7 @@
     spansFor,
     type Stat,
     statFor,
+    stepTo,
   } from './view'
   import { formatDay, formatHour } from './words'
 
@@ -153,13 +154,7 @@
         </button>
       {/each}
     </div>
-    <TimeStepper
-      {layer}
-      when={day}
-      {today}
-      onstep={(next) =>
-        onchange({ date: next, start: addDays(next, -Math.round((Date.parse(day) - Date.parse(start)) / 86_400_000)) })}
-    />
+    <TimeStepper {layer} when={day} {today} onstep={(next) => onchange(stepTo(view, layer, next))} />
   {:else if span === 'day' || span === 'season'}
     <div class="flex flex-wrap items-end gap-2 text-sm">
       {#if span === 'season'}

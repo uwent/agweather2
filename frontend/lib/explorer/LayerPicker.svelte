@@ -52,8 +52,14 @@
   const groups = $derived(weatherGroups(layers, axis))
 
   const cropList = $derived(cropsWithModels(crops))
+  // The view's crop, else (a shared link to a model) the first crop the map's model is for, else corn
   const crop = $derived(
-    cropList.find((c) => c.id === view.crop) ?? cropList.find((c) => c.id === 'corn') ?? cropList[0],
+    cropList.find((c) => c.id === view.crop) ??
+      (current?.group === 'model'
+        ? cropList.find((c) => Object.values(c.models).some((ids) => ids.includes(current.id)))
+        : undefined) ??
+      cropList.find((c) => c.id === 'corn') ??
+      cropList[0],
   )
   const cropGroups = $derived(crop ? cropModels(crop, models, layers) : [])
 

@@ -53,10 +53,31 @@ export type TileJson = {
   encoding: TileEncoding
   /** What the map shows beyond its name (the date or range and settings); optional until the API sends it */
   subtitle?: string | null
-  /** A longer note on how the map was made; optional */
-  caption?: string | null
-  /** The API's warnings about the map, in its words; optional */
+  /** Notes on how the map was made (its data sources), a line each */
+  caption?: string[] | string | null
+  /** The API's warnings about the map, in its words */
   warnings?: string[]
+  /** A map of levels' names by value (risk levels, susceptibility, a crop's stages with their codes); null for any
+   * other map */
+  categories?: TileCategory[] | null
+}
+
+/** One level of a categorical map, or one stage of a crop's (value −1: before the first stage) */
+export type TileCategory = { value: number; code: string | null; name: string }
+
+/** The name for a value of a map with categories: a stage's code and name ("V10, 10 leaf collars"), a risk
+ * level's name ("High"); undefined for a value with none */
+export function categoryName(categories: TileCategory[], value: number): string | undefined {
+  const found = categories.find((c) => c.value === Math.round(value))
+  if (!found) return undefined
+  const isStage = categories.some((c) => c.value < 0)
+  return isStage && found.code ? `${found.code}, ${found.name}` : found.name
+}
+
+/** A tick's label on a stage map's color bar: the stage's code ("V10") */
+export function categoryCode(categories: TileCategory[], value: number): string {
+  const found = categories.find((c) => c.value === Math.round(value))
+  return found?.code ?? found?.name ?? ''
 }
 
 /** What a pixel holds: a value in the stored unit, 'none' (code 1) or null (missing) */

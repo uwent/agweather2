@@ -53,12 +53,14 @@
     high: number
     /** What the map shows beyond its name (the date or range, the settings), when the API gives it */
     subtitle?: string
-    /** A longer note under the map (how it was made), when the API gives it */
-    caption?: string
+    /** Notes under the map (how it was made, its sources), a line each */
+    caption: string[]
     /** The API's warnings about this map, in its words */
     warnings: string[]
     /** The request as the API read it (the TileJSON's `request`) */
     request: TileJson['request']
+    /** A map of levels' or stages' names by value, or null */
+    categories: TileCategory[] | null
   }
 </script>
 
@@ -82,7 +84,9 @@
     maplibreEncoding,
     MAX_ZOOM,
     MIN_ZOOM,
+    categoryName,
     type PixelValue,
+    type TileCategory,
     type TileJson,
     TileValues,
   } from './dataTiles'
@@ -160,7 +164,8 @@
     unit: string
     /** The map's own range (the API's auto scale), in the stored unit */
     auto: [number, number]
-    levels?: string[]
+    /** Levels' or stages' names by value, from the TileJSON */
+    categories: TileCategory[] | null
   }
 
   let tiles = $state<Tiles | null>(null)
@@ -189,33 +194,20 @@
       const tilejson = await requests.run('tilejson', (signal) =>
         get<TileJson>(`/tiles/${l}.json`, { ...params, time: t, style: 'default', units: system }, { signal }),
       )
-      const [[p, ls], levels] = await Promise.all([sharing, levelNames(tilejson)])
+      const [p, ls] = await sharing
       if (k !== untrack(() => key)) return // a newer request has the map
       ;[palettes, layers] = [p, ls]
       const { step, unit } = tilejson.encoding
       const auto = (tilejson.domain ?? [0, 1]).map((v) => shownIn.toStored(unit, v)) as [number, number]
       const path = `${API_BASE}/tiles/${encodeURIComponent(l)}/${encodeURIComponent(t)}/{z}/{x}/{y}.png`
       const template = `${location.origin}${path}${query ? `?${query}` : ''}`
-      tiles = { key: k, template, tilejson, step, unit, auto, levels }
+      tiles = { key: k, template, tilejson, step, unit, auto, categories: tilejson.categories ?? null }
     } catch (error) {
       if (isAbort(error) || k !== untrack(() => key)) return
       tiles = null
       failure = error instanceof ApiError ? error.message : String(error)
     } finally {
       if (k === untrack(() => key)) loading = false
-    }
-  }
-
-  // A model's risk levels by name, for the legend and the hover label
-  async function levelNames(tilejson: TileJson): Promise<string[] | undefined> {
-    const model = tilejson.request.model
-    const output = tilejson.request.output
-    if (!model || (output !== 'risk_level' && output !== 'projected_risk_level')) return undefined
-    try {
-      const body = await get<{ data: { risk?: { levels: string[] } | null } }>(`/models/${model.id}`)
-      return body.data.risk?.levels
-    } catch {
-      return undefined
     }
   }
 
@@ -262,7 +254,7 @@
       categorical,
       low: units.toDisplay(tiles.unit, domain[0]) ?? 0,
       high: units.toDisplay(tiles.unit, domain[1]) ?? 1,
-      levels: tiles.levels,
+      categories: tiles.categories ?? undefined,
       dates: tiles.unit === 'date',
       none: tiles.tilejson.encoding.none !== undefined,
     }
@@ -279,12 +271,16 @@
       low: legend.low,
       high: legend.high,
       subtitle: tiles.tilejson.subtitle ?? undefined,
-      caption: tiles.tilejson.caption ?? undefined,
+      caption: captionLines(tiles.tilejson.caption),
       warnings: tiles.tilejson.warnings ?? [],
       request: tiles.tilejson.request,
+      categories: tiles.categories,
     }
     untrack(() => oninfo?.(info))
   })
+
+  const captionLines = (caption: TileJson['caption']): string[] =>
+    caption ? (Array.isArray(caption) ? caption : [caption]) : []
 
   // --- The map
 
@@ -417,7 +413,10 @@
     if (value === null) return 'No data'
     if (value === 'none') return 'None'
     if (!tiles) return ''
-    if (paletteShown?.kind === 'categorical' && tiles.levels) return tiles.levels[value] ?? String(value)
+    if (tiles.categories) {
+      const name = categoryName(tiles.categories, value)
+      if (name) return name
+    }
     if (tiles.unit === 'index') return String(value)
     if (tiles.unit === 'date') return formatDays(value)
     return units.format(tiles.unit, value)
@@ -438,6 +437,16 @@
     const unit = tiles.unit
     const value = await values.atLoaded(lng, lat)
     return { lat, lng, value, unit, text: describeValue(value) }
+  }
+
+  /** The overlay shown now (for a Share link), or null */
+  export function currentOverlay(): OverlayId | null {
+    return (prefs.overlay as OverlayId | null) ?? null
+  }
+
+  /** Shows an overlay (a shared link's), replacing this browser's own choice */
+  export function showOverlay(id: OverlayId | null) {
+    prefs.overlay = id
   }
 
   async function pick(event: MapMouseEvent) {

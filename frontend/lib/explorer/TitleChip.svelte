@@ -1,24 +1,32 @@
 <script lang="ts">
-  // The map's title over its top left corner (Phase 7 track 2 step 5): the layer's name, then what the API says
-  // the map shows (its `subtitle`: the date and settings) or, until it does, the date in words; and how new the
-  // data is. The same text is announced to screen readers by the page's live region.
+  // The map's title over its top left corner (Phase 7 track 2 step 5): the layer's name, then what the API says the
+  // map shows (the TileJSON's `subtitle`: the date and settings), how new the data is, and a link to the API's notes
+  // on this map where it has any. The same text is announced to screen readers by the page's live region.
   let {
     title,
     subtitle,
-    when,
     through,
+    notes = 0,
   }: {
     title: string
-    subtitle?: string | null
-    /** The date or range in words, shown without a subtitle */
-    when: string
+    /** The TileJSON's subtitle; '' until it comes */
+    subtitle: string
     /** "Observed through … · forecast to …" */
     through: string | null
+    /** How many warnings the API gave about this map (shown below it, in its words) */
+    notes?: number
   } = $props()
 </script>
 
 <div class="max-w-md rounded-md bg-surface-raised/95 px-3 py-1.5 shadow-md ring-1 ring-line" data-testid="title-chip">
   <p class="text-sm/snug font-semibold">{title}</p>
-  <p class="text-xs/snug">{subtitle || when}</p>
+  {#if subtitle}<p class="text-xs/snug">{subtitle}</p>{/if}
   {#if through}<p class="hidden text-xs/snug text-ink-muted sm:block">{through}</p>{/if}
+  {#if notes}
+    <p class="text-xs/snug">
+      <a href="#map-notes" class="text-brand-600 underline hover:text-brand-700">
+        {notes === 1 ? 'A note on this map' : `${notes} notes on this map`}
+      </a>
+    </p>
+  {/if}
 </div>

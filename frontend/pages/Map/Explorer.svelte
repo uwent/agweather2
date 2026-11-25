@@ -1,8 +1,13 @@
-<!-- The map explorer, /map (Phase 7 track 2; D117–D119). The map on the left and the controls on the right, each the
-     window's height below the header on wide screens; the clicked cell's chart and the map's notes below. -->
+<!-- The map explorer, /map (Phase 7 track 2; D117–D119). On wide screens the map on the left and the controls on the
+     right, each the window's height below the header; on phones the map first, a bar under it with "Layer and date"
+     (the controls as a sheet from the bottom) and the day's stepper, and the clicked cell as a card over the map's
+     foot. The cell's chart, the county table and the map's notes follow below. -->
 <script lang="ts">
   import type { GeoJSONSource, GeoJSONSourceSpecification, Map as MapLibreMap } from 'maplibre-gl'
-  import { onDestroy, onMount, untrack } from 'svelte'
+  import { Dialog } from 'bits-ui'
+  import { onDestroy, onMount, tick, untrack } from 'svelte'
+  import { MediaQuery } from 'svelte/reactivity'
+  import { fly } from 'svelte/transition'
 
   import { ApiError, get, isAbort, latestRequests } from '@/lib/api'
   import ChartCard from '@/lib/charts/ChartCard.svelte'
@@ -12,6 +17,8 @@
   import { today as gridToday } from '@/lib/dates'
   import type { CropSummary, DegreeDayPreset, ModelSummary } from '@/lib/explorer/catalog'
   import CellPanel, { type CellPlace } from '@/lib/explorer/CellPanel.svelte'
+  import { stateCode } from '@/lib/explorer/counties'
+  import CountyTable from '@/lib/explorer/CountyTable.svelte'
   import { buildCellChart, cellSummary, cellTable, shownValues } from '@/lib/explorer/cellChart'
   import { type CellSeries, readSeries, seriesRequest } from '@/lib/explorer/cellSeries'
   import LayerPicker from '@/lib/explorer/LayerPicker.svelte'
@@ -19,6 +26,7 @@
   import MapOptions from '@/lib/explorer/MapOptions.svelte'
   import { prefetchTiles } from '@/lib/explorer/prefetch'
   import TimeControls from '@/lib/explorer/TimeControls.svelte'
+  import TimeStepper from '@/lib/explorer/TimeStepper.svelte'
   import TitleChip from '@/lib/explorer/TitleChip.svelte'
   import {
     type ExplorerView,
@@ -26,12 +34,16 @@
     latestOf,
     spanFor,
     stepDay,
+    stepperWhen,
+    stepTo,
     tileRequest,
     type TileRequest,
     VIEW_FIELDS,
   } from '@/lib/explorer/view'
   import { dataThrough, timeWords } from '@/lib/explorer/words'
+  import { shortTitle } from '@/lib/explorer/catalog'
   import DataMap, { type DataInfo, type DataPick, type DataScale } from '@/lib/map/DataMap.svelte'
+  import { motion } from '@/lib/motion'
   import { currentUnits } from '@/lib/units'
   import { viewState } from '@/lib/viewState'
   import type { LayerInfo, LayersResponse, PaletteInfo } from '@/types/api'
@@ -42,6 +54,9 @@
   const DEGREE_DAYS_ABOUT =
     'Growing degree days measure the heat a crop or insect has had: each day adds the degrees by which its temperature rose above a base temperature, limited by an upper threshold where one is set. The map adds them up from January 1 or the date you choose, using each day’s low and high.'
   const today = gridToday()
+  // Wide screens (Tailwind's lg) put the controls beside the map; narrower ones in a sheet
+  const wide = new MediaQuery('min-width: 1024px', true)
+  let sheetOpen = $state(false)
 
   // --- The view (D118): kept for the tab, given whole by Share
 
@@ -121,27 +136,27 @@
     return { low: Number.isFinite(low) ? low : null, high: Number.isFinite(high) ? high : null }
   })
 
-  // --- A model's options and risk levels, from /models/{id}
+  // --- A model's options, from /models/{id} (its levels' names come with the map's TileJSON)
 
-  type ModelDetail = { options: ModelOption[]; risk: { levels: string[] } | null }
+  type ModelDetail = { options: ModelOption[] }
   let options = $state<ModelOption[]>([])
-  let riskLevels = $state<string[] | null>(null)
   const detailRequests = latestRequests()
   $effect(() => {
     const id = layer?.group === 'model' ? layer.id : null
     untrack(() => {
       options = []
-      riskLevels = null
       if (!id) return
       detailRequests
         .run('model', (signal) => get<{ data: ModelDetail }>(`/models/${id}`, {}, { signal }))
-        .then((body) => {
-          options = body.data.options ?? []
-          riskLevels = body.data.risk?.levels ?? null
-        })
+        .then((body) => (options = body.data.options ?? []))
         .catch(() => {})
     })
   })
+  const mapModel = $derived(
+    shownLayer?.group === 'model'
+      ? { id: shownLayer.id, name: models.find((m) => m.id === shownLayer.id)?.name ?? shownLayer.title }
+      : null,
+  )
 
   // --- The map
 
@@ -152,16 +167,20 @@
   const title = $derived(info?.title ?? shownLayer?.title ?? layer?.title ?? 'Map')
   const when = $derived(shown && shownLayer ? timeWords(shown.time, shown.stat, latestOf(shownLayer), hourly) : '')
   const through = $derived(layer ? dataThrough(layer) : null)
-  const announcement = $derived(shown ? `Map of ${title}, ${info?.subtitle || when}` : '')
+  // What the map shows beyond its name, in the API's words (its `subtitle`); the date in words only until it comes
+  const subtitle = $derived(info?.subtitle ?? '')
+  const announcement = $derived(shown ? `Map of ${title}, ${subtitle || when}` : '')
 
-  // A shared link's map view
+  // A shared link's map view and overlay
   let placed = false
   $effect(() => {
     const m = map
-    if (!m || placed) return
+    if (!m || !dataMap || placed) return
     placed = true
-    const { c, z } = untrack(() => $view)
-    if (view.fromLink && c && z !== null) m.jumpTo({ center: [c.lng, c.lat], zoom: z })
+    const { c, z, overlay } = untrack(() => $view)
+    if (!view.fromLink) return
+    if (c && z !== null) m.jumpTo({ center: [c.lng, c.lat], zoom: z })
+    dataMap.showOverlay(overlay)
   })
 
   function shareUrl() {
@@ -169,8 +188,12 @@
       const { lng, lat } = map.getCenter()
       view.patch({ c: { lat, lng }, z: Math.round(map.getZoom() * 100) / 100 })
     }
+    view.patch({ overlay: dataMap?.currentOverlay() ?? null })
     return view.shareUrl()
   }
+
+  // The phone's stepper, under the map: the same steps as the controls'
+  const stepWhen = $derived(layer ? stepperWhen($view, layer, today) : null)
 
   // The next day's tiles once the map's are in (only the next: a model's map can take seconds to compute)
   let prefetching: AbortController | undefined
@@ -193,11 +216,48 @@
   let picked = $state<DataPick | null>(null)
   let place = $state<CellPlace | null>(null)
   let placeError = $state<string | null>(null)
+  /** The place searched for, while its point is the one chosen */
+  let searched = $state<{ name: string; lat: number; lng: number } | null>(null)
   const cellRequests = latestRequests()
 
   function choose(lat: number, lng: number) {
     change({ at: { lat: Number(lat.toFixed(4)), lng: Number(lng.toFixed(4)) } })
   }
+
+  // A place found by search: its cell chosen, and the reader taken to the cell's answer
+  async function chooseSearched(name: string, lat: number, lng: number) {
+    choose(lat, lng)
+    const at = $view.at
+    searched = at ? { name: name.split(',')[0].trim(), lat: at.lat, lng: at.lng } : null
+    await tick()
+    document.querySelector<HTMLElement>('[data-testid="cell-panel"]')?.focus()
+  }
+  const searchedName = $derived(
+    searched && $view.at && searched.lat === $view.at.lat && searched.lng === $view.at.lng ? searched.name : null,
+  )
+
+  // The county table's state: the chosen cell's, else the one at the map's center when the page opens
+  let countyState = $state('WI')
+  let countyStateChosen = false
+  $effect(() => {
+    const found = stateCode(place?.state)
+    if (found && !countyStateChosen) untrack(() => (countyState = found))
+  })
+  let centerLocated = false
+  $effect(() => {
+    const m = map
+    if (!m || centerLocated) return
+    centerLocated = true
+    untrack(() => {
+      const { lat, lng } = m.getCenter()
+      get<{ data: CellPlace }>('/locate', { lat: Number(lat.toFixed(4)), lng: Number(lng.toFixed(4)) })
+        .then((body) => {
+          const found = stateCode(body.data.state)
+          if (found && !countyStateChosen && !place) countyState = found
+        })
+        .catch(() => {})
+    })
+  })
 
   async function readValue() {
     const at = $view.at
@@ -308,8 +368,9 @@
     if (seriesFor.daily) return layers.find((l) => l.id === seriesFor.column)?.unit ?? shownLayer.unit
     return shownLayer.unit
   })
-  // A model's risk levels by name (the model's own list, else the names the run gave)
-  const levels = $derived(series?.labels ? (riskLevels ?? levelNames(series)) : null)
+  // A model's risk levels by name (the map's, else the names the run gave)
+  const mapLevels = $derived(info?.categories?.every((c) => c.value >= 0) ? info.categories.map((c) => c.name) : null)
+  const levels = $derived(series?.labels ? (mapLevels ?? levelNames(series)) : null)
   function levelNames(s: CellSeries): string[] {
     const names: string[] = []
     s.values.forEach((v, i) => {
@@ -338,8 +399,59 @@
 
 <p class="sr-only" aria-live="polite">{announcement}</p>
 
+{#snippet intro()}
+  <div class="flex items-start justify-between gap-3">
+    <div>
+      <h1 class="text-xl font-semibold">Weather and pest maps</h1>
+      <p class="text-sm text-ink-muted">Choose a map, a day and a place. Click the map for a cell's recent days.</p>
+    </div>
+    {#if wide.current}<ShareButton url={shareUrl} />{/if}
+  </div>
+{/snippet}
+
+{#snippet failed()}
+  {#if loadError}
+    <div class="rounded-md border border-danger p-3 text-sm" role="alert">
+      <p>{loadError}</p>
+      <button type="button" class="mt-2 underline" onclick={load}>Try again</button>
+    </div>
+  {/if}
+{/snippet}
+
+{#snippet cell()}
+  {#if $view.at}
+    <CellPanel
+      lat={$view.at.lat}
+      lng={$view.at.lng}
+      value={picked?.text ?? null}
+      {title}
+      when={subtitle || when}
+      {place}
+      {placeError}
+      searched={searchedName}
+      model={mapModel}
+      onclear={() => change({ at: null })}
+    />
+  {/if}
+{/snippet}
+
+{#snippet settings()}
+  {#if layers.length}
+    <LayerPicker view={$view} {layers} {models} {crops} {presets} onchange={change} />
+    {#if layer?.group === 'model'}
+      <LayerSettings view={$view} {layer} {options} onchange={change} />
+    {/if}
+    {#if layer}
+      <TimeControls view={$view} {layer} {today} onchange={change} />
+      <MapOptions view={$view} {layer} {info} {palettes} onchange={change} />
+    {/if}
+  {:else if !loadError}
+    <p class="text-sm text-ink-muted">Loading the maps…</p>
+  {/if}
+{/snippet}
+
 <div class="lg:grid lg:h-[calc(100dvh-var(--chrome-h))] lg:grid-cols-2">
-  <div class="h-[62svh] min-h-80 p-2 lg:h-full lg:min-h-0 lg:pr-1">
+  <div class="relative h-[calc(100svh-var(--chrome-h)-6.5rem)] min-h-80 p-2 lg:h-full lg:min-h-0 lg:pr-1">
     {#if shown}
       <DataMap
         bind:this={dataMap}
@@ -350,7 +462,7 @@
         params={shown.params}
         palette={$view.palette}
         {scale}
-        label="Map of {title}, {when}"
+        label="Map of {title}, {subtitle || when}"
         prefsKey="map-explorer"
         class="h-full"
         oninfo={(next) => (info = next)}
@@ -361,10 +473,10 @@
         }}
       >
         {#snippet header()}
-          <TitleChip {title} subtitle={info?.subtitle} {when} {through} />
+          <TitleChip {title} {subtitle} {through} notes={info?.warnings.length ?? 0} />
         {/snippet}
         {#snippet controls()}
-          <PlaceSearch {map} onplace={(p) => choose(p.center[1], p.center[0])} />
+          <PlaceSearch {map} onplace={(p) => chooseSearched(p.label, p.center[1], p.center[0])} />
         {/snippet}
       </DataMap>
     {:else}
@@ -374,49 +486,85 @@
         {loadError ?? 'Loading the map…'}
       </div>
     {/if}
+    {#if !wide.current && $view.at}
+      <!-- On phones the cell's answer slides up over the map's foot (the legend), at most 60% of its height -->
+      <div
+        class="absolute inset-x-3 bottom-3 z-10 max-h-[60%] overflow-y-auto rounded-md shadow-xl"
+        transition:fly={{ y: 160, duration: motion(200) }}
+      >
+        {@render cell()}
+      </div>
+    {/if}
   </div>
 
-  <div class="space-y-5 p-4 lg:min-h-0 lg:overflow-y-auto">
-    <div class="flex items-start justify-between gap-3">
-      <div>
-        <h1 class="text-xl font-semibold">Weather and pest maps</h1>
-        <p class="text-sm text-ink-muted">Choose a map, a day and a place. Click the map for a cell's recent days.</p>
+  {#if wide.current}
+    <div class="space-y-5 p-4 lg:min-h-0 lg:overflow-y-auto">
+      {@render intro()}
+      {@render failed()}
+      {@render cell()}
+      {@render settings()}
+    </div>
+  {:else}
+    <!-- Phones: the map's controls in a sheet, and the day's stepper under the map -->
+    <div class="space-y-2 border-b border-line px-2 pb-2" data-testid="phone-bar">
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-md border border-line bg-surface-raised px-3 py-1.5 text-left
+            hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+          aria-haspopup="dialog"
+          aria-expanded={sheetOpen}
+          onclick={() => (sheetOpen = true)}
+        >
+          <span class="min-w-0">
+            <span class="block text-sm font-semibold">Layer and date</span>
+            <span class="block truncate text-xs text-ink-muted">{layer ? shortTitle(layer) : 'Loading…'}</span>
+          </span>
+          <span aria-hidden="true" class="text-ink-muted">▴</span>
+        </button>
+        <ShareButton url={shareUrl} />
       </div>
-      <ShareButton url={shareUrl} />
+      {#if layer && stepWhen}
+        <TimeStepper {layer} when={stepWhen} {today} onstep={(next) => change(stepTo($view, layer, next))} />
+      {/if}
+    </div>
+    <div class="space-y-3 p-4">
+      {@render intro()}
+      {@render failed()}
     </div>
 
-    {#if loadError}
-      <div class="rounded-md border border-danger p-3 text-sm" role="alert">
-        <p>{loadError}</p>
-        <button type="button" class="mt-2 underline" onclick={load}>Try again</button>
-      </div>
-    {/if}
-
-    {#if $view.at}
-      <CellPanel
-        value={picked?.text ?? null}
-        {title}
-        when={info?.subtitle || when}
-        {place}
-        {placeError}
-        onclear={() => change({ at: null })}
-      />
-    {/if}
-
-    {#if layers.length}
-      <LayerPicker view={$view} {layers} {models} {crops} {presets} onchange={change} />
-      {#if layer?.group === 'model'}
-        <LayerSettings view={$view} {layer} {options} onchange={change} />
-      {/if}
-      {#if layer}
-        <TimeControls view={$view} {layer} {today} onchange={change} />
-        <MapOptions view={$view} {layer} {info} {palettes} onchange={change} />
-      {/if}
-    {/if}
-  </div>
+    <Dialog.Root bind:open={sheetOpen}>
+      <Dialog.Portal>
+        <Dialog.Overlay class="fixed inset-0 z-40 bg-black/20" />
+        <Dialog.Content
+          preventScroll={false}
+          class="fixed inset-x-0 bottom-0 z-50 flex max-h-[80dvh] flex-col rounded-t-xl border-t border-line bg-surface-raised shadow-2xl"
+          data-testid="controls-sheet"
+        >
+          <div class="flex items-center justify-between gap-3 border-b border-line px-4 py-2">
+            <div class="min-w-0">
+              <Dialog.Title class="text-base font-semibold">Layer and date</Dialog.Title>
+              <Dialog.Description class="truncate text-xs text-ink-muted">
+                {subtitle ? `${title}, ${subtitle}` : title}
+              </Dialog.Description>
+            </div>
+            <Dialog.Close
+              class="rounded-md bg-brand-600 px-3 py-1 text-sm font-semibold text-surface hover:bg-brand-700
+                focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+            >
+              Show the map
+            </Dialog.Close>
+          </div>
+          <div class="space-y-5 overflow-y-auto overscroll-contain p-4">
+            {@render settings()}
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  {/if}
 </div>
 
-<div class="mx-auto w-full max-w-6xl space-y-6 px-4 py-8">
+<div class="mx-auto w-full max-w-6xl space-y-8 px-4 py-8">
   {#if $view.at}
     <section id="cell-chart" class="space-y-2" aria-labelledby="cell-chart-heading">
       <h2 id="cell-chart-heading" class="text-lg font-semibold">This cell's recent days</h2>
@@ -441,17 +589,30 @@
   {/if}
 
   {#if layer}
-    <section class="space-y-2" aria-labelledby="about-heading">
+    <section id="map-notes" class="space-y-2" aria-labelledby="about-heading">
       <h2 id="about-heading" class="text-lg font-semibold">About this map</h2>
       {#each info?.warnings ?? [] as warning (warning)}
-        <p class="rounded-md border border-line bg-surface-raised p-2 text-sm" role="note">{warning}</p>
+        <p class="max-w-prose rounded-md border border-line bg-surface-raised p-2 text-sm" role="note">{warning}</p>
       {/each}
       <p class="max-w-prose text-sm">{layer.group === 'degree_days' ? DEGREE_DAYS_ABOUT : layer.description}</p>
-      {#if info?.caption}<p class="max-w-prose text-sm text-ink-muted">{info.caption}</p>{/if}
+      {#each info?.caption ?? [] as line (line)}<p class="max-w-prose text-sm text-ink-muted">{line}</p>{/each}
       {#if through}<p class="text-sm text-ink-muted">{through}.</p>{/if}
       <p class="max-w-prose text-sm text-ink-muted">
         Each cell of the map is 2.5 km (1.5 miles) across. Days run midnight to midnight Central Standard Time.
       </p>
     </section>
+  {/if}
+
+  {#if shown}
+    <CountyTable
+      tiles={shown}
+      {info}
+      {title}
+      region={countyState}
+      onregion={(code) => {
+        countyStateChosen = true
+        countyState = code
+      }}
+    />
   {/if}
 </div>
