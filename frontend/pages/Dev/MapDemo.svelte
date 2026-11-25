@@ -1,9 +1,8 @@
-<!-- Development only (/dev/map, wave 1): WISP 3's map and chart cores on fake data, for review. Wave 2 deletes or replaces it. -->
+<!-- Development only (/dev/map): DataMap on the API's tiles (D119) with a small form, and WISP 3's chart core on fake data, for review. -->
 <script lang="ts">
-  import { onDestroy, onMount, untrack } from 'svelte'
   import type { Map as MapLibreMap } from 'maplibre-gl'
-  import 'maplibre-gl/dist/maplibre-gl.css'
 
+  import { get } from '@/lib/api'
   import ChartCard, { type ChartTable } from '@/lib/charts/ChartCard.svelte'
   import type { EChartsCoreOption } from '@/lib/charts/echarts'
   import { baseOption, type Palette } from '@/lib/charts/palette'
@@ -11,110 +10,74 @@
   import PlaceSearch from '@/lib/components/PlaceSearch.svelte'
   import { downloadCsv, frontmatter, toCsv } from '@/lib/csv'
   import { addDays, formatDate } from '@/lib/dates'
-  import { BasemapSwitch, beneathLabels } from '@/lib/map/basemaps'
-  import BasemapToggle from '@/lib/map/BasemapToggle.svelte'
-  import { createMap } from '@/lib/map/createMap'
-  import { COVERAGE_BOUNDS } from '@/lib/map/coverage'
-  import HoverLabel from '@/lib/map/HoverLabel.svelte'
-  import { MapHover } from '@/lib/map/hover.svelte'
-  import MapLayersButton from '@/lib/map/MapLayersButton.svelte'
-  import { MapOverlays } from '@/lib/map/mapOverlays.svelte'
-  import OverlayLayers from '@/lib/map/OverlayLayers.svelte'
-  import type { OverlayId } from '@/lib/map/overlays'
-  import OverlayTooltip from '@/lib/map/OverlayTooltip.svelte'
-  import { loadPrefs, savePrefs } from '@/lib/map/prefs'
-  import { followRoads } from '@/lib/map/roads.svelte'
-  import { units as unitsFor } from '@/lib/units'
+  import DataMap, { type DataInfo, type DataPick, type DataScale } from '@/lib/map/DataMap.svelte'
+  import { currentUnits, parseNumber } from '@/lib/units'
+  import type { LayerInfo, LayersResponse, PaletteInfo } from '@/types/api'
 
-  const units = unitsFor('imperial')
+  const units = $derived(currentUnits())
 
-  // --- The map: basemap, overlays, place search, and a stand-in data layer beneath the labels (D119)
+  // --- The data map: a layer, a day, a palette and a scale
 
-  let prefs = $state(loadPrefs('dev-map'))
-  $effect(() => savePrefs('dev-map', $state.snapshot(prefs)))
-
-  let container: HTMLDivElement
-  let wrapper: HTMLDivElement | undefined = $state()
-  let map: MapLibreMap | undefined = $state()
-  let mapWidth = $state(0)
-  let placeSearch = $state<PlaceSearch>()
-
-  const DATA = 'demo-data'
-  const isOwn = (source: string) => source === DATA || source.startsWith('overlay-')
-
-  const overlays = new MapOverlays({ droughtArea: () => COVERAGE_BOUNDS })
-  $effect(() => {
-    const shown = (prefs.overlay ? [prefs.overlay] : []) as OverlayId[]
-    const opacity = { ...prefs.opacity }
-    untrack(() => overlays.sync(shown, opacity))
-  })
-  onDestroy(() => overlays.destroy())
-
-  followRoads(() => map)
-
-  const hover = new MapHover(
-    (m, point) => {
-      const { lng, lat } = m.unproject(point)
-      return [`${lat.toFixed(3)}°N, ${Math.abs(lng).toFixed(3)}°W`]
+  // A choice is a layer and its settings; its value is the layer id, or the id and a suffix for a variant
+  const LAYERS: { key: string; id: string; params: Record<string, string>; name?: string }[] = [
+    { key: 'air_temperature_max', id: 'air_temperature_max', params: {} },
+    { key: 'air_temperature_min', id: 'air_temperature_min', params: {} },
+    {
+      key: 'first-frost',
+      id: 'air_temperature_min',
+      params: { first: 'frost' },
+      name: 'First frost (32 °F) since July 1',
     },
-    () => wrapper,
+    { key: 'dd_modified_50_86', id: 'dd_modified_50_86', params: {} },
+    { key: 'precipitation_sum', id: 'precipitation_sum', params: {} },
+    { key: 'precipitation_total', id: 'precipitation_total', params: {} },
+    { key: 'tar-spot', id: 'tar-spot', params: {} },
+  ]
+
+  let layerId = $state('air_temperature_max')
+  let date = $state('')
+  let paletteId = $state('')
+  let scaleMode = $state<'auto' | 'default'>('auto')
+  let lowText = $state('')
+  let highText = $state('')
+  let info = $state<DataInfo | null>(null)
+  let picked = $state<DataPick | null>(null)
+  let map: MapLibreMap | undefined = $state()
+
+  let layers = $state<LayerInfo[]>([])
+  let palettes = $state<PaletteInfo[]>([])
+  get<LayersResponse>('/layers').then((body) => {
+    layers = body.data
+    date ||= body.data.find((l) => l.id === layerId)?.range.last ?? ''
+  })
+  get<PaletteInfo[]>('/palettes').then((body) => (palettes = body))
+
+  const choice = $derived(LAYERS.find((l) => l.key === layerId) ?? LAYERS[0])
+  const params = $derived(choice.params)
+  const layerName = (l: (typeof LAYERS)[number]) => l.name ?? layers.find((info) => info.id === l.id)?.title ?? l.id
+  // A categorical map takes only a categorical palette with as many levels; a continuous one no categorical one
+  const choices = $derived(
+    palettes
+      .filter((p) =>
+        info?.kind === 'categorical'
+          ? p.kind === 'categorical' &&
+            p.colors.length === palettes.find((d) => d.id === info?.defaultPalette)?.colors.length
+          : p.kind !== 'categorical',
+      )
+      .map((p) => p.id),
   )
+  const scale = $derived.by((): DataScale => {
+    const low = parseNumber(lowText)
+    const high = parseNumber(highText)
+    const lowValue = low.ok ? low.value : null
+    const highValue = high.ok ? high.value : null
+    if (lowValue === null && highValue === null) return scaleMode
+    return { low: lowValue, high: highValue }
+  })
 
-  const basemapSwitch = new BasemapSwitch(
-    untrack(() => prefs.basemap),
-    { map: () => map, isOwn, show: (to) => (prefs.basemap = to) },
-  )
-
-  // A box over southern Wisconsin, standing in for the data tiles wave 2 adds
-  function addData(m: MapLibreMap) {
-    if (m.getSource(DATA)) return
-    m.addSource(DATA, {
-      type: 'geojson',
-      data: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [-91.5, 42.5],
-            [-87.5, 42.5],
-            [-87.5, 44.5],
-            [-91.5, 44.5],
-            [-91.5, 42.5],
-          ],
-        ],
-      },
-    })
-    m.addLayer(
-      { id: DATA, type: 'fill', source: DATA, paint: { 'fill-color': '#f46d43', 'fill-opacity': 0.55 } },
-      beneathLabels(m),
-    )
-  }
-
-  onMount(() => {
-    const cleanups: (() => void)[] = []
-    const remove = createMap(
-      container,
-      prefs.basemap,
-      (m, maplibre) => {
-        map = m
-        m.addControl(new maplibre.ScaleControl({ unit: 'imperial' }), 'bottom-left')
-        m.on('load', () => {
-          addData(m)
-          overlays.attach(m)
-        })
-        m.on('click', () => placeSearch?.close())
-        m.on('moveend', () => {
-          const { lng, lat } = m.getCenter()
-          prefs.view = { center: [lng, lat], zoom: Math.round(m.getZoom() * 100) / 100 }
-        })
-        cleanups.push(hover.attach(m))
-      },
-      prefs.view ?? {},
-    )
-    return () => {
-      cleanups.forEach((cleanup) => cleanup())
-      remove()
-      map = undefined
-    }
+  // For measuring from Playwright (development only)
+  $effect(() => {
+    ;(window as unknown as { agwDataMap?: MapLibreMap }).agwDataMap = map
   })
 
   // --- The chart: two panels sharing a time axis, a forecast, an estimated day and a missing one
@@ -231,54 +194,86 @@
 </script>
 
 <svelte:head>
-  <title>Map and chart demo</title>
+  <title>Data map and chart demo</title>
 </svelte:head>
 
 <section class="space-y-4">
-  <h1 class="text-2xl font-semibold">Map and chart demo</h1>
+  <h1 class="text-2xl font-semibold">Data map and chart demo</h1>
   <p class="max-w-prose text-sm text-ink-muted">
-    A development page for reviewing the map and chart parts ported from WISP 3. The orange box stands in for a data
-    layer: the basemap's borders and place names should draw above it.
+    A development page for reviewing the data map and the chart parts ported from WISP 3. The map draws the API's data
+    tiles beneath the basemap's borders and place names, colored in the browser.
   </p>
 
-  <div
-    bind:this={wrapper}
-    bind:clientWidth={mapWidth}
-    class="relative h-112 w-full overflow-hidden rounded-lg border border-line bg-surface sm:h-128"
-  >
-    <div bind:this={container} class="size-full" role="application" aria-label="Demo map of the coverage"></div>
-    <div class="pointer-events-none absolute top-2 left-2 flex w-[calc(100%-4rem)] flex-col gap-2">
-      <div class="flex flex-wrap items-start gap-2 *:pointer-events-auto">
-        <BasemapToggle value={prefs.basemap} onchange={(to) => basemapSwitch.change(to)} />
-        <MapLayersButton id="demo-map-layers" basemap={prefs.basemap} count={prefs.overlay ? 1 : 0}>
-          <OverlayLayers bind:prefs {overlays} {units} />
-        </MapLayersButton>
-      </div>
-      <div class="pointer-events-auto w-full max-w-68">
-        <PlaceSearch bind:this={placeSearch} {map} />
-      </div>
-    </div>
-    <HoverLabel label={hover.label} />
-    {#if overlays.probe}
-      <OverlayTooltip probe={overlays.probe} {units} width={mapWidth} />
+  <form class="flex flex-wrap items-end gap-3 text-sm" onsubmit={(event) => event.preventDefault()}>
+    <label class="flex flex-col gap-1">
+      <span class="text-ink-muted">Layer</span>
+      <select class="max-w-full rounded-md border border-line bg-surface px-2 py-1" bind:value={layerId} name="layer">
+        {#each LAYERS as l (l.key)}<option value={l.key}>{layerName(l)}</option>{/each}
+      </select>
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="text-ink-muted">Date</span>
+      <input type="date" class="rounded-md border border-line bg-surface px-2 py-1" bind:value={date} name="date" />
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="text-ink-muted">Palette</span>
+      <select class="rounded-md border border-line bg-surface px-2 py-1" bind:value={paletteId} name="palette">
+        <option value="">The layer's ({info?.defaultPalette ?? '…'})</option>
+        {#each choices as id (id)}<option value={id}>{id}</option>{/each}
+        {#each choices as id (`${id}_r`)}<option value="{id}_r">{id} reversed</option>{/each}
+      </select>
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="text-ink-muted">Scale</span>
+      <select class="rounded-md border border-line bg-surface px-2 py-1" bind:value={scaleMode} name="scale">
+        <option value="auto">This map's range</option>
+        <option value="default">The layer's fixed range</option>
+      </select>
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="text-ink-muted">Low{info ? ` (${units.label(info.unit)})` : ''}</span>
+      <input
+        class="w-20 rounded-md border border-line bg-surface px-2 py-1"
+        bind:value={lowText}
+        name="low"
+        inputmode="decimal"
+      />
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="text-ink-muted">High{info ? ` (${units.label(info.unit)})` : ''}</span>
+      <input
+        class="w-20 rounded-md border border-line bg-surface px-2 py-1"
+        bind:value={highText}
+        name="high"
+        inputmode="decimal"
+      />
+    </label>
+  </form>
+
+  {#if date}
+    <DataMap
+      layer={choice.id}
+      time={date}
+      {params}
+      palette={paletteId || null}
+      {scale}
+      label="Map of {info?.title ?? 'the data'}"
+      prefsKey="dev-map"
+      bind:map
+      oninfo={(next) => (info = next)}
+      onpick={(next) => (picked = next)}
+    >
+      {#snippet controls()}<PlaceSearch {map} />{/snippet}
+    </DataMap>
+  {/if}
+  <p class="text-sm" data-testid="picked">
+    {#if picked}
+      {picked.lat.toFixed(4)}, {picked.lng.toFixed(4)}: {picked.text}
+      <span class="text-ink-muted">(stored: {picked.value} {picked.unit})</span>
+    {:else}
+      <span class="text-ink-muted">Click the map for the value of a cell.</span>
     {/if}
-    {#if overlays.notice}
-      <div
-        class="absolute inset-x-2 bottom-8 flex items-start gap-2 rounded-md border border-line bg-surface-raised p-2 text-sm shadow-lg sm:left-auto sm:max-w-sm"
-        role="status"
-      >
-        <p class="flex-1">{overlays.notice}</p>
-        <button
-          type="button"
-          class="text-ink-muted hover:text-ink"
-          aria-label="Dismiss"
-          onclick={() => overlays.dismiss()}
-        >
-          ✕
-        </button>
-      </div>
-    {/if}
-  </div>
+  </p>
 
   <div class="max-w-3xl">
     <ChartCard
