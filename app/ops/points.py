@@ -1,10 +1,11 @@
 """A model at any US point (Phase 4 C, E): in the box, from the archive and the NBM forecast, with the forecast
-soil hours the run lacks from Open-Meteo (D44); outside it, or before the archive, from Open-Meteo through the cell
-cache."""
+soil hours the run lacks from Open-Meteo (D44), and Open-Meteo's forecast in place of a stale or missing run (D114);
+outside it, or before the archive, from Open-Meteo through the cell cache."""
 
+import time
 from collections.abc import Sequence
-from dataclasses import dataclass, replace
-from datetime import date, datetime
+from dataclasses import dataclass, field, replace
+from datetime import UTC, date, datetime, timedelta
 
 import numpy as np
 from django.conf import settings
@@ -12,10 +13,14 @@ from django.conf import settings
 from agdata import areas, coverage, series, terrain
 from agdata.areas import Area, Place, Weighting
 from agdata.grid import NDFD
+from agdata.sources import openmeteo as openmeteo_source
 from agdata.store import DAILY
 from agdata.timezones import DayBasis, basis_zone
 from agmodels.runner import ModelRun
 from ops import openmeteo
+
+HOUR = timedelta(hours=1)
+FALLBACK_SECONDS = 10.0  # one request's time for starting Open-Meteo fetches in the box (D114)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -101,6 +106,26 @@ def in_archive(latitude: float, longitude: float, first: date, last: date) -> bo
     return all(DAILY.path(settings.DATA_DIR, year).exists() for year in range(first.year, last.year + 1))
 
 
+@dataclass(kw_only=True)
+class FallbackBudget:
+    """One request's allowance for fetching Open-Meteo for points in the box (the soil past the run's, D44, and the
+    forecast in place of a stale run, D114): fetches start only within `seconds` of the first and until one fails,
+    after which the rest of the request's points go without (their answers say so) rather than each waiting out
+    Open-Meteo's timeout. The cell cache's answers cost nothing and are always read."""
+
+    seconds: float = FALLBACK_SECONDS
+    started: float = field(default_factory=time.monotonic)
+    failed: bool = False
+
+    def allows(self) -> bool:
+        return not self.failed and time.monotonic() - self.started < self.seconds
+
+
+def fallback_on() -> bool:
+    """Whether points in the box take Open-Meteo's forecast while ours is stale (`OPEN_METEO_FALLBACK`, D114)."""
+    return bool(getattr(settings, "OPEN_METEO_FALLBACK", False))
+
+
 def models_at_point(
     latitude: float,
     longitude: float,
@@ -111,12 +136,14 @@ def models_at_point(
     planting_default: bool = True,
     zone: str | None = None,
     area: AreaAsk | None = None,
+    budget: FallbackBudget | None = None,
 ) -> list[ModelRun]:
     """Models' three layers at a point (on the weather of `area` around it, if given), each day marked observed,
     partial or forecast, in the order of `runs`. The runs whose days the archive covers read it once; any that reach
     before it (or a point outside the box) read Open-Meteo once, so one model's long lookback doesn't move the others
     off the archive. Days follow `zone`'s clock (default `day_zone`'s)."""
     zone = zone or day_zone(latitude, longitude)
+    budget = budget or FallbackBudget()
     if planting_default:
         runs = [series.with_planting(run, latitude, longitude, start) for run in runs]
     archived = [in_archive(latitude, longitude, series.days_needed([run], start)[0], end) for run in runs]
@@ -127,7 +154,7 @@ def models_at_point(
             continue
         chosen = [runs[k] for k in group]
         found = (
-            _archive_runs(latitude, longitude, chosen, start, end, now, zone, area)
+            _archive_runs(latitude, longitude, chosen, start, end, now, zone, area, budget)
             if from_archive
             else _openmeteo_runs(latitude, longitude, chosen, start, end, now, zone)
         )
@@ -144,6 +171,7 @@ def models_at_points(
     now: datetime,
     zones: Sequence[str],
     area: AreaAsk | None = None,
+    budget: FallbackBudget | None = None,
 ) -> list[list[ModelRun]]:
     """`models_at_point` (without typical planting dates) at each point, with its own runs (`runs[k]`) on its own
     zone's days (`zones[k]`): the runs the archive covers, at every point, on one read of their cells
@@ -151,6 +179,7 @@ def models_at_points(
     request's, but for the order of a mean's sums (~1e-16) and `sources`, which name the sources of the hours read
     for every point's runs (from the earliest day any of them needs)."""
     results: list[list[ModelRun | None]] = [[None] * len(own) for own in runs]
+    budget = budget or FallbackBudget()
     archived = {
         (k, m)
         for k, (lat, lng) in enumerate(sites)
@@ -169,8 +198,9 @@ def models_at_points(
             end,
             names,
             now=now,
-            fill_soil=[_soil_filler(*sites[k], now) for k in batched],
+            fill_soil=[_soil_filler(*sites[k], now, budget) for k in batched],
             zones=[zones[k] for k in batched],
+            fill_forecast=[forecast_filler(*sites[k], now, budget) for k in batched],
         )
         for k, days in zip(batched, found, strict=True):
             own = series.runs_at_point(
@@ -205,18 +235,73 @@ def _slicer(days: series.DailySeries):
     return read_days
 
 
-def _soil_filler(latitude: float, longitude: float, now: datetime):
-    """Forecast soil hours the run lacks, from Open-Meteo's ECMWF IFS through the cell cache (D44)."""
+def _soil_filler(latitude: float, longitude: float, now: datetime, budget: FallbackBudget) -> series.FillSoil:
+    """Forecast soil hours the run lacks, from Open-Meteo's ECMWF IFS through the cell cache (D44); None (the soil
+    stays missing, with a warning) when Open-Meteo can't be reached or the request's `budget` is spent."""
 
-    def fill_soil(first_hour: datetime, last_hour: datetime, names: list[str]) -> dict[str, np.ndarray]:
-        values, _, _ = openmeteo.cell_hours(latitude, longitude, first_hour, last_hour, now)  # soil only
+    def fill_soil(first_hour: datetime, last_hour: datetime, names: list[str]) -> dict[str, np.ndarray] | None:
+        found = _fetch(latitude, longitude, first_hour, last_hour, now, budget)
+        if found is None:
+            return None
+        values, _, _ = found  # soil only
         return {name: values[name] for name in names if name in values}
 
     return fill_soil
 
 
-def _archive_runs(latitude, longitude, runs, start, end, now, zone: str, area: AreaAsk | None) -> list[ModelRun]:
-    fill_soil = _soil_filler(latitude, longitude, now)
+def forecast_filler(
+    latitude: float, longitude: float, now: datetime, budget: FallbackBudget
+) -> series.FillForecast | None:
+    """A point's forecast from Open-Meteo through the cell cache while our run is stale or missing (D114), as for a
+    point outside the box (`ops.openmeteo.cell_hours`: NBM then best_match, IFS soil, D51's corrections), from the
+    forecast endpoint's first hour on; None with the fallback off. It gives None (no forecast, with a warning) when
+    Open-Meteo can't be reached or the request's `budget` is spent."""
+    if not fallback_on():
+        return None
+
+    def fill(first_hour: datetime, last_hour: datetime, names: list[str]) -> series.FallbackHours | None:
+        recent = now.date() - timedelta(days=openmeteo_source.RECENT_DAYS)  # the forecast endpoint's first day
+        lo = max(first_hour, datetime(recent.year, recent.month, recent.day, tzinfo=UTC) + HOUR)
+        if lo > last_hour:
+            return series.FallbackHours(values={}, first_hour=None, last_hour=None)
+        found = _fetch(latitude, longitude, lo, last_hour, now, budget)
+        if found is None:
+            return None
+        values, kinds, applied = found
+        n = (last_hour - first_hour) // HOUR + 1
+        skip = (lo - first_hour) // HOUR
+        placed = {}
+        for name in names:
+            row = np.full(n, np.nan)
+            if name in values:
+                row[skip:] = values[name]
+            placed[name] = row
+        covered = [k for k, kind in enumerate(kinds) if kind is not None]
+        if not covered:
+            return series.FallbackHours(values=placed, first_hour=None, last_hour=None, corrections=applied)
+        return series.FallbackHours(
+            values=placed, first_hour=lo + covered[0] * HOUR, last_hour=lo + covered[-1] * HOUR, corrections=applied
+        )
+
+    return fill
+
+
+def _fetch(latitude: float, longitude: float, start: datetime, end: datetime, now: datetime, budget: FallbackBudget):
+    """`ops.openmeteo.cell_hours`, or None when the request's budget is spent or Open-Meteo can't be reached (which
+    spends it)."""
+    if not budget.allows():
+        return None
+    try:
+        return openmeteo.cell_hours(latitude, longitude, start, end, now)
+    except openmeteo.Unavailable:
+        budget.failed = True
+        return None
+
+
+def _archive_runs(
+    latitude, longitude, runs, start, end, now, zone: str, area: AreaAsk | None, budget: FallbackBudget
+) -> list[ModelRun]:
+    fill_soil = _soil_filler(latitude, longitude, now, budget)
     return series.models_at_point(
         settings.DATA_DIR,
         latitude,
@@ -229,6 +314,7 @@ def _archive_runs(latitude, longitude, runs, start, end, now, zone: str, area: A
         planting_default=False,
         zone=zone,
         area=area.at(latitude, longitude) if area is not None else None,
+        fill_forecast=forecast_filler(latitude, longitude, now, budget),
     )
 
 
@@ -250,6 +336,7 @@ def projected_at_point(
     now: datetime,
     zone: str | None = None,
     area: AreaAsk | None = None,
+    budget: FallbackBudget | None = None,
 ) -> series.Projected | None:
     """Runs carried past the forecast on each earlier archive year (D63); None for a point outside the archive (no
     projection there yet: Ben, 2026-11-03). This year's days follow `zone`; the past years' are grid days (their
@@ -262,7 +349,9 @@ def projected_at_point(
     assert cell is not None
     stores = series.Stores(series.hourly_needed(names))
 
-    fill_soil = _soil_filler(latitude, longitude, now)
+    budget = budget or FallbackBudget()
+    fill_soil = _soil_filler(latitude, longitude, now, budget)
+    fill_forecast = forecast_filler(latitude, longitude, now, budget)
     around = area.at(latitude, longitude) if area is not None else None
 
     def read_days(a: date, b: date, wanted: list[str]) -> series.DailySeries:
@@ -277,6 +366,7 @@ def projected_at_point(
             stores=stores,
             zone=zone,
             area=around,
+            fill_forecast=fill_forecast,
         )
 
     return series.projected_runs(

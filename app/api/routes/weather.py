@@ -43,7 +43,7 @@ from api.params import (
     check_vars,
 )
 from api.schemas import TableResponse, responses
-from ops.points import AllWater, AreaAsk, day_zone
+from ops.points import AllWater, AreaAsk, FallbackBudget, day_zone
 
 router = Router(tags=["Weather"])
 
@@ -138,20 +138,21 @@ def read_days(
     trim_end: bool,
     now: datetime,
     area: AreaAsk | None = None,
+    budget: FallbackBudget | None = None,
 ):
     """Each point's days, trimmed (`points.keep`), with the warnings, sources and corrections they bring."""
-    found, warnings, sources, corrections = [], [], [], []
+    found, sources, corrections = [], [], []
     sites = where.locations()
     zones = [day_zone(lat, lng, options.day_basis) for lat, lng in sites]
     stores = points.shared_stores(names)
-    for days in points.many_days(sites, first, last, names, now, zones, stores=stores, area=area):
+    every = points.many_days(sites, first, last, names, now, zones, stores=stores, area=area, budget=budget)
+    for days in every:
         n = points.keep(days.kinds, options.forecast, trim_end)
         found.append((days, n))
         sources += [s for s in days.sources if s not in sources]
         corrections += [c for c in days.corrections if c not in corrections]
-        if days.forecast.reason == "stale" and options.forecast:
-            warnings.append("The forecast is out of date, so the series ends with the last observed day.")
-    return found, sorted(set(warnings)), sources, corrections
+    warnings = points.forecast_warnings([days.forecast for days in every], options.forecast)
+    return found, warnings, sources, corrections
 
 
 def day_counts(found) -> dict:
@@ -285,7 +286,8 @@ def hourly(
     locations = located(where, start.date(), end.date(), area=around)
     columns: dict[str, list] = {"point": [], "time": [], "local_time": [], "kind": [], **{name: [] for name in names}}
     sources: list[str] = []
-    for k, found in enumerate(points.many_hours(where.locations(), start, end, names, now, area=around)):
+    every = points.many_hours(where.locations(), start, end, names, now, area=around)
+    for k, found in enumerate(every):
         n = points.keep(found.kinds, options.forecast, trim_end)
         columns["point"] += [k] * n
         columns["time"] += found.times[:n]
@@ -320,6 +322,7 @@ def hourly(
             **envelope_parts(where, locations),
             summary=summary,
             sources=sources,
+            warnings=points.forecast_warnings([h.forecast for h in every], options.forecast),
             filename=f"agweather-hourly-{start:%Y%m%dT%H}-{end:%Y%m%dT%H}",
             etag=etag,
         ),
@@ -556,13 +559,19 @@ def totals(
     if etag is not None and (unchanged := not_modified(request, etag)) is not None:
         return unchanged
     locations = located(where, first, last, options, area=around)
-    found, warnings, sources, corrections = read_days(where, read_from, last, read, options, trim_end, now, area=around)
+    budget = FallbackBudget()  # the days and the hours share one request's time for Open-Meteo (D114)
+    found, warnings, sources, corrections = read_days(
+        where, read_from, last, read, options, trim_end, now, area=around, budget=budget
+    )
     hours: list[points.Hours] = []
     if hourly_counted:
         start, end = _midnight(first - timedelta(days=1)), _midnight(last + timedelta(days=2))
-        hours = points.many_hours(where.locations(), start, end, hourly_counted, now, area=around)
+        hours = points.many_hours(where.locations(), start, end, hourly_counted, now, area=around, budget=budget)
         for h in hours:
             sources += [s for s in h.sources if s not in sources]
+        warnings += [
+            w for w in points.forecast_warnings([h.forecast for h in hours], options.forecast) if w not in warnings
+        ]
 
     keys = ["point", "month", "days", "forecast_days"]
     rows: dict[str, list] = {key: [] for key in keys}

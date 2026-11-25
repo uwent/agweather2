@@ -23,6 +23,10 @@ def test_spans_are_months_then_the_forecast():
         ("archive", date(2021, 12, 1), date(2021, 12, 31)),
         ("historical", date(2022, 1, 1), date(2022, 1, 31)),
     ]
+    # Days all within the forecast's reach take no month of history (D114's fallback asks from its first day)
+    assert openmeteo.spans(date(2026, 7, 8), date(2026, 7, 20), today) == [
+        ("forecast", date(2026, 7, 8), date(2026, 7, 26))
+    ]
 
 
 @pytest.fixture

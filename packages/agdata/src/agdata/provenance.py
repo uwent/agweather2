@@ -143,7 +143,7 @@ USES: tuple[SourceUse, ...] = (
         name="Open-Meteo",
         role="outside",
         variables=(*_ANALYSIS, "precipitation", "shortwave_radiation", *_SOIL_AND_SNOW),
-        description="For locations outside the area our maps cover, and for dates before our archive, we read weather for the location from Open-Meteo: NBM where it has it, then its best match of weather models, with ERA5 and ERA5-Land for earlier years and ECMWF IFS for soil and snow. We correct its solar radiation and humidity against Wisconsin's stations and the archive.",
+        description="For locations outside the area our maps cover, and for dates before our archive, we read weather for the location from Open-Meteo: NBM where it has it, then its best match of weather models, with ERA5 and ERA5-Land for earlier years and ECMWF IFS for soil and snow. We correct its solar radiation and humidity against Wisconsin's stations and the archive. If our own forecast hasn't been updated for more than 12 hours, the forecast for a location inside our area comes from Open-Meteo too until ours is current again; our maps show no forecast meanwhile.",
         url="https://open-meteo.com/",
     ),
     SourceUse(
