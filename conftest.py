@@ -46,6 +46,25 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip)
 
 
+@pytest.fixture(autouse=True)
+def _no_network_tries(monkeypatch):
+    """Fails a test that tried to reach the network. pytest-socket blocks the call, but code that catches the error
+    (a fetch that falls back, an API answer with an error) passed with only a warning."""
+    import pytest_socket
+
+    tried: list[str] = []
+    for error in (pytest_socket.SocketBlockedError, pytest_socket.SocketConnectBlockedError):
+
+        def init(self, *args, _init=error.__init__, **kwargs):
+            _init(self, *args, **kwargs)
+            tried.append(str(self))
+
+        monkeypatch.setattr(error, "__init__", init)
+    yield
+    if tried:
+        pytest.fail(f"The test tried to use the network (record a fixture instead): {tried[0]}", pytrace=False)
+
+
 @pytest.fixture(scope="session")
 def winters_dir(tmp_path_factory):
     """Potato volunteer's winter archive (`agdata.testing.winters`), built once for agdata's and the app's tests
