@@ -30,7 +30,7 @@ from typing import Any, cast
 import numpy as np
 import zarr
 
-from agdata import blocks, modelmaps, planting
+from agdata import blocks, coverage, modelmaps, planting
 from agdata.grid import NDFD, Window
 from agdata.store import INGREDIENTS, GridStore
 from agmodels.crops import CropModel, stage_days
@@ -208,7 +208,8 @@ def _write_reached(store: GridStore, model_id: str, tier: str, band: Window, val
     array = group[name]
     assert isinstance(array, zarr.Array)
     y0, x0 = store.window.local(band.j0, band.i0)
-    array[:, y0 : y0 + band.shape[0], x0 : x0 + band.shape[1]] = values
+    kept = coverage.covered(store.window, band)  # missing outside the coverage, as `GridStore.write` keeps values
+    array[:, y0 : y0 + band.shape[0], x0 : x0 + band.shape[1]] = np.where(kept[None], values, np.nan)
     array.attrs["through"] = through.isoformat()
 
 
