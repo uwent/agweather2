@@ -55,7 +55,7 @@ Order: 1 first (everything sits on it); then 2 and 3, the two P0 centers, side b
 Ben, 2026-11-26: core functionality first; refinements ("sugar and spice") later.
 
 
-- **Wave 1 (approved 2026-11-26):** (a) the foundation's base: tokens, shell, primitives, storage, test helpers, dependencies (track 1 without `api.ts`, the URL helper and the home page, which follow A1–A2); (b) WISP 3's chart and map cores and overlays, with place search, in their own files and their tokens in a CSS file of their own so the two merge cleanly; (c) the missing-days flags (track 9), backend only. No decision in A changes what these build.
-- **Wave 2:** after A1–A3: `lib/api.ts`, the URL helper and `DataMap` with the data-tile layer (a proof on one layer, measured on the launch box's tiles), the home page; then the map explorer and sites in parallel.
+- **Wave 1 (approved 2026-11-26):** (a) the foundation's base: tokens, shell, primitives, storage, test helpers, dependencies (track 1 without `api.ts`, the URL helper and the home page, which follow A1–A2); (b) WISP 3's chart and map cores and overlays, with place search, in their own files and their tokens in a CSS file of their own so the two merge cleanly; (c) the missing-days flags (track 9), backend only; (d), added once A was settled: `lib/api.ts` (D117), `lib/viewState.ts` and a Share button (D118), `lib/routes.ts` from `bin/types` (D121). Four agents in worktrees, each owning its files.
+- **Wave 2:** `DataMap` with the data-tile layer (a proof on one layer, measured on the launch box's tiles), the home page; then the map explorer and sites in parallel.
 
 **Exit:** beta users on the new site; every P0 page in frontend.md built, with its axe, keyboard and smoke tests; digests and alerts verified on staging for test sites; the end-of-phase review (CLAUDE.md).
