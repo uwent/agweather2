@@ -6,6 +6,7 @@ from agmodels.spec import Change, Check, Citation, TrainingArea
 INSECT = Insect(
     id="japanese-beetle",
     name="Japanese beetle",
+    season=("06-01", "10-31"),
     crops=(
         "asparagus",
         "beans",
@@ -45,7 +46,7 @@ INSECT = Insect(
     # Scout from the first beetles (2 %, about 920; USPest's "place traps" at 920) to the end of main activity (94 %,
     # USPest's 2,110), and treat when feeding threatens the crop (UW–Madison, University of Minnesota)
     action_windows=(ActionWindow(label="Scout for beetles feeding", stage="Adult beetles", between=(0.02, 0.94)),),
-    version="0.2",
+    version="0.3",
     status="beta",
     trained=TrainingArea(
         description="adult trap catches in Minnesota",
@@ -57,6 +58,11 @@ INSECT = Insect(
             version="0.2",
             date="2026-11-21",
             note="Rebuilt on Oregon State's Japanese beetle model (USPest.org, version 2, 2024): single-sine degree days above 50 °F with an upper threshold of 92 °F from January 1, and adult activity as a curve through its 10, 50, 90 and 94 % of beetles trapped (1,100, 1,540, 1,985 and 2,110 degree days), with a scouting window from the first beetles to the end of main activity. Replaces VDIFN's window (970, 1,600, 2,150 degree days, no upper threshold), which was USPest's first version.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="In season from June 1 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

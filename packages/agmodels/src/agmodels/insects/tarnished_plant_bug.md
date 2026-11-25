@@ -1,7 +1,7 @@
 ---
 id: tarnished-plant-bug
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 summary: Retired. No study times the tarnished plant bug's spring generation by degree days, so the model's generations had no supported start.
 sources:
   - Ugine 2012 (development of Lygus lineolaris at constant temperatures; the nymphs, adults and generation time)
@@ -30,7 +30,7 @@ Degree days are counted from January 1 by the single-sine method, base 52 °F wi
 
 - **Development.** A laboratory study of the tarnished plant bug at constant temperatures (Ugine 2012) gives the time from hatch to adult, how long adults live and the time from one generation to the next. Converted to this base on Wisconsin's summer weather, nymphs take about 390 degree days, adults live about 540, and a generation takes about 640.
 - **The spring generation.** UW–Madison's vegetable newsletter has the bugs active after the early-season nymphs develop, starting at 275 degree days. The model places the spring hatch so that young nymphs peak at 275. The newsletter doesn't give a source, but the same number on the same base is the peak of young nymphs in a lygus bug model for alfalfa grown for seed in Oregon and Idaho, likely made for a western species, and is probably where it comes from. So the timing of the spring generation isn't supported for Wisconsin's tarnished plant bug.
-- **Later generations** follow every 640 degree days until fall freezes end the season.
+- **Later generations** follow every 640 degree days until fall freezes end the season, or October 31 at the latest.
 
 In AgWeather's long-term averages (1996–2025), the first nymphs appear around May 5 at Arlington, May 8 at Hancock and May 16 at Rhinelander, and young nymphs peak around May 26, May 29 and June 5. The first summer adults are half out around June 19 at Arlington. An average season has about four generations at Arlington and three at Rhinelander.
 

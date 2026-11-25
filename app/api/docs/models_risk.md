@@ -2,7 +2,7 @@
 
 Each model's risk at one location on one day (today unless you choose another), as a list with a row for each model: its name, group and version, the day's `kind`, `risk_level` and `risk_label` (with `risk_value` for an insect's activity, whose risk is a continuous value), whether the day is `in_season`, and with a `planting_date` the crop's `susceptibility`.
 
-Without `models`, the list includes every model that is in season and was developed for the location's region. When you name models, each one is listed, and `reason` explains why a model reports no risk on that day.
+Without `models`, the list includes every model that is in season and was developed for the location's region, and no retired model. A model is in season between the first and last days of its `season` (`GET /api/v2/models/{id}`); an insect's season also ends early at a location where fall freezes have ended it. When you name models, each one is listed, and `reason` explains why a model reports no risk on that day. `models=all` lists every model but the retired ones, which are listed only when you name them.
 
 `missing_days` counts the days, up to the day asked for, that the model's weather is missing in gaps longer than the seven days we fill with estimates. Its running totals add nothing for those days, so its risk may be late; a warning names the models with any.
 

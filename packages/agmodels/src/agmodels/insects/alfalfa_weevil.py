@@ -8,6 +8,7 @@ from agmodels.spec import Change, Check, Citation, TrainingArea
 INSECT = Insect(
     id="alfalfa-weevil",
     name="Alfalfa weevil",
+    season=("04-01", "07-31"),
     crops=("alfalfa",),
     # NEWA's method (D95): the simple average above 48 °F, no upper threshold, from January 1. Harcourt 1981, whose
     # numbers NEWA's table carries, counted single sine above 9 °C from April 1; on his own 1977–1980 validation dates
@@ -36,12 +37,17 @@ INSECT = Insect(
     action_windows=(ActionWindow(label="Scout stem tips for larval feeding", stage="Egg hatch", between=(0.5, 0.999)),),
     source=CRT,  # what 0.1 was ported from (its changelog line)
     status="beta",
-    version="0.2",
+    version="0.3",
     changelog=(
         Change(
             version="0.2",
             date="2026-11-21",
             note="Rebuilt on NEWA's alfalfa weevil model (D95): simple average degree days above 48 °F from January 1, half the eggs hatched at 280 and cocooning at 600 (NEWA's table, which matches Harcourt 1981's stage peaks converted), as curves: egg hatch, larval feeding (the risk), pupae and new adults, and a window to scout stem tips. Replaces the Crop Risk Tool's step table on single sine 48.2/86 °F.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="In season from April 1 to July 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to the end of the month its latest activity ended in (July 9). Activity ends after July 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     trained=TrainingArea(

@@ -329,6 +329,15 @@ def test_risk_lists_models_in_season_and_in_region(client, archive, no_open_mete
     k = data["model"].index("early-blight-pdays")
     assert data["kind"][k] == "observed" and data["risk_label"][k] == "Very low" and data["reason"][k] is None
     assert body["meta"]["summary"]["models"] == len(data["model"]) and body["meta"]["request"]["models"] == "in season"
+    assert "tarnished-plant-bug" not in data["model"]  # retired: only by id
+    assert "alfalfa-weevil" in data["model"] and "corn-earworm" not in data["model"]  # insects by their seasons
+
+
+def test_risk_leaves_out_retired_models_unless_named(client, archive):
+    every = client.get("/api/v2/risk", {"lat": LAT, "lng": LNG, "date": "2025-07-08", "models": "all"}).json()["data"]
+    assert "colorado-potato-beetle" in every["model"] and "colorado-potato-beetle-adults" not in every["model"]
+    named = {"lat": LAT, "lng": LNG, "date": "2025-07-08", "models": "colorado-potato-beetle-adults"}
+    assert client.get("/api/v2/risk", named).json()["data"]["model"] == ["colorado-potato-beetle-adults"]
 
 
 def test_risk_for_models_asked_includes_why_there_is_none(client, archive):

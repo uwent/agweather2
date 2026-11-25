@@ -42,7 +42,9 @@ def test_white_mold_is_inactive_unless_the_30_day_mean_maximum_is_above_10_c():
         "relative_humidity_max": np.full(n, 90.0),
         "wind_speed_max": np.full(n, 3.0),
     }
-    assert white_mold.outputs(inputs)["probability"][-1] == pytest.approx(float(white_mold.probability_dry(25, 3, 90)))
+    assert white_mold.outputs(inputs)["probability"][-1] == pytest.approx(
+        100 * float(white_mold.probability_dry(25, 3, 90))
+    )
     cold = inputs | {"air_temperature_max": np.full(n, 10.0)}
     assert white_mold.outputs(cold)["probability"][-1] == 0
     assert white_mold.outputs(cold, irrigation="irrigated")["probability"][-1] == 0
@@ -51,7 +53,7 @@ def test_white_mold_is_inactive_unless_the_30_day_mean_maximum_is_above_10_c():
 
 def test_white_mold_irrigated_risk_uses_its_own_cutoffs():
     # irrigated: Low from 1 %, Moderate from 5 %, High from 10 %; dry: Low from 1 %, Moderate from 20 %, High from 35 %
-    outputs = {"probability": np.array([0.005, 0.04, 0.06, 0.12, 0.25])}
+    outputs = {"probability": np.array([0.5, 4, 6, 12, 25])}
     np.testing.assert_array_equal(white_mold.risk(outputs, irrigation="irrigated"), [0, 1, 2, 3, 3])
     np.testing.assert_array_equal(white_mold.risk(outputs), [0, 1, 1, 1, 2])
 

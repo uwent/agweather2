@@ -1,7 +1,7 @@
 ---
 id: cabbage-maggot
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 summary: Times cabbage maggot fly flights and the root feeding that follows from degree days since January 1, by NEWA's model with a longer generation from New York and Wisconsin trap studies, and marks when to have seedlings and transplants protected during each flight.
 sources:
   - NEWA's cabbage maggot model, Cornell University (the method and the spring flight; its later flights compared)
@@ -40,7 +40,7 @@ In an average year (AgWeather's degree days for 1996 to 2025), the spring flight
 - **Row covers** keep flies off only if they go on before the flight. Don't use them where brassicas grew last year, since flies emerging from the soil would be trapped underneath.
 - **Soil treatments last only four to five days,** so time them to the window rather than to the calendar.
 - **The spring flight does the most damage.** NEWA and UW–Madison find early plantings most at risk from it, and Commercial Vegetable Production in Wisconsin calls the spring generation the largest and most damaging; later flights can damage late plantings and root crops. The model counts the later flights at half the spring flight's weight in the risk, a judgment, since the sources say which flight matters most but not by how much. Judge the summer and fall windows with yellow-bowl traps along field edges.
-- **Fall plantings.** In southern and central Wisconsin a fourth flight can lay eggs on fall cabbage, radish and turnip from mid-September until freezes end it. Use the fourth window to time protection for these crops.
+- **Fall plantings.** In southern and central Wisconsin a fourth flight can lay eggs on fall cabbage, radish and turnip from mid-September until freezes end it, or October 31 at the latest. Use the fourth window to time protection for these crops.
 
 The [cabbage maggot topic page](/topics/cabbage-maggot) explains the insect, its monitoring and its management in more detail.
 

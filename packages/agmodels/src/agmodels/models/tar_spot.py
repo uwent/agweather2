@@ -33,7 +33,7 @@ SPEC = ModelSpec(
     id="tar-spot",
     name="Tar spot risk",
     group="disease",
-    version="0.3",
+    version="0.4",
     status="beta",
     summary="The probability that recent weather has favored tar spot increasing in a corn field, from a month of temperature and humidity; corn is susceptible from V10 (10th leaf) to R3 (milk).",
     topics=("tar-spot",),
@@ -126,6 +126,11 @@ SPEC = ModelSpec(
             date="2026-11-18",
             note="Named for what it predicts: Webster et al. 2023's response was an increase in tar spot severity between two ratings, not spores being present (the Crop Risk Tool's wording). Outputs unchanged.",
         ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="The probability is given in percent (0 to 100), as its unit says, rather than as a fraction (0 to 1). Risk levels are unchanged.",
+        ),
     ),
     checks=(
         Check(
@@ -158,7 +163,7 @@ def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.nda
         values["relative_humidity_max_30_day"],
         values["hours_rh_over_90_night_14_day"],
     )
-    return {"probability": attenuate_for_cold(p, values["air_temperature_min_21_day"])}
+    return {"probability": 100 * attenuate_for_cold(p, values["air_temperature_min_21_day"])}
 
 
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
@@ -177,4 +182,4 @@ def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: st
 
 
 def explore(temperature_mean_30day: float, rh_max_30day: float, night_hours_rh_90_14day: float) -> dict[str, float]:
-    return {"probability": float(probability(temperature_mean_30day, rh_max_30day, night_hours_rh_90_14day))}
+    return {"probability": float(100 * probability(temperature_mean_30day, rh_max_30day, night_hours_rh_90_14day))}

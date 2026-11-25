@@ -1,7 +1,7 @@
 ---
 id: spotted-wing-drosophila
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 summary: Estimates how active spotted wing drosophila adults are through the season from degree days, using a curve fitted to weekly trap catches in Wisconsin tart cherry orchards.
 sources:
   - Kamiyama, Bradford, Groves and Guédot 2020, PLOS ONE 15:e0227726 (trap counts from Door County tart cherry orchards, 2015–2018), refitted 2026
@@ -19,7 +19,7 @@ Degree days are counted from January 1 by the single-sine method, base 45 °F (7
 
 - Traps catch the first few flies at about 800 to 1,100 degree days (late June to mid-July in Door County), and activity reaches Low at about 1,130.
 - Numbers climb through July and August. Activity is Moderate from about 1,790 degree days, High from 2,090 and near its peak from 2,250 to 2,420, peaking at about 2,330: in Door County, usually the last days of August, and in southern Wisconsin around August 10.
-- After the peak, activity falls slowly. The traps were checked into late October in only one year, so the model holds activity at about a third of the peak after 3,050 degree days, until hard fall freezes end the season. Where the season runs longer than in Door County, as in southern Wisconsin, the decline after the peak is less certain: a model fitted to seven years of catches in Michigan blueberries puts the peak in late September or early October.
+- After the peak, activity falls slowly. The traps were checked into late October in only one year, so the model holds activity at about a third of the peak after 3,050 degree days, until hard fall freezes end the season, or October 31 at the latest. Where the season runs longer than in Door County, as in southern Wisconsin, the decline after the peak is less certain: a model fitted to seven years of catches in Michigan blueberries puts the peak in late September or early October.
 
 ## How to read it
 

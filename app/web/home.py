@@ -10,13 +10,11 @@ from dataclasses import dataclass, field
 from datetime import date
 from urllib.parse import urlencode
 
-from agmodels import croplist
+from agmodels import croplist, seasons
 from agmodels.spec import ModelSpec
 from web.catalog import specs
 from web.props import CropModels, HeadlineMap, ModelLink
 
-# Where a model without its own season (most insects, which follow degree days) counts as in season
-GROWING_SEASON = ("04-01", "10-31")
 # A model valid only in some states (cotton, pecan) shows only if one of them is in the launch coverage (D105): the
 # 12 Midwest states and Kentucky
 COVERED_STATES = {"IA", "IL", "IN", "KS", "KY", "MI", "MN", "MO", "ND", "NE", "OH", "SD", "WI"}
@@ -107,19 +105,6 @@ def headline_maps(today: date) -> list[HeadlineMap]:
     ]
 
 
-def _mmdd(text: str) -> tuple[int, int]:
-    month, day = text.split("-")
-    return int(month), int(day)
-
-
-def in_season(spec: ModelSpec, today: date) -> bool:
-    """Whether today is in the model's season (`ModelSpec.season`, which may cross New Year), or in the growing season
-    for a model without one."""
-    first, last = (_mmdd(d) for d in (spec.season or GROWING_SEASON))
-    md = (today.month, today.day)
-    return first <= md <= last if first <= last else (md >= first or md <= last)
-
-
 def models_in_season(today: date) -> list[CropModels]:
     """The models in season today under each crop they name (a model naming several shows under each), the crops in
     the catalog's order (by category, then name) and each crop's models by name."""
@@ -127,7 +112,7 @@ def models_in_season(today: date) -> list[CropModels]:
     for spec in specs():
         if spec.region and not (set(spec.region) & COVERED_STATES):
             continue
-        if in_season(spec, today):
+        if seasons.in_season(spec, today):  # the rule /risk lists models by (at a place, also the weather's end)
             for crop in spec.crops:
                 by_crop.setdefault(crop, []).append(spec)
     order = list(croplist.CATEGORIES)

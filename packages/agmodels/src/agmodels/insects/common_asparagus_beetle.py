@@ -16,6 +16,7 @@ LARVAE = 300
 INSECT = Insect(
     id="common-asparagus-beetle",
     name="Common asparagus beetle",
+    season=("03-15", "10-31"),
     crops=("asparagus",),
     # UW–Madison's method (XHT1086; XHT1087 gives only the 50 °F base): the modified average, the minimum raised to 50 °F
     # and the maximum capped at 86 °F, from January 1 (the stored `dd_modified_50_86`). NEWA runs no asparagus beetle
@@ -50,7 +51,7 @@ INSECT = Insect(
         # marks each generation's main egg laying, from 10 to 90 % of its beetles active
         ActionWindow(label="Scout for beetles and eggs", stage="Adults feeding and laying eggs", between=(0.1, 0.9)),
     ),
-    version="0.2",
+    version="0.3",
     status="beta",
     # XHT1087 gives no years for its numbers; the span runs from Taylor and Harcourt's rearing (1975) to XHT1137's
     # revision (2026). Ontario has no code here, so only Wisconsin is named
@@ -64,6 +65,11 @@ INSECT = Insect(
             version="0.2",
             date="2026-11-21",
             note="Rebuilt on UW–Madison's degree-day table (Delahaut's XHT1087; the modified average, 50/86 °F, from January 1): the overwintered beetles feeding and laying eggs on spears as a curve whose 10 and 50 % are the table's 150 and 240 degree days, larvae timed from them, and up to three generations 600 degree days apart (from UW–Madison's development times; Taylor 1979 found three in Ontario). Adults and larvae both count in the risk. Replaces VDIFN's one larval window (105, 250, 405 degree days, single sine 50/86 °F), whose source isn't known and which left out the beetles on spears and the summer generations.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="In season from March 15 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

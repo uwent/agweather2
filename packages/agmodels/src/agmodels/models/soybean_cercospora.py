@@ -42,7 +42,7 @@ SPEC = ModelSpec(
     id="soybean-cercospora",
     name="Soybean Cercospora leaf blight spore probability",
     group="disease",
-    version="0.1",
+    version="0.2",
     status="beta",
     summary="Spore probabilities for three Cercospora species causing leaf blight of soybean, from recent temperature, dew point depression, wind and humid hours.",
     topics=("soybean-cercospora-leaf-blight",),
@@ -152,6 +152,7 @@ SPEC = ModelSpec(
         "hours_rh90_14day": (2.0, 10.0),
     },
     lookback_days=14,
+    season=("07-01", "09-15"),  # R3 to R6 (`susceptible`) for plantings from May 1 to June 5, 2016–2025
     susceptible=Susceptibility(
         crop="soybean-stages",
         first="R3",
@@ -167,7 +168,14 @@ SPEC = ModelSpec(
         Ingredient(name="hours_rh_over_90_10_day", unit="hour"),
         Ingredient(name="hours_rh_over_90_14_day", unit="hour"),
     ),
-    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    changelog=(
+        Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),
+        Change(
+            version="0.2",
+            date="2026-11-26",
+            note="The probabilities are given in percent (0 to 100), as their unit says, rather than as fractions (0 to 1). Risk levels are unchanged. In season from July 1 to September 15, soybean's R3 to R6 in Wisconsin.",
+        ),
+    ),
     checks=(
         Check(
             kind="system",
@@ -205,7 +213,7 @@ def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
 
 
 def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
-    return probabilities(*(values[i.name] for i in SPEC.ingredients))
+    return {name: 100 * p for name, p in probabilities(*(values[i.name] for i in SPEC.ingredients)).items()}
 
 
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
@@ -226,4 +234,4 @@ def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: st
 
 
 def explore(**values: float) -> dict[str, float]:
-    return {name: float(p) for name, p in probabilities(**values).items()}
+    return {name: float(100 * p) for name, p in probabilities(**values).items()}

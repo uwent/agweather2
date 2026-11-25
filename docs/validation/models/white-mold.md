@@ -30,7 +30,7 @@ Model version 0.2, written 2026-11-18 (D98), updated 2026-11-19 for 0.2. The mod
 The Crop Risk Tool is the program this model replaces: a reference, not the truth (D54). Run in CI, on the tool's own recorded weather for one Open-Meteo cell at Eau Claire, Wisconsin (44.815, −91.530), through 2025, with fixtures written by the tool's R code (`packages/agmodels/tests/fixtures/make_crt_fixtures.R`):
 
 - `test_field_crops.py::test_white_mold_irrigated_matches_while_active`: given the tool's daily inputs, v2's irrigated probability equals the tool's within 1e-9 on the 211 days of 2025 when the model is active (30-day mean maximum above 10 °C), in 30- and 15-inch rows (`crt_white_mold_irrigated_30_…` and `crt_white_mold_irrigated_15_eau_claire_2025.csv`), and is 0 on the other days. Until 0.2 every day matched, non-irrigated too. The non-irrigated model differs from the tool by design (−0.56) and is checked by hand below; in June 15 to August 7, 2025 it runs a median 1.46 times the tool's.
-- `test_field_crops.py::test_probability_levels_match`: v2's risk levels equal the tool's `risk_from_prob` at both sets of thresholds (1, 20, 35 % and 1, 5, 10 %) at 201 probabilities from 0 to 1.
+- `test_field_crops.py::test_probability_levels_match`: v2's risk levels equal the tool's `risk_from_prob` at both sets of thresholds (1, 20, 35 % and 1, 5, 10 %) at 201 probabilities from 0 to 100 % (the tool's 0 to 1; since 2026-11-26 v2 gives probabilities in percent, and the parity tests compare 100 times the tool's).
 
 ### By hand
 

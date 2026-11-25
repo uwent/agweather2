@@ -7,6 +7,7 @@ from agmodels.spec import Change, Check, Citation, TrainingArea
 INSECT = Insect(
     id="cabbage-maggot",
     name="Cabbage maggot",
+    season=("04-01", "10-31"),
     crops=("cole-crops",),
     # NEWA's method (D95): the day's simple average above 40 °F, no upper threshold, from January 1. Its table is
     # Jyoti, Shelton and Barnard 2003's degree days (the simple average above 4 °C, 39.2 °F, from January 1; upstate New
@@ -63,7 +64,7 @@ INSECT = Insect(
             label="Protect seedlings and transplants during fly flight", stage="Adult flight", between=(0.05, 0.95)
         ),
     ),
-    version="0.5",
+    version="0.6",
     status="beta",
     trained=TrainingArea(description="water-pan trap catches in upstate New York", years=(1999, 2000), states=("NY",)),
     changelog=(
@@ -86,6 +87,11 @@ INSECT = Insect(
             version="0.5",
             date="2026-11-23",
             note="A fourth flight, as in New York, where versions 0.3 and 0.4 stopped at three: in southern and central Wisconsin its first flies come in September, and fall freezes end it partway, so it shows in part on fall crops. It weighs half, as the other summer flights do.",
+        ),
+        Change(
+            version="0.6",
+            date="2026-11-26",
+            note="In season from April 1 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

@@ -29,7 +29,7 @@ The Crop Risk Tool is the program this model replaces: a reference, not the trut
 
 - `test_field_crops.py::test_probability_matches`: given the tool's daily inputs (`crt_daily_eau_claire_2025.csv`, `crt_daily_more_eau_claire_2025.csv`), v2's probability equals the tool's (`crt_tar_spot_eau_claire_2025.csv`) on all 365 days of 2025, within 1e-9, cold scaling included.
 - `test_features.py::test_tar_spots_night_matches_the_crop_risk_tool`: from the tool's hourly weather, v2's night count (at the tool's 90 %, on the tool's local clock) equals the tool's on every day of 2025.
-- `test_field_crops.py::test_probability_levels_match`: v2's risk levels equal the tool's `risk_from_prob` at this model's thresholds (1, 20, 35 %) at 201 probabilities from 0 to 1.
+- `test_field_crops.py::test_probability_levels_match`: v2's risk levels equal the tool's `risk_from_prob` at this model's thresholds (1, 20, 35 %) at 201 probabilities from 0 to 100 % (the tool's 0 to 1; since 2026-11-26 v2 gives probabilities in percent, and the parity tests compare 100 times the tool's).
 
 These show the port reproduces the tool. They don't test D50's 88 % or the CST night, which the tool doesn't use.
 

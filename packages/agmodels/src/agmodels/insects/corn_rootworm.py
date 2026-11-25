@@ -25,6 +25,7 @@ BEETLES = 700
 INSECT = Insect(
     id="corn-rootworm",
     name="Corn rootworm",
+    season=("05-15", "09-30"),
     crops=("corn", "sweet-corn"),
     # Apple, Walgenbach and Knee 1971's threshold: 52 °F (11.1 °C), from egg hatch's development rates (51.2 °F for
     # first hatch, 52.6 for median, averaging 51.9: "essentially" Chiang and Sisson 1968's 52; p. 855). Their field
@@ -63,7 +64,7 @@ INSECT = Insect(
             label="Dig and rate roots for larval injury", stage="Larvae feeding on roots", between=(0.5, 0.95)
         ),
     ),
-    version="0.3",
+    version="0.4",
     status="beta",
     # Apple et al.'s eggs at Madison (1967–1970) and Davis et al.'s 11 cornfields in Tompkins, Cayuga, Schuyler and
     # Cortland counties, New York (1991–1993)
@@ -83,6 +84,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-23",
             note="Larvae feed for about 550 degree days after hatch (from 350) and the pupa takes about 200, so half the beetles are out about 750 after half the eggs have hatched (from 542): Davis, Brenes and Allee 1996's New York cornfields took 532 from half the first instars to half the pupae (Tables 3 and 4), and Jackson and Elliott 1988's pupae 167–195 (Table 1). Half the beetles now come at about 1,283 degree days (from 1,075), and UW–Madison's 1,300 DD50 for adult beetles (Delahaut 2005, XHT1087) marks the first beetles. On Arlington's 1996–2025 normals the larvae peak about July 3 (from June 24), the window to dig roots opens about July 15 (from July 4) and half the beetles are out about July 25 (from July 15).",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="In season from May 15 to September 30: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to the end of the month its latest activity ended in (September 2). Activity ends after September 30 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

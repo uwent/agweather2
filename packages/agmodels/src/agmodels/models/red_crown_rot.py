@@ -39,7 +39,7 @@ SPEC = ModelSpec(
     id="red-crown-rot",
     name="Red crown rot incidence",
     group="disease",
-    version="0.3",
+    version="0.4",
     status="beta",
     summary="Predicted share of soybean plants with red crown rot, from temperature and rain in the month either side of the beginning of flowering (R1).",
     topics=("red-crown-rot",),
@@ -118,6 +118,7 @@ SPEC = ModelSpec(
     lookback_days=WINDOW,
     biofix=Biofix(default="07-01", label="R1 (beginning flowering)"),
     biofix_stage=("soybean-stages", "R1"),  # the soybean model's R1 is the default when it has run
+    season=("05-15", "10-15"),  # 31 days either side of soybean's R1, for every planting
     changelog=(
         Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),
         Change(
@@ -129,6 +130,11 @@ SPEC = ModelSpec(
             version="0.3",
             date="2026-11-19",
             note="The incidence is given once the 31 days from R1 are complete (rain is no longer prorated over the window's first days), and the provisional risk levels (5, 30 and 60 %) are gone: the authors' algorithm sets none. Final values are unchanged.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="The incidence is given in percent (0 to 100), as its unit says, rather than as a fraction (0 to 1). In season from May 15 to October 15, the month either side of soybean's flowering (R1).",
         ),
     ),
     checks=(
@@ -189,7 +195,7 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
     )
     final = r1 + WINDOW - 1  # the last day of the window from R1
     if final < n:
-        complete = incidence(temperature_rep[final], veg_total, precipitation_rep[final])
+        complete = 100 * incidence(temperature_rep[final], veg_total, precipitation_rep[final])
         incidence_final = np.where(day >= final, complete, np.nan)
     else:
         incidence_final = np.full(temperature.shape, np.nan)
@@ -204,7 +210,9 @@ def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: 
 
 def explore(temperature_reproductive: float, precipitation_vegetative: float, precipitation_reproductive: float):
     return {
-        "incidence": float(incidence(temperature_reproductive, precipitation_vegetative, precipitation_reproductive))
+        "incidence": float(
+            100 * incidence(temperature_reproductive, precipitation_vegetative, precipitation_reproductive)
+        )
     }
 
 

@@ -28,7 +28,7 @@ Model version 0.1 (beta), written 2026-11-18 (D98). The model: `packages/agmodel
 The Crop Risk Tool is the program this model replaces: a reference, not the truth (D54). Run in CI, on the tool's own recorded weather for one Open-Meteo cell at Eau Claire, Wisconsin (44.815, −91.530), through 2025, with fixtures written by the tool's R code (`packages/agmodels/tests/fixtures/make_crt_fixtures.R`):
 
 - `test_field_crops.py::test_soybean_cercospora_species_match`: given the tool's daily inputs (its wind converted from km/h to m/s, which the model converts back), v2's probability for each of the three species equals the tool's (`crt_soybean_cercospora_eau_claire_2025.csv`) on all 365 days of 2025, within 1e-9.
-- `test_field_crops.py::test_probability_levels_match`: v2's risk levels equal the tool's `risk_from_prob` at 1, 5 and 10 % (the thresholds of two of the species) at 201 probabilities from 0 to 1; *C. flagellaris*'s (1, 10, 15 %) use the same function but aren't tested against the tool directly.
+- `test_field_crops.py::test_probability_levels_match`: v2's risk levels equal the tool's `risk_from_prob` at 1, 5 and 10 % (the thresholds of two of the species) at 201 probabilities from 0 to 100 % (the tool's 0 to 1; since 2026-11-26 v2 gives probabilities in percent, and the parity tests compare 100 times the tool's); *C. flagellaris*'s (1, 10, 15 %) use the same function but aren't tested against the tool directly.
 
 ### The 2025 season at Eau Claire
 

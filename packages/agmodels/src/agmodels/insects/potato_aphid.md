@@ -1,7 +1,7 @@
 ---
 id: potato-aphid
 status: draft
-updated: 2026-11-21
+updated: 2026-11-25
 summary: Shows the typical season's potato aphid counts in central Wisconsin potato fields, by degree days or calendar date, from curves fitted to a decade of scouting counts.
 sources:
   - Bradford and Groves, unpublished analysis of Pest Pros' scouting counts, 2014–2025 (UW–Madison Vegetable Entomology)
@@ -23,7 +23,7 @@ In a typical season:
 
 - Potato aphids are rare in sweep counts until late July.
 - Counts reach 10 % of their highest at about 2,520 degree days (about August 1) and half at about 3,360 (about August 30).
-- They are still near their highest when scouting ends in mid-September. Counts after that weren't observed, so the model holds them until fall freezes end the season.
+- They are still near their highest when scouting ends in mid-September. Counts after that weren't observed, so the model holds them until fall freezes end the season, and through September 30 at the latest, when potato vines are killed.
 
 ## How to read it
 

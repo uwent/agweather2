@@ -6,6 +6,7 @@ from agmodels.spec import Change, Check, Citation, TrainingArea
 INSECT = Insect(
     id="variegated-cutworm",
     name="Variegated cutworm",
+    season=("05-15", "10-31"),
     crops=(
         "asparagus",
         "beans",
@@ -51,7 +52,7 @@ INSECT = Insect(
         # Simonet et al. 1981: scouting for eggs and young caterpillars should begin at the peak capture of moths
         ActionWindow(label="Scout for eggs and young caterpillars", stage="Adult flight", between=(0.5, 0.95)),
     ),
-    version="0.2",
+    version="0.3",
     status="beta",
     trained=TrainingArea(
         description="black light trap catches at Wooster, Ohio, from 1965 to 1979 (the flights' peaks and the time between them) and in Wisconsin's trap network from 2020 to 2026 (the first flight's spread)",
@@ -64,6 +65,11 @@ INSECT = Insect(
             version="0.2",
             date="2026-11-21",
             note="Rebuilt on Simonet et al. 1981: single-sine degree days above 45 °F with no upper threshold from January 1; two moth flights peaking at 900 and 2,160 degree days, with caterpillars timed from each. Replaces VDIFN's one window (900, 1,450, 2,100 degree days, 45/80.1 °F from May 1), whose cap and start date had no source.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="In season from May 15 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

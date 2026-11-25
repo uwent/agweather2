@@ -178,7 +178,7 @@ since = "The number of days since the last day in the results within bounds, as 
 
 [models_run_several]
 points = "Not used: the models run at one location, given by `lat` and `lng`."
-models = "The models to run, separated by commas (as `tar-spot,white-mold`), or `all` (the default)."
+models = "The models to run, separated by commas (as `tar-spot,white-mold`), or `all` (the default) for every model but the retired ones. A retired model runs only when you name it."
 start = "The first day. The default is January 1."
 end = "The last day. The default runs through the forecast; with `projection`, it is December 31."
 format = "The format of the response: only `json` is available, because the result holds a table for each model."
@@ -188,7 +188,7 @@ points = "Not used: risk is reported for one location, given by `lat` and `lng`.
 date = "The day to report, as YYYY-MM-DD. The default is today. A day past the forecast needs `projection=true`. Give `start` or `end` instead for every day of a period."
 start = "For every day of a period, in place of `date`: the first day, as YYYY-MM-DD. The default is today. The start and end must be in the same calendar year."
 end = "For every day of a period, in place of `date`: the last day, as YYYY-MM-DD. The default is the forecast's last day. Without `projection=true`, the results end with the forecast's last day whatever the end."
-models = "The models to report, separated by commas, or `all`. The default is every model that is in season and covers the location's region."
+models = "The models to report, separated by commas, or `all` for every model but the retired ones. The default is every model that is in season at the location and covers its region, leaving out retired models. A retired model is reported only when you name it."
 projection = "With `true`, a `date` past the forecast, or the days of a period past it, report each model's median risk across the earlier years in the archive."
 
 [models_evaluate]

@@ -352,8 +352,9 @@ def risk(
 ) -> HttpResponse:
     """One row per model with a risk layer: `model`, `name`, `group`, `version`, the day's `kind`, `risk_level`,
     `risk_label`, `risk_value` (continuous risk), `susceptibility` (with a planting date), `in_season` and `reason`
-    (why there's no risk). `date` defaults to today. Without `models`, only those in season and in their region; with
-    it (`models=a,b` or `all`), every one asked. The Crop Risk Tool's dashboard and the alerts' query. With
+    (why there's no risk). `date` defaults to today. Without `models`, only those in season (`agmodels.seasons.in_season`:
+    the spec's season, and for an insect not ended at the place by fall freezes) and in their region, and none retired;
+    with it (`models=a,b` or `all`), every one asked (`all` leaves out retired models, which come only by id). The Crop Risk Tool's dashboard and the alerts' query. With
     `projection=true`, a `date` past the forecast takes each model's P50 across the archive's earlier years (D63),
     with `projection_years` saying how many.
 
@@ -931,8 +932,9 @@ def _nested(
 
 
 def _models(raw: str) -> list[Model]:
+    """The models a `models` list names: by id (retired ones too), or `all`, every model but the retired."""
     if raw.strip() == runs.ALL:
-        return list(all_models().values())
+        return [m for m in all_models().values() if m.SPEC.status != "retired"]
     ids = [part.strip() for part in raw.split(",") if part.strip()]
     if not ids:
         raise ApiError("missing", "The 'models' list is empty. Give model ids separated by commas, or 'all'.", "models")

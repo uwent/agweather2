@@ -1,4 +1,4 @@
-{"version": "0.4", "rows": [
+{"version": "0.5", "rows": [
 {"inputs":{"dd_total":0.0},"outputs":{"activity_adult_flight":0.0,"generations_adult_flight":0.0,"activity_egg_masses":0.0,"generations_egg_masses":0.0,"activity_young_larvae":0.0,"generations_young_larvae":0.0,"window_scout_and_treat_young_larvae_before_they_bore_in":0.0,"risk":0.0}},
 {"inputs":{"dd_total":100.0},"outputs":{"activity_adult_flight":0.0,"generations_adult_flight":0.0,"activity_egg_masses":0.0,"generations_egg_masses":0.0,"activity_young_larvae":0.0,"generations_young_larvae":0.0,"window_scout_and_treat_young_larvae_before_they_bore_in":0.0,"risk":0.0}},
 {"inputs":{"dd_total":200.0},"outputs":{"activity_adult_flight":0.0,"generations_adult_flight":0.0,"activity_egg_masses":0.0,"generations_egg_masses":0.0,"activity_young_larvae":0.0,"generations_young_larvae":0.0,"window_scout_and_treat_young_larvae_before_they_bore_in":0.0,"risk":0.0}},
