@@ -112,8 +112,10 @@ def model_info(spec: ModelSpec) -> SiteModelInfo:
         risk_criteria=spec.risk.criteria if spec.risk else "",
         risk_thresholds=list(spec.risk.thresholds) if spec.risk else [],
         susceptible=susceptible,
-        season=spec.season,
+        season=list(spec.season) if spec.season else None,
         region=list(spec.region),
-        trained=None if t is None else ModelTrained(description=t.description, years=t.years, states=list(t.states)),
+        trained=None
+        if t is None
+        else ModelTrained(description=t.description, years=list(t.years), states=list(t.states)),
         guidance_html=guidance_html(spec.id),
     )

@@ -1,5 +1,5 @@
 // WISP 3: app/frontend/lib/charts/echarts.ts (copied)
-// ECharts, tree-shaken to the pieces WISP uses
+// ECharts, tree-shaken to the pieces WISP uses (and titles, for a model's stacked grids)
 import { BarChart, LineChart } from 'echarts/charts'
 import {
   AxisPointerComponent,
@@ -8,6 +8,7 @@ import {
   LegendComponent,
   MarkAreaComponent,
   MarkLineComponent,
+  TitleComponent,
   TooltipComponent,
 } from 'echarts/components'
 import * as echarts from 'echarts/core'
@@ -22,6 +23,8 @@ echarts.use([
   LegendComponent,
   MarkAreaComponent,
   MarkLineComponent,
+  // A model's stacked grids name each grid with a title (modelCharts)
+  TitleComponent,
   TooltipComponent,
   CanvasRenderer,
 ])

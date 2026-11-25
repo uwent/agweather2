@@ -182,10 +182,9 @@ export interface ModelQuantity {
 export interface ModelTrained {
   description: string
   /**
-   * @minItems 2
-   * @maxItems 2
+   * The first and last year of its data.
    */
-  years: [unknown, unknown]
+  years: number[]
   states: string[]
 }
 export interface SharedProps {
@@ -268,7 +267,7 @@ export interface SiteModelInfo {
   /**
    * MM-DD first and last day it runs, or None (all year).
    */
-  season: [unknown, unknown] | null
+  season: string[] | null
   /**
    * State abbreviations where it's valid; empty: anywhere.
    */

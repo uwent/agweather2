@@ -170,7 +170,7 @@ class CropStageInfo(Props):
 
 class ModelTrained(Props):
     description: str
-    years: tuple[int, int]
+    years: list[int] = Field(description="The first and last year of its data.")
     states: list[str]
 
 
@@ -194,7 +194,7 @@ class SiteModelInfo(Props):
     risk_criteria: str = Field(description="How its outputs become each level, in words; empty without risk.")
     risk_thresholds: list[float]
     susceptible: str | None = Field(description="The crop stages a disease affects, in words, or None.")
-    season: tuple[str, str] | None = Field(description="MM-DD first and last day it runs, or None (all year).")
+    season: list[str] | None = Field(description="MM-DD first and last day it runs, or None (all year).")
     region: list[str] = Field(description="State abbreviations where it's valid; empty: anywhere.")
     trained: ModelTrained | None
     guidance_html: str | None = Field(description="The model page's 'How to read it', as HTML; None without a page.")
