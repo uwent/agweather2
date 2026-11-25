@@ -98,6 +98,18 @@ def test_a_year_with_a_wider_extent_is_read_on_the_same_ground(tmp_path):
     np.testing.assert_array_equal(counts["classes"][0], counts["classes"][1])
 
 
+def test_a_pixel_counts_only_where_every_year_has_it(tmp_path):
+    """The Great Lakes are background (0) in 2021-2024 and open water (111) in 2025: such a pixel counts in no
+    year, so a shore cell's shares are of the same ground every year."""
+    rotations = ROTATIONS.copy()
+    rotations[:, 0, 0] = [0, 0, 0, 0, 111]  # a lake cell
+    rotations[:, 0, 1] = [0, CORN, CORN, CORN, CORN]
+    rasters = cropland.open_rasters(_years(tmp_path, rotations=rotations))
+    s = cropland.block_shares(cropland.count_block(rasters=tuple(rasters), block=WINDOW))
+    assert s["observed"][0, 0] == s["observed"][0, 1] == 0 and np.isnan(s["corn_mean"][0, 1])
+    assert s["observed"][1, 1] == pytest.approx(0.8)  # a cloudy year drops only that year
+
+
 def test_a_cell_half_observed_keeps_its_shares_and_under_half_goes_missing(tmp_path):
     rotations = np.full((1, 3, 3), CORN, dtype=np.uint8)
     rasters = cropland.open_rasters({2025: cdl_raster(tmp_path / "a.tif", WINDOW, rotations[0])})

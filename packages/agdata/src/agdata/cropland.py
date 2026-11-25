@@ -4,8 +4,10 @@ The Cropland Data Layer (CDL) classes every 30 m pixel of the lower 48 by what w
 satellite imagery trained on FSA's field records. This module turns the five newest years (2021–2025 at first, rolled
 forward each February when NASS publishes a year) into a few numbers per 2.5 km cell, kept in `data/cropland.zarr`:
 
-- `observed`: the share of the cell's pixels the CDL has a class for, averaged over the years (0 over Canada and
-  the Great Lakes' open water beyond the US line; clouds and no data don't count);
+- `observed`: the share of the cell's pixels the CDL has a class for, averaged over the years. A pixel counts only
+  if every year has it (none background, 0): 2021-2024 leave the Great Lakes background and 2025 classes them as
+  open water, so without the rule a shore cell's ground would change with the year. Canada and the Great Lakes are
+  0; a cloudy year (81) drops only that pixel's year;
 - `<crop>_mean`: the share of the observed pixels in that crop, over the years: the average area planted;
 - `<crop>_any`: the share of the pixels observed in any year that were in that crop in at least one: the land the
   crop rotates through ("where it's grown");
@@ -429,7 +431,8 @@ STRIP = 256  # pixel rows counted at a time
 def count_block(*, rasters: tuple[Raster, ...], block: Window) -> dict[str, np.ndarray]:
     """A block's counts per cell (y, x): `pixels` (centres in the cell), `classes` (year, y, x, 256: pixels of each
     class each year), and `any` (y, x, crops + 2: pixels in each crop in any year, then observed in any year, then
-    cultivated by NASS's rule). The rasters must share a lattice (`check_aligned`)."""
+    cultivated by NASS's rule). Only pixels with a class in every year (none background, 0) count toward `classes` and
+    `any`. The rasters must share a lattice (`check_aligned`)."""
     t = tables()
     first = rasters[0]
     west, north = first.west, first.north
@@ -465,6 +468,10 @@ def count_block(*, rasters: tuple[Raster, ...], block: Window) -> dict[str, np.n
             continue
         pixels += np.bincount(cell, minlength=ncell)
         strip = years[:, rows[0] : rows[-1] + 1][:, inside]  # (years, pixels)
+        # A pixel counts only where every year has it (not background): 2021-2024 leave the Great Lakes 0 and 2025
+        # calls them open water (111), so a shore cell would change its ground from year to year
+        kept = (strip != 0).all(axis=0)
+        cell, strip = cell[kept], strip[:, kept]
         for y in range(nyears):
             classes[y] += np.bincount(cell * 256 + strip[y], minlength=ncell * 256)
         mask = np.bitwise_or.reduce(t.bits[strip], axis=0)
