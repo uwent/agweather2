@@ -137,7 +137,7 @@ Sign-in by link or code; synced sites; settings (units, beta models, service upd
 
 ### Navigation
 
-Header (every page, `AppLayout`): the UW–Madison brand bar, the AgWeather name, and **Map · Sites · Models · Tools · Climate · Data**, with place search and the theme toggle; Sign in at the right once Phase 7 lands. On phones the sections fold into a menu and place search stays visible. Footer: About, Methods, Changelog, API, Status, Accessibility, Contact, credits (UW–Madison Extension, the departments, NOAA and the other sources).
+Header (every page, `AppLayout`): the UW–Madison brand bar, the AgWeather name, and **Map · Sites · Models · Tools · Climate · Data**, with place search and the theme toggle; Sign in at the right once Phase 7 lands. On phones the six sections scroll sideways in one row, with a fade at the edge that has more (WISP 3; Ben, 2026-11-26), and place search stays visible. Footer: About, Methods, Changelog, API, Status, Accessibility, Contact, credits (UW–Madison Extension, the departments, NOAA and the other sources).
 
 ### Pages and URLs (proposed)
 
@@ -145,7 +145,7 @@ Header (every page, `AppLayout`): the UW–Madison brand bar, the AgWeather name
 | URL | Page | Notes |
 | --- | --- | --- |
 | `/` | Home | Search a place; what's in season now (a few headline maps: GDD since Jan 1, rain this week, a seasonal risk); your saved sites if any; links by task; data through when |
-| `/map` | Map explorer | State in the query (`?layer=late-blight-dsv&time=2026-07-01..2026-07-14&stat=sum&at=44.1,-89.5&z=7`); full-bleed map, control panel, detail drawer |
+| `/map` | Map explorer | The view in a Share link's query (`?layer=late-blight-dsv&…`, D118); the map left and the controls right, about 50:50, detail below the fold |
 | `/sites/{lat},{lng}` | Site page | Any point, saved or not. Tabs: Overview (today, forecast, risk now), Weather, Models, Degree days, Climate (P1), Data. A saved site shows its name; an unsaved one offers \"Save this site\" (a button, not a prompt). `?name=` labels a shared link |
 | `/sites` | Your sites | Cards for each saved site; import, export; the two feeds below |
 | `/sites/models/{id}` | One model across your sites |  |
@@ -176,7 +176,7 @@ WISP 3's frontend is the source to port (CLAUDE.md, Gotchas). This section says 
 ### Look
 
 - **Brand and type:** the UW–Madison brand bar; Red Hat Display for headings, Red Hat Text for body (WISP 3). Semantic color tokens only (`surface`, `ink`, `line`, `brand-*`…), light and dark, every text pair 4.5:1 in both.
-- **Layout:** content pages in a centered column (WISP 3's width); map pages full-bleed. On wide screens the map explorer has a control panel left and a detail drawer right; on phones the controls are a sheet and the detail slides up from the bottom. Cards for summaries (location cards, model cards), tables for numbers.
+- **Layout:** content pages in a centered column (WISP 3's width); map pages full-bleed. On wide screens the map explorer splits the screen about 50:50, the map left and the controls right, filling the window like a single-page app, with further detail below the fold (Ben, 2026-11-26); on phones the map comes first and the controls follow. Cards for summaries (location cards, model cards), tables for numbers.
 - **Plain, quiet pages.** One primary action per view; options behind a disclosure ("Map options", "Chart options") as the alfalfa tool's "Plot options" did, not a wall of radios.
 
 ### Maps

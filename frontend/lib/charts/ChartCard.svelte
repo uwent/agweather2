@@ -48,7 +48,7 @@
   let open = $state(false)
 </script>
 
-<div class="flex h-full flex-col rounded-lg border border-line bg-surface-raised p-3">
+<div class="flex h-full flex-col rounded-lg border border-line bg-surface p-3">
   <div class="flex items-start justify-between gap-2">
     <h3 class="text-sm font-medium">{title} {@render subtitle?.()}</h3>
     <div class="-mt-1 -mr-1 flex shrink-0 items-center">
