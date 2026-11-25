@@ -295,6 +295,14 @@ class GridStore:
             if record:
                 self.record([name], start, t1 - t0, source, now)
 
+    def write_packed(self, start: datetime | date, name: str, packed: np.ndarray, window: Window | None = None) -> None:
+        """Writes steps from `start` as stored (int16, `read_packed`'s from a store of the same variable and window,
+        already kept missing outside the coverage), and records them: a copy without decoding and encoding again."""
+        t0 = self.index_of(start)
+        rows, cols = self._local_slices(window)
+        self._array(name)[t0 : t0 + packed.shape[0], rows, cols] = packed
+        self.record([name], start, packed.shape[0], None)
+
     def record(
         self, names: Iterable[str], start: datetime | date, steps: int, source: str | None, now: float | None = None
     ) -> None:

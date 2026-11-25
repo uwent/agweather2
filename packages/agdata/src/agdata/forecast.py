@@ -423,9 +423,9 @@ def _copy_archive_hours(data_dir: Path, path: Path, window: Window, start: datet
         begin = max(start, datetime(year, 1, 1, tzinfo=UTC))
         end = min(last + HOUR, datetime(year + 1, 1, 1, tzinfo=UTC))
         t0, t1 = archive.index_of(begin), archive.index_of(end - HOUR) + 1
-        for name in VARIABLES:
-            values = archive.read_steps(name, t0, t1, window)
-            store.write(begin, {name: values}, source=None)
+        part = coverage.extent(window)  # outside it the hours are missing in both
+        for name in VARIABLES:  # as stored: the same variables, packed the same way
+            store.write_packed(begin, name, archive.read_packed(name, t0, t1, window=part), window=part)
             store.set_sources(name, begin, archive.sources(name, t0, t1))
 
 
@@ -435,6 +435,7 @@ def _continue_totals(data_dir: Path, path: Path, window: Window, first_day: date
     pad = MAX_BRIDGE_DAYS
     n = (last_day - first_day).days + 1
     names = INPUTS
+    store_window, window = window, coverage.extent(window)  # outside it every day is missing
     series = {name: np.full((n + 2 * pad, *window.shape), np.nan, dtype=np.float32) for name in names}
     for name in names:
         series[name][:pad] = _read_days(data_dir, DAILY, name, first_day - timedelta(days=pad), pad, window)
@@ -442,7 +443,7 @@ def _continue_totals(data_dir: Path, path: Path, window: Window, first_day: date
     totals = running_totals(*(series[name] for name in names))
     base_day = first_day - timedelta(days=1)
     for year in range(first_day.year, last_day.year + 1):
-        store = open_or_create_cumulative(path, year, window)
+        store = open_or_create_cumulative(path, year, store_window)
         begin = max(first_day, date(year, 1, 1))
         end = min(last_day, date(year, 12, 31))
         k0, k1 = (begin - first_day).days, (end - first_day).days + 1
@@ -454,7 +455,7 @@ def _continue_totals(data_dir: Path, path: Path, window: Window, first_day: date
                 out[name] = values[k0:k1] + base
             else:  # totals restart on January 1
                 out[name] = values[k0:k1] - values[(date(year, 1, 1) - first_day).days - 1]
-        store.write(begin, out, source="derived")
+        store.write(begin, out, source="derived", window=window)
 
 
 def _read_days(data_dir: Path, layout, name: str, first: date, n: int, window: Window) -> np.ndarray:
