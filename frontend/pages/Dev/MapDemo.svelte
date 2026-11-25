@@ -2,6 +2,7 @@
 <script lang="ts">
   import { onDestroy, onMount, untrack } from 'svelte'
   import type { Map as MapLibreMap } from 'maplibre-gl'
+  import 'maplibre-gl/dist/maplibre-gl.css'
 
   import ChartCard, { type ChartTable } from '@/lib/charts/ChartCard.svelte'
   import type { EChartsCoreOption } from '@/lib/charts/echarts'
@@ -154,7 +155,7 @@
       tooltip: base.tooltip,
       legend: { data: ['High', 'Low', 'Precipitation'], top: 0, textStyle: { color: palette.ink } },
       grid: [
-        { top: 30, height: '40%', left: 44, right: 12 },
+        { top: 44, height: '36%', left: 44, right: 12 },
         { top: '64%', bottom: 44, left: 44, right: 12 },
       ],
       xAxis: [
@@ -182,7 +183,7 @@
             silent: true,
             symbol: 'none',
             lineStyle: { color: palette.inkMuted, type: 'dashed' },
-            label: { formatter: 'Today', color: palette.inkMuted },
+            label: { formatter: 'Today', position: 'insideEndTop', color: palette.inkMuted },
             data: [{ xAxis: FORECAST_FROM - 1 }],
           },
           markArea: {
