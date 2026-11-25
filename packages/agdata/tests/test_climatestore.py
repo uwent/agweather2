@@ -263,3 +263,19 @@ def test_normals_read_years_before_the_archive_from_gridmet(kept):
     assert got["air_temperature_max"].shape == (1, SLOTS) and direct is not None
     np.testing.assert_array_equal(got["air_temperature_max"][0], layout(direct["air_temperature_max"], 1999))
     assert np.isnan(got["air_temperature_mean"]).all()  # gridMET has no daily mean: missing, not 0
+
+
+def test_a_derived_year_is_missing_outside_the_coverage(kept, monkeypatch):
+    from agdata import coverage
+
+    outside = np.zeros(WINDOW.shape, dtype=bool)
+    y, x = WINDOW.local(1003, 1402)
+    outside[y, x] = True
+    monkeypatch.setattr(coverage, "outside", lambda window: outside if window == WINDOW else None)
+    names = climatestore.derive(kept, 1999, WINDOW)
+    reader = climatestore.reader(kept)
+    got = reader.read(1003, 1402, date(1999, 7, 1), date(1999, 7, 1), names)
+    beside = reader.read(1003, 1403, date(1999, 7, 1), date(1999, 7, 1), names)
+    assert got is not None and beside is not None
+    assert all(np.isnan(got[name]).all() for name in names)
+    assert np.isfinite(beside["air_temperature_max"]).all()
