@@ -17,6 +17,8 @@ urlpatterns = [
     path("changelog", updates.changelog, name="changelog"),
     path("changelog.atom", ChangelogFeed(), name="changelog-feed"),
     path("api-use", updates.api_use, name="api-use"),
+    # A site's page: numbers only, so other pages under /sites/ (/sites/models/{id}) can't collide (F1)
+    re_path(r"^sites/(?P<lat>-?\d{1,2}(?:\.\d+)?),(?P<lng>-?\d{1,3}(?:\.\d+)?)$", web.site, name="site"),
     # Browsers ask for /favicon.ico wherever a page doesn't link an icon (the API docs, a JSON answer); Caddy serves
     # it in production, so this is for development
     path("favicon.ico", RedirectView.as_view(url=static("favicon.ico"), permanent=False)),
