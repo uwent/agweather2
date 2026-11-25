@@ -11,6 +11,7 @@ from django.views.static import serve
 from ops.forecast import forecast_health
 from ops.health import ingest_health
 from ops.openmeteo_usage import usage_health
+from ops.verification import verification_health
 
 logger = logging.getLogger(__name__)
 CACHE_S = 30  # the checks open every store's metadata; a monitor (or anyone) polling /up reuses them this long
@@ -35,8 +36,16 @@ def up(request: HttpRequest) -> JsonResponse:
         now = timezone.now()
         ingest, problems = ingest_health(settings.DATA_DIR, now)
         forecast, forecast_problems = forecast_health(settings.DATA_DIR, now)
+        verified, verification_problems = verification_health(settings.DATA_DIR, now)
+        if verified is not None:  # nothing kept or scored yet: left out
+            forecast = {**forecast, "verification": verified}
         open_meteo, open_meteo_problems = usage_health(now)  # D115
-        checked = (ingest, forecast, open_meteo, problems + forecast_problems + open_meteo_problems)
+        checked = (
+            ingest,
+            forecast,
+            open_meteo,
+            problems + forecast_problems + verification_problems + open_meteo_problems,
+        )
         cache.set(key, checked, CACHE_S)
     ingest, forecast, open_meteo, problems = checked
     body = {

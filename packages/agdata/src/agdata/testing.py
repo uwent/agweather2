@@ -256,3 +256,52 @@ def climate_year(data_dir, window: Window, year: int, values: dict[str, np.ndarr
             "complete": True,
         }
     )
+
+
+# Verification (`agdata.verification`): hand-made runs and archive days
+
+
+def full(value: float) -> np.ndarray:
+    """A field of `value` over WINDOW."""
+    return np.full(WINDOW.shape, value)
+
+
+def write_days(root, values: dict[str, dict[date, np.ndarray]]) -> None:
+    """Writes each variable's days (name → day → field over WINDOW) into `root`'s daily or ingredients stores, made
+    for just those variables (a model ingredient's name, such as 'late-blight-dsv.dsv', goes to the ingredients)."""
+    from agdata.store import INGREDIENTS
+    from agdata.verification import kept_variable
+
+    by_store: dict[tuple, dict[str, dict[date, np.ndarray]]] = {}
+    for name, days in values.items():
+        layout = DAILY if name in DAILY_VARIABLES else INGREDIENTS
+        for day, field in days.items():
+            by_store.setdefault((layout, day.year), {}).setdefault(name, {})[day] = field
+    for (layout, year), names in by_store.items():
+        variables = [kept_variable(name) for name in names]
+        try:
+            store = GridStore.open(root, layout, year, variables, add_missing=True)
+        except FileNotFoundError:
+            store = GridStore.create(root, layout, year, WINDOW, variables)
+        for name, days in names.items():
+            for day, field in days.items():
+                store.write(day, {name: field}, source="derived")
+
+
+def fake_run(data_dir, cycle: datetime, values: dict[str, dict[date, np.ndarray]], last_observed=None) -> "Path":
+    """A forecast run's directory with run.json and daily (and ingredients) stores holding only `values`, as
+    `write_days` takes them."""
+    import json
+
+    from agdata import forecast
+
+    path = forecast.run_path(data_dir, cycle)
+    path.mkdir(parents=True)
+    info = {
+        "cycle": cycle.isoformat(),
+        "last_observed": last_observed and last_observed.isoformat(),
+        "failed_leads": [],
+    }
+    (path / "run.json").write_text(json.dumps(info))
+    write_days(path, values)
+    return path

@@ -14,6 +14,7 @@ from agdata.grid import service_window
 from agdata.sources import ifs, nbm
 from ops.ingest import update_if_due
 from ops.models import IngestRecord
+from ops.verification import keep_published
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,7 @@ def refresh_forecast(
             error=repr(error),
         )
     forecast.publish(data_dir, path)
+    verified = keep_published(data_dir, path, now)  # before any restitch: its days as published (D113); never raises
     info = forecast.run_info(path)
     failed = info.get("failed_leads", [])
     logger.info("published the %s NBM run (%d leads failed)", cycle, len(failed))
@@ -80,7 +82,7 @@ def refresh_forecast(
         started_at=started,
         finished_at=timezone.now(),
         failed_hours=[(cycle + timedelta(hours=lead)).isoformat() for lead in failed],
-        sources={"last_observed": info.get("last_observed")},
+        sources={"last_observed": info.get("last_observed"), "verified_days": verified},
     )
 
 

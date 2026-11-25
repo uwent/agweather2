@@ -1,6 +1,6 @@
 # Forecast backtest: NBM against the archive
 
-Generated 2026-11-02 by `scripts/backtest_forecast.py` (Phase 4 G). The 13z long run on every 5th day, 2025-01-01 to 2025-12-27: 73 runs at 2695 cells (one per old-API 0.1° point in Central time, box `wisconsin`), 0 forecast files unreadable. The forecast's hours are filled as the forecast job fills them and rolled up by the archive's day definitions. Lead day 1 is the first complete local day after the cycle. Errors are forecast minus archive, in stored units.
+Generated 2026-11-02 by `scripts/backtest_forecast.py` (Phase 4 G). The 13z long run on every 5th day, 2025-01-01 to 2025-12-27: 73 runs at 2695 cells (one per old-API 0.1° point in Central time, box `wisconsin`), 0 forecast files unreadable. The forecast's hours are filled as the forecast job fills them and rolled up by the archive's day definitions. Lead day 1 is the first complete local day after the cycle. Errors are forecast minus archive, in stored units. Since D113 every published run (all four long runs a day) is also scored as its days arrive, over the whole covered grid: `manage.py verify --report` pools those scores by variable and lead.
 
 ## Bias and MAE by lead day
 

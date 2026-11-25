@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 from django.utils import timezone
 
 from ops import openmeteo_usage
-from ops.models import ApiUsage, IngestRecord, OpenMeteoUsage
+from ops.models import ApiUsage, ForecastScore, IngestRecord, OpenMeteoUsage
 
 
 @admin.register(IngestRecord)
@@ -66,3 +66,20 @@ class OpenMeteoUsageAdmin(admin.ModelAdmin):
         for warning in openmeteo_usage.warnings_for(usage):
             messages.warning(request, warning)
         return super().changelist_view(request, extra_context=extra_context)
+
+
+@admin.register(ForecastScore)
+class ForecastScoreAdmin(admin.ModelAdmin):
+    """The forecast's scores by run, lead and variable (D113); pooled by lead in `manage.py verify --report`."""
+
+    list_display = ["valid_day", "cycle", "lead", "variable", "n", "bias", "mae", "rmse"]
+    list_filter = ["lead", "variable"]
+    date_hierarchy = "valid_day"
+    ordering = ["-valid_day", "lead", "variable"]
+    readonly_fields = [f.name for f in ForecastScore._meta.fields]
+
+    def has_add_permission(self, request) -> bool:
+        return False
+
+    def has_change_permission(self, request, obj=None) -> bool:
+        return False

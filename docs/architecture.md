@@ -73,6 +73,7 @@ One table in `agdata.catalog`: name, long name, stored unit, dtype and scale/off
 | `climatology/` | doy × y × x per statistic | 1 × 256 × 256 | 30-year external and 5/10-year internal |
 | `daily-by-time/{year}.zarr` | day × y × x, daily min and max only | 32 × 256 × 256 | A season over the map (custom DD maps); a cache of the daily store's values, kept by `update_days` (`agdata.timecopy`) |
 | `daily-by-point/{year}.zarr` | variable × day × y × x, settled years | all × year × 16 × 16 | A point's past years (projection, climatology; `agdata.pastyears`) |
+| `forecast/verify/{cycle}/daily/{year}.zarr` | day × y × x, 11 daily variables and 5 disease values | 16 × 256 × 256 | Each published run's lead days 1–10 as published, kept 45 days for scoring (`agdata.verification`, D113; ~5 GB over the launch box) |
 
 Zarr v3, int16 with pcodec (docs/pilot.md); a sharding codec if file counts get large.
 
@@ -102,6 +103,7 @@ UTC everywhere in storage. Grid days are Central Standard Time all year, midnigh
 - Open-Meteo's use is counted against the plan (D115, `ops.openmeteo_usage`): every request the app makes, through `fetch_counted` (a test holds every caller to it), failures and retries included, by UTC day and endpoint in `OpenMeteoUsage` (kept two years). The billing month runs from `OPEN_METEO_BILLING_DAY` (the 12th) to the day before it a month later; past 80% of `OPEN_METEO_MONTHLY_CALLS` (5,000,000 with a key), or of the free API's 10,000 a day without one, or when the last week's pace would pass the month's, the admin, `/up` (degraded), `jobs status` and a daily log line from `housekeeping` say so. Nothing stops fetching. Not counted: IFS's open-data reads from S3, and `agdata.clients.openmeteo_points` in development scripts (given the production key, a script draws on the plan uncounted).
 - Models receive the standard frame and do not know its source; responses carry `source` and the producing model's name and version.
 - Each model's region mask is rasterized on the grid at startup; outside it the model returns no value and the map greys it out.
+- Verification (D113): when a run is published, its lead days 1–10 that start after its last observed hour are copied as published into `forecast/verify/{cycle}/` (11 daily weather variables and 5 disease severity values, packed as stored), before any restitch overwrites them with observations, and kept 45 days; a failure to keep logs a warning and never stops the publish. The daily `score_forecasts` job (and `manage.py verify`) scores each kept day once the archive has closed it, against the archive's day over the covered cells, and again whenever the archive rewrites it (RTMA → URMA, a rebuild): `ops.models.ForecastScore` holds n, bias, MAE and RMSE per run, lead and variable (degree days 50/86 °F computed from each side's min and max; precipitation also wet-day hits, misses and false alarms at 0.01 in), kept indefinitely and pooled weighted by n. A disease value's error reflects the run's stitch and gap-fill as well as NBM.
 
 ---
 
@@ -135,7 +137,7 @@ Page prop types: Pydantic schemas → JSON Schema → TypeScript, checked for fr
 - django-allauth with login by email link or code; no passwords. Sites, alert choices, beta-models opt-in and service-update opt-in per user.
 - Daily digest (past week, extended forecast, season vs normal, in-season models per site, upcoming thresholds) and event alerts (threshold crossed or forecast to cross). Users pick digest, alerts, or both.
 - One Postgres-backed job queue (Procrastinate, D17) for ingest and app jobs, with periodic tasks.
-- Health check: ingest lag, failed jobs, missing hours, Open-Meteo's use against the plan (D115); emails admins; public `/up` JSON for an uptime monitor.
+- Health check: ingest lag, failed jobs, missing hours, the forecast's age and verification (`forecast.verification`: the last 7 scored days' MAE and bias at leads 1, 3 and 7; a problem when lead-1 MAE of the daily max or min passes 3 °C, or a kept day due 3 days ago isn't scored, D113), Open-Meteo's use against the plan (D115); emails admins; public `/up` JSON for an uptime monitor.
 
 ---
 
