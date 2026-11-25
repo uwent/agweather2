@@ -9,7 +9,7 @@ This file is where things stand and what's next: the one handoff, Ben's open cho
 <!-- prettier-ignore -->
 | Doc | Holds |
 | --- | --- |
-| [docs/decisions.md](docs/decisions.md) | Why: the recorded decisions (D1–D116) and the questions put to Ben (Q1–Q41). A new decision takes the next D number |
+| [docs/decisions.md](docs/decisions.md) | Why: the recorded decisions (D1–D123) and the questions put to Ben (Q1–Q41). A new decision takes the next D number |
 | [docs/architecture.md](docs/architecture.md) | How the system is laid out (§3–13: data, ingest, forecast, models, API, web app, jobs, testing, deployment) |
 | [docs/plans/](docs/plans/) | The work, by phase in build order (Phases 1–5 done, 6 current, 7–9 sketches), and the plans that run beside a phase (models, humidity). Its README says what each holds and its status |
 | [docs/api.md](docs/api.md) | The API v2 contract |
