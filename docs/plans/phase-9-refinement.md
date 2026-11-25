@@ -12,7 +12,7 @@ Potential enhancement: a synthetic soil temperature forecast for the grid past H
 
 ## Backlog: validation (gathered 2026-11-12)
 
-Checks that wait on data, time or a reason to run them. Each goes in a `docs/validation-*.md`.
+Checks that wait on data, time or a reason to run them. Each goes in a report under `docs/validation/weather/` (D98).
 
 - [ ] `scripts/compare_legacy.py` over 2016–2024 against D54's tolerances (the dev archive has those years since 2026-11-09; Phase 2 H checked 2025–2026).
 - [ ] Precip against stations through the seasons: ACIS daily at a dozen Wisconsin stations, bias by month, rain against snow, URMA against the old API's RTMA (Phase 2 H; the monthly totals are done).
