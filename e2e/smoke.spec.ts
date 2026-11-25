@@ -13,7 +13,11 @@ test.beforeEach(({ page }) => {
     if (message.type() === 'error') problems.push(message.text())
   })
   page.on('pageerror', (error) => problems.push(String(error)))
-  page.on('requestfailed', (request) => problems.push(`${request.url()}: ${request.failure()?.errorText}`))
+  // A request cancelled on purpose (a superseded fetch, tiles as a map moves, anything left by a reload) isn't a failure
+  page.on('requestfailed', (request) => {
+    const error = request.failure()?.errorText
+    if (error !== 'net::ERR_ABORTED') problems.push(`${request.url()}: ${error}`)
+  })
 })
 
 test.afterEach(() => {
@@ -132,8 +136,6 @@ test('the map explorer shows a layer and a clicked cell', async ({ page }) => {
   // The map's values by county, below the fold
   await page.getByRole('heading', { name: 'This map by county' }).scrollIntoViewIfNeeded()
   await expect(page.getByRole('table', { name: /by county in Wisconsin/ })).toContainText('Dane County')
-  // Tiles cancelled as the map moved on, or as the page was left, aren't failures
-  problems = problems.filter((problem) => !problem.endsWith('net::ERR_ABORTED'))
 })
 
 test('a site added is kept after a reload, and exported', async ({ page }) => {
