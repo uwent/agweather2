@@ -125,7 +125,7 @@ Priorities follow project-plan.md's launch table (P0 for April 1, 2027; P1 durin
 | Page | API |
 | --- | --- |
 | Downloads: point CSV builder (variables, dates, hourly or daily, several locations), grid builder (layer, area, dates, format), yearly NetCDF list (P1) | ✓ `/weather/*`, `/grids`, `/downloads` |
-| API docs at `/api/v2/docs`, linked from every data page; changelog and announcements; "Tell us how you use the API" form | ✓ docs; ✗ form and changelog models (project-plan P0) |
+| API docs at `/api/v2/docs`, linked from every data page; changelog and announcements; "Tell us how you use the API" form | ✓ docs; ✓ changelog (`updates.ChangelogEntry`, `/changelog`, `/changelog.atom`, `GET /api/v2/changelog`) and the form (`/api-use`, saved for review in the admin), as minimal pages (D112); Phase 7 designs them and the banner |
 | Data status: each source's newest hour, the forecast run, gaps (public face of `/status`) | ✓ `/status` |
 | About, glossary (from WISP 3), methods, accessibility statement, contact and feedback | — |
 
@@ -161,7 +161,8 @@ Header (every page, `AppLayout`): the UW–Madison brand bar, the AgWeather name
 | `/climate` | Climate explorer (P1) | Normals, this year against normal, frost odds, maps of departure |
 | `/calendar` | Day-of-year calendar |  |
 | `/data` | Downloads | Point and grid builders, yearly files, API link |
-| `/methods`, `/about`, `/glossary`, `/changelog`, `/status`, `/accessibility` | Reference | `/methods` generated from code and data |
+| `/methods`, `/about`, `/glossary`, `/changelog`, `/status`, `/accessibility` | Reference | `/methods` generated from code and data; `/changelog` has an Atom feed at `/changelog.atom` (D112) |
+| `/api-use` | "Tell us how you use the API" form (D112) | Linked from the API docs and the changelog |
 | `/account/…` | Sign-in, settings, alerts (Phase 7) |  |
 
 ### Legacy URLs (D62)

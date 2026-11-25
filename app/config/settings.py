@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     "web",
     "ops",
     "api",
+    "updates",
 ]
 
 MIDDLEWARE = [

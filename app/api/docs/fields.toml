@@ -115,6 +115,26 @@ last = "The last day the file holds."
 complete = "Whether the file holds every day of its year. The current year's file is not complete."
 built_at = "When the file was made, in UTC. A file is made again whenever the data in it are revised."
 
+# --- /changelog ----------------------------------------------------------------------------------------------------
+
+[ChangelogResponse]
+meta = "What the answer was computed for and how to read it."
+data = "The entries."
+
+[ChangelogData]
+entries = "Each published entry, newest first."
+
+[ChangelogEntryInfo]
+id = "The entry's number, which does not change."
+date = "The date of the entry."
+kind = "What the entry is about: `api` (a change to the API), `model` (the models), `data` (the data and their sources), `outage` (an outage or delay) or `announcement` (other news)."
+title = "The entry's title."
+body = "The entry's text, in Markdown."
+model = "The id of the model the entry is about, as in `/models`. Null when it is not about one model."
+endpoint = "The endpoint the entry is about, as `/degree-days`. Null when it is not about one endpoint."
+banner_until = "Until when, in UTC, the website shows the entry as a notice at the top of its pages. Null when it is not shown as a notice."
+url = "The entry's address on the changelog page."
+
 # --- /variables ----------------------------------------------------------------------------------------------------
 
 [VariablesResponse]

@@ -40,18 +40,24 @@ NO_WAIT = "SET LOCAL synchronous_commit TO OFF"
 MORE = "UPDATE ops_apiusage SET cost = cost + %s WHERE client = %s AND minute = %s RETURNING cost"
 
 
-def client_key(address: str | None) -> str | None:
-    """The client a request is counted against: its IPv4 address or IPv6 /64, or None if it is exempt
-    (`API_RATE_EXEMPT`) or has no valid address."""
+def address_key(address: str | None) -> str | None:
+    """An address as one client: IPv4 as is, IPv6 as its /64; None if it isn't a valid address."""
     try:
         ip = ipaddress.ip_address(address or "")
     except ValueError:
         return None
-    if any(ip in ipaddress.ip_network(net) for net in settings.API_RATE_EXEMPT):
+    return str(ipaddress.ip_network(f"{ip}/64", strict=False)) if ip.version == 6 else str(ip)
+
+
+def client_key(address: str | None) -> str | None:
+    """The client a request is counted against: its IPv4 address or IPv6 /64, or None if it is exempt
+    (`API_RATE_EXEMPT`) or has no valid address."""
+    key = address_key(address)
+    if key is None or any(
+        ipaddress.ip_address(address or "") in ipaddress.ip_network(net) for net in settings.API_RATE_EXEMPT
+    ):
         return None
-    if ip.version == 6:
-        return str(ipaddress.ip_network(f"{ip}/64", strict=False))
-    return str(ip)
+    return key
 
 
 def cost_of(elapsed_ms: float) -> int:

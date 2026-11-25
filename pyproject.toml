@@ -52,7 +52,7 @@ allowed-confusables = ["–", "−", "×", "γ", "σ", "α"]
 "app/**/migrations/*.py" = ["RUF012"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["agmodels", "agdata", "config", "web", "ops", "api", "pilot_encoding"]
+known-first-party = ["agmodels", "agdata", "config", "web", "ops", "api", "updates", "pilot_encoding"]
 
 [tool.pytest.ini_options]
 # Tests never use the network (CLAUDE.md); fixtures are recorded. Postgres on localhost is the exception.

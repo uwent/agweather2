@@ -39,7 +39,7 @@ Browser: Svelte 5 + Tailwind v4, MapLibre with a WebGL data-tile layer, ECharts
 | --- | --- |
 | `packages/agmodels/` | Model library: hourly → daily → windows → DD → disease/insect models. Pure functions on xarray/pandas, NumPy and Numba. Each model: one file, metadata (citations, version, status, region, season, sweep). No I/O |
 | `packages/agdata/` | Grid definition and service box, variable catalog, Zarr store layout and read/write, source adapters (URMA, RTMA, HRRR, NBM, Open-Meteo, nClimGrid, gridMET), QC, rollups, tile encoding |
-| `app/` | Django project: `config/` (settings, urls, asgi), apps `accounts`, `sites`, `alerts`, `catalog`, `api`, `ops`; jobs; management commands (backfill CLI) |
+| `app/` | Django project: `config/` (settings, urls, asgi), apps `accounts`, `sites`, `alerts`, `catalog`, `api`, `ops`, `updates` (the changelog and the API-use form, D112); jobs; management commands (backfill CLI) |
 | `frontend/` | Svelte pages and components, `lib/` (ported from WISP 3: units, dates, charts, map, glossary, tables, csv), `types/` (generated) |
 | `infra/` | Dockerfile, `compose.yaml`, Caddyfile, backup scripts |
 | `bin/` | `dev`, `ci`, `e2e` |
@@ -117,7 +117,7 @@ UTC everywhere in storage. Grid days are Central Standard Time all year, midnigh
 
 ## 9. API v2 (Django Ninja)
 
-`/api/v2`: points (hourly or daily, variable list, multiple points), grids (date or range with stat, binary or GeoJSON/CSV), data tiles (`/tiles/{layer}/{date}/{z}/{x}/{y}.png`), models (catalog, run at points, grid risk), DD table, freeze counts, downloads, dataset status. Units selectable, source and model version on every response. OpenAPI at `/api/v2/docs`, linked to the changelog page and the "how do you use the API" form. Rate limits at Caddy. If Django overhead shows in tile timings, mount a small Starlette app under `/tiles` sharing `agdata`. The contract (envelope, formats, every endpoint) is designed in `docs/api.md` (agreed 2026-11-02, D57–D58).
+`/api/v2`: points (hourly or daily, variable list, multiple points), grids (date or range with stat, binary or GeoJSON/CSV), data tiles (`/tiles/{layer}/{date}/{z}/{x}/{y}.png`), models (catalog, run at points, grid risk), DD table, freeze counts, downloads, dataset status. Units selectable, source and model version on every response. OpenAPI at `/api/v2/docs`, linked to the changelog page (`/changelog`, its Atom feed and `GET /api/v2/changelog`) and the "Tell us how you use the API" form (`/api-use`), both in the `updates` app (D112). Rate limits at Caddy. If Django overhead shows in tile timings, mount a small Starlette app under `/tiles` sharing `agdata`. The contract (envelope, formats, every endpoint) is designed in `docs/api.md` (agreed 2026-11-02, D57–D58).
 
 ---
 

@@ -36,9 +36,9 @@ Each model's description, citations, inputs, options and version history are ava
 - A request that takes longer than 30 seconds is stopped, and the API returns status 503 with the code `timeout`. Most requests take well under a second. A point outside our area may take longer the first time, because we fetch its weather from Open-Meteo; once fetched, it's kept, so trying again a few minutes later is usually quick.
 - Responses carry an ETag. If you send it back in an `If-None-Match` header, the API answers with a short "not modified" response until the data changes.
 - Weather you send to the model endpoints is used to compute your answer and is not stored.
-- The API changes only by addition: new endpoints, parameters and columns may appear, but existing ones keep their meaning. Your code should ignore fields it doesn't recognize. Changes are listed on the [API changes page](/api/changes).
+- The API changes only by addition: new endpoints, parameters and columns may appear, but existing ones keep their meaning. Your code should ignore fields it doesn't recognize. Changes are listed on the [changelog page](/changelog), which you can follow in a feed reader through its [Atom feed](/changelog.atom) or read from `/changelog` in the API. We announce any change that could affect your code there well before it takes effect.
 
-We would like to hear how you use the API and what you would like it to do. Please tell us through the [feedback form](/api/feedback).
+We would like to hear how you use the API and what you would like it to do. Please tell us through the [API use form](/api-use). If you leave your email address, we can also tell you before changes that affect the API.
 
 ## Data sources and credit
 
