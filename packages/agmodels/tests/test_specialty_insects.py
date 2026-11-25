@@ -57,7 +57,7 @@ def window(insect: Insect) -> tuple[float, float]:
 @pytest.mark.parametrize("insect", [JB, MRB, MFB, SVB], ids=lambda i: i.id)
 def test_one_generation_a_year(insect):
     assert insect.generation_dd is None
-    assert insect.version == "0.2"
+    assert insect.version == "0.3"
 
 
 # --- Japanese beetle --------------------------------------------------------------------------------------------------

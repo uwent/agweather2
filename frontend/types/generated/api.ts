@@ -1124,7 +1124,7 @@ export interface ModelDetail {
    */
   region: string[]
   /**
-   * The first and last days of the year the model's results are shown, as `MM-DD`. Null when it runs all year.
+   * The first and last days of the year the model is in season, as `MM-DD`. `/risk` lists a model only in its season, and an insect's activity ends after its last day. Null when it runs all year.
    */
   season: string[] | null
   /**
@@ -1324,7 +1324,7 @@ export interface ModelSummary {
    */
   region: string[]
   /**
-   * The first and last days of the year the model's results are shown, as `MM-DD`. Null when it runs all year.
+   * The first and last days of the year the model is in season, as `MM-DD`. `/risk` lists a model only in its season, and an insect's activity ends after its last day. Null when it runs all year.
    */
   season: string[] | null
   /**

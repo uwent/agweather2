@@ -7,6 +7,7 @@ from datetime import UTC, date, datetime, timedelta
 import pytest
 
 from agdata.layers import LAYERS
+from agmodels import seasons
 from agmodels.registry import all_models
 from ops.models import DatasetStatus
 from web import home, status
@@ -103,7 +104,7 @@ def test_a_risk_headline_is_in_season_in_its_month():
         for m in home.headline_maps(day):
             if m.layer in all_models():
                 spec = all_models()[m.layer].SPEC
-                assert home.in_season(spec, day), f"{m.layer} in month {month}"
+                assert seasons.in_season(spec, day), f"{m.layer} in month {month}"
 
 
 def test_models_in_season_by_crop():

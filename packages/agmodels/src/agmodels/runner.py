@@ -3,7 +3,7 @@
 The caller reads the days (`agdata.series`): `required_inputs` says which, `first_day_needed` from when (the
 biofix or planting, less the model's lookback). `run` supplies the context (day of year, latitude, year), places
 the biofix (a date, the spec's default for the season, or a crop stage's predicted date), runs the outputs and
-risk, gates the risk by crop stage or a stage date the user gives (D33), finds the action windows' dates (D36) and which days are in season, and
+risk, gates the risk by crop stage or a stage date the user gives (D33), finds the action windows' dates (D36) and which days are in season (`agmodels.seasons.in_season`: an insect's ends early where fall freezes end it), and
 returns it all with each day's kind (observed, partial, forecast) and the model's id and version.
 
 Missing days in the inputs are estimated first, by each variable's method (`gap_fill`, from the catalog: D45,
@@ -27,6 +27,7 @@ from agmodels.crops import CropModel, date_susceptibility, disease_susceptibilit
 from agmodels.gaps import GapFill, fill_inputs
 from agmodels.phenology import PhenologyModel, window_periods
 from agmodels.registry import model as find_model
+from agmodels.seasons import in_season
 from agmodels.spec import Model, ModelSpec, StageDate, Susceptibility
 
 CONTEXT = ("day_of_year", "latitude", "year")
@@ -158,6 +159,8 @@ def run(
     if shown is None:
         raise ValueError(f"start {start} isn't in the series")
     result = ModelRun(model_id=spec.id, version=spec.version, dates=dates[shown:], kinds=day_kinds[shown:])
+    if spec.season is not None:  # the calendar, also for a run that doesn't start (refined below by its own end)
+        result.in_season = np.array([in_season(spec, d) for d in result.dates])
     if not in_region:
         result.reason = "outside the model's region"
         return result
@@ -217,7 +220,12 @@ def run(
             margin_days=window.margin_days,
         )
     if spec.season is not None:
-        result.in_season = np.array([_in_season(spec, d) for d in result.dates])
+        ended = np.nan_to_num(result.outputs.get("season_complete", np.zeros(len(result.dates)))) == 1
+        if ended.ndim > 1:  # a grid's days × cells: the calendar alone (maps say where each cell's season ended)
+            ended = np.zeros(len(result.dates), dtype=bool)
+        result.in_season = np.array(
+            [in_season(spec, d, ended=bool(e)) for d, e in zip(result.dates, ended, strict=True)]
+        )
     if isinstance(m, PhenologyModel) and next(iter(result.outputs.values())).ndim == 1:  # scenarios: per year
         for w in m.insect.action_windows:
             periods = window_periods(result.outputs[f"window_{w.key}"])
@@ -323,9 +331,3 @@ def _after_season(spec: ModelSpec, day: date) -> bool:
     """Between a New Year–crossing season's end and its next start (the next season is the one that applies)."""
     assert spec.season is not None
     return _mmdd(spec.season[1]) < (day.month, day.day) < _mmdd(spec.season[0])
-
-
-def _in_season(spec: ModelSpec, day: date) -> bool:
-    assert spec.season is not None
-    first, last, md = _mmdd(spec.season[0]), _mmdd(spec.season[1]), (day.month, day.day)
-    return first <= md <= last if first <= last else (md >= first or md <= last)

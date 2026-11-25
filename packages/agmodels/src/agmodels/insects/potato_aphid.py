@@ -9,7 +9,8 @@ days 39.2/86 °F (single sine, from January 1) at each field's cell, and another
 own curve, farm and farm-year effects. The typical year's curves (random effects at zero) on the log scale are
 `potato_aphid_fit.csv` (420–4,060 degree days, every 10) and `potato_aphid_fit_calendar.csv` (days 128–257, May 8 to
 September 14), exported by `tmp/R/cpb/cv/31_aphid_models.py`. Scouting ends in mid-September, before the counts
-decline, so the curves are held at their last value until fall freezes end the season.
+decline, so the curves are held at their last value until fall freezes end the season, or its season does
+(September 30).
 """
 
 import csv
@@ -36,6 +37,7 @@ _days, _log_days = _read(FIT_CALENDAR, "day_of_year")
 INSECT = Insect(
     id="potato-aphid",
     name="Potato aphid",
+    season=("06-15", "09-30"),
     crops=("potato",),
     topic="aphids-on-potato",
     base_f=39.2,
@@ -55,7 +57,7 @@ INSECT = Insect(
         ),
     ),
     source="UW–Madison Vegetable Entomology",
-    version="0.1",
+    version="0.2",
     trained=TrainingArea(
         description="scouting counts in commercial potato fields in central Wisconsin, mostly the Central Sands",
         years=(2014, 2025),
@@ -66,6 +68,11 @@ INSECT = Insect(
             version="0.1",
             date="2026-11-21",
             note="New: the typical season's potato aphid counts in central Wisconsin's potato fields, by degree days or calendar date.",
+        ),
+        Change(
+            version="0.2",
+            date="2026-11-26",
+            note="In season from June 15 to September 30: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to the end of September, when the scouting data end and potato vines are killed. Activity ends after September 30 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

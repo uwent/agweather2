@@ -7,6 +7,7 @@ from agmodels.spec import Change, Check, Citation, TrainingArea
 INSECT = Insect(
     id="corn-earworm",
     name="Corn earworm",
+    season=("08-01", "10-31"),
     crops=("beans", "corn", "sweet-corn"),
     # USPest.org's model (Hartstack et al. 1976; read 2026-11-21): single sine, 55 and 92 °F, from egg laying near
     # first silk (its default date August 1, its validation "partly validated" in the Pacific Northwest). UC IPM's
@@ -32,7 +33,7 @@ INSECT = Insect(
     # DATCP's trap sites reached a median 652 degree days (484–776) by October 15 (the report), so the eggs' own moths rarely
     # emerge, and none overwinter here: one generation
     max_generations=1,
-    version="0.2",
+    version="0.3",
     status="beta",
     # Hartstack's rates came from Texas (USDA, College Station); the egg-laying spread and default date from DATCP's
     # pheromone traps in Wisconsin, 2021–2026. Hartstack's data years aren't in hand: the span runs from his report
@@ -46,6 +47,11 @@ INSECT = Insect(
             version="0.2",
             date="2026-11-21",
             note="Rebuilt on Hartstack et al. 1976 as USPest.org runs it: single sine 55/92 °F from egg laying; larvae in the ears from 73 to 437 degree days after each egg is laid, the eggs spread as DATCP's pheromone traps show the main flight; the default biofix moved from August 1 to August 15, where DATCP's traps put the main flight's first week of 35 or more moths. Replaces VDIFN's ramp (70, 275, 440) from August 1.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="In season from August 1 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

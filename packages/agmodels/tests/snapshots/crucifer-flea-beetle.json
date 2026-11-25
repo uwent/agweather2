@@ -1,4 +1,4 @@
-{"version": "0.2", "rows": [
+{"version": "0.3", "rows": [
 {"inputs":{"dd_total":0.0},"outputs":{"activity_adults_feeding":0.0,"generations_adults_feeding":0.0,"activity_egg_laying":0.0,"generations_egg_laying":0.0,"window_scout_new_plantings_every_one_to_two_days":0.0,"risk":0.0}},
 {"inputs":{"dd_total":100.0},"outputs":{"activity_adults_feeding":0.0,"generations_adults_feeding":0.0,"activity_egg_laying":0.0,"generations_egg_laying":0.0,"window_scout_new_plantings_every_one_to_two_days":0.0,"risk":0.0}},
 {"inputs":{"dd_total":200.0},"outputs":{"activity_adults_feeding":1.0,"generations_adults_feeding":0.333798121,"activity_egg_laying":0.0,"generations_egg_laying":0.0,"window_scout_new_plantings_every_one_to_two_days":1.0,"risk":1.0}},

@@ -23,6 +23,7 @@ PUPA = 193
 INSECT = Insect(
     id="imported-cabbageworm",
     name="Imported cabbageworm",
+    season=("05-01", "10-31"),
     crops=("cole-crops",),
     # UW–Madison's method (XHT1086; XHT1087 gives only the base, 50 °F): the modified average, the minimum raised to
     # 50 °F and the maximum capped at 86 °F, from January 1 (the stored `dd_modified_50_86`). NEWA runs no cabbageworm
@@ -59,7 +60,7 @@ INSECT = Insect(
         # to 90 % of its eggs hatched, when sprays work best (UW Hort: target small caterpillars)
         ActionWindow(label="Scout for eggs and young caterpillars", stage="Eggs", between=(0.1, 0.9)),
     ),
-    version="0.3",
+    version="0.4",
     status="beta",
     # XHT1087 gives no years for its numbers; the span runs from Tatchell's study (1981) to the last iNaturalist
     # records the generation time was set from (2026)
@@ -78,6 +79,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-23",
             note="The second generation's caterpillars weigh twice as much as the others' in the risk, since UW–Madison says the second generation does the most damage.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="In season from May 1 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

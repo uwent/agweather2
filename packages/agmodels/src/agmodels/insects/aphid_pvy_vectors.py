@@ -9,7 +9,7 @@ each collection week, with each year's own curve, trap and trap-season effects (
 Wisconsin traps, 2016–2023 (EDDMapS, the suction trap network), on AgWeather v2's weather; and the same model on the
 day of year at each week's midpoint. `aphid_pvy_vectors_fit.csv` is the typical year's curve (random effects at zero)
 on the log scale every 10 degree days over the data's range, 290 to 5,490, and `aphid_pvy_vectors_fit_calendar.csv`
-every day from 123 to 293 (May 3 to October 20); before them the risk is 0, after them held until fall freezes.
+every day from 123 to 293 (May 3 to October 20); before them the risk is 0, after them held until fall freezes or the season's end (October 31).
 """
 
 import csv
@@ -35,6 +35,7 @@ _days, _log_risk_by_day = _read(FIT_CALENDAR, "day_of_year")
 INSECT = Insect(
     id="aphid-pvy-vectors",
     name="Aphid PVY vectors",
+    season=("04-01", "10-31"),
     crops=("potato",),
     base_f=39.2,
     upper_f=86,
@@ -53,7 +54,7 @@ INSECT = Insect(
         ),
     ),
     source="VDIFN",
-    version="0.3",
+    version="0.4",
     trained=TrainingArea(description="catches in Wisconsin's suction traps", years=(2016, 2023), states=("WI",)),
     changelog=(
         Change(
@@ -65,6 +66,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-21",
             note="Each aphid species now counts in proportion to how well it transmits the virus (the curve had used a transformed efficiency, which narrowed the gap between good and poor vectors): the peak moves from about 3,580 to 3,490 degree days. Adds the same curve by calendar date, as an option.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="In season from April 1 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

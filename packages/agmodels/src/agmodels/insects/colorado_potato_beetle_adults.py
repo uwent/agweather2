@@ -1,11 +1,12 @@
-"""Colorado Potato Beetle (Adults), from VDIFN."""
+"""Colorado potato beetle adults, from VDIFN."""
 
 from agmodels.phenology import Insect
 from agmodels.spec import Change, Check, Citation
 
 INSECT = Insect(
     id="colorado-potato-beetle-adults",
-    name="Colorado Potato Beetle (Adults)",
+    name="Colorado potato beetle adults (VDIFN)",
+    season=("05-01", "09-30"),
     crops=("eggplant", "potato", "tomato"),
     base_f=50,
     upper_f=86,

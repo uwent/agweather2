@@ -7,6 +7,7 @@ from agmodels.spec import Change, Check, Citation
 INSECT = Insect(
     id="seedcorn-maggot",
     name="Seedcorn maggot",
+    season=("02-15", "10-31"),
     crops=("corn", "sweet-corn", "beans", "cucumber", "melon", "pumpkin-squash"),
     # The sources' method (D37): simple average above 3.9 °C (39 °F), temperatures capped at 29 °C (84.2 °F)
     base_f=39,
@@ -37,7 +38,7 @@ INSECT = Insect(
     # The sources say which generations matter, not by how much: 0.25 is a judgment (Ben, 2026-11-23)
     generation_weights=(1.0, 1.0, 0.25),
     action_windows=(ActionWindow(label="Avoid planting during adult flight", stage="Adult flight"),),
-    version="0.4",
+    version="0.5",
     status="beta",
     changelog=(
         Change(
@@ -54,6 +55,11 @@ INSECT = Insect(
             version="0.4",
             date="2026-11-23",
             note="The first generation's flight in early June weighs as much as the over-wintered flight in the risk, and only the generations after it a quarter: in Iowa that June flight was as large as the spring flight or larger (Funderburk, Higley and Pedigo 1984, Fig. 2), and New York's mid-June peak is a large one (Throne and Eckenrode 1985).",
+        ),
+        Change(
+            version="0.5",
+            date="2026-11-26",
+            note="In season from February 15 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     source=CRT,

@@ -6,6 +6,7 @@ from agmodels.spec import Change, Check, Citation, TrainingArea
 INSECT = Insect(
     id="mint-flea-beetle",
     name="Mint flea beetle",
+    season=("04-15", "08-31"),
     crops=("mint",),
     # USPest's method: single sine 41/103 °F from January 1. 103 °F isn't a stored total, and on Wisconsin's weather
     # it never binds: a 103 °F cap changed no season's total at Arlington, Hancock or Rhinelander in 2016–2025, so
@@ -34,7 +35,7 @@ INSECT = Insect(
     # Sweep for adults from the first to emerge (2 %) until nearly all are out (95 %): A3422's thresholds are in adults
     # per 100 sweeps, and sprays go on after most adults are out and before egg laying
     action_windows=(ActionWindow(label="Sweep mint for adults", stage="Adult emergence", between=(0.02, 0.95)),),
-    version="0.2",
+    version="0.3",
     status="beta",
     # Berry et al.'s fields were Pacific Northwest mint; the years aren't in hand: 1990–1997 is an estimate (the
     # mint root borer model from the same group is dated 1997)
@@ -48,6 +49,11 @@ INSECT = Insect(
             version="0.2",
             date="2026-11-21",
             note="Rebuilt on Oregon State's mint flea beetle model (USPest.org, Berry et al.): single-sine degree days above 41 °F from January 1 (its 103 °F upper threshold never binds in Wisconsin), egg hatch from 405 and larval feeding until the larvae leave the rhizomes, and adult emergence from 1,475 with the adults' feeding after it, as curves; a window to sweep for adults through emergence. Replaces VDIFN's window (1,475, 1,675, 1,880), whose peak and end weren't USPest's.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="In season from April 15 to August 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to the end of the month its latest activity ended in (August 28). Activity ends after August 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

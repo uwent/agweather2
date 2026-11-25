@@ -1,4 +1,4 @@
-"""Western Flower Thrips, from VDIFN. Retired 2026-11-21 (Ben, part H): the thrips doesn't overwinter outdoors in
+"""Western flower thrips, from VDIFN. Retired 2026-11-21 (Ben, part H): the thrips doesn't overwinter outdoors in
 Wisconsin, so counting from January 1 has no meaning here, and its source (USPest's model) is under development."""
 
 from agmodels.phenology import Insect
@@ -6,7 +6,8 @@ from agmodels.spec import Change, Check
 
 INSECT = Insect(
     id="western-flower-thrips",
-    name="Western Flower Thrips",
+    name="Western flower thrips",
+    season=("04-15", "10-31"),
     crops=("cucumber", "eggplant", "pepper", "tomato"),
     base_f=45,
     upper_f=None,

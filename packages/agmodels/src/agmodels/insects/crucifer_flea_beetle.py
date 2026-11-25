@@ -20,6 +20,7 @@ EGG_LAYING = 300
 INSECT = Insect(
     id="crucifer-flea-beetle",
     name="Crucifer flea beetle",
+    season=("03-15", "09-30"),
     crops=("cole-crops",),
     # UW–Madison's method (XHT1086; XHT1087 gives only the base, 50 °F): the modified average, 50/86 °F, from
     # January 1 (stored). Kinoshita et al.'s threshold, 51.8 °F on soil temperatures, isn't stored; its sum is converted
@@ -50,7 +51,7 @@ INSECT = Insect(
         # active: 129–410 in spring
         ActionWindow(label="Scout new plantings every one to two days", stage="Adults feeding", between=(0.05, 0.95)),
     ),
-    version="0.2",
+    version="0.3",
     status="beta",
     # XHT1087 gives no years for its numbers; the span runs from Kinoshita et al.'s field seasons (1974–1975) to the
     # table's last revision (2012; the handout read is the 2005 revision). Ontario has no code here, so only Wisconsin is named
@@ -64,6 +65,11 @@ INSECT = Insect(
             version="0.2",
             date="2026-11-21",
             note="Rebuilt with the overwintered adults' spring feeding on seedlings as the first stage (UW–Madison's degree-day table, Delahaut's XHT1087: 150 to 200 degree days by the modified average, 50/86 °F, from January 1), their egg laying, and the new summer adults 1,350 degree days later, from Kinoshita et al. 1979's development from egg to adult. Replaces VDIFN's two summer windows (single sine 50 °F), which left out the spring beetles that do the most damage.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="In season from March 15 to September 30: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to the end of the month its latest activity ended in (September 21). Activity ends after September 30 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

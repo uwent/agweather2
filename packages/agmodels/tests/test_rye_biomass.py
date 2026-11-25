@@ -5,7 +5,7 @@ from datetime import date, timedelta
 import numpy as np
 import pytest
 
-from agmodels import runner
+from agmodels import seasons
 from agmodels.models import rye_biomass as rye
 
 
@@ -107,6 +107,6 @@ def test_plantings_outside_the_data_are_flagged(planting, flagged):
 
 
 def test_days_after_june_15_are_out_of_season():
-    assert runner._in_season(rye.SPEC, date(2026, 6, 15)) and runner._in_season(rye.SPEC, date(2026, 3, 1))
-    assert not runner._in_season(rye.SPEC, date(2026, 6, 16))
-    assert runner._in_season(rye.SPEC, date(2025, 8, 25)) and not runner._in_season(rye.SPEC, date(2025, 8, 24))
+    assert seasons.in_season(rye.SPEC, date(2026, 6, 15)) and seasons.in_season(rye.SPEC, date(2026, 3, 1))
+    assert not seasons.in_season(rye.SPEC, date(2026, 6, 16))
+    assert seasons.in_season(rye.SPEC, date(2025, 8, 25)) and not seasons.in_season(rye.SPEC, date(2025, 8, 24))

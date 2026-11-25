@@ -46,6 +46,7 @@ from agdata.catalog import CUMULATIVE_VARIABLES
 from agdata.grid import Window
 from agdata.grids import cube_terms
 from agdata.store import CUMULATIVE, DAILY, INGREDIENTS, StoreLayout
+from agmodels import seasons
 from agmodels.crops import CropModel, disease_susceptibility
 from agmodels.ingredients import Accumulation, Ingredient, until_day
 from agmodels.registry import all_models
@@ -976,7 +977,4 @@ def _areas_mask(codes: tuple[str, ...], window: Window) -> np.ndarray:
 
 
 def _in_season(spec: ModelSpec, day: date) -> bool:
-    assert spec.season is not None
-    md = (day.month, day.day)
-    first, last = (tuple(int(p) for p in s.split("-")) for s in spec.season)
-    return first <= md <= last if first <= last else (md >= first or md <= last)
+    return seasons.in_season(spec, day)  # the calendar: a map's cells end their seasons on their own days

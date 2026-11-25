@@ -9,7 +9,7 @@ the scout's main count and the edge and patch counts recorded with it, a blank m
 the archive's, 52/86 °F single sine from January 1, where 0.2's were gridMET's (31 above the archive at the fields).
 `colorado_potato_beetle_fit.csv` holds the curves every 10 degree days and `colorado_potato_beetle_fit_calendar.csv`
 the same fits on the day of year, each over its rows' 0.1–99.9 % range: 0 before, held after until fall freezes end
-the season. The adults and larvae curve is its own fit to each field date's adults plus larvae.
+the season, or its season does (September 30). The adults and larvae curve is its own fit to each field date's adults plus larvae.
 """
 
 import csv
@@ -63,6 +63,7 @@ CENTRAL_WISCONSIN = (
 INSECT = Insect(
     id="colorado-potato-beetle",
     name="Colorado potato beetle",
+    season=("05-01", "09-30"),
     crops=("potato", "tomato", "eggplant"),
     base_f=52,
     upper_f=86,
@@ -80,7 +81,7 @@ INSECT = Insect(
         _stage(label="Larvae", count_label="Larvae per 25 sweeps (typical count)", column="larvae", weight=0),
     ),
     source="the Crop Risk Tool",
-    version="0.3",
+    version="0.4",
     trained=TrainingArea(
         description="scouting counts in commercial potato fields in central Wisconsin, mostly the Central Sands",
         years=(2014, 2025),
@@ -96,6 +97,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-21",
             note="Refitted on AgWeather's own degree days (the fit had used another weather source's, which ran about 30 degree days higher) and on every scouting record, each visit's count the mean of the field, edge and patch counts the scout recorded. Events come 5 to 80 degree days earlier: colonization at about 205, the larval peak at 735, and counts run higher with the edge counts in. Adds the same curves by calendar date, as an option.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="In season from May 1 to September 30: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to the end of September, when the scouting data end and potato vines are killed. Activity ends after September 30 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(
