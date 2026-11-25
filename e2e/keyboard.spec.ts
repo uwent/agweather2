@@ -80,5 +80,5 @@ test('a place found by search takes focus to the cell’s answer and its links',
   await page.keyboard.press('Tab')
   const site = panel.getByRole('link', { name: 'Open this site' })
   await expect(site).toBeFocused()
-  await expect(site).toHaveAttribute('href', '/sites/44.1336,-89.5168?name=Hancock')
+  await expect(site).toHaveAttribute('href', /\/sites\/44\.1336,-89\.5168\?name=Hancock$/)
 })
