@@ -7,7 +7,9 @@
   import { formatDate } from '@/lib/dates'
   import { riskColor } from '@/lib/riskLevels'
   import { siteLabel, type Group, type Site } from '@/lib/sites.svelte'
-  import { formatCoords, siteUrl } from '@/lib/siteKey'
+  import RiskStrip from '@/lib/components/RiskStrip.svelte'
+  import { trendWords } from '@/lib/riskSpan'
+  import { formatCoords, siteModelUrl, siteUrl } from '@/lib/siteKey'
   import { currentUnits } from '@/lib/units'
 
   import { WEATHER_UNITS, type DayWeather, type RiskSummary, type SiteWeather } from './cardData'
@@ -194,14 +196,27 @@
       {#if risk.value.top.length}
         <ul class="space-y-1">
           {#each risk.value.top as row (row.model)}
-            <li class="flex items-center gap-2">
-              <span
-                class="size-3 shrink-0 rounded-full border border-line"
-                style:background-color={riskColor(row.level, row.levels)}
-                aria-hidden="true"
-              ></span>
-              <span class="min-w-0 truncate">{row.name}</span>
-              <span class="ml-auto shrink-0 font-medium">{row.label}</span>
+            <li>
+              <div class="flex items-center gap-2">
+                <span
+                  class="size-3 shrink-0 rounded-full border border-line"
+                  style:background-color={riskColor(row.level, row.levels)}
+                  aria-hidden="true"
+                ></span>
+                <a href={siteModelUrl(site.key, row.model)} class="min-w-0 truncate text-ink hover:underline">
+                  {row.name}
+                </a>
+                <span class="ml-auto shrink-0 font-medium">{row.label}</span>
+              </div>
+              {#if row.days && row.days.length > 1}
+                <RiskStrip
+                  class="mt-0.5 w-full pl-5"
+                  days={row.days}
+                  levels={row.levels}
+                  {today}
+                  label={`${row.name}: ${trendWords({ model: row.model, name: row.name, days: row.days }, today)}.`}
+                />
+              {/if}
             </li>
           {/each}
         </ul>
@@ -213,8 +228,9 @@
       {:else}
         <p class="text-ink-muted">No models are in season here today.</p>
       {/if}
-      <!-- RISK SPARKLINE (track 3, Q1): once /risk takes `end=`, one request per card gives each model's levels
-           through the forecast; draw a Sparkline (lib/components/Sparkline.svelte) per top risk row here. -->
+      {#if risk.value.top.some((row) => row.days && row.days.length > 1)}
+        <p class="mt-1 text-xs text-ink-muted">Each strip runs from two weeks ago through the forecast (shaded).</p>
+      {/if}
     {:else if risk.state !== 'failed'}
       <div class="space-y-1" aria-hidden="true">
         {#each [0, 1, 2] as k (k)}

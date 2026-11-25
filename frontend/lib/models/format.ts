@@ -55,7 +55,7 @@ export function modelMapUrl(layer: string): string {
   return `/map?${new URLSearchParams({ layer })}`
 }
 
-/** A model at a site (track 3 step 6). TODO: use routes.siteModel once that page's route is merged. */
+/** A model at a site (track 3 step 6), by the site's key (`43.07,-89.4`) */
 export function siteModelUrl(siteKey: string, modelId: string): string {
   return `/sites/${siteKey}/models/${encodeURIComponent(modelId)}`
 }

@@ -58,6 +58,22 @@ describe('topRisks', () => {
     expect([found.more, found.none]).toEqual([2, 1])
   })
 
+  it("ranks today's rows of a span, giving each its days for the sparkline, and counts one out of season as none", () => {
+    const body = table({
+      date: ['2026-11-24', '2026-11-25', '2026-11-26', '2026-11-24', '2026-11-25', '2026-11-26'],
+      model: ['late-blight-dsv', 'late-blight-dsv', 'late-blight-dsv', 'x', 'x', 'x'],
+      name: ['Late blight', 'Late blight', 'Late blight', 'X', 'X', 'X'],
+      kind: ['observed', 'partial', 'forecast', 'observed', 'partial', 'forecast'],
+      risk_level: [4, 1, 3, 2, 2, 2],
+      risk_label: ['L4', 'L1', 'L3', 'L2', 'L2', 'L2'],
+      in_season: [true, true, true, false, false, false],
+    })
+    const found = topRisks(body, catalog, [], 3, '2026-11-25')
+    expect(found.top.map((r) => [r.model, r.level])).toEqual([['late-blight-dsv', 1]])
+    expect(found.top[0].days?.map((d) => d.level)).toEqual([4, 1, 3])
+    expect(found.none).toBe(1)
+  })
+
   it('drops models the catalog doesn’t list (retired ones)', () => {
     const body = table({ model: ['retired'], name: ['Retired'], risk_level: [4], risk_label: ['Very high'] })
     expect(topRisks(body, catalog)).toEqual({ top: [], more: 0, none: 0 })

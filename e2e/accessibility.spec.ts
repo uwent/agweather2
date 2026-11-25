@@ -85,8 +85,13 @@ test('your sites with saved sites, and the add-site dialog', async ({ page }) =>
   expect(violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([])
 })
 
-// A site page, its API answers stubbed: the Overview, then the Weather tab's charts
-const SITE_PAGES = ['/sites/44.12,-89.52', '/sites/44.12,-89.52?tab=weather']
+// A site page, its API answers stubbed: the Overview, the Weather tab's charts, the Models tab, and a model at the site
+const SITE_PAGES = [
+  '/sites/44.12,-89.52',
+  '/sites/44.12,-89.52?tab=weather',
+  '/sites/44.12,-89.52?tab=models',
+  '/sites/44.12,-89.52/models/late-blight-dsv',
+]
 
 test('site pages', async ({ page }) => {
   await stubSiteApi(page)

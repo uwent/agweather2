@@ -4,7 +4,9 @@
 
   import { get } from '@/lib/api'
   import { addDays, today as gridToday } from '@/lib/dates'
+  import { riskSpanQuery } from '@/lib/riskSpan'
   import { request } from '@/lib/sites/request.svelte'
+  import ModelsTab from '@/lib/sites/ModelsTab.svelte'
   import Overview from '@/lib/sites/Overview.svelte'
   import SiteHeader from '@/lib/sites/SiteHeader.svelte'
   import WeatherTab, { type WeatherView } from '@/lib/sites/WeatherTab.svelte'
@@ -19,12 +21,12 @@
   // (Weather). Its content (the point, a shared link's name, the models' catalog) comes as props; its numbers
   // from the API (D117). The tab and the Weather tab's settings are the page's view, kept per browser tab and
   // given in full by Share (D118).
-  let { lat, lng, name, models }: SiteProps = $props()
+  let { lat, lng, name, models, crops }: SiteProps = $props()
 
   const today = $derived(gridToday())
 
   const view = viewState({
-    tab: field(codecs.oneOf(['overview', 'weather'] as const), 'overview'),
+    tab: field(codecs.oneOf(['overview', 'weather', 'models'] as const), 'overview'),
     step: field(codecs.oneOf(['daily', 'hourly'] as const), 'daily'),
     range: field(codecs.oneOf(['week', 'month', 'season', 'custom'] as const), 'month'),
     dates: field(codecs.dateRange, null),
@@ -43,9 +45,13 @@
   }
 
   const locate = request<LocateResponse>()
+  // Every model's risk from two weeks back through the forecast: Overview's "Risk now" and the Models tab
+  const risk = request<TableResponse>()
+  const loadRisk = () =>
+    untrack(() => risk.load((signal) => get<TableResponse>('/risk', { lat, lng, ...riskSpanQuery(today) }, { signal })))
   const latestHours = request<TableResponse>()
   // Inertia hands the page its props again after it mounts: the point as text, so equal props don't refetch
-  const pointKey = $derived(`${lat},${lng}`)
+  const pointKey = $derived(`${lat},${lng},${today}`)
   $effect(() => {
     void pointKey
     const point = untrack(() => ({ lat, lng }))
@@ -66,7 +72,14 @@
       )
     })
   })
-  onDestroy(() => [locate, latestHours].forEach((r) => r.cancel()))
+  onDestroy(() => [locate, latestHours, risk].forEach((r) => r.cancel()))
+  // The risk once a tab that shows it opens (not for the Weather tab alone), again when the point or day changes
+  let riskFor = ''
+  $effect(() => {
+    if ($view.tab === 'weather' || riskFor === pointKey) return
+    riskFor = pointKey
+    loadRisk()
+  })
 
   const location = $derived(locate.value.data?.data ?? null)
   // The newest observed hour with a temperature
@@ -90,6 +103,7 @@
   const tabs = [
     { value: 'overview', label: 'Overview' },
     { value: 'weather', label: 'Weather' },
+    { value: 'models', label: 'Models' },
   ] as const
 </script>
 
@@ -103,7 +117,7 @@
     <p class="text-sm text-ink-muted" role="status">{locate.value.message}</p>
   {/if}
 
-  <Tabs.Root value={$view.tab} onValueChange={(tab) => view.patch({ tab: tab as 'overview' | 'weather' })}>
+  <Tabs.Root value={$view.tab} onValueChange={(tab) => view.patch({ tab: tab as 'overview' | 'weather' | 'models' })}>
     <Tabs.List class="flex gap-1 border-b border-line" aria-label="Site sections">
       {#each tabs as tab (tab.value)}
         <Tabs.Trigger
@@ -118,12 +132,15 @@
     </Tabs.List>
     <Tabs.Content value="overview" class="pt-6">
       <!-- Only the tab shown makes its requests -->
-      {#if $view.tab === 'overview'}<Overview {lat} {lng} {today} {latest} {models} />{/if}
+      {#if $view.tab === 'overview'}<Overview {lat} {lng} {today} {latest} {models} {risk} {loadRisk} />{/if}
     </Tabs.Content>
     <Tabs.Content value="weather" class="pt-6">
       {#if $view.tab === 'weather'}
         <WeatherTab {lat} {lng} {today} view={weatherView} onchange={(changes) => view.patch(changes)} />
       {/if}
+    </Tabs.Content>
+    <Tabs.Content value="models" class="pt-6">
+      {#if $view.tab === 'models'}<ModelsTab {lat} {lng} {today} {models} {crops} {risk} {loadRisk} />{/if}
     </Tabs.Content>
   </Tabs.Root>
   {#if locate.value.data?.meta.attribution}

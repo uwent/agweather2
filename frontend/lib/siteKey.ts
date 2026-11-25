@@ -43,3 +43,8 @@ export function formatCoords(lat: number, lng: number, digits = 2): string {
   const ew = lng >= 0 ? 'E' : 'W'
   return `${Math.abs(lat).toFixed(digits)}° ${ns}, ${Math.abs(lng).toFixed(digits)}° ${ew}`
 }
+
+/** A model at a site: `/sites/44.12,-89.52/models/late-blight-dsv` (the `site-model` route) */
+export function siteModelUrl(key: string, model: string): string {
+  return `/sites/${key}/models/${encodeURIComponent(model)}`
+}

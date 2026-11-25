@@ -56,6 +56,10 @@ export interface ModelLink {
   group: string
   url: string
 }
+export interface CropStageInfo {
+  code: string
+  name: string
+}
 /**
  * How current the data are (`web.status`): every page's "data through" line and the stale-data banner.
  */
@@ -145,6 +149,10 @@ export interface ModelCheck {
    */
   report_url: string
 }
+export interface ModelChoice {
+  value: string
+  label: string
+}
 export interface ModelCitation {
   text: string
   doi: string | null
@@ -183,6 +191,22 @@ export interface ModelInput {
    * The variable's description in the catalog (`/variables`' long_name).
    */
   definition: string
+}
+/**
+ * A choice that changes the model, sent to its run as a plain parameter (`maturity_group=2.5`).
+ */
+export interface ModelOption {
+  name: string
+  label: string
+  /**
+   * Empty for a value the reader types (a date, YYYY-MM-DD).
+   */
+  choices: ModelChoice[]
+  default: string
+  /**
+   * Whether the value is a date (an option without choices named `…_date`).
+   */
+  date: boolean
 }
 export interface ModelOutput {
   label: string
@@ -316,6 +340,40 @@ export interface ModelTrainingArea {
    */
   calendar_curve: boolean
 }
+/**
+ * What a planting date adds: the crop's stages, a disease's susceptible window or a stage biofix (D64).
+ */
+export interface ModelPlanting {
+  /**
+   * The crop's name.
+   */
+  crop: string
+  /**
+   * Whether `early`, `mid` and `late` typical dates exist for it.
+   */
+  typical_dates: boolean
+  /**
+   * The crop model's own options, sent to the run too.
+   */
+  options: ModelOption[]
+}
+/**
+ * An input or output of a model: its API column, label and stored unit (the API's run gives it in metric).
+ */
+export interface ModelQuantity {
+  name: string
+  label: string
+  unit: string
+  description: string
+}
+export interface ModelTrained {
+  description: string
+  /**
+   * The first and last year of its data.
+   */
+  years: number[]
+  states: string[]
+}
 export interface ModelsIndexProps {
   /**
    * Every model but retired ones and the degree-day calculator, by name.
@@ -358,6 +416,99 @@ export interface SiteModel {
    * The words for its risk levels, lowest first; empty for a model without risk (crop stages).
    */
   risk_levels: string[]
+}
+export interface SiteModelBiofix {
+  /**
+   * MM-DD.
+   */
+  default: string
+  /**
+   * What the date means to a grower.
+   */
+  label: string
+  /**
+   * The crop stage whose estimated date is the default instead, in words.
+   */
+  stage: string | null
+}
+/**
+ * A model as its page at a site shows it (content from the registry, D117).
+ */
+export interface SiteModelInfo {
+  id: string
+  name: string
+  group: string
+  status: 'beta' | 'stable'
+  version: string
+  summary: string
+  /**
+   * The crops' names.
+   */
+  crops: string[]
+  /**
+   * The model's own inputs (not its crop model's).
+   */
+  inputs: ModelQuantity[]
+  /**
+   * Its outputs; the first is the primary one.
+   */
+  outputs: ModelQuantity[]
+  options: ModelOption[]
+  /**
+   * None for a model without a biofix, or with one fixed.
+   */
+  biofix: SiteModelBiofix | null
+  /**
+   * None for a model that takes no planting date.
+   */
+  planting: ModelPlanting | null
+  /**
+   * A crop model's stages in order; empty for other models.
+   */
+  stages: CropStageInfo[]
+  /**
+   * Its risk levels, lowest first; empty for a model without risk.
+   */
+  risk_levels: string[]
+  /**
+   * How its outputs become each level, in words; empty without risk.
+   */
+  risk_criteria: string
+  risk_thresholds: number[]
+  /**
+   * The crop stages a disease affects, in words, or None.
+   */
+  susceptible: string | null
+  /**
+   * MM-DD first and last day it runs, or None (all year).
+   */
+  season: string[] | null
+  /**
+   * State abbreviations where it's valid; empty: anywhere.
+   */
+  region: string[]
+  trained: ModelTrained | null
+  /**
+   * The model page's 'How to read it', as HTML; None without a page.
+   */
+  guidance_html: string | null
+}
+/**
+ * A model at a site (`/sites/{lat},{lng}/models/{id}`): the point, a shared link's name, the model's content and
+ * the years the archive holds. Its numbers the page fetches from the API (`/models/{id}/run`, D117).
+ */
+export interface SiteModelProps {
+  lat: number
+  lng: number
+  /**
+   * The `?name=` of a shared link, trimmed; None without one.
+   */
+  name?: string | null
+  model: SiteModelInfo
+  /**
+   * The years with weather to run the model on, newest first.
+   */
+  years: number[]
 }
 /**
  * A site's page (`/sites/{lat},{lng}`): the point as given, a name from a shared link, and the catalog the

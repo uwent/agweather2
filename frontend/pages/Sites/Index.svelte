@@ -8,6 +8,7 @@
   import CollapsibleSection from '@/lib/components/CollapsibleSection.svelte'
   import { downloadCsv } from '@/lib/csv'
   import { today as gridToday } from '@/lib/dates'
+  import { riskSpanQuery } from '@/lib/riskSpan'
   import { createBatcher, createSiteQueue } from '@/lib/siteQueue'
   import {
     effectivePrefs,
@@ -54,9 +55,13 @@
     const chosen = riskModels(prefs, models)
     if (chosen && chosen.length === 0) return { top: [], more: 0, none: 0 }
     const body = await queue.run(`risk:${site.key}`, (signal) =>
-      get<TableResponse>('/risk', { lat: site.lat, lng: site.lng, date: today, models: chosen }, { signal }),
+      get<TableResponse>(
+        '/risk',
+        { lat: site.lat, lng: site.lng, ...riskSpanQuery(today), models: chosen },
+        { signal },
+      ),
     )
-    return topRisks(body, models, prefs.hiddenModels)
+    return topRisks(body, models, prefs.hiddenModels, 3, today)
   }
 
   // The group shown ('' for all); reordering works within what's shown, on the whole list's order

@@ -91,8 +91,8 @@ describe('the sites page', () => {
     expect(weatherCalls[0][1]).toMatchObject({ points: '43.07,-89.4;44.5,-89.5', units: 'metric' })
     const riskCalls = get.mock.calls.filter(([path]) => path === '/risk')
     expect(riskCalls.map((call) => call[1])).toEqual([
-      { lat: 43.07, lng: -89.4, date: '2026-07-01', models: undefined },
-      { lat: 44.5, lng: -89.5, date: '2026-07-01', models: undefined },
+      { lat: 43.07, lng: -89.4, start: '2026-06-17', models: undefined },
+      { lat: 44.5, lng: -89.5, start: '2026-06-17', models: undefined },
     ])
   })
 
