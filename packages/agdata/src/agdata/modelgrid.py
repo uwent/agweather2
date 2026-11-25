@@ -23,6 +23,11 @@ apple scab and fire blight carry a state from each cell's biofix (`ON_REQUEST`):
 biofix is the spec's date, as at a point given no planting date (`api.runs`). Cells outside a model's states are
 missing. The forecast's days come from the current run's own stores, which continue the archive's totals, as
 `series.grid_days` splits them.
+
+Each map counts, per cell and day, the days of its inputs still missing after the gap fill that the day's results rest
+on (`ModelDays.missing_days`, D56), from running counts as its accumulations are: `temperature_missing_days` for
+degree days and crop stages, a stored ingredient's `….missing`, a stored season's own, or its inputs when computed on
+request. Its reads never mark the map stale: a store built before the counts reads as none counted.
 """
 
 from collections.abc import Callable, Iterable, Mapping
@@ -37,6 +42,7 @@ import numpy as np
 
 from agdata import blocks, croptiers, modelmaps, normals, planting, regions, seasonmaps, series
 from agdata import units as agunits
+from agdata.catalog import CUMULATIVE_VARIABLES
 from agdata.grid import Window
 from agdata.grids import cube_terms
 from agdata.store import CUMULATIVE, DAILY, INGREDIENTS, StoreLayout
@@ -44,8 +50,12 @@ from agmodels.crops import CropModel, disease_susceptibility
 from agmodels.ingredients import Accumulation, Ingredient, until_day
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
-from agmodels.runner import default_biofix, january_crop_start
+from agmodels.runner import default_biofix, january_crop_start, unfilled_gaps
 from agmodels.spec import Model, ModelSpec
+
+# The running count of days without a usable minimum and maximum temperature (`agdata.cumulative`): degree days' and
+# crop stages' days missing past the gap fill (D56)
+TEMPERATURE_MISSING = "temperature_missing_days"
 
 # Models with ingredients that aren't model layers, and why
 NOT_MAPPED = {
@@ -103,6 +113,10 @@ class ModelDays:
     accumulated: dict[str, np.ndarray] = field(default_factory=dict)  # each accumulation, (days, y, x)
     # each normal of the place the model reads (`ModelSpec.place_normals`), (y, x), NaN where the normals don't reach
     place: dict[str, np.ndarray] = field(default_factory=dict)
+    # (days, y, x): the days still missing after the gap fill (D56) that each day's results rest on, from each cell's
+    # biofix (its accumulations' spans, or the season's state): a running total added nothing for them. NaN where it
+    # isn't counted (not started, a model without accumulations); None if the map counts none
+    missing_days: np.ndarray | None = None
 
 
 def model_days(
@@ -136,6 +150,7 @@ def model_days(
     values = {i.name: reader.daily(spec, i, dates) for i in spec.ingredients}
     for a in spec.accumulations:
         values[a.name] = _accumulated(reader, spec, a, dates, cells)
+    missing_days = _missing_days(reader, spec, dates, cells)
     shape = (n, 1, 1)
     values["day_of_year"] = np.array([d.timetuple().tm_yday for d in dates], dtype=float).reshape(shape)
     values["year"] = np.array([d.year for d in dates], dtype=float).reshape(shape)
@@ -187,6 +202,7 @@ def model_days(
         options=opts,
         accumulated={a.name: values[a.name] for a in spec.accumulations},
         place=place,
+        missing_days=missing_days,
     )
 
 
@@ -215,6 +231,9 @@ def read_names(model_id: str) -> list[str]:
             extra.append(f"{k}.total")
             if any(a.how == "mean" and a.of == i.name for a in spec.accumulations):
                 extra.append(f"{k}.known")
+            extra.append(modelmaps.missing_key(k))
+    if any(i.degree_days is not None for i in spec.ingredients):
+        totals.append(TEMPERATURE_MISSING)
     return [*stored, *extra, *totals]
 
 
@@ -349,6 +368,7 @@ def _merged(window: Window, parts: list[Window], found: list[ModelDays]) -> Mode
         options=one.options,
         accumulated=each(lambda f: f.accumulated),
         place=each(lambda f: f.place),
+        missing_days=None if any(f.missing_days is None for f in found) else whole([f.missing_days for f in found]),
     )
 
 
@@ -368,7 +388,7 @@ def _base(data_dir, spec: ModelSpec, first: date, last: date, window: Window, no
     return base, reader
 
 
-def _finished(spec, base, dates, outputs, risk, level, reader, cells=None, place=None) -> ModelDays:
+def _finished(spec, base, dates, outputs, risk, level, reader, cells=None, place=None, missing_days=None) -> ModelDays:
     """A ModelDays from outputs computed outside `model_days`: missing days (nothing stored anywhere) have no kind."""
     primary = outputs[spec.outputs[0].name]
     kinds = [None if np.isnan(primary[k]).all() else kind for k, kind in enumerate(base.kinds)]
@@ -388,6 +408,7 @@ def _finished(spec, base, dates, outputs, risk, level, reader, cells=None, place
         run_from=base.run_from,
         reads=reader.reads,
         place=place or {},
+        missing_days=missing_days,
     )
 
 
@@ -397,14 +418,24 @@ def _stored_days(data_dir, sown: _Planting, first: date, last: date, now, stores
     spec = find_model(sown.crop_id).SPEC
     wanted = [q for q in spec.outputs if only is None or q.name in only]
     names = [modelmaps.tier_key(spec.id, q.name, sown.tier) for q in wanted]
-    base, reader = _base(data_dir, spec, first, last, sown.window, now, stores, names)
+    base, reader = _base(data_dir, spec, first, last, sown.window, now, stores, [*names, TEMPERATURE_MISSING])
     dates = [first + timedelta(days=k) for k in range(len(base.steps))]
     outputs = {}
     for q, name in zip(wanted, names, strict=True):
         found = reader.days(INGREDIENTS, name, dates)
         outputs[q.name] = np.stack([found[d] for d in dates])
     planted = np.stack([sown(d) for d in dates])  # the biofix is the planting
-    return _finished(spec, base, dates, outputs, None, None, reader, cells=planted)
+    gaps = None
+    if only is None:  # the stages run on temperature from planting: its days missing past the fill (D56)
+        gaps = _spanned(
+            lambda days: reader.counted(TEMPERATURE_MISSING, days),
+            None,
+            Accumulation(name=TEMPERATURE_MISSING, of=TEMPERATURE_MISSING),
+            dates,
+            planted,
+            sown.window,
+        )
+    return _finished(spec, base, dates, outputs, None, None, reader, cells=planted, missing_days=gaps)
 
 
 def _stored_season(data_dir, model_id: str, first: date, last: date, window: Window, now, stores) -> ModelDays | None:
@@ -416,7 +447,8 @@ def _stored_season(data_dir, model_id: str, first: date, last: date, window: Win
     if first.year != last.year:
         return None
     start, end = seasonmaps.season(model_id, first.year)
-    keys = seasonmaps.names(model_id)
+    gaps = modelmaps.season_key(model_id, modelmaps.SEASON_MISSING)
+    keys = [k for k in seasonmaps.names(model_id) if k != gaps]
     if last < start or first > end:  # wholly out of the season it's shown in: nothing to show, nothing to compute
         base, reader = _base(data_dir, spec, first, last, window, now, stores, keys)
         dates = [first + timedelta(days=k) for k in range(len(base.steps))]
@@ -426,7 +458,7 @@ def _stored_season(data_dir, model_id: str, first: date, last: date, window: Win
         return _finished(spec, base, dates, outputs, risk, risk, reader, cells=empty)
     if first < start or last > end:
         return None
-    base, reader = _base(data_dir, spec, first, last, window, now, stores, keys)
+    base, reader = _base(data_dir, spec, first, last, window, now, stores, [*keys, gaps])
     dates = [first + timedelta(days=k) for k in range(len(base.steps))]
     archive_last = min(last, reader.cut - timedelta(days=1))
     if first <= archive_last:
@@ -449,8 +481,17 @@ def _stored_season(data_dir, model_id: str, first: date, last: date, window: Win
         level = np.where(np.isfinite(risk), risk, np.nan)
     root = reader.run_path if last >= reader.cut and reader.run_path is not None else data_dir
     cells = seasonmaps.biofix(root, model_id, first.year, window)
+    counted = reader.days(INGREDIENTS, gaps, dates, quiet=True)  # a season stored before they were kept: none
     return _finished(
-        spec, base, dates, outputs, risk, level, reader, cells=np.broadcast_to(cells, (len(dates), *window.shape))
+        spec,
+        base,
+        dates,
+        outputs,
+        risk,
+        level,
+        reader,
+        cells=np.broadcast_to(cells, (len(dates), *window.shape)),
+        missing_days=np.stack([counted[d] for d in dates]),
     )
 
 
@@ -475,6 +516,7 @@ def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Win
     reach = spec.lookback_days  # days of weather before the biofix a run reads
     place = normals.place_normals(data_dir, spec, window)  # each cell's normals the model reads, (y, x)
     outputs = {q.name: np.full((n, *window.shape), np.nan) for q in spec.outputs}
+    missing_days = np.full((n, *window.shape), np.nan)
     starts = np.unique(cells[np.isfinite(cells)])
     if starts.size:
         a = min(date.fromordinal(int(starts.min())) - timedelta(days=reach), first)
@@ -491,6 +533,8 @@ def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Win
         missing = {name: np.isnan(np.take(v.reshape(nd, -1), order, axis=1)) for name, v in series_.items()}
         place_by_cell = {key: v.ravel()[order] for key, v in place.items()}
         ranked_out = {q.name: np.full((n, cells.size), np.nan) for q in spec.outputs}
+        gone = _gone(list(by_cell.values()))
+        ranked_gone = np.full((n, cells.size), np.nan)
         for u in starts:
             biofix = date.fromordinal(int(u))
             if biofix > last:
@@ -515,20 +559,40 @@ def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Win
                 count = min(n - i0, len(v) - (shown + i0))
                 if count > 0:
                     ranked_out[name][i0 : i0 + count, lo:hi] = v[shown + i0 : shown + i0 + count]
+            count = min(n - i0, nd - k0 - (shown + i0))
+            if count > 0:  # the days missing past the fill from the run's first day, as the outputs are placed
+                counted = np.cumsum(gone[k0:, lo:hi], axis=0)
+                ranked_gone[i0 : i0 + count, lo:hi] = counted[shown + i0 : shown + i0 + count]
         for name, v in ranked_out.items():
             flat = outputs[name].reshape(n, -1)
             flat[:, order] = v
+        missing_days.reshape(n, -1)[:, order] = ranked_gone
     ordinals = np.array([d.toordinal() for d in dates], dtype=float)[:, None, None]
     before = ordinals < cells[None]  # not started, as at a point (inf: R1 not reached)
-    for v in outputs.values():
+    for v in (*outputs.values(), missing_days):
         v[before | np.isnan(cells)[None]] = np.nan
     risk = level = None
     if spec.risk is not None:
         risk = np.asarray(m.risk(outputs), dtype=float)
         level = np.where(np.isfinite(risk), risk, np.nan)
     return _finished(
-        spec, base, dates, outputs, risk, level, reader, cells=np.broadcast_to(cells, (n, *window.shape)), place=place
+        spec,
+        base,
+        dates,
+        outputs,
+        risk,
+        level,
+        reader,
+        cells=np.broadcast_to(cells, (n, *window.shape)),
+        place=place,
+        missing_days=missing_days,
     )
+
+
+def _gone(inputs: list[np.ndarray]) -> np.ndarray:
+    """(days, cells): the days any input (filled) is in a gap the fill didn't reach, with data on each side (D56), as
+    a point counts them (`runner.unfilled_gaps`): days before the data start or after they end aren't a gap."""
+    return np.any([unfilled_gaps(v) for v in inputs], axis=0)
 
 
 def _crop_stages(data_dir, sown: _Planting, first: date, last: date, now) -> np.ndarray:
@@ -640,8 +704,11 @@ class _Reader:
     stale: bool = False
     reads: int = 0
     cache: dict[tuple[str, str, date], np.ndarray] = field(default_factory=dict)
+    firsts: dict[int, date | None] = field(default_factory=dict)  # each year's first day of weather (`first_day`)
 
-    def days(self, layout: StoreLayout, name: str, days: Iterable[date]) -> dict[date, np.ndarray]:
+    def days(self, layout: StoreLayout, name: str, days: Iterable[date], quiet: bool = False) -> dict[date, np.ndarray]:
+        """`name` on `days`; `quiet` doesn't mark the map stale where the store lacks it or holds an older version (the
+        days missing past the fill, D56: a store built before they were kept reads as none counted)."""
         wanted = sorted(set(days))
         missing = [d for d in wanted if (layout.kind, name, d) not in self.cache]
         for run in _runs(missing):
@@ -649,7 +716,7 @@ class _Reader:
             values, stale, _ = series.read_split(
                 self.stores, self.data_dir, self.run_path, layout, name, run, cut, self.window
             )
-            self.stale |= bool(stale.any())
+            self.stale |= bool(stale.any()) and not quiet
             self.reads += len(run)
             for k, d in enumerate(run):
                 self.cache[(layout.kind, name, d)] = values[k].astype(np.float64)
@@ -672,6 +739,41 @@ class _Reader:
     def known(self, ingredient: Ingredient, model_id: str, days: Iterable[date]) -> dict[date, np.ndarray]:
         """The running count of days with a value from January 1 (an averaged ingredient's)."""
         return self.days(modelmaps.INGREDIENTS, f"{modelmaps.key(model_id, ingredient)}.known", days)
+
+    def missing(self, ingredient: Ingredient, model_id: str, days: Iterable[date]) -> dict[date, np.ndarray] | None:
+        """The running count from January 1 of days an ingredient's inputs were still missing after the gap fill
+        (D56): the temperature's for degree days, a catalog total's own, a stored one's (`modelmaps.missing_key`);
+        None where none is kept."""
+        if ingredient.degree_days is not None:
+            return self.counted(TEMPERATURE_MISSING, days)
+        if ingredient.cumulative is not None:
+            name = f"{ingredient.cumulative}_missing_days"
+            return self.counted(name, days) if name in CUMULATIVE_VARIABLES else None
+        return self.days(INGREDIENTS, modelmaps.missing_key(modelmaps.key(model_id, ingredient)), days, quiet=True)
+
+    def counted(self, name: str, days: Iterable[date]) -> dict[date, np.ndarray]:
+        """A running count of missing days from the cumulative store, from each year's first day of weather: it
+        counts every day from January 1 without one, and the days before the archive starts aren't a gap (as a
+        stored ingredient's count leaves them out, `modelmaps._gone`)."""
+        days = list(days)
+        starts = {year: self.first_day(year) for year in {d.year for d in days}}
+        before = {f - timedelta(days=1) for f in starts.values() if f is not None and (f.month, f.day) != (1, 1)}
+        found = self.days(CUMULATIVE, name, [*days, *before], quiet=True)
+        out = {}
+        for d in days:
+            f = starts[d.year]
+            if f is None or (f.month, f.day) == (1, 1):
+                out[d] = found[d]
+            else:
+                out[d] = np.maximum(found[d] - np.nan_to_num(found[f - timedelta(days=1)]), 0)
+        return out
+
+    def first_day(self, year: int) -> date | None:
+        """The first day of `year` the archive has weather for (None: none)."""
+        if year not in self.firsts:
+            rolled = modelmaps._rolled_days(self.data_dir, year)
+            self.firsts[year] = None if rolled is None else date(year, 1, 1) + timedelta(days=int(rolled[0]))
+        return self.firsts[year]
 
     def daily(self, spec: ModelSpec, ingredient: Ingredient, dates: list[date]) -> np.ndarray:
         """An ingredient's values on `dates`: as stored, or its running total's change over each day."""
@@ -743,7 +845,6 @@ def _accumulated(reader: _Reader, spec: ModelSpec, a: Accumulation, dates: list[
     ingredient = next(i for i in spec.ingredients if i.name == a.of)
     if spec.biofix is None:
         raise ValueError(f"{spec.id}: an accumulation needs a biofix")
-    out = np.full(biofix.shape, np.nan)
 
     def total(days):
         return reader.total(ingredient, spec.id, days)
@@ -751,6 +852,36 @@ def _accumulated(reader: _Reader, spec: ModelSpec, a: Accumulation, dates: list[
     def known(days):
         return reader.known(ingredient, spec.id, days)
 
+    return _spanned(total, known, a, dates, biofix, reader.window)
+
+
+def _missing_days(reader: _Reader, spec: ModelSpec, dates: list[date], biofix: np.ndarray) -> np.ndarray | None:
+    """Each cell's days missing past the gap fill (D56) in its accumulations' spans on each day, the most of any:
+    those a total or sum added nothing for. A mean divides by the days with a value, so it doesn't run low; a model
+    without accumulations reads each day's ingredients, which carry their own gaps. None where none is counted."""
+    counts = []
+    for a in spec.accumulations:
+        if a.how == "mean":
+            continue
+        ingredient = next(i for i in spec.ingredients if i.name == a.of)
+        if reader.missing(ingredient, spec.id, []) is None:
+            continue
+
+        def total(days, ingredient=ingredient):
+            found = reader.missing(ingredient, spec.id, days)
+            assert found is not None
+            return found
+
+        counts.append(_spanned(total, None, a, dates, biofix, reader.window))
+    if not counts:
+        return None
+    with np.errstate(invalid="ignore"):
+        return np.fmax.reduce(counts) if len(counts) > 1 else counts[0]
+
+
+def _spanned(total, known, a: Accumulation, dates: list[date], biofix: np.ndarray, window: Window) -> np.ndarray:
+    """`_accumulated` on running totals from `total(days)` ({day: map}) and, for a mean, counts from `known(days)`."""
+    out = np.full(biofix.shape, np.nan)
     for k, d in enumerate(dates):
         b = biofix[k]
         started = np.isfinite(b) & (b <= d.toordinal())
@@ -772,9 +903,9 @@ def _accumulated(reader: _Reader, spec: ModelSpec, a: Accumulation, dates: list[
             out[k].reshape(-1)[cells] = sums
             continue
         pairs: list[tuple[date | None, date]] = list(within)
-        sums = _spans(total, pairs, reader.window)
+        sums = _spans(total, pairs, window)
         if a.how == "mean":
-            counts = _spans(known, pairs, reader.window)
+            counts = _spans(known, pairs, window)
             with np.errstate(invalid="ignore", divide="ignore"):
                 sums = np.where(counts > 0, sums / counts, np.nan)
         for u, v in zip(starts, sums, strict=True):

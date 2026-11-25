@@ -10,12 +10,15 @@ To find days in the results, `first=high` gives the first day the risk was High 
 
 For several locations, give `points` in place of `lat` and `lng`. The results come back as one table, with a `point` column saying which location each row is for, and the same options apply at every location. A typical planting date (`early`, `mid` or `late`) and a biofix set by the crop's growth can fall on different days at each location; `meta.summary.points` lists them. A request with `projection` can include up to 10 locations; for more, make one request per location.
 
+When the weather a model reads is missing for a day, we estimate it from the days on either side, for gaps of up to seven days, and mark the day in a column ending `_estimated` for that input (`air_temperature_max_estimated`). A longer gap is left missing: the model's running totals, such as degree days or disease severity values, add nothing for those days, so its results after them may be late. A column ending `_missing` marks those days for each input (`air_temperature_max_missing`), and a warning says how many there were, counting any before the first day returned that the results depend on. Days after the weather ends, such as the rest of today, are not counted.
+
 A model's results are guidance based on weather data, not a prediction of what will happen in a particular field. Check the model's region and season in `/models/{model_id}`.
 
 ## In meta.summary
 
 - `days_returned`, `days_forecast` and `days_missing`: The number of rows returned, how many are forecast days, and how many have no data.
 - `estimated_by_input`: For each input the model needed an estimate for, the number of rows on which it was estimated.
+- `missing_by_input`: For each input with days missing in gaps longer than seven days, the number of those days the results depend on, including any before the first day returned. Only present when there are any.
 - `days_projected`: With `projection`, the number of rows past the forecast.
 - `windows`: For an insect, each action window's periods as pairs of first and last days, by window name. With several locations, option sets or projected years, each entry names its `point`, `option_set` or `year`.
 - `milestones`: Without `projection`, for each crop stage, risk level above the lowest and action window (`what` and `name`), the first day it was reached (`date`) through the forecast, or null if it wasn't, the kind of that day (`day_kind`: `observed`, `forecast` and so on), and `before_start`, true when it was reached on the first day returned and may have been reached earlier. With several option sets, a list for each; with several locations, this is in `points`.

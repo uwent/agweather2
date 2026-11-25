@@ -182,6 +182,26 @@ def test_gaps_in_the_inputs_are_estimated_and_reported():
         "red-crown-rot", dates=DATES, daily=daily, latitude=LATITUDE, start=r1, biofix=r1, gap_fill=methods
     )
     assert long.missing["air_temperature_mean"].nonzero()[0].tolist() == list(range(5, 15))
+    assert long.missing_before == {}
+
+    # Shown from a later day, the ten days are before it: not shown, but counted (D56)
+    later = runner.run(
+        "red-crown-rot",
+        dates=DATES,
+        daily=daily,
+        latitude=LATITUDE,
+        start=r1 + timedelta(days=20),
+        biofix=r1,
+        gap_fill=methods,
+    )
+    assert "air_temperature_mean" not in later.missing and later.missing_before == {"air_temperature_mean": 10}
+
+
+def test_a_gap_left_unfilled_has_data_on_each_side():
+    daily = np.array([np.nan, 1.0, np.nan, 2.0, np.nan, np.nan])
+    assert runner.unfilled_gaps(daily).tolist() == [False, False, True, False, False, False]  # the start and end aren't
+    scenarios = np.array([[1.0, 1.0], [np.nan, np.nan], [np.nan, 3.0], [4.0, np.nan]])
+    assert runner.unfilled_gaps(scenarios).sum(axis=0).tolist() == [2, 1]
 
 
 def _model_inputs(m, *, shape: tuple[int, ...] = ()) -> dict[str, np.ndarray]:

@@ -7,7 +7,9 @@ and cumulative ones (`data/ingredients/{year}.zarr`):
 - each stored ingredient's daily values, under `{model_id}.{name}`, or its `shared` name for one kept once (the
   insects' freeze factor, the moving means three models use);
 - for one that's accumulated, its running total from January 1 (`….total`), and for one averaged, the
-  running count of days with a value (`….known`), so a total, sum or mean over any days is `cum[d] − cum[b − 1]`.
+  running count of days with a value (`….known`), so a total, sum or mean over any days is `cum[d] − cum[b − 1]`;
+- for one that's accumulated, the running count of days its model's inputs had a day still missing after the gap
+  fill (`….missing`, D56): the days a total over any span added nothing for, so a map can say where it runs behind.
 
 Degree days and catalog variables' totals aren't kept here: the cumulative store's running totals stand in (`degree_days`,
 `cumulative` on the ingredient). The forecast run keeps its own in its directory, continuing the archive's.
@@ -67,7 +69,8 @@ _TOTAL_STEP: dict[str, float] = {"hour": 0.5, "index": 0.2, "degF_day": 0.5}
 @dataclass(frozen=True, kw_only=True)
 class Stored:
     """An ingredient kept in the store: its key, the declaration, the model that computes it (the first to declare
-    a shared one), whether it's accumulated (its running total kept) and averaged (its known days counted)."""
+    a shared one), whether it's accumulated (its running total and the days its inputs were missing kept) and
+    averaged (its known days counted)."""
 
     key: str
     ingredient: Ingredient
@@ -111,6 +114,18 @@ class Stored:
                     **common,
                 )
             )
+        if self.total:
+            out.append(
+                Variable(
+                    name=f"{self.key}.missing",
+                    long_name=f"Days with an input to {self.key} missing past the gap fill since Jan 1",
+                    unit="day",
+                    scale=1,
+                    valid_min=0,
+                    valid_max=366,
+                    **common,
+                )
+            )
         if self.known:
             out.append(
                 Variable(
@@ -124,6 +139,11 @@ class Stored:
                 )
             )
         return out
+
+
+def missing_key(key: str) -> str:
+    """Where an accumulated ingredient's running count of days missing past the fill is kept (D56)."""
+    return f"{key}.missing"
 
 
 def key(model_id: str, ingredient: Ingredient) -> str:
@@ -207,6 +227,8 @@ _SEASON_OUTPUTS: dict[str, tuple[float, float, float]] = {  # `{model}.{output}`
     "red-crown-rot.precipitation_days_missing": (1, 0, 400),
 }
 SEASON_RISK = "risk"  # a model's risk is kept too, computed before the outputs are packed (thresholds stay exact)
+# And each cell's days still missing after the gap fill from its biofix, which a map warns of (D56)
+SEASON_MISSING = "missing_days"
 
 
 def season_key(model_id: str, output: str) -> str:
@@ -223,6 +245,7 @@ def season_variables() -> list[Variable]:
         kept = [(q.name, q.label, q.unit, *_SEASON_OUTPUTS[season_key(model_id, q.name)]) for q in spec.outputs]
         if spec.risk is not None:
             kept.append((SEASON_RISK, "Risk", "index", 1, 0, len(spec.risk.levels)))
+        kept.append((SEASON_MISSING, "Days missing past the gap fill", "day", 1, 0, 400))
         for name, label, unit, scale, low, high in kept:
             out.append(
                 Variable(
@@ -504,9 +527,24 @@ def _compute(data_dir, run, run_first, band: Window, begin: date, end: date, ahe
     values: dict[str, np.ndarray] = {}
     for m, wanted in computing:
         out = m.ingredients({q.name: inputs[q.name] for q in m.SPEC.inputs} | context)  # type: ignore[attr-defined]
+        gone = None
         for s in wanted:
             values[s.key] = np.asarray(out[s.ingredient.name], dtype=np.float32)[keep]
+            if s.total:
+                if gone is None:
+                    gone = _gone([inputs[q.name] for q in m.SPEC.inputs])[keep]
+                values[missing_key(s.key)] = gone
     return values
+
+
+def _gone(inputs: list[np.ndarray]) -> np.ndarray:
+    """The days any input (filled) is still missing after the gap fill (D56), from the first day every input had a
+    value in what's read (the lookback included): days before the weather starts aren't a gap. Days at the end are
+    counted, as the update that writes them can't know whether data will follow; a map leaves out a day with no data
+    anywhere (the run's partial last day)."""
+    valid = np.all([np.isfinite(v) for v in inputs], axis=0)
+    seen = np.logical_or.accumulate(valid, axis=0)
+    return ~valid & seen
 
 
 def _read(data_dir: Path, run: Path | None, run_first: date | None, name: str, first: date, n: int, window: Window):
@@ -591,6 +629,10 @@ def _write(data_dir, root, band, begin, values, entries, is_run) -> list[tuple[i
             if s.known:
                 base = _previous(data_dir, root, f"{s.key}.known", day_before, band, is_run) if continuing else 0
                 out[f"{s.key}.known"] = np.nan_to_num(base) + cumsum_days(known)
+            if s.total:
+                name = missing_key(s.key)
+                base = _previous(data_dir, root, name, day_before, band, is_run) if continuing else 0
+                out[name] = np.nan_to_num(base) + cumsum_days(values[name][k0:k1].astype(np.float64))
         store.write(first, out, source="derived", window=band, record=False)
         written.append((year, first, k1 - k0, list(out)))
     return written

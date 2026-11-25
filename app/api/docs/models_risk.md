@@ -4,6 +4,8 @@ Each model's risk at one location on one day (today unless you choose another), 
 
 Without `models`, the list includes every model that is in season and was developed for the location's region. When you name models, each one is listed, and `reason` explains why a model reports no risk on that day.
 
+`missing_days` counts the days, up to the day asked for, that the model's weather is missing in gaps longer than the seven days we fill with estimates. Its running totals add nothing for those days, so its risk may be late; a warning names the models with any.
+
 ## In meta.summary
 
 - `models`: The number of rows, one for each model listed and each of its option sets.

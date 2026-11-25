@@ -57,10 +57,12 @@ def in_season(day: date) -> bool:
 
 
 def names(model_id: str) -> list[str]:
-    """The variables a model's season is kept in: its outputs, then its risk where it has one."""
+    """The variables a model's season is kept in: its outputs, then its risk where it has one, and each cell's days
+    missing past the gap fill from its biofix (D56)."""
     spec = find_model(model_id).SPEC
     risk = [modelmaps.season_key(model_id, modelmaps.SEASON_RISK)] if spec.risk is not None else []
-    return [modelmaps.season_key(model_id, q.name) for q in spec.outputs] + risk
+    gaps = [modelmaps.season_key(model_id, modelmaps.SEASON_MISSING)]
+    return [modelmaps.season_key(model_id, q.name) for q in spec.outputs] + risk + gaps
 
 
 def update(
@@ -134,6 +136,8 @@ def _season_block(
     values = {modelmaps.season_key(model_id, name): v[k:] for name, v in found.outputs.items()}
     if found.risk is not None:
         values[modelmaps.season_key(model_id, modelmaps.SEASON_RISK)] = found.risk[k:]
+    if found.missing_days is not None:
+        values[modelmaps.season_key(model_id, modelmaps.SEASON_MISSING)] = found.missing_days[k:]
     store = GridStore.open(root, INGREDIENTS, write_from.year, modelmaps.variables())
     store.write(write_from, values, source="derived", window=part, record=False)
     biofix = found.cell_biofix[-1] if found.cell_biofix is not None else np.full(part.shape, np.nan)

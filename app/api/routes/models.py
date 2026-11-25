@@ -2,7 +2,8 @@
 forecast, from our weather.
 
 One row per day (and option set, with `option_set` indexing `meta.summary.option_sets`): `date`, `kind`, the model's
-inputs as read (missing where missing, D45) with `<input>_estimated` where its gaps were filled, the outputs, and the
+inputs as read (missing where missing, D45) with `<input>_estimated` where its gaps were filled and `<input>_missing` where
+a gap was too long to fill (D56, with a warning), the outputs, and the
 risk as `risk_level` (an index into the spec's levels), `risk_label` and, for a continuous risk (insects, D36),
 `risk_value`. A disease gated by crop stage (D33) adds `susceptibility` only when a planting date is given; a model with
 a season adds `in_season`. Insects' action windows go in `meta.summary.windows`.
@@ -27,6 +28,7 @@ from agdata.projection import PROJECTION
 from agdata.series import FORECAST, PARTIAL, DailySeries, Forecast, archive_years, days_needed, runs_at_point, sliced
 from agmodels import seasons
 from agmodels.crops import MARGIN, NOT_SUSCEPTIBLE, SUSCEPTIBLE
+from agmodels.gaps import MAX_GAP_DAYS
 from agmodels.registry import all_models
 from agmodels.runner import ModelRun, default_biofix
 from agmodels.scenarios import milestones, spread
@@ -34,7 +36,7 @@ from agmodels.seasons import Season
 from agmodels.spec import Model, ModelSpec
 from api import clock, modelevents, points, runs, stations
 from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_modified, respond, table
-from api.errors import ApiError, day_text, quoted
+from api.errors import ApiError, counted, day_text, quoted
 from api.locations import describe, describe_days
 from api.params import AreaQuery, DaysQuery, OutputQuery, PointsQuery, SeriesQuery, resolve_biofix
 from api.routes.weather import FORECAST_DAYS, MAX_DAYS, EventsQuery, check_size, envelope_parts, located
@@ -400,9 +402,11 @@ def risk(
             "in_season",
             "reason",
             "projection_years",
+            "missing_days",
         )
     }
     place_warnings: set[str] = set()  # a normal of the place a model reads, missing here (`ModelSpec.place_normals`)
+    behind: dict[str, int] = {}  # per model with any, the most days missing past the fill of any input (D56)
     for the_plan, results, bands in zip(plans, grouped, projected_years, strict=True):
         spec = the_plan.model.SPEC
         assert spec.risk is not None
@@ -429,6 +433,10 @@ def risk(
             rows["in_season"].append(in_season)
             rows["reason"].append(r.reason)
             rows["projection_years"].append(years_behind)
+            gaps = {} if r.reason else days_behind(r, gap_flags(r, 1))
+            rows["missing_days"].append(max(gaps.values(), default=0) if not r.reason else None)
+            if gaps:
+                behind[spec.id] = max(behind.get(spec.id, 0), *gaps.values())
     columns = [
         Column(name=name, values=values, unit="index" if name == "risk_value" else None)
         for name, values in rows.items()
@@ -448,6 +456,7 @@ def risk(
                 *points.forecast_warnings([r.forecast for rs in grouped for r in rs], forecast_asked=True),
                 *sorted({w for p in plans for w in p.warnings}),
                 *sorted(place_warnings),
+                *([risk_missing_text(behind)] if behind else []),
             ],
             filename=f"agweather-risk-{day}",
             etag=etag,
@@ -1011,6 +1020,10 @@ def _table(
                 add(f"{name}_{suffix}", _values(side.get(name), count))
 
     estimated = sorted({name for r in results for name in r.estimated})
+    gaps_shown = [gap_flags(r, keep[k]) for k, r in enumerate(results)]
+    missing = sorted({name for flags in gaps_shown for name in flags})
+    flagged = [q.name for q in spec.inputs if q.name in estimated or q.name in missing]
+    behind: dict[str, int] = {}  # per input, the days missing past the fill that the runs' results rest on
     gated = any(r.susceptibility is not None for r in results)
     is_crop = spec.group == "crop"
     stages = [s.code for s in m.stages()] if is_crop else []  # type: ignore[attr-defined]
@@ -1026,9 +1039,11 @@ def _table(
         add("kind", r.kinds[:n])
         for q in spec.inputs:
             numbers(q.name, _values(r.inputs.get(q.name), count), k, count)
-        for name in estimated:
-            flags = r.estimated.get(name)
-            add(f"{name}_estimated", [False] * count if flags is None else [bool(f) for f in flags[:n]])
+        for name in flagged:
+            for suffix, found, names in (("estimated", r.estimated, estimated), ("missing", gaps_shown[k], missing)):
+                if name in names:
+                    flags = found.get(name)
+                    add(f"{name}_{suffix}", [False] * count if flags is None else [bool(f) for f in flags[:n]])
         for q in spec.outputs:
             numbers(q.name, _values(r.outputs.get(q.name), count), k, count)
         if is_crop:
@@ -1053,6 +1068,11 @@ def _table(
             reasons.append((label, training_area_text(spec)))
         if not r.reason:  # a normal of the place the model reads, missing here (`ModelSpec.place_normals`)
             reasons.extend((label, text) for text in r.place_warnings)
+            gaps = days_behind(r, gaps_shown[k])
+            for name, days in gaps.items():
+                behind[name] = behind.get(name, 0) + days
+            if gaps:
+                reasons.append((label, missing_text(gaps)))
         if r.windows:
             windows.append(
                 {
@@ -1093,11 +1113,66 @@ def _table(
             for name in estimated
         },
     }
+    if behind:
+        summary["missing_by_input"] = behind
     if bands is not None:
         summary["days_projected"] = sum(kind == PROJECTION for kind in kinds)
     if windows:
         summary["windows"] = windows
     return table, summary, _grouped(reasons, len(results))
+
+
+def this_year(missing: dict[str, np.ndarray], k: int) -> dict[str, np.ndarray]:
+    """A run's days missing past the fill (`ModelRun.missing`) on its rows before `k`, the first projected (D63):
+    the projected rows are earlier years' weather, whose gaps say nothing about this year's results."""
+    out = {}
+    for name, flags in missing.items():
+        kept = np.asarray(flags, dtype=bool).copy()
+        kept[max(k, 0) :] = False
+        if kept.any():
+            out[name] = kept
+    return out
+
+
+def gap_flags(r: ModelRun, n: int) -> dict[str, np.ndarray]:
+    """Per input with any, which of the run's first `n` days are in a gap the fill didn't reach (`ModelRun.missing`,
+    D56): the `_missing` columns. A run without outputs has none."""
+    if r.reason:
+        return {}
+    shown = {name: np.asarray(flags[:n], dtype=bool) for name, flags in r.missing.items()}
+    return {name: flags for name, flags in shown.items() if flags.any()}
+
+
+def days_behind(r: ModelRun, flags: dict[str, np.ndarray]) -> dict[str, int]:
+    """Per input with any, the days missing past the fill that the run's days shown rest on: those flagged
+    (`gap_flags`) and those read before the first day shown (`ModelRun.missing_before`). A running total added
+    nothing for them. A run whose first day is projected (`/risk` on a day past the forecast) read earlier years'
+    weather before it, whose gaps aren't this year's, so only its flagged days count."""
+    out = {} if r.kinds and r.kinds[0] == PROJECTION else dict(r.missing_before)
+    for name, shown in flags.items():
+        out[name] = out.get(name, 0) + int(shown.sum())
+    return out
+
+
+def missing_text(behind: dict[str, int]) -> str:
+    """The warning for a run with days missing past the fill (D56): how many, of which inputs, and what it means."""
+    by_count: dict[int, list[str]] = {}
+    for name, days in behind.items():
+        by_count.setdefault(days, []).append(quoted(name))
+    parts = [f"{counted(days, 'day')} of {and_list(names)}" for days, names in sorted(by_count.items(), reverse=True)]
+    return f"The weather data have {and_list(parts)} missing, in gaps longer than the {MAX_GAP_DAYS} days we fill with estimates, so the model's running totals add nothing for those days and may run behind. Its results after them may be late. The columns ending in '_missing' mark the days shown."
+
+
+def risk_missing_text(behind: dict[str, int]) -> str:
+    """/risk's warning for models whose weather has days missing past the fill (D56)."""
+    most = max(behind.values())
+    ids = and_list([quoted(i) for i in behind])
+    return f"The weather data that {ids} {'reads' if len(behind) == 1 else 'read'} have days missing (up to {counted(most, 'day')}), in gaps longer than the {MAX_GAP_DAYS} days we fill with estimates, so the running totals add nothing for those days and the risk may be late. The 'missing_days' column gives each model's count."
+
+
+def and_list(items: list[str]) -> str:
+    """ "a", "a and b", "a, b and c"."""
+    return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} and {items[-1]}"
 
 
 def _median(m: Model, runs: list[ModelRun], begins: date) -> tuple[ModelRun, Band]:
@@ -1142,6 +1217,7 @@ def _median(m: Model, runs: list[ModelRun], begins: date) -> tuple[ModelRun, Ban
         biofix=first.biofix if len(biofixes) == 1 else None,
         reason=first.reason if len(reasons) == 1 else None,
         windows={},
+        missing=this_year(first.missing, k),
     )
     counts = np.where(np.arange(len(first.dates)) >= k, years.count, 0)
     return merged, Band(low=low, high=high, years=counts)
@@ -1348,6 +1424,8 @@ def _projected(
             results, labels = [], []
             for s_index, rs in enumerate(groups):
                 for year, r in zip(found.years or [None], rs, strict=False):
+                    if found.start is not None and r.dates:  # a past year's gaps aren't this year's
+                        r = replace(r, missing=this_year(r.missing, (found.start - r.dates[0]).days))
                     results.append(r)
                     labels.append(
                         {**({"option_set": s_index} if sets else {}), **({"year": year} if found.years else {})}

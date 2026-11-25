@@ -8,7 +8,9 @@ returns it all with each day's kind (observed, partial, forecast) and the model'
 
 Missing days in the inputs are estimated first, by each variable's method (`gap_fill`, from the catalog: D45,
 `agmodels.gaps`). The model sees the filled values and, as `<input>_estimated`, which days were filled; the inputs
-layer returned keeps the raw values with their gaps, and `estimated` says which days were filled.
+layer returned keeps the raw values with their gaps, and `estimated` says which days were filled. A gap longer than the
+fill reaches stays missing (`missing` on the days returned, `missing_before` counting those read before them): a
+running total adds nothing for those days, so the caller says so (D56).
 
 No I/O and nothing from `agdata`: region masks need the county grid, so the caller says whether the point is in
 the model's region.
@@ -46,9 +48,13 @@ class ModelRun:
     in_season: np.ndarray | None = None  # per day, from the spec's season; None if it has none
     windows: dict[str, list[tuple[date, date]]] = field(default_factory=dict)  # action windows' periods (D36)
     estimated: dict[str, np.ndarray] = field(default_factory=dict)  # per input with any, the days filled (D45)
-    # Per input with any, the days still missing after the fill (a gap longer than MAX_GAP_DAYS): a running total
+    # Per input with any, the days still missing after the fill (a gap longer than MAX_GAP_DAYS, with data on each
+    # side: `unfilled_gaps`), on the days returned: a running total
     # adds nothing for them, so a long outage would otherwise read as a quiet stretch
     missing: dict[str, np.ndarray] = field(default_factory=dict)
+    # Per input with any, how many of the days the run read before `start` (its biofix and lookback) are in such gaps
+    # (the most of any scenario): not shown, but the results from `start` rest on them (D56)
+    missing_before: dict[str, int] = field(default_factory=dict)
     biofix: date | None = None
     # Why there are no outputs: "outside the model's region", "biofix after the series" (not started yet), "biofix
     # not in the series" (the days given start after it: read from `first_day_needed`), "<stage> isn't reached in the
@@ -188,8 +194,10 @@ def run(
 
     result.inputs = {q.name: raw[q.name][shown:] for q in spec.inputs}
     result.estimated = {q.name: estimated[q.name][shown:] for q in spec.inputs if estimated[q.name][shown:].any()}
-    gaps = {q.name: np.isnan(daily[q.name][shown:]) for q in spec.inputs}
-    result.missing = {name: gap for name, gap in gaps.items() if gap.any()}
+    gaps = {q.name: unfilled_gaps(daily[q.name]) for q in spec.inputs}
+    result.missing = {name: gap[shown:] for name, gap in gaps.items() if gap[shown:].any()}
+    before = {name: int(np.max(np.sum(gap[:shown], axis=0), initial=0)) for name, gap in gaps.items()}
+    result.missing_before = {name: count for name, count in before.items() if count}
     result.outputs = {name: np.asarray(values, dtype=float)[shown:] for name, values in outputs.items()}
     if risk is not None and spec.risk is not None:
         result.risk = risk[shown:]
@@ -215,6 +223,15 @@ def run(
             periods = window_periods(result.outputs[f"window_{w.key}"])
             result.windows[w.label] = [(result.dates[a], result.dates[b]) for a, b in periods]
     return result
+
+
+def unfilled_gaps(filled: np.ndarray) -> np.ndarray:
+    """The days of an input (filled, days on axis 0) still missing with a value on each side: a gap longer than the
+    fill reaches (D56). Days before the data start or after they end aren't a gap: the series reaches past them."""
+    valid = np.isfinite(np.asarray(filled, dtype=float))
+    earlier = np.logical_or.accumulate(valid, axis=0)
+    later = np.flip(np.logical_or.accumulate(np.flip(valid, axis=0), axis=0), axis=0)
+    return ~valid & earlier & later
 
 
 def stage_date_option(spec: ModelSpec) -> str | None:

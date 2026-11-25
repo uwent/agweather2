@@ -134,6 +134,15 @@ def test_running_totals_and_counts_restart_on_january_1(built):
             if s.known:
                 known = _series(root, f"{s.key}.known", begin, last)
                 np.testing.assert_array_equal(known, np.cumsum(np.isfinite(v), axis=0), err_msg=s.key)
+            # D56: HOLE is short enough to fill, so no day is missing past the fill
+            assert (_series(root, modelmaps.missing_key(s.key), begin, last) == 0).all(), s.key
+
+
+def test_days_missing_past_the_fill_count_from_the_first_day_of_weather():
+    t = np.array([np.nan, np.nan, 1.0, np.nan, 2.0, np.nan])[:, None]
+    rh = np.array([np.nan, np.nan, 5.0, 5.0, 5.0, 5.0])[:, None]
+    # before the weather starts: no; a day an input lacks: yes; the end: yes (a map leaves out a day with none anywhere)
+    assert modelmaps._gone([t, rh]).ravel().tolist() == [False, False, False, True, False, True]
 
 
 def test_an_update_from_a_day_gives_what_building_from_january_gives(tmp_path, built):
