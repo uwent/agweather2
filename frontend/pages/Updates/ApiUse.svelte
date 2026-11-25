@@ -43,21 +43,21 @@
       We would like to know who uses the AgWeather API, what for, and what you would like it to do. Your answers help us
       decide what to add and how to make changes without disrupting your work.
     </p>
-    <p class="text-ink-muted text-sm">
+    <p class="text-sm text-ink-muted">
       We use your email address only to reply to you or, if you ask, to tell you before changes that affect the API. We
       don't share it. Past changes are on the
-      <a href="/changelog" class="hover:text-ink underline">changelog page</a>.
+      <a href="/changelog" class="underline hover:text-ink">changelog page</a>.
     </p>
   </header>
 
   {#if errors.form}
-    <p role="alert" class="border-danger/40 bg-danger/10 rounded-md border px-4 py-3 text-sm">{errors.form[0]}</p>
+    <p role="alert" class="rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm">{errors.form[0]}</p>
   {/if}
 
   <form onsubmit={submit} class="space-y-5" novalidate>
     {#snippet error(field: string)}
       {#if errors[field]}
-        <p id={`${field}-error`} class="text-danger mt-1 text-sm">{errors[field]?.join(' ')}</p>
+        <p id={`${field}-error`} class="mt-1 text-sm text-danger">{errors[field]?.join(' ')}</p>
       {/if}
     {/snippet}
 
@@ -79,9 +79,9 @@
     </div>
 
     <div>
-      <label for="organization" class="text-sm font-medium"
-        >Organization <span class="text-ink-muted">(optional)</span></label
-      >
+      <label for="organization" class="text-sm font-medium">
+        Organization <span class="text-ink-muted">(optional)</span>
+      </label>
       <input
         id="organization"
         name="organization"
@@ -97,8 +97,9 @@
     </div>
 
     <div>
-      <label for="email" class="text-sm font-medium">Email address <span class="text-ink-muted">(optional)</span></label
-      >
+      <label for="email" class="text-sm font-medium">
+        Email address <span class="text-ink-muted">(optional)</span>
+      </label>
       <input
         id="email"
         name="email"
@@ -129,13 +130,19 @@
     </div>
 
     <fieldset aria-describedby={described('areas')}>
-      <legend class="text-sm font-medium"
-        >Which parts of the API do you use? <span class="text-ink-muted">(optional)</span></legend
-      >
+      <legend class="text-sm font-medium">
+        Which parts of the API do you use? <span class="text-ink-muted">(optional)</span>
+      </legend>
       <div class="mt-2 space-y-1">
         {#each areas as area (area)}
           <label class="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="areas" value={area} class="text-brand-600 rounded" bind:group={form.areas} />
+            <input
+              type="checkbox"
+              name="areas"
+              value={area}
+              class="rounded-sm text-brand-600"
+              bind:group={form.areas}
+            />
             {area}
           </label>
         {/each}
@@ -144,10 +151,9 @@
     </fieldset>
 
     <div>
-      <label for="endpoints" class="text-sm font-medium"
-        >Which endpoints do you use, and what would you like added? <span class="text-ink-muted">(optional)</span
-        ></label
-      >
+      <label for="endpoints" class="text-sm font-medium">
+        Which endpoints do you use, and what would you like added? <span class="text-ink-muted">(optional)</span>
+      </label>
       <textarea
         id="endpoints"
         name="endpoints"
@@ -161,9 +167,9 @@
     </div>
 
     <div>
-      <label for="frequency" class="text-sm font-medium"
-        >How often do you send requests? <span class="text-ink-muted">(optional)</span></label
-      >
+      <label for="frequency" class="text-sm font-medium">
+        How often do you send requests? <span class="text-ink-muted">(optional)</span>
+      </label>
       <select
         id="frequency"
         name="frequency"
@@ -181,12 +187,12 @@
     </div>
 
     <label class="flex items-start gap-2 text-sm">
-      <input type="checkbox" name="notify" class="text-brand-600 mt-0.5 rounded" bind:checked={form.notify} />
+      <input type="checkbox" name="notify" class="mt-0.5 rounded-sm text-brand-600" bind:checked={form.notify} />
       Email me before changes that affect the API. This needs your email address above.
     </label>
 
     <!-- The honeypot: people never see or reach it, so anything typed here came from a program -->
-    <div class="absolute -left-[10000px] h-px w-px overflow-hidden" aria-hidden="true">
+    <div class="absolute left-[-10000px] size-px overflow-hidden" aria-hidden="true">
       <label for="website">Leave this field empty</label>
       <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" bind:value={form.website} />
     </div>
@@ -194,7 +200,7 @@
     <button
       type="submit"
       disabled={form.processing}
-      class="bg-brand-600 hover:bg-brand-700 text-surface rounded-md px-4 py-2 text-sm font-medium disabled:opacity-60"
+      class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-surface hover:bg-brand-700 disabled:opacity-60"
     >
       Send
     </button>

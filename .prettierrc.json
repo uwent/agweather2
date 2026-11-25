@@ -4,5 +4,6 @@
   "printWidth": 120,
   "trailingComma": "all",
   "plugins": ["prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
+  "tailwindStylesheet": "./frontend/entrypoints/application.css",
   "overrides": [{ "files": "*.svelte", "options": { "parser": "svelte" } }]
 }

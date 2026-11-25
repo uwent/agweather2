@@ -30,10 +30,10 @@
     <h1 class="text-3xl font-semibold">Changes and announcements</h1>
     <p>
       This page lists changes to AgWeather's data, models and API, and notices of outages, newest first. To follow them
-      in a feed reader, use the <a href="/changelog.atom" class="text-brand-600 hover:text-brand-700 underline"
-        >Atom feed</a
-      >. If you use the API, please
-      <Link href="/api-use" class="text-brand-600 hover:text-brand-700 underline">tell us how you use it</Link>.
+      in a feed reader, use the <a href="/changelog.atom" class="text-brand-600 underline hover:text-brand-700">
+        Atom feed
+      </a>. If you use the API, please
+      <Link href="/api-use" class="text-brand-600 underline hover:text-brand-700">tell us how you use it</Link>.
     </p>
   </header>
 
@@ -42,8 +42,8 @@
   {:else}
     <ol class="space-y-6">
       {#each entries as entry (entry.id)}
-        <li id={`entry-${entry.id}`} class="border-line space-y-2 border-t pt-4">
-          <p class="text-ink-muted text-sm">
+        <li id={`entry-${entry.id}`} class="space-y-2 border-t border-line pt-4">
+          <p class="text-sm text-ink-muted">
             <time datetime={entry.date}>{written(entry.date)}</time>{` · ${entry.kind_label}`}
           </p>
           <h2 class="text-xl font-semibold">{entry.title}</h2>

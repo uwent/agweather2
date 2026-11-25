@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import cases from '../../packages/agdata/tests/fixtures/units_cases.json'
-import { convert, displayUnit, MISSING, units, type UnitSystem } from './units'
+import { convert, currentUnits, displayUnit, MISSING, units, type UnitSystem } from './units'
+import { setUnitSystem, UNITS_KEY } from './unitSystem.svelte'
 
 describe('the table shared with agdata.units', () => {
   it.each(cases.convert)('converts $value $from to $to', ({ value, from, to, expected }) => {
@@ -42,5 +43,21 @@ describe('units', () => {
     expect(parsed.ok && parsed.value).toBeCloseTo(20, 9)
     expect(imperial.parse('mm', ' ')).toEqual({ ok: true, value: null })
     expect(imperial.parse('mm', 'lots').ok).toBe(false)
+  })
+})
+
+describe("the reader's units", () => {
+  it('converts a display value back to the stored unit, and knows the display precision', () => {
+    expect(units('imperial').toStored('degC', 68)).toBeCloseTo(20, 9)
+    expect(units('metric').toStored('in', 25.4)).toBeCloseTo(1, 9)
+    expect(units('imperial').digits('mm')).toBe(2)
+  })
+
+  it('are US until the reader chooses metric, which this browser remembers', () => {
+    expect(currentUnits().system).toBe('imperial')
+    setUnitSystem('metric')
+    expect(currentUnits().system).toBe('metric')
+    expect(localStorage.getItem(UNITS_KEY)).toBe('"metric"')
+    setUnitSystem('imperial')
   })
 })

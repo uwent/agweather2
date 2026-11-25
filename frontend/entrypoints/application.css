@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+/* Charts' and maps' tokens (@theme static, read from JavaScript) and MapLibre's controls in the app's colors */
+@import './data.css';
 /* Classes in Django templates (base.html's <body>) as well as the Svelte files. Tailwind needs the
    directory here: a glob over the apps' template folders matched nothing */
 @source '../../app';
@@ -62,8 +64,12 @@
   --color-uw-link: #036796;
   --color-uw-link-dark: #023d54;
 
-  /* Messages: errors and confirmations (FlashMessages), as tinted fills behind ink text */
+  /* Messages: errors and confirmations (FlashMessages), as tinted fills behind ink text, and fills
+     (a Delete button) under white text. As text on a surface (a field's error), danger uses
+     danger-ink, darker on light mode's tan and lighter in dark mode (WCAG AA, 4.5:1). WISP 3's
+     status-irrigate and status-ok */
   --color-danger: oklch(55% 0.2 27);
+  --color-danger-ink: oklch(48% 0.19 27);
   --color-success: oklch(53% 0.14 155);
 
   /* Surfaces and text, switched for dark mode below. Raised surfaces (header, cards) are the old
@@ -94,6 +100,8 @@
     --color-brand-500: var(--color-gold-500);
     --color-brand-600: var(--color-gold-400);
     --color-brand-700: var(--color-gold-300);
+    --color-danger-ink: oklch(72% 0.16 27);
+    --search-highlight: oklch(42% 0.06 90);
   }
 }
 
@@ -109,6 +117,13 @@
   --color-brand-500: var(--color-gold-500);
   --color-brand-600: var(--color-gold-400);
   --color-brand-700: var(--color-gold-300);
+  --color-danger-ink: oklch(72% 0.16 27);
+  --search-highlight: oklch(42% 0.06 90);
+}
+
+/* Sticks below the bars pinned to the top of the window (lib/stickyBars.ts) */
+@utility top-sticky {
+  top: calc(var(--app-bar-h, 0px) + var(--page-bar-h, 0px));
 }
 
 /* Tailwind's dark: variant, matching the rules above */
@@ -137,6 +152,13 @@
     color-scheme: dark;
   }
 
+  /* Tailwind v4's reset leaves buttons with the default cursor while links get the hand; give
+     buttons the hand too, so everything clickable looks it */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
   h1,
   h2,
   h3,
@@ -153,6 +175,10 @@
     background-color: var(--color-surface-raised);
     color: var(--color-ink);
     border-color: var(--color-line);
+  }
+  /* Its placeholders are gray-500, too faint on dark mode's inputs; the muted ink passes in both */
+  :is(input, textarea):not([type='checkbox'], [type='radio'])::placeholder {
+    color: var(--color-ink-muted);
   }
 }
 
@@ -186,4 +212,19 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  /* Small activity indicators (Spinner) keep moving: they show work in progress, and a spin in
+     place isn't the kind of motion the setting guards against (it doesn't move across the page) */
+  .keep-motion {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
+/* What a search box matched (lib/searchHighlight.ts): a muted wash behind the text, its color unchanged.
+   Dark mode's is set with the other tokens above */
+:root {
+  --search-highlight: oklch(93% 0.07 95);
+}
+::highlight(search) {
+  background-color: var(--search-highlight);
 }
