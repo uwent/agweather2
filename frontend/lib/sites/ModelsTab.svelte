@@ -69,7 +69,7 @@
 </p>
 <div class="grid gap-6 lg:grid-cols-2">
   {#each groups as group (group.id)}
-    <section aria-labelledby="crop-{group.id || 'other'}">
+    <section class="min-w-0" aria-labelledby="crop-{group.id || 'other'}">
       <h2 id="crop-{group.id || 'other'}" class="mb-2 text-base font-semibold">{group.name}</h2>
       <ul class="divide-y divide-line rounded-md border border-line bg-surface-raised">
         {#each group.models as model (model.id)}

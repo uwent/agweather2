@@ -39,7 +39,14 @@
   const head = 'min-w-20 px-2 py-1 text-right align-bottom font-medium'
 </script>
 
-<div class="overflow-x-auto rounded-md border border-line">
+<!-- Scrolls sideways on a phone; focusable so a keyboard can scroll it -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<div
+  class="overflow-x-auto rounded-md border border-line focus-visible:outline-2 focus-visible:outline-brand-600"
+  role="region"
+  aria-label="{model.name}: the past week and the forecast"
+  tabindex="0"
+>
   <table class="w-full border-collapse text-sm">
     <caption class="sr-only">
       {`${model.name}: the past 7 days and the forecast, a row a day`}

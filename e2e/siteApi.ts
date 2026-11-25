@@ -14,6 +14,8 @@ const ANSWERS: Record<string, string> = {
   '/api/v2/weather/hourly': 'hourly',
   '/api/v2/weather/totals': 'totals',
   '/api/v2/risk': 'risk',
+  // A model at a site (late blight's page)
+  '/api/v2/models/late-blight-dsv/run': 'model-late-blight',
 }
 
 export async function stubSiteApi(page: Page) {

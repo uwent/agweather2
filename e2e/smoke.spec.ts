@@ -92,6 +92,21 @@ test('site page', async ({ page }) => {
   await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
 })
 
+test('a model at a site', async ({ page }) => {
+  await stubSiteApi(page)
+  await page.goto('/sites/44.12,-89.52/models/late-blight-dsv?name=Hancock')
+  await expect(page.getByRole('heading', { level: 1, name: 'Late blight disease severity values' })).toBeVisible()
+  await expect(page.getByText(/^Out of season /)).toBeVisible()
+  await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
+  await expect(page.getByRole('table', { name: /the past 7 days and the forecast/ })).toBeVisible()
+  await page.getByRole('link', { name: 'Hancock' }).click()
+  await expect(page).toHaveURL(/\/sites\/44\.12,-89\.52\?name=Hancock$/)
+})
+
+test('a model at a site is not found for a model we don’t have', async ({ request }) => {
+  expect((await request.get('/sites/44.12,-89.52/models/no-such-model')).status()).toBe(404)
+})
+
 test('a site outside latitude and longitude is not found', async ({ request }) => {
   expect((await request.get('/sites/91,-89')).status()).toBe(404)
 })
