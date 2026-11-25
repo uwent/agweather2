@@ -60,6 +60,21 @@ def archive(
     update_days(data_dir, WINDOW, (start + timedelta(days=1)).date(), (end - timedelta(days=1)).date())
 
 
+def keep_only(data_dir, layout, year: int, names: list[str]) -> None:
+    """Drops every variable but `names` from a test store (its arrays and their `_meta`), so code that reads all a
+    store holds (a past-years copy reads every daily variable's year, a chunk a day each) reads only these."""
+    import shutil
+
+    path = layout.path(data_dir, year)
+    for child in path.iterdir():
+        if child.is_dir() and child.name != "_meta" and child.name not in names:
+            shutil.rmtree(child)
+    for child in (path / "_meta").iterdir():
+        name, _, kind = child.name.rpartition(".")
+        if child.is_dir() and kind in ("source", "written") and name not in names:
+            shutil.rmtree(child)
+
+
 def nbm_run(cycle: datetime, warm: float = 25.0) -> HourlyRun:
     """A run at `warm` °C ± 6 every hour."""
     times = [cycle + (n + 1) * HOUR for n in range(HORIZON_HOURS)]

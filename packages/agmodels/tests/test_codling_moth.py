@@ -19,7 +19,8 @@ HATCH = "window_protect_fruit_during_egg_hatch"
 
 def _wsu_table() -> dict[str, list[tuple[np.ndarray, np.ndarray]]]:
     """WSU's cumulative % flight and hatch by DD°F after first catch, split into generations where it restarts."""
-    rows = list(csv.DictReader(TABLE.open(), delimiter="\t"))
+    with TABLE.open() as table:
+        rows = list(csv.DictReader(table, delimiter="\t"))
     dd = np.array([float(r["dd_biofix"]) for r in rows])
     out = {}
     for column, stage in (("pct_flight", 0), ("pct_hatch", 1)):

@@ -41,10 +41,29 @@ def test_an_error_lists_the_parameters_with_what_could_be_read(client, archive):
 
 
 @pytest.mark.django_db
-def test_a_models_options_and_its_crop_models_are_listed(client, archive):
-    found = _params(client, "/api/v2/models/frogeye-leaf-spot/run", lat=LAT, lng=LNG, maturity_group="2.5")
+def test_a_models_options_and_its_crop_models_are_listed(client, archive, monkeypatch):
+    from ops import openmeteo
+
+    def unavailable(*args, **kwargs):
+        raise openmeteo.Unavailable("not in tests")
+
+    # Days before the archive's come from Open-Meteo: tar spot's and white mold's runs read from their seasons' start,
+    # and their options are listed whether or not they could run. A crop's options are used only with a planting date.
+    monkeypatch.setattr(openmeteo, "cell_hours", unavailable)
+    days = {"start": "2025-07-01", "end": "2025-07-03"}
+    found = _params(
+        client,
+        "/api/v2/models/frogeye-leaf-spot/run",
+        lat=LAT,
+        lng=LNG,
+        maturity_group="2.5",
+        planting_date="2025-07-01",
+        **days,
+    )
     assert found["maturity_group"] == "2.5"  # the soybean stage model's option, as used
-    found = _params(client, "/api/v2/models/run", lat=LAT, lng=LNG, models="tar-spot,white-mold")
+    found = _params(client, "/api/v2/models/frogeye-leaf-spot/run", lat=LAT, lng=LNG, maturity_group="2.5", **days)
+    assert found["maturity_group"] == "2.0"  # without a planting date: left out with a warning, the default used
+    found = _params(client, "/api/v2/models/run", lat=LAT, lng=LNG, models="tar-spot,white-mold", **days)
     # Each option's default; corn's for tar spot, soybean's for white mold
     assert found["black_layer_gdd"] == "2500" and found["irrigation"] == "dry" and "maturity_group" in found
     assert "maturity_group" not in _params(client, "/api/v2/models/run", lat=LAT, lng=LNG, models="tar-spot")
