@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import numpy as np
 import pytest
@@ -114,3 +114,49 @@ def test_under_the_launch_coverage_a_point_in_its_window_but_outside_its_mask_is
     lat, lng = (float(v) for v in points.NDFD.latlon(*edge))
     area = points.AreaAsk(radius_km=15).at(lat, lng)  # an area takes only covered cells
     assert len(area.cells) > 1 and all(covered.contains(*c) for c in area.cells)
+
+
+def test_the_forecast_filler_takes_open_meteos_forecast_span_and_its_covered_hours(settings, monkeypatch):
+    settings.OPEN_METEO_FALLBACK = True
+    asked = []
+
+    def cell_hours(lat, lon, first, last, now):
+        asked.append((first, last))
+        n = (last - first) // timedelta(hours=1) + 1
+        kinds = ["forecast"] * (n - 2) + [None, None]  # the last two hours past Open-Meteo's reach
+        return {"air_temperature": np.full(n, 20.0)}, kinds, ("openmeteo-rh v1",)
+
+    monkeypatch.setattr(points.openmeteo, "cell_hours", cell_hours)
+    fill = points.forecast_filler(*MADISON, NOW, points.FallbackBudget())
+    assert fill is not None
+    first, last = datetime(2025, 7, 1, tzinfo=UTC), datetime(2025, 7, 20, tzinfo=UTC)
+    found = fill(first, last, ["air_temperature", "soil_moisture_0_to_7cm"])
+    span = datetime(2025, 7, 8, 1, tzinfo=UTC)  # the forecast endpoint's first hour: no month of history fetched
+    assert asked == [(span, last)]
+    assert found is not None and found.first_hour == span and found.last_hour == last - 2 * timedelta(hours=1)
+    assert np.isnan(found.values["air_temperature"][: (span - first) // timedelta(hours=1)]).all()
+    assert found.values["air_temperature"][-1] == 20.0 and np.isnan(found.values["soil_moisture_0_to_7cm"]).all()
+    assert found.corrections == ("openmeteo-rh v1",)
+    settings.OPEN_METEO_FALLBACK = False
+    assert points.forecast_filler(*MADISON, NOW, points.FallbackBudget()) is None
+
+
+def test_after_a_failure_or_once_its_time_is_spent_a_request_asks_open_meteo_no_more(settings, monkeypatch):
+    settings.OPEN_METEO_FALLBACK = True
+    asked = []
+
+    def down(lat, lon, first, last, now):
+        asked.append(lat)
+        raise points.openmeteo.Unavailable("refused")
+
+    monkeypatch.setattr(points.openmeteo, "cell_hours", down)
+    budget = points.FallbackBudget()
+    hours = (datetime(2025, 7, 15, tzinfo=UTC), datetime(2025, 7, 16, tzinfo=UTC), ["air_temperature"])
+    first = points.forecast_filler(*MADISON, NOW, budget)
+    soil = points._soil_filler(*MADISON, NOW, budget)
+    assert first is not None and first(*hours) is None and budget.failed
+    assert soil(*hours) is None  # the soil (D44) degrades the same way: no 503
+    assert asked == [MADISON[0]]
+    spent = points.FallbackBudget(seconds=0)
+    fill = points.forecast_filler(*MADISON, NOW, spent)
+    assert fill is not None and fill(*hours) is None and asked == [MADISON[0]]

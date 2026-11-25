@@ -11,9 +11,11 @@ from django.utils import timezone
 
 from agdata import forecast
 from agdata.grid import service_window
+from agdata.series import MAX_RUN_AGE
 from agdata.sources import ifs, nbm
 from ops.ingest import update_if_due
 from ops.models import IngestRecord
+from ops.points import fallback_on
 from ops.verification import keep_published
 
 logger = logging.getLogger(__name__)
@@ -96,7 +98,8 @@ def restitch_current(data_dir: Path, box: str) -> datetime | None:
 
 
 def forecast_health(data_dir: Path, now: datetime) -> tuple[dict[str, Any], list[str]]:
-    """The forecast section of `/up` and its problems; no run yet is "not started", as for the archive."""
+    """The forecast section of `/up` and its problems; no run yet is "not started", as for the archive.
+    `points_fallback`: points in the box take Open-Meteo's forecast, ours being stale (D114)."""
     current = forecast.current_run(data_dir)
     if current is None:
         return {"state": "not started"}, []
@@ -109,6 +112,7 @@ def forecast_health(data_dir: Path, now: datetime) -> tuple[dict[str, Any], list
         "last_hour": info["last_hour"],
         "last_observed": info.get("last_observed"),
         "failed_leads": len(info.get("failed_leads", [])),
+        "points_fallback": fallback_on() and now - cycle > MAX_RUN_AGE,
     }
     problems = [f"forecast run more than {MAX_RUN_AGE_HOURS} h old"] if age > MAX_RUN_AGE_HOURS else []
     return body, problems

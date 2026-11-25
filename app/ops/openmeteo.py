@@ -1,4 +1,4 @@
-"""Open-Meteo hours for points outside the box or before the archive, through the per-cell cache (D42). CLAUDE.md's
+"""Open-Meteo hours for points outside the box or before the archive, or inside it while the forecast is stale (D114), through the per-cell cache (D42). CLAUDE.md's
 one exception to fetching weather only in jobs: a request may fill a cell's cache."""
 
 import io
@@ -36,7 +36,7 @@ def spans(first: date, last: date, today: date) -> list[tuple[str, date, date]]:
     recent = today - timedelta(days=openmeteo.RECENT_DAYS)
     out: list[tuple[str, date, date]] = []
     month = date(first.year, first.month, 1)
-    while month < recent and month <= last:
+    while first < recent and month < recent and month <= last:  # no history when every day is the forecast's
         following = date(month.year + month.month // 12, month.month % 12 + 1, 1)
         end = min(following - timedelta(days=1), recent - timedelta(days=1))
         out.append((openmeteo.endpoint_for(month, today), month, end))

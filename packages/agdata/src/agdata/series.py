@@ -13,6 +13,10 @@ its own with `day_basis=local`), and so do their kinds.
 A point's forecast soil hours the run lacks (its IFS soil ends some 30 hours before NBM's last hour) can be filled from
 another source (`fill_soil`: the app passes Open-Meteo's ECMWF IFS through its cell cache, D44). Maps keep the gap
 rather than mixing sources.
+
+When there's no fresh run, a point's hours after the archive's last observed hour can come from another forecast
+(`fill_forecast`: the app passes Open-Meteo's through its cell cache, D114), marked forecast and sourced `openmeteo`;
+its `Forecast.fallback` says whether it was used or couldn't be had. Maps show no forecast then.
 """
 
 from collections.abc import Callable, Mapping, Sequence
@@ -50,8 +54,27 @@ SOIL = (  # what a point's forecast fills from Open-Meteo's IFS where the run ha
     "soil_moisture_28_to_100cm",
 )
 
-# Hours ending start..end (UTC, inclusive) of the given variables from another source, for a point's forecast soil
-FillSoil = Callable[[datetime, datetime, list[str]], dict[str, np.ndarray]]
+# Hours ending start..end (UTC, inclusive) of the given variables from another source, for a point's forecast soil;
+# None when the source couldn't be reached (the soil stays missing, and the series' forecast says so)
+FillSoil = Callable[[datetime, datetime, list[str]], dict[str, np.ndarray] | None]
+
+
+@dataclass(kw_only=True)
+class FallbackHours:
+    """Another source's forecast for a point's hours start..end (`FillForecast`): each variable's hours from `start`
+    (NaN where it has none), the hours it covers (first_hour..last_hour; None if none), and the corrections applied
+    (`agdata.corrections` labels)."""
+
+    values: dict[str, np.ndarray]
+    first_hour: datetime | None
+    last_hour: datetime | None
+    corrections: tuple[str, ...] = ()
+
+
+# A point's hours ending start..end (UTC, inclusive) of the given variables from another forecast while there's no
+# fresh run (D114); None when it couldn't be had
+FillForecast = Callable[[datetime, datetime, list[str]], FallbackHours | None]
+OPENMETEO, UNAVAILABLE = "openmeteo", "unavailable"  # `Forecast.fallback`
 
 
 @dataclass(kw_only=True)
@@ -63,6 +86,11 @@ class Forecast:
     last_observed: datetime | None = None
     last_hour: datetime | None = None
     reason: str | None = None  # when path is None: "none", "stale"
+    # Without a run, whether a point's forecast came from another source (D114): "openmeteo", or "unavailable" when
+    # it was asked for and couldn't be had; None when none was asked for (a map, or the fallback off)
+    fallback: str | None = None
+    fallback_corrections: tuple[str, ...] = ()  # the fallback's corrections (`agdata.corrections` labels)
+    soil_unavailable: bool = False  # the run's soil hours couldn't be filled past its own (`FillSoil` gave None)
 
 
 def current_forecast(data_dir: Path, now: datetime | None = None) -> Forecast:
@@ -115,12 +143,23 @@ def point_hours(
     stores: "Stores | None" = None,
     fill_soil: FillSoil | None = None,
     area: Area | None = None,
+    fill_forecast: FillForecast | None = None,
 ) -> HourlyFrame:
     """Hours ending start..end (inclusive, UTC) at a cell (or `area`, around it): the archive's through its last
     observed hour, then the current run's, with forecast soil hours the run lacks from `fill_soil` (sourced
-    `openmeteo`)."""
+    `openmeteo`); without a fresh run, `fill_forecast`'s hours after the archive's (D114)."""
     place: Place = area if area is not None else (j, i)
-    return cells_hours(data_dir, [place], start, end, names, now=now, stores=stores, fill_soil=[fill_soil])[0]
+    return cells_hours(
+        data_dir,
+        [place],
+        start,
+        end,
+        names,
+        now=now,
+        stores=stores,
+        fill_soil=[fill_soil],
+        fill_forecast=[fill_forecast],
+    )[0]
 
 
 def cells_hours(
@@ -132,10 +171,12 @@ def cells_hours(
     now: datetime | None = None,
     stores: "Stores | None" = None,
     fill_soil: Sequence[FillSoil | None] | None = None,
+    fill_forecast: Sequence[FillForecast | None] | None = None,
 ) -> list[HourlyFrame]:
     """`point_hours` at each of several cells, on one read per variable and store (`GridStore.read_cells`: a chunk
     holding several of the cells is read once). A cell may be an area (`agdata.areas.Area`), whose cells are read
-    and averaged hour by hour. `fill_soil`, if given, has one entry per cell. A computed variable
+    and averaged hour by hour. `fill_soil` and `fill_forecast`, if given, have one entry per cell; each cell's
+    kinds and `forecast` are its own (one cell's fallback may answer and another's not). A computed variable
     (`agdata.computed`) is made from its inputs' hours, with its first input's sources."""
     asked = list(names)
     names = computed.expand(asked, computed.HOURLY_COMPUTED)
@@ -166,17 +207,23 @@ def cells_hours(
     frames = []
     for c in range(len(cells)):
         own = {name: np.ascontiguousarray(values[name][:, c]) for name in names}
-        own_sources = sources
+        own_sources, own_kinds, own_run = sources, kinds, run
         fill = fill_soil[c] if fill_soil is not None else None
         if fill is not None and run.path is not None:
             own_sources = {name: list(s) for name, s in sources.items()}  # this cell's fills are its own
-            _fill_soil(fill, times, own, own_sources, [n for n in names if n in SOIL], cut, run.last_hour)
+            if not _fill_soil(fill, times, own, own_sources, [n for n in names if n in SOIL], cut, run.last_hour):
+                own_run = replace(run, soil_unavailable=True)
+        fallback = fill_forecast[c] if fill_forecast is not None else None
+        if fallback is not None and run.path is None and cut < n:
+            own_sources = {name: list(s) for name, s in sources.items()}
+            own_kinds = list(kinds)
+            own_run = _fill_forecast(fallback, times, own, own_sources, own_kinds, names, cut, run)
         if asked != names:
             own = computed.complete(own, asked, computed.HOURLY_COMPUTED)
             own_sources = {
                 name: own_sources[c.inputs[0] if (c := computed.computed(name)) is not None else name] for name in asked
             }
-        frames.append(HourlyFrame(times=times, values=own, sources=own_sources, kinds=kinds, forecast=run))
+        frames.append(HourlyFrame(times=times, values=own, sources=own_sources, kinds=own_kinds, forecast=own_run))
     return frames
 
 
@@ -193,6 +240,7 @@ def point_days(
     stores: "Stores | None" = None,
     zone: str = GRID_ZONE,
     area: Area | None = None,
+    fill_forecast: FillForecast | None = None,
 ) -> DailySeries:
     """Days first..last at a cell (or `area`, around it) by `zone`'s clock, from its stitched hours by the rollup's
     definitions (`agdata.point`): a day is observed if every hour is, partial with some of each, forecast with only
@@ -202,12 +250,23 @@ def point_days(
     them is ~300 chunk reads per variable (2.4 s for five), its hours ~11 per variable. Only the hourly variables
     `names` are made from are read (`hourly_needed`), and only `names` are rolled up.
     Running totals (`totals`) are read from the cumulative stores: the archive's before the first day that isn't
-    observed, the run's from it. `fill_soil` is used only when one of `names` is a soil variable. Days in a year
+    observed, the run's from it (without a run, missing from it: `fill_forecast`'s days have none; no route reads
+    them past the observed days). `fill_soil` is used only when one of `names` is a soil variable. Days in a year
     the archive doesn't have are missing. `stores`, shared by a caller reading many points, must open at least
     `hourly_needed(names)` and `totals`."""
     place: Place = area if area is not None else (j, i)
     found = cells_days(
-        data_dir, [place], first, last, names, totals, now=now, fill_soil=[fill_soil], stores=stores, zones=[zone]
+        data_dir,
+        [place],
+        first,
+        last,
+        names,
+        totals,
+        now=now,
+        fill_soil=[fill_soil],
+        stores=stores,
+        zones=[zone],
+        fill_forecast=[fill_forecast],
     )
     return found[0]
 
@@ -223,26 +282,42 @@ def cells_days(
     fill_soil: Sequence[FillSoil | None] | None = None,
     stores: "Stores | None" = None,
     zones: Sequence[str] | None = None,
+    fill_forecast: Sequence[FillForecast | None] | None = None,
 ) -> list[DailySeries]:
     """`point_days` at each of several cells (each by its own zone in `zones`, default the grid's), on one read of
     each variable's hours (`cells_hours`) and one rollup per zone, the cells as a trailing axis: a request for 50
-    points costs a few times one, not 50 (the rollup's per-day work is the same for one cell or many)."""
+    points costs a few times one, not 50 (the rollup's per-day work is the same for one cell or many). Each cell's
+    day kinds come from its own hours' (a fallback forecast may reach one cell and not another)."""
     run = current_forecast(data_dir, now)
     n = (last - first).days + 1
     dates = [first + timedelta(days=k) for k in range(n)]
+    zones = list(zones) if zones is not None else [GRID_ZONE] * len(cells)
     hourly = hourly_needed(names)
     if stores is not None and not {*hourly, *totals} <= stores.names:
         raise ValueError(f"the shared stores don't open {sorted({*hourly, *totals} - stores.names)}")
     stores = stores or Stores([*hourly, *totals])
-    zones = list(zones) if zones is not None else [GRID_ZONE] * len(cells)
     start = _midnight(first - timedelta(days=1))  # before the first day's earliest window (from noon) in any zone
     end = _midnight(last + timedelta(days=1)) + timedelta(hours=8)  # past the last day's end in any zone
     wants_soil = any(name in SOIL for name in hourly)
     frames = cells_hours(
-        data_dir, cells, start, end, hourly, now=now, stores=stores, fill_soil=fill_soil if wants_soil else None
+        data_dir,
+        cells,
+        start,
+        end,
+        hourly,
+        now=now,
+        stores=stores,
+        fill_soil=fill_soil if wants_soil else None,
+        fill_forecast=fill_forecast,
     )
     rolled: list[dict[str, np.ndarray]] = [{} for _ in cells]
-    kinds_in: dict[str, list[str | None]] = {}
+    kinds_of: list[list[str | None]] = []
+    found_kinds: dict[tuple[str, int], list[str | None]] = {}  # cells sharing their hours' kinds (most) take them once
+    for c, frame in enumerate(frames):
+        key = (zones[c], id(frame.kinds))
+        if key not in found_kinds:
+            found_kinds[key] = day_kinds(frame.times, frame.kinds, zones[c], dates)
+        kinds_of.append(found_kinds[key])
     for zone in dict.fromkeys(zones):
         group = [c for c, z in enumerate(zones) if z == zone]
         if len(group) == 1:  # one cell's hours as they are
@@ -252,13 +327,12 @@ def cells_days(
         days = daily_at_point(start, hours, zone, first, last, names=names)
         for k, c in enumerate(group):
             rolled[c] = {name: days[name] if len(group) == 1 else days[name][:, k] for name in names}
-        kinds_in[zone] = day_kinds(frames[group[0]].times, frames[group[0]].kinds, zone, dates)
+    splits = [next((k for k, kind in enumerate(kinds) if kind != OBSERVED), n) for kinds in kinds_of]
     out_totals: list[dict[str, np.ndarray]] = [{} for _ in cells]
     for name in totals:
         archive = _cells_steps(stores, data_dir, CUMULATIVE, name, cells, first, n)[0]
-        for zone, kinds in kinds_in.items():
-            split = next((k for k, kind in enumerate(kinds) if kind != OBSERVED), n)
-            group = [c for c, z in enumerate(zones) if z == zone]
+        for split in dict.fromkeys(splits):
+            group = [c for c, s in enumerate(splits) if s == split]
             ahead = None
             if split < n and run.path is not None:
                 ahead = _cells_steps(
@@ -273,11 +347,11 @@ def cells_days(
         DailySeries(
             dates=dates,
             values=rolled[c],
-            kinds=kinds_in[zones[c]],
-            forecast=run,
+            kinds=kinds_of[c],
+            forecast=frames[c].forecast,
             zone=zones[c],
             totals=out_totals[c],
-            corrections=in_box_corrections(kinds_in[zones[c]], run, hourly),
+            corrections=in_box_corrections(kinds_of[c], frames[c].forecast, hourly),
             sources=_sources_seen(frames[c]),
         )
         for c in range(len(cells))
@@ -364,12 +438,16 @@ def in_box_corrections(kinds: list[str | None], run: Forecast, variables=None) -
     """The corrections behind a series in the box: HRRR's shortwave on observed days, the forecast's calibration
     on forecast days (D48, D49), and IFS's soil shifted at the ERA5-Land seam (D55) whenever the series reaches the
     forecast. (The last few observed days' soil went through it too until ERA5-Land replaces them, ~5 days; a series
-    ending before the forecast doesn't list it.) With `variables` (the hourly ones read), only the corrections to
-    them or to what they're computed from."""
+    ending before the forecast doesn't list it.) Under Open-Meteo's forecast in place of the run (D114), its own
+    corrections (D51) in place of the run's. With `variables` (the hourly ones read), only the corrections to them or
+    to what they're computed from."""
     applied = [corrections.HRRR_SHORTWAVE] if any(k in (OBSERVED, PARTIAL) for k in kinds) else []
     if run.path is not None and any(k in (PARTIAL, FORECAST) for k in kinds):
         applied += [corrections.NBM_SHORTWAVE, corrections.NBM_MAX, corrections.NBM_NIGHT_MIN, corrections.NBM_RH]
         applied += [corrections.IFS_SOIL_SEAM]
+    elif run.fallback == OPENMETEO and any(k in (PARTIAL, FORECAST) for k in kinds):
+        labelled = {c.label: c for c in corrections.CORRECTIONS}
+        applied += [labelled[label] for label in run.fallback_corrections if label in labelled]
     if variables is not None:
         read = set(variables) | {source for name in variables for source in _DERIVED_FROM.get(name, ())}
         applied = [c for c in applied if any(name in c.variable.replace(",", " ").split() for name in read)]
@@ -617,17 +695,20 @@ def _grid_sources(
     return source_order(seen)
 
 
-def _fill_soil(fill_soil: FillSoil, times, values, sources, names: list[str], cut: int, last_hour) -> None:
-    """Fills the forecast's missing soil hours (after the observed `cut`, through the run's last hour) in place."""
+def _fill_soil(fill_soil: FillSoil, times, values, sources, names: list[str], cut: int, last_hour) -> bool:
+    """Fills the forecast's missing soil hours (after the observed `cut`, through the run's last hour) in place;
+    False if the source couldn't be reached."""
     n = len(times)
     end = n if last_hour is None else next((k for k in range(n) if times[k] > last_hour), n)
     gaps = {name: np.flatnonzero(np.isnan(values[name][cut:end])) + cut for name in names}
     wanted = [name for name, k in gaps.items() if k.size]
     if not wanted:
-        return
+        return True
     lo = min(int(gaps[name][0]) for name in wanted)
     hi = max(int(gaps[name][-1]) for name in wanted)
     filled = fill_soil(times[lo], times[hi], wanted)
+    if filled is None:
+        return False
     for name in wanted:
         other = filled.get(name)
         if other is None:
@@ -637,6 +718,30 @@ def _fill_soil(fill_soil: FillSoil, times, values, sources, names: list[str], cu
             if np.isfinite(value):
                 values[name][k] = value
                 sources[name][k] = "openmeteo"
+    return True
+
+
+def _fill_forecast(
+    fill: FillForecast, times, values, sources, kinds, names: list[str], cut: int, run: Forecast
+) -> Forecast:
+    """Without a run, a cell's hours after the observed `cut` from another forecast (D114), in place: forecast
+    through its last hour (the archive's ingest lag included, as the run's stitch does), sourced `openmeteo`. Its
+    soil comes with it (no `fill_soil`). Returns the cell's `Forecast`, saying whether it came."""
+    found = fill(times[cut], times[-1], names)
+    if found is None:
+        return replace(run, fallback=UNAVAILABLE)
+    if found.first_hour is not None and found.last_hour is not None:
+        for k in range(cut, len(times)):
+            if not found.first_hour <= times[k] <= found.last_hour:
+                continue
+            kinds[k] = FORECAST
+            for name in names:
+                other = found.values.get(name)
+                value = other[k - cut] if other is not None and k - cut < len(other) else np.nan
+                if np.isfinite(value):
+                    values[name][k] = value
+                    sources[name][k] = OPENMETEO
+    return replace(run, fallback=OPENMETEO, fallback_corrections=found.corrections)
 
 
 def _midnight(day: date) -> datetime:
@@ -856,6 +961,7 @@ def runs_at_point(
             )
         )
         results[-1].sources, results[-1].corrections = days.sources, days.corrections
+        results[-1].forecast = days.forecast
         results[-1].outside_training_area = outside_training_area(m.SPEC, county)
     return results
 
@@ -968,6 +1074,7 @@ def projected_runs(
         )
         for r in found:
             r.sources, r.corrections = days.sources, days.corrections
+            r.forecast = days.forecast
             r.outside_training_area = outside_training_area(m.SPEC, county)
         out.append(found)
     return Projected(runs=out, years=scenarios_found.years, start=begins, coverage=scenarios_found.coverage)
@@ -1014,16 +1121,28 @@ def models_at_point(
     planting_default: bool = True,
     zone: str = GRID_ZONE,
     area: Area | None = None,
+    fill_forecast: FillForecast | None = None,
 ) -> list[ModelRun]:
     """Models at a point in the box from `start` to `end`, through the forecast (D30), from the archive and the
-    current run (`runs_at_point` with one `point_days` by `zone`'s days; soil past the run's from `fill_soil`, D44),
-    on the weather of `area` around it if given."""
+    current run (`runs_at_point` with one `point_days` by `zone`'s days; soil past the run's from `fill_soil`, D44;
+    without a fresh run, `fill_forecast`'s, D114), on the weather of `area` around it if given."""
     cell = NDFD.cell_of(latitude, longitude)
     if cell is None:
         raise ValueError(f"({latitude}, {longitude}) is off the grid")
 
     def read_days(first: date, last: date, names: list[str]) -> DailySeries:
-        return point_days(data_dir, *cell, first, last, names, now=now, fill_soil=fill_soil, zone=zone, area=area)
+        return point_days(
+            data_dir,
+            *cell,
+            first,
+            last,
+            names,
+            now=now,
+            fill_soil=fill_soil,
+            zone=zone,
+            area=area,
+            fill_forecast=fill_forecast,
+        )
 
     return runs_at_point(
         read_days, latitude, longitude, runs, start, end, planting_default=planting_default, data_dir=data_dir

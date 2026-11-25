@@ -215,7 +215,8 @@ def run(
         if f.projection is not None:
             summary["projection"] = f.projection
         summary |= _found_days(m, f, asked_events, since_end=when.end or today)
-    warnings = [*notes, *warnings]
+    stale = points.forecast_warnings([r.forecast for f in found for r in f.results], options.forecast)
+    warnings = [*notes, *stale, *warnings]
     if trim_end and any(f.projection is None for f in found):
         ends = [f.results[0].dates[f.kept - 1] for f in found if f.projection is None and f.results and f.kept]
         if ends:
@@ -328,7 +329,7 @@ def run_several(
             location=location,
             summary={"corrections": list(some.corrections)},
             sources=list(some.sources),
-            warnings=notes,
+            warnings=[*notes, *points.forecast_warnings([r.forecast for rs in grouped for r in rs], options.forecast)],
             etag=etag,
         ),
     )
@@ -441,7 +442,12 @@ def risk(
             location=location,
             summary={"models": len(rows["model"]), **({"option_sets": sets} if sets else {})},
             sources=list(some.sources) if some else [],
-            warnings=[*notes, *sorted({w for p in plans for w in p.warnings}), *sorted(place_warnings)],
+            warnings=[
+                *notes,
+                *points.forecast_warnings([r.forecast for rs in grouped for r in rs], forecast_asked=True),
+                *sorted({w for p in plans for w in p.warnings}),
+                *sorted(place_warnings),
+            ],
             filename=f"agweather-risk-{day}",
             etag=etag,
         ),
@@ -702,6 +708,8 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
             f"{', '.join(quoted(n) for n in lacking)} come from our archive at the cell ('fill=grid'), since the weather sent doesn't include them."
         )
     days, sources = _station_days(station, zone, needed, last, names, lat, lng, now, fill, extend, sent[1])
+    if extend == "forecast":
+        warnings += points.forecast_warnings([days.forecast], forecast_asked=True)
     results = runs_at_point(
         lambda first_day, _last, wanted: sliced(days, first_day, wanted),
         lat,
@@ -800,8 +808,10 @@ def _station_days(
         "provided" if any(np.isfinite(values[name][k]) for name in names) else None for k in range(n)
     ]
     sources = ["provided"]
+    forecast = Forecast(path=None)
     if fill == "grid" or extend == "forecast":
         ours = points.days(lat, lng, first, last, names, now, zone=zone)
+        forecast = ours.forecast
         used = False
         for k, day in enumerate(dates):
             theirs = ours.kinds[k]
@@ -824,7 +834,7 @@ def _station_days(
                 kinds[k], used = ours_kind, True
         if used:
             sources += [s for s in ours.sources if s not in sources]
-    return DailySeries(dates=dates, values=values, kinds=kinds, forecast=Forecast(path=None), zone=zone), sources
+    return DailySeries(dates=dates, values=values, kinds=kinds, forecast=forecast, zone=zone), sources
 
 
 def _nested(

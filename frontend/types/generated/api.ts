@@ -711,6 +711,10 @@ export interface ForecastStatus {
    * Why the forecast is not in use: `none` when there isn't one, `stale` when it is too old. Null when it is in use.
    */
   reason: string | null
+  /**
+   * While our forecast is not in use, `openmeteo` when the forecast for locations inside our area comes from Open-Meteo instead. Our maps show no forecast meanwhile. Null when our forecast is in use.
+   */
+  fallback: string | null
 }
 export interface GridQuery {
   date?: string | null

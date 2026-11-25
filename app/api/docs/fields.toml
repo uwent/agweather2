@@ -90,6 +90,7 @@ cycle = "When the forecast in use was issued, in UTC. Null when there is none."
 last_hour = "The forecast's last hour, in UTC."
 in_use = "Whether results run through the forecast. A forecast issued more than 12 hours ago is not used."
 reason = "Why the forecast is not in use: `none` when there isn't one, `stale` when it is too old. Null when it is in use."
+fallback = "While our forecast is not in use, `openmeteo` when the forecast for locations inside our area comes from Open-Meteo instead. Our maps show no forecast meanwhile. Null when our forecast is in use."
 
 [DownloadsStatus]
 files = "The number of yearly data files available from `/downloads`."

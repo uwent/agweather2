@@ -17,7 +17,7 @@ the model's region.
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
-from typing import cast
+from typing import Any, cast
 
 import numpy as np
 
@@ -63,6 +63,9 @@ class ModelRun:
     # Where the weather came from, set by the caller that read it (`agdata.series`): its sources and corrections
     sources: tuple[str, ...] = ()
     corrections: tuple[str, ...] = ()
+    # The forecast the weather came with (`agdata.series.Forecast`, set there): which run, or why none and whether
+    # another source stood in (D114), for the answer's warnings
+    forecast: Any = None
 
 
 def required_inputs(m: Model) -> list[str]:

@@ -59,6 +59,9 @@ if not 1 <= OPEN_METEO_BILLING_DAY <= 28:
     raise RuntimeError(f"OPEN_METEO_BILLING_DAY must be a day of the month from 1 to 28, not {OPEN_METEO_BILLING_DAY}")
 OPEN_METEO_WARN_SHARE = 0.8
 COPERNICUS_API_KEY = os.environ.get("COPERNICUS_API_KEY") or None  # the CDS, for ERA5-Land (D52); None: no job
+# Points in the box take Open-Meteo's forecast while ours is stale or missing (D114, ops.points.forecast_filler). Off
+# in tests (their own turn it on), since a test's archive run goes stale as soon as its clock moves on.
+OPEN_METEO_FALLBACK = not TESTING and os.environ.get("OPEN_METEO_FALLBACK", "1") == "1"
 # The worker's jobs recorded as runs in DATA_DIR/runs/ for the dashboard (ops.jobruns): development only
 JOB_RUNS = os.environ.get("JOB_RUNS", "1" if ENV == "development" else "0") == "1"
 # The API's rate limit (D69, api.ratelimit): units a minute per client (an IPv4 address or IPv6 /64), a request

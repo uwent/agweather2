@@ -261,12 +261,14 @@ def status_lines(status: Status) -> list[str]:
         f"  soil:    ERA5-Land through {_when(status.era5land_through)}; IFS run {_when(status.ifs_run) if status.ifs_run else 'none read'} after it"
     )
     if f.get("state") == "not started":
-        out.append("  forecast: none published yet")
+        out.append("  forecast: none published yet" + (" (points use Open-Meteo)" if f.get("points_fallback") else ""))
     else:
         failed = f", {f['failed_leads']} failed leads" if f["failed_leads"] else ""
+        fallback = " (points use Open-Meteo)" if f.get("points_fallback") else ""  # D114
         out.append(
             f"  forecast: {_when(f['cycle'])} run ({_hours(f['age_hours'])} old), through {_when(f['last_hour'])}"
             + failed
+            + fallback
         )
     if status.open_meteo is not None:
         out.append(f"  open-meteo: {short_line(status.open_meteo)}")
