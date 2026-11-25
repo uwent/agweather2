@@ -200,7 +200,7 @@ export interface ModelPageProps {
   name: string
   group: 'disease' | 'insect' | 'crop' | 'agronomic' | 'degree_days'
   group_name: string
-  status: 'beta' | 'stable' | 'retired'
+  model_status: 'beta' | 'stable' | 'retired'
   version: string
   summary: string
   crops: NamedId[]

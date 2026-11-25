@@ -65,13 +65,13 @@
     </p>
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-3xl font-semibold">{props.name}</h1>
-      <StatusBadge status={props.status} />
+      <StatusBadge status={props.model_status} />
     </div>
     {#if props.crops.length}
       <p class="text-sm text-ink-muted">{`For ${andList(props.crops.map((c) => c.name.toLowerCase()))}`}</p>
     {/if}
     <GlossaryText paragraphs={[props.summary]} class="max-w-prose text-lg" />
-    {#if props.status === 'beta'}
+    {#if props.model_status === 'beta'}
       <p class="max-w-prose rounded-md border border-line bg-surface-raised px-3 py-2 text-sm">
         <strong class="font-semibold">Beta.</strong> We are still checking this model, so its results may change. Use it
         alongside your own scouting{props.draft ? ', and note that this page’s text is a draft' : ''}.
@@ -281,7 +281,7 @@
 
       <section id="versions" aria-labelledby="versions-title" class="scroll-mt-24 space-y-3">
         <h2 id="versions-title" class="text-2xl font-semibold">Version and changes</h2>
-        <p>{`Version ${props.version}, ${props.status === 'beta' ? 'beta' : props.status}.`}</p>
+        <p>{`Version ${props.version}, ${props.model_status === 'beta' ? 'beta' : props.model_status}.`}</p>
         {#if props.changelog.length}
           <ul class="space-y-2">
             {#each props.changelog as change (change.version)}

@@ -161,7 +161,7 @@ def page_props(spec: ModelSpec) -> ModelPageProps:
         name=spec.name,
         group=spec.group,
         group_name=GROUPS.get(spec.group, "Tools"),
-        status=spec.status,
+        model_status=spec.status,
         version=spec.version,
         summary=spec.summary,
         crops=[NamedId(id=c, name=croplist.CROPS[c].name) for c in spec.crops if c in croplist.CROPS],

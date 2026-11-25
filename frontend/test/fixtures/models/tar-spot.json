@@ -1,144 +1,144 @@
 {
- "id": "tar-spot",
- "name": "Tar spot risk",
- "group": "disease",
- "group_name": "Diseases",
- "status": "beta",
- "version": "0.3",
- "summary": "The probability that recent weather has favored tar spot increasing in a corn field, from a month of temperature and humidity; corn is susceptible from V10 (10th leaf) to R3 (milk).",
- "crops": [
-  {
-   "id": "corn",
-   "name": "Corn"
-  }
- ],
- "sections": [
-  {
-   "id": "what-it-predicts",
-   "title": "What it predicts",
-   "html": "<p>The model gives the probability that the past month's weather has favored tar spot increasing in a corn field, from 0 to 100 %. It doesn't say whether the fungus is present: tar spot has to be in the area for the weather to matter.</p>\n"
-  },
-  {
-   "id": "how-it-works",
-   "title": "How it works",
-   "html": "<p>The model averages two equations from Webster and colleagues (2023), fitted to whether tar spot severity increased between two ratings of the same field in Midwest plots and fields. One uses the 30-day average temperature and daily maximum humidity, the other the 30-day average temperature and the 14-day average of humid night hours. In both, warmer weather and long humid nights lower the probability, as the authors found. Risk is shown while corn is from V10 to R3.</p>\n"
-  },
-  {
-   "id": "how-to-read-it",
-   "title": "How to read it",
-   "html": "<ul>\n<li>Higher values mean recent weather has been more like the weather when tar spot increased in the study.</li>\n<li>Scout fields when the risk is Moderate or higher during the susceptible stages, and use the <a href=\"/topics/tar-spot\">tar spot topic page</a> for management.</li>\n</ul>\n"
-  },
-  {
-   "id": "validation-and-caveats",
-   "title": "Validation and caveats",
-   "html": "<ul>\n<li>Draft (model version 0.3, beta). The equations come from the paper; AgWeather's version reproduces the Crop Risk Tool's, and hasn't been compared with tar spot in Wisconsin fields.</li>\n<li>Humid hours are estimated from gridded humidity, which reads slightly low, so an hour counts at 88 % rather than 90 %; how that changes this model hasn't been measured.</li>\n</ul>\n"
-  }
- ],
- "draft": true,
- "updated": "2026-11-18",
- "acknowledgments": null,
- "sources": [],
- "risk": {
-  "levels": [
-   "Very low",
-   "Low",
-   "Moderate",
-   "High"
+  "id": "tar-spot",
+  "name": "Tar spot risk",
+  "group": "disease",
+  "group_name": "Diseases",
+  "model_status": "beta",
+  "version": "0.3",
+  "summary": "The probability that recent weather has favored tar spot increasing in a corn field, from a month of temperature and humidity; corn is susceptible from V10 (10th leaf) to R3 (milk).",
+  "crops": [
+    {
+      "id": "corn",
+      "name": "Corn"
+    }
   ],
-  "criteria": "Very low below 1%, Low from 1%, Moderate from 20%, High from 35%."
- },
- "outputs": [
-  {
-   "label": "Probability of tar spot increasing",
-   "unit": "percent",
-   "description": ""
-  }
- ],
- "inputs": [
-  {
-   "name": "air_temperature_mean",
-   "label": "Mean temperature",
-   "unit": "degC",
-   "description": "30-day moving average",
-   "definition": "Air temperature at 2 m, daily mean"
+  "sections": [
+    {
+      "id": "what-it-predicts",
+      "title": "What it predicts",
+      "html": "<p>The model gives the probability that the past month's weather has favored tar spot increasing in a corn field, from 0 to 100 %. It doesn't say whether the fungus is present: tar spot has to be in the area for the weather to matter.</p>\n"
+    },
+    {
+      "id": "how-it-works",
+      "title": "How it works",
+      "html": "<p>The model averages two equations from Webster and colleagues (2023), fitted to whether tar spot severity increased between two ratings of the same field in Midwest plots and fields. One uses the 30-day average temperature and daily maximum humidity, the other the 30-day average temperature and the 14-day average of humid night hours. In both, warmer weather and long humid nights lower the probability, as the authors found. Risk is shown while corn is from V10 to R3.</p>\n"
+    },
+    {
+      "id": "how-to-read-it",
+      "title": "How to read it",
+      "html": "<ul>\n<li>Higher values mean recent weather has been more like the weather when tar spot increased in the study.</li>\n<li>Scout fields when the risk is Moderate or higher during the susceptible stages, and use the <a href=\"/topics/tar-spot\">tar spot topic page</a> for management.</li>\n</ul>\n"
+    },
+    {
+      "id": "validation-and-caveats",
+      "title": "Validation and caveats",
+      "html": "<ul>\n<li>Draft (model version 0.3, beta). The equations come from the paper; AgWeather's version reproduces the Crop Risk Tool's, and hasn't been compared with tar spot in Wisconsin fields.</li>\n<li>Humid hours are estimated from gridded humidity, which reads slightly low, so an hour counts at 88 % rather than 90 %; how that changes this model hasn't been measured.</li>\n</ul>\n"
+    }
+  ],
+  "draft": true,
+  "updated": "2026-11-18",
+  "acknowledgments": null,
+  "sources": [],
+  "risk": {
+    "levels": [
+      "Very low",
+      "Low",
+      "Moderate",
+      "High"
+    ],
+    "criteria": "Very low below 1%, Low from 1%, Moderate from 20%, High from 35%."
   },
-  {
-   "name": "relative_humidity_max",
-   "label": "Maximum RH",
-   "unit": "percent",
-   "description": "30-day moving average",
-   "definition": "Relative humidity at 2 m, daily max"
+  "outputs": [
+    {
+      "label": "Probability of tar spot increasing",
+      "unit": "percent",
+      "description": ""
+    }
+  ],
+  "inputs": [
+    {
+      "name": "air_temperature_mean",
+      "label": "Mean temperature",
+      "unit": "degC",
+      "description": "30-day moving average",
+      "definition": "Air temperature at 2 m, daily mean"
+    },
+    {
+      "name": "relative_humidity_max",
+      "label": "Maximum RH",
+      "unit": "percent",
+      "description": "30-day moving average",
+      "definition": "Relative humidity at 2 m, daily max"
+    },
+    {
+      "name": "hours_rh_over_90_7pm_to_6am",
+      "label": "Night hours with RH ≥ 90%",
+      "unit": "hour",
+      "description": "7 pm to 6 am, 14-day moving average",
+      "definition": "Hours from 7 pm to 6 am (tar spot's night) with RH at or above 90% as a station counts it (gridded RH ≥ 88%)"
+    },
+    {
+      "name": "air_temperature_min",
+      "label": "Minimum temperature",
+      "unit": "degC",
+      "description": "21-day moving average, for cold attenuation",
+      "definition": "Air temperature at 2 m, daily min"
+    }
+  ],
+  "region": [],
+  "season": [
+    "07-01",
+    "08-15"
+  ],
+  "seasonal_appears": null,
+  "biofix": null,
+  "susceptible": {
+    "crop_model": {
+      "id": "corn-stages",
+      "name": "Corn growth stages"
+    },
+    "first": "V10",
+    "last": "R3",
+    "source": "The Crop Risk Tool (V10–R3, 10th leaf to milk); Tarspotter's fungicide window",
+    "note": ""
   },
-  {
-   "name": "hours_rh_over_90_7pm_to_6am",
-   "label": "Night hours with RH ≥ 90%",
-   "unit": "hour",
-   "description": "7 pm to 6 am, 14-day moving average",
-   "definition": "Hours from 7 pm to 6 am (tar spot's night) with RH at or above 90% as a station counts it (gridded RH ≥ 88%)"
-  },
-  {
-   "name": "air_temperature_min",
-   "label": "Minimum temperature",
-   "unit": "degC",
-   "description": "21-day moving average, for cold attenuation",
-   "definition": "Air temperature at 2 m, daily min"
-  }
- ],
- "region": [],
- "season": [
-  "07-01",
-  "08-15"
- ],
- "seasonal_appears": null,
- "biofix": null,
- "susceptible": {
-  "crop_model": {
-   "id": "corn-stages",
-   "name": "Corn growth stages"
-  },
-  "first": "V10",
-  "last": "R3",
-  "source": "The Crop Risk Tool (V10–R3, 10th leaf to milk); Tarspotter's fungicide window",
-  "note": ""
- },
- "trained": null,
- "changelog": [
-  {
-   "version": "0.3",
-   "date": "2026-11-18",
-   "note": "Named for what it predicts: Webster et al. 2023's response was an increase in tar spot severity between two ratings, not spores being present (the Crop Risk Tool's wording). Outputs unchanged."
-  },
-  {
-   "version": "0.2",
-   "date": "2026-11-06",
-   "note": "The same night hours (readings 20:00–06:00, 7 pm to 6 am) on CST all year, an hour later by the clock in summer (D74)."
-  },
-  {
-   "version": "0.1",
-   "date": "2026-10-28",
-   "note": "Ported from the Crop Risk Tool."
-  }
- ],
- "citations": [
-  {
-   "text": "Webster, R. W., Nicolli, C., Allen, T. W., et al. (2023). Uncovering the environmental conditions required for Phyllachora maydis infection and tar spot development on corn in the United States for use as predictive models for future epidemics. Scientific Reports 13, 17064.",
-   "doi": "10.1038/s41598-023-44338-6",
-   "url": "https://doi.org/10.1038/s41598-023-44338-6"
-  },
-  {
-   "text": "Crop Protection Network: Tar spot of corn.",
-   "doi": null,
-   "url": "https://cropprotectionnetwork.org/encyclopedia/tar-spot-of-corn"
-  }
- ],
- "checks": [
-  {
-   "kind": "system",
-   "against": "The Crop Risk Tool, which AgWeather's tar spot model was ported from, on the tool's own 2025 weather for Eau Claire, Wisconsin",
-   "result": "Given the tool's daily weather, our daily probability matched the tool's on all 365 days of 2025. This shows that we reproduce the tool, not that its predictions are right: the model hasn't yet been compared with tar spot in fields.",
-   "report_url": "https://github.com/uwent/agweather2/blob/main/docs/validation/models/tar-spot.md#against-the-crop-risk-tool-on-the-same-weather"
-  }
- ],
- "report_url": "https://github.com/uwent/agweather2/blob/main/docs/validation/models/tar-spot.md",
- "map_layer": "tar-spot"
+  "trained": null,
+  "changelog": [
+    {
+      "version": "0.3",
+      "date": "2026-11-18",
+      "note": "Named for what it predicts: Webster et al. 2023's response was an increase in tar spot severity between two ratings, not spores being present (the Crop Risk Tool's wording). Outputs unchanged."
+    },
+    {
+      "version": "0.2",
+      "date": "2026-11-06",
+      "note": "The same night hours (readings 20:00–06:00, 7 pm to 6 am) on CST all year, an hour later by the clock in summer (D74)."
+    },
+    {
+      "version": "0.1",
+      "date": "2026-10-28",
+      "note": "Ported from the Crop Risk Tool."
+    }
+  ],
+  "citations": [
+    {
+      "text": "Webster, R. W., Nicolli, C., Allen, T. W., et al. (2023). Uncovering the environmental conditions required for Phyllachora maydis infection and tar spot development on corn in the United States for use as predictive models for future epidemics. Scientific Reports 13, 17064.",
+      "doi": "10.1038/s41598-023-44338-6",
+      "url": "https://doi.org/10.1038/s41598-023-44338-6"
+    },
+    {
+      "text": "Crop Protection Network: Tar spot of corn.",
+      "doi": null,
+      "url": "https://cropprotectionnetwork.org/encyclopedia/tar-spot-of-corn"
+    }
+  ],
+  "checks": [
+    {
+      "kind": "system",
+      "against": "The Crop Risk Tool, which AgWeather's tar spot model was ported from, on the tool's own 2025 weather for Eau Claire, Wisconsin",
+      "result": "Given the tool's daily weather, our daily probability matched the tool's on all 365 days of 2025. This shows that we reproduce the tool, not that its predictions are right: the model hasn't yet been compared with tar spot in fields.",
+      "report_url": "https://github.com/uwent/agweather2/blob/main/docs/validation/models/tar-spot.md#against-the-crop-risk-tool-on-the-same-weather"
+    }
+  ],
+  "report_url": "https://github.com/uwent/agweather2/blob/main/docs/validation/models/tar-spot.md",
+  "map_layer": "tar-spot"
 }

@@ -242,7 +242,8 @@ class ModelPageProps(Props):
     name: str
     group: Literal["disease", "insect", "crop", "agronomic", "degree_days"]
     group_name: str
-    status: Literal["beta", "stable", "retired"]
+    # Not `status`: a page's props are merged over the shared ones, and `status` is the data's (SharedProps)
+    model_status: Literal["beta", "stable", "retired"]
     version: str
     summary: str
     crops: list[NamedId]

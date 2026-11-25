@@ -6,6 +6,7 @@ from django.test import Client
 from agmodels.pages import Page
 from agmodels.registry import all_models
 from web import modelpages
+from web.props import ModelPageProps, ModelsIndexProps, SharedProps
 
 INERTIA = {"X-Inertia": "true", "X-Inertia-Version": "dev"}
 
@@ -89,6 +90,13 @@ def test_markdown_is_rendered_without_raw_html_and_with_numbered_citations():
     assert '<a href="#source-a-2019" aria-label="Source 1">1</a>' in html
     assert '<a href="#source-b-2020" aria-label="Source 2">2</a>' in html
     assert "<script>" not in html and "&lt;script&gt;" in html
+
+
+def test_page_props_never_hide_the_shared_ones():
+    # Inertia merges a page's props over the shared props: a model's `status` once replaced the data's
+    shared = set(SharedProps.model_fields) | {"errors"}
+    assert not shared & set(ModelPageProps.model_fields)
+    assert not shared & set(ModelsIndexProps.model_fields)
 
 
 def test_plain_string_sources_give_no_numbered_list():
