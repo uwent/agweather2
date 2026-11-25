@@ -45,7 +45,7 @@ class Command(ReportingCommand):
         if options["report"]:
             return self.report_scores(positive(options["days"], "--days"), options["by_cycle"])
         if options["check"]:
-            return self.check(now)
+            return self.check_kept(now)
         if options["keep_current"]:
             current = forecast.current_run(data_dir)
             if current is None:
@@ -64,7 +64,7 @@ class Command(ReportingCommand):
             self.report.warn(note)
         self.finish(f"{done.days} days scored, {done.rows} rows")
 
-    def check(self, now: datetime) -> None:
+    def check_kept(self, now: datetime) -> None:
         runs = verification.kept_runs(settings.DATA_DIR)
         due = scores.due_days(settings.DATA_DIR, now, runs)
         first = f"{runs[0].cycle:%Y-%m-%d %H}Z" if runs else "none"

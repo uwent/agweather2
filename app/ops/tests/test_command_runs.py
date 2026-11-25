@@ -653,3 +653,18 @@ def test_pastyears_year_must_have_a_daily_store(data_dir, monkeypatch):
     monkeypatch.setattr(pastyears, "build", lambda data, year, progress: None)
     out, _ = run("pastyears", "--year", "2024")
     assert "2024 (asked for)" in out and "1 years built" in out
+
+
+def test_no_command_hides_djangos_system_checks():
+    """A command's own `check` method replaced `BaseCommand.check` (the system checks), so `manage.py verify` failed
+    from the command line in every mode while `call_command` (which skips the checks) passed (2026-11-26)."""
+    import importlib
+    import pkgutil
+
+    from django.core.management.base import BaseCommand
+
+    import ops.management.commands as commands
+
+    for module in pkgutil.iter_modules(commands.__path__):
+        command = importlib.import_module(f"{commands.__name__}.{module.name}").Command
+        assert command.check is BaseCommand.check, f"manage.py {module.name} overrides BaseCommand.check"
