@@ -2,7 +2,7 @@
 
 Drafted 2026-11-06, before Phase 6's architecture decisions. What the site is for, what it does, how its pages are laid out and how they look and behave, with a review of peer sites and what each feature needs from the API. PLAN.md holds the decisions (D#) and the work list; `docs/api.md` is the API contract the pages read from. Where this file proposes something that needs a decision, it's listed under Open questions (F#) rather than decided here.
 
-Legend for the API column throughout: **✓** served by `/api/v2` today; **◐** served with client-side work or several requests; **○** in the API contract but not built (mostly Climate, Phase 6); **✗** needs new API or data work; **—** frontend only (a third-party service, static content or browser state).
+Legend for the API column throughout: **✓** served by `/api/v2` today; **◐** served with client-side work or several requests; **○** in the API contract but not built (none left since Phase 6); **✗** needs new API or data work; **—** frontend only (a third-party service, static content or browser state).
 
 ## Objectives
 
@@ -55,13 +55,13 @@ Priorities follow project-plan.md's launch table (P0 for April 1, 2027; P1 durin
 | Model layers filtered by crop, then pest or disease, with each model's outputs (risk level, risk value, a stage, an output) and options (irrigation, planting) | VDIFN's crop → model selects | ✓ `/layers`, `/models` |
 | One day or hour; a range reduced by sum, mean, min or max; "season to date"; biofix for degree days | VDIFN date range, v1 maps | ✓ tiles `{time}` and `stat` |
 | Date scrubber with −7, −1, +1, +7 and Today, playing as an animation (U2U's Animations tab) | alfalfa tool, U2U | ✓ a tile set per step; ◐ prefetch to animate |
-| Smoothing: 7-, 14- or 28-day mean (or sum) ending on or centered on the date (D81) | alfalfa tool | ○ `roll=` on tiles and `/maps` (D0) |
+| Smoothing: 7-, 14- or 28-day mean (or sum) ending on or centered on the date (D81) | alfalfa tool | ✓ `roll=` on tiles and `/maps` (D81) |
 | Palette and scale (default, auto, or low and high) changed in the browser | VDIFN palettes, D73 | ✓ `/palettes`, data tiles |
 | Click a cell: its value, the cell's outline, and a panel with the recent days, the forecast and a chart, leading to the site page | VDIFN popup, alfalfa "Selected grid" | ✓ `/locate`, `/weather/daily`, `/models/{id}/run` |
 | Map title chip ("Tar spot risk, Nov 6, 2026"), legend with units, data credit, and the data's newest hour | Crop Risk Tool, D60 | ✓ `/layers`, `/status` |
 | Share and export: copy link; **Save image** (the map as shown, with its title, date, legend, labels the reader can drag, and the credit band, drawn on a canvas at 2× for newsletters; ported from late-blight-db); GeoTIFF or NetCDF of the view; TileJSON for GIS | late-blight-db, v1 map images | — for the image; ✓ `/grids`, `/tiles/{layer}.json` |
 | Overlays: radar, MRMS rain (24, 72 h), WPC forecast rain (1, 3, 7 days), U.S. Drought Monitor (port from WISP 3); counties; cropland (CDL) | WISP 3, Crop Risk Tool | — third-party; cropland ◐ each cell's crop shares built (`data/cropland.zarr`, D116), the overlay layer planned with Phase 7's maps (whether to serve the 30 m CDL ourselves or use CropScape's map service is open) |
-| Climate layers: normal, departure from normal, percentile (U2U and MRCC departure maps) | alfalfa "Weather vs climate" | ○ climate layers |
+| Climate layers: normal, departure from normal, percentile (U2U and MRCC departure maps) | alfalfa "Weather vs climate" | ✓ `climate=normal`, `departure` or `percentile` on the layers (D86) |
 | Place search, my location, coordinates | all | — Nominatim (search on Enter) |
 
 ### Sites (P0; replaces v1 Sites, the Crop Risk Tool, Veg Path's place charts)
@@ -79,7 +79,7 @@ Priorities follow project-plan.md's launch table (P0 for April 1, 2027; P1 durin
 | A model at a site: weather inputs, output and risk on one time axis through observed, forecast and projection; stage bands for crops; action windows for insects (D36) | Crop Risk Tool, Veg Path charts | ✓ `/models/{id}/run`, `projection=true` |
 | A results table in NEWA's form: recent days, then forecast days, with daily, 2-, 7- or 14-day and season accumulations, a risk key and CSV | NEWA | ✓ data; ◐ windowed sums in the browser |
 | "Since a date": reset an accumulation at a spray or emergence date (Veg Path asks readers to subtract by hand) | Veg Path | ✓ `biofix` |
-| Charts and data: hourly, daily, moving averages, degree days; pick variables; forecast on or off; download CSV | Crop Risk Tool "Charts and data" | ✓ points endpoints; ○ moving averages by `roll=` (D0) |
+| Charts and data: hourly, daily, moving averages, degree days; pick variables; forecast on or off; download CSV | Crop Risk Tool "Charts and data" | ✓ points endpoints, moving averages by `roll=` (D81) |
 | Dashboard of all saved sites: one card each with today's weather, risk and alerts | v1 Sites, NEWA profile dashboard | ◐ one `/risk` per site |
 | Feeds: one model across all sites; one site across all models | project-plan "Feeds" | ◐ one `/models/{id}/run` per site; ✓ `/models/run` |
 
@@ -93,7 +93,7 @@ Priorities follow project-plan.md's launch table (P0 for April 1, 2027; P1 durin
 | Fitted curves on two clocks (D101): a fitted insect's chart shows this year's degree-day curve and the typical season by calendar date together (`clock=all`), with the gap between them said in words ("running 5 days ahead of a typical year"); its map takes either clock (`clock=`). The model page and map show the training area (`trained` on `/models`: counties or states, years, a description) as an outline, and say plainly when a place is outside it (the warning the API already gives) | Ben, 2026-11-21 | ✓ `clock` option, `trained`, warnings |
 | Explorer: sliders over a model's inputs and its response | — | ✓ `POST /models/{id}/evaluate` |
 | Topic pages: identification, life cycle, damage, management, photos (49 drafted in `content/topics`); citations rendered from footnote markers, `[^key]`, as numbered links to the front matter's keyed sources (`agmodels.pages.source_problems`; Ben, 2026-11-18) | v1 pest pages, VDIFN pest info | — content |
-| Methods page generated from the catalog, the corrections and the sources (Phase 6) | — | ✓ `/variables`; ✗ corrections and sources by date aren't served yet |
+| Methods page generated from the catalog, the corrections and the sources (Phase 6) | — | ✓ `/variables`, `/methods` (corrections and sources by date, D92) |
 
 ### Tools (P0 unless noted)
 
@@ -102,10 +102,10 @@ Priorities follow project-plan.md's launch table (P0 for April 1, 2027; P1 durin
 | --- | --- | --- |
 | Degree-day calculator: location, dates or biofix, one or several settings (method, base, upper), totals table and chart, link to the map | v1, NEWA, Wisconet GDD calculators | ✓ `/degree-days`, `/degree-days/table` |
 | Crop GDD outlook: this year against normal with its spread, projection to the year's end, stages by maturity (silking, black layer), first fall freeze odds, comparison years (P1) | MRCC's U2U Corn GDD, HPRCC CliGrow | ◐ `/degree-days` with projection ✓, `corn-stages` ✓ beta; normals, spread and freeze odds ✓ (`/climate/*`); years before the archive from Open-Meteo (D87) |
-| Alfalfa: growth since the last cut, and the season planner (target interval or number of cuts, editable and lockable cut dates, killing freeze odds) (P1) | alfalfa tool's Growth Projection and Season Planning | ◐ `alfalfa-growth` and projection ✓; killing freeze odds ○; the planner's logic ✗ (F5) |
+| Alfalfa: growth since the last cut, and the season planner (target interval or number of cuts, editable and lockable cut dates, killing freeze odds) (P1) | alfalfa tool's Growth Projection and Season Planning | ◐ `alfalfa-growth` and projection ✓; killing freeze odds ✓ (`/climate/frost`); the planner's logic ✗ (F5) |
 | Potato volunteer: season map, killing hours at 2, 4 and 8 in by location, air and soil charts (P1) | potato volunteer map | ✓ `potato-volunteer` layer and run, D68 seasons |
 | Oak wilt: vector flight risk with the pruning guidance | v1 Oak Wilt page, emails | ✓ `oak-wilt-vectors` |
-| Freeze dates: last spring and first fall freeze this year at a location, and the odds by date (P2 for the grid maps) | v1 frost maps, MRCC freeze tools | ✓ `/freeze`; ○ `/climate/frost` |
+| Freeze dates: last spring and first fall freeze this year at a location, and the odds by date (P2 for the grid maps) | v1 frost maps, MRCC freeze tools | ✓ `/freeze`, `/climate/frost` |
 | Day-of-year calendar | v1 `weather/doycal` (top page in Analytics) | — |
 
 ### Climate (P1)
@@ -113,9 +113,9 @@ Priorities follow project-plan.md's launch table (P0 for April 1, 2027; P1 durin
 <!-- prettier-ignore -->
 | Feature | From | API |
 | --- | --- | --- |
-| Normals at a location: daily mean and percentile bands, by day, month or year; 1991–2020, last 5 or last 10 years | alfalfa "Climate plot", MRCC summaries | ○ `/climate/normals` |
-| This year against last year and normal: running totals, departure, percentile, "N days ahead of normal" for degree days | alfalfa "Weather plot", U2U | ○ `/climate/compare` |
-| Frost and freeze: probability of a freeze on or before each date at 32, 28 and 24 °F, growing season length | alfalfa, MRCC | ○ `/climate/frost` |
+| Normals at a location: daily mean and percentile bands, by day, month or year; the last 30, 10 or 5 years (D82) | alfalfa "Climate plot", MRCC summaries | ✓ `/climate/normals` |
+| This year against last year and normal: running totals, departure, percentile, "N days ahead of normal" for degree days | alfalfa "Weather plot", U2U | ✓ `/climate/compare` |
+| Frost and freeze: probability of a freeze on or before each date at 32, 28 and 24 °F, growing season length | alfalfa, MRCC | ✓ `/climate/frost`, `/climate/frost/chances` |
 | Long record at a location (from 1951 or 1979) | U2U comparison years from 1981 | ✗ not planned (D87): points before the archive come from Open-Meteo, one request per span |
 | Monthly benchmark: counts of heat days, cold days, warm nights, freeze days, dry days, heavy-rain days, sunny and cloudy days, against a 10-, 20- or 30-year average | ISU FACTS Weather Tool | ✓ (`count=` on `/climate/normals` and `/climate/compare`, any bounds at points; stored counts on maps and by county with `climate=`; cold days on the 10- and 5-year normals only; D88) |
 
@@ -275,7 +275,7 @@ Visited 2026-11-06 with a headless browser (Playwright), late-blight-db added th
 - Season Planning: weather year, climate period, target interval (GDD) or number of cuts (2–6); cut dates as editable, lockable and removable cards; a chart of cumulative GDD (observed and projected against the climate average), GDD since the last cut as a sawtooth, cut markers with days and GDD, the green cut window, and the cumulative killing freeze probability on a second axis.
 - Downloads: the whole grid as shown, or one location's weather and climate.
 - Take: all of the above. The planner is the strongest single tool among the peers; v2 keeps its interaction (lockable cut dates, target interval or count) and splits its chart into a GDD panel and a freeze-odds panel.
-- API: map ✓ except climate layers ○; charts ✓ with normals and frost ○; growth ✓; planner ◐ (F5); downloads ✓.
+- API: map ✓ with climate layers; charts ✓ with normals and frost; growth ✓; planner ◐ (F5); downloads ✓.
 
 ### Other state and regional services
 
@@ -283,7 +283,7 @@ Visited 2026-11-06 with a headless browser (Playwright), late-blight-db added th
 
 - Station page: metadata, soil temperature and moisture at 2, 4, 8, 20 and 40 in, plant available water and its percent of maximum by depth, chill hours since October 1, reference ET yesterday, Cattle Comfort Index, Temperature Humidity Index, pressure; units toggles per quantity (°F/°C, in/mm, inHg/mb, mph/m/s, ft/m). Agricultural dashboard: a map of stations with values, a summary card (temperature, Drought Monitor category at the station, 24-hour rain, yesterday's ET, 4 in soil temperature, plant available water, "No active weather hazards"), and cards for Animal Comfort, Chill Hours, Drought, ET, Forecast, Growing Degree Days (start, end, lower and upper threshold, simple or sine), Pest & Disease Models (cherry leaf spot, spotted wing drosophila, links to NEWA and UW's Wisconsin Crop Disease Risk Forecast), Plant Available Water, Soil Conditions. Meteograms and an archive download (5-minute, hourly or daily, a 100,000-value limit stated up front).
 - Take: the summary card's mix for the site page (rain, ET, soil temperature, drought category, NWS alerts); chill hours and livestock heat stress as new derived values; per-quantity units; stating a download's size limit before it fails.
-- API: drought category at a point — (the Drought Monitor's feature service, as WISP 3 queries it); NWS alerts — (api.weather.gov); chill hours ✓ (`/chill`, the `chill_hours`, `utah_chill_units` and `chill_portions` layers); THI and cattle comfort ✓ (daily features and hourly layers); plant available water ✗ (we hold no soil moisture). Station observations beside the grid wait for the station-network enhancement (D59).
+- API: drought category at a point — (the Drought Monitor's feature service, as WISP 3 queries it); NWS alerts — (api.weather.gov); chill hours ✓ (`/chill`, the `chill_hours`, `utah_chill_units` and `chill_portions` layers); THI and cattle comfort ✓ (daily features and hourly layers); soil moisture ✓ (D110, by ERA5-Land's layers); plant available water ✗. Station observations beside the grid wait for the station-network enhancement (D59).
 
 **[Enviroweather](https://enviroweather.msu.edu/)** (Michigan State).
 
@@ -315,7 +315,7 @@ Visited 2026-11-06 with a headless browser (Playwright), late-blight-db added th
 **[HPRCC Agroclimate](https://hprcc.unl.edu/agroclimate/)**: a list of tools, several from partners. CliGrow is the one to take: location, planting date, crop presets with base and upper (alfalfa 41/77, corn 50/86, dry beans, grass 32/77, potatoes 45/97, sorghum, soybeans, sugarbeets, sunflower 50/99, wheat 32/77, custom), maturity GDD, freeze temperature, a comparison year, and a bookmarkable graph. Also the Cattle Comfort Index (past and forecast), wet bulb globe temperature forecasts, Climate Perspectives (recent weather against prior periods at a station) and links to drought tools.
 
 - Take: crop presets for the degree-day calculator and the crop GDD outlook (each preset naming its source); a bookmarkable result. Heat stress for livestock is a candidate (F8).
-- API: ✓ for degree days at any setting; presets are frontend data.
+- API: ✓ for degree days at any setting; presets ✓ (`/degree-days/presets`).
 
 ### Patterns across the peers
 
@@ -334,18 +334,18 @@ Ideas from the review that aren't already in the feature tables, and what each n
 | --- | --- | --- | --- |
 | Chill hours (hours between two temperatures, from a start date such as October 1; Utah and 0–7.2 °C variants) at locations and as a map | Wisconet, MRCC | ✓ | New daily features and a running total in the catalog (hourly temperature is stored); S–M |
 | Livestock heat stress: Temperature Humidity Index and its hours above thresholds; cattle comfort index | Wisconet, HPRCC | ✓ | Derived hourly variable from temperature, humidity (and wind, sun for CCI) with daily features; S |
-| Water balance: precipitation minus ET0 over a window, as a layer and at locations | MRCC | ✗ (◐ at points: both totals ✓) | A derived layer computed from two stored running totals; S |
+| Water balance: precipitation minus ET0 over a window, as a layer and at locations | MRCC | ✓ (`water_balance`, a variable computed when read, D75) | Built in Phase 6 C steps 1 and 3 |
 | Current-season freeze maps: first fall freeze date, days since the last freeze, nights below a threshold in the last N days | MRCC | ✓ (`/freeze` at points, `count=days_below_32`, `stat=min`, `first=frost`/`last=`/`since=`, D78) | Built in Phase 6 C steps 2 and 4 |
 | Monthly or seasonal threshold counts against normal (heat days, warm nights, dry days, heavy-rain days) by location and county | FACTS | ✓ (D88) | Count statistics (above), `interval=month` at points, county summaries (below), normals of counts from the climatology (D61 keeps daily data, so they're computable); M |
-| County and crop-district summaries (mean, min, max of a layer over an area) | FACTS, U2U, Drought Monitor statistics | ✗ | A zonal statistics endpoint over `agdata.regions`' counties and states; M |
+| County and crop-district summaries (mean, min, max of a layer over an area) | FACTS, U2U, Drought Monitor statistics | ✓ (`/summaries/{layer}`, counties and states) | Built in Phase 6 C step 5; crop districts not yet |
 | Trends in freeze dates and season length (1951 on) | MRCC Freeze Date Tool | ✗ | Not planned (D87): maps cover the archive's 11 years only, and gridMET's years build the normals, not daily maps |
 | Drought category at a location; NWS watches and warnings at a location | Wisconet | — | Browser fetches from the Drought Monitor feature service and api.weather.gov, as WISP 3 does for overlays; S |
 | Station observations beside the cell's values | Wisconet, Enviroweather, NEWA | ✗ | The station-network enhancement (D59), after launch |
-| Soil moisture and plant available water | Wisconet, FACTS | ✗ | No source in the archive; HRRR's soil moisture or Open-Meteo's could be a new variable; L, P2 (F9) |
+| Soil moisture and plant available water | Wisconet, FACTS | ◐ soil moisture ✓ (D110); plant available water ✗ | Soil moisture by ERA5-Land's layers 0–7, 7–28 and 28–100 cm, IFS for recent and forecast hours (Phase 6 step 6); plant available water needs soil properties |
 | Leaf wetness | Enviroweather, NEWA | ✗ | No measured source; models use RH ≥ 90 hours (D50). Leave out, and say so on the models that would use it |
-| Date of interest: any past day's model result and forecast-at-the-time | NEWA | ◐ | Results for a past day ✓ (`/risk?date=`); "as forecast then" needs stored forecasts we don't keep; leave out |
+| Date of interest: any past day's model result and forecast-at-the-time | NEWA | ◐ | Results for a past day ✓ (`/risk?date=`); "as forecast then" isn't served: runs are kept only 45 days, for scoring (D113); leave out |
 | Comparison years on any cumulative chart | U2U, CliGrow, alfalfa | ✓ the archive's years; earlier from Open-Meteo | Several `/degree-days` requests; years before the archive come from Open-Meteo (ERA5), so the chart names their source beside the archive's (D87) |
-| Crop presets for degree days (crop, base, upper, method, source) | CliGrow | — | Frontend data, reviewed against the cited sources; S |
+| Crop presets for degree days (crop, base, upper, method, source) | CliGrow | ✓ (`/degree-days/presets`) | Built in Phase 6 step 2 (`agmodels.presets`) |
 | Map animation through a range | U2U Animations | ◐ | Prefetch tiles; cap the frame count; S |
 | Embeddable chart or table for partner sites (Veg Path's WordPress) | Veg Path | ✗ | An embed route with a minimal layout, or the API and static maps alone (F6) |
 | Help: short how-to videos or a guided first visit | NEWA | — | Content, after launch |
