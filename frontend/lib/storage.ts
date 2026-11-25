@@ -1,3 +1,4 @@
+// WISP 3: app/frontend/lib/storage.ts (copied)
 // Settings remembered in this browser (a collapsed row, a chosen order), or for this tab's session
 // (setup's last choices). Storage can be blocked (a private window, a browser setting) or hold
 // anything, so reading and writing never throw: a setting that can't be read is undefined, and one

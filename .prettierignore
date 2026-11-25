@@ -23,3 +23,5 @@ packages/agdata/src/agdata/data/openmeteo_rh_map.json
 # validation data, kept as written (indent 1)
 docs/validation/data
 app/*/tests/fixtures/**/*.json
+# map data (a simplified US outline, from WISP 3), kept compact
+frontend/lib/map/us-outline.json
