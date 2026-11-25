@@ -21,13 +21,13 @@ model shows the predicted stand and its interval instead, and the year term is h
 seed-treatment option yet (the authors' documents disagree on whether the fit has a term for it). Southern, beta.
 """
 
-import math
 from collections.abc import Mapping
 
 import numpy as np
 
 from agmodels.crops import number_option
 from agmodels.ingredients import Ingredient, finished
+from agmodels.normal import normal_cdf
 from agmodels.probability import logistic
 from agmodels.spec import (
     Change,
@@ -208,7 +208,7 @@ def probability_below(rain_3day, min_temp_9day, pythium, planting, limiting, yea
     emergence, se = _emergence_and_error(rain_3day=rain_3day, min_temp_9day=min_temp_9day, pythium=pythium, year=year)
     sd = np.asarray(planting, dtype=float) * se  # the CI's half-width over 1.96, on the plants scale
     z = (np.asarray(limiting, dtype=float) - emergence * planting) / sd
-    return _normal_cdf(z), emergence
+    return normal_cdf(z), emergence
 
 
 def _emergence_and_error(rain_3day, min_temp_9day, pythium, year) -> tuple[np.ndarray, np.ndarray]:
@@ -287,6 +287,3 @@ def _mean_of_present(window: np.ndarray, axis: int = 0) -> np.ndarray:
     count = np.isfinite(window).sum(axis=axis)
     with np.errstate(invalid="ignore"):
         return np.where(count >= MIN_COLD_DAYS, np.nansum(window, axis=axis) / np.maximum(count, 1), np.nan)
-
-
-_normal_cdf = np.vectorize(lambda z: 0.5 * (1 + math.erf(z / math.sqrt(2))) if math.isfinite(z) else math.nan)

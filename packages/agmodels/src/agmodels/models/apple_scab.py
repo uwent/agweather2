@@ -31,11 +31,11 @@ Stensvand et al. (1997)'s rows below 34 °F, light, moderate and heavy infection
 (no source found).
 """
 
-import math
 from collections.abc import Mapping
 
 import numpy as np
 
+from agmodels.normal import normal_cdf
 from agmodels.spec import Biofix, Change, Check, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk
 
 # NEWA's Revised Mills table: the period's mean temperature (°F, rounded) → wet hours an infection needs. MacHardy and
@@ -248,12 +248,9 @@ def infection_periods(temperature_c, rh_percent, precipitation_mm, day_hours: in
     }
 
 
-_normal_cdf = np.vectorize(lambda z: 0.5 * (1 + math.erf(z / math.sqrt(2))) if math.isfinite(z) else math.nan)
-
-
 def maturity_percent(dd_c) -> np.ndarray:
     """Gadoury and MacHardy (1982): the percent of ascospores mature after `dd_c` degree days (base 0 °C)."""
-    return 100 * _normal_cdf(PROBIT_A + PROBIT_B * np.asarray(dd_c, dtype=float) - 5)
+    return 100 * normal_cdf(PROBIT_A + PROBIT_B * np.asarray(dd_c, dtype=float) - 5)
 
 
 def counted_days(precipitation_mm: np.ndarray) -> np.ndarray:
