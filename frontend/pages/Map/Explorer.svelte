@@ -37,6 +37,10 @@
   import type { LayerInfo, LayersResponse, PaletteInfo } from '@/types/api'
 
   const units = $derived(currentUnits())
+
+  // The API's description of its degree-day layer is written for developers
+  const DEGREE_DAYS_ABOUT =
+    'Growing degree days measure the heat a crop or insect has had: each day adds the degrees by which its temperature rose above a base temperature, limited by an upper threshold where one is set. The map adds them up from January 1 or the date you choose, using each day’s low and high.'
   const today = gridToday()
 
   // --- The view (D118): kept for the tab, given whole by Share
@@ -442,7 +446,7 @@
       {#each info?.warnings ?? [] as warning (warning)}
         <p class="rounded-md border border-line bg-surface-raised p-2 text-sm" role="note">{warning}</p>
       {/each}
-      <p class="max-w-prose text-sm">{layer.description}</p>
+      <p class="max-w-prose text-sm">{layer.group === 'degree_days' ? DEGREE_DAYS_ABOUT : layer.description}</p>
       {#if info?.caption}<p class="max-w-prose text-sm text-ink-muted">{info.caption}</p>{/if}
       {#if through}<p class="text-sm text-ink-muted">{through}.</p>{/if}
       <p class="max-w-prose text-sm text-ink-muted">

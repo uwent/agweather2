@@ -10,7 +10,7 @@ import { expect, test } from './test'
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
 
-const PAGES = ['/', '/changelog', '/api-use']
+const PAGES = ['/', '/changelog', '/api-use', '/map']
 
 async function scan(page: Page, path: string, { reflow = true }: { reflow?: boolean } = {}) {
   await page.goto(path)

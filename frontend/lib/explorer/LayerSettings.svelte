@@ -79,7 +79,9 @@
       >
         {#each plantings as tier (tier)}<option value={tier}>{PLANTING_LABELS[tier] ?? tier}</option>{/each}
       </select>
-      <p class="text-xs text-ink-muted">Each place's typical date for the crop, from county records.</p>
+      <p class="text-xs text-ink-muted">
+        Each place's typical planting date for the crop, from satellite records of recent years.
+      </p>
     </div>
   {/if}
   {#each shownOptions as option (option.name)}

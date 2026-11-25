@@ -110,7 +110,7 @@
       class="block w-full rounded-md sm:text-sm"
       placeholder="Such as rain, frost or tar spot"
       bind:value={filter}
-      aria-controls="layer-filter-results"
+      aria-controls={filter.trim() ? 'layer-filter-results' : undefined}
     />
     {#if filter.trim()}
       <ul id="layer-filter-results" class="divide-y divide-line rounded-md border border-line bg-surface text-sm">

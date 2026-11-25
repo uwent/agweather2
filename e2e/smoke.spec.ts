@@ -82,6 +82,23 @@ test('changelog page', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Changes and announcements' })).toBeVisible()
 })
 
+test('the map explorer shows a layer and a clicked cell', async ({ page }) => {
+  await page.goto('/map')
+  await expect(page.getByRole('heading', { level: 1, name: 'Weather and pest maps' })).toBeVisible()
+  await expect(page.getByTestId('data-legend')).toBeVisible()
+  // The first visit's layer, by the month: degree days in the growing season, the daily low otherwise
+  await expect(page.getByTestId('title-chip')).toContainText(/Growing degree days|Air temperature, daily minimum/)
+  // A shared link opens its view, with its cell
+  await page.goto('/map?layer=air_temperature_min&date=2026-11-20&at=43.07,-89.4')
+  await expect(page.getByTestId('cell-panel')).toContainText('Dane County, WI')
+  await expect(page.getByRole('heading', { name: "This cell's recent days" })).toBeVisible()
+  // Stepping a day moves the date
+  await page.getByRole('button', { name: 'Forward 1 day' }).click()
+  await expect(page.locator('#time-day')).toHaveValue('2026-11-21')
+  // Tiles cancelled as the map moved on, or as the page was left, aren't failures
+  problems = problems.filter((problem) => !problem.endsWith('net::ERR_ABORTED'))
+})
+
 test('health check', async ({ request }) => {
   const response = await request.get('/up')
   expect(await response.json()).toMatchObject({ status: 'ok', database: 'ok' })

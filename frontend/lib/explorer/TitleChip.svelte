@@ -20,5 +20,5 @@
 <div class="max-w-md rounded-md bg-surface-raised/95 px-3 py-1.5 shadow-md ring-1 ring-line" data-testid="title-chip">
   <p class="text-sm/snug font-semibold">{title}</p>
   <p class="text-xs/snug">{subtitle || when}</p>
-  {#if through}<p class="text-xs/snug text-ink-muted">{through}</p>{/if}
+  {#if through}<p class="hidden text-xs/snug text-ink-muted sm:block">{through}</p>{/if}
 </div>
