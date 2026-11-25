@@ -21,6 +21,7 @@ from pathlib import Path
 
 import numpy as np
 
+from agdata import coverage
 from agdata.catalog import DAILY_VARIABLES, Variable
 from agdata.grid import Window
 from agdata.store import DAILY, GridStore, StoreLayout, steps_in_year
@@ -50,10 +51,11 @@ def update(data_dir: Path, first: date, last: date) -> None:
         )
         t0, t1 = daily.index_of(a), daily.index_of(b) + 1
         step = CHUNKS[0]
+        part = coverage.extent(daily.window)  # outside it every value is missing in both
         for c0 in range(t0, t1, step):  # a chunk's days at a time, aligned to the copy's chunks
             c1 = min(t1, (c0 // step + 1) * step)
-            values = {name: daily.read_steps(name, c0, c1) for name in NAMES}
-            copy.write(daily.time_of(c0).date(), values, source="derived")
+            for name in NAMES:  # as stored: the same variable packed the same way, no decoding and encoding again
+                copy.write_packed(daily.time_of(c0).date(), name, daily.read_packed(name, c0, c1, part), window=part)
 
 
 def behind(data_dir: Path, year: int) -> int:
