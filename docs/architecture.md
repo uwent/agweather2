@@ -12,7 +12,7 @@ Zarr stores (data volume)                     Postgres (RDS)
   hourly/{year}.zarr   time × y × x            users, sites, alert rules,
   daily/{year}.zarr    day × y × x             job queue, ingest status,
   cumulative/{year}    day × y × x             Open-Meteo cache index,
-  climatology/         doy × y × x             API feedback, changelog
+  climate/normals/     doy × y × x             API feedback, changelog
    │                                              │
    └──────────── agdata (read/write) ─────────────┤
                  agmodels (pure functions) ───────┤
@@ -70,7 +70,10 @@ One table in `agdata.catalog`: name, long name, stored unit, dtype and scale/off
 | `hourly/{year}.zarr` | time × y × x per variable | ~30 days × 32 × 32 | Point reads; one store per year so the window rolls by deleting a directory |
 | `daily/{year}.zarr` | day × y × x per variable/statistic | 1 × 256 × 256 | Map reads; the grid's day, midnight to midnight CST in every cell (D74) |
 | `cumulative/{year}.zarr` | day × y × x per fixed DD model and additive index | 1 × 256 × 256 | Running total from Jan 1; range sum = `cum[end] − cum[start−1]` |
-| `climatology/` | doy × y × x per statistic | 1 × 256 × 256 | 30-year external and 5/10-year internal |
+| `ingredients/{year}.zarr` | day × y × x per model ingredient | 1 × 256 × 256 | What model maps are finished from (`agdata.modelmaps`), with crop stages per planting tier (`agdata.croptiers`) and the stored seasons of apple scab, fire blight and red crown rot (`agdata.seasonmaps`, D109) |
+| `climate/normals/{period}.zarr` | day of year × y × x per statistic | 1 × 256 × 256 | The normal maps of `last30`, `last10` and `last5` (`agdata.normals`, D85) |
+| `climate/gridmet/{year}.zarr` | variable × day × y × x | all × year × 16 × 16 | gridMET's years before the archive on its basis, for `last30` (`agdata.climatestore`, D84) |
+| `era5land/{year}.zarr` | hour × lat × lon, ERA5-Land's own 0.1° grid | 24 × all | ERA5-Land as received, from which the hourly store's soil and snow are derived (`agdata.era5store`, D79) |
 | `daily-by-time/{year}.zarr` | day × y × x, daily min and max only | 32 × 256 × 256 | A season over the map (custom DD maps); a cache of the daily store's values, kept by `update_days` (`agdata.timecopy`) |
 | `daily-by-point/{year}.zarr` | variable × day × y × x, settled years | all × year × 16 × 16 | A point's past years (projection, climatology; `agdata.pastyears`) |
 | `forecast/verify/{cycle}/daily/{year}.zarr` | day × y × x, 11 daily variables and 5 disease values | 16 × 256 × 256 | Each published run's lead days 1–10 as published, kept 45 days for scoring (`agdata.verification`, D113; ~5 GB over the launch box) |
