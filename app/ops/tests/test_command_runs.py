@@ -173,7 +173,17 @@ def record(status, **fields) -> IngestRecord:
     return IngestRecord(**{**defaults, **fields})
 
 
-def test_forecast_publishes_and_reports_the_run(data_dir, monkeypatch):
+@pytest.fixture
+def queued(monkeypatch) -> list[str]:
+    """The follow-on jobs the command queues, recorded instead of written to the job queue."""
+    from ops import tasks
+
+    names: list[str] = []
+    monkeypatch.setattr(tasks, "queue_next", lambda task, timestamp: names.append(task.name) or True)
+    return names
+
+
+def test_forecast_publishes_and_reports_the_run(data_dir, monkeypatch, queued):
     from ops.management.commands import forecast
 
     calls = []
@@ -186,6 +196,7 @@ def test_forecast_publishes_and_reports_the_run(data_dir, monkeypatch):
     out, _ = run("forecast", "--before", "2025-07-01T18", "--box", BOX)
     assert calls == [(data_dir, BOX, datetime(2025, 7, 1, 18, tzinfo=UTC), True)]  # a command retries failed cycles
     assert "before 2025-07-01 18Z" in out and "forecast 2025-07-01 12Z +264 h: ok" in out
+    assert queued == ["ops.tasks.update_crop_tiers"] and "crop stages and maps: queued" in out  # as after the job
 
 
 def test_forecast_with_nothing_new_says_so(data_dir, monkeypatch):
@@ -196,7 +207,7 @@ def test_forecast_with_nothing_new_says_so(data_dir, monkeypatch):
     assert "nothing new" in out
 
 
-def test_forecast_partial_run_warns_about_failed_hours_and_exits_cleanly(data_dir, monkeypatch):
+def test_forecast_partial_run_warns_about_failed_hours_and_exits_cleanly(data_dir, monkeypatch, queued):
     from ops.management.commands import forecast
 
     rec = record(IngestRecord.Status.PARTIAL, failed_hours=["2025-07-02T00:00:00+00:00"])

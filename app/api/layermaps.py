@@ -1600,13 +1600,15 @@ def cached(a: LayerAsk, window: Window, now: datetime, data_stamp: Any) -> Compu
                 a.warnings += [n for n in found.notes if n not in a.warnings]
         except BaseException:
             with _maps_lock:
-                _computing.pop(key, None)
+                if _computing.get(key) is computing:  # not a newer request's lock, made after this one's was dropped
+                    _computing.pop(key, None)
             raise
         with _maps_lock:  # kept before the lock goes, so a request arriving now finds it
             _maps[key] = found
             while len(_maps) > MAP_CACHE_SIZE:
                 _maps.popitem(last=False)
-            _computing.pop(key, None)  # a request already waiting holds the lock and finds the result kept
+            if _computing.get(key) is computing:  # a request already waiting holds the lock and finds the result kept
+                _computing.pop(key, None)
     return found
 
 
