@@ -32,5 +32,5 @@ def normal_cdf(z) -> np.ndarray:
     z = np.asarray(z, dtype=float)
     if z.size >= PARALLEL_SIZE:
         with np.errstate(invalid="ignore"):  # NaN where z isn't finite, as the reference gives
-            return _cdf_kernel(z)
+            return np.asarray(_cdf_kernel(z))
     return normal_cdf_reference(z)
