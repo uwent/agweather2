@@ -81,7 +81,7 @@ def test_tilejson_gives_the_url_and_decoding(client, archive):
     assert body["tiles"][0].endswith("/api/v2/tiles/degree_days/2025-07-08/{z}/{x}/{y}.png?dd=sine_50_86")
     enc = body["encoding"]
     assert enc["unit"] == "degF_day" and enc["blueFactor"] == pytest.approx(0.1)
-    assert enc["baseShift"] == pytest.approx(-(2**23) * 0.1)
+    assert enc["baseShift"] == pytest.approx(2**23 * 0.1)  # MapLibre subtracts it
     lat, lon = NDFD.window_latlon(WINDOW)
     assert body["bounds"] == pytest.approx([float(lon.min()), float(lat.min()), float(lon.max()), float(lat.max())])
 

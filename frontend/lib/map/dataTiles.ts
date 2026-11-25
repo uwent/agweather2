@@ -77,8 +77,9 @@ export function roundToStep(value: number, step: number): number {
 
 /**
  * MapLibre's `raster-dem` custom encoding for a layer's step. MapLibre decodes R × red + G × green + B × blue −
- * baseShift (DEMData.unpack, the color-relief shader), subtracting baseShift although its style spec says "added";
- * the API's TileJSON gives the spec's sign (baseShift −2²³ × step), so the factors are made here from the step.
+ * baseShift (DEMData.unpack, the color-relief shader), subtracting baseShift although its style spec says "added".
+ * The API's TileJSON gives the same factors (since 2026-11-26); they're made here from the step so the page needs
+ * nothing else from it.
  */
 export function maplibreEncoding(step: number) {
   return {
