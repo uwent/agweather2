@@ -24,6 +24,7 @@
   } from '@/lib/sites.svelte'
   import AddSiteDialog from '@/lib/sites/AddSiteDialog.svelte'
   import { riskModels, topRisks, weatherByPoint, weatherQuery, type SiteWeather } from '@/lib/sites/cardData'
+  import FeedPicker from '@/lib/sites/FeedPicker.svelte'
   import GroupsPanel from '@/lib/sites/GroupsPanel.svelte'
   import ImportDialog from '@/lib/sites/ImportDialog.svelte'
   import SiteCard from '@/lib/sites/SiteCard.svelte'
@@ -175,6 +176,8 @@
       {/each}
     </ul>
   {/if}
+
+  {#if sites.length}<FeedPicker {models} />{/if}
 
   <CollapsibleSection title="Groups" id="groups" open={false} storageKey="sites-groups">
     <GroupsPanel />

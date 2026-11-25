@@ -10,7 +10,16 @@ from web import modelpages
 from web.catalog import crop_entries, model_entries
 from web.inertia import render
 from web.middleware import grid_today
-from web.props import HomeProps, MapExplorerProps, SiteCrop, SiteModel, SiteModelProps, SiteProps, SitesIndexProps
+from web.props import (
+    HomeProps,
+    MapExplorerProps,
+    SiteCrop,
+    SiteModel,
+    SiteModelFeedProps,
+    SiteModelProps,
+    SiteProps,
+    SitesIndexProps,
+)
 from web.sitemodel import model_info, shown_spec
 
 # The longest `?name=` a site page shows from a link
@@ -101,3 +110,12 @@ def site_model(request: HttpRequest, lat: str, lng: str, model_id: str):
         "Sites/Model",
         SiteModelProps(lat=latitude, lng=longitude, name=_name(request), model=model_info(spec), years=years),
     )
+
+
+def site_model_feed(request: HttpRequest, model_id: str):
+    """One model across your saved sites (track 3 step 9): the model's content as props; the sites are in the browser
+    (D120), which runs the model over them in one request. Not found for a model we don't have or have retired."""
+    spec = shown_spec(model_id)
+    if spec is None:
+        raise Http404("No such model")
+    return render(request, "Sites/Feed", SiteModelFeedProps(model=model_info(spec)))

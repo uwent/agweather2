@@ -432,6 +432,13 @@ export interface SiteModelBiofix {
   stage: string | null
 }
 /**
+ * One model across your saved sites (`/sites/models/{id}`): the model's content. The sites are kept in the
+ * browser, which runs the model over them (`/models/{id}/run?points=`, D117).
+ */
+export interface SiteModelFeedProps {
+  model: SiteModelInfo
+}
+/**
  * A model as its page at a site shows it (content from the registry, D117).
  */
 export interface SiteModelInfo {

@@ -30,6 +30,8 @@ export const routes = {
     `/sites/${part(params.lat)},${part(params.lng)}/models/${part(params.model_id)}`,
   /** sites: /sites */
   sites: (): string => '/sites',
+  /** sites-model-feed: /sites/models/<model_id> */
+  sitesModelFeed: (params: { model_id: string }): string => `/sites/models/${part(params.model_id)}`,
   /** up: /up */
   up: (): string => '/up',
 }

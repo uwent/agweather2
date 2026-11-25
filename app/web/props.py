@@ -355,3 +355,10 @@ class SiteModelProps(Props):
     name: str | None = Field(default=None, description="The `?name=` of a shared link, trimmed; None without one.")
     model: SiteModelInfo
     years: list[int] = Field(description="The years with weather to run the model on, newest first.")
+
+
+class SiteModelFeedProps(Props):
+    """One model across your saved sites (`/sites/models/{id}`): the model's content. The sites are kept in the
+    browser, which runs the model over them (`/models/{id}/run?points=`, D117)."""
+
+    model: SiteModelInfo

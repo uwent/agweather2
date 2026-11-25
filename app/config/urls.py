@@ -21,6 +21,8 @@ urlpatterns = [
     path("changelog", updates.changelog, name="changelog"),
     path("changelog.atom", ChangelogFeed(), name="changelog-feed"),
     path("api-use", updates.api_use, name="api-use"),
+    # One model across your saved sites (the feed, track 3 step 9): before the numbers-only site routes
+    path("sites/models/<str:model_id>", web.site_model_feed, name="sites-model-feed"),
     # A site's page: numbers only, so other pages under /sites/ (/sites/models/{id}) can't collide (F1)
     re_path(r"^sites/(?P<lat>-?\d{1,2}(?:\.\d+)?),(?P<lng>-?\d{1,3}(?:\.\d+)?)$", web.site, name="site"),
     # A model at a site: the same numbers, then a model's id (kebab-case)
