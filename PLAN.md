@@ -46,8 +46,8 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 
 **Next, in order:**
 
-1. **Step 7 G** (the rest of step 7, then the end-of-phase review). F is done (NHDPlus units, requests cropped to the extent; the buffer's Canadian cells lack 2016–2018 precipitation, elevation and a 30-year normal: noted, no fill proposed). Not measured yet: an IFS read's peak memory on the launch box (needs a live read), and a day's update and a forecast run end to end since D6.
-2. **Soil moisture** is built and merged (D110, D111); the archive fills when Ben runs the ERA5-Land backfill (TODO.md). Its open questions are in the phase plan's step 6.
+1. **Step 7 G's end-of-phase review waits** (Ben, 2026-11-25) until steps 5 and 6 and models parts C–G and J are done, so it covers them too; step 7's other items are closed. F is done (NHDPlus units, requests cropped to the extent; the buffer's Canadian cells lack 2016–2018 precipitation, elevation and a 30-year normal: noted, no fill proposed). Not measured yet: an IFS read's peak memory on the launch box (needs a live read), and a day's update and a forecast run end to end since D6.
+2. **Soil moisture** is built and merged (D110, D111); the archive fills when Ben runs the ERA5-Land backfill (TODO.md). Nothing about soil is to be fixed further now: Ben will revisit soil temperature and moisture together, possibly with Wisconet's station-trained models (Phase 9's backlog).
 3. **Step 5**, site services: changelog and announcements, the API use form, the verification archive, Open-Meteo when NBM is stale, Open-Meteo usage.
 4. **Step 6**, new sources: cropland fractions (soil moisture above).
 5. Alongside, as answers arrive: models parts C–G and J ([docs/plans/models.md](docs/plans/models.md), each planned first), D100's humidity correction ([docs/plans/humidity.md](docs/plans/humidity.md), step 1: is URMA the right target in Oklahoma).

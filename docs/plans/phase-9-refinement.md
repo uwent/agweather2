@@ -36,6 +36,15 @@ Update 2026-11-22: Paul Stoy (lead author) says the paper describing the hourly 
 - **Not production ready, as far as we can tell (2026-11-22):** a research product with no stated license, version policy, latency or maintenance commitment; the hourly product has no paper or validation we could find; the published skill on croplands is moderate (R² 0.66 half-hourly ET) and weakest at night, under cloud and in winter/snow; ABI's fixed-grid projection (~2 km) would need regridding to NDFD, as HRRR does; the GOES-16 → GOES-19 handover (2025) is a seam to check; it depends on one lab's funding.
 - **To explore when there's a reason:** read the listing in a browser (grid, extent, start, latency, license, auth, size); ask the authors about license, maintenance and the hourly product's paper; compare its LE/ET with our ET0 and with Wisconet's or Arlington's towers over a season; check how it handles Wisconsin's cloudy springs. If it holds up, it's a post-launch enhancement (M: an adapter reading Zarr from Arraylake, a regrid, one or two map layers), never a launch dependency.
 
+## Enhancement: soil from Wisconet's station models — to explore, not planned
+
+(Ben, 2026-11-25.) Soil temperature and moisture (D52–D55, D110, D111) are to be revisited as a whole, so nothing about them is fixed yet (layers or depths included). A member of the Wisconet team is training random forest models on Wisconet's sensors (5, 10, 20 and 50 cm; one model per variable and depth), predicting statewide on a 1 km grid from gridMET weather and antecedent conditions (precipitation, ETr, air temperature, shortwave), POLARIS soil texture, latitude, elevation and slope. Her figures on withheld data (March–October 2026, with stations installed after training): temperature R² 0.95–0.97, RMSE 1.2–1.6 °C; water content R² 0.70–0.86, RMSE 0.059–0.074 m³/m³. Against ours (`docs/validation/weather/soil.md`, `soil-moisture.md`): ERA5-Land's moisture r 0.65–0.73 (R² about 0.45–0.55) and an error of 0.10–0.12, mostly a per-station offset that soil texture would explain; temperature MAE 1.5–1.8 °C over all seasons. When her work is ready, worth asking before porting:
+
+- Withheld by station or by time? A leave-stations-out score is the one that says how it does between stations. And how it does in winter (frozen soil, snow cover), which the withheld months leave out.
+- Running it here: on our archive's inputs instead of gridMET (D84 already fits gridMET to the archive), every day within hours (gridMET lags a day or two), and on the forecast's days; the model files' size and license.
+- Wisconsin only: the launch box would have her values in Wisconsin and ERA5-Land elsewhere, with a seam at the state line; or her approach used to correct ERA5-Land's level by texture across the box (her suggestion: station data correcting or checking ERA5-Land).
+- Report our sources in her terms (R², RMSE, by depth, on the same withheld months and stations) so the two compare directly.
+
 ## Enhancement: model review — sketch (L, ongoing)
 
 A sweep across every model, one at a time, after launch or between phases (Ben, 2026-10-29):
