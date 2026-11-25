@@ -10,7 +10,8 @@
 
   export type ChartTable = {
     columns: string[]
-    rows: { date: string; forecast: boolean; values: (string | null)[] }[]
+    /** label: the row's own heading (an hour's "Nov 25, 2 p.m. CST"), in place of its date */
+    rows: { date: string; label?: string; forecast: boolean; values: (string | null)[] }[]
   }
 
   // A chart in a card: its title, then (top right) a reset button once the chart has been zoomed

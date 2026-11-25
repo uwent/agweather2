@@ -49,6 +49,10 @@ export interface SiteModel {
   group: string
   crops: string[]
   status: string
+  /**
+   * The words for its risk levels, lowest first; empty for a model without risk (crop stages).
+   */
+  risk_levels: string[]
 }
 /**
  * A site's page (`/sites/{lat},{lng}`): the point as given, a name from a shared link, and the catalog the

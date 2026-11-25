@@ -31,6 +31,9 @@ class SiteModel(Props):
     group: str
     crops: list[str]
     status: str
+    risk_levels: list[str] = Field(
+        description="The words for its risk levels, lowest first; empty for a model without risk (crop stages)."
+    )
 
 
 class SiteCrop(Props):

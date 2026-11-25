@@ -1,4 +1,4 @@
-<!-- WISP 3: app/frontend/lib/charts/DataDialog.svelte (copied) -->
+<!-- WISP 3: app/frontend/lib/charts/DataDialog.svelte (adapted: a row may carry its own heading, an hour) -->
 <script lang="ts">
   import Dialog from '../components/Dialog.svelte'
   import { formatDate } from '../dates'
@@ -34,6 +34,8 @@
   } = $props()
 
   const rows = $derived(open ? table() : null)
+  // Rows with their own headings are hours (lib/charts/weatherCharts.ts's hourly tables)
+  const byHour = $derived(!!rows?.rows[0]?.label)
 
   let copied = $state<'yes' | 'failed' | null>(null)
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -80,10 +82,10 @@
         class="max-h-[60dvh] overflow-auto rounded-sm border border-line text-xs"
         tabindex="0"
         role="region"
-        aria-label="{label} by day"
+        aria-label="{label} by {byHour ? 'hour' : 'day'}"
       >
         <table class="w-full tabular-nums">
-          <caption class="sr-only">{label} by day, newest first</caption>
+          <caption class="sr-only">{label} by {byHour ? 'hour' : 'day'}, newest first</caption>
           <thead class="sticky top-0 z-10 bg-surface-raised text-ink-muted">
             <tr class="text-right">
               <th scope="col" class="sticky left-0 bg-surface-raised px-2 py-1 text-left font-medium">Date</th>
@@ -101,7 +103,7 @@
                     ? 'bg-surface'
                     : 'bg-surface-raised'}"
                 >
-                  {formatDate(row.date, { weekday: true })}{row.forecast ? ' (forecast)' : ''}
+                  {row.label ?? formatDate(row.date, { weekday: true })}{row.forecast ? ' (forecast)' : ''}
                 </th>
                 {#each row.values as value, i (i)}
                   <td class="px-2 py-0.5">{value ?? '–'}</td>

@@ -23,6 +23,7 @@ def test_a_site_page_takes_the_point_and_the_catalog(client: Client):
     models = {m["id"]: m for m in props["models"]}
     assert models["late-blight-dsv"]["crops"] == ["potato", "tomato"]
     assert models["late-blight-dsv"]["group"] == "disease"
+    assert models["late-blight-dsv"]["risk_levels"] == ["Very low", "Low", "Moderate", "High", "Very high"]
     assert not any(m["status"] == "retired" for m in props["models"])
     assert {"id": "corn", "name": "Corn"} in props["crops"]
 

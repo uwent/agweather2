@@ -21,7 +21,17 @@ def site(request: HttpRequest, lat: str, lng: str):
         raise Http404("No such location")
     name = " ".join(request.GET.get("name", "").split())[:NAME_LENGTH] or None
     specs = sorted((m.SPEC for m in all_models().values() if m.SPEC.status != "retired"), key=lambda s: s.name.lower())
-    models = [SiteModel(id=s.id, name=s.name, group=s.group, crops=list(s.crops), status=s.status) for s in specs]
+    models = [
+        SiteModel(
+            id=s.id,
+            name=s.name,
+            group=s.group,
+            crops=list(s.crops),
+            status=s.status,
+            risk_levels=list(s.risk.levels) if s.risk else [],
+        )
+        for s in specs
+    ]
     crops = [SiteCrop(id=c.id, name=c.name) for c in croplist.CROPS.values()]
     return render(request, "Sites/Show", SiteProps(lat=latitude, lng=longitude, name=name, models=models, crops=crops))
 
