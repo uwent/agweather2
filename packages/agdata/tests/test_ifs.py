@@ -56,6 +56,16 @@ def test_a_field_linear_in_latitude_and_longitude_comes_through_exactly():
     assert hours.times == [first + k * ifs.HOUR for k in range(5)]
 
 
+def test_a_read_put_on_the_window_in_slices_is_the_whole_read():
+    first = datetime(2026, 11, 11, 22, tzinfo=UTC)
+    read = ifs.read_points(first, first + timedelta(hours=9), WINDOW, all_land(), lambda v, c: LinearField(c))
+    whole = read.hours()
+    for name, values in whole.values.items():
+        sliced = np.concatenate([read.hours(k, min(k + 4, 10)).values[name] for k in range(0, 10, 4)])
+        np.testing.assert_array_equal(sliced, values, err_msg=name)
+    assert read.hours(4, 8).times == whole.times[4:8]
+
+
 def test_water_neighbours_get_no_weight():
     _, lon = NDFD.window_latlon(WINDOW)
     east = float(np.median(lon))

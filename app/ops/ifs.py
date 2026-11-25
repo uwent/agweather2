@@ -32,6 +32,7 @@ from ops.locks import write_lock
 logger = logging.getLogger(__name__)
 
 LOOKBACK_DAYS = 14  # the provisional hours reach back at most this far (ERA5-Land is ~5 days behind)
+SLICE_HOURS = 48  # hours put on the window at a time (a run's every hour at once is several GB over the launch box)
 HOUR = timedelta(hours=1)
 
 Lock = Callable[[], AbstractContextManager[None]]
@@ -108,32 +109,40 @@ def refresh_ifs(
         return False
     land = land_mask(data_dir, window, key or "")
     end = ifs.run_end(info)
+    # From the seam's hour, to measure the step there; on IFS's points, put on the window a slice at a time
+    read = ifs.read_points(seam if seam is not None else _floor(now), end, window, land, opener)
+    offsets: dict[str, np.ndarray] = {}
+    skip = 0
     if seam is not None:
-        hours = ifs.read(seam, end, window, land, opener)  # from the seam's hour, to measure the step there
+        at_seam = read.hours(0, 1).values
         with lock():
-            offsets = seam_offsets(
-                data_dir, window, seam, {name: hours.values[name][0] for name in soil_seam.VARIABLES}
-            )
-        hours = apply_seam(hours, seam, offsets)
-        first = seam + HOUR
-    else:
-        first, offsets = _floor(now), {}
-        hours = ifs.read(first, end, window, land, opener)
+            offsets = seam_offsets(data_dir, window, seam, {name: at_seam[name][0] for name in soil_seam.VARIABLES})
+        skip = 1
+    times = read.times[skip:]
+    first = times[0] if times else (seam + HOUR if seam is not None else _floor(now))
+
+    def hours(k0: int, k1: int) -> era5land.Hours:
+        part = read.hours(skip + k0, skip + k1)
+        return apply_seam(part, seam, offsets) if seam is not None else part
+
+    path = ifs.latest_path(data_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    kept = ifs.LatestWriter(path, times, window.shape, run, seam=seam, offsets=offsets)
+    covered = 0
+    for k0 in range(0, len(times), SLICE_HOURS):
+        part = hours(k0, min(k0 + SLICE_HOURS, len(times)))
+        kept.write(k0, part.values)
+        covered += int(np.isfinite(part.values[SOIL[0]]).any(axis=(1, 2)).sum())
     stop = now.astimezone(UTC).replace(minute=0, second=0, microsecond=0)
-    past = [n for n, t in enumerate(hours.times) if t <= stop]
+    past = sum(1 for t in times if t <= stop)
     with lock():
-        if past:
-            observed = era5land.Hours(
-                times=hours.times[: past[-1] + 1],
-                values={name: values[: past[-1] + 1] for name, values in hours.values.items()},
-            )
+        for k0 in range(0, past, SLICE_HOURS):  # made again rather than held: up to two weeks of them
+            observed = hours(k0, min(k0 + SLICE_HOURS, past))
             for year in sorted({t.year for t in observed.times}):
                 write_soil(open_or_create_hourly(data_dir, year, window), observed, "ifs")
-            roll_up(data_dir, window, observed.times[0].date(), observed.times[-1].date())
-        path = ifs.latest_path(data_dir)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        ifs.save_latest(path, hours, run, seam=seam, offsets=offsets)
-    covered = np.isfinite(hours.values[SOIL[0]]).any(axis=(1, 2))
+        if past:
+            roll_up(data_dir, window, times[0].date(), times[past - 1].date())
+        kept.finish()
     step = {
         name.removeprefix("soil_temperature_"): float(np.nanmean(o)) if np.isfinite(o).any() else float("nan")
         for name, o in offsets.items()
@@ -141,10 +150,10 @@ def refresh_ifs(
     logger.info(
         "IFS %s: %d hours from %s (%d provisional), %d with values; seam %s, mean ERA5-Land − IFS %s",
         run,
-        len(hours.times),
+        len(times),
         first,
-        len(past),
-        int(covered.sum()),
+        past,
+        covered,
         seam,
         {k: round(v, 2) for k, v in step.items()} or "none",
     )

@@ -57,7 +57,7 @@ def test_each_job_skips_with_a_warning_when_the_lock_is_held(job, refresh, lock_
     assert f"{job.name.rsplit('.', 1)[-1]} skipped" in message and "pid 7" in message
 
 
-def test_the_download_jobs_wait_for_the_lock_in_the_refresh_and_the_restitch(lock_calls, monkeypatch):
+def test_the_download_jobs_wait_for_the_lock_in_the_refresh_and_era5land_restitches(lock_calls, monkeypatch):
     stitched = []
     seen = {}
 
@@ -74,7 +74,7 @@ def test_the_download_jobs_wait_for_the_lock_in_the_refresh_and_the_restitch(loc
     monkeypatch.setattr(tasks, "restitch_current", lambda data_dir, box: stitched.append(box))
     tasks.ingest_era5land(NOW)
     tasks.ingest_ifs(NOW)
-    assert stitched == [tasks.settings.SERVICE_BOX] * 2
+    assert stitched == [tasks.settings.SERVICE_BOX]  # ERA5-Land's; IFS's new hours wait for the next update
     lock_calls.clear()
     for name in ("era5land", "ifs"):
         with seen[name]():  # what the refresh function enters when it writes
@@ -101,11 +101,18 @@ def test_nothing_new_from_era5land_or_ifs_does_not_restitch(lock_calls, monkeypa
 
 
 def test_a_restitch_that_cannot_get_the_lock_is_a_skip_not_a_failure(lock_calls, monkeypatch, caplog):
-    monkeypatch.setattr(tasks, "refresh_ifs", lambda *args, **kwargs: True)
+    monkeypatch.setattr(tasks, "refresh_era5land", lambda *args, **kwargs: [("a span",)])
     monkeypatch.setattr(tasks, "write_lock", locked)
     with caplog.at_level(logging.WARNING, logger=tasks.__name__):
-        tasks.ingest_ifs(NOW)
-    assert "ingest_ifs skipped" in warnings(caplog)[0]
+        tasks.ingest_era5land(NOW)
+    assert "ingest_era5land skipped" in warnings(caplog)[0]
+
+
+def test_a_new_ifs_run_does_not_restitch(lock_calls, monkeypatch):
+    monkeypatch.setattr(tasks, "refresh_ifs", lambda *args, **kwargs: True)
+    monkeypatch.setattr(tasks, "restitch_current", lambda *args: pytest.fail("restitched after IFS"))
+    tasks.ingest_ifs(NOW)
+    assert lock_calls == []
 
 
 def test_the_era5land_job_does_nothing_without_a_cds_key(lock_calls, settings, monkeypatch):

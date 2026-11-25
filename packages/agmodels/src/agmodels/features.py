@@ -55,10 +55,10 @@ def mean_where(values: np.ndarray, condition: np.ndarray) -> np.ndarray:
     """Mean of `values` over the hours where `condition` holds; NaN if any hour is missing or none qualify."""
     values = np.asarray(values, dtype=float)
     missing = np.isnan(values).any(axis=0) | np.isnan(condition).any(axis=0)
-    mask = np.nan_to_num(condition) > 0
+    mask = np.asarray(condition) > 0  # NaN isn't; a missing hour makes the cell missing anyway
     count = mask.sum(axis=0)
     with np.errstate(invalid="ignore"):
-        mean = np.where(mask, np.nan_to_num(values), 0).sum(axis=0) / count
+        mean = np.where(mask, values, 0).sum(axis=0) / count
     return np.where(missing | (count == 0), np.nan, mean)
 
 
@@ -139,12 +139,18 @@ def chill_features(temperature_c: np.ndarray) -> dict[str, np.ndarray]:
 
 
 def livestock_features(
-    temperature_c: np.ndarray, rh_percent: np.ndarray, wind_speed_10m: np.ndarray, shortwave_w_m2: np.ndarray
+    temperature_c: np.ndarray,
+    rh_percent: np.ndarray,
+    wind_speed_10m: np.ndarray,
+    shortwave_w_m2: np.ndarray,
+    comfort: np.ndarray | None = None,
 ) -> dict[str, np.ndarray]:
     """Livestock heat stress over a calendar day's hours (`agmodels.livestock`, D77): THI's minimum (the night's
-    relief), mean and maximum, hours with THI at or above 68 and 72, and the Cattle Comfort Index's maximum."""
+    relief), mean and maximum, hours with THI at or above 68 and 72, and the Cattle Comfort Index's maximum. `comfort`
+    is the hours' index if already computed (the grid's rollup computes it in one pass, `features_grid.cci_grid`)."""
     index = livestock.thi(temperature_c, rh_percent)
-    comfort = livestock.cci(temperature_c, rh_percent, wind_speed_10m, shortwave_w_m2)
+    if comfort is None:
+        comfort = livestock.cci(temperature_c, rh_percent, wind_speed_10m, shortwave_w_m2)
     return daily_statistics("thi", index) | {
         "hours_thi_over_68": hours_at_or_above(index, livestock.THI_MILD_DAIRY),
         "hours_thi_over_72": hours_at_or_above(index, livestock.THI_STRESS),
@@ -184,6 +190,19 @@ DAY_RAIN = (6, 19)  # readings after 06:00 through 19:00
 NIGHT_RAIN = (19, 6)  # readings after 19:00 the day before through 06:00
 
 
+def scab_rain_hours(local_hour: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Which of a scab window's readings (`local_hour`, each one's clock hour, the day's last reading last) fall in
+    the day's rain from 7 am to 7 pm and in the night's from 8 pm to 6 am, as two boolean vectors."""
+    hour = np.asarray(local_hour)
+    n = hour.shape[0]
+    position = np.arange(n)
+    today = position >= n - 24
+    day = today & (hour > DAY_RAIN[0]) & (hour <= DAY_RAIN[1])
+    # Readings 20:00 the day before (29 hours before the day's last) through 06:00 (18 before)
+    night = (position >= n - 29) & (position <= n - 19) & in_hours(hour, *NIGHT_RAIN)
+    return day, night
+
+
 def scab_features(
     temperature_c: np.ndarray, rh_percent: np.ndarray, precipitation_mm: np.ndarray, local_hour: np.ndarray
 ) -> dict[str, np.ndarray]:
@@ -194,13 +213,8 @@ def scab_features(
     t = np.asarray(temperature_c, dtype=float)
     rain = np.asarray(precipitation_mm, dtype=float)
     shape = (-1, *([1] * (t.ndim - 1)))
-    hour = np.asarray(local_hour)
-    n = t.shape[0]
-    position = np.arange(n)
-    today = position >= n - 24
-    day = (today & (hour > DAY_RAIN[0]) & (hour <= DAY_RAIN[1])).reshape(shape)
-    # Readings 20:00 the day before (29 hours before the day's last) through 06:00 (18 before)
-    night = ((position >= n - 29) & (position <= n - 19) & in_hours(hour, *NIGHT_RAIN)).reshape(shape)
+    day_hours, night_hours = scab_rain_hours(local_hour)
+    day, night = day_hours.reshape(shape), night_hours.reshape(shape)
     periods = apple_scab.infection_periods(t, rh_percent, rain)
 
     def total(where: np.ndarray) -> np.ndarray:
@@ -231,8 +245,8 @@ def fire_blight_features(
     rain = np.asarray(precipitation_mm, dtype=float)
     missing_t = np.isnan(t).any(axis=0)
     missing_wet = missing_t | np.isnan(rh).any(axis=0) | np.isnan(rain).any(axis=0)
-    t_f = np.nan_to_num(t) * 1.8 + 32
-    wet = (np.nan_to_num(rh) >= apple_scab.WET_RH) | (np.nan_to_num(rain) >= apple_scab.RAIN_MM)
+    t_f = t * 1.8 + 32  # a missing hour makes its cell missing below
+    wet = (rh >= apple_scab.WET_RH) | (rain >= apple_scab.RAIN_MM)  # NaN is neither
     return {
         "cougarblight_risk_values": np.where(missing_t, np.nan, np.nansum(fire_blight.cougarblight_values(t), axis=0)),
         "degree_hours_over_65f": np.where(

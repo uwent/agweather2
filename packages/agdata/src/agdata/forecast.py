@@ -8,7 +8,8 @@ so the archive's rollup runs on it unchanged:
 
 A run's hourly store is the stitched frame: the archive's hours up to its last observed hour (copied in with their
 sources, so a run's days can be rolled up whole), then the run's forecast hours (`nbm`, soil and snow `ifs`, RH and
-ET0 `derived`). Its daily store holds those days, so today mixes observed and forecast hours. Its running totals
+ET0 `derived`). Soil and snow reach the archive only when IFS or ERA5-Land is read, so they're copied only through the
+archive's last hour of them, and the run's own IFS hours carry on from there (a gap otherwise, until the next read). Its daily store holds those days, so today mixes observed and forecast hours. Its running totals
 continue the archive's: the archive's total on the day before the run's first day, plus the run's days. When the
 archive gains hours, `stitch` copies them over the forecast's and rolls the affected days again. A reader opens one
 run and keeps it, so it never mixes two.
@@ -217,9 +218,10 @@ def build_run(
         cycle, window, step=step, workers=workers, session_factory=session_factory, out={n: raw[n] for n in nbm.FETCHED}
     )
     times = run.valid_times
-    if soil is not None:
-        for name, values in soil(times, window).items():
-            raw[name][:] = values
+    if soil is not None:  # a day at a time: a run's every hour over the window is ~1 GB a variable
+        for k in range(0, len(times), 24):
+            for name, values in soil(times[k : k + 24], window).items():
+                raw[name][k : k + len(values)] = values
     pressure = _pressure(data_dir, window, times[0], pressure_kpa)
     for year in range(times[0].year, times[-1].year + 1):
         open_or_create_hourly(path, year, window)  # made here, before a worker writes to one
@@ -425,8 +427,13 @@ def _copy_archive_hours(data_dir: Path, path: Path, window: Window, start: datet
         t0, t1 = archive.index_of(begin), archive.index_of(end - HOUR) + 1
         part = coverage.extent(window)  # outside it the hours are missing in both
         for name in VARIABLES:  # as stored: the same variables, packed the same way
-            store.write_packed(begin, name, archive.read_packed(name, t0, t1, window=part), window=part)
-            store.set_sources(name, begin, archive.sources(name, t0, t1))
+            stop = t1
+            if name in SOIL:  # through the archive's last hour of them: the run's own IFS hours carry on from there
+                held = np.flatnonzero(archive.has_data(name, t0, t1))
+                stop = t0 + (int(held[-1]) + 1 if held.size else 0)
+            if stop > t0:
+                store.write_packed(begin, name, archive.read_packed(name, t0, stop, window=part), window=part)
+                store.set_sources(name, begin, archive.sources(name, t0, stop))
 
 
 def _continue_totals(data_dir: Path, path: Path, window: Window, first_day: date, last_day: date) -> None:

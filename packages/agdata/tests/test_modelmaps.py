@@ -229,3 +229,26 @@ def test_a_years_build_runs_from_january_and_its_status_says_what_it_needs(tmp_p
     assert modelmaps.status(tmp_path, 2026) == f"{len(tiers)} stale variables"
     assert modelmaps.build(tmp_path, WINDOW, 2026) == (date(2026, 1, 1), date(2026, 1, 6))
     assert updated == [(2026, date(2026, 1, 6))]
+
+
+@pytest.mark.parametrize("method", ["interpolate", "zero"])
+def test_the_gap_fill_skips_only_cells_it_would_leave_as_they_are(method, monkeypatch):
+    from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps, fill_zero
+
+    rng = np.random.default_rng(2)
+    values = rng.uniform(0, 20, (30, 6, 7)).astype(np.float32)
+    values[-1] = np.nan  # a partial last day, in every cell
+    values[:3, 0, 0] = np.nan  # missing at the start only
+    values[:, 0, 1] = np.nan  # no value at all
+    values[10:12, 1, 1] = np.nan  # short interior gaps
+    values[5, 2, 3] = np.nan
+    values[8:20, 3, 3] = np.nan  # longer than interpolation bridges
+    values[0, 4, 4] = values[14, 4, 4] = np.nan  # at the start and inside
+    monkeypatch.setitem(modelmaps.GAP_FILL, "x", method)
+    found = modelmaps._filled("x", values.copy())
+    fill = (lambda v: fill_short_gaps(v, MAX_GAP_DAYS)) if method == "interpolate" else fill_zero
+    expected = fill(values.reshape(30, -1))[0].reshape(values.shape)  # every cell
+    np.testing.assert_array_equal(found, expected.astype(np.float32))
+    inside = modelmaps.interior_gaps(values.reshape(30, -1)).reshape(6, 7)
+    assert inside[1, 1] and inside[2, 3] and inside[3, 3] and inside[4, 4]
+    assert inside.sum() == 4

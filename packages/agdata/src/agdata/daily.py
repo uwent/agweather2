@@ -27,7 +27,7 @@ from agdata.gaps import estimate_et0_hourly_mm
 from agdata.grid import NDFD, Window
 from agdata.store import DAILY, HOURLY, GridStore
 from agdata.timezones import GRID_ZONE, day_bounds, evening_bounds, overnight_bounds, scab_bounds
-from agmodels import features
+from agmodels import features, features_grid
 from agmodels.weather import relative_humidity_percent
 
 MAX_DAYS_PER_PASS = 31
@@ -233,6 +233,10 @@ def _rolled(
             hours = {name: hourly.read(name, feature_start, span_stop, band) for name in read}
             if "dew_point" in hours:
                 hours["rh"] = relative_humidity_percent(hours["air_temperature"], hours["dew_point"])
+            if "livestock" in groups:
+                hours["cci"] = features_grid.cci_grid(
+                    hours["air_temperature"], hours["rh"], hours["wind_speed"], hours["shortwave_radiation"]
+                )
             out |= _features(groups, hours, feature_start, calendar, evenings, overnights, scabs)
         yield band, {name: values for name, values in out.items() if name in wanted}
 
@@ -259,7 +263,7 @@ def _features(
                 found |= features.fire_blight_features(h["air_temperature"], h["rh"], h["precipitation"])
             if "livestock" in day_groups:
                 found |= features.livestock_features(
-                    h["air_temperature"], h["rh"], h["wind_speed"], h["shortwave_radiation"]
+                    h["air_temperature"], h["rh"], h["wind_speed"], h["shortwave_radiation"], comfort=h["cci"]
                 )
             return found
 
@@ -275,12 +279,15 @@ def _features(
         out |= _each_window(
             hours, first_hour, overnights, lambda h, _: features.overnight_features(h["air_temperature"])
         )
-    if "scab" in groups:
-        out |= _each_window(
-            hours,
-            first_hour,
-            scabs,
-            lambda h, local_hour: features.scab_features(h["air_temperature"], h["rh"], h["precipitation"], local_hour),
+    if "scab" in groups:  # `features.scab_features` on each day's window, in one compiled pass
+        clock = ZoneInfo(GRID_ZONE)
+        starts = [(begin - first_hour) // HOUR for begin, _ in scabs]
+        local_hours = [
+            np.array([(begin + n * HOUR).astimezone(clock).hour for n in range((end - begin) // HOUR + 1)])
+            for begin, end in scabs
+        ]
+        out |= features_grid.scab_features_grid(
+            hours["air_temperature"], hours["rh"], hours["precipitation"], np.array(starts), local_hours
         )
     return out
 
@@ -359,9 +366,14 @@ class _HourlyReader:
         self.stores: dict[int, GridStore | None] = {}
 
     def read(self, name: str, start: datetime, stop: datetime, window: Window) -> np.ndarray:
-        """Hours ending at start, start + 1 h, … before stop, (hours, y, x) as float32."""
+        """Hours ending at start, start + 1 h, … before stop, (hours, y, x) as float32 (decoded straight to float32,
+        the same values as float64's rounded)."""
+        years = range(start.year, (stop - HOUR).year + 1)
+        if len(years) == 1 and (store := self.store(start.year)) is not None:
+            t0 = store.index_of(start)
+            return store.read_steps(name, t0, t0 + (stop - start) // HOUR, window, dtype=np.float32)
         out = np.full(((stop - start) // HOUR, *window.shape), np.nan, dtype=np.float32)
-        for year in range(start.year, (stop - HOUR).year + 1):
+        for year in years:
             store = self.store(year)
             if store is None:
                 continue
@@ -369,7 +381,7 @@ class _HourlyReader:
             end = min(stop, datetime(year + 1, 1, 1, tzinfo=UTC))
             t0 = store.index_of(begin)
             out[(begin - start) // HOUR : (end - start) // HOUR] = store.read_steps(
-                name, t0, t0 + (end - begin) // HOUR, window
+                name, t0, t0 + (end - begin) // HOUR, window, dtype=np.float32
             )
         return out
 

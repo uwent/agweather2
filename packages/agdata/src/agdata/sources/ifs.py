@@ -24,6 +24,7 @@ import logging
 import shutil
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from functools import cache
 from pathlib import Path
@@ -167,15 +168,35 @@ def _read_cells(reader, needed: np.ndarray, rings: np.ndarray, t0: int, t1: int)
     return out
 
 
-def read(
+@dataclass(kw_only=True)
+class Read:
+    """A read's values on IFS's own points (small: ~100 MB a variable over the launch box), from which the window's
+    hours are made a slice at a time (`hours`), since every hour of a run over the window at once is several GB."""
+
+    times: list[datetime]
+    weights: Weights
+    needed: np.ndarray
+    raw: dict[str, np.ndarray]  # variable → (points, hours)
+
+    def hours(self, start: int = 0, stop: int | None = None) -> era5land.Hours:
+        """Hours start..stop-1 on the window: the catalog's soil depths (°C) and `snow_depth` (cm)."""
+        stop = len(self.times) if stop is None else stop
+        on_window = {name: self.weights.apply(values[:, start:stop], self.needed) for name, values in self.raw.items()}
+        layers = {name: on_window[name] for name in SOIL_LAYERS}
+        out = {name: value for name, (value, _) in soil_at_depths(layers).items()}
+        out["snow_depth"] = era5land.no_negative_snow(on_window["snow_depth"]) * 100  # m → cm
+        return era5land.Hours(times=self.times[start:stop], values=out)
+
+
+def read_points(
     first: datetime,
     last: datetime,
     window: Window,
     land: era5land.LandMask,
     open_chunk: Opener,
     retry_wait: float = 60,
-) -> era5land.Hours:
-    """IFS's hours first..last on the window: the catalog's soil depths (°C) and `snow_depth` (cm).
+) -> Read:
+    """IFS's hours first..last at the points the window's cells take (`Read.hours` puts them on the window).
 
     Open-Meteo rewrites a chunk's file in place as runs come in, so a read that finds its file replaced (or can't
     decode it) opens the chunk again and rereads it, `retry_wait` seconds later, up to READ_ATTEMPTS times."""
@@ -205,11 +226,20 @@ def read(
                         error,
                     )
                     time.sleep(retry_wait)
-        raw[variable] = weights.apply(values, needed)
-    layers = {name: raw[name] for name in SOIL_LAYERS}
-    out = {name: value for name, (value, _) in soil_at_depths(layers).items()}
-    out["snow_depth"] = era5land.no_negative_snow(raw["snow_depth"]) * 100  # m → cm
-    return era5land.Hours(times=[first + k * HOUR for k in range(n)], values=out)
+        raw[variable] = values
+    return Read(times=[first + k * HOUR for k in range(n)], weights=weights, needed=needed, raw=raw)
+
+
+def read(
+    first: datetime,
+    last: datetime,
+    window: Window,
+    land: era5land.LandMask,
+    open_chunk: Opener,
+    retry_wait: float = 60,
+) -> era5land.Hours:
+    """IFS's hours first..last on the window, all at once (`read_points` for a read made a slice at a time)."""
+    return read_points(first, last, window, land, open_chunk, retry_wait).hours()
 
 
 class _Pinned:
@@ -251,6 +281,62 @@ def latest_path(data_dir: Path) -> Path:
     return Path(data_dir) / "ifs" / "latest.zarr"
 
 
+class LatestWriter:
+    """Builds a kept read (`latest_path`) beside the one in place, a slice of hours at a time (`write`), and swaps it
+    in whole (`finish`), so a forecast build reading it (`latest_at`) never sees a half-written one. Holds the hours
+    (from the first provisional hour to the run's end), the seam they were shifted to meet and each cell's offset there
+    (`agdata.soil_seam`; raw = value − offset × weight)."""
+
+    def __init__(
+        self,
+        path: Path,
+        times: list[datetime],
+        shape: tuple[int, int],
+        run: datetime,
+        seam: datetime | None = None,
+        offsets: dict[str, np.ndarray] | None = None,
+    ):
+        """`shape`: the window's (y, x)."""
+        if not times:
+            raise ValueError("an IFS read with no hours")
+        self.path = path
+        self.building = path.with_name(path.name + ".part")
+        if self.building.exists():
+            shutil.rmtree(self.building)  # left by a build that crashed
+        self.group = zarr.open_group(self.building, mode="w")
+        self.shape = (len(times), *shape)
+        for name, offset in (offsets or {}).items():
+            self.group.create_array(f"{name}_seam_offset", data=np.asarray(offset, dtype=np.float32))
+        self.group.attrs.update(
+            {
+                "first": times[0].isoformat(),
+                "hours": len(times),
+                "run": run.isoformat(),
+                "seam": seam.isoformat() if seam is not None else None,
+                "seam_correction": f"ifs-soil-seam v{soil_seam.table().version}" if offsets else None,
+            }
+        )
+
+    def write(self, start: int, values: dict[str, np.ndarray]) -> None:
+        """Hours start.. of each variable (hours, y, x)."""
+        for name, v in values.items():
+            if name not in self.group:
+                self.group.create_array(
+                    name, shape=self.shape, chunks=(24, *self.shape[1:]), dtype="float32", fill_value=np.nan
+                )
+            self.group[name][start : start + v.shape[0]] = np.asarray(v, dtype=np.float32)  # type: ignore[index]
+
+    def finish(self) -> None:
+        old = self.path.with_name(self.path.name + ".old")
+        if old.exists():
+            shutil.rmtree(old)  # left by a swap that crashed
+        if self.path.exists():
+            self.path.rename(old)
+        self.building.rename(self.path)
+        if old.exists():
+            shutil.rmtree(old)
+
+
 def save_latest(
     path: Path,
     hours: era5land.Hours,
@@ -258,34 +344,13 @@ def save_latest(
     seam: datetime | None = None,
     offsets: dict[str, np.ndarray] | None = None,
 ) -> None:
-    """Keeps a read's hours (from the first provisional hour to the run's end) for the forecast builds, with the
-    seam they were shifted to meet and each cell's offset there (`agdata.soil_seam`; raw = value − offset × weight)."""
+    """Keeps a read's hours whole (`LatestWriter` for one made a slice at a time)."""
     if not hours.times:
         raise ValueError("an IFS read with no hours")
-    building = path.with_name(path.name + ".part")
-    group = zarr.open_group(building, mode="w")
-    for name, values in hours.values.items():
-        group.create_array(name, data=np.asarray(values, dtype=np.float32), chunks=(24, *values.shape[1:]))
-    for name, offset in (offsets or {}).items():
-        group.create_array(f"{name}_seam_offset", data=np.asarray(offset, dtype=np.float32))
-    group.attrs.update(
-        {
-            "first": hours.times[0].isoformat(),
-            "hours": len(hours.times),
-            "run": run.isoformat(),
-            "seam": seam.isoformat() if seam is not None else None,
-            "seam_correction": f"ifs-soil-seam v{soil_seam.table().version}" if offsets else None,
-        }
-    )
-    # Swapped in whole, so a forecast build reading it (`latest_at`) never sees a half-written one
-    old = path.with_name(path.name + ".old")
-    if old.exists():
-        shutil.rmtree(old)  # left by a swap that crashed
-    if path.exists():
-        path.rename(old)
-    building.rename(path)
-    if old.exists():
-        shutil.rmtree(old)
+    shape = next(iter(hours.values.values())).shape[1:]
+    writer = LatestWriter(path, hours.times, (shape[0], shape[1]), run, seam=seam, offsets=offsets)
+    writer.write(0, hours.values)
+    writer.finish()
 
 
 def latest_at(path: Path, times: list[datetime], window: Window) -> dict[str, np.ndarray]:

@@ -170,7 +170,7 @@ def test_a_run_takes_its_soil_and_snow_from_ifs(copy_of_july_archive, fx):
         }
 
     built = forecast.build_run(tmp_path, WINDOW, cycle, step=step, workers=4, pressure_kpa=98.0, soil=soil)
-    assert asked == [nbm.HORIZON_HOURS]
+    assert sum(asked) == nbm.HORIZON_HOURS and max(asked) == 24  # a day at a time
     store = GridStore.open(built, HOURLY, 2025, VARIABLES.values())
     t = store.index_of(cycle + 3 * HOUR)  # the first forecast hour past the archive's
     np.testing.assert_allclose(store.read_steps("soil_temperature_10cm", t, t + 1), 3.0)
@@ -178,6 +178,43 @@ def test_a_run_takes_its_soil_and_snow_from_ifs(copy_of_july_archive, fx):
     assert store.sources("soil_temperature_10cm")[t] == "ifs" and store.sources("snow_depth")[t] == "ifs"
     later = store.index_of(cycle + 101 * HOUR)
     assert np.isnan(store.read_steps("soil_temperature_10cm", later, later + 1)).all()  # past IFS's reach: a gap
+
+
+def test_the_stitch_keeps_the_runs_soil_after_the_archives_last_hour_of_it(copy_of_july_archive, fx):
+    from agdata.ingest import open_or_create_hourly
+    from agdata.sources import nbm
+
+    tmp_path, cycle = copy_of_july_archive, CYCLE
+    provisional_end = cycle - 5 * HOUR  # IFS's last read reached this far into the archive
+    first = cycle - 48 * HOUR
+    n = (provisional_end - first) // HOUR + 1
+    archive = open_or_create_hourly(tmp_path, 2025, WINDOW)
+    archive.write(first, {"soil_temperature_10cm": np.full((n, *WINDOW.shape), 7.0)}, source="ifs")
+    truth = fx.nbm_run(cycle)
+
+    def step(cycle, lead, window, session):
+        return {name: truth.values[name][lead - 1] for name in nbm.NAMES}
+
+    def soil(times, window):  # the newest IFS run's hours, the run's own
+        shape = (len(times), *window.shape)
+        return {
+            name: np.full(shape, 3.0)
+            for name in ("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm", "snow_depth")
+        }
+
+    built = forecast.build_run(tmp_path, WINDOW, cycle, step=step, workers=2, pressure_kpa=98.0, soil=soil)
+    store = GridStore.open(built, HOURLY, 2025, VARIABLES.values())
+    values = store.read_steps("soil_temperature_10cm", 0, 8760)
+    sources = store.sources("soil_temperature_10cm")
+    end, after = store.index_of(provisional_end), store.index_of(cycle + 1 * HOUR)
+    np.testing.assert_allclose(values[end], 7.0)  # the archive's, through its last hour
+    assert sources[end] == "ifs"
+    np.testing.assert_allclose(
+        values[after], 3.0
+    )  # then the run's, though the archive's other hours run on to cycle + 2 h
+    assert store.sources("air_temperature")[after] == "urma"
+    # and the snow, which the archive has none of here, is the run's from its first hour
+    np.testing.assert_allclose(store.read_steps("snow_depth", after, after + 1), 3.0)
 
 
 def write_pressure_days(data_dir, year, first_day, pressures):

@@ -90,17 +90,17 @@ def ingest_era5land(timestamp: int) -> None:
 @app.task(queue="ingest", queueing_lock="ingest_ifs", task_middleware=JOB_MIDDLEWARE)
 def ingest_ifs(timestamp: int) -> None:
     """Reads a new IFS run's soil and snow (D52): the archive's provisional hours, and the forecast's (taken by the
-    next forecast build); then restitches the published forecast."""
+    next forecast build). It doesn't restitch the published forecast: the run carries its own IFS soil on from the
+    archive's last hour of it (`forecast.stitch`), and the next update or run takes the new hours (within six hours,
+    D108), rather than six minutes of the write lock every six hours for a small change to past soil."""
     try:
-        if refresh_ifs(
+        refresh_ifs(
             settings.DATA_DIR,
             settings.SERVICE_BOX,
             datetime.fromtimestamp(timestamp, UTC),
             settings.COPERNICUS_API_KEY,
             lock=_waiting_lock("job ingest_ifs"),
-        ):
-            with _waiting_lock("job ingest_ifs")():
-                restitch_current(settings.DATA_DIR, settings.SERVICE_BOX)
+        )
     except WriteLocked as error:
         logger.warning("ingest_ifs skipped: %s", error)
 

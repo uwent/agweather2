@@ -87,7 +87,7 @@ UTC everywhere in storage. Grid days are Central Standard Time all year, midnigh
 ## 6. Ingest
 
 - **Hourly:** latest URMA (≈6 h lag) and RTMA for the hours since, via Herbie with byte-range reads; HRRR analysis shortwave and soil temperature, regridded to the NDFD window; QC against catalog ranges; write hourly. The days behind their hours (by write time) are rolled up with their running totals, chill and ingredients, and the forecast restitched, only when due: a day just over (after midnight CST), an hour waiting six hours, or before a forecast run is built (D108, `ops.ingest.update_if_due`). Points read the hours, so only maps wait.
-- **Forecast:** NBM's long runs (every 6 hours) into a separate forecast store (not the archive), replaced on each run; its hours derived in parts over the coverage in the block pool (`forecast.parts`, D108).
+- **Forecast:** NBM's long runs (every 6 hours) into a separate forecast store (not the archive), replaced on each run; its hours derived in parts over the coverage in the block pool (`forecast.parts`, D108). Its soil and snow are IFS's (D52): the stitch copies the archive's only through their last archived hour and the run's own carry on from there, so a new IFS read needs no restitch; its hours reach the run at the next update or run.
 - **Backfill CLI** (`manage.py backfill --start --end --box`): idempotent, resumable, parallel by day; the same code path as hourly ingest.
 - **Yearly roll:** in January, drop the oldest year and rebuild internal climatology.
 - **Climatology build:** nClimGrid-daily and gridMET reduced once to doy cubes on the grid.

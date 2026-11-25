@@ -525,8 +525,26 @@ def _read(data_dir: Path, run: Path | None, run_first: date | None, name: str, f
         except FileNotFoundError:
             continue
         t0 = store.index_of(days[ks[0]])
-        out[ks[0] : ks[-1] + 1] = store.read_steps(name, t0, t0 + len(ks), window)
+        out[ks[0] : ks[-1] + 1] = store.read_steps(name, t0, t0 + len(ks), window, dtype=np.float32)
     return out
+
+
+def interior_gaps(flat: np.ndarray) -> np.ndarray:
+    """Which cells of (days, cells) have a missing day with a value on each side: the only gaps either fill
+    (`agmodels.gaps`) estimates. Missing days at the start or end (a run's partial last day, which every cell has)
+    and cells with no value at all (outside the coverage) are left as they are, so they needn't be filled."""
+    valid = ~np.isnan(flat)
+    later = np.empty_like(valid)  # a value on some later day; by day, each a contiguous row (along days is slow)
+    seen = np.zeros(valid.shape[1:], dtype=bool)
+    for d in range(valid.shape[0] - 1, -1, -1):
+        later[d] = seen
+        seen |= valid[d]
+    seen[:] = False
+    found = np.zeros_like(seen)
+    for d in range(valid.shape[0]):
+        found |= ~valid[d] & seen & later[d]
+        seen |= valid[d]
+    return found
 
 
 def _filled(name: str, values: np.ndarray) -> np.ndarray:
@@ -535,11 +553,7 @@ def _filled(name: str, values: np.ndarray) -> np.ndarray:
     if method is None:
         return values
     flat = values.reshape(values.shape[0], -1)
-    missing = np.isnan(flat)
-    gappy = missing.any(axis=0)
-    if method == "interpolate":  # a cell with no value (outside the coverage) has nothing to bridge
-        gappy &= ~missing.all(axis=0)
-    gappy = np.flatnonzero(gappy)
+    gappy = np.flatnonzero(interior_gaps(flat))
     if gappy.size:
         fill: Callable = (lambda v: fill_short_gaps(v, MAX_GAP_DAYS)) if method == "interpolate" else fill_zero
         flat[:, gappy] = fill(np.take(flat, gappy, axis=1))[0]

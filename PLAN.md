@@ -31,7 +31,7 @@ This file is where things stand and what's next: the one handoff, Ben's open cho
 
 Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, which runs through 2027); CONUS coverage (the box is configuration); AWON, HYD scraping, gnuplot maps, the three point-forecast vendors, Diak ET; personal API keys.
 
-## Handoff (2026-11-25)
+## Handoff (2026-11-25, later)
 
 **Phase 6** (branch `phase-6`), its remaining backend work: [docs/plans/phase-6-frontend-plan-and-data.md](docs/plans/phase-6-frontend-plan-and-data.md), steps 4–7, then the end-of-phase review and Phase 7 (the web app).
 
@@ -41,12 +41,12 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 - **Jobs (D108):** hours fetched every hour, the maps' updates only when due (a day over, 6 hours, or before a forecast build); the forecast derived in parts over the coverage; running totals and ingredients faster (`cumsum_days`). A day's update 356 → 196 s, a forecast run 21 → ~15 min.
 - **The crash and D109:** the request profile crashed WSL (apple scab's and fire blight's maps reached 60 GB). A map is offered only within a budget of storage and compute. Safety nets: on-request maps a block at a time, one computation per map, container memory limits (`WEB_MEMORY`, `WORKER_MEMORY`). Apple scab, fire blight and red crown rot (mid tier) keep their seasons stored (`agdata.seasonmaps`): maps 187 s / 242 s / 7 s → under a second, ~4 min of job time a refresh; each shows nothing out of its season.
 - **Requests:** custom degree-day season map 46 s → ~0.5 s and season grids 26 s → 0.5 s (gap fills skipped the cells outside the coverage; a sum in the kernel); stage-anchored accumulations cell by cell (early blight 2.4 s a day). **Every model's and 13 weather layers' latest map is precomputed** after each update into a disk cache shared by the web workers (`ops.precompute`, the one list; 64 maps in 24 s, 10 MB). Phase 7 adds the next 7 forecast days to its `DAYS`.
-- **D6 started:** the stitch copies the archive's hours as stored and keeps its running totals to the coverage's extent (7.3 → 6.0 min).
+- **D6 done:** the stitch copies the archive's hours as stored and keeps its running totals to the extent; the rollup's apple scab and Cattle Comfort Index features compiled (`agmodels.features_grid`, bit-identical: a block-month 52.7 → ~30 s on one core); the ingredients' gap fill only where there's an interior gap; IFS put on the window 48 hours at a time (was every hour of a run at once, ~14 GB) and a build's soil a day at a time; the stitch keeps the run's IFS soil after the archive's last hour of it, so an IFS read no longer restitches. The stitch 7.3 → 4.1 min.
 - Scratch: `tmp/launchbox` (the profile archive, January–August 1, 2025, a published run) and the database `agweather2_launchbox`; drop the database when step 7 is done.
 
 **Next, in order:**
 
-1. **Step 7 D6's rest** (the phase plan): the rollup's per-day features (apple scab's 20 s of a block-month is the biggest), IFS soil arrays held whole (~4 GB a run), IFS's own restitch every 6 hours, the stitch's rollup (142 s) and ingredients (118 s), then **F** (sources over the mask, before the server's backfill) and **G** (the rest of step 7, the end-of-phase review).
+1. **Step 7 F** (sources over the mask, before the server's backfill) and **G** (the rest of step 7, the end-of-phase review). Not measured yet: an IFS read's peak memory on the launch box (needs a live read), and a day's update and a forecast run end to end since D6.
 2. **Step 5**, site services: changelog and announcements, the API use form, the verification archive, Open-Meteo when NBM is stale, Open-Meteo usage.
 3. **Step 6**, new sources: soil moisture (send the ERA5-Land requests early: the CDS queue takes hours) and cropland fractions.
 4. Alongside, as answers arrive: models parts C–G and J ([docs/plans/models.md](docs/plans/models.md), each planned first), D100's humidity correction ([docs/plans/humidity.md](docs/plans/humidity.md), step 1: is URMA the right target in Oklahoma).
