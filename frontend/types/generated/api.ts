@@ -79,6 +79,165 @@ export interface ChangeInfo {
    */
   note: string
 }
+export interface ChangelogData {
+  /**
+   * Each published entry, newest first.
+   */
+  entries: ChangelogEntryInfo[]
+}
+export interface ChangelogEntryInfo {
+  /**
+   * The entry's number, which does not change.
+   */
+  id: number
+  /**
+   * The date of the entry.
+   */
+  date: string
+  /**
+   * What the entry is about: `api` (a change to the API), `model` (the models), `data` (the data and their sources), `outage` (an outage or delay) or `announcement` (other news).
+   */
+  kind: 'api' | 'model' | 'data' | 'outage' | 'announcement'
+  /**
+   * The entry's title.
+   */
+  title: string
+  /**
+   * The entry's text, in Markdown.
+   */
+  body: string
+  /**
+   * The id of the model the entry is about, as in `/models`. Null when it is not about one model.
+   */
+  model: string | null
+  /**
+   * The endpoint the entry is about, as `/degree-days`. Null when it is not about one endpoint.
+   */
+  endpoint: string | null
+  /**
+   * Until when, in UTC, the website shows the entry as a notice at the top of its pages. Null when it is not shown as a notice.
+   */
+  banner_until: string | null
+  /**
+   * The entry's address on the changelog page.
+   */
+  url: string
+}
+/**
+ * Changes to the service and announcements, newest first.
+ */
+export interface ChangelogResponse {
+  meta: Meta
+  data: ChangelogData
+}
+export interface Meta {
+  /**
+   * The request as it was computed, after defaults were filled in and values were standardized, such as today's date for a missing `end`.
+   */
+  request: {
+    [k: string]: unknown
+  }
+  /**
+   * Every parameter this endpoint takes, with the value used for each: as you gave it, the default, or null where none applies. It shows the defaults and what else you could send.
+   */
+  params?: {
+    [k: string]: unknown
+  }
+  /**
+   * The location asked for and the grid cell read for it. Absent when the request has no single location.
+   */
+  location?: Location | null
+  /**
+   * With `points`: each location in the order given. The `point` column of `data` gives a row's position in this list, counting from 0.
+   */
+  locations?: Location[] | null
+  /**
+   * The unit of each numeric column, by column name, in the units asked for.
+   */
+  units: {
+    [k: string]: string
+  }
+  /**
+   * Facts about the results as a whole. Every table has `missing`, the number of missing values in each column, and `stats`, each numeric column's minimum, maximum and mean (and total, where a total means something). Each endpoint's description lists what else it adds.
+   */
+  summary: {
+    [k: string]: unknown
+  }
+  /**
+   * The data sources the answer was read from, by short name, such as `urma` and `nbm` for NOAA's analysis and forecast. The front page of these docs describes each source.
+   */
+  sources: string[]
+  /**
+   * Notes about the answer that didn't stop it, such as missing days or a forecast that is out of date, each a sentence. Empty when there are none.
+   */
+  warnings: string[]
+  /**
+   * The credit to give when you publish these results.
+   */
+  attribution: string
+  /**
+   * The version of the API that answered, such as `2.0`.
+   */
+  api_version: string
+  /**
+   * When the answer was made, in UTC (ISO 8601).
+   */
+  generated_at: string
+  /**
+   * How long the answer took to compute, in milliseconds.
+   */
+  compute_ms: number
+}
+export interface Location {
+  /**
+   * The latitude asked for, in decimal degrees.
+   */
+  lat: number
+  /**
+   * The longitude asked for, in decimal degrees.
+   */
+  lng: number
+  /**
+   * The 2.5 km grid cell that contains the location, whose values the answer reads. Null outside the grid.
+   */
+  cell: Cell | null
+  /**
+   * Whether the location is inside the area our archive covers. Outside it, weather comes from Open-Meteo.
+   */
+  in_box: boolean
+  /**
+   * The location's time zone, as an IANA name such as `America/Chicago`.
+   */
+  timezone: string | null
+  /**
+   * The county that contains the location. Null outside the United States.
+   */
+  county: string | null
+  /**
+   * The state that contains the location, as its two-letter postal abbreviation. Null outside the United States.
+   */
+  state: string | null
+  /**
+   * The location's own elevation, in meters, from the 30-meter National Elevation Dataset. Null where we don't hold elevation.
+   */
+  elevation_m?: number | null
+  /**
+   * The mean elevation of the grid cell, in meters. Null where we don't hold elevation.
+   */
+  cell_elevation_m?: number | null
+  /**
+   * The share of the grid cell covered by open water (lakes and wide rivers), as a percentage. A cell that is mostly water is still the cell read. Null where we don't hold it.
+   */
+  water_percent?: number | null
+  /**
+   * On daily answers: whose clock sets the days. `central` is midnight to midnight Central Standard Time all year, as on our maps; `local` follows the location's own time zone, with daylight saving time. Absent on answers without days.
+   */
+  day_basis?: ('central' | 'local') | null
+  /**
+   * On daily answers: what a day is at this location, in words, with its hours in UTC.
+   */
+  days?: string | null
+}
 export interface CheckInfo {
   /**
    * What the model was checked against: `published` (the numbers in its sources), `system` (another forecasting system run on the same weather) or `observations` (measurements in the field, such as trap catches).
@@ -239,114 +398,6 @@ export interface CorrectionInfo {
 export interface CorrectionResponse {
   meta: Meta
   data: CorrectionDetail
-}
-export interface Meta {
-  /**
-   * The request as it was computed, after defaults were filled in and values were standardized, such as today's date for a missing `end`.
-   */
-  request: {
-    [k: string]: unknown
-  }
-  /**
-   * Every parameter this endpoint takes, with the value used for each: as you gave it, the default, or null where none applies. It shows the defaults and what else you could send.
-   */
-  params?: {
-    [k: string]: unknown
-  }
-  /**
-   * The location asked for and the grid cell read for it. Absent when the request has no single location.
-   */
-  location?: Location | null
-  /**
-   * With `points`: each location in the order given. The `point` column of `data` gives a row's position in this list, counting from 0.
-   */
-  locations?: Location[] | null
-  /**
-   * The unit of each numeric column, by column name, in the units asked for.
-   */
-  units: {
-    [k: string]: string
-  }
-  /**
-   * Facts about the results as a whole. Every table has `missing`, the number of missing values in each column, and `stats`, each numeric column's minimum, maximum and mean (and total, where a total means something). Each endpoint's description lists what else it adds.
-   */
-  summary: {
-    [k: string]: unknown
-  }
-  /**
-   * The data sources the answer was read from, by short name, such as `urma` and `nbm` for NOAA's analysis and forecast. The front page of these docs describes each source.
-   */
-  sources: string[]
-  /**
-   * Notes about the answer that didn't stop it, such as missing days or a forecast that is out of date, each a sentence. Empty when there are none.
-   */
-  warnings: string[]
-  /**
-   * The credit to give when you publish these results.
-   */
-  attribution: string
-  /**
-   * The version of the API that answered, such as `2.0`.
-   */
-  api_version: string
-  /**
-   * When the answer was made, in UTC (ISO 8601).
-   */
-  generated_at: string
-  /**
-   * How long the answer took to compute, in milliseconds.
-   */
-  compute_ms: number
-}
-export interface Location {
-  /**
-   * The latitude asked for, in decimal degrees.
-   */
-  lat: number
-  /**
-   * The longitude asked for, in decimal degrees.
-   */
-  lng: number
-  /**
-   * The 2.5 km grid cell that contains the location, whose values the answer reads. Null outside the grid.
-   */
-  cell: Cell | null
-  /**
-   * Whether the location is inside the area our archive covers. Outside it, weather comes from Open-Meteo.
-   */
-  in_box: boolean
-  /**
-   * The location's time zone, as an IANA name such as `America/Chicago`.
-   */
-  timezone: string | null
-  /**
-   * The county that contains the location. Null outside the United States.
-   */
-  county: string | null
-  /**
-   * The state that contains the location, as its two-letter postal abbreviation. Null outside the United States.
-   */
-  state: string | null
-  /**
-   * The location's own elevation, in meters, from the 30-meter National Elevation Dataset. Null where we don't hold elevation.
-   */
-  elevation_m?: number | null
-  /**
-   * The mean elevation of the grid cell, in meters. Null where we don't hold elevation.
-   */
-  cell_elevation_m?: number | null
-  /**
-   * The share of the grid cell covered by open water (lakes and wide rivers), as a percentage. A cell that is mostly water is still the cell read. Null where we don't hold it.
-   */
-  water_percent?: number | null
-  /**
-   * On daily answers: whose clock sets the days. `central` is midnight to midnight Central Standard Time all year, as on our maps; `local` follows the location's own time zone, with daylight saving time. Absent on answers without days.
-   */
-  day_basis?: ('central' | 'local') | null
-  /**
-   * On daily answers: what a day is at this location, in words, with its hours in UTC.
-   */
-  days?: string | null
 }
 export interface CropData {
   /**

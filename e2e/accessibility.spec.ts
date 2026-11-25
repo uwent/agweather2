@@ -17,5 +17,5 @@ async function scan(page: Page, path: string) {
 }
 
 test('public pages', async ({ page }) => {
-  for (const path of ['/']) await scan(page, path)
+  for (const path of ['/', '/changelog', '/api-use']) await scan(page, path)
 })

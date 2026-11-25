@@ -7,11 +7,16 @@ from django.views.generic import RedirectView
 from api import views as api_views
 from api.api import api
 from ops import views as ops
+from updates import views as updates
+from updates.feeds import ChangelogFeed
 from web import views as web
 
 urlpatterns = [
     path("", web.home, name="home"),
     path("up", ops.up, name="up"),
+    path("changelog", updates.changelog, name="changelog"),
+    path("changelog.atom", ChangelogFeed(), name="changelog-feed"),
+    path("api-use", updates.api_use, name="api-use"),
     # Browsers ask for /favicon.ico wherever a page doesn't link an icon (the API docs, a JSON answer); Caddy serves
     # it in production, so this is for development
     path("favicon.ico", RedirectView.as_view(url=static("favicon.ico"), permanent=False)),

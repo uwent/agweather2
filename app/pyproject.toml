@@ -21,6 +21,7 @@ dependencies = [
     "h5netcdf>=1.6",
     "tifffile>=2025.1",
     "h5py>=3.12",
+    "markdown-it-py>=4.0",
 ]
 
 [tool.uv]

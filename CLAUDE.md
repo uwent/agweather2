@@ -53,7 +53,7 @@ Setup and the rest are in `DEVELOPMENT.md`.
 ## Architecture
 
 - uv workspace: `packages/agmodels` (pure model functions), `packages/agdata` (grid, variable catalog, Zarr stores, source adapters, tile encoding), `app/` (Django project). pnpm for `frontend/`. Python 3.13, Node 24.
-- Django project in `app/`: `config/` (settings from env; `DJANGO_ENV` = development, test (automatic under pytest) or production), and top-level apps `web` (Inertia glue and pages), `ops` (`/up`, jobs), `api` (Ninja). Run commands as `uv run app/manage.py …`.
+- Django project in `app/`: `config/` (settings from env; `DJANGO_ENV` = development, test (automatic under pytest) or production), and top-level apps `web` (Inertia glue and pages), `ops` (`/up`, jobs), `api` (Ninja), `updates` (the changelog and the "Tell us how you use the API" form, D112). Run commands as `uv run app/manage.py …`.
 - Pages: a view returns `web.inertia.render(request, "Folder/Page", SomeProps(...))`, which maps to `frontend/pages/Folder/Page.svelte`. Props are Pydantic models subclassing `web.inertia.Props`, defined in each app's `props.py`; `bin/types` generates their TypeScript types (`@/types`), and CI fails if they're stale. Every page uses `AppLayout`.
 - Shared props (`web.middleware.SharedPropsMiddleware`): `app` (`SharedProps`) and `errors`. Flash is Django's messages framework, which inertia-django sends as `page.flash.messages` (`{level, message}`).
 - Forms: on a validation failure, `redirect_with_errors(request, path, {"input.name": ["message"]})`; the next page gets them as `errors` once. inertia-django has no errors handling of its own.
