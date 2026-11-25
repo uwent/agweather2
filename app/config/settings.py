@@ -61,19 +61,19 @@ OPEN_METEO_WARN_SHARE = 0.8
 COPERNICUS_API_KEY = os.environ.get("COPERNICUS_API_KEY") or None  # the CDS, for ERA5-Land (D52); None: no job
 # Points in the box take Open-Meteo's forecast while ours is stale or missing (D114, ops.points.forecast_filler). Off
 # in tests (their own turn it on), since a test's archive run goes stale as soon as its clock moves on.
-OPEN_METEO_FALLBACK = not TESTING and os.environ.get("OPEN_METEO_FALLBACK", "1") == "1"
+OPEN_METEO_FALLBACK = not TESTING and (os.environ.get("OPEN_METEO_FALLBACK") or "1") == "1"
 # The worker's jobs recorded as runs in DATA_DIR/runs/ for the dashboard (ops.jobruns): development only
 JOB_RUNS = os.environ.get("JOB_RUNS", "1" if ENV == "development" else "0") == "1"
 # The API's rate limit (D69, api.ratelimit): units a minute per client (an IPv4 address or IPv6 /64), a request
 # costing 1 plus 1 per API_RATE_UNIT_MS of server time. Off in tests (their own turn it on); local addresses exempt.
-API_RATE_LIMIT: int | None = None if TESTING else int(os.environ.get("API_RATE_LIMIT", "200"))
+API_RATE_LIMIT: int | None = None if TESTING else int(os.environ.get("API_RATE_LIMIT") or "200")
 API_RATE_UNIT_MS = 100
 API_RATE_EXEMPT = [n.strip() for n in os.environ.get("API_RATE_EXEMPT", "127.0.0.0/8,::1/128").split(",") if n.strip()]
 # A line per request with its status and time in the log (web.requestlog), as Rails writes it: development only
 REQUEST_LOG = os.environ.get("REQUEST_LOG", "1" if ENV == "development" else "0") == "1"
 # The API's time limit (api.timelimit): seconds before a request still running is answered with a 503; 0 turns it
 # off. Off in tests (their own turn it on). Caddy's response_header_timeout (infra/Caddyfile) is the outer bound.
-API_TIME_LIMIT: float | None = None if TESTING else (float(os.environ.get("API_TIME_LIMIT", "30")) or None)
+API_TIME_LIMIT: float | None = None if TESTING else (float(os.environ.get("API_TIME_LIMIT") or "30") or None)
 
 INSTALLED_APPS = [
     "django.contrib.admin",

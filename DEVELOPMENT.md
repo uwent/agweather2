@@ -73,7 +73,9 @@ SECRET_KEY=anything docker compose -f infra/compose.yaml --profile local down -v
 On a server, settings go in `infra/.env` (gitignored): `SECRET_KEY`, `DATABASE_URL` (RDS), `ALLOWED_HOSTS`,
 `SITE_ADDRESS` (the hostname, so Caddy gets a certificate), `HTTP_PORT=80`, `HTTPS_PORT=443`, `APP_VERSION`.
 
-Open-Meteo's plan (D115): `OPEN_METEO_API_KEY` uses the customer hosts; `OPEN_METEO_MONTHLY_CALLS` (default 5,000,000 with a key, 300,000 without), `OPEN_METEO_DAILY_CALLS` (none with a key, 10,000 without) and `OPEN_METEO_BILLING_DAY` (default 12, the day the billing month renews) set what the app's use is measured against. The admin's Open-Meteo usage page, `/up` and `manage.py jobs` show the billing month so far. Development scripts that read Open-Meteo through `agdata.clients.openmeteo_points` aren't counted: run them without the production key, or they draw on the plan unseen.
+Open-Meteo's plan (D115): `OPEN_METEO_API_KEY` uses the customer hosts; `OPEN_METEO_MONTHLY_CALLS` (default 5,000,000 with a key, 300,000 without), `OPEN_METEO_DAILY_CALLS` (none with a key, 10,000 without) and `OPEN_METEO_BILLING_DAY` (default 12, the day the billing month renews) set what the app's use is measured against. The admin's Open-Meteo usage page, `/up` and `manage.py jobs` show the billing month so far. Development scripts that read Open-Meteo through `agdata.clients.openmeteo_points` aren't counted: run them without the production key, or they draw on the plan unseen. `OPEN_METEO_FALLBACK=0` stops points in the box from taking Open-Meteo's forecast while ours is stale (D114).
+
+The API's limits: `API_RATE_LIMIT` (default 200 units a minute per client, D69) and `API_TIME_LIMIT` (default 30 seconds; 0 turns it off). Each of these settings left blank in `infra/.env` takes its default.
 
 ## 5. Scratch and data
 
