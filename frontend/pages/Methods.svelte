@@ -110,13 +110,13 @@
       <section id="grid" aria-labelledby="grid-title" class="scroll-mt-24 space-y-3">
         <h2 id="grid-title" class="text-2xl font-semibold">The grid and the day</h2>
         <p>
-          {`AgWeather keeps its weather on a grid of cells about ${kmText(g.cell_km)} on a side: the grid NOAA uses for its national forecasts (${g.name}). A map shows one value for each cell, and a location takes the values of the cell it is in, so a value describes the cell as a whole rather than one field.`}
+          {`AgWeather keeps its weather on a grid of cells about ${kmText(g.cell_km)} on a side: the grid of NOAA’s National Digital Forecast Database. A map shows one value for each cell, and a location takes the values of the cell it is in, so a value describes the cell as a whole rather than one field.`}
         </p>
         <p>
           {`Every day runs from midnight to midnight ${g.day_zone} (${g.day_zone_abbreviation}) all year, ${String(g.day_start_utc).padStart(2, '0')}:00 to ${String(g.day_start_utc).padStart(2, '0')}:00 UTC, the same hours in every cell, so neighboring cells on a map cover the same day. ${g.day_zone_abbreviation === 'CST' ? `In summer that is ${clockHour(1)} to ${clockHour(1)} Central Daylight Time. ` : ''}For a location’s weather or models, you can ask the API for days on the location’s own clock instead.`}
         </p>
         <p>
-          {`Models that count hours at night take night as ${clockHour(g.evening_hour)} to ${clockHour(g.evening_hour + 12)} ${g.day_zone_abbreviation}, and those that need a full day starting in the evening take ${clockHour(g.evening_hour)} the evening before to ${clockHour(g.evening_hour)}. The overnight low runs from ${clockHour(g.overnight_hour)} the day before to ${clockHour(g.overnight_hour)}.`}
+          {`Models that count hours at night take night as ${clockHour(g.evening_hour)} to ${clockHour(g.evening_hour + 12)} ${g.day_zone_abbreviation}, and those that need a full day starting in the evening take ${clockHour(g.evening_hour)} the evening before to ${clockHour(g.evening_hour)} on the day. The overnight low runs from ${clockHour(g.overnight_hour)} the day before to ${clockHour(g.overnight_hour)} on the day.`}
         </p>
       </section>
 

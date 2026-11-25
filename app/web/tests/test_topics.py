@@ -158,3 +158,8 @@ def test_page_props_never_hide_the_shared_ones():
     shared = set(SharedProps.model_fields) | {"errors"}
     for props in (TopicPageProps, TopicsIndexProps, MethodsProps):
         assert not shared & set(props.model_fields), props.__name__
+
+
+def test_footnotes_side_by_side_are_separated():
+    html = modelpages.render_markdown("Text.[^a][^b]", {"a": 1, "b": 2})
+    assert 'aria-label="Source 1">1</a>,<a href="#source-b" aria-label="Source 2">2</a></sup>' in html
