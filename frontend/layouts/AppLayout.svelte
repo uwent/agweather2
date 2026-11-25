@@ -92,14 +92,14 @@
       <nav
         bind:this={navEl}
         aria-label="Main"
-        class="order-3 -mx-1 flex w-full gap-1 overflow-x-auto sm:order-2 sm:w-auto"
+        class="order-3 -mx-1 flex w-full overflow-x-auto sm:order-2 sm:w-auto sm:gap-1"
         style:mask-image={navMask}
         onscroll={measureNav}
       >
         {#each nav as item (item.label)}
           <Link
             href={item.href}
-            class="shrink-0 rounded-md px-3 py-1.5 text-sm font-medium
+            class="shrink-0 rounded-md px-2 py-1.5 text-sm font-medium sm:px-3
               {isCurrent(item.href, item.also) ? 'bg-brand-100 text-brand-700' : 'text-ink-muted hover:text-ink'}"
             aria-current={isCurrent(item.href, item.also) ? 'page' : undefined}
           >

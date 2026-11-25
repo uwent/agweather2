@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test'
 
 // Every page loads with no console errors (a CSP violation shows as one) and no failed requests
 let problems: string[] = []
@@ -29,6 +29,25 @@ test('theme toggle switches and is remembered', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-theme', before ? 'light' : 'dark')
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('data-theme', before ? 'light' : 'dark')
+})
+
+test('header has the sections, and settings choose the units', async ({ page }) => {
+  await page.goto('/')
+  const nav = page.getByRole('navigation', { name: 'Main' })
+  for (const section of ['Map', 'Sites', 'Models', 'Tools', 'Climate', 'Data'])
+    await expect(nav.getByRole('link', { name: section, exact: true })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Settings' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Settings' })
+  await expect(dialog.getByRole('radio', { name: 'US (°F, inches)' })).toBeChecked()
+  await dialog.getByText('Metric (°C, millimeters)').click()
+  await expect(dialog.getByRole('radio', { name: 'Metric (°C, millimeters)' })).toBeChecked()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+
+  await page.reload()
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await expect(page.getByRole('radio', { name: 'Metric (°C, millimeters)' })).toBeChecked()
 })
 
 test('API docs', async ({ page }) => {

@@ -44,9 +44,11 @@
   --color-bark-900: #262319;
   --color-bark-950: #1c1a14;
 
-  /* Brand: the olive-brown, gold in dark mode; kept clear of the green-to-red risk scale maps use */
-  --color-brand-50: var(--color-sand-100);
-  --color-brand-100: var(--color-sand-200);
+  /* Brand: the olive-brown, gold in dark mode; kept clear of the green-to-red risk scale maps use.
+     The 50 and 100 tints (a chosen pill, a highlighted menu item, the current section) are a step
+     darker than the raised surface they sit on, as WISP 3's are */
+  --color-brand-50: var(--color-sand-200);
+  --color-brand-100: var(--color-sand-300);
   --color-brand-500: var(--color-sand-500);
   --color-brand-600: var(--color-sand-700);
   --color-brand-700: var(--color-sand-800);
