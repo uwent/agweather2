@@ -6,7 +6,7 @@ and cumulative ones (`data/ingredients/{year}.zarr`):
 
 - each stored ingredient's daily values, under `{model_id}.{name}`, or its `shared` name for one kept once (the
   insects' freeze factor, the moving means three models use);
-- for one that's accumulated, its running total from local January 1 (`….total`), and for one averaged, the
+- for one that's accumulated, its running total from January 1 (`….total`), and for one averaged, the
   running count of days with a value (`….known`), so a total, sum or mean over any days is `cum[d] − cum[b − 1]`.
 
 Degree days and catalog variables' totals aren't kept here: the cumulative store's running totals stand in (`degree_days`,

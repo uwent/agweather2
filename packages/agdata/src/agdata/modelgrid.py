@@ -18,8 +18,8 @@ day before it is missing, as a point returns nothing before its biofix. Maps tak
 user's dates (D66). `model_map` adds the planting tier (early, mid, late; `/grids`' `planting=`): a crop model
 starts at each cell's typical planting date, a stage-anchored biofix (the blights' potato emergence) is each cell's
 first day at that stage, read from what `agdata.croptiers` stored (`_reached`), and a stage-gated disease gets
-`susceptibility`. Soybean, spring wheat, corn and potato stages are read as stored per tier (D70); red crown rot
-is computed on request from each cell's R1 (`ON_REQUEST`). With `tier=None` nothing is gated and a stage-anchored
+`susceptibility`. Soybean, spring wheat, corn and potato stages are read as stored per tier (D70); red crown rot,
+apple scab and fire blight carry a state from each cell's biofix (`ON_REQUEST`): their stored seasons are read (`agdata.seasonmaps`; red crown rot's mid tier only), and computed on request, a block at a time, past what's stored. With `tier=None` nothing is gated and a stage-anchored
 biofix is the spec's date, as at a point given no planting date (`api.runs`). Cells outside a model's states are
 missing. The forecast's days come from the current run's own stores, which continue the archive's totals, as
 `series.grid_days` splits them.

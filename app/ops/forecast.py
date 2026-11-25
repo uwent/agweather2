@@ -1,5 +1,5 @@
 """Keeping the forecast current (Phase 4 F): the newest long NBM run built, published and recorded, and the
-published run restitched whenever the archive gains hours."""
+published run restitched after each update of the archive's days (D108)."""
 
 import logging
 from collections.abc import Callable

@@ -5,7 +5,7 @@ A grid day is midnight to midnight CST (`timezones.GRID_ZONE`, all year): the ho
 before D74 holds each cell's local zone, and `rebuild --stale` moves it to the grid's (`on_grid_days`).
 Days stay raw: min, max and mean need `DAILY_MIN_HOURS` of the day's hours and sums need every hour, or the day
 is NaN; estimates across gaps belong to the running totals (`agdata.cumulative`). The daily store for a year
-holds that year's local days, so local Dec 31 reads the next year's first UTC hours. The window is rolled up a
+holds that year's grid days, so December 31 reads the next year's first UTC hours. The window is rolled up a
 pass of up to MAX_DAYS_PER_PASS days and a square block (`agdata.blocks`) at a time, so memory doesn't grow with the
 window, and blocks run in worker processes when `blocks.workers()` is more than one.
 """

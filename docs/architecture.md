@@ -5,14 +5,14 @@ How the system is laid out: the architecture, the data, ingest, the forecast, th
 ## 3. Architecture
 
 ```
-Sources (AWS NOAA buckets, Open-Meteo, nClimGrid, gridMET)
+Sources (AWS NOAA buckets, Open-Meteo, ERA5-Land, gridMET)
    │  ingest jobs: hourly pulls, QC, rollups, cumulative + climatology cubes
    ▼
 Zarr stores (data volume)                     Postgres (RDS)
   hourly/{year}.zarr   time × y × x            users, sites, alert rules,
   daily/{year}.zarr    day × y × x             job queue, ingest status,
   cumulative/{year}    day × y × x             Open-Meteo cache index,
-  climatology/         doy × y × x             API feedback, changelog
+  climate/normals/     doy × y × x             API feedback, changelog
    │                                              │
    └──────────── agdata (read/write) ─────────────┤
                  agmodels (pure functions) ───────┤
@@ -38,12 +38,12 @@ Browser: Svelte 5 + Tailwind v4, MapLibre with a WebGL data-tile layer, ECharts
 | Path | Holds |
 | --- | --- |
 | `packages/agmodels/` | Model library: hourly → daily → windows → DD → disease/insect models. Pure functions on xarray/pandas, NumPy and Numba. Each model: one file, metadata (citations, version, status, region, season, sweep). No I/O |
-| `packages/agdata/` | Grid definition and service box, variable catalog, Zarr store layout and read/write, source adapters (URMA, RTMA, HRRR, NBM, Open-Meteo, nClimGrid, gridMET), QC, rollups, tile encoding |
-| `app/` | Django project: `config/` (settings, urls, asgi), apps `accounts`, `sites`, `alerts`, `catalog`, `api`, `ops`, `updates` (the changelog and the API-use form, D112); jobs; management commands (backfill CLI) |
+| `packages/agdata/` | Grid definition and service box, variable catalog, Zarr store layout and read/write, source adapters (URMA, RTMA, HRRR, NBM, ERA5-Land, ECMWF IFS, Open-Meteo, gridMET; NHDPlus and NASS's Cropland Data Layer for the static stores), QC, rollups, tile encoding |
+| `app/` | Django project: `config/` (settings, urls, asgi), apps `web` (Inertia glue and pages), `api`, `ops` (jobs, status, the data commands), `updates` (the changelog and the API-use form, D112); `accounts`, `sites` and `alerts` come with Phase 7 |
 | `frontend/` | Svelte pages and components, `lib/` (ported from WISP 3: units, dates, charts, map, glossary, tables, csv), `types/` (generated) |
 | `infra/` | Dockerfile, `compose.yaml`, Caddyfile, backup scripts |
-| `bin/` | `dev`, `ci`, `e2e` |
-| `docs/` | project-plan.md, pilot results, accessibility, deployment, model notes |
+| `bin/` | `dev`, `ci`, `test`, `e2e`, `types`, `agwx` |
+| `docs/` | decisions, this file, the plans by phase (`plans/`), the API contract, the frontend spec, validation reports (`validation/`), model inventories, project-plan.md and pilot results |
 
 Package boundaries: `agmodels` imports nothing from the others. `agdata` may import `agmodels` (rollups and cumulative cubes run models). `app` imports both. No Django in the packages.
 
@@ -68,9 +68,12 @@ One table in `agdata.catalog`: name, long name, stored unit, dtype and scale/off
 | Store | Shape | Chunks | Notes |
 | --- | --- | --- | --- |
 | `hourly/{year}.zarr` | time × y × x per variable | ~30 days × 32 × 32 | Point reads; one store per year so the window rolls by deleting a directory |
-| `daily/{year}.zarr` | day × y × x per variable/statistic | 1 × 256 × 256 | Map reads; local-calendar day per cell |
+| `daily/{year}.zarr` | day × y × x per variable/statistic | 1 × 256 × 256 | Map reads; the grid's day, midnight to midnight CST in every cell (D74) |
 | `cumulative/{year}.zarr` | day × y × x per fixed DD model and additive index | 1 × 256 × 256 | Running total from Jan 1; range sum = `cum[end] − cum[start−1]` |
-| `climatology/` | doy × y × x per statistic | 1 × 256 × 256 | 30-year external and 5/10-year internal |
+| `ingredients/{year}.zarr` | day × y × x per model ingredient | 1 × 256 × 256 | What model maps are finished from (`agdata.modelmaps`), with crop stages per planting tier (`agdata.croptiers`) and the stored seasons of apple scab, fire blight and red crown rot (`agdata.seasonmaps`, D109) |
+| `climate/normals/{period}.zarr` | day of year × y × x per statistic | 1 × 256 × 256 | The normal maps of `last30`, `last10` and `last5` (`agdata.normals`, D85) |
+| `climate/gridmet/{year}.zarr` | variable × day × y × x | all × year × 16 × 16 | gridMET's years before the archive on its basis, for `last30` (`agdata.climatestore`, D84) |
+| `era5land/{year}.zarr` | hour × lat × lon, ERA5-Land's own 0.1° grid | 24 × all | ERA5-Land as received, from which the hourly store's soil and snow are derived (`agdata.era5store`, D79) |
 | `daily-by-time/{year}.zarr` | day × y × x, daily min and max only | 32 × 256 × 256 | A season over the map (custom DD maps); a cache of the daily store's values, kept by `update_days` (`agdata.timecopy`) |
 | `daily-by-point/{year}.zarr` | variable × day × y × x, settled years | all × year × 16 × 16 | A point's past years (projection, climatology; `agdata.pastyears`) |
 | `forecast/verify/{cycle}/daily/{year}.zarr` | day × y × x, 11 daily variables and 5 disease values | 16 × 256 × 256 | Each published run's lead days 1–10 as published, kept 45 days for scoring (`agdata.verification`, D113; ~5 GB over the launch box) |
@@ -82,24 +85,24 @@ Two static stores, built once from outside sources over the coverage's extent an
 <!-- prettier-ignore -->
 | Store | Built by | Holds |
 | --- | --- | --- |
-| `terrain.zarr` | `manage.py terrain` (`agdata.terrain`, D6) | Each cell's open-water share (NHDPlus V2.1) and elevation statistics, and a 31.7 m DEM for points |
+| `terrain.zarr` | `manage.py terrain` (`agdata.terrain`, Phase 6 D6) | Each cell's open-water share (NHDPlus V2.1) and elevation statistics, and a 31.7 m DEM for points |
 | `cropland.zarr` | `manage.py cropland` (`agdata.cropland`, D116) | Each cell's cropland from USDA NASS's Cropland Data Layer over the five newest years (2021–2025, rolled forward each February): `observed`, `cultivated` (NASS's Cultivated Layer rule) and, for every `croplist` id the CDL has a class for, `<crop>_mean` (the average share planted) and `<crop>_any` (the share in that crop in any year); uint16 hundredths of a percent. Every 30 m pixel counts in the cell holding its centre, and only if every year has a class for it (2021–2024 leave the Great Lakes as background, 2025 calls them open water); shares are missing where under half the cell has CDL data. The national zips are kept in `data/cdl/` (9.7 GB); a build unpacks each year's raster (14.4 GB together), counts 138 blocks of 64 cells over the launch coverage in ~8 min with 4 block workers (~0.5 GB each), deletes the rasters and leaves an 11 MB store. Read with `cropland.load(data_dir).share(crop, stat, window)`; nothing serves it yet (Phase 7's overlay, cropland-weighted summaries, potato planting on the grid) |
 
 Jobs that compute over the grid (the rollup, running totals, chill portions, the models' ingredients and crop tiers, the past-years copies) work in **square blocks of 256 cells** from the store window's corner (`agdata.blocks`): the daily chunk, so a block's write fills whole chunks, and eight hourly chunks a side. Over the coverage mask only blocks with a covered cell are kept, so a job's memory follows a block (~3.8 GB at peak for a 31-day rollup pass), not the window's width, and its work follows the coverage. Every daily statistic, feature and model works on each cell's own series, so blocks are independent: `BLOCK_WORKERS` (or a command's `--block-workers`) runs them in that many worker processes. A worker writes its block's values (`GridStore.write(record=False)`) and the calling process records the writes, creates stores and arrays and holds the write lock, so no chunk and no `_meta` array has two writers. Every hour carries a source flag (urma, rtma, nbm, openmeteo) and an ingest timestamp, so the archive can be revised (RTMA → URMA) idempotently.
 
 ### 5.4 Time and days
 
-UTC everywhere in storage. Grid days are Central Standard Time all year, midnight to midnight CST (06:00–06:00 UTC), the same for every cell (D74). Points default to the grid's days inside the box and local days outside it, and take `day_basis=central|local`. Hourly displays show the local clock with UTC. Solar days wait for a national grid (D74). Models that need day/night windows use civil sunrise/sunset or solar noon/midnight, computed per cell (`agmodels.sun`).
+UTC everywhere in storage. Grid days are Central Standard Time all year, midnight to midnight CST (06:00–06:00 UTC), the same for every cell (D74). Points default to the grid's days inside the box and local days outside it, and take `day_basis=central|local`. Hourly displays show the local clock with UTC. Solar days wait for a national grid (D74). Windows within a day are fixed clock times in CST (D74: night is 6 p.m. to 6 a.m.), not sunrise and sunset; day length and solar elevation, where a model or a correction needs them, come from `agmodels.weather`.
 
 ---
 
 ## 6. Ingest
 
-- **Hourly:** latest URMA (≈6 h lag) and RTMA for the hours since, via Herbie with byte-range reads; HRRR analysis shortwave and soil temperature, regridded to the NDFD window; QC against catalog ranges; write hourly. The days behind their hours (by write time) are rolled up with their running totals, chill and ingredients, and the forecast restitched, only when due: a day just over (after midnight CST), an hour waiting six hours, or before a forecast run is built (D108, `ops.ingest.update_if_due`). Points read the hours, so only maps wait.
+- **Hourly:** latest URMA (≈6 h lag) and RTMA for the hours since, through our own byte-range reader (`agdata.sources.grib.RemoteGrib`: the `.idx`, or GRIB2 section headers where there's none); HRRR analysis shortwave and soil temperature, regridded to the NDFD window; QC against catalog ranges; write hourly. The days behind their hours (by write time) are rolled up with their running totals, chill and ingredients, and the forecast restitched, only when due: a day just over (after midnight CST), an hour waiting six hours, or before a forecast run is built (D108, `ops.ingest.update_if_due`). Points read the hours, so only maps wait.
 - **Forecast:** NBM's long runs (every 6 hours) into a separate forecast store (not the archive), replaced on each run; its hours derived in parts over the coverage in the block pool (`forecast.parts`, D108). Its soil and snow are IFS's (D52): the stitch copies the archive's only through their last archived hour and the run's own carry on from there, so a new IFS read needs no restitch; its hours reach the run at the next update or run.
-- **Backfill CLI** (`manage.py backfill --start --end --box`): idempotent, resumable, parallel by day; the same code path as hourly ingest.
-- **Yearly roll:** in January, drop the oldest year and rebuild internal climatology.
-- **Climatology build:** nClimGrid-daily and gridMET reduced once to doy cubes on the grid.
+- **Backfill CLI** (`manage.py backfill --start --end --box`): idempotent, resumable, hours fetched in parallel (`--workers`) while the previous block is written; the same code path as hourly ingest. `manage.py archive fill --from YEAR` fills whole years with it (`ops.archive`).
+- **Yearly roll:** in January, drop the oldest year and roll the normals' periods forward (D87; not built yet: Phase 8, "The archive's January trim").
+- **Climatology build:** gridMET's years fetched, fitted to the archive's basis (D84) and derived on the grid, then the normal maps per period (D82, D85; `manage.py climatology`). nClimGrid-daily was weighed and isn't used (D82).
 - Ingest status per source and hour in Postgres (`ops`), feeding the health check and admin page.
 
 ---
@@ -129,7 +132,7 @@ UTC everywhere in storage. Grid days are Central Standard Time all year, midnigh
 
 ## 9. API v2 (Django Ninja)
 
-`/api/v2`: points (hourly or daily, variable list, multiple points), grids (date or range with stat, binary or GeoJSON/CSV), data tiles (`/tiles/{layer}/{date}/{z}/{x}/{y}.png`), models (catalog, run at points, grid risk), DD table, freeze counts, downloads, dataset status. Units selectable, source and model version on every response. OpenAPI at `/api/v2/docs`, linked to the changelog page (`/changelog`, its Atom feed and `GET /api/v2/changelog`) and the "Tell us how you use the API" form (`/api-use`), both in the `updates` app (D112). Rate limits at Caddy. If Django overhead shows in tile timings, mount a small Starlette app under `/tiles` sharing `agdata`. The contract (envelope, formats, every endpoint) is designed in `docs/api.md` (agreed 2026-11-02, D57–D58).
+`/api/v2`: points (hourly or daily, variable list, multiple points), grids (date or range with stat, as JSON, CSV, NetCDF or GeoTIFF), data tiles (`/tiles/{layer}/{time}/{z}/{x}/{y}.png`), county and state summaries, climate normals and comparisons, static map images, models (catalog, run at points, grid risk), DD table, freeze counts, downloads, dataset status. Units selectable, source and model version on every response. OpenAPI at `/api/v2/docs`, linked to the changelog page (`/changelog`, its Atom feed and `GET /api/v2/changelog`) and the "Tell us how you use the API" form (`/api-use`), both in the `updates` app (D112). Rate limits in the app (D69, `api.ratelimit`), on each client's address as Caddy passes it. If Django overhead shows in tile timings, mount a small Starlette app under `/tiles` sharing `agdata`. The contract (envelope, formats, every endpoint) is designed in `docs/api.md` (agreed 2026-11-02, D57–D58).
 
 ---
 
