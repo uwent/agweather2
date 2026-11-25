@@ -213,6 +213,18 @@ def housekeeping(timestamp: int) -> None:
         logger.info("maps: %d computed maps kept over %d days deleted", old, layermaps.DISK_KEEP_DAYS)
 
 
+@app.periodic(cron="25 14 * * *")  # yesterday's grid day closed at 06Z, and URMA's hours are in by now
+@app.task(queue="maintenance", queueing_lock="score_forecasts", task_middleware=JOB_MIDDLEWARE)
+def score_forecasts(timestamp: int) -> None:
+    """Scores the kept forecast runs' days the archive has closed, and again those it has rewritten since
+    (`ops.verification`, D113). Reads the stores and writes Postgres, so no write lock."""
+    from ops import verification
+
+    done = verification.score(settings.DATA_DIR, datetime.fromtimestamp(timestamp, UTC))
+    if done.days:
+        logger.info("verification: %d days scored (%d rows)", done.days, done.rows)
+
+
 # The order `manage.py jobs run all` and `jobs start` use: the archive first, then soil (IFS's provisional hours, then
 # ERA5-Land's over them), then the forecast, which stitches to all of it.
 CATCH_UP = (
@@ -221,5 +233,6 @@ CATCH_UP = (
     ingest_era5land,
     ingest_forecast,
     update_crop_tiers,
+    score_forecasts,
     housekeeping,
 )

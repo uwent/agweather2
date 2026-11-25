@@ -100,3 +100,33 @@ class ApiUsage(models.Model):
 
     def __str__(self) -> str:
         return f"{self.client} {self.minute:%Y-%m-%d %H:%M}Z: {self.requests} requests, cost {self.cost}"
+
+
+class ForecastScore(models.Model):
+    """One kept forecast run's score for one variable on one lead day against the archive's (D113,
+    `agdata.verification`): over the covered cells where both are known, the error forecast − observed in the
+    catalog's unit. Pool rows weighted by `n` (RMSE as √(Σ n·rmse² / Σ n), exactly). Kept indefinitely (~250,000 rows a
+    year); a day is scored again when the archive rewrites it (`observed_written`)."""
+
+    cycle = models.DateTimeField(help_text="The NBM run's cycle (UTC)")
+    lead = models.PositiveSmallIntegerField(help_text="Days after the cycle's grid day (1-10)")
+    valid_day = models.DateField(help_text="The grid day forecast")
+    variable = models.CharField(max_length=64, help_text="Daily variable or model ingredient, or dd_sine_50_86")
+    n = models.IntegerField(help_text="Cells with both a forecast and an observed value")
+    bias = models.FloatField(null=True, help_text="Mean error (forecast − observed); empty when n is 0")
+    mae = models.FloatField(null=True, help_text="Mean absolute error")
+    rmse = models.FloatField(null=True, help_text="Root mean square error")
+    hits = models.IntegerField(null=True, help_text="Precipitation: cells wet in both (0.01 in or more)")
+    misses = models.IntegerField(null=True, help_text="Precipitation: wet observed, dry forecast")
+    false_alarms = models.IntegerField(null=True, help_text="Precipitation: wet forecast, dry observed")
+    observed_written = models.DateTimeField(help_text="When the archive last wrote the day's values scored")
+    scored_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["cycle", "lead", "variable"], name="one_score_per_run_lead_variable")
+        ]
+        indexes = [models.Index(fields=["variable", "lead", "valid_day"])]
+
+    def __str__(self) -> str:
+        return f"{self.cycle:%Y-%m-%d %H}Z lead {self.lead} {self.variable}: n {self.n}, MAE {self.mae}"

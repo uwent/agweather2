@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from ops.models import ApiUsage, IngestRecord
+from ops.models import ApiUsage, ForecastScore, IngestRecord
 
 
 @admin.register(IngestRecord)
@@ -34,6 +34,23 @@ class ApiUsageAdmin(admin.ModelAdmin):
     date_hierarchy = "minute"
     ordering = ["-minute", "-cost"]
     readonly_fields = [f.name for f in ApiUsage._meta.fields]
+
+    def has_add_permission(self, request) -> bool:
+        return False
+
+    def has_change_permission(self, request, obj=None) -> bool:
+        return False
+
+
+@admin.register(ForecastScore)
+class ForecastScoreAdmin(admin.ModelAdmin):
+    """The forecast's scores by run, lead and variable (D113); pooled by lead in `manage.py verify --report`."""
+
+    list_display = ["valid_day", "cycle", "lead", "variable", "n", "bias", "mae", "rmse"]
+    list_filter = ["lead", "variable"]
+    date_hierarchy = "valid_day"
+    ordering = ["-valid_day", "lead", "variable"]
+    readonly_fields = [f.name for f in ForecastScore._meta.fields]
 
     def has_add_permission(self, request) -> bool:
         return False

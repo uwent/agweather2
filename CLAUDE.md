@@ -45,6 +45,7 @@ uv run app/manage.py timecopy    # fill the season-read copy of daily min/max (a
 uv run app/manage.py latency     # time §3's fast paths on this archive (maps' first tiles, points), against their targets
 uv run app/manage.py climatology # the 30-year normal's gridMET years: fetch, fit to the archive (D84), derive, drop; --check, --refit, --rederive
 uv run app/manage.py terrain     # each cell's open-water share and elevation from NHDPlus V2 (D6) into data/terrain.zarr; --check, --rebuild
+uv run app/manage.py verify      # score the kept forecast runs' days the archive has closed (D113); --check, --report [--days 30] [--by-cycle], --rescore, --keep-current
 ```
 
 Setup and the rest are in `DEVELOPMENT.md`.
