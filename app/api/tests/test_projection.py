@@ -145,10 +145,28 @@ def test_the_copies_laid_out_for_points_give_the_same_projection(client, project
 
     first = get(client, "early-blight-pdays", **BLIGHT, projection="years")
     before = first.json()["data"]
+    from agdata.store import DAILY
+    from agmodels import runner
+    from agmodels.registry import model
+
     copy_dir = tmp_path / "with-copies"  # the archive (read only, so linked: 20,000 files) and the copies
     copy_dir.mkdir()
     for entry in projection_archive.iterdir():
-        (copy_dir / entry.name).symlink_to(entry)
+        if entry.name != "daily":
+            (copy_dir / entry.name).symlink_to(entry)
+    # The past years' daily stores with only the model's variables linked (a copy reads every variable's year, a
+    # chunk a day: 14 -> 0.5 s)
+    names = runner.required_inputs(model("early-blight-pdays"))
+    for store in DAILY.path(projection_archive, 2023).parent.iterdir():
+        linked = DAILY.path(copy_dir, 2023).parent / store.name
+        if store.name not in (DAILY.path(projection_archive, y).name for y in (2023, 2024)):
+            linked.parent.mkdir(parents=True, exist_ok=True)
+            linked.symlink_to(store)
+            continue
+        linked.mkdir(parents=True)
+        for entry in store.iterdir():
+            if entry.name in ("zarr.json", "_meta", *names):
+                (linked / entry.name).symlink_to(entry)
     for year in (2023, 2024):
         pastyears.build(copy_dir, year)
     from django.conf import settings
