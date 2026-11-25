@@ -369,8 +369,9 @@ def _read(raster: Raster, rows: tuple[int, int], cols: tuple[int, int], west: fl
     import rasterio
     from rasterio.windows import Window as RasterWindow
 
-    dr, dc = round((north - raster.north) / PIXEL), round((raster.west - west) / PIXEL)
-    r0, r1, c0, c1 = rows[0] + dr, rows[1] + dr, cols[0] - dc, cols[1] - dc
+    # the lattice's row r and column c are the raster's row r + dr and column c + dc (2025's extent is wider)
+    dr, dc = round((raster.north - north) / PIXEL), round((west - raster.west) / PIXEL)
+    r0, r1, c0, c1 = rows[0] + dr, rows[1] + dr, cols[0] + dc, cols[1] + dc
     out = np.zeros((rows[1] - rows[0], cols[1] - cols[0]), dtype=np.uint8)
     rr0, rr1, cc0, cc1 = max(r0, 0), min(r1, raster.height), max(c0, 0), min(c1, raster.width)
     if rr0 >= rr1 or cc0 >= cc1:

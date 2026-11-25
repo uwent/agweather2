@@ -79,6 +79,25 @@ def test_statistics_over_a_five_year_rotation(tmp_path):
     np.testing.assert_array_equal(cropland.unpack(packed), np.round(s["corn_mean"], 4))
 
 
+def test_a_year_with_a_wider_extent_is_read_on_the_same_ground(tmp_path):
+    """2025's file reaches 4,954 rows further north and 2,058 columns further west than 2021-2024's: the same
+    lattice, a different corner. Each year's pixels must still be read at the same ground, whichever year's corner
+    the build counts from."""
+    same = {2021 + k: cdl_raster(tmp_path / f"same{k}.tif", WINDOW, ROTATIONS[k]) for k in range(len(ROTATIONS))}
+    wider = cdl_raster(tmp_path / "wider.tif", WINDOW, ROTATIONS[4], margin=57)
+    first = cropland.open_rasters(same)
+    other = cropland.open_rasters(same | {2025: wider})
+    assert (other[-1].west, other[-1].north) != (first[-1].west, first[-1].north)
+    cropland.check_aligned(other)
+    a = cropland.count_block(rasters=tuple(first), block=WINDOW)
+    b = cropland.count_block(rasters=tuple(other), block=WINDOW)
+    for key in a:
+        np.testing.assert_array_equal(a[key], b[key])
+    wider_first = cropland.open_rasters({2020: wider, 2021: same[2025]})  # the wider file's corner as the lattice's
+    counts = cropland.count_block(rasters=tuple(wider_first), block=WINDOW)
+    np.testing.assert_array_equal(counts["classes"][0], counts["classes"][1])
+
+
 def test_a_cell_half_observed_keeps_its_shares_and_under_half_goes_missing(tmp_path):
     rotations = np.full((1, 3, 3), CORN, dtype=np.uint8)
     rasters = cropland.open_rasters({2025: cdl_raster(tmp_path / "a.tif", WINDOW, rotations[0])})
