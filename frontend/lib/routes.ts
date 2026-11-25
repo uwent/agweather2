@@ -19,6 +19,8 @@ export const routes = {
   home: (): string => '/',
   /** map: /map */
   map: (): string => '/map',
+  /** methods: /methods */
+  methods: (): string => '/methods',
   /** model: /models/<model_id> */
   model: (params: { model_id: string }): string => `/models/${part(params.model_id)}`,
   /** models: /models */
@@ -30,6 +32,10 @@ export const routes = {
     `/sites/${part(params.lat)},${part(params.lng)}/models/${part(params.model_id)}`,
   /** sites: /sites */
   sites: (): string => '/sites',
+  /** topic: /topics/<topic_id> */
+  topic: (params: { topic_id: string }): string => `/topics/${part(params.topic_id)}`,
+  /** topics: /topics */
+  topics: (): string => '/topics',
   /** up: /up */
   up: (): string => '/up',
 }

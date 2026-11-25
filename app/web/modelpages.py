@@ -87,7 +87,8 @@ def _parser() -> MarkdownIt:
 
 
 def slug(title: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+    """'agweathers-models' for "AgWeather's models": an apostrophe joins its word."""
+    return re.sub(r"[^a-z0-9]+", "-", re.sub(r"['\u2019]", "", title.lower())).strip("-")
 
 
 def keyed_sources(page: Page) -> list[ModelSource]:

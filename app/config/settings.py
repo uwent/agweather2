@@ -156,7 +156,8 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", REPO_DIR / "staticfiles"))
-STATICFILES_DIRS = [APP_DIR / "static"]
+# The topic pages' photos (web.topicpages) as /static/content/images/…
+STATICFILES_DIRS = [APP_DIR / "static", ("content/images", REPO_DIR / "content" / "images")]
 
 # Inertia v3's client sends the CSRF token from the XSRF-TOKEN cookie in an X-XSRF-TOKEN header
 CSRF_COOKIE_NAME = "XSRF-TOKEN"

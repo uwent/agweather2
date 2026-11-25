@@ -49,6 +49,10 @@
       Each model uses weather data to estimate disease risk, insect development or a crop’s growth stage. Choose a model
       to see what it predicts, how to read it and where it applies, then see it on the map or at your own fields.
     </p>
+    <p>
+      To learn how to recognize and manage a pest or disease, see
+      <Link href={routes.topics()} class="text-brand-600 underline hover:text-brand-700">Pests and diseases</Link>.
+    </p>
     <p class="text-sm text-ink-muted">
       Every model is in beta while we check it against field observations and other systems. Its results may change
       before it is marked stable.

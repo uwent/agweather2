@@ -8,6 +8,7 @@
   import { andList, CHECK_KINDS, longDate, modelMapUrl, monthDay, seasonText, unitLabel } from '@/lib/models/format'
   import OpenAtSite from '@/lib/models/OpenAtSite.svelte'
   import StatusBadge from '@/lib/models/StatusBadge.svelte'
+  import { variableAnchor } from '@/lib/methods'
   import { riskColor } from '@/lib/riskLevels'
   import { routes } from '@/lib/routes'
   import { currentUnits } from '@/lib/units'
@@ -244,14 +245,22 @@
         <ul class="space-y-2">
           {#each props.inputs as input (input.name)}
             <li>
-              <span class="font-medium">{input.label}</span>{unit(input.unit)}{input.description
+              {#if input.definition}<a
+                  href="{routes.methods()}#{variableAnchor(input.name)}"
+                  class="font-medium {link}"
+                >
+                  {input.label}
+                </a>{:else}<span class="font-medium">{input.label}</span>{/if}{unit(input.unit)}{input.description
                 ? `, ${input.description}`
                 : ''}
               {#if input.definition}<span class="block text-sm text-ink-muted">{input.definition}</span>{/if}
             </li>
           {/each}
         </ul>
-        <!-- TODO (track 4): link each input to its entry on the methods page once /methods is built -->
+        <p class="text-sm">
+          <a href={routes.methods()} class={link}>How AgWeather’s weather data are made</a>
+          <span class="text-ink-muted">: their sources, corrections and how missing days are handled</span>
+        </p>
       </section>
 
       <section id="checks" aria-labelledby="checks-title" class="scroll-mt-24 space-y-3">

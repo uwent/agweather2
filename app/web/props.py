@@ -355,3 +355,128 @@ class SiteModelProps(Props):
     name: str | None = Field(default=None, description="The `?name=` of a shared link, trimmed; None without one.")
     model: SiteModelInfo
     years: list[int] = Field(description="The years with weather to run the model on, newest first.")
+
+
+# --- Topic pages and the methods page (web.topicpages, web.methodspage, track 4) -----------------------------------
+
+
+class TopicEntry(Props):
+    """A topic as the index (`/topics`) lists it."""
+
+    id: str
+    title: str
+    kind: Literal["disease", "insect", "crop", "agronomic", "weather"]
+    scientific_name: str | None
+    crops: list[str] = Field(description="Crop ids (`agmodels.croplist`); empty for a topic of no one crop.")
+
+
+class TopicsIndexProps(Props):
+    topics: list[TopicEntry] = Field(description="Every topic page, by title.")
+    crops: list[NamedId] = Field(
+        description="The crops some topic names, by category as `agmodels.croplist` orders them."
+    )
+    kinds: list[NamedId] = Field(description="The kinds in the order a crop lists them, with their public names.")
+
+
+class TopicModel(Props):
+    """A model that predicts the topic's pest, disease or crop (its spec's `topics`)."""
+
+    id: str
+    name: str
+    summary: str
+    model_status: Literal["beta", "stable", "retired"]
+    map_layer: str | None = Field(description="Its layer on the map explorer (`/map?layer=`); None if it has none.")
+
+
+class TopicPageProps(Props):
+    """A topic page (`/topics/{id}`): its Markdown and front matter (`content/topics/<id>.md`) as content (D117)."""
+
+    id: str
+    title: str
+    kind: Literal["disease", "insect", "crop", "agronomic", "weather"]
+    kind_name: str = Field(description="The kind's public name, singular ('Disease').")
+    scientific_name: str | None
+    summary: str
+    crops: list[NamedId]
+    image_url: str | None = Field(description="The photo's static URL; None without one.")
+    image_alt: str = Field(description="The credit's first sentence, which describes the photo.")
+    image_credit: str
+    draft: bool = Field(description="The page's text is a draft (its front matter's status).")
+    updated: str | None = Field(description="When the page's text last changed (YYYY-MM-DD).")
+    sections: list[ModelSection]
+    sources: list[ModelSource] = Field(description="The page's keyed sources, numbered as the text cites them.")
+    models: list[TopicModel] = Field(description="The models naming this topic, but retired ones, by name.")
+
+
+class MethodsGrid(Props):
+    """The grid and the days, from `agdata.grid.NDFD` and `agdata.timezones` (D74)."""
+
+    name: str
+    cell_km: float = Field(description="A cell's width, km.")
+    day_zone: str = Field(description="The grid's days' time zone, in words ('Central Standard Time').")
+    day_zone_abbreviation: str = Field(description="'CST'.")
+    day_start_utc: int = Field(description="The UTC hour a grid day starts (6 for CST).")
+    evening_hour: int = Field(description="The clock hour the day from 6 pm and the night start at (18).")
+    overnight_hour: int = Field(description="The clock hour the overnight minimum's window starts at (12, noon).")
+    interpolate_days: int = Field(description="The longest gap a model's daily input is interpolated across (D45).")
+    bridge_days: int = Field(description="The longest gap a running total bridges with an estimate (D25).")
+
+
+class MethodsSource(Props):
+    """A source by use (`agdata.provenance.USES`)."""
+
+    source: str
+    name: str
+    role: Literal["archive", "provisional", "forecast", "outside", "normals"]
+    variables: list[str] = Field(description="Catalog names: hourly, or daily for the normals.")
+    first: str | None = Field(description="YYYY-MM-DD; None: from the archive's first day.")
+    last: str | None = Field(description="YYYY-MM-DD; None: still in use.")
+    description: str
+    url: str
+
+
+class MethodsScore(Props):
+    measure: str
+    unit: str = Field(description="The stored unit's symbol (`agdata.units`); the page converts it.")
+    before: float
+    after: float
+    tested: str
+
+
+class MethodsCorrection(Props):
+    """A correction (`agdata.corrections`), as `/api/v2/methods` serves it."""
+
+    id: str
+    title: str
+    summary: str
+    variables: list[str]
+    version: str
+    fitted: str | None = Field(description="YYYY-MM-DD the table was fitted; None without a fitted table.")
+    scores: list[MethodsScore]
+    evidence: list[str] = Field(description="Links to the validation reports on GitHub.")
+
+
+class MethodsVariable(Props):
+    """A variable of the catalog, as `/api/v2/variables` serves it."""
+
+    name: str
+    long_name: str
+    kind: Literal["hourly", "daily", "cumulative"]
+    unit: str
+    notes: str
+    statistic: str | None = Field(description="Daily: min, max, mean or sum of its hourly variable.")
+    hourly_sources: list[str]
+    computed_from: list[str]
+    sources: list[str] = Field(description="Source ids (`MethodsSource.source`).")
+    gap_fill: Literal["interpolate", "zero"] | None
+    corrections: list[str] = Field(description="Correction ids.")
+
+
+class MethodsProps(Props):
+    """The methods page (`/methods`): generated from the code and data (D92), never written by hand."""
+
+    grid: MethodsGrid
+    sources: list[MethodsSource]
+    corrections: list[MethodsCorrection]
+    variables: list[MethodsVariable] = Field(description="Hourly, then daily, then running totals, as /variables.")
+    api_methods_url: str

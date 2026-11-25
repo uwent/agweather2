@@ -89,6 +89,11 @@ describe('a model page', () => {
     )
     // The Markdown's sections, rendered on the server
     expect(screen.getByRole('heading', { level: 2, name: 'How it works' })).toBeInTheDocument()
+    // Each input links to its entry on the methods page
+    expect(screen.getByRole('link', { name: 'Minimum temperature' })).toHaveAttribute(
+      'href',
+      '/methods#variable-air_temperature_min',
+    )
   })
 
   it('shows an insect’s training area', () => {

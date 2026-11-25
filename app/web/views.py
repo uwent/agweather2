@@ -6,8 +6,9 @@ from agdata.series import archive_years
 from agmodels import croplist
 from agmodels.registry import all_models
 from web import home as home_content
-from web import modelpages
+from web import methodspage, modelpages, topicpages
 from web.catalog import crop_entries, model_entries
+from web.content import topics
 from web.inertia import render
 from web.middleware import grid_today
 from web.props import HomeProps, MapExplorerProps, SiteCrop, SiteModel, SiteModelProps, SiteProps, SitesIndexProps
@@ -101,3 +102,21 @@ def site_model(request: HttpRequest, lat: str, lng: str, model_id: str):
         "Sites/Model",
         SiteModelProps(lat=latitude, lng=longitude, name=_name(request), model=model_info(spec), years=years),
     )
+
+
+def topics_index(request: HttpRequest):
+    """The pests and diseases (track 4): every topic page by crop, then kind, from `content/topics` (D117)."""
+    return render(request, "Topics/Index", topicpages.index_props())
+
+
+def topic_page(request: HttpRequest, topic_id: str):
+    """A topic page (track 4): its Markdown and front matter, and the models that name it; 404 for unknown ids."""
+    page = topics().get(topic_id)
+    if page is None:
+        raise Http404("No such topic")
+    return render(request, "Topics/Show", topicpages.page_props(page))
+
+
+def methods(request: HttpRequest):
+    """How the data is made (track 4): generated from the code and data (D92), the same as `/api/v2/methods`."""
+    return render(request, "Methods", methodspage.methods_props())
