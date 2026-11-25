@@ -65,7 +65,7 @@
     {#if status}{status}{' '}<a href="/sites" class="text-brand-600 underline hover:text-brand-700">Your sites</a>{/if}
   </p>
   <ul class="space-y-0.5 text-sm text-ink-muted">
-    {#if location?.cell}
+    {#if location?.in_box && location.cell}
       <li>
         {`Weather for the 2.5 km grid cell centered at ${coordinates(location.cell.lat, location.cell.lng)}.`}
       </li>

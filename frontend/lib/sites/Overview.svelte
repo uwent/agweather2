@@ -68,9 +68,11 @@
   const loadYear = () => (today > january ? year.load(totals(january)) : undefined)
   const loadRisk = () => risk.load((signal) => get<TableResponse>('/risk', { ...point, date: today }, { signal }))
 
-  // Again whenever the point or the day changes; the loads write the state they read, so they run untracked
+  // Again whenever the point or the day changes, as text: Inertia hands the page equal props again after it
+  // mounts, which mustn't refetch. The loads write the state they read, so they run untracked.
+  const requestKey = $derived(`${lat},${lng},${today}`)
   $effect(() => {
-    void [point, today]
+    void requestKey
     untrack(() => {
       loadDaily()
       loadWeek()

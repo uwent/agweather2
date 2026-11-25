@@ -45,8 +45,11 @@
 
   const locate = request<LocateResponse>()
   const latestHours = request<TableResponse>()
+  // Inertia hands the page its props again after it mounts: the point as text, so equal props don't refetch
+  const pointKey = $derived(`${lat},${lng}`)
   $effect(() => {
-    const point = { lat, lng }
+    void pointKey
+    const point = untrack(() => ({ lat, lng }))
     untrack(() => {
       locate.load((signal) => get<LocateResponse>('/locate', point, { signal }))
       latestHours.load((signal) =>
