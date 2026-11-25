@@ -6,7 +6,16 @@
 
   // Find a place ("Hancock WI") and move the map there. Searches only when submitted (Nominatim's
   // usage policy), preferring places in the current view.
-  let { map, maxZoom = 13 }: { map: MapLibreMap | undefined; maxZoom?: number } = $props()
+  let {
+    map,
+    maxZoom = 13,
+    onplace,
+  }: {
+    map: MapLibreMap | undefined
+    maxZoom?: number
+    /** Told the place chosen (the map explorer picks its cell) */
+    onplace?: (place: Place) => void
+  } = $props()
 
   let query = $state('')
   let searching = $state(false)
@@ -36,6 +45,7 @@
 
   function goTo(place: Place) {
     places = null
+    onplace?.(place)
     const [west, south, east, north] = place.bounds
     map?.fitBounds(
       [

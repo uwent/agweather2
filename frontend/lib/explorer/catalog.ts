@@ -134,6 +134,8 @@ export function cropOf(modelId: string, crops: readonly CropSummary[]): string |
 /** A degree-day preset as `/degree-days/presets` gives it (the fields the builder reads) */
 export type DegreeDayPreset = {
   id: string
+  /** `crop` or `insect` */
+  group: string
   label: string
   method: string
   dd: { us: string; metric: string }

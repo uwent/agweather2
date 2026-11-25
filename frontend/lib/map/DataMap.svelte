@@ -113,6 +113,7 @@
     map = $bindable(),
     onpick,
     oninfo,
+    onupdate,
     controls,
     header,
     class: className = 'h-112 sm:h-128',
@@ -135,6 +136,8 @@
     map?: MapLibreMap
     onpick?: (pick: DataPick) => void
     oninfo?: (info: DataInfo | null) => void
+    /** New tiles are on the map, so a value read now (`valueAt`) is theirs */
+    onupdate?: () => void
     /** The page's own controls, under the basemap toggle (a place search) */
     controls?: Snippet
     /** Above the basemap toggle at the top left (the map's title) */
@@ -369,6 +372,7 @@
     shown = { id, key: t.key }
     values = new TileValues(t.template, t.step, () => hover.refresh())
     hover.refresh() // the label under a still pointer reads the new tiles
+    onupdate?.()
     if (previous) {
       const drop = () => {
         if (!m.getStyle()) return
@@ -428,6 +432,14 @@
     () => wrapper,
   )
 
+  /** The value of the cell at a point on the tiles shown now, as a click would pick it; null before any tiles */
+  export async function valueAt(lat: number, lng: number): Promise<DataPick | null> {
+    if (!values || !tiles) return null
+    const unit = tiles.unit
+    const value = await values.atLoaded(lng, lat)
+    return { lat, lng, value, unit, text: describeValue(value) }
+  }
+
   async function pick(event: MapMouseEvent) {
     if (!onpick || !values || !tiles) return
     const { lng, lat } = event.lngLat
@@ -451,8 +463,9 @@
         m.once('style.load', () => (styleReady = true))
         m.on('load', () => {
           overlays.attach(m)
-          // MapLibre opens the compact credit at first; on a phone it would cover the legend until the map is moved
-          if (m.getContainer().clientWidth < 640) {
+          // MapLibre opens the compact credit at first; on a map narrower than a desktop window it covers the legend
+          // until the map is moved (the (i) button opens it)
+          if (m.getContainer().clientWidth < 1024) {
             m.getContainer().querySelector('.maplibregl-compact-show')?.classList.remove('maplibregl-compact-show')
           }
         })
