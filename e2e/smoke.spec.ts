@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 
 import { stubSiteData } from './sites'
+import { stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
 // Every page loads with no console errors (a CSP violation shows as one) and no failed requests
@@ -78,6 +79,21 @@ test('API use form shows what to correct', async ({ page }) => {
   await expect(page.getByText('Tell us what you use the API for.')).toBeVisible()
   await expect(page.getByLabel('What do you use the API for?')).toHaveAttribute('aria-invalid', 'true')
   await expect(page.getByLabel('Your name')).toHaveValue('Pat Grower')
+})
+
+test('site page', async ({ page }) => {
+  await stubSiteApi(page)
+  await page.goto('/sites/44.12,-89.52?name=Hancock')
+  await expect(page.getByRole('heading', { level: 1, name: 'Hancock' })).toBeVisible()
+  await expect(page.getByText('Waushara County, WI · 44.12° N, 89.52° W')).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Risk today by model' })).toBeVisible()
+  await page.getByRole('tab', { name: 'Weather' }).click()
+  await expect(page.getByRole('heading', { name: 'Air temperature' })).toBeVisible()
+  await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
+})
+
+test('a site outside latitude and longitude is not found', async ({ request }) => {
+  expect((await request.get('/sites/91,-89')).status()).toBe(404)
 })
 
 test('changelog page', async ({ page }) => {

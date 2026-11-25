@@ -126,6 +126,38 @@ export interface SharedProps {
    */
   status: DataStatus | null
 }
+export interface SiteCrop {
+  id: string
+  name: string
+}
+/**
+ * A model in the site page's short catalog: what it's called and which crops it's for.
+ */
+export interface SiteModel {
+  id: string
+  name: string
+  group: string
+  crops: string[]
+  status: string
+  /**
+   * The words for its risk levels, lowest first; empty for a model without risk (crop stages).
+   */
+  risk_levels: string[]
+}
+/**
+ * A site's page (`/sites/{lat},{lng}`): the point as given, a name from a shared link, and the catalog the
+ * tabs name models and crops from. Its weather and risk the page fetches from the API (D117).
+ */
+export interface SiteProps {
+  lat: number
+  lng: number
+  /**
+   * The `?name=` of a shared link, trimmed; None without one.
+   */
+  name?: string | null
+  models: SiteModel[]
+  crops: SiteCrop[]
+}
 export interface SitesIndexProps {
   models: ModelEntry[]
   crops: CropEntry[]

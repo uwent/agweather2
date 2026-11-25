@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { type Page } from '@playwright/test'
 
 import { SAVED, stubSiteData } from './sites'
+import { stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
 // WCAG 2.1 A and AA checks (axe) on every page, in light (desktop) and dark (phone), and on desktop
@@ -82,6 +83,21 @@ test('your sites with saved sites, and the add-site dialog', async ({ page }) =>
   await expect(page.getByRole('dialog', { name: 'Add a site' })).toBeVisible()
   const { violations } = await new AxeBuilder({ page }).withTags(TAGS).analyze()
   expect(violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([])
+})
+
+// A site page, its API answers stubbed: the Overview, then the Weather tab's charts
+const SITE_PAGES = ['/sites/44.12,-89.52', '/sites/44.12,-89.52?tab=weather']
+
+test('site pages', async ({ page }) => {
+  await stubSiteApi(page)
+  for (const path of SITE_PAGES) await scan(page, path)
+})
+
+test('site pages in the other theme', async ({ page }) => {
+  await stubSiteApi(page)
+  await page.goto('/')
+  await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
+  for (const path of SITE_PAGES) await scan(page, path, { reflow: false })
 })
 
 test('the settings dialog', async ({ page }) => {
