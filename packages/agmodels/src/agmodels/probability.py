@@ -18,9 +18,9 @@ def attenuate_for_cold(probability, temperature_c) -> np.ndarray:
 
 
 def risk_level(probability, low: float, moderate: float, high: float) -> np.ndarray:
-    """0–3 (PROBABILITY_LEVELS) from a probability against thresholds in percent: [0, low) very low, [low,
-    moderate) low, [moderate, high) moderate, [high, 100] high."""
-    p = np.asarray(probability, dtype=float) * 100
+    """0–3 (PROBABILITY_LEVELS) from a probability in percent against thresholds in percent: [0, low) very low,
+    [low, moderate) low, [moderate, high) moderate, [high, 100] high."""
+    p = np.asarray(probability, dtype=float)
     level = (p >= low).astype(float) + (p >= moderate) + (p >= high)
     return np.where(np.isnan(p), np.nan, level)
 

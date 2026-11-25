@@ -46,7 +46,9 @@ def inputs(crt):
     ],
 )
 def test_probability_matches(crt, inputs, module, fixture, options):
-    np.testing.assert_allclose(module.outputs(inputs, **options)["probability"], crt(fixture)["probability"], atol=1e-9)
+    np.testing.assert_allclose(
+        module.outputs(inputs, **options)["probability"], 100 * crt(fixture)["probability"], atol=1e-7
+    )
 
 
 @pytest.mark.parametrize(
@@ -63,7 +65,7 @@ def test_white_mold_irrigated_matches_while_active(crt, inputs, fixture, options
     ours = white_mold.outputs(inputs, **options)["probability"]
     active = white_mold.ingredients(inputs)["air_temperature_max_30_day"] > 10
     assert active.sum() > 150
-    np.testing.assert_allclose(ours[active], crt(fixture)["probability"][active], atol=1e-9)
+    np.testing.assert_allclose(ours[active], 100 * crt(fixture)["probability"][active], atol=1e-7)
     assert (ours[~active & np.isfinite(ours)] == 0).all()
 
 
@@ -77,7 +79,7 @@ def test_don_matches_after_its_lag(crt, inputs):
     at_80 = rolling_sum((np.asarray(inputs["relative_humidity_mean"]) == 80).astype(float), 14) > 0
     same = ~at_80[7:]
     assert same.sum() > 300
-    np.testing.assert_allclose(ours[7:][same], crt("don_eau_claire_2025")["probability"][same], atol=1e-9)
+    np.testing.assert_allclose(ours[7:][same], 100 * crt("don_eau_claire_2025")["probability"][same], atol=1e-7)
     assert (don.outputs(inputs)["precipitation_days_missing"][7:] == 0).all()  # the tool's year has every day's rain
 
 
@@ -89,7 +91,7 @@ def test_soybean_cercospora_species_match(crt, inputs):
         ("probability_sigesbeckiae", "C. sigesbeckiae"),
         ("probability_kikuchii", "C. kikuchii"),
     ]:
-        np.testing.assert_allclose(ours[name], theirs[column], atol=1e-9)
+        np.testing.assert_allclose(ours[name], 100 * theirs[column], atol=1e-7)
 
 
 def test_wheat_scab_resistance_classes_match(crt, inputs):
@@ -98,12 +100,12 @@ def test_wheat_scab_resistance_classes_match(crt, inputs):
     theirs = crt("wheat_scab_eau_claire_2025")
     for key, (label, _) in wheat_scab.RESISTANCE.items():
         out = wheat_scab.outputs(inputs, resistance=key)
-        np.testing.assert_allclose(out["probability"][14:], theirs[label][13:-1], atol=1e-9)
+        np.testing.assert_allclose(out["probability"][14:], 100 * theirs[label][13:-1], atol=1e-7)
         assert np.isnan(out["probability"][:12]).all()  # fewer than 12 of the 14 days before
 
 
 def test_wheat_scab_levels_are_the_national_tools():
-    levels = wheat_scab.risk({"probability": np.array([0.0, 0.10, 0.239, 0.24, 0.319, 0.32, 0.9])})
+    levels = wheat_scab.risk({"probability": np.array([0.0, 10, 23.9, 24, 31.9, 32, 90])})
     np.testing.assert_array_equal(levels, [1, 1, 1, 2, 2, 3, 3])  # Low below 24 %, never Very low
 
 
@@ -112,7 +114,7 @@ def test_red_crown_rot_matches_from_r1(crt, inputs):
     out = red_crown_rot.outputs(inputs, biofix_index=181)  # July 1
     # 0.3 gives the incidence once the 31 days from R1 are complete (the tool prorated rain before then)
     final = 181 + red_crown_rot.WINDOW - 1
-    np.testing.assert_allclose(out["incidence"][final:], theirs["incidence"][final:], atol=1e-9)
+    np.testing.assert_allclose(out["incidence"][final:], 100 * theirs["incidence"][final:], atol=1e-7)
     assert np.isnan(out["incidence"][:final]).all()
     np.testing.assert_allclose(out["precipitation_vegetative"], theirs["precipitation_veg"], atol=1e-9, equal_nan=True)
     np.testing.assert_allclose(
@@ -145,5 +147,5 @@ def test_red_crown_rot_counts_the_window_before_the_series_as_missing(inputs):
 
 def test_probability_levels_match(crt):
     sweep = crt("risk_from_prob_sweep")
-    np.testing.assert_array_equal(risk_level(sweep["probability"], 1, 20, 35), sweep["risk_1_20_35"])
-    np.testing.assert_array_equal(risk_level(sweep["probability"], 1, 5, 10), sweep["risk_1_5_10"])
+    np.testing.assert_array_equal(risk_level(100 * sweep["probability"], 1, 20, 35), sweep["risk_1_20_35"])
+    np.testing.assert_array_equal(risk_level(100 * sweep["probability"], 1, 5, 10), sweep["risk_1_5_10"])

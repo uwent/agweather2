@@ -34,15 +34,11 @@ BIOFIX = "_season_biofix"  # in each ingredients store: `{model_id}`, each cell'
 RUN_STAMP = "seasonmaps.first_day"  # in a forecast run: the first day its seasons were computed from
 
 
-# The days kept for a model whose spec sets no season: red crown rot's 31 days either side of soybean's R1
-SEASONS = {"red-crown-rot": ("05-15", "10-15")}
-
-
 def season(model_id: str, year: int) -> tuple[date, date]:
-    """The days of `year` a model's season is kept for: its spec's season, or `SEASONS`'."""
+    """The days of `year` a model's season is kept for: its spec's season."""
     spec = find_model(model_id).SPEC
-    found = spec.season or SEASONS[model_id]
-    first, last = ((int(p) for p in s.split("-")) for s in found)
+    assert spec.season is not None, f"{model_id} is kept by season, so it needs one"
+    first, last = ((int(p) for p in s.split("-")) for s in spec.season)
     return date(year, *first), date(year, *last)
 
 

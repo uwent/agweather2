@@ -29,7 +29,7 @@ SPEC = ModelSpec(
     id="gray-leaf-spot",
     name="Gray leaf spot spore probability",
     group="disease",
-    version="0.1",
+    version="0.2",
     status="beta",
     summary="The probability of gray leaf spot spores being present, from three weeks of minimum temperature and a month of minimum dew point; corn is susceptible from V10 to R3.",
     topics=("gray-leaf-spot",),
@@ -79,7 +79,14 @@ SPEC = ModelSpec(
         Ingredient(name="air_temperature_min_21_day", unit="degC", shared="air_temperature_min_21_day"),
         Ingredient(name="dew_point_min_30_day", unit="degC"),
     ),
-    changelog=(Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),),
+    changelog=(
+        Change(version="0.1", date="2026-10-28", note="Ported from the Crop Risk Tool."),
+        Change(
+            version="0.2",
+            date="2026-11-26",
+            note="The probability is given in percent (0 to 100), as its unit says, rather than as a fraction (0 to 1). Risk levels are unchanged.",
+        ),
+    ),
     checks=(
         Check(
             kind="system",
@@ -103,7 +110,7 @@ def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
 
 
 def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
-    return {"probability": probability(values["air_temperature_min_21_day"], values["dew_point_min_30_day"])}
+    return {"probability": 100 * probability(values["air_temperature_min_21_day"], values["dew_point_min_30_day"])}
 
 
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
@@ -122,4 +129,4 @@ def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: st
 
 
 def explore(temperature_min_21day: float, dew_point_min_30day: float) -> dict[str, float]:
-    return {"probability": float(probability(temperature_min_21day, dew_point_min_30day))}
+    return {"probability": float(100 * probability(temperature_min_21day, dew_point_min_30day))}

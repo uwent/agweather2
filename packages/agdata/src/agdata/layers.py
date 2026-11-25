@@ -129,6 +129,7 @@ _USES = (
     ("et0", "evapotranspiration"),
     ("hours_", "hours"),
     ("incidence", "chance"),  # a predicted share of plants or fields, 0–100 %
+    ("probability", "chance"),  # a disease model's probability, 0–100 %
 )
 # Internal variables that aren't layers: HRRR's shortwave before correction, the daily ET0 estimate the running
 # totals use for days missing hours, and the running counts of estimated and missing days
