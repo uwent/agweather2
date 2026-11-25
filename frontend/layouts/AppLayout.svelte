@@ -17,7 +17,7 @@
   const nav: { label: string; href: string; also?: (string | RegExp)[] }[] = [
     { label: 'Map', href: routes.map() },
     { label: 'Sites', href: routes.sites(), also: ['/sites/'] },
-    { label: 'Models', href: '/models', also: ['/models/', '/topics/'] },
+    { label: 'Models', href: routes.models(), also: ['/models/', '/topics/'] },
     { label: 'Tools', href: '/tools', also: ['/tools/', '/calendar'] },
     { label: 'Climate', href: '/climate', also: ['/climate/'] },
     { label: 'Data', href: '/data', also: ['/data/'] },

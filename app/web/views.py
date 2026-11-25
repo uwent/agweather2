@@ -4,6 +4,7 @@ from django.urls import reverse
 from agmodels import croplist
 from agmodels.registry import all_models
 from web import home as home_content
+from web import modelpages
 from web.catalog import crop_entries, model_entries
 from web.inertia import render
 from web.middleware import grid_today
@@ -57,3 +58,16 @@ def site(request: HttpRequest, lat: str, lng: str):
     ]
     crops = [SiteCrop(id=c.id, name=c.name) for c in croplist.CROPS.values()]
     return render(request, "Sites/Show", SiteProps(lat=latitude, lng=longitude, name=name, models=models, crops=crops))
+
+
+def models_index(request: HttpRequest):
+    """The model catalog (track 4): every model by crop, then group, from the registry (content, D117)."""
+    return render(request, "Models/Index", modelpages.index_props())
+
+
+def model_page(request: HttpRequest, model_id: str):
+    """A model's page (track 4): sections from its spec and its Markdown page; 404 for unknown and retired ids."""
+    spec = modelpages.page_spec(model_id)
+    if spec is None:
+        raise Http404("No such model")
+    return render(request, "Models/Show", modelpages.page_props(spec))
