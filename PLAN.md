@@ -31,9 +31,22 @@ This file is where things stand and what's next: the one handoff, Ben's open cho
 
 Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, which runs through 2027); CONUS coverage (the box is configuration); AWON, HYD scraping, gnuplot maps, the three point-forecast vendors, Diak ET; personal API keys.
 
-## Handoff (2026-11-26)
+## Handoff (2026-11-26, evening)
 
-**Phase 6 is done** (branch `phase-6`): [docs/plans/phase-6-frontend-plan-and-data.md](docs/plans/phase-6-frontend-plan-and-data.md). Steps 1–3, 5 and 6 done, the end-of-phase review done and its five open items settled with Ben (2026-11-26). Step 4's open parts (models C–G and J) run beside Phase 7. Next: Phase 7, the web app.
+**Phase 7, the web app** (branch `phase-6`, not yet renamed): [docs/plans/phase-7-web-app.md](docs/plans/phase-7-web-app.md). Phase 6 closed this morning (below). Ben settled Phase 7's architecture (D117–D123) and the detailed plans of tracks 2 (map explorer) and 3 (sites, home), all as recommended, with the map explorer split 50:50 (map left, controls right, detail below the fold). Claude orchestrates; agents build in worktrees, at most four at once.
+
+**2026-11-26: Phase 7 waves 1–3** (11 build agents, 3 planning agents; each merged and checked; suite and Playwright 36/36 pass after the last merge):
+
+- **Base (wave 1):** WISP 3's frontend ported in place (D121): dependencies to its versions, tokens, `AppLayout` (six sections; phones scroll them sideways, Ben), the settings dialog with the units switch, primitives, storage, the unsaved-changes guard, test helpers and Playwright's `scan()`; the chart and map cores, overlays, place search; `lib/api.ts`, `lib/viewState.ts` with Share (D118), `lib/routes.ts` from `bin/types`; the missing-days flags for every model (`<input>_missing`, warnings on runs, `/risk` and maps; the dev archive's ingredients rebuilt for it, 1.8 h).
+- **Data tiles (wave 2):** `DataMap` colors the API's tiles with MapLibre's color-relief (D119 proved; values within the step at 25 cells). The TileJSON's `baseShift` had the wrong sign for MapLibre (it subtracts): fixed, worth a changelog line once live.
+- **Pages (wave 3):** `/map` (picker, time and stepper, options, title chip, cell panel, Share), `/sites` (cards loading as they scroll in), the site page (header, Overview, Weather), the home page, the shared `status` prop with a stale banner; the TileJSON's `subtitle`, `caption`, `warnings`, `categories`; `/risk` over several days.
+
+**Next, in order:**
+
+1. **Wave 4** (named in the plan): the backend fixes wave 3 found (probability models return fractions but declare '%': tar spot's 0.61 shown as '%', so each needs a version bump; insects have no season, so `/risk` lists 27 models "in season" in November while home shows 3; `/risk` lists retired models; names such as "Colorado Potato Beetle (Adults)"); the map explorer's phone sheet, county table and links; a model at a site with risk sparklines; the model catalog and pages.
+2. **Ben, small:** today's precipitation shows "—" (the day isn't over; or "not counted yet"); 2- and 3-level risk scales borrow the probability colours (or add the API's BuYlRd_2/3 as tokens).
+3. **Restart `bin/dev`** after pulling: dependencies changed in wave 1 (a stale Vite serves blank pages).
+4. Then the rest of tracks 2 and 3, and tracks 4–8 as the plan orders them; Phase 6's carried items (models C–G and J, humidity, cropland's follow-ons) alongside.
 
 **2026-11-26: the review's open items** (Ben approved the recommendations; three built by agents in worktrees, reviewed and merged; suite 4,435 passed, 90 skipped, 3 min 41 s; pyright clean). Record: the phase plan's "Code review", last item.
 
@@ -61,13 +74,11 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 - **D6 done:** the stitch copies the archive's hours as stored and keeps its running totals to the extent; the rollup's apple scab and Cattle Comfort Index features compiled (`agmodels.features_grid`, bit-identical: a block-month 52.7 → ~30 s on one core); the ingredients' gap fill only where there's an interior gap; IFS put on the window 48 hours at a time (was every hour of a run at once, ~14 GB) and a build's soil a day at a time; the stitch keeps the run's IFS soil after the archive's last hour of it, so an IFS read no longer restitches. The stitch 7.3 → 4.1 min.
 - Scratch: `tmp/launchbox` (the profile archive, January–August 1, 2025, a published run) and the database `agweather2_launchbox`; drop the database when step 7 is done.
 
-**Next, in order:**
+**Carried from Phase 6:**
 
-1. **Restart `bin/dev`** so its worker runs the review's code and the IFS reader (it started before the merges).
-2. **Phase 7, the web app** ([docs/plans/phase-7-web-app.md](docs/plans/phase-7-web-app.md)): planned first.
-3. **Cropland's follow-ons**, each planned first: potato planting on the grid (needs a soil-DD normal: `last10` from the archive or the rule refitted on air temperature), cropland-weighted summaries and normals, the overlay (Phase 7; Ben's question of serving the 30 m CDL ourselves vs CropScape's map service, D116), models' service areas.
-4. Alongside, as answers arrive: models parts C–G and J ([docs/plans/models.md](docs/plans/models.md), each planned first), D100's humidity correction ([docs/plans/humidity.md](docs/plans/humidity.md), step 1: is URMA the right target in Oklahoma). Soil moisture's archive fills when Ben runs the ERA5-Land backfill (TODO.md); soil is otherwise parked for Ben's revisit with Wisconet's station models (Phase 9).
-5. Small: a top-level `"biofix"` in a JSON POST body is ignored without a word (only `options.biofix` is read; pre-existing): refuse or read it. `scripts/maggot_normals.py` could carry the fourth flight's freeze table (now from a scratch script; the report gives the recipe). Later (Phase 9): zarr's ~14 ms per array creation dominates test archives; the stored-seasons refresh peaks at ~12 GB over 2 workers on the launch box (under `WORKER_MEMORY`).
+1. **Cropland's follow-ons**, each planned first: potato planting on the grid (needs a soil-DD normal: `last10` from the archive or the rule refitted on air temperature), cropland-weighted summaries and normals, the overlay (Phase 7; Ben's question of serving the 30 m CDL ourselves vs CropScape's map service, D116), models' service areas.
+2. Alongside, as answers arrive: models parts C–G and J ([docs/plans/models.md](docs/plans/models.md), each planned first), D100's humidity correction ([docs/plans/humidity.md](docs/plans/humidity.md), step 1: is URMA the right target in Oklahoma). Soil moisture's archive fills when Ben runs the ERA5-Land backfill (TODO.md); soil is otherwise parked for Ben's revisit with Wisconet's station models (Phase 9).
+3. Small: a top-level `"biofix"` in a JSON POST body is ignored without a word (only `options.biofix` is read; pre-existing): refuse or read it. `scripts/maggot_normals.py` could carry the fourth flight's freeze table (now from a scratch script; the report gives the recipe). Later (Phase 9): zarr's ~14 ms per array creation dominates test archives; the stored-seasons refresh peaks at ~12 GB over 2 workers on the launch box (under `WORKER_MEMORY`).
 
 **Where things stand:**
 
