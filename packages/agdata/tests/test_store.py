@@ -3,7 +3,7 @@ from datetime import UTC, date, datetime
 import numpy as np
 import pytest
 
-from agdata.catalog import variable
+from agdata.catalog import Variable, variable
 from agdata.grid import Window
 from agdata.store import DAILY, HOURLY, GridStore, steps_in_year
 
@@ -102,6 +102,38 @@ def test_a_store_at_another_scale_must_be_rescaled_before_it_opens(tmp_path):
     t0 = reopened.index_of(start)
     np.testing.assert_allclose(reopened.read_point("precipitation", 900, 1400, t0, t0 + 2), [0.3, np.nan])
     assert reopened.sources("precipitation")[t0] == "urma"
+
+
+def test_a_rescale_stopped_part_way_carries_on_where_it_left_off(tmp_path, monkeypatch):
+    from dataclasses import replace
+
+    old = replace(RAIN, scale=0.1)
+    store = GridStore.create(tmp_path, HOURLY, 2025, WINDOW, [TEMP, old], chunks=(48, 16, 16))
+    first, later = datetime(2025, 1, 1, 1, tzinfo=UTC), datetime(2025, 6, 1, 1, tzinfo=UTC)
+    for when in (first, later):
+        store.write(when, {"precipitation": np.full((1, *WINDOW.shape), 0.3)}, source="urma")
+    calls = 0
+    real = Variable.encode
+
+    def stop_on_the_second_block(self, values):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise KeyboardInterrupt
+        return real(self, values)
+
+    monkeypatch.setattr(Variable, "encode", stop_on_the_second_block)
+    with pytest.raises(KeyboardInterrupt):
+        GridStore.rescale(tmp_path, HOURLY, 2025, RAIN, steps=4000)
+    with pytest.raises(ValueError, match="rescale"):  # not finished: the store still won't open
+        GridStore.open(tmp_path, HOURLY, 2025, [TEMP, RAIN])
+    monkeypatch.setattr(Variable, "encode", real)
+    GridStore.rescale(tmp_path, HOURLY, 2025, RAIN, steps=4000)  # the first block isn't repacked twice
+    reopened = GridStore.open(tmp_path, HOURLY, 2025, [TEMP, RAIN])
+    for when in (first, later):
+        t = reopened.index_of(when)
+        np.testing.assert_allclose(reopened.read_point("precipitation", 900, 1400, t, t + 1), [0.3])
+    assert "rescaling" not in reopened._array("precipitation").attrs
 
 
 def test_has_data_marks_the_steps_a_source_wrote(hourly):

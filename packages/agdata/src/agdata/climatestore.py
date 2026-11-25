@@ -36,7 +36,7 @@ import zarr
 from zarr.codecs.numcodecs import PCodec
 from zarr.errors import GroupNotFoundError
 
-from agdata import pastyears
+from agdata import coverage, pastyears
 from agdata.catalog import DAILY_VARIABLES, FILL
 from agdata.climatology import SLOTS, layout
 from agdata.grid import Window
@@ -291,8 +291,8 @@ def _files(data_dir: Path, year: int) -> dict[str, float]:
 
 def derive(data_dir: Path, year: int, window: Window, progress: Progress | None = None) -> list[str]:
     """Writes a year's store from its kept files (every `gridmet.SOURCES` variable it has), adjusted by the current
-    fit where there is one, and `LEFT_OUT`'s variables missing in their years. Returns the daily variables
-    written. Built beside its path and renamed into place."""
+    fit where there is one, and `LEFT_OUT`'s variables missing in their years, and every cell outside the coverage
+    missing. Returns the daily variables written. Built beside its path and renamed into place."""
     present = [s for s in gridmet.SOURCES if gridmet.kept(gridmet.path(data_dir, s.name, year))]
     if not present:
         raise ValueError(f"no gridMET files kept for {year}")
@@ -318,6 +318,9 @@ def derive(data_dir: Path, year: int, window: Window, progress: Progress | None 
         if progress is not None:
             progress(k + 1, len(present) + 1)
     _pairs(days)
+    excluded = coverage.outside(window)  # missing outside the coverage, as the archive's stores keep it (D105)
+    if excluded is not None:
+        days = {name: np.where(excluded, np.nan, values) for name, values in days.items()}
     names = list(days)
     target = path(data_dir, year)
     building = target.with_name(target.name + ".part")

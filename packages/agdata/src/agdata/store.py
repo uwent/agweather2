@@ -212,18 +212,29 @@ class GridStore:
     @classmethod
     def rescale(cls, data_dir: Path, layout: StoreLayout, year: int, variable: Variable, steps: int = 720) -> None:
         """Repacks a variable stored at another scale or offset to the catalog's, `steps` at a time. Values keep
-        the old precision; refetch them for the new one."""
+        the old precision; refetch them for the new one.
+
+        Restartable: the array's `rescaling` attribute holds the old scale and offset and the steps repacked so
+        far, updated after each block, so a rescale that stops part way carries on where it left off (the steps
+        before are already at the new scale, those after still at the old); the new scale is set last, which lets
+        the store open again."""
         group = zarr.open_group(layout.path(data_dir, year), mode="r+")
         array = group[variable.name]
         assert isinstance(array, zarr.Array)
         attrs: dict[str, Any] = dict(array.attrs)
-        scale, offset = float(attrs["scale"]), float(attrs["offset"])
-        for t in range(0, array.shape[0], steps):
+        progress = attrs.get("rescaling") or {"scale": attrs["scale"], "offset": attrs["offset"], "done": 0}
+        scale, offset = float(progress["scale"]), float(progress["offset"])
+        if (scale, offset) == (variable.scale, variable.offset):
+            array.attrs.pop("rescaling", None)  # nothing to repack (or finished but for this)
+            return
+        for t in range(int(progress["done"]), array.shape[0], steps):
             packed = np.asarray(array[t : t + steps])
             values = packed.astype(np.float64) * scale + offset
             values[packed == FILL] = np.nan
             array[t : t + steps] = variable.encode(values)
+            array.attrs["rescaling"] = progress | {"done": min(t + steps, array.shape[0])}
         array.attrs.update({"scale": variable.scale, "offset": variable.offset})
+        array.attrs.pop("rescaling", None)
 
     # Time
 

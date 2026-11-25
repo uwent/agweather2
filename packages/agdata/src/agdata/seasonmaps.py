@@ -25,7 +25,7 @@ from typing import Any
 import numpy as np
 import zarr
 
-from agdata import blocks, modelmaps
+from agdata import blocks, coverage, modelmaps
 from agdata.grid import Window
 from agdata.store import INGREDIENTS, GridStore
 from agmodels.registry import model as find_model
@@ -149,7 +149,8 @@ def _write_biofix(store: GridStore, model_id: str, part: Window, values: np.ndar
     array = group[model_id]
     assert isinstance(array, zarr.Array)
     y0, x0 = store.window.local(part.j0, part.i0)
-    array[y0 : y0 + part.shape[0], x0 : x0 + part.shape[1]] = values
+    kept = coverage.covered(store.window, part)  # missing outside the coverage, as `GridStore.write` keeps values
+    array[y0 : y0 + part.shape[0], x0 : x0 + part.shape[1]] = np.where(kept, values, np.nan)
 
 
 def stored_through(root: Path, model_id: str, year: int) -> date | None:

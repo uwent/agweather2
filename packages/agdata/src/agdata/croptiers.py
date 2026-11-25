@@ -30,7 +30,7 @@ from typing import Any, cast
 import numpy as np
 import zarr
 
-from agdata import blocks, modelmaps, planting
+from agdata import blocks, coverage, modelmaps, planting
 from agdata.grid import NDFD, Window
 from agdata.store import INGREDIENTS, GridStore
 from agmodels.crops import CropModel, stage_days
@@ -117,11 +117,13 @@ def update(
         model_id, part = key
         for tier, (write_from, names, reached) in found.items():
             store.record(names, write_from, (min(last, season(model_id, year)[1]) - write_from).days + 1, "derived")
-            store.mark_current(names)
             _write_reached(store, model_id, tier, part, reached, min(last, season(model_id, year)[1]))
             written.extend(name for name in names if name not in written)
 
     blocks.run(chains, handle, hold=lock, progress=progress)
+    if written:  # current once every block is written (each mark rewrites the array's metadata)
+        with (lock or nullcontext)():
+            store.mark_current(written)
     return written
 
 
@@ -206,7 +208,8 @@ def _write_reached(store: GridStore, model_id: str, tier: str, band: Window, val
     array = group[name]
     assert isinstance(array, zarr.Array)
     y0, x0 = store.window.local(band.j0, band.i0)
-    array[:, y0 : y0 + band.shape[0], x0 : x0 + band.shape[1]] = values
+    kept = coverage.covered(store.window, band)  # missing outside the coverage, as `GridStore.write` keeps values
+    array[:, y0 : y0 + band.shape[0], x0 : x0 + band.shape[1]] = np.where(kept[None], values, np.nan)
     array.attrs["through"] = through.isoformat()
 
 

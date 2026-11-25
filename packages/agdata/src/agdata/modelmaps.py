@@ -520,9 +520,9 @@ def _read(data_dir: Path, run: Path | None, run_first: date | None, name: str, f
     for k, d in enumerate(days):
         groups.setdefault((root_of(d), d.year), []).append(k)
     for (root, year), ks in groups.items():
-        try:
-            store = GridStore.open(root, DAILY, year, DAILY_VARIABLES.values(), add_missing=True)
-        except FileNotFoundError:
+        try:  # only the variable read, and nothing added: this runs in the block pool's workers (`agdata.blocks`)
+            store = GridStore.open(root, DAILY, year, [DAILY_VARIABLES[name]])
+        except (FileNotFoundError, KeyError):  # no store, or a variable not rolled up there yet: missing
             continue
         t0 = store.index_of(days[ks[0]])
         out[ks[0] : ks[-1] + 1] = store.read_steps(name, t0, t0 + len(ks), window, dtype=np.float32)
@@ -596,11 +596,12 @@ def _write(data_dir, root, band, begin, values, entries, is_run) -> list[tuple[i
 
 
 def _store_window(root: Path, data_dir: Path, year: int, band: Window) -> Window:
-    """The window a store covers: the daily store's for that year (a band is only part of it)."""
+    """The window a store covers: the daily store's for that year (a band is only part of it). Opened for no
+    variables: it's called in the block pool's workers, where adding an array would race another worker's."""
     for path in (root, data_dir):
         for y in (year, year - 1, year + 1):
             try:
-                return GridStore.open(path, DAILY, y, DAILY_VARIABLES.values(), add_missing=True).window
+                return GridStore.open(path, DAILY, y, []).window  # no variables: nothing checked or added
             except FileNotFoundError:
                 continue
     return band
