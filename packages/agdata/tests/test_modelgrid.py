@@ -520,3 +520,49 @@ def test_spans_taken_cell_by_cell_are_the_whole_maps_spans():
     whole = modelgrid._spans(fetch, list(pairs), window)  # (pairs, y, x)
     expected = whole.reshape(len(pairs), -1)[group, cells]
     np.testing.assert_array_equal(modelgrid._cell_spans(fetch, pairs, group, cells), expected)
+
+
+LONG_HOLE = (date(2025, 6, 20), date(2025, 6, 29))  # ten days at one cell: longer than the fill reaches (D56)
+
+
+@pytest.fixture(scope="module")
+def long_hole(built, tmp_path_factory):
+    """`built`'s weather with every variable missing at cell (0, 0) through LONG_HOLE."""
+    root = tmp_path_factory.mktemp("hole")
+    weather = {name: v.copy() for name, v in built[1].items()}
+    gone = [k for k, d in enumerate(SPAN) if LONG_HOLE[0] <= d <= LONG_HOLE[1]]
+    for v in weather.values():
+        v[np.ix_(gone, [0], [0])] = np.nan
+    store = GridStore.create(root, DAILY, 2025, WINDOW, DAILY_VARIABLES.values())
+    store.write(FIRST, weather, source="test")
+    cumulative.rebuild_year(root, WINDOW, 2025)
+    modelmaps.update(root, WINDOW, FIRST, LAST, keys=["late-blight-dsv.dsv"])
+    return root
+
+
+@pytest.mark.parametrize("model_id", ["alfalfa-growth", "late-blight-dsv", "apple-scab"])
+def test_a_map_counts_each_cells_days_missing_past_the_fill(built, long_hole, model_id):
+    """Degree days from the running totals' count, a stored ingredient's own count and a model computed on request
+    from its inputs: ten days at the hole's cell, none elsewhere, none before the hole and none without one."""
+    after, before = date(2025, 7, 10), date(2025, 6, 15)
+    found = modelgrid.model_map(long_hole, model_id, before, after, WINDOW, tier=None)
+    assert found.missing_days is not None
+    last = found.missing_days[-1]
+    assert last[0, 0] == 10 and (np.delete(last.ravel(), 0) == 0).all()
+    assert np.nanmax(found.missing_days[0]) == 0  # before the hole
+    clean = modelgrid.model_map(built[0], model_id, after, after, WINDOW, tier=None)
+    assert clean.missing_days is not None and np.nanmax(clean.missing_days) == 0  # three days: filled
+
+
+def test_a_stored_season_keeps_its_days_missing_past_the_fill(long_hole, tmp_path):
+    import shutil
+
+    root = tmp_path / "root"
+    shutil.copytree(long_hole, root)
+    day = date(2025, 7, 10)
+    seasonmaps.update(root, WINDOW, 2025, day)
+    stored = modelgrid.model_map(root, "fire-blight", day, day, WINDOW, tier=None)
+    computed = modelgrid.model_map(root, "fire-blight", day, day, WINDOW, tier=None, compute=True)
+    assert stored.missing_days is not None and computed.missing_days is not None
+    np.testing.assert_array_equal(stored.missing_days, computed.missing_days)
+    assert stored.missing_days[0, 0, 0] == 10

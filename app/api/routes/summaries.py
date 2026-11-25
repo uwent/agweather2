@@ -94,8 +94,11 @@ def summary(request: HttpRequest, layer: str, query: Query[SummaryQuery], output
     sources: dict[str, None] = {}
     compute_ms = 0.0
     kinds_seen: list[str | None] = []
+    notes: list[str] = []
     for label, p in periods:
         c = layermaps.compute(p, window, now)
+        if (note := layermaps.missing_note(c, labels_in > 0)) is not None and note not in notes:
+            notes.append(note)
         compute_ms += c.ms
         sources.update(dict.fromkeys(c.sources))
         kinds_seen += c.kinds
@@ -106,7 +109,7 @@ def summary(request: HttpRequest, layer: str, query: Query[SummaryQuery], output
             when = label if a.stat is not None else c.steps[k]
             rows.add(stats, when=when, kind=None if a.stat is not None else c.kinds[k])
 
-    warnings = a.warnings
+    warnings = a.warnings + notes
     if rows.below:
         warnings.append(
             f"{rows.below} of the {len(wanted)} {_plural(by)} have less than {query.min_coverage:g}% of their land with data here, so their statistics are empty (null). Lower 'min_coverage' to include them."

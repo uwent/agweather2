@@ -2,7 +2,8 @@
 forecast, from our weather.
 
 One row per day (and option set, with `option_set` indexing `meta.summary.option_sets`): `date`, `kind`, the model's
-inputs as read (missing where missing, D45) with `<input>_estimated` where its gaps were filled, the outputs, and the
+inputs as read (missing where missing, D45) with `<input>_estimated` where its gaps were filled and `<input>_missing` where
+a gap was too long to fill (D56, with a warning), the outputs, and the
 risk as `risk_level` (an index into the spec's levels), `risk_label` and, for a continuous risk (insects, D36),
 `risk_value`. A disease gated by crop stage (D33) adds `susceptibility` only when a planting date is given; a model with
 a season adds `in_season`. Insects' action windows go in `meta.summary.windows`.
@@ -432,7 +433,7 @@ def risk(
             rows["in_season"].append(in_season)
             rows["reason"].append(r.reason)
             rows["projection_years"].append(years_behind)
-            gaps = {} if r.reason else days_behind(r, 1)
+            gaps = {} if r.reason else days_behind(r, gap_flags(r, 1))
             rows["missing_days"].append(max(gaps.values(), default=0) if not r.reason else None)
             if gaps:
                 behind[spec.id] = max(behind.get(spec.id, 0), *gaps.values())
@@ -1019,7 +1020,8 @@ def _table(
                 add(f"{name}_{suffix}", _values(side.get(name), count))
 
     estimated = sorted({name for r in results for name in r.estimated})
-    missing = sorted({name for r in results for name in r.missing})
+    gaps_shown = [gap_flags(r, keep[k]) for k, r in enumerate(results)]
+    missing = sorted({name for flags in gaps_shown for name in flags})
     flagged = [q.name for q in spec.inputs if q.name in estimated or q.name in missing]
     behind: dict[str, int] = {}  # per input, the days missing past the fill that the runs' results rest on
     gated = any(r.susceptibility is not None for r in results)
@@ -1038,7 +1040,7 @@ def _table(
         for q in spec.inputs:
             numbers(q.name, _values(r.inputs.get(q.name), count), k, count)
         for name in flagged:
-            for suffix, found, names in (("estimated", r.estimated, estimated), ("missing", r.missing, missing)):
+            for suffix, found, names in (("estimated", r.estimated, estimated), ("missing", gaps_shown[k], missing)):
                 if name in names:
                     flags = found.get(name)
                     add(f"{name}_{suffix}", [False] * count if flags is None else [bool(f) for f in flags[:n]])
@@ -1066,7 +1068,7 @@ def _table(
             reasons.append((label, training_area_text(spec)))
         if not r.reason:  # a normal of the place the model reads, missing here (`ModelSpec.place_normals`)
             reasons.extend((label, text) for text in r.place_warnings)
-            gaps = days_behind(r, n)
+            gaps = days_behind(r, gaps_shown[k])
             for name, days in gaps.items():
                 behind[name] = behind.get(name, 0) + days
             if gaps:
@@ -1132,22 +1134,23 @@ def this_year(missing: dict[str, np.ndarray], k: int) -> dict[str, np.ndarray]:
     return out
 
 
-def days_behind(r: ModelRun, n: int) -> dict[str, int]:
-    """Per input with any, the days still missing after the fill (`ModelRun.missing`, D56) that the run's first `n`
-    days rest on: those shown with a value on a later day shown, and those read before the first day shown
-    (`ModelRun.missing_before`). A running total added nothing for them. Missing days at the end aren't counted: no
-    day shown after them has a value either."""
-    out = dict(r.missing_before)
-    for name, flags in r.missing.items():
-        shown = np.asarray(flags[:n], dtype=bool)
-        if not shown.any():
-            continue
-        values = r.inputs.get(name)
-        valid = np.isfinite(np.asarray(values[:n], dtype=float)) if values is not None else ~shown
-        later = np.flip(np.logical_or.accumulate(np.flip(valid)))  # a value on this day or a later one
-        days = int(np.sum(shown & later))
-        if days:
-            out[name] = out.get(name, 0) + days
+def gap_flags(r: ModelRun, n: int) -> dict[str, np.ndarray]:
+    """Per input with any, which of the run's first `n` days are in a gap the fill didn't reach (`ModelRun.missing`,
+    D56): the `_missing` columns. A run without outputs has none."""
+    if r.reason:
+        return {}
+    shown = {name: np.asarray(flags[:n], dtype=bool) for name, flags in r.missing.items()}
+    return {name: flags for name, flags in shown.items() if flags.any()}
+
+
+def days_behind(r: ModelRun, flags: dict[str, np.ndarray]) -> dict[str, int]:
+    """Per input with any, the days missing past the fill that the run's days shown rest on: those flagged
+    (`gap_flags`) and those read before the first day shown (`ModelRun.missing_before`). A running total added
+    nothing for them. A run whose first day is projected (`/risk` on a day past the forecast) read earlier years'
+    weather before it, whose gaps aren't this year's, so only its flagged days count."""
+    out = {} if r.kinds and r.kinds[0] == PROJECTION else dict(r.missing_before)
+    for name, shown in flags.items():
+        out[name] = out.get(name, 0) + int(shown.sum())
     return out
 
 

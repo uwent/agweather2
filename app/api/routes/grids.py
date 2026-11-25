@@ -254,6 +254,8 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
         )
     if run.reason == "stale" and any(k is None for k in kinds):
         warnings.append("The forecast is out of date, so the map ends with the last observed day.")
+    if (note := layermaps.missing_note(c, mask)) is not None:
+        warnings.append(note)
     summary: dict[str, Any] = {
         "steps": len(kinds),
         "kinds": {kind or "missing": kinds.count(kind) for kind in dict.fromkeys(kinds)},

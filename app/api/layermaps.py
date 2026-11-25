@@ -52,6 +52,7 @@ from agdata.planting import planting_crop, planting_map
 from agdata.rolling import Roll
 from agdata.store import CUMULATIVE, DAILY
 from agmodels import seasons
+from agmodels.gaps import MAX_GAP_DAYS
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
 from agmodels.runner import stage_date_option
@@ -59,7 +60,7 @@ from agmodels.seasons import Season
 from agmodels.spec import ModelSpec
 from api import climatemaps, counts, events, heavy, modelevents
 from api.envelope import SYSTEMS, Column, shown_unit, unit_overrides
-from api.errors import ApiError, day_text, hour_text, quoted
+from api.errors import ApiError, counted, day_text, hour_text, quoted
 from api.maptitles import layer_title
 from api.params import degree_day_settings, parse_hour, resolve_biofix
 from api.runs import option_values
@@ -891,6 +892,9 @@ class Computed:
     from_cubes: bool  # degree days read from the running totals
     ms: float  # time to compute
     notes: list[str] = field(default_factory=list)  # warnings the values bring, kept with them (`cached`)
+    # A model map's (y, x): each cell's most days still missing after the gap fill that a day shown rests on (D56,
+    # `ModelDays.missing_days`); None for other layers and models that count none
+    behind: np.ndarray | None = None
 
 
 def compute(a: LayerAsk, window: Window, now: datetime) -> Computed:
@@ -939,7 +943,24 @@ def compute(a: LayerAsk, window: Window, now: datetime) -> Computed:
         from_cubes=from_cubes,
         ms=(time.perf_counter() - started) * 1000,
         notes=notes,
+        behind=a.model.behind if a.model is not None else None,
     )
+
+
+def missing_note(c: Computed, cells: np.ndarray | None = None) -> str | None:
+    """The warning for a model map with cells whose results rest on days missing past the gap fill (D56), among
+    `cells` (y, x; default all) with a value; None where there are none."""
+    behind = getattr(c, "behind", None)  # a map kept on disk before it was counted has none
+    if behind is None:
+        return None
+    with np.errstate(invalid="ignore"):
+        hit = (behind > 0) & np.isfinite(c.values).any(axis=0)
+    if cells is not None:
+        hit &= cells
+    if not hit.any():
+        return None
+    most = int(np.max(behind[hit]))
+    return f"At {counted(int(hit.sum()), 'grid cell')} on this map, the weather data the model reads have days missing (up to {counted(most, 'day')}), in gaps longer than the {MAX_GAP_DAYS} days we fill with estimates. The model's running totals add nothing for those days, so its results there may be late."
 
 
 def is_heavy(a: LayerAsk, window: Window) -> bool:
@@ -1193,6 +1214,7 @@ class ModelRequest:
     window: Window | None = None
     season: Season | None = None  # a seasonal product's season the map is in
     projection: seasonal.Projection | None = None  # once computed
+    behind: np.ndarray | None = None  # once computed: `Computed.behind`
 
     @property
     def projected(self) -> bool:
@@ -1305,6 +1327,7 @@ def _model_compute(
         )
     name = model.output.name
     extra: dict[str, np.ndarray] = {}
+    model.behind = _behind(found, window)
     if model.projected:
         years = series.archive_years(data_dir)
         model.projection = seasonal.project(data_dir, layer.id, first, window, found, years, stores=stores, now=now)
@@ -1349,6 +1372,18 @@ def _model_compute(
         value, _, missing = reduce(values, stat, None)
         values, extra = value[None], {"missing_days": missing}
     return values, found.kinds, extra, found.sources, found.forecast, found.dates, False
+
+
+def _behind(found: modelgrid.ModelDays, window: Window) -> np.ndarray | None:
+    """Each land cell's most days missing past the gap fill on the days shown with data (D56): a day with none
+    anywhere (the forecast's partial last day) is left out, as it shows nothing."""
+    if found.missing_days is None:
+        return None
+    shown = [k for k, kind in enumerate(found.kinds) if kind is not None]
+    if not shown:
+        return None
+    most = np.fmax.reduce(np.asarray(found.missing_days, dtype=float)[shown], axis=0)
+    return np.where(regions.land(window), most, np.nan)
 
 
 def season_span(
