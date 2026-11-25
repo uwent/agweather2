@@ -4,7 +4,7 @@
   import type { LayerInfo } from '@/types/api'
 
   import DateSlider from './DateSlider.svelte'
-  import { dayTimeline, hourTimeline, inYear, yearsOf } from './timeline'
+  import { dayTimeline, hourTimeline, inYear, isRecent, recentTimeline, yearsOf } from './timeline'
   import TimeStepper from './TimeStepper.svelte'
   import {
     dayBounds,
@@ -76,19 +76,35 @@
   })
   // Moving the day: a range keeps its length
   const toDay = (next: string) => onchange(stepTo(view, layer, next))
+
+  // The slider's window: the recent weeks and the forecast (the first choice, so the forecast's days have room), or
+  // a whole year as the alfalfa tool's; the recent weeks only while the day is in them
+  let wantRecent = $state(true)
+  const recent = $derived(wantRecent && span !== 'season' && isRecent(day, layer))
+  const dayLine = $derived(recent ? recentTimeline(layer) : dayTimeline(layer, day))
+  function chooseWindow(choice: string) {
+    if (choice === 'recent') {
+      wantRecent = true
+      if (!isRecent(day, layer) && layer.range.last) toDay(layer.range.last.slice(0, 10))
+    } else {
+      wantRecent = false
+      toDay(inYear(day, Number(choice), layer))
+    }
+  }
 </script>
 
 {#snippet year()}
   {#if years.length > 1}
     <div class="space-y-1">
-      <label for="time-year" class="block font-medium">Year</label>
+      <label for="time-year" class="block font-medium">Timeline</label>
       <select
         id="time-year"
         class="rounded-md sm:text-sm"
-        value={Number(day.slice(0, 4))}
-        onchange={(event) => toDay(inYear(day, Number(event.currentTarget.value), layer))}
+        value={recent ? 'recent' : day.slice(0, 4)}
+        onchange={(event) => chooseWindow(event.currentTarget.value)}
       >
-        {#each years as y (y)}<option value={y}>{y}</option>{/each}
+        {#if span !== 'season'}<option value="recent">Recent weeks</option>{/if}
+        {#each years as y (y)}<option value={String(y)}>{y}</option>{/each}
       </select>
     </div>
   {/if}
@@ -194,7 +210,7 @@
         </div>
       {/if}
     </div>
-    {@render slider(dayTimeline(layer, day), day, 'Last day on the timeline', toDay)}
+    {@render slider(dayLine, day, 'Last day on the timeline', toDay)}
     <TimeStepper {layer} when={day} {today} onstep={toDay} />
     <div class="flex flex-wrap items-center gap-2 text-sm" role="group" aria-label="Quick ranges">
       <span class="text-ink-muted">The last</span>
@@ -229,12 +245,7 @@
       </div>
       {@render year()}
     </div>
-    {@render slider(
-      dayTimeline(layer, day),
-      day,
-      span === 'season' ? 'Last day on the timeline' : 'Day on the timeline',
-      toDay,
-    )}
+    {@render slider(dayLine, day, span === 'season' ? 'Last day on the timeline' : 'Day on the timeline', toDay)}
     <TimeStepper {layer} when={day} {today} onstep={toDay} />
   {:else}
     <p class="text-sm text-ink-muted">This map has no date.</p>

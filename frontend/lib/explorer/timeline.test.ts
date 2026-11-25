@@ -15,7 +15,9 @@ import {
   indexAt,
   indexOf,
   inYear,
+  isRecent,
   labelPlacement,
+  recentTimeline,
   moveBy,
   segmentsOf,
   whenAt,
@@ -115,6 +117,33 @@ describe('positions and clamping', () => {
     expect(labelPlacement(0.5)).toBe('split')
     expect(labelPlacement(0.9)).toBe('before')
     expect(labelPlacement(0.1)).toBe('after')
+  })
+})
+
+describe('a daily layer’s recent timeline', () => {
+  it('runs over the last 6 weeks observed and the forecast, the boundary well clear of the end', () => {
+    const t = recentTimeline(daily)!
+    expect(t.start).toBe('2026-10-14')
+    expect(whenAt(t, t.observed)).toBe('2026-11-24')
+    expect(whenAt(t, t.max)).toBe('2026-12-06')
+    expect(t.count).toBe(54)
+    expect(boundaryOf(t)).toBeCloseTo(42 / 54)
+    expect(t.ticks.map((tick) => tick.label)).toEqual([
+      'Oct 14',
+      'Oct 21',
+      'Oct 28',
+      'Nov 4',
+      'Nov 11',
+      'Nov 18',
+      'Nov 25',
+      'Dec 2',
+    ])
+  })
+
+  it('knows which days it holds', () => {
+    expect(isRecent('2026-11-20', daily)).toBe(true)
+    expect(isRecent('2026-12-06', daily)).toBe(true)
+    expect(isRecent('2026-10-13', daily)).toBe(false)
   })
 })
 

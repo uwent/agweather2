@@ -113,17 +113,17 @@
     <div class="absolute inset-x-0 top-1/2 h-2.5 -translate-y-1/2 rounded-full border border-line"></div>
     {#if segments.observed}
       <div
-        class="absolute top-1/2 h-2.5 -translate-y-1/2 rounded-l-full bg-frame/45"
+        class="absolute top-1/2 h-2.5 -translate-y-1/2 rounded-l-full bg-ink-muted/45"
         style:left={pct(segments.observed[0])}
         style:width={pct(segments.observed[1] - segments.observed[0])}
       ></div>
     {/if}
     {#if segments.forecast}
       <div
-        class="absolute top-1/2 h-2.5 -translate-y-1/2 rounded-r-full border border-frame"
+        class="absolute top-1/2 h-2.5 -translate-y-1/2 rounded-r-full border border-ink-muted"
         style:left={pct(segments.forecast[0])}
         style:width={pct(segments.forecast[1] - segments.forecast[0])}
-        style:background="repeating-linear-gradient(135deg, var(--color-frame) 0 2px, transparent 2px 5px)"
+        style:background="repeating-linear-gradient(135deg, var(--color-ink-muted) 0 2px, transparent 2px 5px)"
         data-testid="forecast-segment"
       ></div>
     {/if}

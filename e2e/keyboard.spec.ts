@@ -82,3 +82,20 @@ test('a place found by search takes focus to the cell’s answer and its links',
   await expect(site).toBeFocused()
   await expect(site).toHaveAttribute('href', /\/sites\/44\.1336,-89\.5168\?name=Hancock$/)
 })
+
+test('the date slider moves the day by its keys, and says where the forecast begins', async ({ page }, testInfo) => {
+  await page.goto(MAP)
+  if (testInfo.project.name === 'phone') await page.getByRole('button', { name: /Layer and date/ }).click()
+  const slider = page.getByRole('slider', { name: 'Day on the timeline' })
+  await expect(slider).toHaveAttribute('aria-valuetext', 'Nov 20, 2026')
+  await slider.focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(slider).toHaveAttribute('aria-valuetext', 'Nov 21, 2026')
+  await page.keyboard.press('PageUp')
+  await expect(slider).toHaveAttribute('aria-valuetext', 'Nov 28, 2026, forecast')
+  // What the layer reaches is the date control's to say, not the map's title
+  await expect(page.getByTestId('date-reach')).toContainText('Days through Nov 24, 2026 are observed')
+  await expect(page.getByTestId('forecast-boundary')).toContainText('Observed through Nov 24')
+  if (testInfo.project.name === 'phone') await page.getByRole('button', { name: 'Show the map' }).click()
+  await expect(page.getByTestId('title-chip')).not.toContainText('Observed')
+})

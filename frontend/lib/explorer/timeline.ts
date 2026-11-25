@@ -126,6 +126,43 @@ export function dayTimeline(layer: Ranged, day: string): Timeline | null {
   return t
 }
 
+/** The observed days a daily layer's recent timeline shows before the forecast */
+export const RECENT_DAYS = 42
+
+/** A daily layer's recent timeline: the last 6 weeks observed and the forecast, so the forecast's days have room on
+ * the track (on a year's they're a sliver); weeks marked back from the newest observed day */
+export function recentTimeline(layer: Ranged): Timeline | null {
+  const { first, last } = dayBounds(layer)
+  const observed = layer.range.last?.slice(0, 10)
+  if (!first || !last || !observed) return null
+  const start = addDays(observed, -(RECENT_DAYS - 1))
+  const count = daysBetween(start, last) + 1
+  const t: Timeline = {
+    unit: 'day',
+    start,
+    count,
+    min: clamp(daysBetween(start, first), 0, count - 1),
+    max: count - 1,
+    observed: RECENT_DAYS - 1,
+    ticks: [],
+  }
+  const weeks = Math.ceil(count / 7)
+  t.ticks = Array.from({ length: weeks }, (_, w) => ({
+    at: edgeOf(t, w * 7),
+    label: formatDate(addDays(start, w * 7)),
+    minor: w % 2 === 1,
+  }))
+  return t
+}
+
+/** Whether a day is on a layer's recent timeline */
+export function isRecent(day: string, layer: Ranged): boolean {
+  const t = recentTimeline(layer)
+  if (!t) return false
+  const i = indexOf(t, day)
+  return i >= t.min && i <= t.max
+}
+
 /** The days either side of the newest (or chosen) hour an hourly layer's timeline shows */
 const HOUR_DAYS_BEFORE = 3
 const HOUR_DAYS = 7

@@ -61,13 +61,27 @@ describe('TimeControls', () => {
     expect(onchange).toHaveBeenLastCalledWith({ date: '2026-11-13' })
     await fireEvent.keyDown(slider, { key: 'End' })
     expect(onchange).toHaveBeenLastCalledWith({ date: '2026-12-06' })
+    // The recent weeks' first day
     await fireEvent.keyDown(slider, { key: 'Home' })
+    expect(onchange).toHaveBeenLastCalledWith({ date: '2026-10-14' })
+  })
+
+  it('shows the recent weeks first, and a whole year when one is chosen', async () => {
+    const onchange = controls('air_temperature_min', { date: '2026-11-20' })
+    const timeline = screen.getByRole('combobox', { name: 'Timeline' })
+    expect(timeline).toHaveValue('recent')
+    expect(screen.getByText('Oct 14')).toBeInTheDocument()
+    await fireEvent.change(timeline, { target: { value: '2026' } })
+    expect(onchange).toHaveBeenLastCalledWith({ date: '2026-11-20' })
+    expect(timeline).toHaveValue('2026')
+    expect(screen.getByText('Jan')).toBeInTheDocument()
+    await fireEvent.keyDown(screen.getByRole('slider', { name: 'Day on the timeline' }), { key: 'Home' })
     expect(onchange).toHaveBeenLastCalledWith({ date: '2026-01-01' })
   })
 
   it('chooses a year, keeping the day of the year; a past year has no forecast', async () => {
     const onchange = controls('air_temperature_min', { date: '2026-07-08' })
-    await fireEvent.change(screen.getByRole('combobox', { name: 'Year' }), { target: { value: '2020' } })
+    await fireEvent.change(screen.getByRole('combobox', { name: 'Timeline' }), { target: { value: '2020' } })
     expect(onchange).toHaveBeenLastCalledWith({ date: '2020-07-08' })
   })
 
