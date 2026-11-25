@@ -57,6 +57,8 @@ OPEN_METEO_DAILY_CALLS: int | None = (
 OPEN_METEO_BILLING_DAY = int(os.environ.get("OPEN_METEO_BILLING_DAY") or "12")
 if not 1 <= OPEN_METEO_BILLING_DAY <= 28:
     raise RuntimeError(f"OPEN_METEO_BILLING_DAY must be a day of the month from 1 to 28, not {OPEN_METEO_BILLING_DAY}")
+if OPEN_METEO_MONTHLY_CALLS <= 0:  # the share of it used is shown in /up, the admin and jobs status
+    raise RuntimeError(f"OPEN_METEO_MONTHLY_CALLS must be a number of calls over 0, not {OPEN_METEO_MONTHLY_CALLS}")
 OPEN_METEO_WARN_SHARE = 0.8
 COPERNICUS_API_KEY = os.environ.get("COPERNICUS_API_KEY") or None  # the CDS, for ERA5-Land (D52); None: no job
 # Points in the box take Open-Meteo's forecast while ours is stale or missing (D114, ops.points.forecast_filler). Off
