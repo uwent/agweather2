@@ -15,7 +15,7 @@ Each phase ends with an exit gate, which includes the end-of-phase review (CLAUD
 | [Phase 6: Frontend plan and the data behind it](phase-6-frontend-plan-and-data.md) | Done 2026-11-26 (XL); step 4's open parts beside Phase 7 | The frontend's decisions, climatology, climate endpoints, map images; the remaining backend work (steps 1–7) |
 | [Models](models.md) | Beside Phase 6 step 4; its open parts beside Phase 7 | More models and a write-up for each: apple, the insects' review (part H), validation reports and topic pages; parts C–G and J open |
 | [Humidity outside Wisconsin](humidity.md) | Beside Phase 6 | D100's follow-up: a correction of Open-Meteo's humidity fitted against URMA |
-| [Phase 7: Web app, accounts and email](phase-7-web-app.md) | Sketch (XL) | The site, from WISP 3's frontend and [frontend.md](../frontend.md) |
+| [Phase 7: Web app, accounts and email](phase-7-web-app.md) | **Current**: planned 2026-11-26 (XL), A and wave 1 for Ben | The site, from WISP 3's frontend and [frontend.md](../frontend.md) |
 | [Phase 8: Launch](phase-8-launch.md) | Sketch (M) | Before April 1, 2027: the server, DNS, the old stack in parallel |
 | [Phase 9: Refinement and CONUS](phase-9-refinement.md) | Sketch | From the 2027 season; the validation backlog, station networks, ALIVE, the model review |
 
