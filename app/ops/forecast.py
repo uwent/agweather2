@@ -99,10 +99,10 @@ def restitch_current(data_dir: Path, box: str) -> datetime | None:
 
 def forecast_health(data_dir: Path, now: datetime) -> tuple[dict[str, Any], list[str]]:
     """The forecast section of `/up` and its problems; no run yet is "not started", as for the archive.
-    `points_fallback`: points in the box take Open-Meteo's forecast, ours being stale (D114)."""
+    `points_fallback`: points in the box take Open-Meteo's forecast, ours being stale or missing (D114)."""
     current = forecast.current_run(data_dir)
     if current is None:
-        return {"state": "not started"}, []
+        return {"state": "not started", "points_fallback": fallback_on()}, []
     info = forecast.run_info(current)
     cycle = datetime.fromisoformat(info["cycle"])
     age = round((now - cycle) / timedelta(hours=1), 1)
