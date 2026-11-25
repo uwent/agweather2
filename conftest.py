@@ -47,11 +47,17 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(autouse=True)
-def _no_network_tries(monkeypatch):
-    """Fails a test that tried to reach the network. pytest-socket blocks the call, but code that catches the error
-    (a fetch that falls back, an API answer with an error) passed with only a warning."""
+def _no_network_tries(request, monkeypatch):
+    """Fails a test that tried to reach the network. pytest-socket blocks the connection, but code that catches the
+    error (a fetch that falls back, an API answer with an error) passed with only a warning. It doesn't block the
+    name lookup before it, which went out to DNS: that's refused here for any host but this machine."""
+    import socket
+
     import pytest_socket
 
+    if request.node.get_closest_marker("enable_socket"):  # a `network` test, run with --network
+        yield
+        return
     tried: list[str] = []
     for error in (pytest_socket.SocketBlockedError, pytest_socket.SocketConnectBlockedError):
 
@@ -60,6 +66,14 @@ def _no_network_tries(monkeypatch):
             tried.append(str(self))
 
         monkeypatch.setattr(error, "__init__", init)
+
+    def getaddrinfo(host, *args, _lookup=socket.getaddrinfo, **kwargs):
+        if host not in (None, "localhost", "127.0.0.1", "::1", b"localhost"):
+            tried.append(f"A test tried to look up {host!r}.")
+            raise socket.gaierror(socket.EAI_NONAME, "blocked in tests")  # as an unknown name fails
+        return _lookup(host, *args, **kwargs)
+
+    monkeypatch.setattr(socket, "getaddrinfo", getaddrinfo)
     yield
     if tried:
         pytest.fail(f"The test tried to use the network (record a fixture instead): {tried[0]}", pytrace=False)
