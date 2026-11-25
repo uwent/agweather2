@@ -66,7 +66,9 @@ UNITS: dict[str, Unit] = {
         # mass per area: biomass, yield (base kg/ha); a pound per acre is 0.45359237 kg per 0.40468564224 ha
         Unit(symbol="kg_ha", label="kg/ha", dimension="areal_mass", digits=0),
         Unit(symbol="lb_ac", label="lb/ac", dimension="areal_mass", factor=0.45359237 / 0.40468564224, digits=0),
-        Unit(symbol="m", label="m", dimension="elevation", digits=0),  # terrain (D6), apart from depth's mm and in
+        Unit(
+            symbol="m", label="m", dimension="elevation", digits=0
+        ),  # terrain (Phase 6 D6), apart from depth's mm and in
         Unit(symbol="ft", label="ft", dimension="elevation", factor=0.3048, digits=0),
         Unit(symbol="plants_ha", label="plants/ha", dimension="plant_density", digits=0),
         Unit(symbol="plants_ac", label="plants/ac", dimension="plant_density", factor=1 / 0.40468564224, digits=0),

@@ -76,3 +76,9 @@ def test_the_cci_kernel_matches_livestock_cci():
     # The same libm calls in the same order, equal to the bit on one machine; another CPU's math library (CI's) can differ
     # in the last bit, so the check allows a few ulps
     np.testing.assert_allclose(found, expected, rtol=1e-14, atol=0)
+
+
+def test_warm_loads_the_kernels_for_both_input_types():
+    from agmodels import features_grid
+
+    features_grid.warm()  # the web process calls it at start (`api.layermaps.warm_kernels`); it must not raise

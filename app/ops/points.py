@@ -30,7 +30,7 @@ class AreaAsk:
 
     radius_km: float
     weighting: Weighting = "equal"
-    land_only: bool = False  # leave out cells all open water (`agdata.terrain`, D6)
+    land_only: bool = False  # leave out cells all open water (`agdata.terrain`, Phase 6 D6)
 
     def at(self, latitude: float, longitude: float) -> Area:
         covered = coverage.of(settings.SERVICE_BOX)

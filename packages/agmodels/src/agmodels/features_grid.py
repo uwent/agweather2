@@ -257,3 +257,20 @@ def cci_grid(temperature_c, rh_percent, wind_speed_10m_m_s, shortwave_w_m2) -> n
         t, rh, wind, sun = (a.reshape(-1) for a in arrays)
         _cci_kernel(t, rh, wind, sun, livestock.LN_0_3, out.reshape(-1))
     return out
+
+
+def warm() -> None:
+    """Load (or compile) the kernels for the inputs a point's rollup (float64) and the grid's (float32) give them, so a
+    server process's first point request doesn't wait ~0.5–0.8 s for them (`api.layermaps.warm_kernels`)."""
+    window = features.SCAB_HOURS
+    for dtype in (np.float32, np.float64):
+        hours = np.zeros((window, 1, 1), dtype=dtype)
+        scab_features_grid(
+            temperature_c=hours,
+            rh_percent=hours,
+            precipitation_mm=hours,
+            starts=np.zeros(1, dtype=np.int64),
+            local_hours=[np.arange(window) % 24],
+            dtype=dtype,
+        )
+        cci_grid(hours, hours, hours, hours)

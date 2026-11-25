@@ -18,5 +18,5 @@ Larger static stores built from outside files by a management command, kept in t
 <!-- prettier-ignore -->
 | Store | Built by | Source | License |
 | --- | --- | --- | --- |
-| `data/terrain.zarr` | `manage.py terrain` (`agdata.terrain`, D6) | EPA and USGS, NHDPlus Version 2.1 (NHD snapshot and 30 m NED), kept as received in `data/nhdplus/` | Public domain (U.S. government work) |
+| `data/terrain.zarr` | `manage.py terrain` (`agdata.terrain`, Phase 6 D6) | EPA and USGS, NHDPlus Version 2.1 (NHD snapshot and 30 m NED), kept as received in `data/nhdplus/` | Public domain (U.S. government work) |
 | `data/cropland.zarr` | `manage.py cropland` (`agdata.cropland`, D116) | USDA National Agricultural Statistics Service, Cropland Data Layer, 2021–2025, national 30 m files (`<year>_30m_cdls.zip` from https://www.nass.usda.gov/Research_and_Science/Cropland/Release/), kept as received in `data/cdl/`; the cultivated rule and class list from NASS's 2025 Cultivated Layer metadata. Credit: "USDA National Agricultural Statistics Service Cropland Data Layer, 2021–2025" | Public domain, free to redistribute (NASS's metadata) |
