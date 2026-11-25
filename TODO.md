@@ -55,6 +55,8 @@ Things only you can do, by phase. Where things stand and why: [PLAN.md](PLAN.md)
 
   Commit the CSV if it passes.
 
+- [ ] **Soil moisture into the archive** (2026-11-25; D110): `uv run app/manage.py era5land --start 2016-01-01 --end 2026-11-20 --concurrent 3 --background` asks the CDS for every month again with the moisture layers (~130 requests, hours of queueing; resumable; each month is written and rolled up as it arrives; the kept ERA5-Land store grows ~75%). Then `uv run app/manage.py downloads` and `uv run app/manage.py rebuild --check` (should list nothing). IFS needs nothing: its next run writes moisture.
+
 ## Backburner (time-consuming; not soon)
 
 - [ ] **Onion thrips data** (2026-11-19, for the planned model in `docs/plans/models.md` part G): your lab's untreated-check onion thrips counts by date and site, with spray dates and irrigation records, to fit a base and test a heavy-rain term.

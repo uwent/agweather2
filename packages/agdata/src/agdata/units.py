@@ -72,6 +72,8 @@ UNITS: dict[str, Unit] = {
         Unit(symbol="plants_ac", label="plants/ac", dimension="plant_density", factor=1 / 0.40468564224, digits=0),
         Unit(symbol="km2", label="km²", dimension="area", digits=0),
         Unit(symbol="mi2", label="sq mi", dimension="area", factor=2.589988110336, digits=0),
+        # volumetric soil water: the water's volume over the soil's (no conversion)
+        Unit(symbol="m3_m3", label="m³/m³", dimension="water_content", digits=2),
         # fractions and angles (no conversion)
         Unit(symbol="percent", label="%", dimension="fraction", digits=0),
         Unit(symbol="deg", label="°", dimension="angle", digits=0),

@@ -60,7 +60,7 @@ Package boundaries: `agmodels` imports nothing from the others. `agdata` may imp
 
 ### 5.2 Variable catalog
 
-One table in `agdata.catalog`: name, long name, stored unit, dtype and scale/offset (scaled int16 where precision allows), valid range for QC, sources by period, and daily aggregations (min, max, mean, sum, hours above/below). Hourly variables: 2 m temperature, dew point, RH, wind speed, gust, direction, surface pressure, sky cover, precip, shortwave radiation, soil temperature (and ET0 derived). Stored in SI (D18); `agdata.units` converts between SI and display units (°F, in, mph, ly/day, …) and is the only place conversion factors live in Python.
+One table in `agdata.catalog`: name, long name, stored unit, dtype and scale/offset (scaled int16 where precision allows), valid range for QC, sources by period, and daily aggregations (min, max, mean, sum, hours above/below). Hourly variables: 2 m temperature, dew point, RH, wind speed, gust, direction, surface pressure, sky cover, precip, shortwave radiation, soil temperature at 4, 10 and 30 cm, soil moisture in the 0–7, 7–28 and 28–100 cm layers, snow depth (and ET0 derived). Stored in SI (D18); `agdata.units` converts between SI and display units (°F, in, mph, ly/day, …) and is the only place conversion factors live in Python.
 
 ### 5.3 Stores
 

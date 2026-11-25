@@ -1,13 +1,14 @@
-"""IFS's soil temperature and snow depth (D52, Phase 4 I): the archive's provisional hours after ERA5-Land's
-last, and the forecast's.
+"""IFS's soil temperature, soil moisture and snow depth (D52, Phase 4 I): the archive's provisional hours after
+ERA5-Land's last, and the forecast's.
 
 Each new IFS run on Open-Meteo's open data is read once over the box, from the hour after ERA5-Land's last (at most
 `LOOKBACK_DAYS` back) to the run's end: the past hours go into the archive marked `ifs` (never over ERA5-Land's, which
 replaces them when it arrives), and every hour is kept in `ifs/latest.zarr`, where the forecast builds take their
 soil and snow. The read takes minutes, so it runs outside the write lock.
 
-IFS's soil is shifted to meet ERA5-Land's at the seam (`agdata.soil_seam`, Q23): each cell by the difference in
-ERA5-Land's last hour, faded with the hours since. `ifs/latest.zarr` keeps the shifted hours with each cell's offset
+IFS's soil temperature and moisture are shifted to meet ERA5-Land's at the seam (`agdata.soil_seam`, Q23): each cell
+by the difference in ERA5-Land's last hour, faded with the hours since (a cell whose ERA5-Land moisture isn't in yet
+isn't shifted). `ifs/latest.zarr` keeps the shifted hours with each cell's offset
 (`{variable}_seam_offset`) and the seam's hour, so the raw values can be recovered. When ERA5-Land moves on, the same
 run is read again against the new seam.
 """

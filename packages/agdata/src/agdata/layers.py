@@ -114,6 +114,7 @@ _USES = (
     ("water_balance", "water_balance"),
     ("dew_point_depression", "dew_point_depression"),
     ("soil_temperature", "soil_temperature"),
+    ("soil_moisture", "soil_moisture"),
     ("air_temperature", "temperature"),
     ("dew_point", "temperature"),
     ("temperature_", "temperature"),

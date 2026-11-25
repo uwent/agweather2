@@ -25,7 +25,15 @@ _ANALYSIS = (
     "surface_pressure",
     "cloud_cover",
 )
-_SOIL_AND_SNOW = ("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm", "snow_depth")
+_SOIL_AND_SNOW = (
+    "soil_temperature_4cm",
+    "soil_temperature_10cm",
+    "soil_temperature_30cm",
+    "snow_depth",
+    "soil_moisture_0_to_7cm",
+    "soil_moisture_7_to_28cm",
+    "soil_moisture_28_to_100cm",
+)
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -94,7 +102,7 @@ USES: tuple[SourceUse, ...] = (
         name="ERA5-Land, ECMWF (Copernicus Climate Change Service)",
         role="archive",
         variables=_SOIL_AND_SNOW,
-        description="ECMWF's reanalysis of the land surface on a 9 km grid, taken to our grid and to each depth. It is published about 5 days behind.",
+        description="ECMWF's reanalysis of the land surface on a 9 km grid, taken to our grid: soil temperature at each depth, and soil moisture as the water in each of the model's soil layers. It is published about 5 days behind.",
         url="https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land",
     ),
     SourceUse(
@@ -102,7 +110,7 @@ USES: tuple[SourceUse, ...] = (
         name=IFS_NAME,
         role="provisional",
         variables=_SOIL_AND_SNOW,
-        description="ECMWF's forecast model fills soil temperature and snow depth for the days since ERA5-Land's last, adjusted to meet it, until ERA5-Land's values arrive and replace them.",
+        description="ECMWF's forecast model fills soil temperature, soil moisture and snow depth for the days since ERA5-Land's last, its soil adjusted to meet ERA5-Land's, until ERA5-Land's values arrive and replace them.",
         url=IFS_URL,
     ),
     SourceUse(
@@ -127,7 +135,7 @@ USES: tuple[SourceUse, ...] = (
         name=IFS_NAME,
         role="forecast",
         variables=_SOIL_AND_SNOW,
-        description="Soil temperature and snow depth in the forecast, adjusted to meet the archive's.",
+        description="Soil temperature, soil moisture and snow depth in the forecast, the soil adjusted to meet the archive's.",
         url=IFS_URL,
     ),
     SourceUse(

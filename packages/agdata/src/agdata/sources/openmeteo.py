@@ -8,7 +8,7 @@ cells (~9 km), so every point in a cell shares one series and one cache entry. C
   `archive` (ERA5) the rest; there soil and snow come from `era5_land` (D52).
 - Models (D40): `ncep_nbm_conus` first, `best_match` for what it lacks (pressure always; shortwave past ~2 days;
   hours its run doesn't have), soil and snow depth from `ecmwf_ifs` (the only one with soil over North America),
-  whose layers are 0–7, 7–28 and 28–100 cm.
+  whose layers are 0–7, 7–28 and 28–100 cm (soil temperature taken to depths, soil moisture kept by layer).
 - Values at T are the hour ending T, as ours: precip and shortwave are the preceding hour's sum and mean.
 Values are converted to the catalog's variables and units here; RH and ET0 are derived as the archive does them
 (from T and Td, and our FAO-56), so a point outside the box agrees with one inside on method. The cache keeps these
@@ -61,6 +61,8 @@ SOIL_LAYERS = {  # layer → its middle, cm
     "soil_temperature_28_to_100cm": 64.0,
 }
 SOIL_DEPTHS = {"soil_temperature_4cm": 4.0, "soil_temperature_10cm": 10.0, "soil_temperature_30cm": 30.0}
+# Soil moisture by layer (m³/m³), named as the catalog's: the same layers as soil temperature, not taken to depths
+SOIL_MOISTURE = ("soil_moisture_0_to_7cm", "soil_moisture_7_to_28cm", "soil_moisture_28_to_100cm")
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -130,7 +132,7 @@ def fetch(
     start = datetime(first.year, first.month, first.day, tzinfo=UTC)  # the UTC day's hours end 00Z … 23Z
     n = ((last - first).days + 1) * 24
     days = (last - first).days + 1
-    soil = [*SOIL_LAYERS, "snow_depth"]
+    soil = [*SOIL_LAYERS, "snow_depth", *SOIL_MOISTURE]
     requests_made: list[tuple[str | None, list[str]]] = (
         [(None, names), (ARCHIVE_SOIL_MODEL, soil)]  # ERA5, then ERA5-Land's soil and snow (D52)
         if endpoint == "archive"
@@ -244,6 +246,9 @@ def _to_catalog(merged, chosen, start: datetime, cell: Cell, elevation) -> Hours
         sources[name] = chosen.get(layer, "")
     values["snow_depth"] = merged["snow_depth"] * 100  # m → cm
     sources["snow_depth"] = chosen.get("snow_depth", "")
+    for name in SOIL_MOISTURE:
+        values[name] = merged[name]
+        sources[name] = chosen.get(name, "")
     _derive(values, start, cell)
     sources["relative_humidity"] = sources["et0"] = "derived"
     return Hours(start=start, values=values, sources=sources, elevation_m=elevation)

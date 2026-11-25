@@ -53,6 +53,9 @@ def test_a_field_linear_in_latitude_and_longitude_comes_through_exactly():
     # Every layer holds the same field, so every depth does too; snow comes out ×100 (m → cm)
     np.testing.assert_allclose(hours.values["soil_temperature_10cm"], expected, atol=1e-4)
     np.testing.assert_allclose(hours.values["snow_depth"], expected * 100, atol=1e-2)
+    # Soil moisture stays by layer, as read (m³/m³)
+    for name in ("soil_moisture_0_to_7cm", "soil_moisture_7_to_28cm", "soil_moisture_28_to_100cm"):
+        np.testing.assert_allclose(hours.values[name], expected, atol=1e-4)
     assert hours.times == [first + k * ifs.HOUR for k in range(5)]
 
 

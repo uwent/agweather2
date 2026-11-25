@@ -301,9 +301,9 @@ GRIDDED_RH_90 = Correction(
 )
 IFS_SOIL_SEAM = Correction(
     id="ifs-soil-seam",
-    title="Soil temperature on the newest days and in the forecast",
-    summary="Our soil temperatures come from ERA5-Land, which arrives about five days late. ECMWF's forecast model (IFS) fills the days since and the forecast. The two differ, so we shift each cell's IFS values by the difference between them at ERA5-Land's last hour, by less and less the further ahead the hour is. ERA5-Land replaces these values when it arrives.",
-    variables=("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm"),
+    title="Soil temperature and moisture on the newest days and in the forecast",
+    summary="Our soil temperature and moisture come from ERA5-Land, which arrives about five days late. ECMWF's forecast model (IFS) fills the days since and the forecast. The two differ (IFS's soil is colder in winter and drier most of the year), so we shift each cell's IFS values by the difference between them at ERA5-Land's last hour, by less and less the further ahead the hour is. ERA5-Land replaces these values when it arrives.",
+    variables=soil_seam.VARIABLES,
     scores=(
         Score(
             measure="Soil at 4 cm, 3 days ahead, root mean square difference from ERA5-Land",
@@ -319,16 +319,30 @@ IFS_SOIL_SEAM = Correction(
             after=1.39,
             tested="2026 (fitted on 2025), at 80 Wisconet stations' cells",
         ),
+        Score(
+            measure="Soil moisture, 0 to 7 cm, 3 days ahead, root mean square difference from ERA5-Land",
+            unit="m3_m3",
+            before=0.079,
+            after=0.043,
+            tested="2026 (fitted on 2025), at 80 Wisconet stations",
+        ),
+        Score(
+            measure="Soil moisture, 7 to 28 cm, 3 days ahead, root mean square difference from ERA5-Land",
+            unit="m3_m3",
+            before=0.075,
+            after=0.023,
+            tested="2026 (fitted on 2025), at 80 Wisconet stations",
+        ),
     ),
-    scored_version="1",
+    scored_version="2",  # 2 added soil moisture; temperature's weights and scores are version 1's
     source="ECMWF IFS (the archive's provisional hours and the forecast, in the box)",
-    variable="soil_temperature_4cm, soil_temperature_10cm, soil_temperature_30cm",
-    method="Each cell shifted by ERA5-Land − IFS in ERA5-Land's last hour, times a weight by lead (1 at the seam, fading to a lasting share)",
-    fitted_against="The archive (ERA5-Land) minus Open-Meteo's IFS at 80 Wisconet stations' cells (2025; tested on 2026)",
+    variable=", ".join(soil_seam.VARIABLES),
+    method="Each cell shifted by ERA5-Land − IFS in ERA5-Land's last hour, times a weight by lead (1 at the seam, fading to a lasting share); soil moisture never below 0",
+    fitted_against="Temperature: the archive (ERA5-Land) minus Open-Meteo's IFS at 80 Wisconet stations' cells; moisture: Open-Meteo's ERA5-Land minus its IFS at the same stations (2025; tested on 2026)",
     applies_to="IFS's hours after ERA5-Land's last (`ops.ifs`); replaced by ERA5-Land's as it arrives. Not points outside the box, whose recent days and forecast are all IFS",
     raw_kept="Each cell's offset in `ifs/latest.zarr` (raw = value − offset × weight)",
     decision="Q23",
-    evidence="docs/validation/weather/soil.md",
+    evidence="docs/validation/weather/soil.md, docs/validation/weather/soil-moisture.md",
     table=soil_seam.TABLE_PATH,
 )
 GRIDMET_BASIS = Correction(

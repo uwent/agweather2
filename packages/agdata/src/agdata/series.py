@@ -41,7 +41,14 @@ from agmodels.spec import ModelSpec, PlaceNormal
 HOUR = timedelta(hours=1)
 MAX_RUN_AGE = timedelta(hours=12)  # past this a run's forecast isn't used (D43; the job runs every 6 hours)
 OBSERVED, PARTIAL, FORECAST = "observed", "partial", "forecast"
-SOIL = ("soil_temperature_4cm", "soil_temperature_10cm", "soil_temperature_30cm")
+SOIL = (  # what a point's forecast fills from Open-Meteo's IFS where the run has none (D44)
+    "soil_temperature_4cm",
+    "soil_temperature_10cm",
+    "soil_temperature_30cm",
+    "soil_moisture_0_to_7cm",
+    "soil_moisture_7_to_28cm",
+    "soil_moisture_28_to_100cm",
+)
 
 # Hours ending start..end (UTC, inclusive) of the given variables from another source, for a point's forecast soil
 FillSoil = Callable[[datetime, datetime, list[str]], dict[str, np.ndarray]]

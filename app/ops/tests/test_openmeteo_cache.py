@@ -40,6 +40,7 @@ def fake_fetch(monkeypatch):
         start = datetime(first.year, first.month, first.day, tzinfo=UTC)
         values = {name: np.full(n, 1.0) for name in ("precipitation", "wind_speed", "dew_point")}
         values["air_temperature"] = np.full(n, 25.0 if endpoint == "forecast" else 20.0)
+        values |= {name: np.full(n, 0.3) for name in source.SOIL_MOISTURE}
         return source.Hours(start=start, values=values), 1.0
 
     monkeypatch.setattr(source, "fetch", fetch)
@@ -64,6 +65,22 @@ def test_the_cache_fetches_each_span_once_and_expires_the_forecast(fake_fetch):
     assert [f[:2] for f in fake_fetch[4:]] == [("historical", date(2026, 7, 1)), ("forecast", date(2026, 7, 9))]
     june = WeatherCellCache.objects.get(first_day=date(2026, 6, 1))
     assert june.expires_at is None  # a past month never expires
+
+
+@pytest.mark.django_db
+def test_a_month_cached_before_soil_moisture_is_fetched_again(fake_fetch):
+    start, end = datetime(2026, 6, 2, tzinfo=UTC), datetime(2026, 6, 20, tzinfo=UTC)
+    openmeteo.cell_hours(*STILLWATER, start, end, NOW)
+    june = WeatherCellCache.objects.get(first_day=date(2026, 6, 1))
+    held = openmeteo._unpack(bytes(june.data))
+    for name in source.SOIL_MOISTURE:
+        del held.values[name]
+    june.data = openmeteo._pack(held)
+    june.save()
+    openmeteo.cell_hours(*STILLWATER, start, end, NOW + timedelta(hours=1))
+    assert fake_fetch == [("historical", date(2026, 6, 1), date(2026, 6, 30))] * 2
+    values, _, _ = openmeteo.cell_hours(*STILLWATER, start, end, NOW + timedelta(hours=2))
+    assert len(fake_fetch) == 2 and np.nanmax(values["soil_moisture_0_to_7cm"]) == pytest.approx(0.3)
 
 
 @pytest.mark.django_db

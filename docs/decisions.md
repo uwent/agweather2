@@ -441,6 +441,14 @@ _2026-11-24._ (Ben, 2026-11-24; Phase 6 step 7 D, from B's timings.) On the laun
 
 _2026-11-24._ (Ben, 2026-11-24; Phase 6 step 7 C.) The launch-box profile found apple scab's and fire blight's maps, computed on request over the whole window for a season, reaching 60 GB in one request (it crashed the development machine). Maps are worth offering, but only when they don't take an undue share of storage and compute: a model's map is kept only if it can be served from stored data or a bounded computation. Apple scab and fire blight are first to be stored as crop stages are (step 7 D3); if their storage or the job's time can't be made reasonable, their maps are dropped and they're offered at points only, where they run on one cell's hours. No request may hold the whole window over a season (step 7 D2).
 
+### D110. Soil moisture from ERA5-Land and IFS, by the model's layers
+
+_2026-11-25._ (Ben, 2026-11-25; Phase 6 step 6.) Volumetric soil water (m³/m³) by ERA5-Land's layers 0–7, 7–28 and 28–100 cm (`soil_moisture_0_to_7cm`, `_7_to_28cm`, `_28_to_100cm`, daily mean), from the sources and by the coast rule soil temperature uses (D52, D79), IFS for the provisional and forecast hours. Layers rather than depths: interpolating to depths changed the correlation with the stations by 0.02 at most, and plant-available water will want the layers. HRRR isn't used (drier than the stations, no better correlated). Against 80 Wisconet stations (2025–2026, frozen hours left out) ERA5-Land correlates 0.65–0.73 by day, IFS 0.40–0.65; ERA5-Land reads 0.04–0.09 wetter, mostly a fixed offset per station (0.03–0.05 once each station's own bias is removed), so a value is the model's soil, not a field's, and a percentile against the archive's years is the more trustworthy product (`docs/validation/weather/soil-moisture.md`).
+
+### D111. IFS's soil moisture is shifted at the seam as its temperature is (D55)
+
+_2026-11-25._ (Ben, 2026-11-25; with D110.) IFS reads 0.04–0.07 m³/m³ drier than ERA5-Land for weeks at a time, so its moisture is shifted to meet ERA5-Land's at the seam by D55's method, weights by lead fitted on Open-Meteo's ERA5-Land minus IFS at the stations (fitted on 2025, tested on 2026; 3 days on, the gap 0.079 → 0.043, 0.075 → 0.023 and 0.086 → 0.010 by layer), never below 0. `ifs_soil_seam.json` version 2; temperature's weights unchanged.
+
 ## Questions
 
 

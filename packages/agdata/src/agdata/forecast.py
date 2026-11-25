@@ -46,10 +46,7 @@ PRESSURE_DAYS = 30  # the archive's days whose mean surface pressure stands in f
 PART_SIZE = 128  # cells a side of the parts a run is derived in: 16,384 cells, ~1.1 GB at peak over 264 hours
 # Sources of a run's forecast hours, by variable; the rest are NBM's
 SOURCE_OF = {
-    "soil_temperature_4cm": "ifs",
-    "soil_temperature_10cm": "ifs",
-    "soil_temperature_30cm": "ifs",
-    "snow_depth": "ifs",
+    **dict.fromkeys(SOIL, "ifs"),  # soil temperature, snow depth and soil moisture
     "surface_pressure": "derived",
     "relative_humidity": "derived",
     "et0": "derived",
