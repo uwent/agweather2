@@ -21,6 +21,7 @@ from typing import Any, Literal
 import numpy as np
 import zarr
 from zarr.codecs.numcodecs import PCodec
+from zarr.storage import MemoryStore
 
 from agdata import coverage
 from agdata.catalog import FILL, Variable
@@ -74,9 +75,10 @@ def steps_in_year(year: int, step: Step) -> int:
 class GridStore:
     """One year of one kind of gridded data over a window."""
 
-    def __init__(self, group: zarr.Group, path: Path):
+    def __init__(self, group: zarr.Group, path: Path, read_only: bool = False):
         self.group = group
         self.path = path
+        self.read_only = read_only
         attrs: dict[str, Any] = dict(group.attrs)
         self.year = int(attrs["year"])
         self.step: Step = attrs["step"]
@@ -84,6 +86,11 @@ class GridStore:
         self.window = Window(j0=w["j0"], j1=w["j1"], i0=w["i0"], i1=w["i1"])
         self.variables: dict[str, Variable] = {}
         self.stale: set[str] = set()  # derived variables to recompute (D29)
+        # Variables a read-only store was opened for but lacks (`open`): each of their arrays' paths (the values and
+        # the two `_meta` arrays) reads from an empty array in memory, made when first read
+        self.absent: set[str] = set()
+        self._absent_paths: dict[str, Literal["values", "source", "written"]] = {}
+        self._empties: dict[str, zarr.Array] = {}
 
     # Creating and opening
 
@@ -135,6 +142,7 @@ class GridStore:
         return store
 
     def _add_array(self, v: Variable, version: int) -> None:
+        self._writable()
         attrs: dict[str, Any] = dict(self.group.attrs)
         n = self.length
         self.group.create_array(
@@ -161,22 +169,44 @@ class GridStore:
 
     @classmethod
     def open(
-        cls, data_dir: Path, layout: StoreLayout, year: int, variables: Iterable[Variable], add_missing: bool = False
+        cls,
+        data_dir: Path,
+        layout: StoreLayout,
+        year: int,
+        variables: Iterable[Variable],
+        add_missing: bool = False,
+        read_only: bool = False,
     ) -> "GridStore":
         """Opens a year's store for `variables`. A variable it lacks is an error unless `add_missing`, which adds
-        it empty and stale; a derived variable written by another version of its code is stale (D29)."""
+        it empty and stale; a derived variable written by another version of its code is stale (D29).
+
+        `read_only` opens it for reading only, as a request does: nothing is added or written (a write raises
+        `PermissionError`), so it needs no write lock and never races a writer, nor writes into a forecast run being
+        deleted. A variable it lacks (one the catalog gained since the store was written, before `rebuild --stale`)
+        is `absent`: it reads as the array `add_missing` would have added, all missing and never written (no source,
+        no write time), and stale if derived."""
+        if add_missing and read_only:
+            raise ValueError("a read-only store can't add variables")
         path = layout.path(data_dir, year)
         if not path.exists():
             raise FileNotFoundError(path)
-        store = cls(zarr.open_group(path, mode="r+"), path)
+        store = cls(zarr.open_group(path, mode="r" if read_only else "r+"), path, read_only=read_only)
         wanted = {v.name: v for v in variables}
-        # Each wanted array's own metadata file: listing the group reads every array's (~2 ms each)
+        # Each wanted array's own metadata file: listing the group reads every array's (~2 ms each). A reader checks
+        # the `_meta` arrays too, which `_add_array` makes after the values (a writer may be adding the variable now)
         missing = {name for name in wanted if not (path / name / "zarr.json").exists()}
-        if missing and not add_missing:
+        if read_only:
+            missing |= {name for name in wanted if not _has_meta(path, name)}
+        if missing and not add_missing and not read_only:
             raise KeyError(f"{path} has no {', '.join(sorted(missing))}")
         for name in sorted(missing):
-            store._add_array(wanted[name], version=0)  # nothing computed yet for the days already stored
+            if read_only:
+                store._mark_absent(wanted[name])
+            else:
+                store._add_array(wanted[name], version=0)  # nothing computed yet for the days already stored
         for name, v in wanted.items():
+            if name in store.absent:
+                continue
             stored: Any = store._array(name).attrs.get("version", 1)
             if v.derived and int(stored) != v.version:
                 store.stale.add(name)
@@ -187,6 +217,38 @@ class GridStore:
                 )
         store.variables = wanted
         return store
+
+    def _mark_absent(self, v: Variable) -> None:
+        """Reads `v`, which a read-only store lacks, as `_add_array` would have added it (version 0: stale if
+        derived)."""
+        self.absent.add(v.name)
+        self._absent_paths |= {
+            v.name: "values",
+            f"_meta/{v.name}.source": "source",
+            f"_meta/{v.name}.written": "written",
+        }
+        if v.derived and v.version != 0:
+            self.stale.add(v.name)
+
+    def _empty(self, path: str, kind: Literal["values", "source", "written"]) -> zarr.Array:
+        """An absent variable's array, in memory and never written: reads give its fill value (missing, no source,
+        no write time) through the same code as a stored array's."""
+        if path not in self._empties:
+            n = self.length
+            if kind == "values":
+                chunks: Any = self.group.attrs.get("chunks") or _clamp(DEFAULT_CHUNKS[self.step], n, self.window)
+                shape, dtype, fill = (n, *self.window.shape), "int16", int(FILL)
+            else:
+                chunks, shape = (n,), (n,)
+                dtype, fill = ("uint8", 0) if kind == "source" else ("float64", np.nan)
+            self._empties[path] = zarr.create_array(
+                store=MemoryStore(), shape=shape, chunks=tuple(chunks), dtype=dtype, fill_value=fill
+            )
+        return self._empties[path]
+
+    def _writable(self) -> None:
+        if self.read_only:
+            raise PermissionError(f"{self.path} is open read-only")
 
     @classmethod
     def stale_variables(cls, data_dir: Path, layout: StoreLayout, year: int, variables: Iterable[Variable]) -> set[str]:
@@ -283,6 +345,7 @@ class GridStore:
         With `record` False only the values are written, not when or from what (a block written in a worker
         process, `agdata.blocks`): the caller calls `record` for them.
         """
+        self._writable()
         t0 = self.index_of(start)
         now = datetime.now(UTC).timestamp()
         rows, cols = self._local_slices(window)
@@ -309,6 +372,7 @@ class GridStore:
     def write_packed(self, start: datetime | date, name: str, packed: np.ndarray, window: Window | None = None) -> None:
         """Writes steps from `start` as stored (int16, `read_packed`'s from a store of the same variable and window,
         already kept missing outside the coverage), and records them: a copy without decoding and encoding again."""
+        self._writable()
         t0 = self.index_of(start)
         rows, cols = self._local_slices(window)
         self._array(name)[t0 : t0 + packed.shape[0], rows, cols] = packed
@@ -319,6 +383,7 @@ class GridStore:
     ) -> None:
         """Stamps `steps` steps from `start` of each variable as written now (and from `source`, unless None), as
         `write` does for what it writes."""
+        self._writable()
         t0 = self.index_of(start)
         now = datetime.now(UTC).timestamp() if now is None else now
         for name in names:
@@ -328,6 +393,7 @@ class GridStore:
 
     def set_sources(self, name: str, start: datetime | date, sources: list[str | None]) -> None:
         """Records which source filled each step from `start` (None: nothing)."""
+        self._writable()
         t0 = self.index_of(start)
         codes = np.array([SOURCES[s] if s else 0 for s in sources], dtype=np.uint8)
         self._array(f"_meta/{name}.source")[t0 : t0 + len(codes)] = codes
@@ -386,6 +452,7 @@ class GridStore:
 
     def mark_current(self, names: Iterable[str]) -> None:
         """Records that these variables were recomputed throughout by their catalog version's code."""
+        self._writable()
         for name in names:
             self._array(name).attrs["version"] = self._variable(name).version
             self.stale.discard(name)
@@ -408,13 +475,17 @@ class GridStore:
         return [lookup[code] for code in codes.tolist()]
 
     def _array(self, path: str) -> zarr.Array:
-        """An array of the store, kept per process (`_ARRAYS`) while its `zarr.json` is unchanged."""
+        """An array of the store, kept per process (`_ARRAYS`) while its `zarr.json` is unchanged; an absent
+        variable's (`open`'s `read_only`) is empty, in memory."""
+        absent = self._absent_paths.get(path)
+        if absent is not None:
+            return self._empty(path, absent)
         meta = self.path / path / "zarr.json"
         try:
             stat = meta.stat()
         except OSError:
             stat = None
-        key = str(meta)
+        key = f"{meta} (read-only)" if self.read_only else str(meta)  # a read-only group's arrays refuse writes
         if stat is not None:
             kept = _ARRAYS.get(key)
             if kept is not None and kept[0] == (stat.st_mtime_ns, stat.st_size):
@@ -442,6 +513,10 @@ class GridStore:
 # afresh; its values are read from disk on every read, so new data shows at once.
 _ARRAYS: dict[str, tuple[tuple[int, int], zarr.Array]] = {}
 _ARRAYS_KEEP = 8192
+
+
+def _has_meta(path: Path, name: str) -> bool:
+    return all((path / "_meta" / f"{name}.{kind}" / "zarr.json").exists() for kind in ("source", "written"))
 
 
 def _clamp(chunks: tuple[int, int, int], steps: int, window: Window) -> tuple[int, int, int]:

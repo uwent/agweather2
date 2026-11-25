@@ -787,7 +787,11 @@ def _grid(data_dir, layout, name, day, window, now):
 class Stores:
     """Stores opened once per call, each for only the variables the call reads (an open checks every variable it's
     given: ~90 ms for a daily store's 45, ~40 ms for one). A caller reading many points (an API request) passes one
-    to each `point_days` so they share the opens, and the archive's last observed hour, read once."""
+    to each `point_days` so they share the opens, and the archive's last observed hour, read once.
+
+    Stores open read-only (`GridStore.open`'s `read_only`): a request never adds an array, so it needs no write lock,
+    and a variable a store lacks (the catalog gained it before `rebuild --stale` ran) reads as missing and never
+    written, stale if derived, as an array the rebuild adds empty does."""
 
     def __init__(self, names):
         self.names = set(names)
@@ -798,9 +802,9 @@ class Stores:
         key = (str(path), layout.kind, year)
         if key not in self.opened:
             catalog = _catalog(layout.kind)
-            wanted = [catalog[n] for n in self.names if n in catalog] or [next(iter(catalog.values()))]
+            wanted = [catalog[n] for n in self.names if n in catalog]
             try:
-                self.opened[key] = GridStore.open(path, layout, year, wanted, add_missing=True)
+                self.opened[key] = GridStore.open(path, layout, year, wanted, read_only=True)
             except FileNotFoundError:
                 self.opened[key] = None
         return self.opened[key]

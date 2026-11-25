@@ -250,7 +250,8 @@ def missing_reached(store: GridStore) -> list[str]:
 def last_stored(data_dir: Path, year: int, root: Path | None = None) -> date | None:
     """The last day any tier's stage is written for in `year` (the archive's, or a run's under `root`)."""
     try:
-        store = GridStore.open(root or data_dir, INGREDIENTS, year, modelmaps.variables(), add_missing=True)
+        # read-only: the crop stages job calls this before it takes the write lock
+        store = GridStore.open(root or data_dir, INGREDIENTS, year, modelmaps.tier_variables(), read_only=True)
     except FileNotFoundError:
         return None
     days = [

@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from agdata import forecast, series
-from agdata.catalog import DAILY_VARIABLES, VARIABLES
+from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
 from agdata.cumulative import update_days
 from agdata.daily import days_from_hours
 from agdata.store import CUMULATIVE, DAILY, HOURLY, GridStore
@@ -389,6 +389,54 @@ def test_a_stale_daily_variable_is_flagged(world, fx_module, monkeypatch):
         world, DAILY, "air_temperature_max", date(2025, 7, 8), date(2025, 7, 9), fx_module.window, now=NOW
     )
     assert found.stale.all()
+
+
+def test_a_variable_the_stores_lack_reads_as_one_added_empty_and_the_stores_are_left_alone(world, fx_module, tmp_path):
+    """A request reads stores read-only (`Stores`): a variable the catalog gained before `rebuild --stale` added it
+    to the stores (here taken out of the archive's and the run's) reads as the empty, stale array the rebuild adds
+    would, and no array is made in an archive store or a forecast run's."""
+    import shutil
+
+    copy = tmp_path / "archive"
+    shutil.copytree(world, copy, symlinks=True)
+    lacking = {"hourly": "air_temperature", "daily": "air_temperature_max", "cumulative": "dd_sine_50"}
+    stores = [p for kind in lacking for p in copy.rglob(f"{kind}/2025.zarr")]
+    assert len(stores) >= 6  # the archive's and the run's
+    for path in stores:
+        name = lacking[path.parent.name]
+        shutil.rmtree(path / name)
+        for kind in ("source", "written"):
+            shutil.rmtree(path / "_meta" / f"{name}.{kind}")
+    tree = sorted(str(p) for p in copy.rglob("*"))
+    window, first, last = fx_module.window, date(2025, 7, 8), date(2025, 7, 12)
+
+    def reads():
+        return (
+            series.grid_days(copy, DAILY, "air_temperature_max", first, last, window, now=NOW),
+            series.grid_days(copy, CUMULATIVE, "dd_sine_50", first, last, window, now=NOW),
+            series.point_days(copy, *CELL, first, last, ["air_temperature_max"], totals=["dd_sine_50"], now=NOW),
+            series.point_hours(copy, *CELL, CYCLE - 3 * HOUR, CYCLE + 3 * HOUR, ["air_temperature"], now=NOW),
+        )
+
+    days, totals, point, hours = reads()
+    assert sorted(str(p) for p in copy.rglob("*")) == tree  # nothing added
+    assert np.isnan(totals.values).all() and np.isnan(point.totals["dd_sine_50"]).all()
+    assert np.isnan(hours.values["air_temperature"]).all()
+    assert days.stale.all()  # derived: computed from the hours, as a stale variable is
+
+    # The same reads once the stores have the arrays, added empty as `rebuild --stale` first adds them
+    for path in stores:
+        layout = {"hourly": HOURLY, "daily": DAILY, "cumulative": CUMULATIVE}[path.parent.name]
+        catalog = {"hourly": VARIABLES, "daily": DAILY_VARIABLES, "cumulative": CUMULATIVE_VARIABLES}[path.parent.name]
+        variable = catalog[lacking[path.parent.name]]
+        GridStore.open(path.parent.parent, layout, 2025, [variable], add_missing=True)
+    again = reads()
+    np.testing.assert_array_equal(again[0].values, days.values)
+    np.testing.assert_array_equal(again[0].stale, days.stale)
+    np.testing.assert_array_equal(again[1].values, totals.values)
+    np.testing.assert_array_equal(again[2].totals["dd_sine_50"], point.totals["dd_sine_50"])
+    np.testing.assert_array_equal(again[2].values["air_temperature_max"], point.values["air_temperature_max"])
+    np.testing.assert_array_equal(again[3].values["air_temperature"], hours.values["air_temperature"])
 
 
 def test_days_from_hours_are_the_rollups_days(world, fx_module):

@@ -446,7 +446,8 @@ def status(data_dir: Path, year: int) -> str | None:
 def _rolled_days(data_dir: Path, year: int) -> np.ndarray | None:
     """The day indexes of a year rolled up in its daily store, or None (no store, nothing rolled up)."""
     try:
-        daily = GridStore.open(data_dir, DAILY, year, DAILY_VARIABLES.values(), add_missing=True)
+        # read-only: the dashboard and the crop stages job call this outside the write lock
+        daily = GridStore.open(data_dir, DAILY, year, [DAILY_VARIABLES["air_temperature_min"]], read_only=True)
     except FileNotFoundError:
         return None
     rolled = np.flatnonzero(daily.read_meta("air_temperature_min.source") > 0)
@@ -611,7 +612,10 @@ def _previous(data_dir: Path, root: Path, name: str, day: date, band: Window, is
     """A stored value on `day` (a run's own, else the archive's); NaN where none."""
     for path in (root, data_dir) if is_run else (root,):
         try:
-            store = GridStore.open(path, INGREDIENTS, day.year, variables(), add_missing=True)
+            # read-only: it runs in the block pool's workers, and on a run reads the archive's store
+            store = GridStore.open(
+                path, INGREDIENTS, day.year, [v for v in variables() if v.name == name], read_only=True
+            )
         except FileNotFoundError:
             continue
         t = store.index_of(day)

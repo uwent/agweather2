@@ -172,6 +172,64 @@ def test_a_variable_a_store_lacks_is_an_error_unless_added_empty_and_stale(tmp_p
     assert np.isnan(added.read_point("relative_humidity", 900, 1400, 0, 3)).all()
 
 
+def _tree(path):
+    return sorted(str(p.relative_to(path)) for p in path.rglob("*"))
+
+
+def test_a_read_only_store_reads_a_variable_it_lacks_as_missing_and_adds_nothing(tmp_path, hourly):
+    """A request's open (`read_only`): a variable the store lacks reads as `add_missing` would have added it (all
+    missing, no source, never written, stale if derived), and nothing is written to the store."""
+    derived = variable("relative_humidity")
+    hourly.write(datetime(2025, 3, 1, tzinfo=UTC), {"air_temperature": np.full((2, *WINDOW.shape), 7.0)}, source="urma")
+    before = _tree(hourly.path)
+    reader = GridStore.open(tmp_path, HOURLY, 2025, [TEMP, derived], read_only=True)
+    assert reader.absent == {"relative_humidity"} and reader.stale == {"relative_humidity"}
+    t = reader.index_of(datetime(2025, 3, 1, tzinfo=UTC))
+    assert reader.read_point("air_temperature", 900, 1400, t, t + 2).tolist() == [7.0, 7.0]
+    assert np.isnan(reader.read_point("relative_humidity", 900, 1400, t, t + 2)).all()
+    assert np.isnan(reader.read_cells("relative_humidity", [(900, 1400), (901, 1401)], t, t + 2)).all()
+    assert np.isnan(reader.read_steps("relative_humidity", t, t + 2)).all()
+    assert reader.written("relative_humidity") is None
+    assert reader.sources("relative_humidity", t, t + 2) == [None, None]
+    assert not reader.has_data("relative_humidity").any()
+    assert reader.written("air_temperature") is not None
+    assert _tree(hourly.path) == before
+    # The same reads through a store that added it empty
+    added = GridStore.open(tmp_path, HOURLY, 2025, [TEMP, derived], add_missing=True)
+    assert added.stale == reader.stale
+    assert added.written("relative_humidity") is None and not added.has_data("relative_humidity").any()
+
+
+def test_a_read_only_store_refuses_writes(tmp_path, hourly):
+    reader = GridStore.open(tmp_path, HOURLY, 2025, [TEMP], read_only=True)
+    start = datetime(2025, 3, 1, tzinfo=UTC)
+    with pytest.raises(PermissionError, match="read-only"):
+        reader.write(start, {"air_temperature": np.zeros((1, *WINDOW.shape))}, source="urma")
+    with pytest.raises(PermissionError, match="read-only"):
+        reader.record(["air_temperature"], start, 1, "urma")
+    with pytest.raises(PermissionError, match="read-only"):
+        reader.mark_current(["air_temperature"])
+    with pytest.raises(ValueError, match="can't add"):
+        GridStore.open(tmp_path, HOURLY, 2025, [TEMP], add_missing=True, read_only=True)
+    # An array a read-only store opened isn't handed to a writer (`_ARRAYS` keeps them apart)
+    GridStore.open(tmp_path, HOURLY, 2025, [TEMP]).write(
+        start, {"air_temperature": np.full((1, *WINDOW.shape), 3.0)}, source="urma"
+    )
+    assert reader.read_point("air_temperature", 900, 1400, 1416, 1417)[0] == 3.0
+
+
+def test_a_read_only_store_reads_a_variable_being_added_as_absent(tmp_path, hourly):
+    """`_add_array` makes the values before the `_meta` arrays: a reader that finds only the values reads the
+    variable as absent rather than failing on its sources."""
+    derived = variable("relative_humidity")
+    GridStore.open(tmp_path, HOURLY, 2025, [TEMP, derived], add_missing=True)
+    import shutil
+
+    shutil.rmtree(hourly.path / "_meta" / "relative_humidity.written")
+    reader = GridStore.open(tmp_path, HOURLY, 2025, [TEMP, derived], read_only=True)
+    assert reader.absent == {"relative_humidity"} and reader.written("relative_humidity") is None
+
+
 def test_a_create_that_crashed_halfway_does_not_block_the_next(tmp_path):
     leftover = tmp_path / "hourly" / "2025.zarr.part"
     leftover.mkdir(parents=True)

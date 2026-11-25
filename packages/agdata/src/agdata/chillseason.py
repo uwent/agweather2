@@ -189,7 +189,7 @@ def _write(
 def _read_day(data_dir: Path, day: date, window: Window) -> dict[str, np.ndarray] | None:
     """The chill variables on `day` over the window, or None if that day isn't written."""
     try:
-        store = GridStore.open(data_dir, CUMULATIVE, day.year, CUMULATIVE_VARIABLES.values(), add_missing=True)
+        store = GridStore.open(data_dir, CUMULATIVE, day.year, [CUMULATIVE_VARIABLES[n] for n in NAMES], read_only=True)
     except FileNotFoundError:
         return None
     k = store.index_of(day)
@@ -203,7 +203,7 @@ def _last_written(data_dir: Path, first: date) -> date:
     found = first
     for year in range(first.year, season_end(first).year + 1):
         try:
-            store = GridStore.open(data_dir, CUMULATIVE, year, CUMULATIVE_VARIABLES.values(), add_missing=True)
+            store = GridStore.open(data_dir, CUMULATIVE, year, [CUMULATIVE_VARIABLES[n] for n in NAMES], read_only=True)
         except FileNotFoundError:
             continue
         days = np.flatnonzero(store.has_data("chill_portions"))

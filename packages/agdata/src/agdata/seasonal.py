@@ -102,8 +102,10 @@ def _written(data_dir: Path, spec: ModelSpec, first: date, last: date) -> bool:
     only where some cell has a value: a year the backfill hasn't reached has its days but no soil)."""
     for year in range(first.year, last.year + 1):
         try:
-            store = GridStore.open(data_dir, DAILY, year, [DAILY_VARIABLES[q.name] for q in spec.inputs])
-        except (FileNotFoundError, KeyError):
+            store = GridStore.open(
+                data_dir, DAILY, year, [DAILY_VARIABLES[q.name] for q in spec.inputs], read_only=True
+            )
+        except FileNotFoundError:
             return False
         a = (max(first, date(year, 1, 1)) - date(year, 1, 1)).days
         b = (min(last, date(year, 12, 31)) - date(year, 1, 1)).days + 1

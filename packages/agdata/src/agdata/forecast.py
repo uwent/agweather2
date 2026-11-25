@@ -89,7 +89,7 @@ def last_observed_hour(data_dir: Path, before: datetime, lookback: timedelta = t
     while t > stop:
         try:
             # only temperature's sources are read: opening for every variable checks each (~90 ms)
-            store = GridStore.open(data_dir, HOURLY, t.year, [VARIABLES["air_temperature"]])
+            store = GridStore.open(data_dir, HOURLY, t.year, [VARIABLES["air_temperature"]], read_only=True)
         except FileNotFoundError:
             t = datetime(t.year, 1, 1, tzinfo=UTC) - HOUR
             continue

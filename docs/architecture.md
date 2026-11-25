@@ -80,6 +80,8 @@ One table in `agdata.catalog`: name, long name, stored unit, dtype and scale/off
 
 Zarr v3, int16 with pcodec (docs/pilot.md); a sharding codec if file counts get large.
 
+Only jobs write the stores, under the write lock (`ops.locks`); a writer opens a store with `add_missing`, which adds a variable the catalog gained since the store was made, empty and stale (D29). Requests, checks and the block pool's readers open stores read-only (`GridStore.open(read_only=True)`, which `agdata.series.Stores` and the hourly reader behind `days_from_hours` use): nothing is added or written, and a variable the store lacks reads as the empty, stale array a writer would have added (all missing, no source, never written), so a deploy that adds a variable serves it as missing (or, for a derived daily one, computed from the hours) until `rebuild --stale` has run.
+
 Two static stores, built once from outside sources over the coverage's extent and rebuilt only when the source or the box changes, sit beside the archive (not under the write lock; each built beside its path and renamed into place):
 
 <!-- prettier-ignore -->

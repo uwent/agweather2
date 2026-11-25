@@ -359,7 +359,9 @@ def daily_statistic(hours: np.ndarray, s: DailyStatistic) -> np.ndarray:
 
 
 class _HourlyReader:
-    """Reads hours across the yearly hourly stores; hours in a missing store are NaN."""
+    """Reads hours across the yearly hourly stores, opened read-only (it runs in requests, `days_from_hours`, and in
+    block workers, where adding an array would race): hours in a missing store, or of a variable a store lacks, are
+    NaN."""
 
     def __init__(self, data_dir: Path):
         self.data_dir = data_dir
@@ -388,7 +390,7 @@ class _HourlyReader:
     def store(self, year: int) -> GridStore | None:
         if year not in self.stores:
             try:
-                self.stores[year] = GridStore.open(self.data_dir, HOURLY, year, VARIABLES.values(), add_missing=True)
+                self.stores[year] = GridStore.open(self.data_dir, HOURLY, year, VARIABLES.values(), read_only=True)
             except FileNotFoundError:
                 self.stores[year] = None
         return self.stores[year]
