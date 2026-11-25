@@ -17,6 +17,8 @@ export const routes = {
   downloads: (params: { path: string }): string => `/downloads/${part(params.path)}`,
   /** home: / */
   home: (): string => '/',
+  /** sites: /sites */
+  sites: (): string => '/sites',
   /** up: /up */
   up: (): string => '/up',
 }

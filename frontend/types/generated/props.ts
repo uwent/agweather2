@@ -26,8 +26,90 @@ export interface ChangelogEntryProps {
 export interface ChangelogProps {
   entries: ChangelogEntryProps[]
 }
+export interface CropEntry {
+  id: string
+  name: string
+  category: string
+}
+export interface CropModels {
+  crop: string
+  name: string
+  models: ModelLink[]
+}
+export interface ModelLink {
+  id: string
+  name: string
+  group: string
+  url: string
+}
+/**
+ * How current the data are (`web.status`): every page's "data through" line and the stale-data banner.
+ */
+export interface DataStatus {
+  /**
+   * The newest observed hour in the archive (its UTC end), or None before the first.
+   */
+  observed_through: string | null
+  /**
+   * The last whole day rolled up (grid days, D74).
+   */
+  daily_through: string | null
+  /**
+   * The forecast run in use (its cycle, UTC).
+   */
+  forecast_cycle: string | null
+  /**
+   * The forecast's last hour (UTC end).
+   */
+  forecast_through: string | null
+  /**
+   * Where points in the box take their forecast from while ours is out of date (D114), or None.
+   */
+  forecast_fallback: 'openmeteo' | null
+  /**
+   * What's late: 'observed' when the newest hour is more than 6 hours old, 'forecast' when the run is too old to use.
+   */
+  behind: ('observed' | 'forecast')[]
+  /**
+   * Sources of observed hours later than they normally run.
+   */
+  stale_sources: string[]
+}
+export interface HeadlineMap {
+  layer: string
+  title: string
+  alt: string
+  /**
+   * The API's static map (`/api/v2/maps/{layer}.png`).
+   */
+  image_url: string
+  /**
+   * The map explorer on this layer.
+   */
+  map_url: string
+}
 export interface HomeProps {
   api_docs_url: string
+  maps: HeadlineMap[]
+  in_season: CropModels[]
+}
+/**
+ * A model as the site pages list it (`web.catalog`).
+ */
+export interface ModelEntry {
+  id: string
+  name: string
+  group: 'disease' | 'insect' | 'crop' | 'agronomic' | 'degree_days'
+  crops: string[]
+  status: 'beta' | 'stable' | 'retired'
+  /**
+   * Its risk levels, lowest first; empty for a model without risk.
+   */
+  risk_levels: string[]
+  /**
+   * MM-DD first and last day it's shown, or None.
+   */
+  season: [unknown, unknown] | null
 }
 export interface SharedProps {
   app: AppInfo
@@ -35,4 +117,12 @@ export interface SharedProps {
    * The grid's current day: midnight to midnight Central Standard Time all year (D74).
    */
   today: string
+  /**
+   * None until the archive's status has first been read.
+   */
+  status: DataStatus | null
+}
+export interface SitesIndexProps {
+  models: ModelEntry[]
+  crops: CropEntry[]
 }

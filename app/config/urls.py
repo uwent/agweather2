@@ -14,6 +14,7 @@ from web import views as web
 urlpatterns = [
     path("", web.home, name="home"),
     path("up", ops.up, name="up"),
+    path("sites", web.sites, name="sites"),
     path("changelog", updates.changelog, name="changelog"),
     path("changelog.atom", ChangelogFeed(), name="changelog-feed"),
     path("api-use", updates.api_use, name="api-use"),

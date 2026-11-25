@@ -7,6 +7,7 @@
   import FlashMessages from '@/lib/components/FlashMessages.svelte'
   import Logo from '@/lib/components/Logo.svelte'
   import SettingsDialog from '@/lib/components/SettingsDialog.svelte'
+  import StaleBanner from '@/lib/components/StaleBanner.svelte'
 
   let { children }: { children: Snippet } = $props()
 
@@ -138,6 +139,8 @@
       </div>
     </div>
   </header>
+
+  <StaleBanner />
 
   <SettingsDialog bind:open={settingsOpen} />
 
