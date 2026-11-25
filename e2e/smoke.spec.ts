@@ -153,3 +153,18 @@ test('health check', async ({ request }) => {
   const response = await request.get('/up')
   expect(await response.json()).toMatchObject({ status: 'ok', database: 'ok' })
 })
+
+test('the model catalog filters by crop and opens a model page', async ({ page }) => {
+  await page.goto('/models')
+  await expect(page.getByRole('heading', { level: 1, name: 'Crop disease and insect models' })).toBeVisible()
+  await page.getByLabel('Crop', { exact: true }).selectOption('corn')
+  await expect(page.getByRole('heading', { level: 2, name: 'Apple' })).toHaveCount(0)
+  await page.getByRole('link', { name: 'Tar spot risk' }).first().click()
+  await expect(page).toHaveURL(/\/models\/tar-spot$/)
+  await expect(page.getByRole('heading', { level: 2, name: 'How to read it' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'See the map' })).toHaveAttribute('href', '/map?layer=tar-spot')
+})
+
+test('a retired or unknown model has no page', async ({ request }) => {
+  expect((await request.get('/models/no-such-model')).status()).toBe(404)
+})

@@ -100,6 +100,19 @@ test('site pages in the other theme', async ({ page }) => {
   for (const path of SITE_PAGES) await scan(page, path, { reflow: false })
 })
 
+// The model catalog and two model pages: a disease with risk levels, and a fitted insect with its training area
+const MODEL_PAGES = ['/models', '/models/tar-spot', '/models/colorado-potato-beetle']
+
+test('model pages', async ({ page }) => {
+  for (const path of MODEL_PAGES) await scan(page, path)
+})
+
+test('model pages in the other theme', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
+  for (const path of MODEL_PAGES) await scan(page, path, { reflow: false })
+})
+
 test('the settings dialog', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Settings' }).click()

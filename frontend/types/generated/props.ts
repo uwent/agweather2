@@ -13,6 +13,20 @@ export interface AppInfo {
   version: string
   service_box: string
 }
+/**
+ * A model as the catalog (`/models`) lists it.
+ */
+export interface CatalogModel {
+  id: string
+  name: string
+  group: 'disease' | 'insect' | 'crop' | 'agronomic' | 'degree_days'
+  summary: string
+  status: 'beta' | 'stable' | 'retired'
+  /**
+   * Crop ids (`agmodels.croplist`); empty for a model of no one crop.
+   */
+  crops: string[]
+}
 export interface ChangelogEntryProps {
   id: number
   date: string
@@ -97,6 +111,48 @@ export interface HomeProps {
  * The map explorer's props: none yet. Its layers, palettes, models and crops come from the API (D117).
  */
 export interface MapExplorerProps {}
+export interface ModelBiofix {
+  /**
+   * MM-DD.
+   */
+  default: string
+  label: string
+  /**
+   * Always the default: the model takes no date of yours.
+   */
+  fixed: boolean
+  /**
+   * The crop model whose predicted stage is the default instead.
+   */
+  stage_model: NamedId | null
+  stage: string | null
+}
+export interface NamedId {
+  id: string
+  name: string
+}
+export interface ModelChange {
+  version: string
+  date: string
+  note: string
+}
+export interface ModelCheck {
+  kind: 'published' | 'system' | 'observations'
+  against: string
+  result: string
+  /**
+   * The validation report's section on GitHub.
+   */
+  report_url: string
+}
+export interface ModelCitation {
+  text: string
+  doi: string | null
+  /**
+   * The DOI's link where there's a DOI, else a copy or a source without one.
+   */
+  url: string | null
+}
 /**
  * A model as the site pages list it (`web.catalog`).
  */
@@ -114,6 +170,165 @@ export interface ModelEntry {
    * MM-DD first and last day it's shown, or None.
    */
   season: [unknown, unknown] | null
+}
+export interface ModelInput {
+  name: string
+  label: string
+  unit: string
+  /**
+   * How the model takes it (a moving average, a window of hours).
+   */
+  description: string
+  /**
+   * The variable's description in the catalog (`/variables`' long_name).
+   */
+  definition: string
+}
+export interface ModelOutput {
+  label: string
+  /**
+   * The stored unit's symbol (`agdata.units`).
+   */
+  unit: string
+  description: string
+}
+/**
+ * A model's page (`/models/{id}`): its spec and its Markdown page as content (D117).
+ */
+export interface ModelPageProps {
+  id: string
+  name: string
+  group: 'disease' | 'insect' | 'crop' | 'agronomic' | 'degree_days'
+  group_name: string
+  model_status: 'beta' | 'stable' | 'retired'
+  version: string
+  summary: string
+  crops: NamedId[]
+  sections: ModelSection[]
+  /**
+   * The page's text is a draft (its front matter's status).
+   */
+  draft: boolean
+  /**
+   * When the page's text last changed (YYYY-MM-DD).
+   */
+  updated: string | null
+  /**
+   * The front matter's acknowledgments, rendered; None without.
+   */
+  acknowledgments: string | null
+  /**
+   * The page's keyed sources, numbered as the text cites them.
+   */
+  sources: ModelSource[]
+  risk: ModelRisk | null
+  /**
+   * The first is the one the map and risk colors show.
+   */
+  outputs: ModelOutput[]
+  inputs: ModelInput[]
+  /**
+   * States where it's valid (postal code, name); empty: anywhere.
+   */
+  region: NamedId[]
+  /**
+   * [first, last] day it's shown, MM-DD; None: all year.
+   */
+  season: string[] | null
+  /**
+   * A once-a-season map's first day, MM-DD; None: a daily model.
+   */
+  seasonal_appears: string | null
+  biofix: ModelBiofix | null
+  susceptible: ModelSusceptibility | null
+  trained: ModelTrainingArea | null
+  /**
+   * Newest first.
+   */
+  changelog: ModelChange[]
+  citations: ModelCitation[]
+  checks: ModelCheck[]
+  /**
+   * The model's validation report on GitHub (D98).
+   */
+  report_url: string
+  /**
+   * Its layer on the map explorer (`/map?layer=`); None if it has none.
+   */
+  map_layer: string | null
+}
+/**
+ * A `##` section of the model's Markdown page, rendered with raw HTML off (safe for `{@html}`).
+ */
+export interface ModelSection {
+  id: string
+  /**
+   * The heading; empty for text before the first heading.
+   */
+  title: string
+  html: string
+}
+/**
+ * A keyed source of the model's page, which the text cites by number (`[^key]`).
+ */
+export interface ModelSource {
+  key: string
+  number: number
+  text: string
+  url: string | null
+}
+export interface ModelRisk {
+  /**
+   * The risk levels' words, lowest first.
+   */
+  levels: string[]
+  /**
+   * How the outputs become each level, in words.
+   */
+  criteria: string
+}
+export interface ModelSusceptibility {
+  crop_model: NamedId
+  first: string
+  last: string
+  source: string
+  note: string
+}
+/**
+ * Where the model's data came from (D101).
+ */
+export interface ModelTrainingArea {
+  /**
+   * Completes 'fitted to …'.
+   */
+  description: string
+  years: number[]
+  /**
+   * State names.
+   */
+  states: string[]
+  /**
+   * 'Adams County, WI'.
+   */
+  counties: string[]
+  /**
+   * The model also has a calendar curve (the `clock` option).
+   */
+  calendar_curve: boolean
+}
+export interface ModelsIndexProps {
+  /**
+   * Every model but retired ones and the degree-day calculator, by name.
+   */
+  models: CatalogModel[]
+  /**
+   * The crops some model names, by category as `agmodels.croplist` orders them.
+   */
+  crops: NamedId[]
+  /**
+   * The groups in the order a crop lists them, with their public names.
+   */
+  groups: NamedId[]
 }
 export interface SharedProps {
   app: AppInfo
