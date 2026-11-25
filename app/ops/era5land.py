@@ -1,8 +1,8 @@
-"""ERA5-Land into the archive (D52, Phase 4 I): soil temperature and snow depth over the HRRR stand-in hours.
+"""ERA5-Land into the archive (D52, Phase 4 I): soil temperature, soil moisture and snow depth over the HRRR stand-in hours.
 
 ERA5-Land reaches about 5 days behind real time. The daily job asks the CDS for the days of the last month that
 don't have it yet, up to `LAG_DAYS` ago, then writes them as received (`agdata.era5store`), derives the hourly
-store's soil and snow from them (`era5land.derive`, D79) and rolls up their local days. Requests queue at the CDS
+store's soil and snow from them (`era5land.derive`, D79) and rolls up their grid days. Requests queue at the CDS
 for minutes, so downloads run outside the write lock; only writing and rolling up take it. The backfill
 (`manage.py era5land`) uses the same pieces, several months in flight at once; `rederive` derives the hourly store
 again from what's kept, without a download.

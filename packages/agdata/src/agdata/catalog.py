@@ -299,7 +299,7 @@ VARIABLES: dict[str, Variable] = {
 }
 
 
-# Daily statistics (docs/architecture.md §5.2): each hourly variable's `daily` stats over each cell's local calendar day.
+# Daily statistics (docs/architecture.md §5.2): each hourly variable's `daily` stats over each grid day (midnight to midnight CST in every cell, D74).
 # Min, max and mean keep the hourly unit and precision; sums have their own (shortwave's in MJ/m²).
 DAILY_MIN_HOURS = features.MIN_HOURS  # min, max and mean need this many hours of the day; sums need every hour (D25)
 _SUMS: dict[str, tuple[str, float, float, float, float]] = {

@@ -7,9 +7,9 @@ weighted `equal` or `center` (a Gaussian with σ = radius / 2, cut off at the ra
 window. A read of an area (`agdata.series`) reads each of its cells and averages them step by step before anything
 is computed from them, so days, degree days, frost and models come from the area's weather.
 
-The average skips cells without a value at a step and is missing only where none has one. Nothing is masked by
+The average skips cells without a value at a step and is missing only where none has one. By default nothing is masked by
 hand: air and wind keep the cells over water (a lake's air moves inland, as Door County's cherries show), and soil
-and snow are already missing over the Great Lakes (`agdata.coast`, D79), so their averages are over land alone.
+and snow are already missing over the Great Lakes (`agdata.coast`, D79), so their averages are over land alone. On request (`land_only`, Phase 6 D6) cells all open water by the terrain store are left out.
 Wind direction is averaged as unit vectors.
 """
 

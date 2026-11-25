@@ -1,7 +1,7 @@
 """Every correction v2 applies to a source's weather, in one place: what it corrects, how, against what, where its
 table lives and where the raw value is kept. `docs/corrections.md` is generated from it
-(`uv run python -m agdata.corrections > docs/corrections.md`; a test checks it's current), and the methods pages
-and the API will read it too (Phase 6), so the record follows the code.
+(`uv run python -m agdata.corrections > docs/corrections.md`; a test checks it's current), and `/methods`
+serves it (D92), so the record follows the code.
 
 A correction's version and fitted date come from its table, so refitting one updates the record. `title`, `summary`
 and `scores` are public text, served by `/methods` (CLAUDE.md's "Writing for the public"); the other text fields are
