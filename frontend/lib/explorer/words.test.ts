@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { dataThrough, formatHour, timeWords } from './words'
+import { availableWords, dataThrough, formatHour, observedLabel, timeWords } from './words'
 
 describe('time in words', () => {
   it('gives hours in Central Standard Time all year', () => {
@@ -17,6 +17,22 @@ describe('time in words', () => {
       'Observed through Nov 24, 2026',
     )
     expect(dataThrough({ range: { first: null, last: null, forecast_through: null }, time_axis: 'none' })).toBeNull()
+  })
+
+  it('says what the date control can reach, and where the forecast begins', () => {
+    const range = { first: '2016-01-01', last: '2026-11-24', forecast_through: '2026-12-06' }
+    expect(availableWords({ range, time_axis: 'day' })).toBe(
+      'You can map any day from Jan 1, 2016 to Dec 6, 2026. Days through Nov 24, 2026 are observed; later days are a forecast.',
+    )
+    expect(availableWords({ range: { ...range, forecast_through: null }, time_axis: 'day' })).toBe(
+      'You can map any day from Jan 1, 2016 to Nov 24, 2026. All of them are observed.',
+    )
+    expect(observedLabel({ range, time_axis: 'day' })).toBe('Observed through Nov 24')
+    const hours = { first: '2016-01-01T06:00Z', last: '2026-11-25T20:00Z', forecast_through: '2026-12-06T19:00Z' }
+    expect(observedLabel({ range: hours, time_axis: 'hour' })).toBe('Observed through Nov 25, 2 p.m. CST')
+    expect(availableWords({ range: hours, time_axis: 'hour' })).toBe(
+      'You can map any hour from midnight CST, Jan 1, 2016 to 1 p.m. CST, Dec 6, 2026. Hours through 2 p.m. CST, Nov 25, 2026 are observed; later hours are a forecast.',
+    )
   })
 
   it('names a map’s day or range', () => {

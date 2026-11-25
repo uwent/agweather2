@@ -9,6 +9,7 @@ import {
   type ExplorerView,
   firstView,
   isForecast,
+  timeIsForecast,
   spansFor,
   stepDay,
   stepHour,
@@ -142,6 +143,9 @@ describe('time', () => {
     const last = daily.range.last!
     expect(isForecast(last, daily)).toBe(false)
     expect(isForecast(stepDay(last, 1, daily), daily)).toBe(true)
+    expect(timeIsForecast('latest', daily)).toBe(false)
+    expect(timeIsForecast(`2026-11-01..${stepDay(last, 2, daily)}`, daily)).toBe(true)
+    expect(timeIsForecast(`2026-11-01..${last}`, daily)).toBe(false)
   })
 
   it('places a biofix on or before the end', () => {
