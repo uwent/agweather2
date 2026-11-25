@@ -21,6 +21,10 @@ const catalog = [
   model('tar-spot', ['corn'], 4),
   model('apple-scab', ['apple'], 2),
   model('corn-stages', ['corn'], 0),
+  model('x', ['other']),
+  model('y', ['other']),
+  model('hidden', ['other']),
+  model('none', ['other']),
 ]
 
 const table = (data: Record<string, unknown[]>) => ({ meta: {}, data }) as unknown as TableResponse
@@ -52,6 +56,11 @@ describe('topRisks', () => {
       ['X', 'Low', 5],
     ])
     expect([found.more, found.none]).toEqual([2, 1])
+  })
+
+  it('drops models the catalog doesn’t list (retired ones)', () => {
+    const body = table({ model: ['retired'], name: ['Retired'], risk_level: [4], risk_label: ['Very high'] })
+    expect(topRisks(body, catalog)).toEqual({ top: [], more: 0, none: 0 })
   })
 })
 

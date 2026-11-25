@@ -50,7 +50,7 @@
     <FindPlace
       id="home-search"
       label="See the weather and crop risk for a place"
-      placeholder="A town, address or coordinates, such as Hancock, WI"
+      placeholder="A town, address or coordinates"
       onpick={go}
     />
     {#if through}<p class="text-sm text-ink-muted">{through}.</p>{/if}

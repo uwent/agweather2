@@ -44,7 +44,7 @@ export type RiskSummary = {
 }
 
 /** The card's risks from a `/risk` answer: the `top` highest by where they sit on their scale (ties by name), the rest
- * counted. Hidden models are dropped. */
+ * counted. Hidden models, and models not in the catalog (retired), are dropped. */
 export function topRisks(
   body: TableResponse,
   catalog: readonly ModelEntry[],
@@ -56,14 +56,16 @@ export function topRisks(
   const rows: RiskRow[] = []
   let none = 0
   ids.forEach((id, k) => {
-    if (hidden.includes(id)) return
+    // Hidden by the reader, or not in the catalog (a retired model, which the API still answers for)
+    const entry = catalog.find((m) => m.id === id)
+    if (hidden.includes(id) || !entry) return
     const level = c.risk_level?.[k]
     const label = c.risk_label?.[k]
     if (typeof level !== 'number' || typeof label !== 'string') {
       none++
       return
     }
-    const levels = catalog.find((m) => m.id === id)?.risk_levels.length ?? 5
+    const levels = entry.risk_levels.length
     rows.push({ model: id, name: String(c.name?.[k] ?? id), level, label, levels })
   })
   rows.sort((a, b) => riskRank(b.level, b.levels) - riskRank(a.level, a.levels) || a.name.localeCompare(b.name))

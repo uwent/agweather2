@@ -2,6 +2,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { type Page } from '@playwright/test'
 
+import { SAVED, stubSiteData } from './sites'
 import { expect, test } from './test'
 
 // WCAG 2.1 A and AA checks (axe) on every page, in light (desktop) and dark (phone), and on desktop
@@ -10,7 +11,7 @@ import { expect, test } from './test'
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
 
-const PAGES = ['/', '/changelog', '/api-use']
+const PAGES = ['/', '/sites', '/changelog', '/api-use']
 
 async function scan(page: Page, path: string, { reflow = true }: { reflow?: boolean } = {}) {
   await page.goto(path)
@@ -67,6 +68,20 @@ test('public pages in the other theme', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
   for (const path of PAGES) await scan(page, path, { reflow: false })
+})
+
+test('your sites with saved sites, and the add-site dialog', async ({ page }) => {
+  await stubSiteData(page)
+  await page.goto('/')
+  await page.evaluate((doc) => localStorage.setItem('agweather.sites', JSON.stringify(doc)), SAVED)
+  await scan(page, '/sites')
+  await expect(page.getByText('Late blight').first()).toBeVisible()
+  await scan(page, '/')
+  await page.goto('/sites')
+  await page.getByRole('button', { name: 'Add a site' }).click()
+  await expect(page.getByRole('dialog', { name: 'Add a site' })).toBeVisible()
+  const { violations } = await new AxeBuilder({ page }).withTags(TAGS).analyze()
+  expect(violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([])
 })
 
 test('the settings dialog', async ({ page }) => {

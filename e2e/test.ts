@@ -32,6 +32,10 @@ export const test = base.extend({
       await context.route('**/basemap.nationalmap.gov/**', (route) =>
         route.fulfill({ body: imageryTile, contentType: 'image/png', headers: cors }),
       )
+      // The API's static maps (the home page's headline maps): the tests' archive is empty, so a plain image
+      await context.route('**/api/v2/maps/*.png*', (route) =>
+        route.fulfill({ body: imageryTile, contentType: 'image/png' }),
+      )
       // Place search (lib/geocode.ts): one place, Hancock, Wisconsin
       await context.route('**/nominatim.openstreetmap.org/**', (route) =>
         route.fulfill({

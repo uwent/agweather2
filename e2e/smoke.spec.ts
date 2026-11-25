@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+
+import { stubSiteData } from './sites'
 import { expect, test } from './test'
 
 // Every page loads with no console errors (a CSP violation shows as one) and no failed requests
@@ -80,6 +83,34 @@ test('API use form shows what to correct', async ({ page }) => {
 test('changelog page', async ({ page }) => {
   await page.goto('/changelog')
   await expect(page.getByRole('heading', { level: 1, name: 'Changes and announcements' })).toBeVisible()
+})
+
+test('a site added is kept after a reload, and exported', async ({ page }) => {
+  await stubSiteData(page)
+  await page.goto('/sites')
+  await expect(page.getByRole('heading', { name: 'No sites yet' })).toBeVisible()
+  await page.getByRole('button', { name: 'Add a site' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Add a site' })
+  await dialog.getByLabel('Name').fill('North field')
+  await dialog.getByLabel('Latitude').fill('44.1336')
+  await dialog.getByLabel('Longitude').fill('-89.5168')
+  await dialog.getByRole('button', { name: 'Save site' }).click()
+  await expect(dialog).toBeHidden()
+  const card = page.getByRole('listitem', { name: 'North field' })
+  await expect(card.getByText('Late blight')).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByRole('listitem', { name: 'North field' })).toBeVisible()
+  await page.goto('/')
+  await expect(page.getByRole('link', { name: 'North field' })).toHaveAttribute('href', '/sites/44.1336,-89.5168')
+
+  await page.goto('/sites')
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Export CSV' }).click()
+  const file = await download
+  expect(file.suggestedFilename()).toBe('agweather-sites.csv')
+  const text = readFileSync(await file.path(), 'utf8')
+  expect(text).toBe('﻿name,lat,lng,groups\r\nNorth field,44.1336,-89.5168,\r\n')
 })
 
 test('health check', async ({ request }) => {

@@ -118,7 +118,7 @@
 
 <li
   bind:this={card}
-  class="flex flex-col gap-3 rounded-lg border border-line bg-surface-raised p-4 shadow-sm"
+  class="flex min-w-0 flex-col gap-3 rounded-lg border border-line bg-surface-raised p-4 shadow-sm"
   aria-labelledby="site-{site.key}"
 >
   <div class="flex items-start justify-between gap-2">
