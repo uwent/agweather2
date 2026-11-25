@@ -18,6 +18,9 @@ seasonal product (D68) takes `season=`.
 
 A daily variable that a newer version of its code hasn't rebuilt yet (D29: between a deploy and `rebuild --stale`)
 is computed from the hours for up to MAX_STALE_DAYS days; a longer range is a 503 until the rebuild is done.
+
+A computation that can hold gigabytes (a model computed on request, a long range over a large window) first takes one
+of the process's few heavy slots (`api.heavy`, `is_heavy`), or is answered 503 `busy` if none frees within seconds.
 """
 
 import hashlib
@@ -29,6 +32,7 @@ import threading
 import time
 import zlib
 from collections import OrderedDict
+from contextlib import nullcontext
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, Literal
@@ -53,7 +57,7 @@ from agmodels.registry import model as find_model
 from agmodels.runner import stage_date_option
 from agmodels.seasons import Season
 from agmodels.spec import ModelSpec
-from api import climatemaps, counts, events, modelevents
+from api import climatemaps, counts, events, heavy, modelevents
 from api.envelope import SYSTEMS, Column, shown_unit, unit_overrides
 from api.errors import ApiError, day_text, hour_text, quoted
 from api.maptitles import layer_title
@@ -895,25 +899,31 @@ def compute(a: LayerAsk, window: Window, now: datetime) -> Computed:
     data_dir = _data_dir()
     if a.climate is not None:
         return _climate_compute(a, window, now, started)
-    if a.model is not None:
-        found = _model_compute(
-            a.layer, a.model, a.first, a.last, window, a.stat, data_dir, now, a.stores, a.warnings, a.count_bounds
-        )
-    else:
-        found = _compute(
-            a.layer,
-            a.first,
-            a.last,
-            window,
-            a.stat,
-            a.setting,
-            a.gaps,
-            a.cubes,
-            data_dir,
-            now,
-            a.stores,
-            a.count_bounds,
-        )
+    gate = (
+        heavy.slot(f"{a.layer.id} over {window.shape[0] * window.shape[1]:,} cells")
+        if is_heavy(a, window)
+        else nullcontext()
+    )
+    with gate:
+        if a.model is not None:
+            found = _model_compute(
+                a.layer, a.model, a.first, a.last, window, a.stat, data_dir, now, a.stores, a.warnings, a.count_bounds
+            )
+        else:
+            found = _compute(
+                a.layer,
+                a.first,
+                a.last,
+                window,
+                a.stat,
+                a.setting,
+                a.gaps,
+                a.cubes,
+                data_dir,
+                now,
+                a.stores,
+                a.count_bounds,
+            )
     values, kinds, extra, sources, run, steps, from_cubes = found
     notes: list[str] = []
     if a.roll is not None:
@@ -930,6 +940,17 @@ def compute(a: LayerAsk, window: Window, now: datetime) -> Computed:
         ms=(time.perf_counter() - started) * 1000,
         notes=notes,
     )
+
+
+def is_heavy(a: LayerAsk, window: Window) -> bool:
+    """Whether computing `a` over `window` reads enough to wait for one of the process's heavy slots (`api.heavy`):
+    the days or hours asked for (two days for a degree-day sum read from the running totals; a projection's earlier
+    seasons as `heavy.PROJECTED_STEPS`) over the window's cells. A model computed on request past its stored season
+    takes its slot in `_model_compute`, whatever its range."""
+    steps = 2 if a.cubes else a.steps
+    if a.model is not None and a.model.projected:
+        steps = max(steps, heavy.PROJECTED_STEPS)
+    return heavy.is_heavy(cells=window.shape[0] * window.shape[1], steps=steps)
 
 
 def _climate_compute(a: LayerAsk, window: Window, now: datetime, started: float) -> Computed:
@@ -1259,7 +1280,18 @@ def _model_compute(
 ):
     """A model layer's output over days first..last, as `_compute` returns a layer's."""
     found = modelgrid.model_map(
-        data_dir, layer.id, first, last, window, model.options, tier=model.tier, now=now, stores=stores
+        data_dir,
+        layer.id,
+        first,
+        last,
+        window,
+        model.options,
+        tier=model.tier,
+        now=now,
+        stores=stores,
+        on_request=lambda: heavy.slot(
+            f"{layer.id} computed on request over {window.shape[0] * window.shape[1]:,} cells"
+        ),
     )
     if model.tier is not None and model.crop is not None:
         model.planted = planting_map(model.crop, model.tier, window, season=first.year)
@@ -1589,7 +1621,8 @@ def cached(a: LayerAsk, window: Window, now: datetime, data_stamp: Any) -> Compu
             return found
         computing = _computing.setdefault(key, threading.Lock())
     # One computation of a map at a time (D109): a second request waits for the first and takes its result, rather
-    # than starting another beside it (a request past the time limit keeps computing in its thread)
+    # than starting another beside it (a request past the time limit keeps computing in its thread). A heavy map's slot
+    # (`api.heavy`) is taken inside this lock, in `compute`, so a request waiting here holds none
     with computing:
         with _maps_lock:
             found = _kept(a, key)

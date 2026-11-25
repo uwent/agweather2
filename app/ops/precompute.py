@@ -59,8 +59,9 @@ class Done:
 def run() -> Done:
     """Asks for one tile of every layer and day in the lists (computing and keeping each map); returns what it did.
     Without the API's time limit: past it, the route answers 503 and leaves its map computing in a thread, and the
-    next map would start beside it."""
-    with override_settings(API_TIME_LIMIT=None):
+    next map would start beside it. Nor the limit on heavy computations (`api.heavy`): its maps run one at a time,
+    and a refusal would leave a visitor's first map uncomputed."""
+    with override_settings(API_TIME_LIMIT=None, API_HEAVY_SLOTS=None):
         return _run()
 
 

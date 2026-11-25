@@ -5,7 +5,10 @@ Each client (an IPv4 address, or an IPv6 /64, which one household or server is g
 so a kept tile or a 304 costs 1, a map computed afresh several, and every model at a point about ten: the cost
 follows the work, with no table of costs per endpoint to keep. Counts are kept in Postgres (`ops.models.ApiUsage`),
 shared by every web process: a request's first unit is recorded as it arrives (one query, and all a cheap request
-costs), the rest after it's answered. A request is refused (429, with `Retry-After`) once the minute's budget is
+costs), the rest after it's answered, in the minute it finishes in (a request that ran on past a minute's end would
+otherwise charge a minute already over, and cost nothing more). A request past the time limit (`api.timelimit`) is
+charged its time so far when the limit passes, and the rest when it finishes, so a client can't start many long
+requests within one minute's budget. A request is refused (429, with `Retry-After`) once the minute's budget is
 spent, and still counted, so a client that keeps sending stays refused; the request that crosses the line is
 answered, so a client can overrun by one request's cost.
 
@@ -17,8 +20,10 @@ to the address it saw (it drops what a client sends), and only Caddy can reach u
 
 import ipaddress
 import logging
+import threading
 import time
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from django.conf import settings
@@ -37,7 +42,12 @@ RETURNING cost
 """
 # Counts lost in a crash don't matter: don't wait for the write to reach the disk (~2 ms a request)
 NO_WAIT = "SET LOCAL synchronous_commit TO OFF"
-MORE = "UPDATE ops_apiusage SET cost = cost + %s WHERE client = %s AND minute = %s RETURNING cost"
+# A request's cost past its first unit, in the minute it's charged in: a row of its own if the client has none there
+MORE = """
+INSERT INTO ops_apiusage (client, minute, requests, cost) VALUES (%s, %s, 0, %s)
+ON CONFLICT (client, minute) DO UPDATE SET cost = ops_apiusage.cost + EXCLUDED.cost
+RETURNING cost
+"""
 
 
 def address_key(address: str | None) -> str | None:
@@ -75,12 +85,61 @@ def arrived(client: str, minute: datetime) -> int:
 
 
 def charge_more(client: str, minute: datetime, units: int) -> int:
-    """Add the units a request cost past its first; the minute's cost."""
+    """Add units a request cost past its first to the client's `minute`; the minute's cost."""
     with transaction.atomic(), connection.cursor() as cursor:
         cursor.execute(NO_WAIT)
-        cursor.execute(MORE, [units, client, minute])
+        cursor.execute(MORE, [client, minute, units])
         row = cursor.fetchone()
     return int(row[0]) if row else 0
+
+
+def _minute_now() -> tuple[datetime, int]:
+    """The current minute and the seconds until it ends."""
+    now = datetime.now(UTC)
+    return now.replace(second=0, microsecond=0), 60 - now.second
+
+
+@dataclass(kw_only=True)
+class Charge:
+    """A request's cost as charged so far: its first unit on arrival, then the rest by `settle`, which the request
+    calls when it finishes and `api.timelimit` when it passes the time limit (from another thread)."""
+
+    client: str
+    minute: datetime  # the minute it arrived in, whose cost so far is `total`
+    total: int
+    started: float = field(default_factory=time.perf_counter)
+    charged: int = 0  # units charged past the first
+    lock: threading.Lock = field(default_factory=threading.Lock)
+
+    def settle(self) -> tuple[int, int]:
+        """Charges the units the request has cost so far and not been charged, to the current minute; that minute's
+        cost (with nothing to charge, the last minute charged's: no write) and the seconds until the minute ends."""
+        with self.lock:
+            minute, reset = _minute_now()
+            more = cost_of((time.perf_counter() - self.started) * 1000) - 1 - self.charged
+            if more > 0:
+                self.total = charge_more(self.client, minute, more)
+                self.minute = minute
+                self.charged += more
+            return self.total, reset
+
+
+def charge_overrun(request: HttpRequest, response: HttpResponse) -> None:
+    """For `api.timelimit`, on a thread of its own as the time limit passes: charges the request its time so far and
+    says where the client stands on `response` (the timeout). The thread's own database connection is closed after."""
+    charge: Charge | None = getattr(request, "api_charge", None)
+    if charge is None:
+        return
+    try:
+        total, reset = charge.settle()
+    except DatabaseError:
+        logger.exception("rate limit: couldn't charge a request past the time limit")
+        return
+    finally:
+        connection.close()
+    limit = settings.API_RATE_LIMIT
+    if limit is not None:
+        _headers(response, limit, limit - total, reset)
 
 
 def refused(request: HttpRequest, limit: int, reset: int) -> HttpResponse:
@@ -108,9 +167,7 @@ class RateLimitMiddleware:
         client = client_key(request.META.get("REMOTE_ADDR")) if request.path.startswith("/api/") else None
         if limit is None or client is None:
             return self.get_response(request)
-        now = datetime.now(UTC)
-        minute = now.replace(second=0, microsecond=0)
-        reset = 60 - now.second
+        minute, reset = _minute_now()
         try:
             total = arrived(client, minute)
         except DatabaseError:
@@ -118,13 +175,12 @@ class RateLimitMiddleware:
             return self.get_response(request)
         if total > limit:
             return refused(request, limit, reset)
-        started = time.perf_counter()
+        charge = Charge(client=client, minute=minute, total=total)
+        request.api_charge = charge  # pyright: ignore[reportAttributeAccessIssue]
         response = self.get_response(request)
-        more = cost_of((time.perf_counter() - started) * 1000) - 1
-        if more:
-            try:
-                total = charge_more(client, minute, more)
-            except DatabaseError:
-                logger.exception("rate limit: couldn't record the request's cost")
+        try:
+            total, reset = charge.settle()
+        except DatabaseError:
+            logger.exception("rate limit: couldn't record the request's cost")
         _headers(response, limit, limit - total, reset)
         return response

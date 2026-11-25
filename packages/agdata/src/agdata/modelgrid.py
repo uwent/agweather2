@@ -26,6 +26,7 @@ missing. The forecast's days come from the current run's own stores, which conti
 """
 
 from collections.abc import Callable, Iterable, Mapping
+from contextlib import AbstractContextManager, nullcontext
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from functools import cache
@@ -247,6 +248,7 @@ def model_map(
     now=None,
     stores: series.Stores | None = None,
     compute: bool = False,
+    on_request: Callable[[], AbstractContextManager[object]] | None = None,
 ) -> ModelDays:
     """A model's map with each place's own settings (D66): with a planting `tier` (early, mid, late; None for none),
     a crop model starts at each cell's typical planting date (soybean's and spring wheat's stored per tier,
@@ -257,7 +259,8 @@ def model_map(
     A season-stored model (`modelmaps.SEASON_MODELS`, `agdata.seasonmaps`) is read from its stored season where it's
     stored through the days asked for, else computed as `compute` asks (the job storing it). A model computed on
     request (`ON_REQUEST`) runs a block at a time (`agdata.blocks`) and the blocks are put together: it reads a
-    season of days, and over a whole launch-size window that was tens of GB (D109)."""
+    season of days, and over a whole launch-size window that was tens of GB (D109). Its blocks are computed inside
+    `on_request()` if given: the web app's limit on heavy computations (`api.heavy`), which can refuse."""
     if (
         model_id in modelmaps.SEASON_MODELS
         and not compute
@@ -269,12 +272,13 @@ def model_map(
     if model_id in ON_REQUEST:
         parts = blocks.blocks(window)
         if len(parts) > 1 or (parts and parts[0] != window):
-            found = [
-                model_map(
-                    data_dir, model_id, first, last, part, options, tier=tier, now=now, stores=stores, compute=True
-                )
-                for part in parts
-            ]
+            with on_request() if on_request is not None else nullcontext():
+                found = [
+                    model_map(
+                        data_dir, model_id, first, last, part, options, tier=tier, now=now, stores=stores, compute=True
+                    )
+                    for part in parts
+                ]
             return _merged(window, parts, found)
     spec = find_model(model_id).SPEC
     crop = tiered(model_id)
