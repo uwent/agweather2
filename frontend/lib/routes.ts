@@ -19,6 +19,8 @@ export const routes = {
   home: (): string => '/',
   /** map: /map */
   map: (): string => '/map',
+  /** sites: /sites */
+  sites: (): string => '/sites',
   /** up: /up */
   up: (): string => '/up',
 }

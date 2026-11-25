@@ -10,6 +10,7 @@ from inertia import always, share
 from agdata.timezones import GRID_ZONE
 from web.inertia import pop_errors
 from web.props import AppInfo, SharedProps
+from web.status import data_status
 
 
 def grid_today() -> date:
@@ -26,10 +27,21 @@ class SharedPropsMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         shared = SharedProps(
-            app=AppInfo(version=settings.APP_VERSION, service_box=settings.SERVICE_BOX), today=grid_today()
+            app=AppInfo(version=settings.APP_VERSION, service_box=settings.SERVICE_BOX), today=grid_today(), status=None
         )
-        share(request, **shared.model_dump(mode="json"), errors=always(lambda: pop_errors(request)))
+        share(
+            request,
+            **shared.model_dump(mode="json", exclude={"status"}),
+            # Read only when a page renders (inertia-django calls a callable prop), and kept a few seconds (web.status)
+            status=_status_json,
+            errors=always(lambda: pop_errors(request)),
+        )
         return self.get_response(request)
+
+
+def _status_json() -> dict | None:
+    found = data_status()
+    return None if found is None else found.model_dump(mode="json")
 
 
 class InertiaMiddleware(inertia.middleware.InertiaMiddleware):

@@ -8,6 +8,7 @@
   import Logo from '@/lib/components/Logo.svelte'
   import SettingsDialog from '@/lib/components/SettingsDialog.svelte'
   import { routes } from '@/lib/routes'
+  import StaleBanner from '@/lib/components/StaleBanner.svelte'
 
   let { children }: { children: Snippet } = $props()
 
@@ -15,7 +16,7 @@
   // the section current on its pages below it. WISP 3's account menu (bits-ui) comes with sign-in.
   const nav: { label: string; href: string; also?: (string | RegExp)[] }[] = [
     { label: 'Map', href: routes.map() },
-    { label: 'Sites', href: '/sites', also: ['/sites/'] },
+    { label: 'Sites', href: routes.sites(), also: ['/sites/'] },
     { label: 'Models', href: '/models', also: ['/models/', '/topics/'] },
     { label: 'Tools', href: '/tools', also: ['/tools/', '/calendar'] },
     { label: 'Climate', href: '/climate', also: ['/climate/'] },
@@ -143,6 +144,8 @@
       </div>
     </header>
   </div>
+
+  <StaleBanner />
 
   <SettingsDialog bind:open={settingsOpen} />
 
