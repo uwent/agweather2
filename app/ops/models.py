@@ -100,3 +100,23 @@ class ApiUsage(models.Model):
 
     def __str__(self) -> str:
         return f"{self.client} {self.minute:%Y-%m-%d %H:%M}Z: {self.requests} requests, cost {self.cost}"
+
+
+class OpenMeteoUsage(models.Model):
+    """Requests made to Open-Meteo in one UTC day from one endpoint, and the calls they count against the plan (D115):
+    every attempt, failures and retries included (`ops.openmeteo_usage`). Kept two years (`housekeeping`)."""
+
+    day = models.DateField(help_text="UTC day")
+    endpoint = models.CharField(max_length=16, help_text="forecast, historical or archive")
+    requests = models.IntegerField(default=0, help_text="HTTP requests, failed ones included")
+    calls = models.FloatField(default=0, help_text="Calls Open-Meteo counts for them (more for many variables or days)")
+    failed = models.IntegerField(default=0, help_text="Requests that failed (no answer, an error status, or no data)")
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["day", "endpoint"], name="one_row_per_day_endpoint")]
+        ordering = ["-day", "endpoint"]
+        verbose_name = "Open-Meteo usage"
+        verbose_name_plural = "Open-Meteo usage"
+
+    def __str__(self) -> str:
+        return f"{self.day} {self.endpoint}: {self.requests} requests, {self.calls:g} calls"

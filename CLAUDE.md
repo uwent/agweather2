@@ -153,7 +153,7 @@ Deploy:
 
 Outside services:
 
-- **Open-Meteo:** the forecast API reaches only ~92 days back (older days need the historical-forecast API or the archive). best_match, GFS and NBM have no soil variables over North America; ECMWF IFS does. Multi-model requests suffix each variable with the model name; multi-location requests return a list (one location, an object). Coastal points snap to a land cell, so the API's coordinates can differ from our cell's.
+- **Open-Meteo:** fetch through `ops.openmeteo_usage.fetch_counted` (or `ops.openmeteo`'s cache, which does), never `openmeteo.fetch` directly: every request counts against the plan (D115), and a test fails on an uncounted caller in `app/`. The forecast API reaches only ~92 days back (older days need the historical-forecast API or the archive). best_match, GFS and NBM have no soil variables over North America; ECMWF IFS does. Multi-model requests suffix each variable with the model name; multi-location requests return a list (one location, an object). Coastal points snap to a land cell, so the API's coordinates can differ from our cell's.
 - **Nominatim** (place search) forbids search-as-you-type: search only on Enter or Go. Proxy it or switch providers if use grows.
 - **Map overlays:** NOAA's MRMS image service labels its values inches but returns millimeters; NOAA's radar image service stores rendered colors, so radar values come from IEM's tiles (WISP 3's `lib/map/radar.ts`).
 - **RTMA on AWS** (`noaa-rtma-pds`): the same names and grids as URMA's analysis; hourly precip `rtma2p5.YYYYMMDDHH.pcp.184.grb2` (2145 × 1377) in every year since 2016, which is what the old API read.

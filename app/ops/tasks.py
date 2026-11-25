@@ -197,7 +197,8 @@ def build_downloads(timestamp: int) -> None:
 @app.task(queue="maintenance", queueing_lock="housekeeping", task_middleware=JOB_MIDDLEWARE)
 def housekeeping(timestamp: int) -> None:
     """Daily cleanup: deletes the API's usage counts (`ops.models.ApiUsage`, D69) older than a week, and the kept
-    static map images (`api.routes.maps`, D60) unused for two weeks, with any temporary files left by a crash."""
+    static map images (`api.routes.maps`, D60) unused for two weeks, with any temporary files left by a crash; then
+    Open-Meteo's usage (`open_meteo_housekeeping`, D115)."""
     from api import layermaps
     from api.routes import maps
     from ops.models import ApiUsage
@@ -211,6 +212,20 @@ def housekeeping(timestamp: int) -> None:
     old = layermaps.prune_disk()
     if old:
         logger.info("maps: %d computed maps kept over %d days deleted", old, layermaps.DISK_KEEP_DAYS)
+    open_meteo_housekeeping(datetime.now(UTC))
+
+
+def open_meteo_housekeeping(now: datetime) -> None:
+    """Open-Meteo's usage counts (D115): rows older than two years deleted, and a warning a day while the billing
+    month's use is past `OPEN_METEO_WARN_SHARE` of the plan or on pace to pass it."""
+    from ops import openmeteo_usage
+    from ops.models import OpenMeteoUsage
+
+    deleted, _ = OpenMeteoUsage.objects.filter(day__lt=now.date() - timedelta(days=2 * 365)).delete()
+    if deleted:
+        logger.info("Open-Meteo usage: %d rows older than two years deleted", deleted)
+    for warning in openmeteo_usage.warnings_for(openmeteo_usage.period_usage(now)):
+        logger.warning("%s", warning)
 
 
 # The order `manage.py jobs run all` and `jobs start` use: the archive first, then soil (IFS's provisional hours, then

@@ -99,6 +99,7 @@ UTC everywhere in storage. Grid days are Central Standard Time all year, midnigh
 
 - A point or grid request returns one continuous hourly frame: archive through the last observed hour, then NBM, each value with its `source`.
 - Outside the box, before the window, or when NBM is missing, the frame comes from Open-Meteo, snapped to its O1280 cell and cached per cell for a few hours (Postgres index + files or cache table).
+- Open-Meteo's use is counted against the plan (D115, `ops.openmeteo_usage`): every request the app makes, through `fetch_counted` (a test holds every caller to it), failures and retries included, by UTC day and endpoint in `OpenMeteoUsage` (kept two years). The billing month runs from `OPEN_METEO_BILLING_DAY` (the 12th) to the day before it a month later; past 80% of `OPEN_METEO_MONTHLY_CALLS` (5,000,000 with a key), or of the free API's 10,000 a day without one, or when the last week's pace would pass the month's, the admin, `/up` (degraded), `jobs status` and a daily log line from `housekeeping` say so. Nothing stops fetching. Not counted: IFS's open-data reads from S3, and `agdata.clients.openmeteo_points` in development scripts (given the production key, a script draws on the plan uncounted).
 - Models receive the standard frame and do not know its source; responses carry `source` and the producing model's name and version.
 - Each model's region mask is rasterized on the grid at startup; outside it the model returns no value and the map greys it out.
 
@@ -134,7 +135,7 @@ Page prop types: Pydantic schemas → JSON Schema → TypeScript, checked for fr
 - django-allauth with login by email link or code; no passwords. Sites, alert choices, beta-models opt-in and service-update opt-in per user.
 - Daily digest (past week, extended forecast, season vs normal, in-season models per site, upcoming thresholds) and event alerts (threshold crossed or forecast to cross). Users pick digest, alerts, or both.
 - One Postgres-backed job queue (Procrastinate, D17) for ingest and app jobs, with periodic tasks.
-- Health check: ingest lag, failed jobs, missing hours; emails admins; public `/up` JSON for an uptime monitor.
+- Health check: ingest lag, failed jobs, missing hours, Open-Meteo's use against the plan (D115); emails admins; public `/up` JSON for an uptime monitor.
 
 ---
 

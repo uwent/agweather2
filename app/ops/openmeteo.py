@@ -14,6 +14,7 @@ from agdata.series import FORECAST, OBSERVED, DailySeries, day_kinds
 from agdata.sources import openmeteo
 from agdata.timezones import zone_at
 from ops.models import WeatherCellCache
+from ops.openmeteo_usage import fetch_counted
 
 HOUR = timedelta(hours=1)
 FORECAST_TTL = timedelta(hours=3)
@@ -110,7 +111,7 @@ def _cached(cell, endpoint: str, first: date, last: date, now: datetime, session
         if all(name in held.values for name in openmeteo.SOIL_MOISTURE):  # rows cached before it are fetched again
             return held
     try:
-        hours, calls = openmeteo.fetch(
+        hours, calls = fetch_counted(  # counted against the plan, failures too (D115)
             endpoint,
             cell,
             first,

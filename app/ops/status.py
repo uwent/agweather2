@@ -28,6 +28,7 @@ from ops.forecast import forecast_health
 from ops.health import failures_since, ingest_health
 from ops.ifs import last_read
 from ops.locks import parse_holder, waiting
+from ops.openmeteo_usage import PeriodUsage, period_usage, short_line, warnings_for
 
 STALLED_AFTER_S = 60  # a running job whose worker hasn't sent a heartbeat this long was left by a stopped worker
 
@@ -59,17 +60,19 @@ class Status:
     lock_waiting: list[str] = field(default_factory=list)  # who's waiting for it
     jobs: list[JobState]
     failures: list[str] = field(default_factory=list)  # recent failed jobs, one line each
+    open_meteo: PeriodUsage | None = None  # the billing month's use (D115)
 
 
 def snapshot(data_dir: Path, now: datetime) -> Status:
     ingest, problems = ingest_health(data_dir, now)
     forecast, forecast_problems = forecast_health(data_dir, now)
     run, _seam = last_read(data_dir)
+    usage = period_usage(now)
     return Status(
         now=now,
         ingest=ingest,
         forecast=forecast,
-        problems=problems + forecast_problems,
+        problems=problems + forecast_problems + warnings_for(usage),
         daily_through=daily_through(data_dir, now.year),
         era5land_through=last_hour_from(data_dir, now.year, SOIL[0], "era5land"),
         ifs_run=run,
@@ -77,6 +80,7 @@ def snapshot(data_dir: Path, now: datetime) -> Status:
         lock_waiting=[str(h) for h in waiting(data_dir)],
         jobs=job_states(data_dir, now),
         failures=recent_failures(data_dir, now),
+        open_meteo=usage,
     )
 
 
@@ -264,6 +268,8 @@ def status_lines(status: Status) -> list[str]:
             f"  forecast: {_when(f['cycle'])} run ({_hours(f['age_hours'])} old), through {_when(f['last_hour'])}"
             + failed
         )
+    if status.open_meteo is not None:
+        out.append(f"  open-meteo: {short_line(status.open_meteo)}")
     out.append(f"  lock:    {'held by ' + status.lock_holder if status.lock_holder else 'free'}")
     for waiter in status.lock_waiting:
         out.append(f"           waiting: {waiter}")
