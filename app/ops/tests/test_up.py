@@ -35,6 +35,7 @@ def test_an_empty_archive_is_ok_and_not_started(client, settings, tmp_path):
         "database": "ok",
         "ingest": {"state": "not started"},
         "forecast": {"state": "not started"},
+        "open_meteo": response.json()["open_meteo"],  # its own tests: ops/tests/test_openmeteo_usage.py
         "problems": [],
     }
 

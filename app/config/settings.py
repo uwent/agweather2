@@ -42,6 +42,22 @@ DATA_DIR = Path(os.environ.get("DATA_DIR", REPO_DIR / ("tmp/no-data-under-test" 
 # Maps computed for tiles and images, kept on disk for every web worker (`api.layermaps`, step 7 D5); off under test
 MAP_CACHE_DIR: Path | None = None if TESTING else DATA_DIR / "maps" / "computed"
 OPEN_METEO_API_KEY = os.environ.get("OPEN_METEO_API_KEY") or None  # the customer hosts; None: the free ones
+# Open-Meteo's plan (D115, ops.openmeteo_usage): calls a billing month (from OPEN_METEO_BILLING_DAY to the day before
+# it next month, UTC days), and a day's cap if it has one. Defaults: the customer plan's 5,000,000 a month with a key
+# (renewing on the 12th), the free API's 300,000 a month and 10,000 a day without. Warned of, never enforced, at
+# OPEN_METEO_WARN_SHARE of either, or when the last week's pace would pass the month's.
+OPEN_METEO_MONTHLY_CALLS = int(
+    os.environ.get("OPEN_METEO_MONTHLY_CALLS") or (5_000_000 if OPEN_METEO_API_KEY else 300_000)
+)
+OPEN_METEO_DAILY_CALLS: int | None = (
+    int(os.environ["OPEN_METEO_DAILY_CALLS"])
+    if os.environ.get("OPEN_METEO_DAILY_CALLS")
+    else (None if OPEN_METEO_API_KEY else 10_000)
+)
+OPEN_METEO_BILLING_DAY = int(os.environ.get("OPEN_METEO_BILLING_DAY") or "12")
+if not 1 <= OPEN_METEO_BILLING_DAY <= 28:
+    raise RuntimeError(f"OPEN_METEO_BILLING_DAY must be a day of the month from 1 to 28, not {OPEN_METEO_BILLING_DAY}")
+OPEN_METEO_WARN_SHARE = 0.8
 COPERNICUS_API_KEY = os.environ.get("COPERNICUS_API_KEY") or None  # the CDS, for ERA5-Land (D52); None: no job
 # The worker's jobs recorded as runs in DATA_DIR/runs/ for the dashboard (ops.jobruns): development only
 JOB_RUNS = os.environ.get("JOB_RUNS", "1" if ENV == "development" else "0") == "1"

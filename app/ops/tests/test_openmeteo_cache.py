@@ -5,7 +5,7 @@ import pytest
 
 from agdata.sources import openmeteo as source
 from ops import openmeteo, points
-from ops.models import WeatherCellCache
+from ops.models import OpenMeteoUsage, WeatherCellCache
 
 NOW = datetime(2026, 7, 15, 18, tzinfo=UTC)
 STILLWATER = (36.12, -97.07)  # outside the Wisconsin box
@@ -30,12 +30,14 @@ def fake_fetch(monkeypatch):
     """Open-Meteo at 20 °C (forecast 25 °C), counting fetches."""
     fetched = []
 
-    def fetch(endpoint, cell, first, last, session=None, api_key=None, timeout=None, tries=None):
+    def fetch(endpoint, cell, first, last, session=None, api_key=None, timeout=None, tries=None, on_call=None):
         assert (timeout, tries) == (
             openmeteo.REQUEST_TIMEOUT,
             openmeteo.REQUEST_TRIES,
         )  # a request waits less than a job
         fetched.append((endpoint, first, last))
+        assert on_call is not None  # counted against the plan (D115)
+        on_call(source.Call(endpoint=endpoint, calls=1.0, status=200, ok=True))
         n = ((last - first).days + 1) * 24
         start = datetime(first.year, first.month, first.day, tzinfo=UTC)
         values = {name: np.full(n, 1.0) for name in ("precipitation", "wind_speed", "dew_point")}
@@ -63,6 +65,8 @@ def test_the_cache_fetches_each_span_once_and_expires_the_forecast(fake_fetch):
     assert [f[0] for f in fake_fetch[3:]] == ["forecast"]  # the forecast expires after 3 hours
     openmeteo.cell_hours(*STILLWATER, start, end, NOW + timedelta(hours=25))
     assert [f[:2] for f in fake_fetch[4:]] == [("historical", date(2026, 7, 1)), ("forecast", date(2026, 7, 9))]
+    counted = {r.endpoint: r.requests for r in OpenMeteoUsage.objects.all()}
+    assert counted == {"historical": 3, "forecast": 3}  # every fetch counted against the plan (D115), none cached
     june = WeatherCellCache.objects.get(first_day=date(2026, 6, 1))
     assert june.expires_at is None  # a past month never expires
 

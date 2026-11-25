@@ -10,9 +10,11 @@ import requests
 from agdata.computed import DAILY_COMPUTED
 from agdata.grid import NDFD
 from agdata.series import DailySeries, Forecast
+from agdata.sources import openmeteo as source
 from api import points
 from api.routes import weather
 from api.tests.fixture_archive import POINT
+from ops.models import OpenMeteoUsage
 
 LAT, LNG = POINT
 OTHER = tuple(round(float(v), 4) for v in NDFD.latlon(901, 1402))
@@ -95,7 +97,8 @@ def test_points_inside_and_outside_the_box_keep_their_order(client, archive, mon
 
 @pytest.mark.django_db
 def test_open_meteo_unreachable_is_a_503_that_says_so(client, archive, monkeypatch):
-    def down(*args, **kwargs):
+    def down(*args, on_call, **kwargs):
+        on_call(source.Call(endpoint=args[0], calls=1.0, status=None, ok=False))
         raise requests.ConnectionError("no route to host")
 
     monkeypatch.setattr("agdata.sources.openmeteo.fetch", down)
@@ -105,6 +108,7 @@ def test_open_meteo_unreachable_is_a_503_that_says_so(client, archive, monkeypat
     assert response.status_code == 503 and response["Retry-After"] == "300"
     error = response.json()["errors"][0]
     assert error["code"] == "weather_unavailable" and "Open-Meteo" in error["message"]
+    assert OpenMeteoUsage.objects.get().failed == 1  # the failed attempt still counts against the plan (D115)
 
 
 def test_points_outside_the_archive_are_capped(client, archive, monkeypatch):

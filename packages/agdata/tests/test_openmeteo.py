@@ -199,6 +199,49 @@ def test_a_rejected_request_raises_with_open_meteos_reason_and_is_not_retried(no
         openmeteo._get(Replies(Reply(404, "Not Found page")), "https://x", {})  # type: ignore[arg-type]
 
 
+class Silent:
+    """A session whose request times out."""
+
+    def get(self, address, params=None, timeout=None):
+        raise requests.Timeout("read timed out")
+
+
+def fetch_a_day(session, endpoint: str = "forecast", **options):
+    """A day at Stillwater from a fake session."""
+    cell = openmeteo.cell_for(36.12, -97.07)
+    return openmeteo.fetch(endpoint, cell, date(2025, 6, 1), date(2025, 6, 1), session=session, **options)
+
+
+def test_every_attempt_is_reported_failures_and_retries_included(no_wait):
+    """D115: the plan is charged for every request Open-Meteo receives, so `on_call` hears of each try."""
+    hourly = {"time": [1748736000 + 3600 * k for k in range(24)]}
+    session = Replies(Reply(500, {}), *[Reply(200, {"hourly": hourly}) for _ in range(3)])
+    heard: list[openmeteo.Call] = []
+    _, calls = fetch_a_day(session, endpoint="historical", on_call=heard.append)
+    assert [(c.endpoint, c.status, c.ok) for c in heard] == [
+        ("historical", 500, False),
+        ("historical", 200, True),
+        ("historical", 200, True),
+        ("historical", 200, True),
+    ]
+    assert calls == 3.0 and sum(c.calls for c in heard) == 4.0  # what the data cost, and what the plan was charged
+
+    heard.clear()
+    with pytest.raises(ValueError, match="400"):
+        fetch_a_day(Replies(Reply(400, {"reason": "no"})), on_call=heard.append)
+    assert [(c.status, c.ok) for c in heard] == [(400, False)]
+
+    heard.clear()
+    with pytest.raises(requests.Timeout):
+        fetch_a_day(Silent(), tries=2, on_call=heard.append)
+    assert [(c.status, c.ok) for c in heard] == [(None, False), (None, False)]
+
+    heard.clear()
+    session = Replies(Reply(200, "timeoutReached"), *[Reply(200, {"hourly": hourly}) for _ in range(3)])
+    fetch_a_day(session, on_call=heard.append)
+    assert [(c.status, c.ok) for c in heard][:2] == [(200, False), (200, True)]  # a 200 that isn't JSON failed
+
+
 def test_the_customer_host_and_key_are_used_when_there_is_a_key():
     cell = openmeteo.cell_for(36.12, -97.07)
     hourly = {"time": [1748736000 + 3600 * k for k in range(24)]}  # no variables at all

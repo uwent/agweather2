@@ -19,6 +19,9 @@ x-app: &app
     SERVICE_BOX: ${SERVICE_BOX:-wisconsin}
     BLOCK_WORKERS: ${BLOCK_WORKERS:-1}  # worker processes for jobs over the grid's blocks (agdata.blocks), a few GB each
     OPEN_METEO_API_KEY: ${OPEN_METEO_API_KEY:-}
+    OPEN_METEO_MONTHLY_CALLS: ${OPEN_METEO_MONTHLY_CALLS:-}  # the plan (D115); blank: the defaults in config/settings.py
+    OPEN_METEO_DAILY_CALLS: ${OPEN_METEO_DAILY_CALLS:-}
+    OPEN_METEO_BILLING_DAY: ${OPEN_METEO_BILLING_DAY:-}
     COPERNICUS_API_KEY: ${COPERNICUS_API_KEY:-}
   volumes:
     - data:/data
