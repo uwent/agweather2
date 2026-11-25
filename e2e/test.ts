@@ -45,6 +45,7 @@ export const test = base.extend({
             {
               lat: '44.1336',
               lon: '-89.5168',
+              boundingbox: ['44.1236', '44.1436', '-89.5268', '-89.5068'],
               display_name: 'Hancock, Waushara County, Wisconsin, United States',
               name: 'Hancock',
               type: 'village',
@@ -68,6 +69,7 @@ export const test = base.extend({
       ['**/api/v2/locate?*', () => api('./fixtures/locate.json')],
       ['**/api/v2/weather/daily?*', () => api('./fixtures/daily.json')],
       ['**/api/v2/degree-days?*', () => api('./fixtures/daily.json')],
+      ['**/api/v2/summaries/*?*', () => api('./fixtures/summaries.json')],
     ]
     for (const [pattern, body] of recorded) await context.route(pattern, (route) => route.fulfill({ json: body() }))
     await context.route('**/api/v2/tiles/*/*/*/*/*.png*', (route) =>

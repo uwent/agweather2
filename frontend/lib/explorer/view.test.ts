@@ -12,6 +12,8 @@ import {
   spansFor,
   stepDay,
   stepHour,
+  stepperWhen,
+  stepTo,
   tileRequest,
   VIEW_FIELDS,
 } from './view'
@@ -146,5 +148,27 @@ describe('time', () => {
     expect(biofixDate('04-15', '2026-07-08')).toBe('2026-04-15')
     expect(biofixDate('11-01', '2026-02-01')).toBe('2025-11-01')
     expect(biofixDate('2026-05-02', '2026-07-08')).toBe('2026-05-02')
+  })
+})
+
+describe('the phone’s stepper', () => {
+  it('steps the day, keeping a range’s length, or the hour', () => {
+    const daily = layer('air_temperature_min')
+    const ranged = view({ layer: daily.id, span: 'range', date: '2026-07-14', start: '2026-07-08' })
+    expect(stepperWhen(ranged, daily, '2026-11-25')).toBe('2026-07-14')
+    expect(stepTo(ranged, daily, '2026-07-15')).toEqual({ date: '2026-07-15', start: '2026-07-09' })
+    expect(stepTo(view({ layer: daily.id }), daily, '2026-07-15')).toEqual({ date: '2026-07-15' })
+    const hourly = layer('air_temperature_hourly')
+    const hour = view({ layer: hourly.id, span: 'hour', hour: '2026-07-08T15' })
+    expect(stepperWhen(hour, hourly, '2026-11-25')).toBe('2026-07-08T15')
+    expect(stepTo(hour, hourly, '2026-07-08T16')).toEqual({ hour: '2026-07-08T16' })
+  })
+})
+
+describe('the overlay in a Share link', () => {
+  it('reads only the overlays the map has', () => {
+    expect(fromQuery(VIEW_FIELDS, 'overlay=radar').overlay).toBe('radar')
+    expect(fromQuery(VIEW_FIELDS, 'overlay=nothing').overlay).toBeUndefined()
+    expect(toQuery(VIEW_FIELDS, view({ overlay: 'drought' })).get('overlay')).toBe('drought')
   })
 })

@@ -111,9 +111,12 @@ test('the map explorer shows a layer and a clicked cell', async ({ page }) => {
   await page.goto('/map?layer=air_temperature_min&date=2026-11-20&at=43.07,-89.4')
   await expect(page.getByTestId('cell-panel')).toContainText('Dane County, WI')
   await expect(page.getByRole('heading', { name: "This cell's recent days" })).toBeVisible()
-  // Stepping a day moves the date
+  // Stepping a day moves the date (the controls' stepper on a wide screen, the bar's under the map on a phone)
   await page.getByRole('button', { name: 'Forward 1 day' }).click()
-  await expect(page.locator('#time-day')).toHaveValue('2026-11-21')
+  await expect(page.getByText('Nov 21, 2026', { exact: true })).toBeVisible()
+  // The map's values by county, below the fold
+  await page.getByRole('heading', { name: 'This map by county' }).scrollIntoViewIfNeeded()
+  await expect(page.getByRole('table', { name: /by county in Wisconsin/ })).toContainText('Dane County')
   // Tiles cancelled as the map moved on, or as the page was left, aren't failures
   problems = problems.filter((problem) => !problem.endsWith('net::ERR_ABORTED'))
 })

@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "request": { "layer": "air_temperature_min", "date": "2026-11-20", "by": "county" },
+    "units": { "area": "sq mi", "coverage": "%", "mean": "°F", "min": "°F", "max": "°F" },
+    "summary": { "regions": 3, "rows": 3, "below_coverage": 0, "kinds": { "observed": 1 } },
+    "sources": ["urma"],
+    "warnings": [],
+    "api_version": "2.0"
+  },
+  "data": {
+    "fips": ["55001", "55003", "55025"],
+    "name": ["Adams County", "Ashland County", "Dane County"],
+    "state": ["WI", "WI", "WI"],
+    "date": ["2026-11-20", "2026-11-20", "2026-11-20"],
+    "kind": ["observed", "observed", "observed"],
+    "area": [646, 1045, 1197],
+    "cells": [306, 475, 503],
+    "cells_with_data": [306, 475, 503],
+    "coverage": [100.0, 100.0, 100.0],
+    "complete": [true, true, true],
+    "mean": [13.3, 11.3, 18.2],
+    "min": [9.9, 6.8, 15.1],
+    "max": [20.8, 26.6, 21.0]
+  }
+}
