@@ -898,7 +898,15 @@ class Computed:
 
 
 def compute(a: LayerAsk, window: Window, now: datetime) -> Computed:
-    """The layer's map over `window`."""
+    """The layer's map over `window`, with every warning computing it added to `a.warnings` kept in its `notes`, so
+    a map kept (`cached`) brings them to the next request that reads it."""
+    before = len(a.warnings)
+    found = _compute_map(a, window, now)
+    found.notes = list(dict.fromkeys([*found.notes, *a.warnings[before:]]))
+    return found
+
+
+def _compute_map(a: LayerAsk, window: Window, now: datetime) -> Computed:
     started = time.perf_counter()
     data_dir = _data_dir()
     if a.climate is not None:
@@ -961,6 +969,22 @@ def missing_note(c: Computed, cells: np.ndarray | None = None) -> str | None:
         return None
     most = int(np.max(behind[hit]))
     return f"At {counted(int(hit.sum()), 'grid cell')} on this map, the weather data the model reads have days missing (up to {counted(most, 'day')}), in gaps longer than the {MAX_GAP_DAYS} days we fill with estimates. The model's running totals add nothing for those days, so its results there may be late."
+
+
+def map_notes(a: LayerAsk, c: Computed, cells: np.ndarray | None = None) -> list[str]:
+    """The warnings a map's values bring beyond the request's: steps with no data yet, a forecast out of date, and
+    cells whose results rest on days missing past the gap fill (`missing_note`, among `cells`)."""
+    notes = []
+    missing_steps = sum(k is None for k in c.kinds)
+    if missing_steps:
+        notes.append(
+            f"{counted(missing_steps, a.layer.time_axis)} of the {len(c.kinds)} asked for {'has' if missing_steps == 1 else 'have'} no data yet and show as missing."
+        )
+        if c.run.reason == "stale":
+            notes.append("The forecast is out of date, so the map ends with the last observed day.")
+    if (note := missing_note(c, cells)) is not None:
+        notes.append(note)
+    return notes
 
 
 def is_heavy(a: LayerAsk, window: Window) -> bool:
