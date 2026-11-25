@@ -183,3 +183,47 @@ def test_each_daily_variable_names_the_hourly_variables_it_is_made_from():
     assert all(table.values())  # every daily value comes from some hour
     inputs = {name for m in all_models().values() for name in required_inputs(m)}
     assert inputs <= set(table), sorted(inputs - set(table))  # every model input can be made from hours
+
+
+@pytest.mark.parametrize("zone", [GRID_ZONE, "America/Chicago"])
+def test_a_points_scab_features_are_scab_features_day_by_day(zone):
+    from zoneinfo import ZoneInfo
+
+    from agdata.timezones import scab_bounds
+    from agmodels import features
+    from agmodels.weather import relative_humidity_percent
+
+    first_hour = datetime(2025, 3, 1, tzinfo=UTC)  # America/Chicago changes its clock on March 9
+    n = 24 * 20
+    rng = np.random.default_rng(11)
+    t = rng.uniform(2, 20, n)
+    hours = {
+        "air_temperature": t,
+        "dew_point": t - rng.uniform(0, 3, n),
+        "precipitation": np.where(rng.random(n) < 0.3, rng.uniform(0, 2, n), 0.0),
+    }
+    hours["precipitation"][100] = np.nan
+    first, last = date(2025, 3, 6), date(2025, 3, 15)
+    found = daily_at_point(first_hour, hours, zone, first, last, names=["scab_infection", "precipitation_7am_to_7pm"])
+    tz = ZoneInfo(zone)
+    lengths = set()
+    for k in range((last - first).days + 1):
+        begin, end = scab_bounds(first + timedelta(days=k), zone)
+        a, b = (begin - first_hour) // timedelta(hours=1), (end - first_hour) // timedelta(hours=1) + 1
+        lengths.add(b - a)
+        clock = np.array([(begin + h * timedelta(hours=1)).astimezone(tz).hour for h in range(b - a)])
+        t_w = hours["air_temperature"][a:b]
+        expected = features.scab_features(
+            t_w, relative_humidity_percent(t_w, hours["dew_point"][a:b]), hours["precipitation"][a:b], clock
+        )
+        for name in ("scab_infection", "scab_wet_hours", "scab_period_truncated"):
+            np.testing.assert_array_equal(found[name][k], expected[name], err_msg=f"{name} day {k}")
+        # A 1-D series is summed pairwise by NumPy and in order by the kernel: the last bit may differ
+        for name in (
+            "scab_wet_temperature",
+            "precipitation_7am_to_7pm",
+            "precipitation_8pm_to_6am",
+            "temperature_mean_rain_7am_to_7pm",
+        ):
+            np.testing.assert_allclose(found[name][k], expected[name], rtol=1e-13, err_msg=f"{name} day {k}")
+    assert lengths == {features.SCAB_HOURS}  # 120 hours even across the clock's change

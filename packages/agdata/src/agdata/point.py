@@ -17,7 +17,7 @@ from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, VARIABLES
 from agdata.computed import DAILY_COMPUTED, expand
 from agdata.daily import daily_statistic, feature_groups
 from agdata.timezones import day_bounds, evening_bounds, overnight_bounds, scab_bounds
-from agmodels import features
+from agmodels import features, features_grid
 from agmodels.weather import relative_humidity_percent
 
 HOUR = timedelta(hours=1)
@@ -149,18 +149,35 @@ def daily_at_point(
         for k0, k1, begin, length in runs(lambda day: overnight_bounds(day, zone)):
             put(k0, k1, features.overnight_features(stacked("air_temperature", begin, length, k1 - k0)))
     if "scab" in groups:
-        # Overlapping windows (120 hours each), so day by day rather than reshaped runs
-        for k, day in enumerate(days):
-            begin, end = scab_bounds(day, zone)
-            temperature, dew_point = segment("air_temperature", begin, end), segment("dew_point", begin, end)
-            local_hour = np.array([(begin + n * HOUR).astimezone(tz).hour for n in range((end - begin) // HOUR + 1)])
-            values = features.scab_features(
+        # Overlapping windows (120 hours each): every day's in one compiled pass over the hours they span
+        # (`features_grid`, float64 as `scab_features` gives); a window an hour longer or shorter, across a change
+        # of a point's own clock, day by day
+        spans = [scab_bounds(day, zone) for day in days]
+        span_begin, span_end = spans[0][0], max(end for _, end in spans)
+        temperature = segment("air_temperature", span_begin, span_end)
+        rh = relative_humidity_percent(temperature, segment("dew_point", span_begin, span_end))
+        rain = segment("precipitation", span_begin, span_end)
+
+        def clock(begin: datetime, end: datetime) -> np.ndarray:
+            return np.array([(begin + n * HOUR).astimezone(tz).hour for n in range((end - begin) // HOUR + 1)])
+
+        whole = [k for k, (begin, end) in enumerate(spans) if (end - begin) // HOUR + 1 == features.SCAB_HOURS]
+        if whole:
+            found = features_grid.scab_features_grid(
                 temperature,
-                relative_humidity_percent(temperature, dew_point),
-                segment("precipitation", begin, end),
-                local_hour,
+                rh,
+                rain,
+                np.array([(spans[k][0] - span_begin) // HOUR for k in whole]),
+                [clock(*spans[k]) for k in whole],
+                dtype=np.float64,
             )
-            put(k, k + 1, values)
+            for name, by_day in found.items():
+                for row, k in enumerate(whole):
+                    put(k, k + 1, {name: by_day[row]})
+        for k in sorted(set(range(len(days))) - set(whole)):
+            begin, end = spans[k]
+            a, b = (begin - span_begin) // HOUR, (end - span_begin) // HOUR + 1
+            put(k, k + 1, features.scab_features(temperature[a:b], rh[a:b], rain[a:b], clock(begin, end)))
     for name in names or ():
         c = DAILY_COMPUTED.get(name)
         if c is not None and all(each in out for each in c.inputs):

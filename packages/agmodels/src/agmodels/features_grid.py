@@ -154,10 +154,12 @@ def scab_features_grid(
     precipitation_mm: np.ndarray,
     starts: np.ndarray,
     local_hours: list[np.ndarray],
+    dtype: type = np.float32,
 ) -> dict[str, np.ndarray]:
     """Apple scab's daily features (`features.scab_features`) for many days at once: the hours (hours, y, x), each
     day's window the WINDOW_HOURS hours from `starts[d]`, whose readings' clock hours are `local_hours[d]`. Each
-    feature (days, y, x) as float32, equal to `scab_features` on each day's window cast to float32."""
+    feature (days, y, x) as `dtype` (float32 for the grid's stores; float64 for a point's, as `scab_features` gives),
+    equal to `scab_features` on each day's window cast to it."""
     window = features.SCAB_HOURS
     shape = temperature_c.shape
     n = shape[0]
@@ -177,7 +179,7 @@ def scab_features_grid(
     masks = [features.scab_rain_hours(h) for h in local_hours]
     day = np.array([m[0] for m in masks], dtype=np.bool_).reshape(begins.size, window)
     night = np.array([m[1] for m in masks], dtype=np.bool_).reshape(begins.size, window)
-    out = np.empty((len(NAMES), begins.size, cells), dtype=np.float32)
+    out = np.empty((len(NAMES), begins.size, cells), dtype=dtype)
     if begins.size and cells:
         _kernel(
             t,
