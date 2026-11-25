@@ -51,6 +51,14 @@
     /** The colors' ends in the reader's units, as drawn */
     low: number
     high: number
+    /** What the map shows beyond its name (the date or range, the settings), when the API gives it */
+    subtitle?: string
+    /** A longer note under the map (how it was made), when the API gives it */
+    caption?: string
+    /** The API's warnings about this map, in its words */
+    warnings: string[]
+    /** The request as the API read it (the TileJSON's `request`) */
+    request: TileJson['request']
   }
 </script>
 
@@ -63,7 +71,7 @@
   import { BasemapSwitch, beneathLabels } from '@/lib/map/basemaps'
   import { COVERAGE_BOUNDS } from '@/lib/map/coverage'
   import { createMap } from '@/lib/map/createMap'
-  import { currentUnits } from '@/lib/units'
+  import { currentUnits, units as unitsOf } from '@/lib/units'
 
   import BasemapToggle from './BasemapToggle.svelte'
   import DataLegend, { type DataLegendSpec } from './DataLegend.svelte'
@@ -106,6 +114,7 @@
     onpick,
     oninfo,
     controls,
+    header,
     class: className = 'h-112 sm:h-128',
   }: {
     /** A layer id from `/layers` */
@@ -128,6 +137,8 @@
     oninfo?: (info: DataInfo | null) => void
     /** The page's own controls, under the basemap toggle (a place search) */
     controls?: Snippet
+    /** Above the basemap toggle at the top left (the map's title) */
+    header?: Snippet
     class?: string
   } = $props()
 
@@ -168,8 +179,9 @@
     try {
       const params = Object.fromEntries(new URLSearchParams(query))
       // The auto range comes in the request's units and is kept in the stored unit, so a units switch needs nothing
-      const shownIn = units
-      const system = shownIn.system === 'metric' ? 'metric' : 'us'
+      // (`units` among the settings, as for degree days written in °F, is the request's and so the domain's)
+      const system = params.units ?? (units.system === 'metric' ? 'metric' : 'us')
+      const shownIn = unitsOf(system === 'metric' ? 'metric' : 'imperial')
       const sharing = shared()
       const tilejson = await requests.run('tilejson', (signal) =>
         get<TileJson>(`/tiles/${l}.json`, { ...params, time: t, style: 'default', units: system }, { signal }),
@@ -263,6 +275,10 @@
       kind: paletteShown.kind,
       low: legend.low,
       high: legend.high,
+      subtitle: tiles.tilejson.subtitle ?? undefined,
+      caption: tiles.tilejson.caption ?? undefined,
+      warnings: tiles.tilejson.warnings ?? [],
+      request: tiles.tilejson.request,
     }
     untrack(() => oninfo?.(info))
   })
@@ -274,6 +290,15 @@
 
   let container: HTMLDivElement
   let wrapper: HTMLDivElement | undefined = $state()
+  let legendHeight = $state(0)
+
+  // The scale bar (MapLibre's bottom-left controls) sits just above the legend, so they never overlap
+  $effect(() => {
+    const m = map
+    const height = legend ? legendHeight : 0
+    const corner = m?.getContainer().querySelector<HTMLElement>('.maplibregl-ctrl-bottom-left')
+    if (corner) corner.style.bottom = height ? `${height + 8}px` : ''
+  })
   let mapWidth = $state(0)
   let styleReady = $state(false)
 
@@ -455,6 +480,9 @@
 >
   <div bind:this={container} class="size-full" role="application" aria-label={label}></div>
   <div class="pointer-events-none absolute top-2 left-2 flex w-[calc(100%-4rem)] flex-col gap-2">
+    {#if header}
+      <div class="pointer-events-auto w-fit max-w-full">{@render header()}</div>
+    {/if}
     <div class="flex flex-wrap items-start gap-2 *:pointer-events-auto">
       <BasemapToggle value={prefs.basemap} onchange={(to) => basemapSwitch.change(to)} />
       <MapLayersButton id="{prefsKey}-layers" basemap={prefs.basemap} count={prefs.overlay ? 1 : 0}>
@@ -474,7 +502,14 @@
       {failure ?? 'Loading the map…'}
     </p>
   {/if}
-  {#if legend}<DataLegend {legend} />{/if}
+  {#if legend}
+    <div
+      class="pointer-events-none absolute bottom-2 left-2 w-60 max-w-[calc(100%-1rem)]"
+      bind:clientHeight={legendHeight}
+    >
+      <DataLegend {legend} />
+    </div>
+  {/if}
   <HoverLabel label={hover.label} />
   {#if overlays.probe}
     <OverlayTooltip probe={overlays.probe} {units} width={mapWidth} />

@@ -1,0 +1,782 @@
+{
+ "meta": {
+  "request": {},
+  "params": {},
+  "units": {},
+  "summary": {},
+  "sources": [],
+  "warnings": [],
+  "attribution": "AgWeather, University of Wisconsin\u2013Madison. Weather from NOAA (URMA, RTMA, HRRR, NBM), Open-Meteo (CC BY 4.0) and ECMWF; contains modified Copernicus Climate Change Service information 2026.",
+  "api_version": "2.0",
+  "generated_at": "2026-11-25T21:29:13Z",
+  "compute_ms": 11
+ },
+ "data": [
+  {
+   "id": "barley",
+   "name": "Barley",
+   "models": {
+    "disease": [],
+    "insect": [],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "corn",
+   "name": "Corn",
+   "models": {
+    "disease": [
+     "gibberella-ear-rot-don",
+     "gray-leaf-spot",
+     "tar-spot"
+    ],
+    "insect": [
+     "black-cutworm",
+     "corn-earworm",
+     "corn-rootworm",
+     "european-corn-borer",
+     "seedcorn-maggot",
+     "stalk-borer",
+     "variegated-cutworm",
+     "western-bean-cutworm"
+    ],
+    "crop": [
+     "corn-stages"
+    ],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "cotton",
+   "name": "Cotton",
+   "models": {
+    "disease": [],
+    "insect": [],
+    "crop": [],
+    "agronomic": [
+     "cotton-planting"
+    ]
+   }
+  },
+  {
+   "id": "dry-bean",
+   "name": "Dry bean",
+   "models": {
+    "disease": [],
+    "insect": [
+     "black-cutworm",
+     "corn-earworm",
+     "european-corn-borer",
+     "japanese-beetle",
+     "seedcorn-maggot",
+     "tarnished-plant-bug",
+     "variegated-cutworm",
+     "western-bean-cutworm"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "sorghum",
+   "name": "Sorghum",
+   "models": {
+    "disease": [],
+    "insect": [],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "soybean",
+   "name": "Soybean",
+   "models": {
+    "disease": [
+     "frogeye-leaf-spot",
+     "red-crown-rot",
+     "soybean-cercospora",
+     "white-mold"
+    ],
+    "insect": [],
+    "crop": [
+     "soybean-stages"
+    ],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "spring-wheat",
+   "name": "Spring wheat",
+   "models": {
+    "disease": [
+     "wheat-scab"
+    ],
+    "insect": [],
+    "crop": [
+     "spring-wheat-stages"
+    ],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "sugarbeet",
+   "name": "Sugarbeet",
+   "models": {
+    "disease": [
+     "cercospora-beet-div"
+    ],
+    "insect": [],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "sunflower",
+   "name": "Sunflower",
+   "models": {
+    "disease": [],
+    "insect": [],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "wheat",
+   "name": "Wheat",
+   "models": {
+    "disease": [
+     "wheat-scab"
+    ],
+    "insect": [],
+    "crop": [
+     "spring-wheat-stages"
+    ],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "winter-wheat",
+   "name": "Winter wheat",
+   "models": {
+    "disease": [
+     "wheat-scab"
+    ],
+    "insect": [],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "alfalfa",
+   "name": "Alfalfa",
+   "models": {
+    "disease": [],
+    "insect": [
+     "alfalfa-weevil"
+    ],
+    "crop": [
+     "alfalfa-growth"
+    ],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "rye",
+   "name": "Rye",
+   "models": {
+    "disease": [],
+    "insect": [],
+    "crop": [],
+    "agronomic": [
+     "rye-biomass"
+    ]
+   }
+  },
+  {
+   "id": "asparagus",
+   "name": "Asparagus",
+   "models": {
+    "disease": [],
+    "insect": [
+     "black-cutworm",
+     "common-asparagus-beetle",
+     "japanese-beetle",
+     "variegated-cutworm"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "beans",
+   "name": "Beans",
+   "models": {
+    "disease": [],
+    "insect": [
+     "black-cutworm",
+     "corn-earworm",
+     "european-corn-borer",
+     "japanese-beetle",
+     "seedcorn-maggot",
+     "tarnished-plant-bug",
+     "variegated-cutworm",
+     "western-bean-cutworm"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "broccoli",
+   "name": "Broccoli",
+   "models": {
+    "disease": [],
+    "insect": [
+     "cabbage-looper",
+     "cabbage-maggot",
+     "crucifer-flea-beetle",
+     "imported-cabbageworm",
+     "japanese-beetle"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "brussels-sprouts",
+   "name": "Brussels sprouts",
+   "models": {
+    "disease": [],
+    "insect": [
+     "cabbage-looper",
+     "cabbage-maggot",
+     "crucifer-flea-beetle",
+     "imported-cabbageworm",
+     "japanese-beetle"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "cabbage",
+   "name": "Cabbage",
+   "models": {
+    "disease": [],
+    "insect": [
+     "cabbage-looper",
+     "cabbage-maggot",
+     "crucifer-flea-beetle",
+     "imported-cabbageworm",
+     "japanese-beetle"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "carrot",
+   "name": "Carrot",
+   "models": {
+    "disease": [
+     "carrot-foliar-dsv"
+    ],
+    "insect": [
+     "black-cutworm",
+     "variegated-cutworm"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "cauliflower",
+   "name": "Cauliflower",
+   "models": {
+    "disease": [],
+    "insect": [
+     "cabbage-looper",
+     "cabbage-maggot",
+     "crucifer-flea-beetle",
+     "imported-cabbageworm",
+     "japanese-beetle"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "celery",
+   "name": "Celery",
+   "models": {
+    "disease": [],
+    "insect": [
+     "black-cutworm",
+     "cabbage-looper",
+     "tarnished-plant-bug",
+     "variegated-cutworm"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "cole-crops",
+   "name": "Cole crops",
+   "models": {
+    "disease": [],
+    "insect": [
+     "cabbage-looper",
+     "cabbage-maggot",
+     "crucifer-flea-beetle",
+     "imported-cabbageworm",
+     "japanese-beetle"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "collards",
+   "name": "Collards",
+   "models": {
+    "disease": [],
+    "insect": [
+     "cabbage-looper",
+     "cabbage-maggot",
+     "crucifer-flea-beetle",
+     "imported-cabbageworm",
+     "japanese-beetle"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "cucumber",
+   "name": "Cucumber",
+   "models": {
+    "disease": [],
+    "insect": [
+     "black-cutworm",
+     "seedcorn-maggot",
+     "squash-vine-borer",
+     "variegated-cutworm",
+     "western-flower-thrips"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "eggplant",
+   "name": "Eggplant",
+   "models": {
+    "disease": [],
+    "insect": [
+     "colorado-potato-beetle",
+     "colorado-potato-beetle-adults",
+     "colorado-potato-beetle-larvae",
+     "european-corn-borer",
+     "japanese-beetle",
+     "western-flower-thrips"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "horseradish",
+   "name": "Horseradish",
+   "models": {
+    "disease": [],
+    "insect": [
+     "japanese-beetle"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "kale",
+   "name": "Kale",
+   "models": {
+    "disease": [],
+    "insect": [
+     "cabbage-looper",
+     "cabbage-maggot",
+     "crucifer-flea-beetle",
+     "imported-cabbageworm",
+     "japanese-beetle"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "leafy-greens",
+   "name": "Leafy greens",
+   "models": {
+    "disease": [],
+    "insect": [
+     "cabbage-looper",
+     "japanese-beetle",
+     "tarnished-plant-bug",
+     "variegated-cutworm"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "lettuce",
+   "name": "Lettuce",
+   "models": {
+    "disease": [],
+    "insect": [
+     "cabbage-looper",
+     "japanese-beetle",
+     "tarnished-plant-bug",
+     "variegated-cutworm"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "melon",
+   "name": "Melon",
+   "models": {
+    "disease": [],
+    "insect": [
+     "black-cutworm",
+     "cabbage-looper",
+     "japanese-beetle",
+     "seedcorn-maggot",
+     "squash-vine-borer",
+     "variegated-cutworm"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "onion",
+   "name": "Onion",
+   "models": {
+    "disease": [
+     "botrytis-onion-botcast"
+    ],
+    "insect": [
+     "onion-maggot"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "pea",
+   "name": "Pea",
+   "models": {
+    "disease": [],
+    "insect": [
+     "black-cutworm",
+     "cabbage-looper",
+     "japanese-beetle"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "pepper",
+   "name": "Pepper",
+   "models": {
+    "disease": [],
+    "insect": [
+     "european-corn-borer",
+     "japanese-beetle",
+     "tarnished-plant-bug",
+     "western-flower-thrips"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "potato",
+   "name": "Potato",
+   "models": {
+    "disease": [
+     "early-blight-pdays",
+     "late-blight-dsv"
+    ],
+    "insect": [
+     "aphid-pvy-vectors",
+     "black-cutworm",
+     "cabbage-looper",
+     "colorado-potato-beetle",
+     "colorado-potato-beetle-adults",
+     "colorado-potato-beetle-larvae",
+     "european-corn-borer",
+     "green-peach-aphid",
+     "japanese-beetle",
+     "potato-aphid",
+     "tarnished-plant-bug",
+     "variegated-cutworm"
+    ],
+    "crop": [
+     "potato-stages"
+    ],
+    "agronomic": [
+     "potato-volunteer"
+    ]
+   }
+  },
+  {
+   "id": "pumpkin",
+   "name": "Pumpkin",
+   "models": {
+    "disease": [],
+    "insect": [
+     "japanese-beetle",
+     "seedcorn-maggot",
+     "squash-vine-borer"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "pumpkin-squash",
+   "name": "Pumpkin and squash",
+   "models": {
+    "disease": [],
+    "insect": [
+     "japanese-beetle",
+     "seedcorn-maggot",
+     "squash-vine-borer"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "snap-bean",
+   "name": "Snap bean",
+   "models": {
+    "disease": [],
+    "insect": [
+     "black-cutworm",
+     "corn-earworm",
+     "european-corn-borer",
+     "japanese-beetle",
+     "seedcorn-maggot",
+     "tarnished-plant-bug",
+     "variegated-cutworm"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "spinach",
+   "name": "Spinach",
+   "models": {
+    "disease": [],
+    "insect": [
+     "cabbage-looper",
+     "japanese-beetle",
+     "tarnished-plant-bug",
+     "variegated-cutworm"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "squash",
+   "name": "Squash",
+   "models": {
+    "disease": [],
+    "insect": [
+     "japanese-beetle",
+     "seedcorn-maggot",
+     "squash-vine-borer"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "sweet-corn",
+   "name": "Sweet corn",
+   "models": {
+    "disease": [],
+    "insect": [
+     "black-cutworm",
+     "corn-earworm",
+     "corn-rootworm",
+     "european-corn-borer",
+     "seedcorn-maggot",
+     "stalk-borer",
+     "variegated-cutworm",
+     "western-bean-cutworm"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "beet",
+   "name": "Table beet",
+   "models": {
+    "disease": [
+     "cercospora-beet-div"
+    ],
+    "insect": [
+     "black-cutworm",
+     "japanese-beetle",
+     "variegated-cutworm"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "tomato",
+   "name": "Tomato",
+   "models": {
+    "disease": [
+     "late-blight-dsv"
+    ],
+    "insect": [
+     "black-cutworm",
+     "cabbage-looper",
+     "colorado-potato-beetle",
+     "colorado-potato-beetle-adults",
+     "colorado-potato-beetle-larvae",
+     "japanese-beetle",
+     "tarnished-plant-bug",
+     "variegated-cutworm",
+     "western-flower-thrips"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "apple",
+   "name": "Apple",
+   "models": {
+    "disease": [
+     "apple-scab",
+     "fire-blight"
+    ],
+    "insect": [
+     "codling-moth"
+    ],
+    "crop": [
+     "apple-stages"
+    ],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "blackberry",
+   "name": "Blackberry",
+   "models": {
+    "disease": [],
+    "insect": [
+     "japanese-beetle",
+     "spotted-wing-drosophila"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "cherry",
+   "name": "Cherry",
+   "models": {
+    "disease": [],
+    "insect": [
+     "spotted-wing-drosophila"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "pecan",
+   "name": "Pecan",
+   "models": {
+    "disease": [
+     "pecan-scab"
+    ],
+    "insect": [],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "raspberry",
+   "name": "Raspberry",
+   "models": {
+    "disease": [],
+    "insect": [
+     "japanese-beetle",
+     "spotted-wing-drosophila",
+     "tarnished-plant-bug"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "hops",
+   "name": "Hops",
+   "models": {
+    "disease": [],
+    "insect": [
+     "black-cutworm",
+     "cabbage-looper",
+     "japanese-beetle",
+     "variegated-cutworm"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "mint",
+   "name": "Mint",
+   "models": {
+    "disease": [],
+    "insect": [
+     "black-cutworm",
+     "cabbage-looper",
+     "japanese-beetle",
+     "mint-flea-beetle",
+     "mint-root-borer",
+     "variegated-cutworm"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  },
+  {
+   "id": "oak",
+   "name": "Oak",
+   "models": {
+    "disease": [],
+    "insect": [
+     "oak-wilt-vectors"
+    ],
+    "crop": [],
+    "agronomic": []
+   }
+  }
+ ]
+}

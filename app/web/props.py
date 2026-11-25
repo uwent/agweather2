@@ -21,3 +21,7 @@ class SharedProps(Props):
 
 class HomeProps(Props):
     api_docs_url: str
+
+
+class MapExplorerProps(Props):
+    """The map explorer's props: none yet. Its layers, palettes, models and crops come from the API (D117)."""

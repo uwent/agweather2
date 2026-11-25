@@ -29,6 +29,10 @@ export interface ChangelogProps {
 export interface HomeProps {
   api_docs_url: string
 }
+/**
+ * The map explorer's props: none yet. Its layers, palettes, models and crops come from the API (D117).
+ */
+export interface MapExplorerProps {}
 export interface SharedProps {
   app: AppInfo
   /**

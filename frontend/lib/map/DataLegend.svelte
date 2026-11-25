@@ -23,8 +23,8 @@
 
   import { cssGradient, fittedTicks, formatDays, NONE_COLOR } from './dataTiles'
 
-  // A data map's legend, over its lower left corner above the scale: the layer's title, then a color bar with
-  // round ticks in the reader's units, or a swatch per level
+  // A data map's legend, placed by DataMap at its lower left with the scale bar above it: the layer's title, then a
+  // color bar with round ticks in the reader's units, or a swatch per level
   let { legend }: { legend: DataLegendSpec } = $props()
 
   const ticks = $derived(
@@ -35,8 +35,7 @@
 </script>
 
 <div
-  class="pointer-events-none absolute bottom-9 left-2 w-60 max-w-[calc(100%-1rem)] rounded-md bg-surface-raised/90 px-2.5 py-1.5
-    text-xs text-ink shadow-md ring-1 ring-line"
+  class="w-full rounded-md bg-surface-raised/90 px-2.5 py-1.5 text-xs text-ink shadow-md ring-1 ring-line"
   data-testid="data-legend"
 >
   <p class="font-medium">
