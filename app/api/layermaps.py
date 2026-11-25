@@ -1384,14 +1384,16 @@ def season_name(spec: ModelSpec, year: int) -> str:
 
 def warm_kernels() -> None:
     """Load the Numba kernels a map of many days runs (decoding a season, `agdata.fastdecode`; degree days,
-    `agmodels.degree_days_grid`) and a point's rollup runs (apple scab's and the CCI's features,
-    `agmodels.features_grid`): ~0.5–0.8 s each the first time in a process, so the web process does it at start."""
+    `agmodels.degree_days_grid`; apple scab's maturity, `agmodels.normal`) and a point's rollup runs (apple scab's
+    and the CCI's features, `agmodels.features_grid`): ~0.5–0.8 s each the first time in a process, so the web
+    process does it at start."""
     from agdata import fastdecode
-    from agmodels import degree_days_grid, features_grid
+    from agmodels import degree_days_grid, features_grid, normal
 
     fastdecode.warm()
     degree_days_grid.warm()
     features_grid.warm()
+    normal.normal_cdf(np.zeros(normal.PARALLEL_SIZE))
 
 
 def _counted(values: np.ndarray, bounds, time_axis: str) -> tuple[np.ndarray, dict[str, np.ndarray]]:
