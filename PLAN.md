@@ -41,9 +41,11 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 - **Data tiles (wave 2):** `DataMap` colors the API's tiles with MapLibre's color-relief (D119 proved; values within the step at 25 cells). The TileJSON's `baseShift` had the wrong sign for MapLibre (it subtracts): fixed, worth a changelog line once live.
 - **Pages (wave 3):** `/map` (picker, time and stepper, options, title chip, cell panel, Share), `/sites` (cards loading as they scroll in), the site page (header, Overview, Weather), the home page, the shared `status` prop with a stale banner; the TileJSON's `subtitle`, `caption`, `warnings`, `categories`; `/risk` over several days.
 
+**Wave 4 (2026-11-26, later):** D124 (probability outputs in percent, eight models), D125 (one in-season rule; every insect a season, derived from our runs: provisional, for Ben), names; `/map` on phones, its county table and links; `/models` and the model pages; a model at a site with its chart and table; risk sparklines on cards and the site page. Suite 4,680 and Playwright 54 pass. The dev archive's ingredients were being rebuilt for the version bumps (`manage.py ingredients`, ~2 h, started 16:50).
+
 **Next, in order:**
 
-1. **Wave 4** (named in the plan): the backend fixes wave 3 found (probability models return fractions but declare '%': tar spot's 0.61 shown as '%', so each needs a version bump; insects have no season, so `/risk` lists 27 models "in season" in November while home shows 3; `/risk` lists retired models; names such as "Colorado Potato Beetle (Adults)"); the map explorer's phone sheet, county table and links; a model at a site with risk sparklines; the model catalog and pages.
+1. **Wave 5:** track 3's remaining steps (Degree days and Data tabs, groups and preferences, the one-model feed, click-to-site), topic pages and the methods page (track 4), and the `_estimated`-on-null finding; then tracks 5–8.
 2. **Ben, small:** today's precipitation shows "—" (the day isn't over; or "not counted yet"); 2- and 3-level risk scales borrow the probability colours (or add the API's BuYlRd_2/3 as tokens).
 3. **Restart `bin/dev`** after pulling: dependencies changed in wave 1 (a stale Vite serves blank pages).
 4. Then the rest of tracks 2 and 3, and tracks 4–8 as the plan orders them; Phase 6's carried items (models C–G and J, humidity, cropland's follow-ons) alongside.
