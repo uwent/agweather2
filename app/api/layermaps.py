@@ -1611,7 +1611,7 @@ def cached(a: LayerAsk, window: Window, now: datetime, data_stamp: Any) -> Compu
 
 
 # Maps kept on disk (`settings.MAP_CACHE_DIR`), so every web worker and a restarted one find a map any of them or the
-# precomputing job (`api.precompute`, step 7 D5) computed: pickled and compressed (cells outside the coverage are
+# precomputing job (`ops.precompute`, Phase 6 step 7 D5) computed: pickled and compressed (cells outside the coverage are
 # missing). The key holds the data stamp, so a map isn't read after its data changes; `prune_disk` deletes old ones.
 DISK_KEEP_DAYS = 2
 

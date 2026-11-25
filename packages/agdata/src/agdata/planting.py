@@ -8,8 +8,8 @@ sources (D34).
 
 Potato comes from `data/potato_planting.csv` (`scripts/build_potato_planting.py`): the early, mid and late planting
 dates UW Vegetable Pathology's newsletters give at Wisconsin's potato areas, averaged over 2020–2026. It's interim
-(D64): served only within `POTATO_RADIUS_KM` of one of those places, until Phase 6's climatology estimates planting
-on the grid. A crop growth model's default biofix is the typical date where it has one (its topic id is the crop
+(D64): served only within `POTATO_RADIUS_KM` of one of those places, until potato planting is estimated
+on the grid (a follow-on of the cropland store, D116, planned first). A crop growth model's default biofix is the typical date where it has one (its topic id is the crop
 here), and the user can always set their own.
 """
 

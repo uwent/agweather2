@@ -27,7 +27,7 @@ REQUEST_TRIES = 2
 
 class Unavailable(Exception):
     """Open-Meteo couldn't be reached or didn't answer in time (after `openmeteo.fetch`'s retries), so a point it
-    serves has no weather for now; the API answers 503."""
+    serves has no weather for now: the API answers 503 (`weather_unavailable`), or, where only the forecast or soil fill inside the box was asked of it (D114, D44), the observed days with a warning."""
 
 
 def spans(first: date, last: date, today: date) -> list[tuple[str, date, date]]:

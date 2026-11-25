@@ -185,7 +185,7 @@ def update_crop_tiers(timestamp: int) -> None:
 
 @app.task(queue="maintenance", queueing_lock="precompute_maps", task_middleware=JOB_MIDDLEWARE)
 def precompute_maps(timestamp: int) -> None:
-    """The default maps of every model and the main weather layers (`ops.precompute`, step 7 D5), computed into the
+    """The default maps of every model and the main weather layers (`ops.precompute`, Phase 6 step 7 D5), computed into the
     disk cache so a visitor's first map is a read. Queued after the crop stages; reads only, so no write lock."""
     from ops import precompute
 
