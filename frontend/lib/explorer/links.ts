@@ -10,11 +10,10 @@ export function sitePath(lat: number, lng: number, name?: string | null): string
   return name ? `${path}?${new URLSearchParams({ name })}` : path
 }
 
-// TODO(wave 4 merge): these become `routes.model({ id })` and `routes.siteModel({ lat, lng, id })` once those
-// pages' URL names (`model`, `site-model`) are in routes.ts
+// TODO: a model at a site becomes `routes.siteModel` once its URL name (`site-model`) is in routes.ts
 
 /** A model's page (`/models/late-blight-dsv`) */
-export const modelPath = (id: string): string => `/models/${encodeURIComponent(id)}`
+export const modelPath = (id: string): string => routes.model({ model_id: id })
 
 /** A model at a site (`/sites/43.07,-89.4/models/late-blight-dsv`), with the place's name where there is one */
 export function siteModelPath(lat: number, lng: number, id: string, name?: string | null): string {
