@@ -12,7 +12,7 @@ Each phase ends with an exit gate, which includes the end-of-phase review (CLAUD
 | [Phase 3: Model library](phase-3-model-library.md) | Built 2026-10-29 (M) | `agmodels`: the model spec, hourly features, season series, the legacy ports and their parity fixtures |
 | [Phase 4: Forecast and blending](phase-4-forecast.md) | Built 2026-10-31 (L) | NBM, IFS and Open-Meteo stitched to the archive; its code review |
 | [Phase 5: API v2](phase-5-api.md) | Done 2026-11-06 (L) | The public API and its docs; its code review |
-| [Phase 6: Frontend plan and the data behind it](phase-6-frontend-plan-and-data.md) | **Current** (XL): the end-of-phase review | The frontend's decisions, climatology, climate endpoints, map images; the remaining backend work (steps 1–7) |
+| [Phase 6: Frontend plan and the data behind it](phase-6-frontend-plan-and-data.md) | Done 2026-11-26 (XL); step 4's open parts beside Phase 7 | The frontend's decisions, climatology, climate endpoints, map images; the remaining backend work (steps 1–7) |
 | [Models](models.md) | Beside Phase 6 step 4; its open parts beside Phase 7 | More models and a write-up for each: apple, the insects' review (part H), validation reports and topic pages; parts C–G and J open |
 | [Humidity outside Wisconsin](humidity.md) | Beside Phase 6 | D100's follow-up: a correction of Open-Meteo's humidity fitted against URMA |
 | [Phase 7: Web app, accounts and email](phase-7-web-app.md) | Sketch (XL) | The site, from WISP 3's frontend and [frontend.md](../frontend.md) |
