@@ -118,6 +118,7 @@ def test_the_api_lists_and_serves_them(data_dir, client):
     response = client.get("/downloads/daily/2025/precipitation_sum_2025.nc")
     assert response.status_code == 200
     assert int(response["Content-Length"]) == first["bytes"]
+    response.close()  # the file it streams
     status = client.get("/api/v2/status").json()["data"]["downloads"]
     assert status["files"] == len(NAMES)
 
