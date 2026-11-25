@@ -110,7 +110,7 @@ def archive_pressure_kpa(data_dir: Path, window: Window, before: date) -> np.nda
     count = np.zeros(window.shape)
     for year in sorted({d.year for d in days}):
         try:
-            store = GridStore.open(data_dir, DAILY, year, DAILY_VARIABLES.values(), add_missing=True)
+            store = GridStore.open(data_dir, DAILY, year, [DAILY_VARIABLES["surface_pressure_mean"]], read_only=True)
         except FileNotFoundError:
             continue
         in_year = sorted(d for d in days if d.year == year)
