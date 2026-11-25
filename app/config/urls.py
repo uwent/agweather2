@@ -30,3 +30,7 @@ urlpatterns = [
 if settings.DEBUG or settings.TESTING:
     # The yearly downloads (ops.downloads); in production Caddy serves them from the data volume
     urlpatterns.append(re_path(r"^downloads/(?P<path>.+)$", ops.download, name="downloads"))
+
+if settings.DEBUG:
+    # A page for reviewing the map and chart parts ported from WISP 3 (Phase 7 wave 1); wave 2 replaces it
+    urlpatterns.append(path("dev/map", web.dev_map_demo, name="dev-map-demo"))
