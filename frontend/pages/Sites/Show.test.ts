@@ -23,6 +23,7 @@ vi.mock('@/lib/sites.svelte', () => ({
   siteAt: () => store.saved ?? undefined,
   isSaved: () => store.saved !== null,
   addSite: store.addSite,
+  effectivePrefs: () => ({ crops: undefined, models: undefined, hiddenModels: [], options: {}, planting: undefined }),
 }))
 
 const { default: Show } = await import('./Show.svelte')
@@ -162,5 +163,23 @@ describe('the site page', () => {
     expect(params).toMatchObject({ start: '2026-11-18', units: 'metric', forecast: true })
     expect(params.vars).toContain('air_temperature')
     expect(get.mock.calls.some(([path]) => path === '/risk')).toBe(false)
+  })
+
+  it("lists the models by crop with today's risk and their sparklines, from the Overview's one request", async () => {
+    const riskSpan = (await import('@/test/fixtures/site/risk-span.json')).default
+    get.mockImplementation((path: string) => Promise.resolve(path === '/risk' ? riskSpan : ANSWERS[path]))
+    window.history.replaceState(null, '', '/sites/44.12,-89.52?tab=models')
+    render(Show, props)
+    const potato = await screen.findByRole('region', { name: 'Potato' })
+    const link = within(potato).getByRole('link', { name: 'Potato volunteer survival' })
+    expect(link).toHaveAttribute('href', '/sites/44.12,-89.52/models/potato-volunteer')
+    await vi.waitFor(() => expect(within(potato).getByText('Very high')).toBeInTheDocument())
+    expect(
+      within(potato).getByRole('img', { name: /^Potato volunteer survival: Very high through Dec 5\.$/ }),
+    ).toBeInTheDocument()
+    expect(get.mock.calls.filter(([path]) => path === '/risk')).toHaveLength(1)
+    await fireEvent.click(screen.getByRole('tab', { name: 'Overview' }))
+    expect(await screen.findByRole('list', { name: 'Risk today by model' })).toBeInTheDocument()
+    expect(get.mock.calls.filter(([path]) => path === '/risk')).toHaveLength(1)
   })
 })
