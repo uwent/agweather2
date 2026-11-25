@@ -39,6 +39,8 @@ SERVICE_BOX = os.environ.get("SERVICE_BOX", "wisconsin")
 # Tests never read the real archive: their fixtures point DATA_DIR at their own, and otherwise it's a folder that
 # doesn't exist (the terrain store in data/ once leaked into region tests through regions.use_terrain)
 DATA_DIR = Path(os.environ.get("DATA_DIR", REPO_DIR / ("tmp/no-data-under-test" if TESTING else "data")))
+# Maps computed for tiles and images, kept on disk for every web worker (`api.layermaps`, step 7 D5); off under test
+MAP_CACHE_DIR: Path | None = None if TESTING else DATA_DIR / "maps" / "computed"
 OPEN_METEO_API_KEY = os.environ.get("OPEN_METEO_API_KEY") or None  # the customer hosts; None: the free ones
 COPERNICUS_API_KEY = os.environ.get("COPERNICUS_API_KEY") or None  # the CDS, for ERA5-Land (D52); None: no job
 # The worker's jobs recorded as runs in DATA_DIR/runs/ for the dashboard (ops.jobruns): development only

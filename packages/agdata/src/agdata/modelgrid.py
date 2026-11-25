@@ -412,9 +412,16 @@ def _stored_season(data_dir, model_id: str, first: date, last: date, window: Win
     if first.year != last.year:
         return None
     start, end = seasonmaps.season(model_id, first.year)
+    keys = seasonmaps.names(model_id)
+    if last < start or first > end:  # wholly out of the season it's shown in: nothing to show, nothing to compute
+        base, reader = _base(data_dir, spec, first, last, window, now, stores, keys)
+        dates = [first + timedelta(days=k) for k in range(len(base.steps))]
+        empty = np.full((len(dates), *window.shape), np.nan)
+        outputs = {q.name: empty.copy() for q in spec.outputs}
+        risk = None if spec.risk is None else empty.copy()
+        return _finished(spec, base, dates, outputs, risk, risk, reader, cells=empty)
     if first < start or last > end:
         return None
-    keys = seasonmaps.names(model_id)
     base, reader = _base(data_dir, spec, first, last, window, now, stores, keys)
     dates = [first + timedelta(days=k) for k in range(len(base.steps))]
     archive_last = min(last, reader.cut - timedelta(days=1))

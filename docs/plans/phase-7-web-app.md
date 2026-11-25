@@ -25,3 +25,5 @@ Then the tools that compose Phase 6's data, each with its page (specialized endp
 - Moved 2026-11-17 to Phase 6's remaining backend work, step 4 (the write-ups, before the frontend). **Model page content in structured form:** what to do at each risk level (NEWA's management guidance), the susceptible stages and the valid-use warning (the Crop Risk Tool's), each model's acknowledgments; in its Markdown front matter or spec, served by `/models/{id}`. M (content for ~50 models; the model review's content step, started here). Starts here and continues alongside the later tracks; it's writing, not code.
 
 - **Exit:** beta users on the new site; digests and alerts verified on staging for test sites.
+
+- [ ] **Precomputed maps' days** (from Phase 6 step 7 D5, Ben 2026-11-25): add the next 7 forecast days to `ops.precompute.DAYS` once the map explorer steps through days, so each is instant for any visitor (default settings).

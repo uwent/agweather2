@@ -20,16 +20,21 @@ A daily variable that a newer version of its code hasn't rebuilt yet (D29: betwe
 is computed from the hours for up to MAX_STALE_DAYS days; a longer range is a 503 until the rebuild is done.
 """
 
+import hashlib
 import itertools
 import json
+import os
+import pickle
 import threading
 import time
+import zlib
 from collections import OrderedDict
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, Literal
 
 import numpy as np
+from django.conf import settings
 from django.http import HttpRequest
 from ninja import Schema
 
@@ -1587,7 +1592,12 @@ def cached(a: LayerAsk, window: Window, now: datetime, data_stamp: Any) -> Compu
             if found is not None:
                 return found
         try:
-            found = compute(a, window, now)
+            found = _from_disk(key)
+            if found is None:
+                found = compute(a, window, now)
+                _to_disk(key, found)
+            else:
+                a.warnings += [n for n in found.notes if n not in a.warnings]
         except BaseException:
             with _maps_lock:
                 _computing.pop(key, None)
@@ -1598,6 +1608,59 @@ def cached(a: LayerAsk, window: Window, now: datetime, data_stamp: Any) -> Compu
                 _maps.popitem(last=False)
             _computing.pop(key, None)  # a request already waiting holds the lock and finds the result kept
     return found
+
+
+# Maps kept on disk (`settings.MAP_CACHE_DIR`), so every web worker and a restarted one find a map any of them or the
+# precomputing job (`api.precompute`, step 7 D5) computed: pickled and compressed (cells outside the coverage are
+# missing). The key holds the data stamp, so a map isn't read after its data changes; `prune_disk` deletes old ones.
+DISK_KEEP_DAYS = 2
+
+
+def _disk_path(key: str):
+    root = settings.MAP_CACHE_DIR
+    return None if root is None else root / f"{hashlib.sha256(key.encode()).hexdigest()[:40]}.map"
+
+
+def _from_disk(key: str) -> Computed | None:
+    path = _disk_path(key)
+    if path is None or not path.exists():
+        return None
+    try:
+        found = pickle.loads(zlib.decompress(path.read_bytes()))
+    except (OSError, zlib.error, pickle.UnpicklingError, EOFError, AttributeError):
+        return None  # a half-written or older file: computed again
+    return found if isinstance(found, Computed) else None
+
+
+def _to_disk(key: str, found: Computed) -> None:
+    path = _disk_path(key)
+    if path is None:
+        return
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_suffix(f".{os.getpid()}.tmp")
+        temporary.write_bytes(zlib.compress(pickle.dumps(found, protocol=pickle.HIGHEST_PROTOCOL), 1))
+        os.replace(temporary, path)
+    except OSError:
+        pass  # a full or read-only disk costs only the cache
+
+
+def prune_disk(now: float | None = None) -> int:
+    """Deletes maps kept on disk more than DISK_KEEP_DAYS ago, and temporary files; returns how many. For
+    `ops.tasks.housekeeping`."""
+    root = settings.MAP_CACHE_DIR
+    if root is None or not root.exists():
+        return 0
+    cutoff = (time.time() if now is None else now) - DISK_KEEP_DAYS * 86400
+    deleted = 0
+    for path in root.iterdir():
+        try:
+            if path.stat().st_mtime < cutoff:
+                path.unlink(missing_ok=True)
+                deleted += 1
+        except OSError:
+            continue
+    return deleted
 
 
 def _kept(a: LayerAsk, key: str) -> Computed | None:

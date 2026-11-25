@@ -173,7 +173,8 @@ The worker in `bin/dev` keeps the archive current:
 | `ingest_forecast`     | :15 and :45    | the newest NBM run, after rolling up the days behind         |
 | `ingest_ifs`          | hourly, at :50 | the provisional soil and snow                                |
 | `ingest_era5land`     | every 6 hours  | ERA5-Land, about 5 days behind                               |
-| `update_crop_tiers`   | after an update or a new run | each crop's stages per planting tier, while in season |
+| `update_crop_tiers`   | after an update or a new run | each crop's stages per planting tier and the stored disease seasons, while in season |
+| `precompute_maps`     | after the crop stages | every model's and the main weather layers' latest map, kept on disk for visitors |
 | `build_past_years`    | Mondays        | the past-years copies                                        |
 | `build_downloads`     | Mondays        | the yearly NetCDF downloads                                  |
 | `housekeeping`        | daily, at 4:10 | drops API rate-limit counts over a week old and map images unused for 14 days |

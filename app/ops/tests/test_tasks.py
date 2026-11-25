@@ -165,7 +165,8 @@ def daily_store(settings, tmp_path):
 
 
 def test_the_crop_tiers_job_refreshes_the_archives_window_through_the_jobs_day(daily_store, monkeypatch):
-    seen = []
+    seen, queued = [], []
+    monkeypatch.setattr(tasks.precompute_maps, "defer", lambda **kwargs: queued.append(kwargs))
 
     def refresh(data_dir, window, today, lock):
         seen.append((window, today))
@@ -174,9 +175,12 @@ def test_the_crop_tiers_job_refreshes_the_archives_window_through_the_jobs_day(d
     monkeypatch.setattr(tasks.croptiers, "refresh", refresh)
     tasks.update_crop_tiers(NOW)
     assert seen == [(daily_store, datetime.fromtimestamp(NOW, UTC).date())]
+    assert queued == [{"timestamp": NOW}]  # then the default maps, which read what it wrote
 
 
 def test_the_crop_tiers_job_skips_an_empty_archive_and_a_held_lock(daily_store, monkeypatch, caplog):
+    monkeypatch.setattr(tasks.precompute_maps, "defer", lambda **kwargs: None)
+
     def refresh(*args, **kwargs):
         raise WriteLocked("another job or command is writing (pid 7)", holder="7")
 

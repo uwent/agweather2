@@ -5,7 +5,7 @@ from datetime import date, timedelta
 import numpy as np
 import pytest
 
-from agdata import croptiers, cumulative, modelgrid, modelmaps
+from agdata import croptiers, cumulative, modelgrid, modelmaps, seasonmaps
 from agdata.catalog import DAILY_VARIABLES, GAP_FILL
 from agdata.grid import NDFD
 from agdata.store import DAILY, INGREDIENTS, GridStore
@@ -127,6 +127,10 @@ def test_a_maps_cell_is_the_model_run_at_that_cell(built, model_id):
     units = {q.name: q.unit for q in m.SPEC.outputs}
     for day in DAYS:
         found = modelgrid.model_map(root, model_id, day, day, WINDOW, tier=None)
+        start, end = seasonmaps.season(model_id, day.year) if model_id in modelmaps.SEASON_MODELS else (day, day)
+        if not start <= day <= end:  # a season-stored model shows nothing out of its season (D109)
+            assert all(np.isnan(v).all() for v in found.outputs.values()), (model_id, day)
+            continue
         assert found.reads > 0 and not found.stale
         for y in range(WINDOW.shape[0]):
             for x in range(WINDOW.shape[1]):
@@ -443,8 +447,6 @@ def test_a_stored_season_is_the_map_computed_on_request(built, tmp_path, model_i
     what's kept, a map is computed on request as before."""
     import shutil
 
-    from agdata import seasonmaps
-
     root = tmp_path / "root"
     shutil.copytree(built[0], root)
     assert seasonmaps.update(root, WINDOW, 2025, DAYS[1])
@@ -469,8 +471,13 @@ def test_a_stored_season_is_the_map_computed_on_request(built, tmp_path, model_i
             np.testing.assert_array_equal(stored.risk, computed.risk)
         assert stored.cell_biofix is not None and computed.cell_biofix is not None
         np.testing.assert_array_equal(stored.cell_biofix[-1], computed.cell_biofix[-1])
-    modelgrid.model_map(root, model_id, DAYS[2], DAYS[2], WINDOW, tier=tier)  # past what's kept
+    past = DAYS[1] + timedelta(days=5)  # in season, past what's kept
+    modelgrid.model_map(root, model_id, past, past, WINDOW, tier=tier)
     assert computed_on_request
+    computed_on_request.clear()
+    after = seasonmaps.season(model_id, 2025)[1] + timedelta(days=1)
+    gone = modelgrid.model_map(root, model_id, after, after, WINDOW, tier=tier)  # out of season: nothing computed
+    assert computed_on_request == [] and all(np.isnan(v).all() for v in gone.outputs.values())
     if tier is not None:  # another tier isn't kept
         computed_on_request.clear()
         modelgrid.model_map(root, model_id, DAYS[0], DAYS[0], WINDOW, tier="early")

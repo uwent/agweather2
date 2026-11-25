@@ -167,6 +167,19 @@ def update_crop_tiers(timestamp: int) -> None:
             logger.info("disease seasons written: %s", {where: len(names) for where, names in seasons.items()})
     except WriteLocked as error:
         logger.warning("update_crop_tiers skipped: %s", error)
+    precompute_maps.defer(timestamp=timestamp)  # the maps read what it wrote
+
+
+@app.task(queue="maintenance", queueing_lock="precompute_maps", task_middleware=JOB_MIDDLEWARE)
+def precompute_maps(timestamp: int) -> None:
+    """The default maps of every model and the main weather layers (`ops.precompute`, step 7 D5), computed into the
+    disk cache so a visitor's first map is a read. Queued after the crop stages; reads only, so no write lock."""
+    from ops import precompute
+
+    done = precompute.run()
+    logger.info("precomputed %d maps in %.0f s", done.maps, done.seconds)
+    if done.failed:
+        logger.warning("maps not precomputed: %s", done.failed)
 
 
 @app.periodic(cron="0 5 * * 1")  # Mondays, after the past-years copies: past years settle, this year's is weekly
@@ -185,6 +198,7 @@ def build_downloads(timestamp: int) -> None:
 def housekeeping(timestamp: int) -> None:
     """Daily cleanup: deletes the API's usage counts (`ops.models.ApiUsage`, D69) older than a week, and the kept
     static map images (`api.routes.maps`, D60) unused for two weeks, with any temporary files left by a crash."""
+    from api import layermaps
     from api.routes import maps
     from ops.models import ApiUsage
 
@@ -194,6 +208,9 @@ def housekeeping(timestamp: int) -> None:
     stale = maps.prune_stale()
     if stale:
         logger.info("maps: %d unused images deleted", stale)
+    old = layermaps.prune_disk()
+    if old:
+        logger.info("maps: %d computed maps kept over %d days deleted", old, layermaps.DISK_KEEP_DAYS)
 
 
 # The order `manage.py jobs run all` and `jobs start` use: the archive first, then soil (IFS's provisional hours, then

@@ -267,3 +267,47 @@ def test_a_map_asked_for_twice_at_once_is_computed_once(monkeypatch):
         t.join()
     assert len(calls) == 1 and len(found) == 3 and found[0] is found[1] is found[2]
     assert layermaps._computing == {}
+
+
+def test_a_computed_map_is_kept_on_disk_for_every_worker(monkeypatch, settings, tmp_path):
+    """Step 7 D5: a map computed by one process is read from disk by another (here, after the memory is cleared)."""
+    import os
+    import time
+    from datetime import UTC, datetime
+    from types import SimpleNamespace
+    from typing import Any, cast
+
+    from agdata.grid import Window
+    from api import layermaps
+
+    settings.MAP_CACHE_DIR = tmp_path / "computed"
+    calls = []
+
+    def compute(a, window, now):
+        calls.append(1)
+        return layermaps.Computed(
+            values=np.ones((1, 2, 2)),
+            kinds=["observed"],
+            extra={},
+            sources=(),
+            run=cast(Any, None),
+            steps=[],
+            from_cubes=False,
+            ms=1.0,
+            notes=["kept"],
+        )
+
+    monkeypatch.setattr(layermaps, "compute", compute)
+    ask = lambda: SimpleNamespace(echo=lambda: {"layer": "test-disk"}, count_bounds=None, warnings=[])  # noqa: E731
+    window, now = Window(j0=0, j1=2, i0=0, i1=2), datetime(2025, 7, 1, tzinfo=UTC)
+    first = layermaps.cached(cast(Any, ask()), window, now, "stamp")
+    layermaps._maps.clear()  # another worker
+    again = cast(Any, ask())
+    second = layermaps.cached(again, window, now, "stamp")
+    assert calls == [1] and again.warnings == ["kept"]
+    np.testing.assert_array_equal(second.values, first.values)
+    (kept,) = settings.MAP_CACHE_DIR.iterdir()
+    assert layermaps.prune_disk() == 0
+    old = time.time() - (layermaps.DISK_KEEP_DAYS + 1) * 86400
+    os.utime(kept, (old, old))
+    assert layermaps.prune_disk() == 1 and not kept.exists()
