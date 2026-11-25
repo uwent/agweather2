@@ -21,6 +21,9 @@ export const routes = {
   map: (): string => '/map',
   /** site: /sites/<lat>,<lng> */
   site: (params: { lat: string; lng: string }): string => `/sites/${part(params.lat)},${part(params.lng)}`,
+  /** site-model: /sites/<lat>,<lng>/models/<model_id> */
+  siteModel: (params: { lat: string; lng: string; model_id: string }): string =>
+    `/sites/${part(params.lat)},${part(params.lng)}/models/${part(params.model_id)}`,
   /** sites: /sites */
   sites: (): string => '/sites',
   /** up: /up */

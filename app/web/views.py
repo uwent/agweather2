@@ -1,13 +1,16 @@
+from django.conf import settings
 from django.http import Http404, HttpRequest
 from django.urls import reverse
 
+from agdata.series import archive_years
 from agmodels import croplist
 from agmodels.registry import all_models
 from web import home as home_content
 from web.catalog import crop_entries, model_entries
 from web.inertia import render
 from web.middleware import grid_today
-from web.props import HomeProps, MapExplorerProps, SiteCrop, SiteModel, SiteProps, SitesIndexProps
+from web.props import HomeProps, MapExplorerProps, SiteCrop, SiteModel, SiteModelProps, SiteProps, SitesIndexProps
+from web.sitemodel import model_info, shown_spec
 
 # The longest `?name=` a site page shows from a link
 NAME_LENGTH = 80
@@ -39,10 +42,8 @@ def map_explorer(request: HttpRequest):
 
 def site(request: HttpRequest, lat: str, lng: str):
     """A site's page, saved or not (F1): any point by its coordinates, which the URL pattern takes as numbers only."""
-    latitude, longitude = float(lat), float(lng)
-    if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
-        raise Http404("No such location")
-    name = " ".join(request.GET.get("name", "").split())[:NAME_LENGTH] or None
+    latitude, longitude = _point(lat, lng)
+    name = _name(request)
     specs = sorted((m.SPEC for m in all_models().values() if m.SPEC.status != "retired"), key=lambda s: s.name.lower())
     models = [
         SiteModel(
@@ -57,3 +58,32 @@ def site(request: HttpRequest, lat: str, lng: str):
     ]
     crops = [SiteCrop(id=c.id, name=c.name) for c in croplist.CROPS.values()]
     return render(request, "Sites/Show", SiteProps(lat=latitude, lng=longitude, name=name, models=models, crops=crops))
+
+
+def _point(lat: str, lng: str) -> tuple[float, float]:
+    latitude, longitude = float(lat), float(lng)
+    if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+        raise Http404("No such location")
+    return latitude, longitude
+
+
+def _name(request: HttpRequest) -> str | None:
+    return " ".join(request.GET.get("name", "").split())[:NAME_LENGTH] or None
+
+
+def site_model(request: HttpRequest, lat: str, lng: str, model_id: str):
+    """A model at a site (track 3 step 6): its content as props, its run from the API in the browser. Not found for
+    a model we don't have or have retired."""
+    latitude, longitude = _point(lat, lng)
+    spec = shown_spec(model_id)
+    if spec is None:
+        raise Http404("No such model")
+    this_year = grid_today().year
+    years = sorted((y for y in archive_years(settings.DATA_DIR) if y <= this_year), reverse=True)
+    if this_year not in years:
+        years.insert(0, this_year)
+    return render(
+        request,
+        "Sites/Model",
+        SiteModelProps(lat=latitude, lng=longitude, name=_name(request), model=model_info(spec), years=years),
+    )
