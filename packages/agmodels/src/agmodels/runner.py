@@ -24,7 +24,7 @@ from typing import Any, cast
 import numpy as np
 
 from agmodels.crops import CropModel, date_susceptibility, disease_susceptibility, stage_days
-from agmodels.gaps import GapFill, fill_inputs
+from agmodels.gaps import GapFill, fill_inputs, no_value
 from agmodels.phenology import PhenologyModel, window_periods
 from agmodels.registry import model as find_model
 from agmodels.seasons import in_season
@@ -197,7 +197,8 @@ def run(
 
     result.inputs = {q.name: raw[q.name][shown:] for q in spec.inputs}
     result.estimated = {q.name: estimated[q.name][shown:] for q in spec.inputs if estimated[q.name][shown:].any()}
-    gaps = {q.name: unfilled_gaps(daily[q.name]) for q in spec.inputs}
+    blank = no_value(raw)  # a conditional mean's null on a day without its hours is no gap
+    gaps = {q.name: unfilled_gaps(daily[q.name], answered=blank.get(q.name)) for q in spec.inputs}
     result.missing = {name: gap[shown:] for name, gap in gaps.items() if gap[shown:].any()}
     before = {name: int(np.max(np.sum(gap[:shown], axis=0), initial=0)) for name, gap in gaps.items()}
     result.missing_before = {name: count for name, count in before.items() if count}
@@ -233,10 +234,13 @@ def run(
     return result
 
 
-def unfilled_gaps(filled: np.ndarray) -> np.ndarray:
+def unfilled_gaps(filled: np.ndarray, answered: np.ndarray | None = None) -> np.ndarray:
     """The days of an input (filled, days on axis 0) still missing with a value on each side: a gap longer than the
-    fill reaches (D56). Days before the data start or after they end aren't a gap: the series reaches past them."""
+    fill reaches (D56). Days before the data start or after they end aren't a gap: the series reaches past them.
+    `answered` marks nulls that are the day's answer, not missing data (a conditional mean's, `gaps.no_value`)."""
     valid = np.isfinite(np.asarray(filled, dtype=float))
+    if answered is not None:
+        valid = valid | answered
     earlier = np.logical_or.accumulate(valid, axis=0)
     later = np.flip(np.logical_or.accumulate(np.flip(valid, axis=0), axis=0), axis=0)
     return ~valid & earlier & later

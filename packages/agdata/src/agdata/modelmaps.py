@@ -40,7 +40,7 @@ from agdata.catalog import DAILY_VARIABLES, GAP_FILL, Variable
 from agdata.grid import Window
 from agdata.store import DAILY, INGREDIENTS, GridStore
 from agmodels.accumulate import cumsum_days
-from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps, fill_zero
+from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps, fill_zero, no_value
 from agmodels.ingredients import LOOKBACK_DAYS, Ingredient
 from agmodels.registry import all_models
 from agmodels.spec import Model
@@ -523,7 +523,7 @@ def _compute(data_dir, run, run_first, band: Window, begin: date, end: date, ahe
         "day_of_year": np.array([d.timetuple().tm_yday for d in dates], dtype=float),
         "year": np.array([d.year for d in dates], dtype=float),
     }
-    inputs = {name: _filled(name, _read(data_dir, run, run_first, name, read_from, n, band)) for name in names}
+    inputs, blank = filled_inputs({name: _read(data_dir, run, run_first, name, read_from, n, band) for name in names})
     values: dict[str, np.ndarray] = {}
     for m, wanted in computing:
         out = m.ingredients({q.name: inputs[q.name] for q in m.SPEC.inputs} | context)  # type: ignore[attr-defined]
@@ -532,17 +532,22 @@ def _compute(data_dir, run, run_first, band: Window, begin: date, end: date, ahe
             values[s.key] = np.asarray(out[s.ingredient.name], dtype=np.float32)[keep]
             if s.total:
                 if gone is None:
-                    gone = _gone([inputs[q.name] for q in m.SPEC.inputs])[keep]
+                    names_ = [q.name for q in m.SPEC.inputs]
+                    gone = _gone([inputs[x] for x in names_], answered=[blank.get(x) for x in names_])[keep]
                 values[missing_key(s.key)] = gone
     return values
 
 
-def _gone(inputs: list[np.ndarray]) -> np.ndarray:
+def _gone(inputs: list[np.ndarray], answered: list[np.ndarray | None] | None = None) -> np.ndarray:
     """The days any input (filled) is still missing after the gap fill (D56), from the first day every input had a
     value in what's read (the lookback included): days before the weather starts aren't a gap. Days at the end are
     counted, as the update that writes them can't know whether data will follow; a map leaves out a day with no data
-    anywhere (the run's partial last day)."""
-    valid = np.all([np.isfinite(v) for v in inputs], axis=0)
+    anywhere (the run's partial last day). `answered`, beside each input, marks its nulls that are the day's answer
+    rather than missing data (a conditional mean's, `agmodels.gaps.no_value`)."""
+    answered = answered or [None] * len(inputs)
+    valid = np.all(
+        [np.isfinite(v) if a is None else np.isfinite(v) | a for v, a in zip(inputs, answered, strict=True)], axis=0
+    )
     seen = np.logical_or.accumulate(valid, axis=0)
     return ~valid & seen
 
@@ -584,6 +589,18 @@ def interior_gaps(flat: np.ndarray) -> np.ndarray:
         found |= ~valid[d] & seen & later[d]
         seen |= valid[d]
     return found
+
+
+def filled_inputs(raw: dict[str, np.ndarray]) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+    """Each daily input with the runner's gap estimate (`_filled`, D45), as `agmodels.gaps.fill_inputs` fills a
+    point's, and a conditional mean's no-value days (`agmodels.gaps.no_value`): those stay null, not estimated.
+    Fills `raw`'s arrays in place."""
+    blank = no_value(raw)
+    filled = {name: _filled(name, values) for name, values in raw.items()}
+    for name, mask in blank.items():
+        if mask.any():
+            filled[name][mask] = np.nan
+    return filled, blank
 
 
 def _filled(name: str, values: np.ndarray) -> np.ndarray:

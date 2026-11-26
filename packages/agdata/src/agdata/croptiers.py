@@ -145,10 +145,9 @@ def _tiers_block(
     spec = m.SPEC
     options = {o.name: o.default for o in spec.options}
     n = (end - begin).days + 1
-    inputs = {
-        q.name: modelmaps._filled(q.name, modelmaps._read(data_dir, run, run_first, q.name, begin, n, part))
-        for q in spec.inputs
-    }
+    inputs, _ = modelmaps.filled_inputs(
+        {q.name: modelmaps._read(data_dir, run, run_first, q.name, begin, n, part) for q in spec.inputs}
+    )
     store = GridStore.open(root, INGREDIENTS, year, modelmaps.variables())
     out = {}
     for tier, (sown, write_from) in planted.items():
