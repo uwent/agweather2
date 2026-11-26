@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 
 import { SAVED, stubSiteData } from './sites'
 import { stubDataApi } from './dataApi'
-import { stubFeedApi, stubSiteApi } from './siteApi'
+import { stubFeedApi, stubFreezeApi, stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
 // Every page loads with no console errors (a CSP violation shows as one) and no failed requests
@@ -363,6 +363,20 @@ test('oak wilt: the restricted period at a location, its chart and DNR’s rules
   await expect(page.getByRole('heading', { name: 'The season' })).toBeVisible()
   await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
   await expect(page.getByRole('heading', { name: 'Managing oak wilt' })).toBeVisible()
+})
+
+// The freeze tool (track 5)
+test('freeze dates and odds: this year against the typical dates, the odds and a date looked up', async ({ page }) => {
+  await stubFreezeApi(page)
+  await page.goto('/tools/freeze')
+  await expect(page.getByRole('heading', { level: 1, name: 'Freeze dates and odds' })).toBeVisible()
+  await page.goto('/tools/freeze?at=43.07,-89.4')
+  await expect(page.getByText(/first frost \(32 °F\) came on November 14/).first()).toBeVisible()
+  await expect(page.getByRole('heading', { level: 3, name: 'Killing freeze (24 °F)' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Chance of a freeze by date', exact: true })).toBeVisible()
+  await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
+  await expect(page.getByRole('heading', { name: 'Look up a date' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /typical first fall frost/ })).toBeVisible()
 })
 
 test('health check', async ({ request }) => {

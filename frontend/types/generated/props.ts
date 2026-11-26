@@ -281,9 +281,16 @@ export interface DataStatus {
  */
 export interface DegreeDaysToolProps {}
 /**
- * Freeze dates and odds (`/tools/freeze`, track 5).
+ * Freeze dates and odds (`/tools/freeze`, track 5): the years our own archive holds. The place, its dates and
+ * odds the page fetches from the API (`/freeze`, `/climate/frost`, `/climate/frost/chances`, D117); a year before
+ * the archive's first comes from Open-Meteo.
  */
-export interface FreezeToolProps {}
+export interface FreezeToolProps {
+  /**
+   * The years with weather in our archive, newest first.
+   */
+  years: number[]
+}
 /**
  * The glossary (`/glossary`, track 7).
  */

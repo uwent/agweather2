@@ -534,7 +534,11 @@ class OakWiltToolProps(Props):
 
 
 class FreezeToolProps(Props):
-    """Freeze dates and odds (`/tools/freeze`, track 5)."""
+    """Freeze dates and odds (`/tools/freeze`, track 5): the years our own archive holds. The place, its dates and
+    odds the page fetches from the API (`/freeze`, `/climate/frost`, `/climate/frost/chances`, D117); a year before
+    the archive's first comes from Open-Meteo."""
+
+    years: list[int] = Field(description="The years with weather in our archive, newest first.")
 
 
 class CalendarProps(Props):

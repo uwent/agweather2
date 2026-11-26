@@ -207,7 +207,9 @@ def oak_wilt_tool(request: HttpRequest):
 
 
 def freeze_tool(request: HttpRequest):
-    return render(request, "Tools/Freeze", FreezeToolProps())
+    """Freeze dates and odds (track 5): the page fetches the place's dates and odds; the archive's years as props,
+    so a year before them is named as Open-Meteo's."""
+    return render(request, "Tools/Freeze", FreezeToolProps(years=_archive_years()))
 
 
 def calendar(request: HttpRequest):

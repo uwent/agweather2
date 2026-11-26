@@ -180,6 +180,7 @@ def test_dd_map_disease(dsv_model: str, layer: str):
 
 def test_frost_map_is_the_freeze_tool():
     assert to("/thermal-models/frost-map") == "/tools/freeze"
+    assert to("/thermal-models/frost-map", "lat=44.5&lng=-89.5") == "/tools/freeze?at=44.5,-89.5"
 
 
 def test_oak_wilt():

@@ -37,3 +37,19 @@ export async function stubSiteApi(page: Page) {
     return name ? route.fulfill({ json: fixture(name) }) : route.fallback()
   })
 }
+
+/** The freeze tool's answers (Madison, recorded for frontend/test/fixtures/climate), with the site's */
+export async function stubFreezeApi(page: Page) {
+  await stubSiteApi(page)
+  const climate = (name: string) =>
+    JSON.parse(readFileSync(new URL(`../frontend/test/fixtures/climate/${name}.json`, import.meta.url), 'utf8'))
+  const answers: Record<string, string> = {
+    '/api/v2/freeze': 'freeze',
+    '/api/v2/climate/frost': 'frost',
+    '/api/v2/climate/frost/chances': 'chances',
+  }
+  await page.route('**/api/v2/**', (route) => {
+    const name = answers[new URL(route.request().url()).pathname]
+    return name ? route.fulfill({ json: climate(name) }) : route.fallback()
+  })
+}
