@@ -115,15 +115,7 @@ def plan(
             "'cuts' checks the dates you give as they are, so it takes no 'interval' or 'count'. Leave out 'cuts' to schedule, or leave out 'interval' and 'count' to check your dates.",
             "cuts",
         )
-    interval_f = None if interval is None else interval * 1.8 if output.units == "metric" else interval
-    if interval_f is not None and not planner.INTERVAL_MIN - 0.5 <= interval_f <= planner.INTERVAL_MAX + 0.5:
-        unit = "°C·d" if output.units == "metric" else "GDD"
-        low, high, default = (_gdd(v, output.units) for v in planner.INTERVALS)
-        raise ApiError(
-            "out_of_range",
-            f"An interval of {interval:g} {unit} can't be used. Give one from {low} to {high} {unit} (base 41 °F); the default is {default}.",
-            "interval",
-        )
+    interval_f = _interval_f(interval, output.units)
     if count is not None and not planner.COUNT_MIN <= count <= planner.COUNT_MAX:
         raise ApiError(
             "out_of_range",
@@ -214,7 +206,7 @@ def plan(
     gaps = int(np.sum(result.from_normal[:kept])) if kept else 0
     if gaps:
         warnings.append(
-            f"{gaps} days of this year's weather are missing in gaps too long to estimate, so the plan uses the normal's degree days for them."
+            f"{gaps} {'day' if gaps == 1 else 'days'} of this year's weather {'is' if gaps == 1 else 'are'} missing in gaps too long to estimate, so the plan uses the normal's degree days for {'it' if gaps == 1 else 'them'}."
         )
     note = climate.few_years_warning(parts.years_with_data, asked.period, "this location")
     if note is not None:
@@ -257,6 +249,24 @@ def _one_point(where: PointsQuery) -> None:
             f"({lat}, {lng}) is outside the area we cover. A cutting plan reads the normal from our own gridded records, which exist only inside it.",
             "lat",
         )
+
+
+def _interval_f(interval: float | None, units: str) -> float | None:
+    """`interval=` in °F·d. The range is checked in the request's units against the whole numbers the error message
+    gives (444–667 °C·d), then held to 800–1,200 °F·d, so the ends of the range as written are taken."""
+    if interval is None:
+        return None
+    low, high, default = (_gdd(v, units) for v in planner.INTERVALS)
+    assert low is not None and high is not None
+    if not low - 0.5 <= interval <= high + 0.5:
+        unit, base = ("°C·d", "5 °C") if units == "metric" else ("GDD", "41 °F")
+        raise ApiError(
+            "out_of_range",
+            f"An interval of {interval:g} {unit} can't be used. Give one from {low} to {high} {unit} (base {base}); the default is {default}.",
+            "interval",
+        )
+    in_f = interval * 1.8 if units == "metric" else interval
+    return min(max(in_f, planner.INTERVAL_MIN), planner.INTERVAL_MAX)
 
 
 def _year(year: int | None, today: date) -> int:

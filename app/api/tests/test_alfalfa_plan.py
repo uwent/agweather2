@@ -77,6 +77,15 @@ def test_cuts_as_given_are_checked(client, climate_archive):
     assert p["fall"]["over"] == 5
 
 
+def test_metric_intervals_take_the_ends_of_their_range(client, climate_archive):
+    # 800–1,200 °F·d is 444–667 °C·d to the whole degree day, as the refusal says; 444 × 1.8 = 799.2 must be taken
+    for interval, in_f in ((444, 800), (667, 1200)):
+        p = ok(plan(client, interval=interval, units="metric"))["meta"]["summary"]["plan"]
+        assert p["interval"] == round(in_f / 1.8)
+    refused = error(plan(client, interval=443, units="metric"))
+    assert "from 444 to 667" in refused["message"] and "base 5 °C" in refused["message"]
+
+
 def test_an_unchanged_plan_is_not_sent_again(client, climate_archive):
     first = plan(client, interval=1100)
     again = client.get(
