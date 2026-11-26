@@ -1,0 +1,60 @@
+# Phase 7 status: built and on deck
+
+A running summary for Ben, kept current as agents' work merges (newest at the top of each list). The plan and its decisions are in [phase-7-web-app.md](phase-7-web-app.md); the handoff is PLAN.md's. Branch `phase-7` (from `main` after PR #1).
+
+Last updated: 2026-11-26, 23:45 CST.
+
+## Built (merged into `phase-7`)
+
+### Pages
+
+| Page | What it does |
+| --- | --- |
+| `/` | Place search, three headline maps by month, models in season by crop, saved sites, links by task, data through when |
+| `/map` | The map explorer: weather, degree days (presets, biofix, planting), crops and pests; day, range, season, hour; the date slider; map options (smoothing, palette, scale, opacity 80 %); title chip, legend, notes; cell panel with chart and links; county table with CSV; overlays; Share, Save image, GeoTIFF/NetCDF/TileJSON of the view; training areas; climate: compare with normal (normal, departure, percentile; 30/10/5 years), freeze maps (chance by a date, typical dates), counts of days |
+| `/climate` | Climate explorer: seven headline climate maps; click or search a location for its climate (the Climate tab's sections) |
+| `/sites` | Saved sites (browser storage), cards with weather and top risks, groups, import/export CSV, today's rain so far |
+| `/sites/{lat},{lng}` | Overview, Weather, Models, Degree days ("since a date" saved with the site), Climate (this season, temperature against normal, frost and freeze, this month's counts, normals), Data |
+| `/sites/{lat},{lng}/models/{id}` | A model at a site: answer, stacked chart, NEWA-style table, settings saved to the site, guidance |
+| `/sites/models/{id}` | One model across all saved sites |
+| `/models`, `/models/{id}` | Catalog by crop; generated model pages (season opening rule, D128) |
+| `/topics`, `/topics/{id}` | Pest and disease pages (sentence-case titles) |
+| `/methods` | Generated methods: sources, corrections, variables in plain words (normals section on deck) |
+| `/tools` | Index of built tools |
+| `/tools/degree-days` | Calculator: place picker, up to 3 settings, through a date or the forecast, projection, map link |
+| `/tools/freeze` | Freeze dates and odds: this year against typical, cards per threshold, odds chart, look up a date, crop killing freezes, past years |
+| `/tools/oak-wilt` | DNR's restricted period from 231 °F·d through July 15, model level and share of beetle flight (`flown`), map, chart, DNR periods |
+| `/calendar` | Day-of-year calendar, 1900–2100, printable |
+| `/data` | Weather at up to 50 locations; maps as data files with an exact size estimate; yearly files with R and Python snippets |
+| `/status` | Sources on time or late, forecast, gaps in the last 30 days, outages; refreshes every 60 s |
+| `/changelog`, `/api-use` | Filter by kind, entry links; announcement banner on every page; the API-use form redesigned |
+| `/about`, `/accessibility`, `/contact` | Drafts for Ben (`content/pages/*.md`, `status: draft`; five "For Ben" notes on About) |
+| `/glossary` | A–Z with filter; terms link here from their pop-ups |
+| Legacy URLs | v1 and VDIFN redirects (302 now; one setting for 301 after four weeks), location and year carried to the tools; retired models to their topics |
+
+### Backend and data (this phase)
+
+- D124 percent outputs; D125→D128 insect seasons opening on the area's normal degree days, the crop's stage or the calendar; D126→D127 potato planting from the area's 28 °F freeze (50 km); apple scab 0.2 (no interpolated wet temperature); oak wilt 0.3 (`flown`).
+- Null inputs no longer counted estimated or missing; potato volunteer's falling-risk milestones; unknown POST body fields refused (422).
+- County table from the tiles' map (~0.05 s a state); `/grids`/`/maps`/`/summaries` `region=` limited to the coverage's states.
+- RTMA precipitation's level label (since 2020-08) read: the newest hours' precipitation no longer lags 7–8 h; 2021-03-12 and 2022-09-21 refilled.
+- Downloads: an explicit offered list (soil moisture, wet hours, degree hours, day/night rain, water balance added; orphans pruned); 674 files rebuilt (5.1 GB).
+- Climate endpoints: threshold units, empty `vars=`, a day's browser caching; `/status` gains `gaps`.
+- Risk colours by level name on every scale.
+
+## On deck (in order)
+
+1. **Running now:** the P1 tools' backend (the alfalfa planner `GET /models/alfalfa-growth/plan`, `meta.summary.stages`, routes for the P1 tools, the counts on `/layers`); `/methods#normals`.
+2. **Next:** the P1 tool pages: crop GDD outlook, potato volunteer, alfalfa "since the last cut" and the calculator's increments; then the alfalfa season planner page; a keyboard spec over the tools; the map explorer reading the counts from `/layers`.
+3. **Reviews** (Ben, 2026-11-26): periodic review agents over what's been built (bugs, refactoring, duplication); findings and fixes below.
+4. **Small:** count departures' colour scale ([0, 6.25] for days ≥ 90 °F, not centred on 0); climate endpoints' speed on a quiet server (`/climate/compare` 13 s under load); the legend at full strength while the map is at 80 % (Ben's call).
+5. **Ben:** About's drafts and credits; oak wilt's wording with DNR (their 2026 guidelines don't mention 231 °F·d); restart `bin/dev` after pulling; the interface design pass (map explorer plus bespoke model and topic pages in WISP 3's map-plus-feed frame).
+6. **Later:** accounts and email (track 8, when SES is set up); Phase 9's observed phenologies.
+
+## Data jobs
+
+- Ingredients rebuild for D127, apple scab 0.2, oak wilt 0.3 and D128, all years (`tmp/w8-ingredients2.log`); blight and potato maps answer "updating" until done.
+
+## Reviews
+
+(None yet.)

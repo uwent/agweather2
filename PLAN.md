@@ -33,7 +33,7 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 
 ## Handoff (2026-11-26, late night)
 
-**Phase 7, the web app** (branch `phase-7`; `phase-6` merged to `main` as PR #1, CI green): [docs/plans/phase-7-web-app.md](docs/plans/phase-7-web-app.md). Claude orchestrates; agents build in worktrees from `phase-7` (briefs in `tmp/briefs/wave6-common.md`, `wave7.md`, `wave8.md`, `wave8b.md`), at most four at once.
+**Phase 7, the web app** (what's built and on deck: [docs/plans/phase-7-status.md](docs/plans/phase-7-status.md), kept current through the night; branch `phase-7`; `phase-6` merged to `main` as PR #1, CI green): [docs/plans/phase-7-web-app.md](docs/plans/phase-7-web-app.md). Claude orchestrates; agents build in worktrees from `phase-7` (briefs in `tmp/briefs/wave6-common.md`, `wave7.md`, `wave8.md`, `wave8b.md`), at most four at once.
 
 **Done before this session:** waves 1–5 (the base, DataMap, `/map`, `/sites`, the site page and its tabs, groups and preferences, `/models` and model pages, a model at a site, the feed, topics, `/methods`, D124–D126). See the phase plan's Waves.
 
