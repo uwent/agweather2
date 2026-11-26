@@ -1,0 +1,99 @@
+{
+  "model": {
+    "id": "oak-wilt-vectors",
+    "name": "Oak wilt vector flight",
+    "group": "insect",
+    "status": "beta",
+    "version": "0.3",
+    "summary": "The risk of oak wilt spreading by its beetle vectors, from their flight timed by degree days (base 41 °F) and the season (wounding before mid-July).",
+    "crops": [
+      "Oak"
+    ],
+    "inputs": [
+      {
+        "name": "air_temperature_min",
+        "label": "Minimum temperature",
+        "unit": "degC",
+        "description": ""
+      },
+      {
+        "name": "air_temperature_max",
+        "label": "Maximum temperature",
+        "unit": "degC",
+        "description": ""
+      }
+    ],
+    "outputs": [
+      {
+        "name": "dd_total",
+        "label": "Degree days since January 1 (base 41 °F)",
+        "unit": "degF_day",
+        "description": ""
+      },
+      {
+        "name": "dd",
+        "label": "Degree days",
+        "unit": "degF_day",
+        "description": ""
+      },
+      {
+        "name": "flight",
+        "label": "Vector flight level",
+        "unit": "index",
+        "description": ""
+      },
+      {
+        "name": "flown",
+        "label": "Share of C. truncatus flight passed",
+        "unit": "percent",
+        "description": "The highest of Jagemann et al. 2018's flight percentiles reached (0, 5, 10, 25, 50, 75, 90 or 95): at least this share of the season's beetles have flown"
+      },
+      {
+        "name": "seasonal",
+        "label": "Flight level for the season",
+        "unit": "index",
+        "description": "Lowered from July 15 (wounds rarely lead to infection); the risk"
+      }
+    ],
+    "options": [],
+    "biofix": {
+      "default": "01-01",
+      "label": "January 1",
+      "stage": null
+    },
+    "planting": null,
+    "stages": [],
+    "risk_levels": [
+      "Very low",
+      "Low",
+      "Moderate",
+      "High",
+      "Very high"
+    ],
+    "risk_criteria": "Vector flight by degree days: Low from 180 (under 5% of C. truncatus flying), Moderate from 231, High from 283, Very high from 388 to 913 (peak flight), then High to 1,792, Moderate to 2,172 and Low after. From July 15 two levels lower and at most Low; from July 22 one lower again.",
+    "risk_thresholds": [],
+    "susceptible": null,
+    "season": [
+      "03-01",
+      "07-31"
+    ],
+    "season_opens": null,
+    "region": [],
+    "trained": null,
+    "guidance_html": "<ul>\n<li><strong>Don't wound oaks while the beetles fly.</strong> Any level above Very low means some beetles are flying. Prune only in the dormant season, from November through March, and not from April through July.</li>\n<li>If you must prune, or an oak is damaged, while beetles are flying, paint the wound right away with latex paint or shellac. Beetles can reach a wound within minutes, and wounds and stumps can be infected for up to 72 hours.</li>\n<li><strong>Follow Wisconsin's guidelines for harvesting.</strong> In counties with oak wilt, or within six miles of one, the guidelines restrict harvesting from April 15 to July 15 in the north zone and from April 1 to July 15 in the south zone. Use the model alongside these guidelines, not instead of them.</li>\n<li>A warm March can bring the beetles out early; the model's degree days show when that happens.</li>\n</ul>\n<p>The <a href=\"/topics/oak-wilt\">oak wilt topic page</a> explains the disease, its beetle vectors and its management in more detail.</p>\n"
+  },
+  "years": [
+    2026,
+    2025,
+    2024,
+    2023,
+    2022,
+    2021,
+    2020,
+    2019,
+    2018,
+    2017,
+    2016
+  ],
+  "management_html": null
+}
