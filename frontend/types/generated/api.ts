@@ -1040,6 +1040,7 @@ export interface MethodsData {
    * Each correction we apply to a source's data.
    */
   corrections: CorrectionInfo[]
+  normals: NormalsInfo
 }
 export interface SourceInfo {
   /**
@@ -1074,6 +1075,277 @@ export interface SourceInfo {
    * Where to read about the source.
    */
   url: string
+}
+export interface NormalsInfo {
+  /**
+   * Each period a normal can cover, longest first, with its years.
+   */
+  periods: NormalsPeriodInfo[]
+  /**
+   * The days around each date whose values a daily normal pools from every year: a normal for June 15 takes the 15 days centered on it in each year.
+   */
+  pool_days: number
+  /**
+   * The share of a normal's possible values (or years) it needs. With fewer, the normal is missing.
+   */
+  coverage: number
+  /**
+   * The most days a year's running total may miss and still count toward the normal.
+   */
+  running_max_missing: number
+  /**
+   * The percentiles kept for daily values, as maps and at locations.
+   */
+  daily_percentiles: number[]
+  /**
+   * The daily variables those percentiles are kept for, by their names in `/variables`.
+   */
+  daily_percentile_variables: string[]
+  /**
+   * The running totals from January 1 whose percentiles among the years are kept as maps (each 10th percentile): precipitation, and degree days named by their method and thresholds, such as `dd_sine_41_86`. Percentile maps interpolate among them.
+   */
+  decile_variables: string[]
+  /**
+   * The periods with those percentiles kept: five years are too few.
+   */
+  decile_periods: string[]
+  /**
+   * The counts of days within bounds whose normals are kept as maps. At locations, any bounds work.
+   */
+  counts: NormalsCountInfo[]
+  freeze: NormalsFreezeInfo
+  gridmet: NormalsGridmetInfo
+  area: NormalsAreaInfo
+  /**
+   * When each insect's season opens, by its rule.
+   */
+  season_opens: NormalsSeasonOpeningInfo[]
+  /**
+   * Where an insect's season opens for the region as a whole: the percentile of the locations' opening days, weighted by their cropland.
+   */
+  region_percentile: number
+  /**
+   * Links to our technical reports on the normals.
+   */
+  evidence: string[]
+}
+export interface NormalsPeriodInfo {
+  /**
+   * The period's name, as `period=` takes it.
+   */
+  period: string
+  /**
+   * The period's first year.
+   */
+  first_year: number
+  /**
+   * The period's last year: the last complete year.
+   */
+  last_year: number
+  /**
+   * The period's years from our archive.
+   */
+  archive_years: number[]
+  /**
+   * The period's years from gridMET, adjusted to our archive.
+   */
+  gridmet_years: number[]
+  /**
+   * The period's years we don't have yet. A normal then comes from the others.
+   */
+  missing_years: number[]
+  /**
+   * Whether the period's normals are kept as maps. If not, they're available at locations only.
+   */
+  maps: boolean
+}
+export interface NormalsCountInfo {
+  /**
+   * The daily variable counted, by its name in `/variables`.
+   */
+  variable: string
+  /**
+   * The count is of days at or above this value. Null when it counts days below a value.
+   */
+  above: number | null
+  /**
+   * The count is of days at or below this value. Null when it counts days above a value.
+   */
+  below: number | null
+  /**
+   * The unit of `above` and `below`.
+   */
+  unit: string
+}
+export interface NormalsFreezeInfo {
+  /**
+   * The freeze temperatures kept as maps (°F). At locations, any temperature works.
+   */
+  thresholds: number[]
+  /**
+   * The first and last day (MM-DD) of the season a year's last spring freeze is looked for in.
+   */
+  spring: string[]
+  /**
+   * The first and last day (MM-DD) of the season a year's first fall freeze is looked for in.
+   */
+  fall: string[]
+  /**
+   * The percentiles of the years' freeze dates kept as maps.
+   */
+  percentiles: number[]
+  /**
+   * The largest share of a season's days a year may miss and still count.
+   */
+  max_missing_share: number
+}
+export interface NormalsGridmetInfo {
+  /**
+   * The correction's id in `corrections`.
+   */
+  correction: string
+  /**
+   * Each variable we adjust, and how.
+   */
+  adjust: NormalsAdjustInfo[]
+  /**
+   * The days around each date over which the two sources are compared.
+   */
+  pool_days: number
+  /**
+   * The width, in grid cells, of the square over which each adjustment is averaged.
+   */
+  smooth_cells: number
+  /**
+   * The smallest and largest ratio applied.
+   */
+  ratio_limits: number[]
+  /**
+   * gridMET's values we leave out as wrong, by variable and year.
+   */
+  left_out: NormalsLeftOutInfo[]
+  /**
+   * The years both sources have that the adjustment was fitted on. Empty until it is fitted.
+   */
+  fit_years: number[]
+  /**
+   * The day the adjustment was last fitted (YYYY-MM-DD). Null until it is fitted.
+   */
+  fitted: string | null
+}
+export interface NormalsAdjustInfo {
+  /**
+   * The daily variable, by its name in `/variables`.
+   */
+  variable: string
+  /**
+   * `add`: the average difference between the two sources is added. `ratio`: gridMET's values are multiplied by the ratio of the two sources' totals.
+   */
+  kind: string
+}
+export interface NormalsLeftOutInfo {
+  /**
+   * The daily variable, by its name in `/variables`.
+   */
+  variable: string
+  /**
+   * The years whose values are left out.
+   */
+  years: number[]
+}
+export interface NormalsAreaInfo {
+  /**
+   * The radius of the area, km.
+   */
+  radius_km: number
+  /**
+   * The spread of the weights, km: a cell's weight falls with its distance from the center as a bell curve of this standard deviation.
+   */
+  sigma_km: number
+  /**
+   * The period of the normal averaged.
+   */
+  period: string
+  /**
+   * The temperature (°F) of the median last spring freeze that typical potato planting dates follow.
+   */
+  planting_freeze: number
+  /**
+   * The days from that freeze to each typical planting date: early, mid and late.
+   */
+  planting_offsets: {
+    [k: string]: number
+  }
+}
+export interface NormalsSeasonOpeningInfo {
+  /**
+   * The model's id, as `/models` lists it.
+   */
+  model: string
+  /**
+   * The model's name.
+   */
+  name: string
+  /**
+   * How its season opens: `degree_days` (on the area's normal degree days), `crop_stage` (when its crop typically reaches a stage) or `calendar` (on a fixed date).
+   */
+  rule: string
+  /**
+   * What the season opens on, in words. Null for a fixed date.
+   */
+  event: string | null
+  /**
+   * How many days before that event the season opens.
+   */
+  lead_days: number
+  /**
+   * The degree-day method (`sine`, `average`, `modified` or `average_capped_mean`). For a crop stage, the crop model's. Null for a fixed date.
+   */
+  method: string | null
+  /**
+   * The base threshold (°F). Null for a fixed date.
+   */
+  base: number | null
+  /**
+   * The upper threshold (°F). Null where there is none.
+   */
+  upper: number | null
+  /**
+   * The day (MM-DD) the degree days count from. Null for a crop stage, which counts from its planting or January 1, or a fixed date.
+   */
+  start: string | null
+  /**
+   * The degree days (°F) from the start to the event. Null for a fixed date.
+   */
+  degree_days: number | null
+  /**
+   * The degree days to the event where the insect has one generation a year. Null for an insect without that form.
+   */
+  form_degree_days: number | null
+  /**
+   * Where the 30-year normal degree days to `form_through` are below this, the insect has one generation a year.
+   */
+  form_below: number | null
+  /**
+   * The day (MM-DD) that normal is totalled through, from January 1.
+   */
+  form_through: string | null
+  /**
+   * The crop model whose stage opens the season, as `/models` lists it.
+   */
+  crop_model: string | null
+  /**
+   * The crop model's name.
+   */
+  crop_model_name: string | null
+  /**
+   * The typical planting date (`early`, `mid` or `late`) the crop's degree days count from. Null when they count from January 1.
+   */
+  planting: string | null
+  /**
+   * The season's first day on the calendar (MM-DD). A season that opens on a fixed date opens then; one that opens by the normal opens then where we don't have the normal.
+   */
+  first_day: string
 }
 /**
  * Where the data come from, and the corrections we apply to them.

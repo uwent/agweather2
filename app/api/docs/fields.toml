@@ -400,6 +400,90 @@ data = "The sources of the data and the corrections we apply to them."
 [MethodsData]
 sources = "Each source and what we use it for, by date."
 corrections = "Each correction we apply to a source's data."
+normals = "How we make the normals: their periods and years, how each statistic is computed, and when insect seasons open."
+
+[NormalsInfo]
+periods = "Each period a normal can cover, longest first, with its years."
+pool_days = "The days around each date whose values a daily normal pools from every year: a normal for June 15 takes the 15 days centered on it in each year."
+coverage = "The share of a normal's possible values (or years) it needs. With fewer, the normal is missing."
+running_max_missing = "The most days a year's running total may miss and still count toward the normal."
+daily_percentiles = "The percentiles kept for daily values, as maps and at locations."
+daily_percentile_variables = "The daily variables those percentiles are kept for, by their names in `/variables`."
+decile_variables = "The running totals from January 1 whose percentiles among the years are kept as maps (each 10th percentile): precipitation, and degree days named by their method and thresholds, such as `dd_sine_41_86`. Percentile maps interpolate among them."
+decile_periods = "The periods with those percentiles kept: five years are too few."
+counts = "The counts of days within bounds whose normals are kept as maps. At locations, any bounds work."
+freeze = "How freeze dates and their chances are counted."
+gridmet = "How gridMET's years are put on the basis of our archive."
+area = "The area around each location that typical planting dates and insect seasons average over."
+season_opens = "When each insect's season opens, by its rule."
+region_percentile = "Where an insect's season opens for the region as a whole: the percentile of the locations' opening days, weighted by their cropland."
+evidence = "Links to our technical reports on the normals."
+
+[NormalsPeriodInfo]
+period = "The period's name, as `period=` takes it."
+first_year = "The period's first year."
+last_year = "The period's last year: the last complete year."
+archive_years = "The period's years from our archive."
+gridmet_years = "The period's years from gridMET, adjusted to our archive."
+missing_years = "The period's years we don't have yet. A normal then comes from the others."
+maps = "Whether the period's normals are kept as maps. If not, they're available at locations only."
+
+[NormalsCountInfo]
+variable = "The daily variable counted, by its name in `/variables`."
+above = "The count is of days at or above this value. Null when it counts days below a value."
+below = "The count is of days at or below this value. Null when it counts days above a value."
+unit = "The unit of `above` and `below`."
+
+[NormalsFreezeInfo]
+thresholds = "The freeze temperatures kept as maps (°F). At locations, any temperature works."
+spring = "The first and last day (MM-DD) of the season a year's last spring freeze is looked for in."
+fall = "The first and last day (MM-DD) of the season a year's first fall freeze is looked for in."
+percentiles = "The percentiles of the years' freeze dates kept as maps."
+max_missing_share = "The largest share of a season's days a year may miss and still count."
+
+[NormalsGridmetInfo]
+correction = "The correction's id in `corrections`."
+adjust = "Each variable we adjust, and how."
+pool_days = "The days around each date over which the two sources are compared."
+smooth_cells = "The width, in grid cells, of the square over which each adjustment is averaged."
+ratio_limits = "The smallest and largest ratio applied."
+left_out = "gridMET's values we leave out as wrong, by variable and year."
+fit_years = "The years both sources have that the adjustment was fitted on. Empty until it is fitted."
+fitted = "The day the adjustment was last fitted (YYYY-MM-DD). Null until it is fitted."
+
+[NormalsAdjustInfo]
+variable = "The daily variable, by its name in `/variables`."
+kind = "`add`: the average difference between the two sources is added. `ratio`: gridMET's values are multiplied by the ratio of the two sources' totals."
+
+[NormalsLeftOutInfo]
+variable = "The daily variable, by its name in `/variables`."
+years = "The years whose values are left out."
+
+[NormalsAreaInfo]
+radius_km = "The radius of the area, km."
+sigma_km = "The spread of the weights, km: a cell's weight falls with its distance from the center as a bell curve of this standard deviation."
+period = "The period of the normal averaged."
+planting_freeze = "The temperature (°F) of the median last spring freeze that typical potato planting dates follow."
+planting_offsets = "The days from that freeze to each typical planting date: early, mid and late."
+
+[NormalsSeasonOpeningInfo]
+model = "The model's id, as `/models` lists it."
+name = "The model's name."
+rule = "How its season opens: `degree_days` (on the area's normal degree days), `crop_stage` (when its crop typically reaches a stage) or `calendar` (on a fixed date)."
+event = "What the season opens on, in words. Null for a fixed date."
+lead_days = "How many days before that event the season opens."
+method = "The degree-day method (`sine`, `average`, `modified` or `average_capped_mean`). For a crop stage, the crop model's. Null for a fixed date."
+base = "The base threshold (°F). Null for a fixed date."
+upper = "The upper threshold (°F). Null where there is none."
+start = "The day (MM-DD) the degree days count from. Null for a crop stage, which counts from its planting or January 1, or a fixed date."
+degree_days = "The degree days (°F) from the start to the event. Null for a fixed date."
+form_degree_days = "The degree days to the event where the insect has one generation a year. Null for an insect without that form."
+form_below = "Where the 30-year normal degree days to `form_through` are below this, the insect has one generation a year."
+form_through = "The day (MM-DD) that normal is totalled through, from January 1."
+crop_model = "The crop model whose stage opens the season, as `/models` lists it."
+crop_model_name = "The crop model's name."
+planting = "The typical planting date (`early`, `mid` or `late`) the crop's degree days count from. Null when they count from January 1."
+first_day = "The season's first day on the calendar (MM-DD). A season that opens on a fixed date opens then; one that opens by the normal opens then where we don't have the normal."
 
 [SourceInfo]
 source = "The source's id. Several entries share one when a source serves more than one use."

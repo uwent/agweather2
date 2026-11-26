@@ -71,7 +71,12 @@
                 class="-mx-2 scroll-mt-24 rounded-md p-2 target:bg-brand-50 target:outline-2 target:outline-brand-600"
               >
                 <dt class="font-semibold">{entry.term}</dt>
-                <dd class="mt-1">{entry.definition}</dd>
+                <dd class="mt-1">
+                  {entry.definition}
+                  {#if entry.more}
+                    {' '}<a href={entry.more.href} class={link}>{entry.more.label}</a>.
+                  {/if}
+                </dd>
               </div>
             {/each}
           </dl>

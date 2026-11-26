@@ -2,13 +2,14 @@
 
 The same functions as `/api/v2/methods` and `/api/v2/variables` give the sources by date and use
 (`agdata.provenance`), the corrections with their held-out scores and evidence (`agdata.corrections`), and the
-variable catalog (`agdata.catalog`, `agdata.computed`); the grid, the days and the gap rules come from their modules'
+variable catalog (`agdata.catalog`, `agdata.computed`), and how the normals are made (`normals_info`); the grid, the days and the gap rules come from their modules'
 constants, so the page can't drift from what the code does.
 """
 
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from django.urls import reverse
 
 from agdata import corrections, provenance
@@ -20,8 +21,9 @@ from agdata.layers import INTERNAL_TOTALS
 from agdata.timezones import GRID_ZONE
 from agmodels.features import EVENING_HOUR, OVERNIGHT_HOUR
 from agmodels.gaps import MAX_GAP_DAYS
+from api import clock
 from api.routes.discovery import _variable
-from api.routes.methods import _correction, _source
+from api.routes.methods import _correction, _source, normals_info
 from web.props import MethodsCorrection, MethodsGrid, MethodsProps, MethodsScore, MethodsSource, MethodsVariable
 
 # Standard time's names by UTC offset (hours), for the zone the grid's days keep (`GRID_ZONE`)
@@ -94,5 +96,6 @@ def methods_props() -> MethodsProps:
             for c in found
         ],
         variables=variables(),
+        normals=normals_info(settings.DATA_DIR, clock.now().date()),
         api_methods_url=f"{reverse('api-root')}methods",
     )

@@ -2,6 +2,7 @@
      the API's /methods and /variables, so it changes when the code does. Nothing here states a method by hand: the
      sources, corrections, scores, variables, the grid and the day come from the props. -->
 <script lang="ts">
+  import NormalsMethods from '@/lib/climate/NormalsMethods.svelte'
   import Term from '@/lib/components/Term.svelte'
   import { clockHour, dateSpan, kmText, ofKind, ROLES, scoreText, variableAnchor } from '@/lib/methods'
   import { longDate, unitLabel } from '@/lib/models/format'
@@ -78,6 +79,7 @@
     { id: 'corrections', title: 'Our corrections' },
     { id: 'gaps', title: 'Missing data' },
     { id: 'variables', title: 'The variables' },
+    { id: 'normals', title: 'How normals are made' },
   ]
 
   const link = 'text-brand-600 underline hover:text-brand-700'
@@ -87,7 +89,7 @@
   <title>Methods · AgWeather</title>
   <meta
     name="description"
-    content="Where AgWeather's weather data come from, how we correct them, how days and missing data are handled, and what each variable means."
+    content="Where AgWeather's weather data come from, how we correct them, how days and missing data are handled, what each variable means, and how normals are made."
   />
 </svelte:head>
 
@@ -95,8 +97,8 @@
   <header class="max-w-prose space-y-3">
     <h1 class="text-3xl font-semibold">Methods</h1>
     <p class="text-lg">
-      This page describes where AgWeather’s weather data come from, how we correct them, and what each value means. It
-      is made from the code that does the work, so it changes when the code does.
+      This page describes where AgWeather’s weather data come from, how we correct them, what each value means, and how
+      we make normals. It is made from the code that does the work, so it changes when the code does.
     </p>
     <p class="text-sm text-ink-muted">
       The same information is available from the API at <a href={props.api_methods_url} class={link}>
@@ -238,6 +240,8 @@
           </section>
         {/each}
       </section>
+
+      <NormalsMethods normals={props.normals} variables={props.variables} cellKm={g.cell_km} />
     </div>
 
     <nav aria-label="On this page" class="hidden lg:block">

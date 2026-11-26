@@ -3,7 +3,8 @@
 // page's props, which come from the code (web.methodspage, D92).
 
 import { longDate } from '@/lib/models/format'
-import { convert, displayUnit, UNITS, type UnitSystem } from '@/lib/units'
+import { routes } from '@/lib/routes'
+import { convert, displayUnit, UNITS, type Units, type UnitSystem } from '@/lib/units'
 import type { MethodsSource, MethodsVariable } from '@/types'
 
 export type Role = MethodsSource['role']
@@ -81,4 +82,103 @@ export function ofKind(variables: MethodsVariable[], kind: MethodsVariable['kind
 /** "6 km (1.6 mi)" */
 export function kmText(km: number): string {
   return `${km} km (${(km / 1.609344).toFixed(1)} mi)`
+}
+
+// --- How normals are made (`/methods#normals`, step 6.5): words for the page's `normals` props ---
+
+/** Where the climate pages' "How normals are made" links go */
+export const normalsHref = (): string => `${routes.methods()}#normals`
+
+/** A value stored in `unit`, in the reader's units, to three significant digits: "86 °F", "30 °C", "0.254 mm" */
+export function valueText(value: number, unit: string, units: Units): string {
+  return `${numberText(units.toDisplay(unit, value) ?? value)} ${units.label(unit)}`
+}
+
+const numberText = (value: number): string => Number(value.toPrecision(3)).toString().replace('-', '−')
+
+/** Years in words, runs joined: "1996–2015", "2016, 2018–2020"; '' for none */
+export function yearsText(years: readonly number[]): string {
+  const sorted = [...years].sort((a, b) => a - b)
+  const runs: string[] = []
+  for (let k = 0; k < sorted.length;) {
+    let end = k
+    while (end + 1 < sorted.length && sorted[end + 1] === sorted[end] + 1) end++
+    runs.push(end === k ? `${sorted[k]}` : `${sorted[k]}–${sorted[end]}`)
+    k = end + 1
+  }
+  return runs.join(', ')
+}
+
+/** "10 years", "1 year" */
+export const yearCount = (n: number): string => `${n} year${n === 1 ? '' : 's'}`
+
+// The daily variables the normals keep, inside a sentence; any other by its catalog name
+const DAILY_WORDS: Record<string, string> = {
+  air_temperature_max: 'the daily high',
+  air_temperature_min: 'the daily low',
+  air_temperature_mean: 'the daily mean temperature',
+  relative_humidity_max: 'the daily highest relative humidity',
+  relative_humidity_min: 'the daily lowest relative humidity',
+  precipitation_sum: 'daily precipitation',
+  shortwave_radiation_sum: 'daily solar radiation',
+  wind_speed_mean: 'the daily mean wind speed',
+  et0_sum: 'daily reference evapotranspiration',
+}
+
+/** "the daily high" for air_temperature_max */
+export function dailyWords(name: string, longName?: string): string {
+  return DAILY_WORDS[name] ?? longName ?? name
+}
+
+const COUNT_SUBJECTS: Record<string, string> = {
+  air_temperature_max: 'a high of',
+  air_temperature_min: 'a low of',
+  precipitation_sum: 'precipitation of',
+  shortwave_radiation_sum: 'solar radiation of',
+}
+
+/** A count of days the normals keep, as a reader's phrase: "Days with a high of 86 °F or more" */
+export function countText(
+  count: { variable: string; above: number | null; below: number | null; unit: string },
+  units: Units,
+): string {
+  const value = count.above ?? count.below
+  if (value === null) return ''
+  const subject = COUNT_SUBJECTS[count.variable] ?? `${dailyWords(count.variable)} of`
+  return `Days with ${subject} ${valueText(value, count.unit, units)} or ${count.above !== null ? 'more' : 'less'}`
+}
+
+const DD_METHOD_WORDS: Record<string, string> = {
+  sine: 'single sine',
+  modified: 'modified average',
+  average: 'simple average',
+  average_capped_mean: 'simple average, the day’s mean capped at the upper threshold',
+}
+
+/** A degree-day setting in °F, in words: "modified average, 50 to 86 °F", "single sine, base 52 °F" */
+export function settingText(method: string, base: number, upper: number | null, units: Units): string {
+  const name = DD_METHOD_WORDS[method] ?? method
+  if (upper === null) return `${name}, base ${valueText(base, 'degF', units)}`
+  return `${name}, ${numberText(units.toDisplay('degF', base) ?? base)} to ${valueText(upper, 'degF', units)}`
+}
+
+/** Degree days stored in °F, in the reader's units, whole: "395 °F degree days", "219 °C degree days" */
+export function degreeDaysText(ddF: number, units: Units): string {
+  const shown = units.toDisplay('degF_day', ddF) ?? ddF
+  return `${Math.round(shown).toLocaleString('en-US')} ${units.system === 'metric' ? '°C' : '°F'} degree days`
+}
+
+const TOTAL_WORDS: Record<string, string> = {
+  precipitation: 'precipitation since January 1',
+  et0: 'reference evapotranspiration since January 1',
+}
+
+/** A running total the normals keep percentiles of, in words: "precipitation since January 1", "single sine
+ * degree days, 41 to 86 °F" (`dd_sine_41_86`) */
+export function totalText(name: string, units: Units, longName?: string): string {
+  const match = /^dd_(sine|modified|average)_([\dp.]+)(?:_([\dp.]+))?$/.exec(name)
+  if (!match) return TOTAL_WORDS[name] ?? longName ?? name
+  const number = (text: string) => Number(text.replace('p', '.'))
+  const upper = match[3] === undefined ? null : number(match[3])
+  return `degree days (${settingText(match[1], number(match[2]), upper, units)}) since January 1`
 }

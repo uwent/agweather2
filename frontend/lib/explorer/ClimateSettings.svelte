@@ -2,6 +2,7 @@
   import SegmentedChoice from '@/lib/components/SegmentedChoice.svelte'
   import PeriodChoice from '@/lib/climate/PeriodChoice.svelte'
   import type { Period } from '@/lib/climate/periods'
+  import { normalsHref } from '@/lib/methods'
   import { thresholdLabel } from '@/lib/climate/words'
   import { currentUnits } from '@/lib/units'
   import type { LayerInfo } from '@/types/api'
@@ -96,6 +97,8 @@
       'The map shows where this year’s total ranks among the years you choose: 50 is a typical year, 90 higher than 9 years in 10.',
   }
 
+  const link = 'text-brand-600 underline hover:text-brand-700'
+
   function setPeriod(period: Period) {
     onchange({ period: period as MapPeriod })
   }
@@ -116,6 +119,7 @@
     <p class="text-xs text-ink-muted">
       Fewer years follow recent change more closely, but one unusual year counts for more.
     </p>
+    <p class="text-xs"><a href={normalsHref()} class={link}>How normals are made</a></p>
   </section>
 {:else if listed}
   <section class="space-y-3 text-sm" aria-labelledby="climate-heading">
@@ -133,5 +137,6 @@
     {/if}
     {#if why}<p class="text-xs text-ink-muted">{why}</p>{/if}
     {#if percentileNote}<p class="text-xs text-ink-muted">{percentileNote}</p>{/if}
+    <p class="text-xs"><a href={normalsHref()} class={link}>How normals are made</a></p>
   </section>
 {/if}
