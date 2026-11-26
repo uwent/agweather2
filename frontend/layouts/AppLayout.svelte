@@ -26,6 +26,7 @@
   const footerLinks = [
     { label: 'About', href: '/about' },
     { label: 'Methods', href: '/methods' },
+    { label: 'Glossary', href: routes.glossary() },
     { label: 'Changelog', href: '/changelog' },
     { label: 'API', href: '/api/v2/docs' },
     { label: 'Status', href: '/status' },

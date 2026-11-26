@@ -3,7 +3,7 @@
   import type { Snippet } from 'svelte'
   import { Popover } from 'bits-ui'
 
-  import { glossaryEntry, type GlossaryEntry } from '@/lib/glossary'
+  import { glossaryEntry, glossaryHref, type GlossaryEntry } from '@/lib/glossary'
 
   // A glossary term in running text: underlined with dots, with its definition shown while a mouse
   // hovers it, and toggled by click, tap, Enter or Space (a click pins a hovered one). The popup
@@ -41,6 +41,12 @@
     >
       <p class="font-medium">{entry.term}</p>
       <p class="mt-1 text-ink-muted">{entry.definition}</p>
+      <!-- A pointer's shortcut: the popup never takes focus, so the keyboard reaches the glossary from the footer -->
+      <p class="mt-2">
+        <a href={glossaryHref(entry.id)} tabindex="-1" class="text-brand-600 underline hover:text-brand-700">
+          See the glossary
+        </a>
+      </p>
     </Popover.Content>
   </Popover.Portal>
 </Popover.Root>
