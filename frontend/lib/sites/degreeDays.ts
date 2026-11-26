@@ -21,6 +21,7 @@ import type { EChartsCoreOption } from '../charts/echarts'
 import { baseOption, type Palette } from '../charts/palette'
 import { tableRows, type Day, type Table } from '../tableRows'
 import type { Units } from '../units'
+import { plural } from '../words'
 
 export const MAX_SETTINGS = 3
 /** The unit the tab asks for (`units=us`): settings and presets are named in °F, and values convert at display */
@@ -485,8 +486,6 @@ export function seriesTotals(run: DdRun, today: string): SeriesTotals[] {
     missing: days.filter((day) => day.kind !== 'projection' && day.values[daily(s)] === null).length,
   }))
 }
-
-const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
 
 /** "Counted from January 1, 2026" or "from the planting date, May 13, 2026" */
 export function startWords(from: CountFrom, start: string): string {

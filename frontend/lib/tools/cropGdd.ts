@@ -22,6 +22,7 @@ import type { Kind } from '../tableRows'
 import type { Units } from '../units'
 import type { PeriodYears } from '../climate/periods'
 import { freezeNoun } from './freeze'
+import { plural } from '../words'
 
 type Body = Pick<TableResponse, 'meta' | 'data'>
 type Columns = Record<string, unknown[]>
@@ -368,8 +369,6 @@ export function subjectWords({ crop, hybrid, planting }: { crop: string; hybrid:
   const what = hybrid ? `A ${hybrid} GDD hybrid` : crop
   return `${what} planted ${formatDate(planting)}`
 }
-
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 /**
  * The answer: when the crop reached or should reach `maturity` (corn's black layer, or the reader's own total),

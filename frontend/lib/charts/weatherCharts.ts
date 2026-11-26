@@ -15,6 +15,7 @@
 import type { CsvValue } from '../csv'
 import type { Day, Table } from '../tableRows'
 import type { Units } from '../units'
+import { plural } from '../words'
 import type { ChartView, EChartsCoreOption } from './echarts'
 import { bar, forecastBand, isForecast, point, rounded, rowLabel, thresholdLine, todayLine } from './kinds'
 import { baseOption, type Palette } from './palette'
@@ -484,7 +485,6 @@ const listed = (panel: WeatherPanel, table: Table) =>
 export function panelSummary(panel: WeatherPanel, table: Table, units: Units): string {
   const timeZone = table.location?.timezone ?? undefined
   const word = table.hourly ? 'hour' : 'day'
-  const plural = (count: number) => `${count} ${word}${count === 1 ? '' : 's'}`
   const observed = table.days.filter((day) => !isForecast(day) && day.kind !== 'projection')
   const ahead = table.days.filter((day) => isForecast(day))
   const sentences: string[] = []
@@ -519,8 +519,8 @@ export function panelSummary(panel: WeatherPanel, table: Table, units: Units): s
     }
     const estimated = observed.filter((day) => day.estimated.has(measure.column)).length
     const missing = observed.filter((day) => day.missing.has(measure.column)).length
-    if (estimated) sentences.push(`${measure.name} includes ${plural(estimated)} estimated.`)
-    if (missing) sentences.push(`${measure.name} is missing on ${plural(missing)}.`)
+    if (estimated) sentences.push(`${measure.name} includes ${plural(estimated, word)} estimated.`)
+    if (missing) sentences.push(`${measure.name} is missing on ${plural(missing, word)}.`)
   }
   return sentences.length > (table.days.length ? 1 : 0) ? sentences.join(' ') : 'No values for these days yet.'
 }

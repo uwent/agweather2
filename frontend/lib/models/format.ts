@@ -1,33 +1,19 @@
 // Words for a model's page and catalog (track 4): dates written out, lists joined in prose, units by the reader's
 // system, and the links to the model's map and to the model at a site.
 
+import { MONTH_NAMES } from '@/lib/dates'
 import { displayUnit, UNITS, type UnitSystem } from '@/lib/units'
-
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
 
 /** "July 1" for "07-01" (a spec's MM-DD) */
 export function monthDay(mmdd: string): string {
   const [month, day] = mmdd.split('-').map(Number)
-  return `${MONTHS[month - 1]} ${day}`
+  return `${MONTH_NAMES[month - 1]} ${day}`
 }
 
 /** "November 18, 2026" for "2026-11-18" */
 export function longDate(iso: string): string {
   const [year, month, day] = iso.slice(0, 10).split('-').map(Number)
-  return `${MONTHS[month - 1]} ${day}, ${year}`
+  return `${MONTH_NAMES[month - 1]} ${day}, ${year}`
 }
 
 /** "a", "a and b", "a, b and c" */

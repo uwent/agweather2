@@ -37,6 +37,25 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((parseDate(to).getTime() - parseDate(from).getTime()) / 86_400_000)
 }
 
+/** The months' names, January first */
+export const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const
+
+/** The months' three-letter abbreviations ("Jan"), January first */
+export const SHORT_MONTHS = MONTH_NAMES.map((name) => name.slice(0, 3))
+
 // Formatting a date is slow (toLocaleDateString builds a formatter each time), and grids and chart
 // axes format the same few hundred dates on every update, so formatters and results are cached
 const formatters = new Map<string, Intl.DateTimeFormat>()
