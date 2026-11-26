@@ -1,5 +1,8 @@
-// WISP 3: app/frontend/lib/map/radar.ts (copied)
+// WISP 3: app/frontend/lib/map/radar.ts (adapted: tileAt and tilePixels moved to tiles.ts, which decodes
+// without color management, as the data tiles do, and closes the bitmap)
 import type { LngLat } from '@/lib/geo'
+
+import { tileAt, tilePixels } from './tiles'
 
 // Radar reflectivity under a point, read from the same Iowa Environmental Mesonet tile the map
 // draws: IEM renders its NEXRAD composite (N0Q) with a 256-color palette in which index 1 is −32 dBZ
@@ -39,30 +42,9 @@ export function reflectivityForColor(r: number, g: number, b: number, alpha: num
   return DBZ_BY_COLOR.get(hex) ?? null
 }
 
-/** The web map tile at a zoom containing a point, and the point's pixel in it */
-export function tileAt([lng, lat]: LngLat, zoom: number) {
-  const scale = 2 ** zoom * 256
-  const x = ((lng + 180) / 360) * scale
-  const sin = Math.sin((lat * Math.PI) / 180)
-  const y = (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale
-  return { z: zoom, x: Math.floor(x / 256), y: Math.floor(y / 256), px: Math.floor(x % 256), py: Math.floor(y % 256) }
-}
-
 // The last few tiles read, so moving the pointer around one area doesn't fetch it again
 const tiles = new Map<string, Promise<ImageData>>()
 const KEPT = 12
-
-async function tilePixels(url: string, signal?: AbortSignal): Promise<ImageData> {
-  const response = await fetch(url, { signal })
-  if (!response.ok) throw new Error(`Radar tile: ${response.status}`)
-  const bitmap = await createImageBitmap(await response.blob())
-  const canvas = document.createElement('canvas')
-  canvas.width = bitmap.width
-  canvas.height = bitmap.height
-  const context = canvas.getContext('2d', { willReadFrequently: true })!
-  context.drawImage(bitmap, 0, 0)
-  return context.getImageData(0, 0, bitmap.width, bitmap.height)
-}
 
 /** The reflectivity at a point (dBZ), or null where the radar shows nothing */
 export async function reflectivityAt(at: LngLat, signal?: AbortSignal): Promise<number | null> {

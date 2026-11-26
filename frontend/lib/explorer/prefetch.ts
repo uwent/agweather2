@@ -5,7 +5,7 @@
 
 import { API_BASE, queryString } from '@/lib/api'
 import { MAX_ZOOM, MIN_ZOOM } from '@/lib/map/dataTiles'
-import { tileAt } from '@/lib/map/radar'
+import { tileAt } from '@/lib/map/tiles'
 
 import type { TileRequest } from './view'
 
