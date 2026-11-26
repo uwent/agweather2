@@ -9,6 +9,7 @@ import type { PresetInfo, TableResponse } from '@/types/api'
 
 import {
   ddCsvRows,
+  ddMapUrl,
   ddOption,
   ddQuery,
   ddRun,
@@ -119,6 +120,35 @@ describe('when counting starts', () => {
       projection: true,
     })
     expect(past).toMatchObject({ end: '2025-12-31', projection: null })
+  })
+
+  it('counts through a chosen end in the season, projecting only while the end is ahead', () => {
+    const base = { lat: 44.12, lng: -89.52, series, start: '2026-05-13', year: 2026, thisYear: 2026, today }
+    expect(ddQuery({ ...base, projection: true, end: '2026-12-15' })).toMatchObject({
+      end: '2026-12-15',
+      projection: true,
+    })
+    expect(ddQuery({ ...base, projection: true, end: '2026-08-01' })).toMatchObject({
+      end: '2026-08-01',
+      projection: null,
+    })
+    // Before the start, or in another season: ignored
+    expect(ddQuery({ ...base, projection: false, end: '2026-05-01' })).toMatchObject({ end: null })
+    expect(ddQuery({ ...base, projection: false, year: 2025, end: '2026-08-01' })).toMatchObject({
+      end: '2025-12-31',
+    })
+  })
+
+  it('links the first setting to the map, from the same start through the same day', () => {
+    const base = { lat: 44.12346, lng: -89.52, series, year: 2026, thisYear: 2026 }
+    expect(ddMapUrl({ ...base, start: '2026-01-01', end: null })).toBe(
+      '/map?layer=degree_days&span=season&dd=modified_50_86&at=44.1235,-89.52',
+    )
+    expect(ddMapUrl({ ...base, start: '2025-05-13', end: null, year: 2025 })).toBe(
+      '/map?layer=degree_days&span=season&dd=modified_50_86&date=2025-12-31&biofix=2025-05-13&at=44.1235,-89.52',
+    )
+    expect(ddMapUrl({ ...base, start: '2026-05-13', end: '2026-08-01' })).toContain('date=2026-08-01&biofix=2026-05-13')
+    expect(ddMapUrl({ ...base, series: [], start: '2026-01-01', end: null })).toBeNull()
   })
 })
 

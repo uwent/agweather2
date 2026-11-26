@@ -15,6 +15,7 @@ import type { PresetInfo, TableResponse } from '@/types/api'
 
 import type { CsvValue } from '../csv'
 import { formatDate } from '../dates'
+import { routes } from '../routes'
 import { band, bar, forecastBand, isForecast, lineStyle, point, rowLabel, todayLine } from '../charts/kinds'
 import type { EChartsCoreOption } from '../charts/echarts'
 import { baseOption, type Palette } from '../charts/palette'
@@ -151,7 +152,8 @@ export function defaultStart({
 }
 
 /** The `/degree-days` query: every series in one request, from the start through the forecast (a past year through
- * December 31), with this year's projection when asked */
+ * December 31), or through `end` where one is chosen, with this year's projection when asked (and the end is still
+ * ahead of today) */
 export function ddQuery({
   lat,
   lng,
@@ -160,6 +162,8 @@ export function ddQuery({
   year,
   thisYear,
   projection,
+  end = null,
+  today = null,
 }: {
   lat: number
   lng: number
@@ -169,16 +173,57 @@ export function ddQuery({
   year: number
   thisYear: number
   projection: boolean
+  /** The last day counted, chosen (the calculator's): kept only within the season and on or after the start */
+  end?: string | null
+  /** Today, which a chosen end must be after for a projection */
+  today?: string | null
 }) {
+  const last = ddEnd({ end, start, year })
+  const ahead = last === null || today === null || last > today
   return {
     lat,
     lng,
     dd: series.map((s) => s.dd),
     start,
-    end: year < thisYear ? `${year}-12-31` : null,
-    projection: year === thisYear && projection ? true : null,
+    end: last ?? (year < thisYear ? `${year}-12-31` : null),
+    projection: year === thisYear && projection && ahead ? true : null,
     units: 'us',
   }
+}
+
+/** A chosen end date if it's in the season and not before the start, else null (count through the season) */
+export function ddEnd({ end, start, year }: { end: string | null | undefined; start: string; year: number }) {
+  return end && /^\d{4}-\d{2}-\d{2}$/.test(end) && end.startsWith(`${year}-`) && end >= start ? end : null
+}
+
+/** The map explorer showing the first setting's running total over the region, from the same start through the same
+ * day, with the place marked (`/map?layer=degree_days&span=season&dd=…`); null without a setting */
+export function ddMapUrl({
+  lat,
+  lng,
+  series,
+  start,
+  end,
+  year,
+  thisYear,
+}: {
+  lat: number
+  lng: number
+  series: Series[]
+  start: string
+  /** The last day counted, if one is chosen */
+  end: string | null
+  year: number
+  thisYear: number
+}): string | null {
+  const first = series[0]
+  if (!first) return null
+  const query = new URLSearchParams({ layer: 'degree_days', span: 'season', dd: first.dd })
+  const date = end ?? (year < thisYear ? `${year}-12-31` : null)
+  if (date) query.set('date', date)
+  if (!start.endsWith('-01-01')) query.set('biofix', start)
+  query.set('at', `${Number(lat.toFixed(4))},${Number(lng.toFixed(4))}`)
+  return `${routes.map()}?${query.toString().replaceAll('%2C', ',')}`
 }
 
 export type DdRun = {

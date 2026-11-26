@@ -23,7 +23,13 @@
     { href: '/map', title: 'Map', text: 'Weather, degree days and crop risk across the region, day by day.' },
     { href: routes.sites(), title: 'Your sites', text: 'Weather and risk at the fields and farms you follow.' },
     { href: '/models', title: 'Crop disease and insect models', text: 'What each model predicts and how it works.' },
-    { href: '/tools/degree-days', title: 'Degree-day calculator', text: 'Growing degree days for a crop or pest.' },
+    {
+      href: routes.toolDegreeDays(),
+      title: 'Degree-day calculator',
+      text: 'Growing degree days for a crop or pest.',
+    },
+    { href: routes.calendar(), title: 'Day-of-year calendar', text: 'Convert a date to its day of the year and back.' },
+    { href: routes.tools(), title: 'Tools', text: 'Every tool, with the question it answers.' },
     { href: '/data', title: 'Download data', text: 'Daily weather for a location or the whole region.' },
     { href: api_docs_url, title: 'API', text: 'The same data for your own programs and spreadsheets.' },
   ])

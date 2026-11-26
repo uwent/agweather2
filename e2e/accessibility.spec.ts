@@ -190,6 +190,27 @@ test('topic and methods pages in the other theme', async ({ page }) => {
   for (const path of CONTENT_PAGES) await scan(page, path, { reflow: false })
 })
 
+// The tools: the index, the calendar, and the degree-day calculator before and after a place is chosen (its API
+// answers stubbed)
+const TOOL_PAGES = [
+  '/tools',
+  '/calendar',
+  '/tools/degree-days',
+  '/tools/degree-days?at=44.12,-89.52&name=Hancock&dd=corn;sine_41_86&end=2026-12-15&projection=true',
+]
+
+test('tool pages', async ({ page }) => {
+  await stubSiteApi(page)
+  for (const path of TOOL_PAGES) await scan(page, path)
+})
+
+test('tool pages in the other theme', async ({ page }) => {
+  await stubSiteApi(page)
+  await page.goto('/')
+  await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
+  for (const path of TOOL_PAGES) await scan(page, path, { reflow: false })
+})
+
 test('the settings dialog', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Settings' }).click()
