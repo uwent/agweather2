@@ -167,7 +167,44 @@ Header (every page, `AppLayout`): the UW–Madison brand bar, the AgWeather name
 
 ### Legacy URLs (D62)
 
-v1 site and VDIFN URLs redirect to their v2 page where one exists, so bookmarks and search results land: `/vdifn` → `/map`, carrying VDIFN's `model=` over as `layer=` by a name map so deep links in UW's pages and newsletters land on the model (2026-11-18, from the UW sites' cross-check: `early-blight` → `early-blight-pdays`, `late-blight` → `late-blight-dsv`, `botrytis-leaf-blight` → `botrytis-onion-botcast`, `carrot-foliar` → `carrot-foliar-dsv`, `pvy-vectors` → `aphid-pvy-vectors`, `cpb` → `colorado-potato-beetle`, the rest unchanged; query keys seen `p`/`m`, `panel`/`model`, `type`/`model`); `/weather`, `/weather/precip`, `/weather/et`, `/weather/insol` → `/map` with that layer; `/weather/doycal` → `/calendar`; `/sites/{lat},{lng}` and `/sites` keep their URLs; `/thermal-models` → `/models`; `/thermal-models/degree-days` → `/tools/degree-days`; `/thermal-models/oak-wilt` → `/tools/oak-wilt`; `/thermal-models/{pest}` → its topic; `/subscribers` → `/account` (Phase 7). The Shiny apps' URLs are DoIT Connect's; their pages get a notice linking to v2.
+v1's site and VDIFN's URLs redirect to their v2 page, or the nearest one where there's none, so bookmarks, search results and links in UW's pages and newsletters land; machine endpoints and the subscriber pages go to v1 on the legacy host (`LEGACY_HOST`, `https://legacy.agweather.cals.wisc.edu`) with their path and query, for the year it stays up. `app/web/legacy.py`'s `legacy_target(path, query)` is the whole map, a test per row (`web/tests/test_legacy.py`); a catch-all route after every v2 route sends v1's prefixes to it (`weather`, `thermal-models`, `subscribers`, `vdifn`, `home`, `king-hall`, `ag_weather`, `api` outside `api/v2`, and `sites/…` paths v2's routes don't take). Redirects to v2's pages are 302 for four weeks after launch, then 301 (`LEGACY_REDIRECT_PERMANENT`, TODO.md); those to the legacy host stay temporary (302, or 307 for a POST, keeping v1's forms working), since that host goes away; the old API's are 308 (D62, in `infra/Caddyfile` and the same in Django). Query values v2 has no use for (`units`, `wi_only`, `et_method`) are dropped; dates are kept only as `YYYY-MM-DD`. Sources: `../agweather-v1/site/config/routes.rb`, its `ThermalModelsController` and `WeatherController`, and VDIFN's `db/seeds.rb` and `Interface.svelte`.
+
+<!-- prettier-ignore -->
+| v1 or VDIFN | v2 |
+| --- | --- |
+| `/home` | `/` |
+| `/king-hall` | `/about` (`/about` is v2's own) |
+| `/weather`, `/weather/awon` (AWON is gone), any other `/weather/…` | `/map` |
+| `/weather/data?stat=avg\|min\|max&date=` | `/map?layer=air_temperature_{mean\|min\|max}&span=day&date=` |
+| `/weather/data?cumulative=…&start_date=&end_date=` | `span=range&start=&date=` with the same stat (v1 summarized the stat's own column: the lowest daily minimum); no start: January 1 of the end's year |
+| `/weather/precip`, `/weather/et`, `/weather/insol` | `layer=precipitation_sum`, `et0_sum`, `shortwave_radiation_sum`, by day; `cumulative` a range with `stat=sum\|mean\|min\|max` (v1's `avg` is `mean`), or `span=season` without a start date (v1's default, January 1) |
+| `/weather/doycal`, `/weather/doycal-grid` | `/calendar` |
+| `/weather/hyd`, `/weather/hyd-grid` (HYD is gone) | `/data` |
+| `/weather/map-image`, `/weather/{weather,precip,et,insol}-data` (page fragments), any `.csv`, `.json`, `.js` or `.png` path or `format=csv\|json\|js` | legacy host |
+| `/sites`, `/sites/{lat},{lng}` | unchanged (v2's own routes) |
+| `/sites/site-data-weather`, `/sites/site-data-dd` (`?lat=&lng=`) | `/sites/{lat},{lng}` |
+| `/sites/+{lat},{lng}`, `/sites/{lat},{lng}/` | `/sites/{lat},{lng}` |
+| `/sites/{id}` and any other `/sites/…` | `/sites`; v2's own forms stay 404 (a point out of range, any path with a `models` part) |
+| `/thermal-models` and any other `/thermal-models/…` | `/models` |
+| `/thermal-models/degree-days`, `/get-dds` | `/tools/degree-days` |
+| `/thermal-models/dd-map?dd_model=dd_50_86` (the default) | `/map?layer=degree_days&dd=sine_50_86&span=season` (v1's degree days are single sine; `dd_39p2_86` → `sine_39p2_86`); `end_date` → `date`; a `start_date` other than January 1 → `span=range&start=` |
+| `/thermal-models/dd-map?map_type=dsv&dsv_model=` | `potato_blight_dsv` (the default) → `late-blight-dsv`; `potato_p_days` → `early-blight-pdays`; `carrot_foliar_dsv` → `carrot-foliar-dsv`; `cercospora_div` → `cercospora-beet-div`; `botcast_dsi` → `botrytis-onion-botcast`; `end_date` → `date` |
+| `/thermal-models/frost-map` | `/tools/freeze` |
+| `/thermal-models/oak-wilt`, `/oak-wilt-dd` | `/tools/oak-wilt` |
+| `/thermal-models/{alfalfa-weevil, corn-stalk-borer, ecb, scm, western-bean-cutworm, corn-dev, potato, potato-data}` | `/topics/{alfalfa-weevil, stalk-borer, european-corn-borer, seedcorn-maggot, western-bean-cutworm, corn, potato, potato}` |
+| `/thermal-models/spongy-moth` (no model or topic) | `/models` |
+| `/thermal-models/map-image`, `/download-csv` (POST) | legacy host (307) |
+| `/subscribers`, `/subscribers/…` | legacy host until accounts (track 8); then `/account` for the bare path |
+| `/ag_weather`, `/api`, `/api/` | `/api/v2/docs` |
+| `/api/…` outside `/api/v2` | legacy host, 308 |
+| `/vdifn` | `/map`: the panel from `type`, `panel` or `p` (disease by default; another value drops the query, as VDIFN did), the model from `model` or `m` |
+| `/vdifn?m=` renamed | `early-blight` → `early-blight-pdays`; `late-blight` → `late-blight-dsv`; `carrot-foliar` → `carrot-foliar-dsv`; `cercospora-leaf-spot` → `cercospora-beet-div`; `botrytis-leaf-blight` → `botrytis-onion-botcast`; `pvy-vectors` → `aphid-pvy-vectors`; `oak-wilt` → `oak-wilt-vectors`; `cpb`, `cpb-old` → `colorado-potato-beetle`; `cpbad` → `colorado-potato-beetle-adults`; `cpbl` → `colorado-potato-beetle-larvae` |
+| `/vdifn?m=` the same id | the other 20 of VDIFN's models (all layers): `layer=` the same |
+| `/vdifn?m=tarnished-plant-bug`, `western-flower-thrips` (retired) | `/topics/{id}` |
+| `/vdifn?type=custom` | `/map?layer=degree_days&dd=sine_50_86&span=season` (VDIFN's degree-day panel ignored `m`; one of its `DegreeDay.remote_name`s, `dd_45_80p1`, is carried as `dd=sine_45_80p1`) |
+| `/vdifn/…` (`point_details`, `severities`, `db/*`, its assets) | legacy host |
+
+The Shiny apps' URLs are DoIT Connect's; their pages get a notice linking to v2.
 
 ## Design conventions
 

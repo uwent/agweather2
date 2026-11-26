@@ -9,6 +9,7 @@ from api.api import api
 from ops import views as ops
 from updates import views as updates
 from updates.feeds import ChangelogFeed
+from web import legacy
 from web import views as web
 
 urlpatterns = [
@@ -54,6 +55,8 @@ urlpatterns = [
     path("api/v2/", api.urls),
     re_path(r"^api/v2/(?P<rest>.*)$", api_views.not_found),  # after the API's own routes
     path("admin/", admin.site.urls),
+    # v1's and VDIFN's URLs (D62, web.legacy): last, so every v2 route above keeps its own (/sites, /sites/{lat},{lng})
+    re_path(rf"^(?P<path>{legacy.PREFIXES})$", web.legacy_redirect),
 ]
 
 if settings.DEBUG or settings.TESTING:

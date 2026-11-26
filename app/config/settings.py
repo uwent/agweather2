@@ -34,6 +34,13 @@ APP_VERSION = os.environ.get("APP_VERSION", "dev")
 # Where the code and its validation reports are public; links name APP_VERSION's commit, or main in development
 REPOSITORY_URL = "https://github.com/uwent/agweather2"
 
+# v1's site and API for a year after launch (D62): machine endpoints and the subscriber pages redirect there
+# (web.legacy), and Caddy sends the old API's paths there itself (infra/Caddyfile)
+LEGACY_HOST = (os.environ.get("LEGACY_HOST") or "https://legacy.agweather.cals.wisc.edu").rstrip("/")
+# Redirects from v1's and VDIFN's pages to v2's are 302 for the first four weeks after launch, checked against the
+# logs, then 301 (Ben, 2026-11-26; TODO.md)
+LEGACY_REDIRECT_PERMANENT = os.environ.get("LEGACY_REDIRECT_PERMANENT", "0") == "1"
+
 # The grid window the archive covers (docs/decisions.md D20): a preset name or south,west,north,east
 SERVICE_BOX = os.environ.get("SERVICE_BOX", "wisconsin")
 # Tests never read the real archive: their fixtures point DATA_DIR at their own, and otherwise it's a folder that
