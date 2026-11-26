@@ -193,6 +193,36 @@ test('the map explorer saves the map as a PNG', async ({ page }) => {
   await expect(page.getByText('Saved. Look for the image in your downloads.')).toBeVisible()
 })
 
+test('a fitted model’s map outlines its training area and says when the cell is outside it', async ({ page }) => {
+  // The recorded /models predates `trained`: the beetle's, as /models gives it now
+  const models = JSON.parse(readFileSync(new URL('../frontend/test/fixtures/models.json', import.meta.url), 'utf8'))
+  const beetle = models.data.find((m: { id: string }) => m.id === 'colorado-potato-beetle')
+  beetle.trained = {
+    description: 'scouting counts in commercial potato fields in central Wisconsin, mostly the Central Sands',
+    years: [2014, 2025],
+    states: [],
+    counties: [
+      '55001',
+      '55137',
+      '55097',
+      '55077',
+      '55135',
+      '55111',
+      '55049',
+      '55057',
+      '55141',
+      '55021',
+      '55073',
+      '55103',
+    ],
+  }
+  await page.route('**/api/v2/models', (route) => route.fulfill({ json: models }))
+  await page.goto('/map?layer=colorado-potato-beetle&at=43.07,-89.4')
+  await expect(page.getByTestId('training-area-note')).toContainText('The dashed line on the map outlines that area.')
+  // The recorded cell is Madison's, in Dane County, outside the Central Sands
+  await expect(page.getByTestId('outside-training')).toContainText('outside the area')
+})
+
 test('a site added is kept after a reload, and exported', async ({ page }) => {
   await stubSiteData(page)
   await page.goto('/sites')

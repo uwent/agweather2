@@ -48,6 +48,7 @@
   import { shortTitle } from '@/lib/explorer/catalog'
   import DataMap, { type DataInfo, type DataPick, type DataScale } from '@/lib/map/DataMap.svelte'
   import { imageFileName } from '@/lib/map/exportImage'
+  import { insideOutline, outlineFeature, trainingOutline, type TrainingOutline } from '@/lib/map/trainingArea'
   import { motion } from '@/lib/motion'
   import { siteLabel, sites } from '@/lib/sites.svelte'
   import { drawGroup, groupBounds } from '@/lib/sites/groupMap'
@@ -164,6 +165,23 @@
       ? { id: shownLayer.id, name: models.find((m) => m.id === shownLayer.id)?.name ?? shownLayer.title }
       : null,
   )
+
+  // --- A fitted model's training area (D101): outlined on its map, and said when the chosen cell is outside it
+
+  const trained = $derived(mapModel ? (models.find((m) => m.id === mapModel.id)?.trained ?? null) : null)
+  let trainedArea = $state<TrainingOutline | null>(null)
+  $effect(() => {
+    const id = trained && mapModel ? mapModel.id : null
+    untrack(() => {
+      trainedArea = null
+      if (!id) return
+      trainingOutline(id)
+        .then((found) => {
+          if (mapModel?.id === id) trainedArea = found
+        })
+        .catch(() => {})
+    })
+  })
 
   // --- The map
 
@@ -426,6 +444,55 @@
     })
   }
 
+  const outsideTraining = $derived(
+    trainedArea && place?.cell ? !insideOutline(trainedArea.geometry, place.cell.lng, place.cell.lat) : false,
+  )
+
+  // The training area's outline: dashed, above the data and beneath the cell's
+  $effect(() => {
+    const m = map
+    const area = trainedArea
+    if (!m) return
+    const draw = () => {
+      try {
+        trainedOutline(m, area)
+      } catch {
+        m.once('idle', draw)
+      }
+    }
+    draw()
+  })
+
+  function trainedOutline(m: MapLibreMap, area: TrainingOutline | null) {
+    const data: GeoJSONSourceSpecification['data'] = {
+      type: 'FeatureCollection',
+      features: area ? [outlineFeature(area.geometry)] : [],
+    }
+    const source = m.getSource('data-trained') as GeoJSONSource | undefined
+    if (source) return source.setData(data)
+    const palette = readPalette()
+    const below = m.getLayer('data-cell-halo') ? 'data-cell-halo' : undefined
+    m.addSource('data-trained', { type: 'geojson', data })
+    m.addLayer(
+      {
+        id: 'data-trained-halo',
+        type: 'line',
+        source: 'data-trained',
+        paint: { 'line-color': palette.surface, 'line-width': 4, 'line-opacity': 0.8 },
+      },
+      below,
+    )
+    m.addLayer(
+      {
+        id: 'data-trained',
+        type: 'line',
+        source: 'data-trained',
+        paint: { 'line-color': palette.ink, 'line-width': 1.5, 'line-dasharray': [3, 2] },
+      },
+      below,
+    )
+  }
+
   // The cell's days: the same settings as the map's tiles
   let series = $state<CellSeries | null>(null)
   let seriesError = $state<string | null>(null)
@@ -537,6 +604,7 @@
       {placeError}
       searched={searchedName}
       model={mapModel}
+      {outsideTraining}
       group={$view.group?.name ?? null}
       onclear={() => change({ at: null })}
     />
@@ -706,6 +774,11 @@
         <p class="max-w-prose rounded-md border border-line bg-surface-raised p-2 text-sm" role="note">{warning}</p>
       {/each}
       <p class="max-w-prose text-sm">{layer.group === 'degree_days' ? DEGREE_DAYS_ABOUT : layer.description}</p>
+      {#if trained && trainedArea}
+        <p class="max-w-prose text-sm" data-testid="training-area-note">
+          {`${mapModel?.name ?? title} was fitted to ${trained.description}, ${trained.years[0]}–${trained.years[1]}. The dashed line on the map outlines that area. The model runs outside it too, but its timing there is less certain.`}
+        </p>
+      {/if}
       {#each info?.caption ?? [] as line (line)}<p class="max-w-prose text-sm text-ink-muted">{line}</p>{/each}
       {#if through}<p class="text-sm text-ink-muted">{through}.</p>{/if}
       <p class="max-w-prose text-sm text-ink-muted">
