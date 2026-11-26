@@ -362,3 +362,30 @@ test('the methods page, linked from the footer and from a model’s inputs', asy
   await page.getByRole('contentinfo').getByRole('link', { name: 'Methods' }).click()
   await expect(page).toHaveURL(/\/methods$/)
 })
+
+test('the tools index opens the degree-day calculator, which answers for a place typed in', async ({ page }) => {
+  await stubSiteApi(page)
+  await page.goto('/tools')
+  await page.getByRole('link', { name: 'Degree-day calculator' }).click()
+  await expect(page).toHaveURL(/\/tools\/degree-days$/)
+  await page.getByLabel('Choose a place').fill('44.12, -89.52')
+  await page.getByLabel('Choose a place').press('Enter')
+  await expect(page.getByText('Waushara County, WI · 44.12° N, 89.52° W')).toBeVisible()
+  await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
+  await expect(page.getByRole('link', { name: 'See on the map' })).toHaveAttribute(
+    'href',
+    '/map?layer=degree_days&span=season&dd=modified_50_86&at=44.12,-89.52',
+  )
+  await page.getByRole('link', { name: 'Open the site page' }).click()
+  await expect(page).toHaveURL(/\/sites\/44\.12,-89\.52$/)
+})
+
+test('the day-of-year calendar converts a date and changes year', async ({ page }) => {
+  await page.goto('/calendar?year=2028')
+  await expect(page.getByRole('heading', { level: 1, name: 'Day-of-year calendar' })).toBeVisible()
+  await expect(page.getByText(/2028 is a leap year/)).toBeVisible()
+  await page.getByLabel('Date to day of year').fill('2028-03-01')
+  await expect(page.getByText('March 1, 2028 is day 61 of 2028.')).toBeVisible()
+  await page.getByRole('button', { name: 'Previous year' }).click()
+  await expect(page.getByRole('heading', { name: 'The days of 2027' })).toBeVisible()
+})

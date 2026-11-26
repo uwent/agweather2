@@ -15,6 +15,8 @@
     DD_UNIT,
     MAX_SETTINGS,
     ddCsvRows,
+    ddEnd,
+    ddMapUrl,
     ddOption,
     ddQuery,
     ddRun,
@@ -41,6 +43,8 @@
     /** The season, a year */
     year: number | null
     projection: boolean
+    /** The last day counted (the calculator's); null or absent: through the forecast, or a past season's end */
+    end?: string | null
   }
 
   // A site's Degree days tab (track 3 step 7): see ./degreeDays.ts. The presets come from `/degree-days/presets`
@@ -56,6 +60,7 @@
     onsave,
     view,
     onchange,
+    calculator = false,
   }: {
     lat: number
     lng: number
@@ -70,6 +75,8 @@
     onsave?: (from: 'planting' | 'biofix', date: string | null) => void
     view: DegreeDaysView
     onchange: (changes: Partial<DegreeDaysView>) => void
+    /** The degree-day calculator's extras (`/tools/degree-days`): an end date and a link to the map */
+    calculator?: boolean
   } = $props()
 
   const DEFAULT = 'modified_50_86'
@@ -118,9 +125,14 @@
     savedNote = ''
   })
 
+  // The last day counted, where the calculator chooses one; a projection only while it's still ahead
+  const end = $derived(calculator ? ddEnd({ end: view.end, start, year }) : null)
+  const projectable = $derived(year === thisYear && (end === null || end > today))
+  const mapUrl = $derived(calculator ? ddMapUrl({ lat, lng, series, start, end, year, thisYear }) : null)
+
   const answer = request<TableResponse>()
   const query = $derived(
-    ddQuery({ lat, lng, series, start, year, thisYear, projection: view.projection && year === thisYear }),
+    ddQuery({ lat, lng, series, start, year, thisYear, projection: view.projection && projectable, end, today }),
   )
   const requestKey = $derived(ready && series.length ? JSON.stringify(query) : '')
   function load() {
@@ -243,7 +255,29 @@
         />
       </label>
     {/if}
-    {#if year === thisYear}
+    {#if calculator}
+      <label class="flex items-center gap-2 text-xs">
+        <span class="text-ink-muted">Through</span>
+        <input
+          type="date"
+          class="rounded-md border border-line bg-surface px-2 py-1 text-xs"
+          min={start}
+          max="{year}-12-31"
+          value={end ?? ''}
+          onchange={(event) => onchange({ end: event.currentTarget.value || null })}
+        />
+      </label>
+      {#if end}
+        <button
+          type="button"
+          class="text-xs text-ink-muted underline hover:text-ink"
+          onclick={() => onchange({ end: null })}
+        >
+          {year === thisYear ? 'Count through the forecast' : 'Count through December 31'}
+        </button>
+      {/if}
+    {/if}
+    {#if projectable}
       <label class="flex items-center gap-2 text-xs">
         <input
           type="checkbox"
@@ -251,7 +285,7 @@
           checked={view.projection}
           onchange={(event) => onchange({ projection: event.currentTarget.checked })}
         />
-        Project to December 31 from past years’ weather
+        {end ? 'Project to the end date from past years’ weather' : 'Project to December 31 from past years’ weather'}
       </label>
     {/if}
   </div>
@@ -278,6 +312,17 @@
       {fallback.reason
         ? `Starting from ${fallback.reason}, ${formatDate(fallback.date)}. Choose your own date above.`
         : `Starting from ${formatDate(fallback.date)}. Choose your own date above.`}
+    </p>
+  {/if}
+
+  {#if mapUrl}
+    <p class="text-sm">
+      <a href={mapUrl} class="text-brand-600 underline hover:text-brand-700">See on the map</a>
+      <span class="text-ink-muted">
+        {series.length > 1
+          ? ` The map shows the first setting, ${seriesName(series[0], units)}, across the region.`
+          : ' The same running total across the region.'}
+      </span>
     </p>
   {/if}
 
