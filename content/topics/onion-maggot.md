@@ -1,6 +1,6 @@
 ---
 id: onion-maggot
-title: Onion Maggot
+title: Onion maggot
 kind: insect
 crops:
   - onion
@@ -9,7 +9,7 @@ summary: A small fly whose maggots tunnel into the roots and bulbs of onions and
 image: images/onion-maggot.jpg
 image_credit: 'Onion maggots in a damaged onion set. Photo by Rasbak, via Wikimedia Commons (File:Uienvlieg maden.jpg), CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: uw-vegento-om
     text: 'Onion Maggot. UW–Madison Vegetable Entomology, updated 2026.'

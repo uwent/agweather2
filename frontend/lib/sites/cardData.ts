@@ -8,6 +8,8 @@ import type { EffectivePrefs } from '@/lib/sites.svelte'
 import type { ModelEntry } from '@/types'
 import type { TableResponse } from '@/types/api'
 
+import type { RainSoFar } from './rainSoFar'
+
 /** Columns of a table answer (the default orientation) */
 export type Columns = Record<string, (number | string | boolean | null)[]>
 
@@ -31,8 +33,8 @@ export type RiskRow = {
   name: string
   level: number
   label: string
-  /** The number of levels in its scale, for the color */
-  levels: number
+  /** Its scale's levels, lowest first, for the color */
+  levels: readonly string[]
   /** Its days from two weeks back through the forecast, for the sparkline (an answer over several days) */
   days?: RiskDay[]
 }
@@ -72,7 +74,7 @@ export function topRisks(
       none++
       return
     }
-    const levels = entry.risk_levels.length
+    const levels = entry.risk_levels
     rows.push({ model: id, name: String(c.name?.[k] ?? id), level, label, levels, days: spans?.get(id)?.days })
   })
   rows.sort((a, b) => riskRank(b.level, b.levels) - riskRank(a.level, a.levels) || a.name.localeCompare(b.name))
@@ -94,7 +96,24 @@ export type DayWeather = {
   precipitation: number | null
 }
 
-export type SiteWeather = { today: DayWeather | null; tomorrow: DayWeather | null }
+export type SiteWeather = {
+  today: DayWeather | null
+  tomorrow: DayWeather | null
+  /** Today's precipitation so far from its hours, while the day has no total (lib/sites/rainSoFar) */
+  rainToday?: RainSoFar | null
+}
+
+/** The `/weather/hourly` query for several sites' hours so far today, for today's precipitation (from the day
+ * before in UTC, so a day that starts before UTC's midnight is whole) */
+export function rainQuery(points: readonly { lat: number; lng: number }[], today: string) {
+  return {
+    points: points.map((p) => `${p.lat},${p.lng}`).join(';'),
+    vars: ['precipitation'],
+    start: addDays(today, -1),
+    forecast: false,
+    units: 'metric',
+  }
+}
 
 /** The `/weather/daily` query for several sites' today and tomorrow */
 export function weatherQuery(points: readonly { lat: number; lng: number }[], today: string) {

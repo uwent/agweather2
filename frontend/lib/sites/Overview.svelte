@@ -16,18 +16,22 @@
   import { riskSpans, rowsOn } from '../riskSpan'
   import { siteKey } from '../siteKey'
   import { effectivePrefs, siteAt } from '../sites.svelte'
+  import { routes } from '../routes'
   import { modelShown } from './prefs'
+  import { NOT_LIVE, radarUrl, rainSoFarShort, rainSoFarText, type RainSoFar } from './rainSoFar'
   import { riskRows } from './text'
 
   // The Overview tab: the past week and the days ahead (ForecastStrip), the latest hour, rain and reference ET
   // over the last 7 days and since January 1, and the risk now from every model in season. Values come in
   // metric (`units=metric`) and are converted at display, so a change of units redraws without a request.
-  // latest: the newest observed hour, from the page's request (it also dates the header).
+  // latest: the newest observed hour, from the page's request (it also dates the header); rainToday: today's
+  // precipitation so far from the same hours (lib/sites/rainSoFar), null before any hour of today has one.
   let {
     lat,
     lng,
     today,
     latest,
+    rainToday,
     models,
     risk,
     loadRisk,
@@ -36,6 +40,7 @@
     lng: number
     today: string
     latest: { table: Table; day: Day } | null
+    rainToday: RainSoFar | null
     models: SiteModel[]
     /** The page's `/risk` from two weeks back through the forecast, shared with the Models tab */
     risk: Request<TableResponse>
@@ -135,12 +140,15 @@
     const value = latest.day.values[column] ?? null
     return symbol ? units.format(symbol, value) : value === null ? '—' : String(value)
   }
+  const soFar = $derived(
+    rainToday ? { short: rainSoFarShort(rainToday, units), full: rainSoFarText(rainToday, units) } : null,
+  )
+
   const hourRows = [
     ['Temperature', 'air_temperature'],
     ['Dew point', 'dew_point'],
     ['Relative humidity', 'relative_humidity'],
     ['Wind', 'wind_speed'],
-    ['Precipitation', 'precipitation'],
   ] as const
 </script>
 
@@ -163,6 +171,7 @@
             columns={strip.units}
             {units}
             {today}
+            {soFar}
             label="Weather for today and the days ahead"
           />
         </div>
@@ -185,6 +194,20 @@
             <dd class="font-medium tabular-nums">{hourValue(column)}</dd>
           {/each}
         </dl>
+        <div class="space-y-1 pt-2 text-sm">
+          <p>
+            <span class="text-ink-muted">{'Precipitation today: '}</span>
+            <span class="font-medium">{soFar ? soFar.full : 'none of today’s hours have reached AgWeather yet'}</span>
+          </p>
+          <p class="text-xs text-ink-muted">
+            {`${NOT_LIVE} For rain falling now, see the `}<a
+              href={radarUrl(routes.map(), lat, lng)}
+              class="underline hover:text-ink"
+            >
+              radar on the map
+            </a>.
+          </p>
+        </div>
       {:else}
         <p class="text-sm text-ink-muted">No observed hour yet.</p>
       {/if}

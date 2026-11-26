@@ -34,14 +34,6 @@ export function sourceWords(location: Pick<LocateData, 'in_box'> | null): string
   return 'Outside the area we cover: its weather comes from Open-Meteo’s models rather than NOAA’s 2.5 km grid, and it isn’t on our maps.'
 }
 
-/** The risk level's color token for a model with `count` levels: five use the severity palette, four the
- * probability palette (agmodels.spec), any other count spread over the severity palette */
-export function riskColor(level: number, count: number): string {
-  if (count === 4) return `var(--color-risk-probability-${Math.min(4, Math.max(1, level + 1))})`
-  const index = count === 5 || count < 2 ? level : Math.round((level * 4) / (count - 1))
-  return `var(--color-risk-severity-${Math.min(5, Math.max(1, index + 1))})`
-}
-
 export type RiskRow = {
   model: string
   name: string

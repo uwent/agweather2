@@ -1,6 +1,6 @@
 ---
 id: western-flower-thrips
-title: Western Flower Thrips
+title: Western flower thrips
 kind: insect
 crops:
   - cucumber
@@ -12,7 +12,7 @@ summary: A tiny thrips that scars leaves and flowers of greenhouse and vegetable
 image: images/western-flower-thrips.jpg
 image_credit: 'Western flower thrips adult under magnification; the bar is 1 millimeter. Photo by Jesse Rorabaugh, via iNaturalist (observation 10629194), dedicated to the public domain (CC0).'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-25
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Thrips. Updated 2026.'
@@ -90,4 +90,4 @@ For products, rates and current registrations, see UW–Madison's [Commercial Ve
 
 ## AgWeather's models
 
-AgWeather has no western flower thrips model. An earlier one, carried over from VDIFN, counted degree days from January 1 at a base of 45 °F, following Oregon State's western flower thrips model, which is still listed as under development,[^uspest-wft] as if thrips had spent the winter in the field, which western flower thrips don't do in Wisconsin: they arrive on transplants or from greenhouses, on their own schedule.[^umn][^uw-hort] It was retired in 2026, and its [page](/models/western-flower-thrips) says why.[^agweather-western-flower-thrips] Scout transplants and field edges for the thrips themselves.
+AgWeather has no western flower thrips model. An earlier one, carried over from VDIFN, counted degree days from January 1 at a base of 45 °F, following Oregon State's western flower thrips model, which is still listed as under development,[^uspest-wft] as if thrips had spent the winter in the field, which western flower thrips don't do in Wisconsin: they arrive on transplants or from greenhouses, on their own schedule.[^umn][^uw-hort] It was retired in 2026, and its validation report says why.[^agweather-western-flower-thrips] Scout transplants and field edges for the thrips themselves.

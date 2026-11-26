@@ -1,6 +1,6 @@
 ---
 id: cabbage-maggot
-title: Cabbage Maggot
+title: Cabbage maggot
 kind: insect
 crops:
   - cole-crops
@@ -9,7 +9,7 @@ summary: A small fly whose maggots feed on the roots of cabbage, broccoli, radis
 image: images/cabbage-maggot.jpg
 image_credit: 'Cabbage maggot larvae at the base of a cauliflower stem. Photo by Rasbak, via Wikimedia Commons (File:Koolvlieg bloemkool.jpg), CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cabbage Maggot. Updated 2026.'

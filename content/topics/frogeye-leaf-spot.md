@@ -1,6 +1,6 @@
 ---
 id: frogeye-leaf-spot
-title: Frogeye Leaf Spot (Soybean)
+title: Frogeye leaf spot (soybean)
 kind: disease
 crops:
   - soybean
@@ -9,7 +9,7 @@ summary: A fungal leaf spot of soybean, favored by warm, humid weather, that has
 image: images/frogeye-leaf-spot.jpg
 image_credit: 'Frogeye leaf spots, with pale centers and dark reddish borders, on a soybean leaf in Iowa. Photo by Daren Mueller, Iowa State University, Bugwood.org (image 5625040), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/).'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: bradley-2016
     text: 'Bradley, C., M. Chilvers, A. Freije and others. An Overview of Frogeye Leaf Spot (CPN-1017). Crop Protection Network, 2016.'

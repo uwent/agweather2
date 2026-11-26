@@ -1,6 +1,6 @@
 ---
 id: codling-moth
-title: Codling Moth
+title: Codling moth
 kind: insect
 crops:
   - apple
@@ -9,7 +9,7 @@ summary: A small moth whose larvae tunnel to the core of apples and pears; spray
 image: images/codling-moth.jpg
 image_credit: 'Gravenstein apples tunneled by codling moth larvae, with the cores eaten away. Photo by Richard Wilde, via Wikimedia Commons (File:Gravenstein apples with codling moth.JPG), released into the public domain.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: van-zoeren-2018
     text: 'van Zoeren, J. and C. Guédot. Codling Moth: Management Options for Commercial and Backyard Growers (A4172). University of Wisconsin–Extension, 2018.'

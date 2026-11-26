@@ -1,6 +1,6 @@
 ---
 id: fire-blight
-title: Fire Blight
+title: Fire blight
 kind: disease
 crops:
   - apple
@@ -9,7 +9,7 @@ summary: A bacterial disease that kills apple and pear blossoms, shoots and some
 image: images/fire-blight.jpg
 image_credit: 'A Gala apple branch with scorched leaves after a severe fire blight infection. Photo by Peggy Greb, USDA Agricultural Research Service (image K10805-2), public domain; via Wikimedia Commons (File:Severe fire blight infection on apples.jpg); resized.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: joy-2026
     text: 'Joy, A. and B. Hudelson. Fire Blight (UW Plant Disease Facts D0052). UW–Madison Plant Pathology, revised 2026.'

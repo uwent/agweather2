@@ -10,6 +10,7 @@
   import DegreeDaysTab, { type DegreeDaysView } from '@/lib/sites/DegreeDaysTab.svelte'
   import ModelsTab from '@/lib/sites/ModelsTab.svelte'
   import Overview from '@/lib/sites/Overview.svelte'
+  import { rainSoFarByPoint } from '@/lib/sites/rainSoFar'
   import SiteHeader from '@/lib/sites/SiteHeader.svelte'
   import WeatherTab, { type WeatherView } from '@/lib/sites/WeatherTab.svelte'
   import { effectivePrefs, setPrefs, siteAt } from '@/lib/sites.svelte'
@@ -103,6 +104,8 @@
     const day = table.days.findLast((row) => row.kind === 'observed' && row.values.air_temperature !== null)
     return day ? { table, day } : null
   })
+  // Today's precipitation so far, from the same hours (the day in progress has no daily total)
+  const rainToday = $derived(latestHours.value.data ? rainSoFarByPoint(latestHours.value.data, 1, today)[0] : null)
 
   const title = $derived(saved?.name ?? name ?? 'Unsaved location')
   const weatherView = $derived<WeatherView>({
@@ -175,7 +178,16 @@
     </Tabs.List>
     <Tabs.Content value="overview" class="pt-6">
       <!-- Only the tab shown makes its requests -->
-      {#if $view.tab === 'overview'}<Overview {lat} {lng} {today} {latest} {models} {risk} {loadRisk} />{/if}
+      {#if $view.tab === 'overview'}<Overview
+          {lat}
+          {lng}
+          {today}
+          {latest}
+          {rainToday}
+          {models}
+          {risk}
+          {loadRisk}
+        />{/if}
     </Tabs.Content>
     <Tabs.Content value="weather" class="pt-6">
       {#if $view.tab === 'weather'}

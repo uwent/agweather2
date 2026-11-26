@@ -6,6 +6,8 @@ import pytest
 
 from agdata import palettes
 from agdata.layers import LAYERS
+from agmodels.registry import all_models
+from agmodels.spec import SEVERITY_LEVELS
 
 # Machado, Oliveira and Fernandes (2009), full severity, on linear RGB
 CVD = {
@@ -68,6 +70,21 @@ def test_levels_stay_distinct_under_color_vision_deficiencies(p):
             for b in range(a + 1, len(lab)):
                 delta = float(np.linalg.norm(lab[a] - lab[b]))
                 assert delta >= MIN_CATEGORY_DELTA, f"{p.id} levels {a} and {b} under {vision}: ΔE {delta:.1f}"
+
+
+def test_a_scale_of_two_or_three_risk_levels_takes_the_five_levels_colors_by_name():
+    five = palettes.PALETTES["BuYlRd_5"].colors
+    by_name = dict(zip(SEVERITY_LEVELS, five, strict=True))
+    for model in all_models().values():
+        risk = model.SPEC.risk
+        if risk is None:
+            continue
+        colors = palettes.use_palette(palettes.risk_use(risk.levels)).colors
+        assert set(colors) <= set(five), model.SPEC.id
+        if len(risk.levels) < 4:  # Low, Moderate and High the same color wherever they appear
+            for level, color in zip(risk.levels, colors, strict=True):
+                assert level not in by_name or color == by_name[level], (model.SPEC.id, level)
+    assert palettes.use_palette("risk_3").colors == five[1:4]
 
 
 def test_every_layer_and_output_has_a_use_whose_palette_exists():

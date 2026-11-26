@@ -1,6 +1,6 @@
 ---
 id: colorado-potato-beetle
-title: Colorado Potato Beetle
+title: Colorado potato beetle
 kind: insect
 crops:
   - eggplant
@@ -11,7 +11,7 @@ summary: A striped leaf beetle whose adults and larvae strip the leaves of potat
 image: images/colorado-potato-beetle.jpg
 image_credit: 'Late-instar Colorado potato beetle larvae and their feeding on potato leaves. Photo: Ben Bradford, UW–Madison Vegetable Entomology.'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-25
 sources:
   - key: uw-vegento-cpb
     text: 'Colorado Potato Beetle. UW–Madison Vegetable Entomology, updated 2026.'

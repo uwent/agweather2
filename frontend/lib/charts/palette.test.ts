@@ -44,9 +44,7 @@ describe('hex', () => {
 describe('risk colors', () => {
   it("are the API's categorical palettes, level by level", () => {
     const severity = [1, 2, 3, 4, 5].map((i) => token(`color-risk-severity-${i}`))
-    const probability = [1, 2, 3, 4].map((i) => token(`color-risk-probability-${i}`))
     expect(severity).toEqual(apiPalette('BuYlRd_5'))
-    expect(probability).toEqual(apiPalette('BuYlRd_4'))
   })
 })
 
@@ -58,14 +56,11 @@ describe('readPalette', () => {
     root.style.setProperty('--color-chart-temperature-max', '#eb6834')
     root.style.setProperty('--color-chart-precipitation', '#1c5cab')
     root.style.setProperty('--color-risk-severity-5', '#a50026')
-    root.style.setProperty('--color-risk-probability-1', '#4575b4')
     const palette = readPalette()
     expect(palette.temperature.max).toBe('#eb6834')
     expect(palette.precipitation).toBe('#1c5cab')
     expect(palette.severity).toHaveLength(5)
     expect(palette.severity[4]).toBe('#a50026')
-    expect(palette.probability).toHaveLength(4)
-    expect(palette.probability[0]).toBe('#4575b4')
     expect(palette.et).toBe('#888888')
   })
 })

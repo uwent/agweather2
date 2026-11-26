@@ -91,6 +91,7 @@ VARIABLES: dict[str, Variable] = {
             name="air_temperature",
             long_name="Air temperature at 2 m",
             unit="degC",
+            notes="The air temperature at 2 m (about 6.5 feet) above the ground, the height of a weather station's thermometer.",
             spike_c=12,
             scale=0.1,
             valid_min=-60,
@@ -102,6 +103,7 @@ VARIABLES: dict[str, Variable] = {
             name="dew_point",
             long_name="Dew point at 2 m",
             unit="degC",
+            notes="The temperature to which the air would have to cool for dew to form. The closer it is to the air temperature, the more humid the air.",
             spike_c=12,
             scale=0.1,
             valid_min=-70,
@@ -118,12 +120,13 @@ VARIABLES: dict[str, Variable] = {
             valid_max=100,
             daily=("min", "max", "mean"),
             derived=True,
-            notes="Computed from air temperature and dew point (the Magnus formula, over water).",
+            notes="How much water vapor the air holds, as a percentage of the most it could hold at its temperature. We compute it from the air temperature and dew point (the Magnus formula, over water).",
         ),
         Variable(
             name="wind_speed",
             long_name="Wind speed at 10 m",
             unit="m_s",
+            notes="The wind's mean speed at 10 m (about 33 feet) above the ground, the standard height for wind measurements.",
             scale=0.1,
             valid_min=0,
             valid_max=75,
@@ -134,6 +137,7 @@ VARIABLES: dict[str, Variable] = {
             name="wind_gust",
             long_name="Wind gust at 10 m",
             unit="m_s",
+            notes="The highest short burst of wind speed during the hour, at 10 m above the ground.",
             scale=0.1,
             valid_min=0,
             valid_max=100,
@@ -142,19 +146,20 @@ VARIABLES: dict[str, Variable] = {
         ),
         Variable(
             name="wind_direction",
-            long_name="Wind direction at 10 m, from",
+            long_name="Wind direction at 10 m",
             unit="deg",
             fillable=False,
             scale=1,
             valid_min=0,
             valid_max=360,
-            notes="A day's directions can't be averaged as numbers, so there is no daily value.",
+            notes="The direction the wind blows from, in degrees clockwise from north (90 is from the east). A day's directions can't be averaged as numbers, so there is no daily value.",
             sources={"urma": "WDIR:10 m above ground"},
         ),
         Variable(
             name="surface_pressure",
             long_name="Surface pressure",
             unit="kPa",
+            notes="The air pressure at the ground, not adjusted to sea level, so it is lower at higher elevations.",
             scale=0.1,
             valid_min=50,
             valid_max=110,
@@ -165,6 +170,7 @@ VARIABLES: dict[str, Variable] = {
             name="cloud_cover",
             long_name="Total cloud cover",
             unit="percent",
+            notes="The share of the sky covered by cloud at any height.",
             scale=1,
             valid_min=0,
             valid_max=100,
@@ -173,29 +179,29 @@ VARIABLES: dict[str, Variable] = {
         ),
         Variable(
             name="precipitation",
-            long_name="Precipitation in the hour ending at the time",
+            long_name="Precipitation",
             unit="mm",
             fillable=False,
             scale=0.01,  # D28: at 0.1, light-snow hours under 0.05 mm round to 0 (January totals 6.6% low)
             valid_min=0,
             valid_max=300,
             daily=("sum",),
-            notes="The total for the hour ending at the time.",
+            notes="Rain and melted snow in the hour ending at the time shown.",
             sources={"urma": "APCP:surface, 1-hour accumulation"},
         ),
         Variable(
             name="shortwave_radiation_hrrr",
-            long_name="HRRR's downward shortwave radiation at the surface, mean over the hour, uncorrected",
+            long_name="Solar radiation from HRRR before our correction, mean over the hour",
             unit="W_m2",
             scale=0.1,
             valid_min=0,
             valid_max=1500,
-            notes="HRRR's solar radiation before our correction to ground measurements. It reads about 18% high.",
+            notes="The sunlight reaching the ground as NOAA's HRRR weather model gives it, before we correct it to measurements on the ground. It reads about 18% high.",
             sources={"hrrr": "DSWRF:surface, wrfsubhf01"},
         ),
         Variable(
             name="shortwave_radiation",
-            long_name="Downward shortwave radiation at the surface, mean over the hour",
+            long_name="Solar radiation, mean over the hour",
             unit="W_m2",
             scale=0.1,
             valid_min=0,
@@ -203,7 +209,7 @@ VARIABLES: dict[str, Variable] = {
             daily=("sum",),
             derived=True,
             version=3,  # 1 + the correction table's version (`agdata.shortwave`; a test checks it)
-            notes="Corrected to pyranometers on the ground. Daily totals are in MJ/m² (W/m² × 0.0036).",
+            notes="The sunlight reaching the ground (downward shortwave radiation), corrected to measurements by instruments on the ground. Daily totals are in megajoules per square meter (MJ/m²).",
             sources={"hrrr": "shortwave_radiation_hrrr, corrected (agdata.shortwave)"},
         ),
         Variable(
@@ -215,7 +221,7 @@ VARIABLES: dict[str, Variable] = {
             valid_max=60,
             daily=("min", "max", "mean"),
             version=2,  # 2: ERA5-Land, not HRRR (D52)
-            notes="Taken from the source's soil layers (0–7, 7–28 and 28–100 cm) to the depth. The potato models' 2 inch depth.",
+            notes="Estimated by a weather model at 4 cm (about 1.5 inches), between the depths of its soil layers (0–7, 7–28 and 28–100 cm). The potato models use it for 2 inches.",
             sources={
                 "era5land": "soil_temperature_level_1-3, at the depth (agdata.sources.era5land)",
                 "ifs": "IFS HRES layers, at the depth (agdata.sources.ifs): provisional days and the forecast",
@@ -230,7 +236,7 @@ VARIABLES: dict[str, Variable] = {
             valid_max=60,
             daily=("min", "max", "mean"),
             version=2,  # 2: ERA5-Land, not HRRR (D52)
-            notes="Taken from the source's soil layers (0–7, 7–28 and 28–100 cm) to the depth. The potato models' 4 inch depth.",
+            notes="Estimated by a weather model at 10 cm (about 4 inches), between the depths of its soil layers (0–7, 7–28 and 28–100 cm). The potato models use it for 4 inches.",
             sources={
                 "era5land": "soil_temperature_level_1-3, at the depth (agdata.sources.era5land)",
                 "ifs": "IFS HRES layers, at the depth (agdata.sources.ifs): provisional days and the forecast",
@@ -245,7 +251,7 @@ VARIABLES: dict[str, Variable] = {
             valid_max=60,
             daily=("min", "max", "mean"),
             version=2,  # 2: ERA5-Land, not HRRR (D52)
-            notes="Taken from the source's soil layers (0–7, 7–28 and 28–100 cm) to the depth. With 10 cm, it gives the potato models' 8 inch depth.",
+            notes="Estimated by a weather model at 30 cm (about 12 inches), between the depths of its soil layers (0–7, 7–28 and 28–100 cm). The potato models take 8 inches between this depth and 10 cm.",
             sources={
                 "era5land": "soil_temperature_level_1-3, at the depth (agdata.sources.era5land)",
                 "ifs": "IFS HRES layers, at the depth (agdata.sources.ifs): provisional days and the forecast",
@@ -259,7 +265,7 @@ VARIABLES: dict[str, Variable] = {
             valid_min=0,
             valid_max=1000,
             daily=("max", "mean"),
-            notes="The depth of the snow itself, not its water content.",
+            notes="The depth of the snow on the ground, not its water content, as a weather model estimates it.",
             sources={
                 "era5land": "snow_depth (agdata.sources.era5land)",
                 "ifs": "snow_depth (agdata.sources.ifs): provisional days and the forecast",
@@ -274,7 +280,7 @@ VARIABLES: dict[str, Variable] = {
                 valid_min=0,
                 valid_max=1,
                 daily=("mean",),
-                notes=f"The volume of water in the soil from {top} to {bottom} cm, as a share of the soil's volume (0.30 is 30%), for the model's soil, not a field's. Includes frozen water.",
+                notes=f"The volume of water in the soil from {top} to {bottom} cm, as a share of the soil's volume (0.30 is 30%). It is estimated by a weather model for its own soil, not a field's, and includes frozen water.",
                 sources={
                     "era5land": f"volumetric_soil_water_layer_{layer} (agdata.sources.era5land)",
                     "ifs": f"IFS HRES soil_moisture_{top}_to_{bottom}cm (agdata.sources.ifs): provisional days and the forecast",
@@ -284,7 +290,7 @@ VARIABLES: dict[str, Variable] = {
         ),
         Variable(
             name="et0",
-            long_name="FAO-56 grass reference evapotranspiration in the hour",
+            long_name="Reference evapotranspiration (FAO-56 grass)",
             unit="mm",
             fillable=False,
             scale=0.001,
@@ -293,7 +299,7 @@ VARIABLES: dict[str, Variable] = {
             daily=("sum",),
             derived=True,
             version=2,  # 2: Rs/Rso held to 0.3–1 (ASCE-EWRI), so heavy cloud can't make net longwave a gain
-            notes="Grass reference evapotranspiration by the FAO-56 Penman-Monteith equation, computed each hour.",
+            notes="The water a short, well-watered grass would lose to evaporation and transpiration, by the FAO-56 Penman–Monteith equation, computed each hour from temperature, humidity, wind and solar radiation.",
         ),
     ]
 }
@@ -311,6 +317,13 @@ _SUMS: dict[str, tuple[str, float, float, float, float]] = {
 }
 
 
+_SUM_NAMES = {
+    "precipitation": "Precipitation, daily total",
+    "shortwave_radiation": "Solar radiation, daily total",
+    "et0": "Reference evapotranspiration (FAO-56 grass), daily total",
+}
+
+
 @dataclass(frozen=True, kw_only=True)
 class DailyStatistic:
     variable: Variable  # stored in the daily store
@@ -325,7 +338,7 @@ def _daily_statistic(v: Variable, stat: DailyStat) -> DailyStatistic:
     name = f"{v.name}_{stat}"
     if stat == "sum":
         unit_, factor, scale, offset, high = _SUMS[v.name]
-        long_name = f"{v.long_name}, daily total"
+        long_name = _SUM_NAMES[v.name]
         daily = Variable(
             name=name,
             long_name=long_name,
@@ -363,7 +376,8 @@ DAILY_VARIABLES: dict[str, Variable] = {name: s.variable for name, s in DAILY_ST
 # (`agdata.gaps`), for running totals only; the raw `et0_sum` stays missing (D25)
 DAILY_VARIABLES["et0_sum_estimate"] = Variable(
     name="et0_sum_estimate",
-    long_name="FAO-56 grass reference evapotranspiration, daily total with missing hours estimated",
+    long_name="Reference evapotranspiration (FAO-56 grass), daily total with missing hours estimated",
+    notes="The day's total with any missing hours estimated, so that running totals can continue. It is used only for running totals; the daily total stays missing.",
     unit="mm",
     scale=0.01,
     valid_min=0,
@@ -379,7 +393,7 @@ DAILY_VARIABLES["et0_sum_estimate"] = Variable(
 # overnight minimum (noon to noon). Features that look across days (hot past 5 days, dry) and moving averages are
 # computed on read. Bump a feature's version when `agmodels.features` changes what it computes (D29).
 # Version 2 counts gridded RH at 88%, a station's 90% (D50, `agmodels.features.STATION_RH_90_AS_GRIDDED`)
-_RH90 = "{} with RH at or above 90% as a station counts it (gridded RH ≥ 88%)"
+_RH90 = "{} with relative humidity at or above 90% as a weather station counts it (88% on the grid)"
 _HOURS = {"unit": "hour", "scale": 1, "valid_min": 0, "valid_max": 25, "derived": True, "gap_fill": "interpolate"}
 _TEMPERATURE = {
     "unit": "degC",
@@ -389,7 +403,8 @@ _TEMPERATURE = {
     "derived": True,
     "gap_fill": "interpolate",
 }
-_DEPRESSION = {**_TEMPERATURE, "unit": "delta_degC"}  # a difference of temperatures: °F is ×1.8, no offset
+_DEPRESSION = {**_TEMPERATURE, "unit": "delta_degC"}
+_DEPRESSION_NOTE = "How far the air temperature is above the dew point. The smaller it is, the closer the air is to forming dew."  # a difference of temperatures: °F is ×1.8, no offset
 # THI is unitless, about 1.8 T + 32 in humid air: −45 at −40 °C, 120 at 50 °C and saturated
 _INDEX = {"unit": "index", "scale": 0.1, "valid_min": -80, "valid_max": 140, "derived": True, "gap_fill": "interpolate"}
 # A missing day's scab period counts as none, as a missing day's rain does (D45); the runner flags the day estimated
@@ -409,8 +424,8 @@ DAILY_FEATURES: dict[str, Variable] = {
     for v in [
         Variable(name="hours_temperature_over_20c", long_name="Hours with temperature at or above 20 °C", **_HOURS),
         Variable(name="hours_temperature_over_30c", long_name="Hours with temperature at or above 30 °C", **_HOURS),
-        Variable(name="hours_rh_under_70", long_name="Hours with RH below 70%", **_HOURS),
-        Variable(name="hours_rh_over_80", long_name="Hours with RH at or above 80%", **_HOURS),
+        Variable(name="hours_rh_under_70", long_name="Hours with relative humidity below 70%", **_HOURS),
+        Variable(name="hours_rh_over_80", long_name="Hours with relative humidity at or above 80%", **_HOURS),
         Variable(name="hours_rh_over_90", long_name=_RH90.format("Hours"), version=2, **_HOURS),
         Variable(
             name="hours_rh_over_90_temperature_over_70f",
@@ -418,21 +433,25 @@ DAILY_FEATURES: dict[str, Variable] = {
             version=2,  # counted at 88% since D100
             **_HOURS,
         ),
-        Variable(name="hours_rh_over_80_from_6pm", long_name="Hours with RH at or above 80%, day from 6 pm", **_HOURS),
-        Variable(name="hours_rh_over_90_from_6pm", long_name=_RH90.format("Hours") + ", day from 6 pm", **_HOURS),
+        Variable(
+            name="hours_rh_over_80_from_6pm",
+            long_name="Hours with relative humidity at or above 80%, day from 6 p.m.",
+            **_HOURS,
+        ),
+        Variable(name="hours_rh_over_90_from_6pm", long_name=_RH90.format("Hours") + ", day from 6 p.m.", **_HOURS),
         # 2: 6 pm to 6 am (was 8 pm to 7 am, D74); 3 for RH ≥ 90%, after D50's 2
         Variable(
             name="hours_rh_over_80_night",
-            long_name="Night hours (6 pm to 6 am) with RH at or above 80%",
+            long_name="Night hours (6 p.m. to 6 a.m.) with relative humidity at or above 80%",
             version=2,
             **_HOURS,
         ),
         Variable(
-            name="hours_rh_over_90_night", long_name=_RH90.format("Night hours (6 pm to 6 am)"), version=3, **_HOURS
+            name="hours_rh_over_90_night", long_name=_RH90.format("Night hours (6 p.m. to 6 a.m.)"), version=3, **_HOURS
         ),
         Variable(
             name="hours_rh_over_90_7pm_to_6am",
-            long_name=_RH90.format("Hours from 7 pm to 6 am (tar spot's night)"),
+            long_name=_RH90.format("Hours from 7 p.m. to 6 a.m."),
             **_HOURS,
         ),
         Variable(
@@ -449,33 +468,55 @@ DAILY_FEATURES: dict[str, Variable] = {
         ),
         Variable(
             name="hours_soil_8in_below_27f",
-            long_name="Hours with soil at 8 in (10–30 cm interpolated) below 27 °F",
+            long_name="Hours with soil at 8 inches below 27 °F",
             version=2,  # 2: from ERA5-Land's soil (D52)
             **_HOURS,
         ),
-        Variable(name="dew_point_depression_min", long_name="Dew point depression, daily min", **_DEPRESSION),
-        Variable(name="dew_point_depression_mean", long_name="Dew point depression, daily mean", **_DEPRESSION),
-        Variable(name="dew_point_depression_max", long_name="Dew point depression, daily max", **_DEPRESSION),
+        Variable(
+            name="dew_point_depression_min",
+            long_name="Dew point depression, daily min",
+            notes=_DEPRESSION_NOTE,
+            **_DEPRESSION,
+        ),
+        Variable(
+            name="dew_point_depression_mean",
+            long_name="Dew point depression, daily mean",
+            notes=_DEPRESSION_NOTE,
+            **_DEPRESSION,
+        ),
+        Variable(
+            name="dew_point_depression_max",
+            long_name="Dew point depression, daily max",
+            notes=_DEPRESSION_NOTE,
+            **_DEPRESSION,
+        ),
         Variable(
             name="temperature_mean_rh_over_80_from_6pm",
-            long_name="Mean temperature, RH ≥ 80%, day from 6 pm",
+            long_name="Mean temperature of hours with relative humidity at or above 80%, day from 6 p.m.",
             **_TEMPERATURE,
         ),
         Variable(
             name="temperature_mean_rh_over_90_from_6pm",
-            long_name="Mean temperature, RH ≥ 90% as a station counts it (gridded RH ≥ 88%), day from 6 pm",
+            long_name=_RH90.format("Mean temperature of hours") + ", day from 6 p.m.",
             **_TEMPERATURE,
         ),
         Variable(
             name="air_temperature_min_overnight",
-            long_name="Air temperature, overnight minimum (noon to noon)",
+            long_name="Air temperature, overnight minimum",
+            notes="The lowest air temperature from noon the day before to noon on the day, so a cold morning counts on its own day.",
             **_TEMPERATURE,
         ),
         # Winter chill (D76, `agmodels.chill`) and livestock heat stress (D77, `agmodels.livestock`), calendar days
-        Variable(name="chill_hours", long_name="Chill hours (0–7.2 °C, 32–45 °F)", **_HOURS),
+        Variable(
+            name="chill_hours",
+            long_name="Chill hours (32–45 °F)",
+            notes="Hours with the air temperature from 32 to 45 °F (0 to 7.2 °C), which fruit trees need through the winter to bloom well in spring.",
+            **_HOURS,
+        ),
         Variable(
             name="utah_chill_units",
             long_name="Utah chill units",
+            notes="Winter chill by the Utah model: each hour counts as a full, half or no unit by its temperature, and warm hours count against the total.",
             unit="chill_units",
             scale=0.5,
             valid_min=-24,
@@ -492,7 +533,10 @@ DAILY_FEATURES: dict[str, Variable] = {
         # Apple scab (`agmodels.models.apple_scab`): wet periods found in the 120 hours to the day's end (D96), and
         # the day's and night's rain for ascospore release
         Variable(
-            name="scab_infection", long_name="Apple scab infection period reaching the Revised Mills table", **_FLAG
+            name="scab_infection",
+            long_name="Apple scab infection period",
+            notes="Whether a period of wet leaves ending on the day was long enough, at its temperature, for apple scab to infect, by the Revised Mills table.",
+            **_FLAG,
         ),
         Variable(
             name="scab_wet_hours", long_name="Apple scab: wet hours of the day's latest wet period", **_PERIOD_HOURS
@@ -504,13 +548,14 @@ DAILY_FEATURES: dict[str, Variable] = {
         ),
         Variable(
             name="scab_period_truncated",
-            long_name="Apple scab: the day's wet period may have begun before its 120 hours",
+            long_name="Apple scab: the day's wet period may have begun more than 120 hours earlier",
             **_FLAG,
         ),
         # Fire blight (`agmodels.models.fire_blight`), calendar days
         Variable(
             name="cougarblight_risk_values",
             long_name="Cougarblight's hourly temperature risk values, daily total",
+            notes="The day's total of the fire blight Cougarblight model's risk values for each hour's temperature.",
             unit="index",
             scale=0.05,
             valid_min=0,
@@ -521,6 +566,7 @@ DAILY_FEATURES: dict[str, Variable] = {
         Variable(
             name="degree_hours_over_65f",
             long_name="Degree hours above 65 °F (18.3 °C)",
+            notes="Each hour's degrees above 65 °F, added up over the day. The MaryBlyt fire blight model reads them.",
             unit="degC_hour",
             scale=0.1,
             valid_min=0,
@@ -528,12 +574,17 @@ DAILY_FEATURES: dict[str, Variable] = {
             derived=True,
             gap_fill="interpolate",
         ),
-        Variable(name="hours_wet", long_name="Hours estimated wet: RH at or above 90% or 0.01 in of rain", **_HOURS),
-        Variable(name="precipitation_7am_to_7pm", long_name="Precipitation, 7 am to 7 pm", **_RAIN),
-        Variable(name="precipitation_8pm_to_6am", long_name="Precipitation, 8 pm the day before to 6 am", **_RAIN),
+        Variable(
+            name="hours_wet",
+            long_name="Hours estimated wet",
+            notes="Hours with relative humidity at or above 90% or 0.01 inch of rain or more, which stand in for hours with wet leaves.",
+            **_HOURS,
+        ),
+        Variable(name="precipitation_7am_to_7pm", long_name="Precipitation, 7 a.m. to 7 p.m.", **_RAIN),
+        Variable(name="precipitation_8pm_to_6am", long_name="Precipitation, 8 p.m. the day before to 6 a.m.", **_RAIN),
         Variable(
             name="temperature_mean_rain_7am_to_7pm",
-            long_name="Mean temperature of hours with 0.01 in of rain or more, 7 am to 7 pm",
+            long_name="Mean temperature of hours with 0.01 inch of rain or more, 7 a.m. to 7 p.m.",
             **_TEMPERATURE,
         ),
     ]
@@ -559,6 +610,14 @@ _DD_RANGE = {
 }  # a base-39.2 year in Florida is about 13,000
 
 
+_COUNT_WORDS = {
+    "temperature": "temperature",
+    "precipitation": "precipitation",
+    "et0": "reference evapotranspiration",
+    "water_balance": "water balance",
+}
+
+
 def dd_name(method: Literal["sine", "modified", "average"], base: float, upper: float | None = None) -> str:
     """`dd_sine_39p2`, `dd_modified_50_86`, `dd_average_39_84p2`: the legacy naming, with the method."""
 
@@ -568,12 +627,20 @@ def dd_name(method: Literal["sine", "modified", "average"], base: float, upper: 
     return f"dd_{method}_{f(base)}" + (f"_{f(upper)}" if upper is not None else "")
 
 
+_DD_NOTES = {
+    "sine": "Degree days measure the warmth that drives crop and insect development. The single-sine method fits a sine curve through the day's low and high temperatures and counts the area above the base temperature.",
+    "modified": "Degree days measure the warmth that drives crop and insect development. The modified-average method raises a low below the base to the base and lowers a high above the upper limit to the limit, then counts the day's mean above the base.",
+    "average": "Degree days measure the warmth that drives crop and insect development. The simple-average method counts the day's mean of its low and high temperatures above the base.",
+}
+
+
 def _cumulative() -> list[Variable]:
     dd = (
         [
             Variable(
                 name=dd_name("sine", t),
-                long_name=f"Single-sine degree days above {t:g} °F since Jan 1",
+                long_name=f"Single-sine degree days above {t:g} °F since January 1",
+                notes=_DD_NOTES["sine"],
                 unit="degF_day",
                 **_DD_RANGE,
             )
@@ -582,7 +649,8 @@ def _cumulative() -> list[Variable]:
         + [
             Variable(
                 name=dd_name("modified", base, upper),
-                long_name=f"Modified-average degree days {base:g}/{upper:g} °F since Jan 1",
+                long_name=f"Modified-average degree days {base:g}/{upper:g} °F since January 1",
+                notes=_DD_NOTES["modified"],
                 unit="degF_day",
                 **_DD_RANGE,
             )
@@ -593,7 +661,8 @@ def _cumulative() -> list[Variable]:
                 name=dd_name("average", base, upper),
                 long_name=f"Simple-average degree days above {base:g} °F"
                 + (f", capped at {upper:g} °F" if upper is not None else "")
-                + " since Jan 1",
+                + " since January 1",
+                notes=_DD_NOTES["average"],
                 unit="degF_day",
                 **_DD_RANGE,
             )
@@ -603,7 +672,7 @@ def _cumulative() -> list[Variable]:
     totals = [
         Variable(
             name="precipitation",
-            long_name="Precipitation since Jan 1",
+            long_name="Precipitation since January 1",
             unit="mm",
             scale=0.2,
             valid_min=0,
@@ -612,7 +681,7 @@ def _cumulative() -> list[Variable]:
         ),
         Variable(
             name="et0",
-            long_name="FAO-56 grass reference ET since Jan 1",
+            long_name="Reference evapotranspiration (FAO-56 grass) since January 1",
             unit="mm",
             scale=0.1,
             valid_min=0,
@@ -621,7 +690,7 @@ def _cumulative() -> list[Variable]:
         ),
         Variable(
             name="water_balance",
-            long_name="Water balance (precipitation minus FAO-56 grass reference ET) since Jan 1",
+            long_name="Water balance (precipitation minus reference evapotranspiration) since January 1",
             unit="mm",
             scale=0.2,
             offset=1500,  # int16 at 0.2 holds −5050 to 8050 mm about this offset
@@ -636,7 +705,8 @@ def _cumulative() -> list[Variable]:
     chill = [
         Variable(
             name="chill_portions",
-            long_name="Chill portions (the Dynamic model) since Oct 1",
+            long_name="Chill portions (the Dynamic model) since October 1",
+            notes="Winter chill by the Dynamic model, which counts chill in portions that, once made, warm weather can't undo.",
             unit="chill_portions",
             scale=0.01,
             valid_min=0,
@@ -654,7 +724,7 @@ def _cumulative() -> list[Variable]:
         ),
         Variable(
             name="chill_missing_hours",
-            long_name="Hours without a temperature since Oct 1, in chill portions",
+            long_name="Hours without a temperature since October 1, left out of the chill portions",
             unit="hour",
             scale=1,
             valid_min=0,
@@ -667,7 +737,7 @@ def _cumulative() -> list[Variable]:
     counts = [
         Variable(
             name=f"{basis}_{kind}_days",
-            long_name=f"Days with {basis} {kind} since Jan 1",
+            long_name=f"Days with {_COUNT_WORDS[basis]} {kind} since January 1",
             unit="day",
             scale=1,
             valid_min=0,

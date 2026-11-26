@@ -35,6 +35,7 @@ Additional color palette options:
 - Diverging (eg temperature): https://cmap-docs.readthedocs.io/en/stable/catalog/diverging/
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from typing import Literal
 
@@ -172,6 +173,29 @@ _ALL = [
         description="Blue, light blue, yellow, orange, dark red",
         source="ColorBrewer RdYlBu, 5 of its 11 classes",
     ),
+    # Scales of two or three risk levels take BuYlRd_5's colors for the same names (Ben, 2026-11-26), so Low,
+    # Moderate and High are one color on every map: `risk_steps`
+    _listed(
+        id="LbYlOr_3",
+        kind="categorical",
+        colors=["#abd9e9", "#fee090", "#f46d43"],
+        description="Light blue, yellow, orange: Low, Moderate and High of the five risk levels",
+        source="ColorBrewer RdYlBu, as BuYlRd_5's middle three",
+    ),
+    _listed(
+        id="LbOrRd_3",
+        kind="categorical",
+        colors=["#abd9e9", "#f46d43", "#a50026"],
+        description="Light blue, orange, dark red: Low, High and Very high of the five risk levels",
+        source="ColorBrewer RdYlBu, as BuYlRd_5's levels 2, 4 and 5",
+    ),
+    _listed(
+        id="LbRd_2",
+        kind="categorical",
+        colors=["#abd9e9", "#a50026"],
+        description="Light blue, dark red: Low and Very high of the five risk levels",
+        source="ColorBrewer RdYlBu, as BuYlRd_5's levels 2 and 5",
+    ),
     _listed(
         id="GyOrRd_3",
         kind="categorical",
@@ -259,8 +283,10 @@ USES: dict[str, Use] = {
     "risk_value": Use(palette="viridis"),  # insects' activity (Ben, 2026-11-06)
     "chance": Use(palette="magma", day=(0, 100), bounded=True),
     "crop_stage": Use(palette="viridis"),
-    "risk_2": Use(palette="BuRd_2"),  # apple scab: low or infection
-    "risk_3": Use(palette="BuYlRd_3"),
+    # Risk levels (`risk_use`): five, four (BuYlRd_5 less its light blue), and two or three by their names' steps
+    "risk_2": Use(palette="LbRd_2"),  # apple scab: Low, Infection
+    "risk_3": Use(palette="LbYlOr_3"),  # Low, Moderate, High
+    "risk_3_extreme": Use(palette="LbOrRd_3"),  # fire blight: Low, High, Extreme
     "risk_4": Use(palette="BuYlRd_4"),
     "risk_5": Use(palette="BuYlRd_5"),
     "susceptibility": Use(palette="GyOrRd_3"),
@@ -276,6 +302,34 @@ USES: dict[str, Use] = {
     "elevation": Use(palette="YlOrBr"),
     "default": Use(palette="viridis"),
 }
+
+# A risk level's step on the five levels' colors (BuYlRd_5), by name, for scales of two or three levels (Ben,
+# 2026-11-26): Low, Moderate and High are one color everywhere; fire blight's Extreme and apple scab's Infection, each
+# its scale's top, take Very high's dark red, as far from Low's light blue as the scale goes. Mirrored by the
+# frontend's `lib/riskLevels.ts` (its test reads this table)
+RISK_STEPS = {"Very low": 0, "Low": 1, "Moderate": 2, "High": 3, "Very high": 4, "Extreme": 4, "Infection": 4}
+_RISK_USES = ("risk_2", "risk_3", "risk_3_extreme", "risk_4", "risk_5")
+
+
+def risk_steps(levels: Sequence[str]) -> tuple[int, ...]:
+    """Each level's step (0 to 4) on the five risk levels' colors: five as they are, four as BuYlRd_4 (Very low,
+    Moderate, High and Very high's colors), two or three by their names (`RISK_STEPS`)."""
+    if len(levels) == 5:
+        return (0, 1, 2, 3, 4)
+    if len(levels) == 4:
+        return (0, 2, 3, 4)
+    return tuple(RISK_STEPS[level] for level in levels)
+
+
+def risk_use(levels: Sequence[str]) -> str:
+    """The use of a model's risk level map: the one whose palette is its levels' steps of BuYlRd_5."""
+    five = PALETTES["BuYlRd_5"].colors
+    steps = risk_steps(levels)
+    for use_id in _RISK_USES:
+        if tuple(five.index(c) for c in PALETTES[USES[use_id].palette].colors) == steps:
+            return use_id
+    raise ValueError(f"no palette for the risk levels {', '.join(levels)}")
+
 
 _WET = ("precipitation", "humidity", "water_balance", "snow")
 

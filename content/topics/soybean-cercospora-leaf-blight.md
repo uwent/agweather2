@@ -1,6 +1,6 @@
 ---
 id: soybean-cercospora-leaf-blight
-title: Cercospora Leaf Blight (Soybean)
+title: Cercospora leaf blight (soybean)
 kind: disease
 crops:
   - soybean
@@ -9,7 +9,7 @@ summary: A late-season fungal disease that turns the upper soybean leaves purple
 image: images/soybean-cercospora-leaf-blight.jpg
 image_credit: 'Bronzed upper soybean leaves with Cercospora leaf blight, Wisconsin. Photo by Craig Grau, Bugwood.org (image 5624626), CC BY-NC 3.0 US (https://creativecommons.org/licenses/by-nc/3.0/us/).'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: price-2025
     text: 'Price, T., T. Allen, V. Doyle and others. An Overview of Cercospora Leaf Blight (CPN-1030). Crop Protection Network, 2025.'

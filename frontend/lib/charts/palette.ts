@@ -26,12 +26,11 @@ export type Palette = {
   /** Missing days' hatching */
   missing: string
   /**
-   * Risk levels, lowest first, in the API's categorical palettes (agdata.palettes, D93): severity
-   * (Very low … Very high, BuYlRd_5) and probability (Very low … High, BuYlRd_4). The same in light
-   * and dark, so a level is one color wherever it's shown.
+   * The five risk levels, lowest first, in the API's categorical palette (agdata.palettes, D93: Very low … Very
+   * high, BuYlRd_5). Scales of fewer levels take steps of it (lib/riskLevels). The same in light and dark, so a
+   * level is one color wherever it's shown.
    */
   severity: [string, string, string, string, string]
-  probability: [string, string, string, string]
   dark: boolean
 }
 
@@ -88,7 +87,6 @@ export function readPalette(element: Element = document.documentElement): Palett
       mean: color('--color-chart-temperature-mean'),
     },
     severity: levels('severity', 5) as Palette['severity'],
-    probability: levels('probability', 4) as Palette['probability'],
     dark: currentTheme() === 'dark',
   }
 }

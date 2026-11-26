@@ -1,6 +1,6 @@
 ---
 id: black-cutworm
-title: Black Cutworm
+title: Black cutworm
 kind: insect
 crops:
   - asparagus
@@ -22,7 +22,7 @@ summary: A moth that flies in from the south each spring; its caterpillars cut o
 image: images/black-cutworm.jpg
 image_credit: 'A black cutworm caterpillar beside the corn seedling it cut. Photo by W.M. Hantsbarger, Bugwood.org (image 5361045), via Wikimedia Commons (File:Agrotis ipsilon larva.jpg), CC BY 3.0 US.'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cutworms. University of Wisconsin–Madison, updated 2026.'

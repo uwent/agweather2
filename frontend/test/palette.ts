@@ -16,6 +16,5 @@ export const testPalette: Palette = {
   estimated: 'estimated',
   missing: 'missing',
   severity: ['s1', 's2', 's3', 's4', 's5'],
-  probability: ['p1', 'p2', 'p3', 'p4'],
   dark: false,
 }

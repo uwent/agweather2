@@ -1,6 +1,6 @@
 ---
 id: mint-root-borer
-title: Mint Root Borer
+title: Mint root borer
 kind: insect
 crops:
   - mint
@@ -9,7 +9,7 @@ summary: A small moth whose caterpillars feed inside mint rhizomes and on the ro
 image: images/mint-root-borer.jpg
 image_credit: 'Mint root borer moth. Photo by Justin Chan, via iNaturalist (observation 297373014), CC BY-NC 4.0 (https://creativecommons.org/licenses/by-nc/4.0/); resized.'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: pnw
     text: 'Mint-Mint root borer. In Pacific Northwest Pest Management Handbooks: Insect Management Handbook. Oregon State University, Washington State University and University of Idaho, 2026.'

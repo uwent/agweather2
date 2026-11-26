@@ -6,6 +6,7 @@ import type { EChartsCoreOption } from '@/lib/charts/echarts'
 import { baseOption, type Palette } from '@/lib/charts/palette'
 import { forecastShading } from '@/lib/charts/shading'
 import { formatDate } from '@/lib/dates'
+import { riskSteps } from '@/lib/riskLevels'
 import { convert, displayUnit, formatNumber, type Units } from '@/lib/units'
 
 import type { CellSeries } from './cellSeries'
@@ -48,7 +49,7 @@ export function buildCellChart(options: {
     const from = series.kinds.findIndex((kind) => kind === 'forecast')
     const shading = forecastShading({ dates: labels, from, grids: 1, axisOffset: 1, palette })
     const markedAt = marked ? series.times.findIndex((t) => t.slice(0, marked.length) === marked) : -1
-    const colors = levels?.length === 4 ? palette.probability : palette.severity
+    const colors = levels ? riskSteps(levels).map((step) => palette.severity[step]) : palette.severity
     return {
       animation: base.animation,
       textStyle: base.textStyle,

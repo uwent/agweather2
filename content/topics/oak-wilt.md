@@ -1,6 +1,6 @@
 ---
 id: oak-wilt
-title: Oak Wilt
+title: Oak wilt
 kind: disease
 crops:
   - oak
@@ -9,7 +9,7 @@ summary: A fatal fungal disease of oaks, spread underground through grafted root
 image: images/oak-wilt.jpg
 image_credit: "An oak of the red oak group wilting from the top down, with fallen leaves that are partly green and partly bronze (inset). Photo by Joseph O'Brien, USDA Forest Service, Bugwood.org (image 5045006), via Wikimedia Commons (File:Oak wilt symptoms.jpg), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/); resized."
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: dnr-fact-sheet
     text: "Wisconsin Department of Natural Resources. Oak Wilt in Wisconsin's Forests: Biology, Symptoms and Management (PUB-FR-622a). Forest Health Program, revised 2026."

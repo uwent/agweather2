@@ -1,6 +1,6 @@
 ---
 id: stalk-borer
-title: Stalk Borer
+title: Stalk borer
 kind: insect
 crops:
   - corn
@@ -10,7 +10,7 @@ summary: A moth whose caterpillars hatch in grassy weeds and move into the edges
 image: images/stalk-borer.jpg
 image_credit: 'A young stalk borer caterpillar on a grass stem, with the white stripes and purple band it loses as it matures. Photo by Jacy Lucier, via Wikimedia Commons (File:Papaipema nebris larvae.jpg), CC BY-SA 4.0.'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: a3646-2025
     text: 'Dewerff, R., E. Bick, P. J. Liesch, G. Nice, M. Renz, D. Smith, R. Werle and J. Kampa. Pest Management in Wisconsin Field Crops (A3646). UW–Madison Division of Extension, 2025.'

@@ -119,7 +119,7 @@
               <li class="flex items-center gap-2 text-sm">
                 <span
                   class="size-3.5 shrink-0 rounded-full border border-line"
-                  style:background-color={riskColor(k, props.risk.levels.length)}
+                  style:background-color={riskColor(k, props.risk.levels)}
                   aria-hidden="true"
                 ></span>
                 {level}

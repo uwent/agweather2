@@ -321,6 +321,7 @@ RISK_LEVEL, RISK_VALUE, SUSCEPTIBILITY = "risk_level", "risk_value", "susceptibi
 
 
 def _model_layers() -> list[Layer]:
+    from agdata import palettes
     from agdata.modelgrid import OUTPUT_STEPS, mapped, tiered  # imports every model
 
     found = []
@@ -338,7 +339,7 @@ def _model_layers() -> list[Layer]:
             for q in spec.outputs
         ]
         if spec.risk is not None:
-            levels = f"risk_{len(spec.risk.levels)}"
+            levels = palettes.risk_use(spec.risk.levels)
             risk = [LayerOutput(name=RISK_LEVEL, label="Risk level", unit="index", step=1, use=levels)]
             if spec.risk.thresholds:
                 risk.append(LayerOutput(name=RISK_VALUE, label="Risk", unit="index", step=0.001, use="risk_value"))

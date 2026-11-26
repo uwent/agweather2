@@ -1,6 +1,6 @@
 ---
 id: western-bean-cutworm
-title: Western Bean Cutworm
+title: Western bean cutworm
 kind: insect
 crops:
   - corn
@@ -11,7 +11,7 @@ summary: A moth with one generation a year whose caterpillars feed inside corn e
 image: images/western-bean-cutworm.jpg
 image_credit: 'Western bean cutworm caterpillar feeding in a corn ear. Photo by Keith Waldron, New York State IPM Program at Cornell University, via Wikimedia Commons (File:WBC larva (16700280357).jpg, from Flickr), CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/).'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Western Bean Cutworm. University of Wisconsin–Madison, updated 2026 (adapted from Cullen, E. and J. Jyotika, Western Bean Cutworm: A Pest of Field and Sweet Corn, A3856, 2008).'

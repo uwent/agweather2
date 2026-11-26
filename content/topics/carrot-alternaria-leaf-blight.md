@@ -1,6 +1,6 @@
 ---
 id: carrot-alternaria-leaf-blight
-title: Alternaria Leaf Blight (Carrot)
+title: Alternaria leaf blight (carrot)
 kind: disease
 crops:
   - carrot
@@ -9,7 +9,7 @@ summary: A fungal disease that kills carrot leaves and weakens their stalks in w
 image: images/carrot-alternaria-leaf-blight.jpg
 image_credit: 'Carrot leaves blighted by Alternaria dauci. Photo by Gerald Holmes, Strawberry Center, Cal Poly San Luis Obispo, Bugwood.org (image 5506549), CC BY-NC 3.0 US.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-25
 sources:
   - key: uw-vegpath
     text: 'UW–Madison Vegetable Pathology. Carrot Alternaria and Cercospora Leaf Blights. Adapted from UW Extension publication A3807 by K. Delahaut and W. Stevenson, with updates by A. Gevens and B. Bradford; updated 2026.'

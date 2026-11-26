@@ -81,7 +81,7 @@
               <span
                 class="size-3 shrink-0 rounded-full border border-line"
                 style:background-color={row?.level != null && row.inSeason !== false
-                  ? riskColor(row.level, model.risk_levels.length)
+                  ? riskColor(row.level, model.risk_levels)
                   : 'transparent'}
                 aria-hidden="true"
               ></span>
@@ -92,7 +92,7 @@
               <RiskStrip
                 class="mt-1 w-full pl-5"
                 days={span.days}
-                levels={model.risk_levels.length}
+                levels={model.risk_levels}
                 {today}
                 label={`${model.name}: ${trendWords(span, today)}.`}
               />

@@ -1,6 +1,6 @@
 ---
 id: aphids-on-potato
-title: Aphids on Potato
+title: Aphids on potato
 kind: insect
 crops:
   - potato
@@ -9,7 +9,7 @@ summary: Green peach aphids and potato aphids settle and multiply on potato, whe
 image: images/aphids-on-potato.jpg
 image_credit: 'A potato aphid colony: wingless adults, nymphs, one winged adult and white cast skins. Photo: Whitney Cranshaw, Colorado State University, Bugwood.org (image 5422133), via Wikimedia Commons (File:Macrosiphum euphorbiae.jpg), CC BY 3.0 US.'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-25
 sources:
   - key: uw-vegento-aphids
     text: 'Aphids. UW–Madison Vegetable Entomology, updated 2026.'
