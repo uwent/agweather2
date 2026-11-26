@@ -1,6 +1,6 @@
 ---
 id: squash-vine-borer
-title: Squash Vine Borer
+title: Squash vine borer
 kind: insect
 crops:
   - cucumber
@@ -11,7 +11,7 @@ summary: A day-flying clearwing moth whose larvae tunnel inside the stems of squ
 image: images/squash-vine-borer.jpg
 image_credit: 'Squash vine borer moth on milkweed flowers, showing its orange, black-dotted abdomen and hairy hind legs. Photo by matthew_wills, via iNaturalist (observation 51024415), CC BY-NC 4.0 (https://creativecommons.org/licenses/by-nc/4.0/); resized.'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Squash Vine Borer. Updated 2026.'

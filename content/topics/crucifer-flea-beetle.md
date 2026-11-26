@@ -1,6 +1,6 @@
 ---
 id: crucifer-flea-beetle
-title: Flea Beetle (Crucifer)
+title: Flea beetle (crucifer)
 kind: insect
 crops:
   - cole-crops
@@ -9,7 +9,7 @@ summary: A tiny, shiny black beetle that jumps when disturbed and chews small ro
 image: images/crucifer-flea-beetle.jpg
 image_credit: 'Shot-hole damage from crucifer flea beetles on a Chinese cabbage leaf. Photo by Whitney Cranshaw, Colorado State University, Bugwood.org (image 1243031), via Wikimedia Commons (File:Phyllotreta cruciferae (02).jpg), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/).'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Flea Beetles. Updated 2026.'

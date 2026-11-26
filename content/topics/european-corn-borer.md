@@ -1,6 +1,6 @@
 ---
 id: european-corn-borer
-title: European Corn Borer
+title: European corn borer
 kind: insect
 crops:
   - beans
@@ -14,7 +14,7 @@ summary: A moth whose caterpillars bore into the stalks and ears of corn and int
 image: images/european-corn-borer.jpg
 image_credit: 'European corn borer caterpillar on a corn leaf. Photo by Keith Weller, USDA Agricultural Research Service (image k7834-3), via Wikimedia Commons (File:Corn borer.jpg), public domain.'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. European Corn Borer. University of Wisconsin–Madison, updated 2026.'

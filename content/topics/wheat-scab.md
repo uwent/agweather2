@@ -1,6 +1,6 @@
 ---
 id: wheat-scab
-title: Wheat Scab / Fusarium Head Blight
+title: Wheat scab / Fusarium head blight
 kind: disease
 crops:
   - wheat
@@ -9,7 +9,7 @@ summary: A fungal disease of wheat and barley heads that infects at flowering in
 image: images/wheat-scab.jpg
 image_credit: 'A healthy wheat head (left) beside one inoculated with Fusarium graminearum and bleached by scab. Photo by Keith Weller, USDA Agricultural Research Service (image K8974-1), via Wikimedia Commons (File:Wheat scab.jpg), public domain.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: friskop-2021
     text: 'Friskop, A., G. Bergstrom, C. Bradley, N. Kleczewski, J. Marshall, D. Smith, A. Tenuta and K. Wise. An Overview of Fusarium Head Blight (CPN-3005). Crop Protection Network, 2021.'

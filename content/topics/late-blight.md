@@ -1,6 +1,6 @@
 ---
 id: late-blight
-title: Late Blight (Potato/Tomato)
+title: Late blight (potato/tomato)
 kind: disease
 crops:
   - potato
@@ -10,7 +10,7 @@ summary: A fast-moving disease of potato and tomato that kills leaves, stems, fr
 image: images/late-blight.jpg
 image_credit: 'Late blight spots on potato leaves. Photo by Mary Ann Hansen, Virginia Polytechnic Institute and State University, Bugwood.org (image 5333045), CC BY 3.0 US.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: vegpath-potato
     text: 'Potato Late Blight. UW Vegetable Pathology (Gevens lab), UW–Madison, updated 2026.'

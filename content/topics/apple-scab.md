@@ -1,6 +1,6 @@
 ---
 id: apple-scab
-title: Apple Scab
+title: Apple scab
 kind: disease
 crops:
   - apple
@@ -9,7 +9,7 @@ summary: A fungal disease that spots apple leaves and fruit in cool, wet springs
 image: images/apple-scab.jpg
 image_credit: 'Scab spots on an apple. Photo by Bill Kasman, via Wikimedia Commons (File:Diseased apple.jpg), CC0 1.0 (public domain dedication).'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: hudelson-2026
     text: 'Hudelson, B. Apple Scab (UW Plant Disease Facts D0004). UW–Madison Plant Pathology, revised 2026.'

@@ -1,6 +1,6 @@
 ---
 id: aphid-pvy-vectors
-title: Aphid PVY Vectors
+title: Aphid PVY vectors
 kind: insect
 crops:
   - potato
@@ -9,7 +9,7 @@ summary: Winged aphids spread potato virus Y as they probe potato leaves on thei
 image: images/aphid-pvy-vectors.jpg
 image_credit: 'A winged green peach aphid, one of the most efficient vectors of potato virus Y. Photo by Scott Bauer, USDA Agricultural Research Service, via Wikimedia Commons (File:Myzus persicae.jpg), public domain.'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-25
 sources:
   - key: uw-vegento-pvy
     text: 'Potato Virus Y Management. UW–Madison Vegetable Entomology, updated 2026.'

@@ -1,6 +1,6 @@
 ---
 id: gibberella-ear-rot
-title: Gibberella Ear Rot / Deoxynivalenol (Corn)
+title: Gibberella ear rot / deoxynivalenol (corn)
 kind: disease
 crops:
   - corn
@@ -9,7 +9,7 @@ summary: A pink ear mold of corn that infects through the silks and produces deo
 image: images/gibberella-ear-rot.jpg
 image_credit: 'Pink mold of Gibberella ear rot at the tip of a corn ear. Photo by Scot Nelson, via Wikimedia Commons (File:Gibberella ear rot (Gibberella zeae) on Corn (Zea mays) at Waimea, Hawaii.jpg), CC0 1.0 (public domain dedication); resized.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: a3646-2025
     text: 'Dewerff, R., E. Bick, P. J. Liesch, G. Nice, M. Renz, D. Smith, R. Werle and J. Kampa. Pest Management in Wisconsin Field Crops (A3646). UW–Madison Division of Extension, 2025.'

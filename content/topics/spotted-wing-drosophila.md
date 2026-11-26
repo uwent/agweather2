@@ -1,6 +1,6 @@
 ---
 id: spotted-wing-drosophila
-title: Spotted Wing Drosophila
+title: Spotted wing drosophila
 kind: insect
 crops:
   - blackberry
@@ -11,7 +11,7 @@ summary: An invasive fruit fly that lays its eggs in ripening soft fruit, so tha
 image: images/spotted-wing-drosophila.jpg
 image_credit: 'Spotted wing drosophila male (left), with a dark spot near each wing tip, and female (right). Photo by Shane F. McEvey, Australian Museum, via Wikimedia Commons (File:DrosophilasuzukiiphotoMcEvey.jpg), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/); resized.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: uw-a4133
     text: 'Guédot, C. and J. van Zoeren. Spotted Wing Drosophila: A Detrimental Invasive Pest of Soft-skinned Fruit (A4133). University of Wisconsin–Extension, 2017.'

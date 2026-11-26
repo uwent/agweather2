@@ -1,6 +1,6 @@
 ---
 id: red-crown-rot
-title: Red Crown Rot (Soybean)
+title: Red crown rot (soybean)
 kind: disease
 crops:
   - soybean
@@ -9,7 +9,7 @@ summary: A soilborne fungal disease that rots soybean roots and reddens the lowe
 image: null
 image_credit: null
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: cpn-rcr
     text: 'Red Crown Rot of Soybean. Crop Protection Network, reviewed by B. X. Camiletti and D. Telenko.'

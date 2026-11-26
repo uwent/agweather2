@@ -18,9 +18,6 @@ TOPICS = sorted(topics())
 
 # Links in the Markdown to pages still to be built (Phase 7): listed so a new broken link fails
 PENDING = {"/tools/degree-days"}
-# Links to retired models' pages, which have none (retired models are served only by id, wave 4): the topic pages say
-# the model was retired and link its page for why. Listed for Ben: reword them, or give retired models a page again
-RETIRED = {"/models/tarnished-plant-bug", "/models/western-flower-thrips"}
 
 
 def page(client: Client, path: str) -> dict:
@@ -91,7 +88,7 @@ def test_links_between_pages_resolve():
     broken = []
     for p in pages:
         for path in re.findall(r"\]\((/[^)#\s]*)", p.body):
-            if path in PENDING | RETIRED:
+            if path in PENDING:
                 continue
             try:
                 match = resolve(path)
@@ -141,6 +138,16 @@ def test_the_methods_page_matches_the_apis_variables(client: Client):
     props = page(client, "/methods")["props"]
     api = client.get("/api/v2/variables").json()["data"]
     assert [(v["name"], v["kind"]) for v in props["variables"]] == [(v["name"], v["kind"]) for v in api]
+
+
+def test_the_variables_are_described_in_plain_words():
+    # Public text (CLAUDE.md, "Writing for the public"): no code ids, "RH", "Jan 1" or "6 pm" in a name or its notes
+    from web.methodspage import variables
+
+    plain = re.compile(r"\b[a-z0-9]+_[a-z0-9_]+\b|\bRH\b|\b(Jan|Oct) 1\b|\b[ap]m\b")
+    for v in variables():
+        for text in (v.long_name, v.notes):
+            assert not plain.search(text), (v.name, text)
 
 
 def test_every_model_input_with_a_definition_has_an_entry_on_the_methods_page():

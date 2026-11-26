@@ -1,6 +1,6 @@
 ---
 id: tar-spot
-title: Tar Spot (Corn)
+title: Tar spot (corn)
 kind: disease
 crops:
   - corn
@@ -9,7 +9,7 @@ summary: A fungal leaf disease of corn, first found in Wisconsin in 2016, that c
 image: images/tar-spot.jpg
 image_credit: 'Tar spot stromata on corn leaves, Michigan. Photo by Ryan Hamilton, via iNaturalist (observation 242929950), CC BY-NC 4.0 (https://creativecommons.org/licenses/by-nc/4.0/); resized.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-25
 sources:
   - key: cpn-overview-2026
     text: 'Telenko, D., M. Bish, B. Camiletti, M. Chilvers, T. Jackson-Ziems, D. Plewa, A. Robertson, M. Shires, D. Smith, A. Tenuta, K. Wise and Y. Zeng. An Overview of Tar Spot (CPN-2012). Crop Protection Network, revised 2026.'

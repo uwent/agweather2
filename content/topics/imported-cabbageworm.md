@@ -1,6 +1,6 @@
 ---
 id: imported-cabbageworm
-title: Imported Cabbageworm
+title: Imported cabbageworm
 kind: insect
 crops:
   - cole-crops
@@ -9,7 +9,7 @@ summary: The caterpillar of the cabbage white butterfly, the most important cate
 image: images/imported-cabbageworm.jpg
 image_credit: 'Imported cabbageworm caterpillar on a leaf. Photo by James K. Lindsey, via Wikimedia Commons (File:Pieris.rapae.caterpillar.jpg), CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Imported Cabbageworm. Updated 2026.'

@@ -1,6 +1,6 @@
 ---
 id: japanese-beetle
-title: Japanese Beetle
+title: Japanese beetle
 kind: insect
 crops:
   - asparagus
@@ -25,7 +25,7 @@ summary: A metallic green and copper beetle whose adults skeletonize the leaves 
 image: images/japanese-beetle.jpg
 image_credit: 'Japanese beetle adult on a clover flower. Photo by Bruce Marlin, via Wikimedia Commons (File:Popillia japonica.jpg), CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/); resized.'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-25
 sources:
   - key: uw-vegento-jb
     text: 'Japanese Beetle. UW–Madison Vegetable Entomology, updated 2026.'

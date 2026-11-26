@@ -1,6 +1,6 @@
 ---
 id: seedcorn-maggot
-title: Seedcorn Maggot
+title: Seedcorn maggot
 kind: insect
 crops:
   - beans
@@ -14,7 +14,7 @@ summary: A small fly whose maggots feed on germinating seeds and seedlings of be
 image: images/seedcorn-maggot.jpg
 image_credit: 'Bean seedling destroyed below ground by seedcorn maggots. Photo by Howard F. Schwartz, Colorado State University, Bugwood.org (image 5357169), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/), via Wikimedia Commons.'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: uw-vegento-scm
     text: 'Seedcorn Maggot. UW–Madison Vegetable Entomology, updated 2026.'

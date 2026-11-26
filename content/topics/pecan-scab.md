@@ -1,6 +1,6 @@
 ---
 id: pecan-scab
-title: Pecan Scab
+title: Pecan scab
 kind: disease
 crops:
   - pecan
@@ -9,7 +9,7 @@ summary: The most damaging fungal disease of pecans in the South, which spots yo
 image: images/pecan-scab.jpg
 image_credit: 'Scab lesions on pecan nut shucks. Photo by Clemson University, USDA Cooperative Extension Slide Series, Bugwood.org (image 1235028), via Wikimedia Commons (File:Pecanscab.jpg), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/); resized.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: standish-2021
     text: 'Standish, J. R., T. B. Brenneman, C. H. Bock and K. L. Stevenson. Fungicide resistance in Venturia effusa, cause of pecan scab: current status and practical implications. Phytopathology 111:244–252, 2021.'

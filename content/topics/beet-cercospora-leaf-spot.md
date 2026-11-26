@@ -1,6 +1,6 @@
 ---
 id: beet-cercospora-leaf-spot
-title: Cercospora Leaf Spot (Beet)
+title: Cercospora leaf spot (beet)
 kind: disease
 crops:
   - beet
@@ -10,7 +10,7 @@ summary: A fungal disease that spots and kills the leaves of table beet and suga
 image: images/beet-cercospora-leaf-spot.jpg
 image_credit: 'Cercospora leaf spot on a sugar beet leaf. Photo by Howard F. Schwartz, Colorado State University, Bugwood.org (image 5365246), CC BY 3.0 US.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: cornell-beet-2021
     text: 'Koenick, L., J. Kikkert and S. Pethybridge, revised by P. Sharma. Cercospora Leaf Spot of Table Beet. Cornell University, 2021.'
