@@ -41,6 +41,7 @@ from web.sitemodel import model_info, model_settings, section
 
 # The model the oak wilt tool reads
 OAK_WILT = "oak-wilt-vectors"
+CORN_STAGES = "corn-stages"
 
 # The longest `?name=` a site page shows from a link
 NAME_LENGTH = 80
@@ -215,7 +216,12 @@ def freeze_tool(request: HttpRequest):
 
 
 def crop_gdd_tool(request: HttpRequest):
-    return render(request, "Tools/CropGdd", CropGddToolProps())
+    """The crop GDD outlook (track 5 P1): corn runs the corn stage model, whose content comes as props; the page
+    fetches the run, other crops' degree days, the normal and the freeze odds."""
+    spec = shown_spec(CORN_STAGES)
+    if spec is None:
+        raise Http404("No such model")
+    return render(request, "Tools/CropGdd", CropGddToolProps(model=model_info(spec), years=_archive_years()))
 
 
 def alfalfa_tool(request: HttpRequest):

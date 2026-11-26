@@ -26,6 +26,12 @@ export const TOOLS: Tool[] = [
     href: routes.toolFreeze(),
   },
   {
+    title: 'Crop GDD outlook',
+    question: 'When will my crop reach maturity, and how likely is a fall freeze before then?',
+    text: 'Growing degree days since planting at a place for corn hybrids and other crops, with the likely dates of each stage from past years’ weather, the normal year, up to three past years and the chance of a fall freeze.',
+    href: routes.toolCropGdd(),
+  },
+  {
     title: 'Oak wilt',
     question: 'Has Wisconsin’s restricted period for pruning, wounding and harvesting oaks begun where I am?',
     text: 'Degree days since January 1 against the DNR’s 231 degree-day start, through July 15, with the oak wilt vector model’s level, its map and season chart, and the DNR’s calendar periods.',

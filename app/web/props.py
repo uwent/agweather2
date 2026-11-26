@@ -548,7 +548,13 @@ class FreezeToolProps(Props):
 
 
 class CropGddToolProps(Props):
-    """Crop growing degree days (`/tools/crop-gdd`, track 5 P1)."""
+    """The crop GDD outlook (`/tools/crop-gdd`, track 5 P1): the corn stage model's content (its hybrid maturities and
+    default planting date) and the years our own archive holds. The place, its run, the normal and the freeze odds the
+    page fetches from the API (`/models/corn-stages/run`, `/degree-days`, `/climate/compare`, `/climate/frost/chances`,
+    D117); a comparison year before the archive's first comes from Open-Meteo."""
+
+    model: SiteModelInfo
+    years: list[int] = Field(description="The years with weather in our archive, newest first.")
 
 
 class AlfalfaToolProps(Props):
