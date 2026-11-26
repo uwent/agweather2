@@ -1,78 +1,35 @@
 // Requests for the sites page's cards: each card loads as it scrolls into view, and at most `limit` requests run at
 // once (3), so a page of 50 sites doesn't spend the API's rate limit in one burst (track 3: 50 cards' /risk cost
 // 150–500 of a minute's 200 units). A newer request under a key aborts the older one (lib/api's latestRequests), and
-// a waiting request whose card went away is dropped before it starts.
+// a waiting request whose card went away is dropped before it starts (lib/slots.ts).
 //
 // `createBatcher` gathers the cards that come into view together into one request for up to `max` sites
 // (`/weather/daily?points=` takes several), which then waits its turn in the same queue.
 
 import { latestRequests } from './api'
+import { slots } from './slots'
 
 export type Task<T> = (signal: AbortSignal) => Promise<T>
 
 export function createSiteQueue({ limit = 3 }: { limit?: number } = {}) {
   const latest = latestRequests()
-  const waiting: { start: () => void; signal: AbortSignal; drop: () => void }[] = []
-  let running = 0
-
-  function next() {
-    while (running < limit && waiting.length) {
-      const item = waiting.shift()!
-      if (item.signal.aborted) {
-        item.drop()
-        continue
-      }
-      running++
-      item.start()
-    }
-  }
+  const queue = slots(limit)
 
   return {
     /** Runs `task` when a slot is free; a newer `run` under the same key aborts this one (it rejects with an
-     * AbortError, `isAbort`) */
+     * AbortError, `isAbort`), and one aborted while it waits is let go at once */
     run<T>(key: string, task: Task<T>): Promise<T> {
-      return latest.run(
-        key,
-        (signal) =>
-          new Promise<T>((resolve, reject) => {
-            const abort = () => reject(new DOMException('The request was cancelled.', 'AbortError'))
-            waiting.push({
-              signal,
-              drop: abort,
-              start: () => {
-                task(signal)
-                  .then(resolve, reject)
-                  .finally(() => {
-                    running--
-                    next()
-                  })
-              },
-            })
-            // A request aborted while it waits is let go at once rather than when its turn comes
-            signal.addEventListener(
-              'abort',
-              () => {
-                const k = waiting.findIndex((item) => item.signal === signal)
-                if (k >= 0) {
-                  waiting.splice(k, 1)
-                  abort()
-                }
-              },
-              { once: true },
-            )
-            next()
-          }),
-      )
+      return latest.run(key, (signal) => queue.run(signal, () => task(signal)))
     },
     /** Aborts the request under `key`, or every one (the page is leaving) */
     cancel(key?: string) {
       latest.cancel(key)
     },
     get running() {
-      return running
+      return queue.busy
     },
     get waiting() {
-      return waiting.length
+      return queue.waiting
     },
   }
 }
