@@ -116,7 +116,7 @@ roll_partial = "Not used here: windows of normals wrap around the year, so none 
 roll_coverage = "The smallest share of a rolling window's days, in percent, that must have a normal for the window to have a value. The default is 75."
 
 [climate_compare]
-vars = "The values to total, separated by commas: `precipitation_sum`, `et0_sum` (reference evapotranspiration) and `shortwave_radiation_sum` (sunlight). The default is precipitation, or none when `dd` is given."
+vars = "The values to total, separated by commas: `precipitation_sum`, `et0_sum` (reference evapotranspiration) and `shortwave_radiation_sum` (sunlight). The default is precipitation, or none when `dd` or `count` is given. Send it empty (`vars=`) to compare only the degree days or counts."
 dd = "Degree-day settings, as on `/degree-days`: a method, a base temperature and an optional upper threshold, joined by underscores, in the request's units, such as `modified_50_86`. Several may be given, separated by commas."
 percentiles = "The percentiles of the normal running total to give beside it, from 1 to 99, separated by commas. The default is `10,90`."
 period = "The years the results come from: `last30` (the default), the 30 complete years before this one; `last20`, the last 20; `last10`, the last 10; or `last5`, the last 5. Each moves forward a year every January. With fewer years, an occasional extreme year counts for more."

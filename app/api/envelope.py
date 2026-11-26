@@ -13,6 +13,8 @@ payload for discovery) and returns `respond(request, result)`, which does the re
   a grid also offers NetCDF and GeoTIFF, which the endpoint renders itself (`Result.render`);
 - headers: `Server-Timing`, and `Cache-Control: no-cache` (keep it, but ask before reusing it) with the ETag the
   endpoint computed before reading anything (`etag_for`); `not_modified` answers a matching `If-None-Match` with 304.
+  An answer that changes only with the years behind it (normals, freeze dates) sets `Result.cache_control` instead
+  (`CLIMATE_CACHE`: kept a day, then revalidated by its ETag).
 """
 
 import csv
@@ -38,6 +40,9 @@ from api import takes
 from api.errors import ApiError, check_style, quoted
 
 API_VERSION = "2.0"
+# Normals and freeze odds change only when their years do (a new year, a refit): a browser keeps them a day (Phase 7
+# track 6), and the ETag still guards a reuse after that
+CLIMATE_CACHE = "public, max-age=86400"
 # The code's version in an ETag: the deployed commit, or in development this process's start (uvicorn restarts on a
 # code change), so a change to how answers are computed is a change of answer even where the data isn't
 CODE_VERSION = settings.APP_VERSION if settings.APP_VERSION != "dev" else f"dev-{time.time()}"
@@ -100,6 +105,7 @@ class Result:
     units: str | None = None  # the unit system, when the request gave it outside the query (a POSTed body)
     render: Callable[[str, dict[str, Any]], bytes] | None = None  # a binary format's file, from (format, meta)
     binary_units: dict[str, str] = field(default_factory=dict)  # meta.units for a binary answer
+    cache_control: str | None = None  # in place of `public, no-cache`, for an answer that can be kept a while
 
 
 # --- Units and rounding ------------------------------------------------------------------------------------------
@@ -299,7 +305,7 @@ def respond(request: HttpRequest, result: Result) -> HttpResponse:
         response = HttpResponse(_json({"meta": meta, "data": data}), content_type="application/json")
     timings = [f"{_safe(name)};dur={ms:.1f}" for name, ms in result.timings.items()]
     response["Server-Timing"] = ", ".join([*timings, f"total;dur={elapsed:.1f}"])
-    _cache_headers(response, result.etag)
+    _cache_headers(response, result.etag, result.cache_control)
     if not params.get("format") and len(formats) > 1:
         patch_vary_headers(response, ("Accept",))  # the format came from it
     return response
@@ -346,13 +352,14 @@ def etag_for(request: HttpRequest, computed: dict[str, Any], data_stamp: str | N
     return '"' + hashlib.sha256(key.encode()).hexdigest()[:32] + '"'
 
 
-def not_modified(request: HttpRequest, etag: str) -> HttpResponse | None:
-    """A 304 if the client holds this answer already (`If-None-Match`), else None: call it before computing."""
+def not_modified(request: HttpRequest, etag: str, cache_control: str | None = None) -> HttpResponse | None:
+    """A 304 if the client holds this answer already (`If-None-Match`), else None: call it before computing. Give it
+    the answer's own `cache_control`, so the client keeps it as long again."""
     held = [tag.strip() for tag in request.headers.get("If-None-Match", "").split(",")]
     if etag not in held and "*" not in held:
         return None
     response = HttpResponse(status=304)
-    _cache_headers(response, etag)
+    _cache_headers(response, etag, cache_control)
     return response
 
 
@@ -435,10 +442,10 @@ def _json(payload: Any) -> str:
     return json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"), default=_plain)
 
 
-def _cache_headers(response: HttpResponse, etag: str | None) -> None:
+def _cache_headers(response: HttpResponse, etag: str | None, cache_control: str | None = None) -> None:
     if etag is not None:
         response["ETag"] = etag
-    response["Cache-Control"] = "public, no-cache"
+    response["Cache-Control"] = cache_control or "public, no-cache"
 
 
 def _elapsed_ms(request: HttpRequest) -> float:

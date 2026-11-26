@@ -144,8 +144,9 @@ def test_freezes_at_thresholds(client, archive):
     assert body["data"]["freeze_days"] == [9]  # July 2–10: the observed nights' 48.2 °F, not the forecast's
     assert body["data"]["first_fall"] == ["2025-07-02"] and body["data"]["last_spring"] == [None]
     assert any("outside the usual" in w for w in body["meta"]["warnings"])
-    metric = get(client, "freeze", date="2025-07-08", units="metric").json()["meta"]["request"]
-    assert metric["thresholds"] == [0.0, -2.2, -4.4] and metric["threshold_units"] == "°C"
+    metric = get(client, "freeze", date="2025-07-08", units="metric").json()["meta"]
+    assert metric["request"]["thresholds"] == [0.0, -2.2, -4.4] and metric["request"]["threshold_units"] == "°C"
+    assert metric["units"]["threshold"] == "°C" and body["meta"]["units"]["threshold"] == "°F"
 
 
 def test_a_biofix_given_as_month_and_day_takes_the_requests_year(client, archive):

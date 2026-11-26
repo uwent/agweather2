@@ -212,6 +212,22 @@ def test_freeze_chances_by_date(client, climate_archive):
     assert data(metric)["threshold"] == [0.0, -2.2, -4.4]
 
 
+def test_freeze_thresholds_name_their_unit_and_answers_are_kept_a_day(client, climate_archive):
+    us = frost(client, thresholds="32")
+    assert us.json()["meta"]["units"] == {"threshold": "°F"}
+    metric = frost(client, "climate/frost/chances", units="metric", date="2025-01-05")
+    assert metric.json()["meta"]["units"] == {"threshold": "°C", "chance": "%"}
+    for response in (us, metric, get(client, date="2025-07-01")):
+        assert response.headers["Cache-Control"] == "public, max-age=86400"
+    again = client.get(
+        "/api/v2/climate/frost",
+        {"lat": LAT, "lng": LNG, "period": "last5", "thresholds": "32"},
+        HTTP_IF_NONE_MATCH=us.headers["ETag"],
+    )
+    assert again.status_code == 304 and again.headers["Cache-Control"] == "public, max-age=86400"
+    assert compare(client).headers["Cache-Control"] == "public, no-cache"  # this year's totals move on
+
+
 def test_freeze_refusals(client, climate_archive):
     assert error(frost(client, probabilities="0"))["param"] == "probabilities"
     assert error(frost(client, thresholds="cold"))["param"] == "thresholds"
@@ -294,3 +310,9 @@ def test_counts_this_year_against_normal(client, climate_archive):
 def test_compare_refusals(client, climate_archive):
     assert error(compare(client, vars="air_temperature_max"))["param"] == "vars"  # not a total
     assert error(compare(client, end="2026-01-31"))["param"] == "end"
+    assert error(compare(client, vars=""))["param"] == "vars"  # empty, with nothing else to compare
+
+
+def test_an_empty_vars_compares_degree_days_alone(client, climate_archive):
+    found = data(compare(client, vars="", dd="modified_10_30"))
+    assert "dd_modified_10_30_cum" in found and "precipitation_sum_cum" not in found

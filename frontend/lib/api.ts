@@ -5,7 +5,8 @@
 // (`@/types/api`); a failure is `{meta, errors}`, thrown here as an `ApiError`. `meta.warnings` are public
 // sentences, shown as they are. Caching is the browser's: every answer carries an ETag and
 // `Cache-Control: public, no-cache`, so a repeated request is revalidated with `If-None-Match` and a 304 comes
-// back as the kept answer, without this module doing anything. Nothing is retried on its own: a 429 or 503 says
+// back as the kept answer, without this module doing anything (normals and freeze odds, `max-age=86400`, are
+// reused for a day without asking). Nothing is retried on its own: a 429 or 503 says
 // when to try again (`ApiError.retryAfter`), and the page offers the reader a retry rather than adding load to a
 // server that has just said it's busy.
 
