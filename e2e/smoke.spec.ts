@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 
-import { stubSiteData } from './sites'
-import { stubSiteApi } from './siteApi'
+import { SAVED, stubSiteData } from './sites'
+import { stubFeedApi, stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
 // Every page loads with no console errors (a CSP violation shows as one) and no failed requests
@@ -105,6 +105,41 @@ test('a model at a site', async ({ page }) => {
   await expect(page.getByRole('table', { name: /the past 7 days and the forecast/ })).toBeVisible()
   await page.getByRole('link', { name: 'Hancock' }).click()
   await expect(page).toHaveURL(/\/sites\/44\.12,-89\.52\?name=Hancock$/)
+})
+
+test("a site's Degree days and Data tabs", async ({ page }) => {
+  await stubSiteApi(page)
+  await page.goto('/sites/44.12,-89.52?name=Hancock&tab=degree-days&dd=corn;sine_41_86&from=planting')
+  await expect(page.getByRole('combobox', { name: 'Setting 1' })).toHaveValue('corn')
+  await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
+  await expect(page.getByRole('rowheader', { name: 'Corn (field)' })).toBeVisible()
+  await page.getByRole('tab', { name: 'Data' }).click()
+  await expect(page.getByRole('link', { name: 'Download CSV' })).toHaveAttribute('href', /^\/api\/v2\/weather\/daily\?/)
+  await page.getByRole('radio', { name: /A model run/ }).check()
+  await expect(page.getByRole('textbox', { name: 'The request’s address, for a script' })).toHaveValue(
+    /\/api\/v2\/models\/late-blight-dsv\/run\?format=csv&lat=44\.12&lng=-89\.52/,
+  )
+})
+
+test('one model across your sites', async ({ page }) => {
+  await stubSiteData(page)
+  await stubFeedApi(page)
+  await page.goto('/')
+  await page.evaluate((doc) => localStorage.setItem('agweather.sites', JSON.stringify(doc)), SAVED)
+  await page.goto('/sites')
+  await page.getByRole('combobox', { name: 'One model across your sites' }).selectOption('late-blight-dsv')
+  await page.getByRole('button', { name: 'Show' }).click()
+  await expect(page).toHaveURL(/\/sites\/models\/late-blight-dsv$/)
+  const list = page.getByRole('list', { name: 'Your sites' })
+  await expect(list.getByRole('listitem')).toHaveCount(3)
+  await expect(list.getByRole('link', { name: 'Hancock' })).toHaveAttribute(
+    'href',
+    '/sites/44.1336,-89.5168/models/late-blight-dsv',
+  )
+})
+
+test('the feed is not found for a model we don’t have', async ({ request }) => {
+  expect((await request.get('/sites/models/no-such-model')).status()).toBe(404)
 })
 
 test('a model at a site is not found for a model we don’t have', async ({ request }) => {

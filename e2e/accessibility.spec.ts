@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { type Page } from '@playwright/test'
 
 import { SAVED, stubSiteData } from './sites'
-import { stubSiteApi } from './siteApi'
+import { stubFeedApi, stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
 // WCAG 2.1 A and AA checks (axe) on every page, in light (desktop) and dark (phone), and on desktop
@@ -90,6 +90,8 @@ const SITE_PAGES = [
   '/sites/44.12,-89.52',
   '/sites/44.12,-89.52?tab=weather',
   '/sites/44.12,-89.52?tab=models',
+  '/sites/44.12,-89.52?tab=degree-days&dd=corn;sine_41_86&from=planting&projection=true',
+  '/sites/44.12,-89.52?tab=data',
   '/sites/44.12,-89.52/models/late-blight-dsv',
 ]
 
@@ -103,6 +105,16 @@ test('site pages in the other theme', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
   for (const path of SITE_PAGES) await scan(page, path, { reflow: false })
+})
+
+test('one model across your sites, in both themes', async ({ page }) => {
+  await stubFeedApi(page)
+  await page.goto('/')
+  await page.evaluate((doc) => localStorage.setItem('agweather.sites', JSON.stringify(doc)), SAVED)
+  await scan(page, '/sites/models/late-blight-dsv')
+  await expect(page.getByRole('list', { name: 'Your sites' }).getByRole('listitem')).toHaveCount(3)
+  await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
+  await scan(page, '/sites/models/late-blight-dsv', { reflow: false })
 })
 
 // The model catalog and two model pages: a disease with risk levels, and a fitted insect with its training area
