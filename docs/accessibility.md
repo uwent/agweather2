@@ -4,7 +4,7 @@ AgWeather aims at WCAG 2.1 AA (docs/frontend.md, Accessibility and testing). Thi
 
 ## Automated checks
 
-`e2e/accessibility.spec.ts` (WISP 3's `scan()`) runs axe (`@axe-core/playwright`, WCAG 2.1 A and AA rules) on every page in light (the desktop project) and dark (the phone project), and again in the other theme through the theme toggle; on desktop it also checks reflow (320 px wide, and text at 200%, with no sideways page scroll). It opens collapsed sections first and waits for transitions to finish. It runs with the rest of `bin/e2e` and fails on any violation. Add each new page to its `PAGES`.
+`e2e/accessibility.spec.ts` (WISP 3's `scan()`) runs axe (`@axe-core/playwright`, WCAG 2.1 A and AA rules) on every page in light (the desktop project) and dark (the phone project), and again in the other theme through the theme toggle; on desktop it also checks reflow (320 px wide, and text at 200%, with no sideways page scroll). It opens collapsed sections first and waits for transitions to finish. It runs with the rest of `bin/e2e` and fails on any violation. Add each new page to a group of its `PAGES` (or a test of its own when the page needs stubbed answers).
 
 Axe finds roughly a third of WCAG problems; manual checks (keyboard, screen reader, zoom) follow as the pages are built, as WISP 3's did.
 
