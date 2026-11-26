@@ -8,7 +8,7 @@
   import { type ExplorerView, rollable, ROLLS, spanFor } from './view'
 
   // Map options (Phase 7 track 2 step 4), behind a disclosure: smoothing over 7, 14 or 28 days, and the colors'
-  // palette and range. Colors change in the browser without a new request (D119).
+  // palette, range and opacity. Colors change in the browser without a new request (D119).
   let {
     view,
     layer,
@@ -157,5 +157,22 @@
         {/if}
       {/if}
     {/if}
+    <div class="space-y-1">
+      <label for="map-opacity" class="flex justify-between font-medium">
+        Opacity <span class="font-normal text-ink-muted tabular-nums">{view.opacity}%</span>
+      </label>
+      <input
+        id="map-opacity"
+        type="range"
+        min="30"
+        max="100"
+        step="5"
+        class="block w-full accent-brand-600"
+        value={view.opacity}
+        aria-valuetext="{view.opacity}%"
+        oninput={(event) => onchange({ opacity: Number(event.currentTarget.value) })}
+      />
+      <p class="text-xs text-ink-muted">Lower it to see more of the roads and places under the colors.</p>
+    </div>
   </div>
 </details>

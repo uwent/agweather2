@@ -48,6 +48,8 @@ export type ExplorerView = {
   palette: string | null
   /** `default` (the layer's fixed range) or `low,high` in the reader's units; null: this map's own range */
   scale: string | null
+  /** The data's opacity over the basemap, in percent (Ben, 2026-11-26: the full colors were harsh) */
+  opacity: number
   /** The cell clicked */
   at: LatLng | null
   /** The map's center and zoom, carried by a shared link */
@@ -64,6 +66,10 @@ const option = {
   parse: (text: string) => (/^[a-z0-9_]+:[^,]+$/i.test(text) ? text : undefined),
   format: (value: string) => value,
 }
+
+/** The data's opacity a map starts at, in percent: enough for the basemap's roads, water and towns to show through
+ * the colors, with the palette's lightest steps still told apart from the basemap */
+export const DEFAULT_OPACITY = 80
 
 export const VIEW_FIELDS: Fields<ExplorerView> = {
   layer: field(codecs.string, null),
@@ -94,6 +100,7 @@ export const VIEW_FIELDS: Fields<ExplorerView> = {
   opts: field(codecs.list(option), []),
   palette: field(codecs.string, null),
   scale: field(codecs.string, null),
+  opacity: field(codecs.integer({ min: 10, max: 100 }), DEFAULT_OPACITY),
   at: field(codecs.latLng(4), null),
   c: field(codecs.latLng(3), null),
   z: field(codecs.number({ digits: 2, min: 0, max: 22 }), null),

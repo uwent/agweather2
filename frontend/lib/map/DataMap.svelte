@@ -125,7 +125,7 @@
     params = {},
     palette = null,
     scale = 'auto',
-    opacity = 1,
+    opacity = 0.8,
     label,
     prefsKey = 'data-map',
     map = $bindable(),

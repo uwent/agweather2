@@ -542,6 +542,7 @@
         params={shown.params}
         palette={$view.palette}
         {scale}
+        opacity={$view.opacity / 100}
         label="Map of {title}, {subtitle || when}"
         prefsKey="map-explorer"
         class="h-full"
