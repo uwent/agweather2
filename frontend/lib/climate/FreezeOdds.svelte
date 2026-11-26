@@ -109,12 +109,14 @@
 
   const spring = $derived(show !== 'fall')
   const fall = $derived(show !== 'spring')
-  // A year's date in words: "None yet" this year, "None" in a year that's over
-  function ownDate(date: string | null | undefined): string {
+  // A year's date in words: "None yet" while its season can still bring one, "None" once it's over
+  function ownDate(date: string | null | undefined, season: 'spring' | 'fall'): string {
     if (date) return formatDate(date)
-    return year === current ? 'None yet' : 'None'
+    const open = year === current && (season === 'fall' || today < `${current}-07-01`)
+    return open ? 'None yet' : 'None'
   }
-  const cell = (date: string | null | undefined) => (date ? formatDate(date) : 'None')
+  // A date the share of years doesn't reach: that many years had no freeze at all
+  const cell = (date: string | null | undefined) => (date ? formatDate(date) : 'No freeze')
   const headingClass = 'py-1 pr-3 text-right font-medium'
 </script>
 
@@ -205,7 +207,7 @@
                 <td class="py-1.5 pr-3 text-right tabular-nums">{cell(row.lastSpring[90])}</td>
                 {#if year !== null}
                   <td class="py-1.5 pr-3 text-right tabular-nums">
-                    {observed.value.status === 'loading' && !own ? '…' : ownDate(own?.spring)}
+                    {observed.value.status === 'loading' && !own ? '…' : ownDate(own?.spring, 'spring')}
                   </td>
                 {/if}
               {/if}
@@ -215,7 +217,7 @@
                 <td class="py-1.5 pr-3 text-right tabular-nums">{cell(row.firstFall[90])}</td>
                 {#if year !== null}
                   <td class="py-1.5 pr-3 text-right tabular-nums">
-                    {observed.value.status === 'loading' && !own ? '…' : ownDate(own?.fall)}
+                    {observed.value.status === 'loading' && !own ? '…' : ownDate(own?.fall, 'fall')}
                   </td>
                 {/if}
               {/if}
