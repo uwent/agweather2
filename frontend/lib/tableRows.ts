@@ -57,6 +57,13 @@ export function unitSymbol(label: string, column = ''): string | null {
   return null
 }
 
+/** An answer's columns as the API sends them (`orient=columns`), a list per column */
+export type Columns = Record<string, (number | string | boolean | null)[]>
+
+/** The columns of an answer, or none when it came as rows */
+export const columnsOf = (body: Pick<TableResponse, 'data'>): Columns =>
+  Array.isArray(body.data) ? {} : (body.data as Columns)
+
 /** The answer's rows, oldest first */
 export function tableRows(body: Pick<TableResponse, 'meta' | 'data'>): Table {
   const data = body.data as Record<string, (number | string | boolean | null)[]>

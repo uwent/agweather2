@@ -5,6 +5,7 @@
 
 import type { FreezeChances, FreezeDates, FreezeRow } from '../charts/climateCharts'
 import { daysBetween, formatDate } from '../dates'
+import { columnsOf } from '../tableRows'
 import { monthDay } from '../models/format'
 import { routes } from '../routes'
 import type { Units } from '../units'
@@ -14,8 +15,6 @@ import { FREEZE_THRESHOLDS_F, chanceWords, shareOfYears, temperatureText, thresh
 import type { TableResponse } from '@/types/api'
 
 type Body = Pick<TableResponse, 'meta' | 'data'>
-type Columns = Record<string, unknown[]>
-const columnsOf = (body: Body): Columns => (Array.isArray(body.data) ? {} : (body.data as Columns))
 
 // --- The thresholds
 

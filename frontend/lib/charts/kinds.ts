@@ -10,6 +10,9 @@ import { forecastShading } from './shading'
 
 export { isForecast }
 
+/** A value as a series holds it: to 3 decimals, so a chart's data and its tooltips aren't long floats */
+export const rounded = (value: number | null): number | null => (value === null ? null : Number(value.toFixed(3)))
+
 /** The index of the first forecast (or partial) day, -1 without one */
 export function forecastFrom(days: Pick<Day, 'kind'>[]): number {
   return days.findIndex((day) => isForecast(day) || day.kind === 'projection')

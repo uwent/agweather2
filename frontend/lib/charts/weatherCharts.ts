@@ -16,7 +16,7 @@ import type { CsvValue } from '../csv'
 import type { Day, Table } from '../tableRows'
 import type { Units } from '../units'
 import type { ChartView, EChartsCoreOption } from './echarts'
-import { bar, forecastBand, isForecast, point, rowLabel, thresholdLine, todayLine } from './kinds'
+import { bar, forecastBand, isForecast, point, rounded, rowLabel, thresholdLine, todayLine } from './kinds'
 import { baseOption, type Palette } from './palette'
 import { runningTotal } from './totals'
 
@@ -255,7 +255,6 @@ export function panelOption(panel: WeatherPanel, table: Table, options: PanelOpt
     ),
   ]
 
-  const rounded = (value: number | null) => (value === null ? null : Number(value.toFixed(3)))
   const smoothing = (measure: Measure) => rolledColumn(table, measure, roll)
   const faded = upperSeries.some((measure) => smoothing(measure))
 
