@@ -101,7 +101,7 @@
   </p>
   {#if onchange}
     <div class="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-md border border-line bg-surface-raised p-3">
-      <label class="flex items-center gap-2 text-xs">
+      <label class="flex max-w-full min-w-0 items-center gap-2 text-xs">
         <span class="text-ink-muted">Degree days</span>
         <select
           class="{control} max-w-full min-w-0"
@@ -169,7 +169,7 @@
   {/if}
 
   {#if table}
-    <div class="grid gap-4 lg:grid-cols-2" aria-busy={answer.value.status === 'loading'}>
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2" aria-busy={answer.value.status === 'loading'}>
       <CompareChart
         {table}
         column={ddColumn}
@@ -190,7 +190,7 @@
       />
     </div>
   {:else if answer.value.status === 'loading'}
-    <div class="grid gap-4 lg:grid-cols-2" aria-hidden="true">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2" aria-hidden="true">
       <div class="h-96 animate-pulse rounded-lg bg-surface-raised"></div>
       <div class="h-96 animate-pulse rounded-lg bg-surface-raised"></div>
     </div>
