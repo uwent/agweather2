@@ -331,6 +331,14 @@ options = "For a model's layer: the options a map takes, as `/models/{model_id}`
 planting = "For a model's layer that depends on a planting date: the planting dates a map can show with `planting`. Empty for other layers."
 seasons = "For a model with one result a season: the seasons available with `season`, oldest first. Empty for other layers."
 climate = "What `climate` takes for this layer: `normal`, `departure` or `percentile`. Empty when it can't be compared with the climate."
+counts = "For a daily weather layer: the counts of days that can be compared with the climate (with `count` and `climate`), each as `count` takes it with `units=us`, the name the days are known by where they have one, and its bounds in `unit`. Empty for other layers."
+
+[LayerCount]
+count = "The count, as `count` takes it with `units=us`, such as `days_above_93p2`."
+name = "The name the days are known by, such as `heat days`. Null when they have none."
+low = "The lowest value counted, inclusive, in `unit`. Null when the count has no lower bound."
+high = "The highest value counted, inclusive, in `unit`. Null when the count has no upper bound."
+unit = "The unit the bounds are written in."
 
 [LayerRange]
 first = "The first day (or hour, in UTC) the archive holds. Null for layers without a date."
