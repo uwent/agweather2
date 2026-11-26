@@ -1300,23 +1300,24 @@ def model_request(request: HttpRequest, layer: Layer, query: LayerQuery, warning
 
 
 def planting_summary(model: ModelRequest, mask: np.ndarray, warnings: list[str]) -> dict[str, Any]:
-    """The tier's planting dates over the cells asked for, and how many have none (the model's defaults)."""
+    """The tier's planting dates over the cells asked for, and how many have none (missing on the map, as a point
+    without one refuses)."""
     assert model.planted is not None
     land = mask & (regions.cell_counties(model.window) > 0)  # open water is in no county, so has no crop
     dates = model.planted[land]
     known = dates[np.isfinite(dates)]
     without = int(dates.size - known.size)
+    advice = (
+        f"To run the model there, give your planting date for a location with GET /api/v2/models/{model.spec.id}/run."
+    )
     if not known.size:
         warnings.append(
-            f"We have no typical {model.crop} planting dates in this area, so the map uses the model's default dates."
+            f"We have no typical {model.crop} planting date in this area, so the map shows no data. {advice}"
         )
     elif without:
-        then = "take the model's default dates"
-        if model.spec.id in modelmaps.TIER_MODELS:
-            then = "have no stages"
-        elif model.spec.susceptible is not None:
-            then = "aren't gated by the crop's stages"
-        warnings.append(f"Some grid cells ({without:,}) have no typical {model.crop} planting date, so they {then}.")
+        warnings.append(
+            f"Some grid cells ({without:,}) have no typical {model.crop} planting date, so the map shows no data there. {advice}"
+        )
     span = [date.fromordinal(int(v)).isoformat() for v in (known.min(), known.max())] if known.size else None
     return {"crop": model.crop, "tier": model.tier, "dates": span, "cells_without": without}
 
@@ -1340,7 +1341,7 @@ def _model_compute(
         ),
     )
     if model.tier is not None and model.crop is not None:
-        model.planted = planting_map(model.crop, model.tier, window, season=first.year)
+        model.planted = planting_map(model.crop, model.tier, window, season=first.year, data_dir=data_dir)
         model.window = window
     if found.stale:
         raise ApiError(

@@ -145,7 +145,7 @@ def models_at_point(
     zone = zone or day_zone(latitude, longitude)
     budget = budget or FallbackBudget()
     if planting_default:
-        runs = [series.with_planting(run, latitude, longitude, start) for run in runs]
+        runs = [series.with_planting(run, latitude, longitude, start, data_dir=settings.DATA_DIR) for run in runs]
     archived = [in_archive(latitude, longitude, series.days_needed([run], start)[0], end) for run in runs]
     results: list[ModelRun | None] = [None] * len(runs)
     for from_archive in (True, False):

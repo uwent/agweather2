@@ -60,7 +60,8 @@ def test_a_tile_is_revalidated_and_a_far_one_is_empty(client, archive):
 
 @pytest.mark.django_db
 def test_model_degree_day_and_range_tiles(client, archive):
-    risk = _cells_seen(_pixels(_tile(client, "late-blight-dsv", "2025-07-08")), step=1)
+    # no typical potato planting dates in this archive (no 30-year normals), so the spec's dates
+    risk = _cells_seen(_pixels(_tile(client, "late-blight-dsv", "2025-07-08", planting="none")), step=1)
     assert set(risk.values()) <= {0, 1, 2, 3, 4}
     dd = _tile(client, "degree_days", "2025-07-01..2025-07-07", dd="sine_50_86", stat="sum")
     week = client.get(

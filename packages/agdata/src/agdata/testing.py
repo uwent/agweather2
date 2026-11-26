@@ -234,6 +234,30 @@ def terrain_store(data_dir, window: Window, water_share: np.ndarray, elevation_m
     )
 
 
+def freeze_normal(data_dir, window: Window, spring_slot: float | np.ndarray, period: str = "last30") -> None:
+    """A period's normal maps (`agdata.normals`) over `window` holding only the median last spring freeze at 28 °F,
+    as a calendar slot (`climatology.slot`; NaN missing), everywhere or per cell (y, x): what potato's planting dates
+    read (`agdata.potatoplanting`). Other statistics read as not stored."""
+    import zarr
+
+    from agdata import normals, potatoplanting
+
+    slots = np.broadcast_to(np.asarray(spring_slot, dtype=float), window.shape)
+    group = zarr.open_group(normals.path(data_dir, period), mode="w")
+    packed = np.where(np.isfinite(slots), np.round(np.nan_to_num(slots)), FILL).astype(np.int16)[None]
+    array = group.create_array(potatoplanting.FREEZE, data=packed, fill_value=int(FILL))
+    array.attrs.update({"scale": 1.0, "single": True})
+    group.attrs.update(
+        {
+            "period": period,
+            "window": {"j0": window.j0, "j1": window.j1, "i0": window.i0, "i1": window.i1},
+            "built": datetime.now(UTC).isoformat(timespec="microseconds"),
+            "version": normals.VERSION,
+            "complete": True,
+        }
+    )
+
+
 def climate_year(data_dir, window: Window, year: int, values: dict[str, np.ndarray], fit: str = "1@test") -> None:
     """A derived gridMET year (`agdata.climatestore`) over `window`: `values` per daily variable, (days, y, x) or
     (days,) for every cell, as `climatestore.derive` leaves them (without the files it records)."""

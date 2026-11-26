@@ -36,7 +36,7 @@ SPEC = ModelSpec(
     id="potato-stages",
     name="Potato emergence",
     group="crop",
-    version="0.1",
+    version="0.2",
     checks=(
         Check(
             kind="observations",
@@ -98,7 +98,14 @@ SPEC = ModelSpec(
         ),
     ),
     accumulations=(Accumulation(name="dd_total", of="dd"),),
-    changelog=(Change(version="0.1", date="2026-11-03", note="First version, fitted to Veg Path's 2020–2026 dates."),),
+    changelog=(
+        Change(version="0.1", date="2026-11-03", note="First version, fitted to Veg Path's 2020–2026 dates."),
+        Change(
+            version="0.2",
+            date="2026-11-26",
+            note="The typical early, mid and late planting dates are each grid cell's estimate, from its normal last spring freeze, at a location and on the map, where they were the nearest of UW Vegetable Pathology's seven places within 40 km (none beyond); a map's cell without an estimate is missing.",
+        ),
+    ),
 )
 
 
