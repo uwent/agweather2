@@ -10,6 +10,7 @@ a season adds `in_season`. Insects' action windows go in `meta.summary.windows`.
 
 Response shapes for model runs stay provisional until Phase 7's frontend uses them (D64)."""
 
+import difflib
 import itertools
 import json
 from dataclasses import dataclass, field, replace
@@ -521,6 +522,7 @@ def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Qu
     m = runs.model_or_404(model_id)
     spec = m.SPEC
     explorer = {e.name: e for e in spec.explorer}
+    _check_evaluate_fields(request, explorer)
     unknown = sorted(set(body.inputs) - set(explorer))
     if unknown:
         raise ApiError(
@@ -589,6 +591,28 @@ def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Qu
     )
 
 
+def _check_evaluate_fields(request: HttpRequest, explorer: dict[str, Any]) -> None:
+    """Refuses a field of the evaluate body beside `inputs` (Ninja drops it): an input sent there ran at its default."""
+    try:
+        sent = json.loads(request.body or b"{}")
+    except ValueError:
+        return  # Ninja has parsed it already; anything else isn't JSON and was refused there
+    extra = [str(key) for key in sent if key != "inputs"] if isinstance(sent, dict) else []
+    if not extra:
+        return
+    key = extra[0]
+    if key in explorer:
+        example = json.dumps({"inputs": {key: sent[key]}})[1:-1]
+        message = f"Put {quoted(key)} inside 'inputs', such as {quoted(example)}: the values to evaluate go there."
+    else:
+        message = f"The request body has a field named {quoted(key)}, which this request doesn't take. Send the values to evaluate inside 'inputs'"
+        if explorer:
+            first = next(iter(explorer.values()))
+            message += f", such as {quoted(json.dumps({'inputs': {first.name: first.default}})[1:-1])}"
+        message += "."
+    raise ApiError("unknown_parameter", message, key)
+
+
 # --- Runs on your own weather (D58) -----------------------------------------------------------------------------
 
 POST_FIELDS = (
@@ -622,12 +646,32 @@ def run_posted(request: HttpRequest, model_id: str) -> HttpResponse:
 @router.post("/models/run", summary="Several models on your weather")
 def run_posted_several(request: HttpRequest) -> HttpResponse:
     """Several models (`"models": ["tar-spot", …]` or `"all"`) on weather you send, shaped as `GET /models/run`."""
-    body, _ = _posted(request)
+    body, _ = _posted(request, several=True)
     raw = body.get("models", "all")
     return _run_posted(request, _models(raw if isinstance(raw, str) else ",".join(map(str, raw))), single=False)
 
 
-def _posted(request: HttpRequest) -> tuple[dict[str, Any], dict[str, str]]:
+# A JSON body's fields; `models` only for several models. Anything else is refused (`_check_fields`): a model's
+# setting sent beside them (`"biofix"`) rather than inside `options` was ignored without a word
+BODY_FIELDS = (
+    "location",
+    "units",
+    "input_units",
+    "hourly",
+    "daily",
+    "start",
+    "end",
+    "options",
+    "fill",
+    "extend",
+    "day_basis",
+    "first",
+    "last",
+    "since",
+)
+
+
+def _posted(request: HttpRequest, several: bool = False) -> tuple[dict[str, Any], dict[str, str]]:
     """(the weather and settings, the model options as strings) from a JSON body, or a CSV body and the query."""
     kind = request.content_type or ""
     if kind == "text/csv":
@@ -650,8 +694,36 @@ def _posted(request: HttpRequest) -> tuple[dict[str, Any], dict[str, str]]:
         raise ApiError(
             "invalid", "The request body must be a JSON object, with the weather under 'hourly' or 'daily'.", "body"
         )
+    _check_fields(body, several=several)
     options = {str(k): str(v) for k, v in (body.get("options") or {}).items()}
     return body, options
+
+
+def _check_fields(body: dict[str, Any], several: bool) -> None:
+    """Refuses a JSON body's field the endpoint doesn't read: a model's setting (`biofix`, `planting_date`, an option)
+    belongs inside `options`, and anything else is named with the fields it takes."""
+    from api.layermaps import POINT_ONLY
+    from api.strict import every_option
+
+    fields = (*BODY_FIELDS, "models") if several else BODY_FIELDS
+    unknown = [str(key) for key in body if key not in fields]
+    if not unknown:
+        return
+    key = unknown[0]
+    if key in POINT_ONLY or key in every_option():
+        example = json.dumps({"options": {key: body[key]}})[1:-1]
+        raise ApiError(
+            "unknown_parameter",
+            f"Put {quoted(key)} inside 'options', such as {quoted(example)}: in a JSON body, a model's settings go there.",
+            key,
+        )
+    close = difflib.get_close_matches(key, fields, n=1, cutoff=0.75)
+    hint = f" Did you mean {quoted(close[0])}?" if close else ""
+    raise ApiError(
+        "unknown_parameter",
+        f"The request body has a field named {quoted(key)}, which this request doesn't take.{hint} It takes {', '.join(quoted(f) for f in fields)}, with a model's settings inside 'options'.",
+        key,
+    )
 
 
 def _date_field(body: dict[str, Any], name: str) -> date | None:
@@ -665,7 +737,7 @@ def _date_field(body: dict[str, Any], name: str) -> date | None:
 
 
 def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> HttpResponse:
-    body, options = _posted(request)
+    body, options = _posted(request, several=not single)
     location = body.get("location") or {}
     try:
         lat, lng = float(location["lat"]), float(location["lng"])

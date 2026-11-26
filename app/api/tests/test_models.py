@@ -431,6 +431,20 @@ def test_evaluate_runs_the_models_core(client):
     assert body["meta"]["request"]["inputs"] == {"tmin": 9.0, "tmax": 21.0} and body["meta"]["warnings"] == []
 
 
+def test_evaluate_refuses_a_value_beside_inputs(client):
+    """Ninja drops a field the body doesn't declare, so a value sent beside 'inputs' ran at its default: refused."""
+    path = "/api/v2/models/early-blight-pdays/evaluate"
+    beside = client.post(path, {"inputs": {}, "tmin": 9}, content_type="application/json")
+    error = beside.json()["errors"][0]
+    assert beside.status_code == 422 and (error["code"], error["param"]) == ("unknown_parameter", "tmin")
+    assert (
+        error["message"]
+        == """Put 'tmin' inside 'inputs', such as '"inputs": {"tmin": 9}': the values to evaluate go there."""
+    )
+    other = client.post(path, {"input": {"tmin": 9}}, content_type="application/json").json()["errors"][0]
+    assert other["param"] == "input" and "inside 'inputs', such as" in other["message"]
+
+
 def test_evaluate_takes_the_requests_units_and_sweeps_lists(client):
     body = evaluate(client, "custom-degree-days", {"min_temp": 50, "max_temp": [70, 86, 100]}).json()  # °F by default
     data = body["data"]
