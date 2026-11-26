@@ -268,7 +268,9 @@ class LayerAsk:
         the map uses only the half its values reach."""
         found = self.scale
         asked = self.scale_asked
-        counted = self.count is not None or (self.event is not None and self.event.kind == "since")
+        # A count's departure from its normal is centered on 0 like the other departures (its scale says so)
+        departure = self.climate is not None and self.climate.kind == "departure"
+        counted = (self.count is not None and not departure) or (self.event is not None and self.event.kind == "since")
         if counted and (asked is None or asked.mode == "default"):
             # From none to the data's high end (rare days would be dark on 0 to every day), at most every step
             return (0.0, min(float(self.steps), max(1.0, palettes.auto_domain(values)[1])))

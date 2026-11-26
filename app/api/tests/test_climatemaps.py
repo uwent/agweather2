@@ -134,6 +134,20 @@ def test_counts_against_their_stored_normals(client, climate_archive):
     assert set(summary.json()["data"]["mean"]) - {None} == {10.0}
     image = client.get("/api/v2/maps/air_temperature_min.png", {"climate": "departure", "units": "metric", **july})
     assert image.status_code == 200, image.content[:300]
+    # A count's departure is colored around 0 like any departure (it was 0 to the data's high end, as a count)
+    asked = {
+        "climate": "departure",
+        "time": "2025-07-01..2025-07-05",
+        "period": "last5",
+        "count": "days_below_32",
+        "style": "default",
+    }
+    described = client.get("/api/v2/tiles/air_temperature_min.json", asked).json()
+    assert "domain" in described, described
+    low, high = described["domain"]
+    assert low == -high and high > 0 and described["palette"] == "BuYlRd_r"  # more freeze days: colder
+    normal = client.get("/api/v2/tiles/air_temperature_min.json", {**asked, "climate": "normal"}).json()
+    assert normal["domain"][0] == 0  # a count itself still starts at none
 
 
 def test_freeze_maps(client, climate_archive):
