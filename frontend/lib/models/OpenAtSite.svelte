@@ -2,9 +2,8 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
 
-  import { siteModelUrl } from '@/lib/models/format'
   import { routes } from '@/lib/routes'
-  import { siteKey, type PickedPlace } from '@/lib/siteKey'
+  import { siteKey, siteModelUrl, type PickedPlace } from '@/lib/siteKey'
   import { siteLabel, sites } from '@/lib/sites.svelte'
   import FindPlace from '@/lib/sites/FindPlace.svelte'
 

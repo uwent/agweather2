@@ -57,9 +57,3 @@ export function leapNote(year: number): string {
     ? `${year} is a leap year, with 366 days: from March 1 on, each day of the year is one more than in other years (March 1 is day 61, December 31 day 366).`
     : `${year} is not a leap year: it has 365 days (March 1 is day 60, December 31 day 365).`
 }
-
-/** "March 1, 2026" */
-export function longDate(iso: string): string {
-  const [year, month, day] = iso.split('-').map(Number)
-  return `${MONTHS[month - 1]} ${day}, ${year}`
-}

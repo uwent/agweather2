@@ -5,6 +5,7 @@
   import { onDestroy } from 'svelte'
 
   import { today as gridToday } from '@/lib/dates'
+  import { longDate } from '@/lib/models/format'
   import {
     FIRST_YEAR,
     LAST_YEAR,
@@ -14,7 +15,6 @@
     dayOfYear,
     daysInYear,
     leapNote,
-    longDate,
   } from '@/lib/tools/calendar'
   import { codecs, field, viewState } from '@/lib/viewState'
 

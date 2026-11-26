@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatCoords, parseSiteKey, roundCoord, siteKey, siteUrl, validCoords } from './siteKey'
+import { formatCoords, parseSiteKey, roundCoord, siteKey, siteModelUrl, siteUrl, validCoords } from './siteKey'
 
 describe('site keys', () => {
   it('round to 4 decimals and leave out trailing zeros, so one place has one key', () => {
@@ -25,6 +25,7 @@ describe('site keys', () => {
   it('build the site page’s address in one place', () => {
     expect(siteUrl('43.07,-89.4')).toBe('/sites/43.07,-89.4')
     expect(siteUrl('43.07,-89.4', 'Home farm')).toBe('/sites/43.07,-89.4?name=Home+farm')
+    expect(siteModelUrl('43.07,-89.4', 'tar-spot')).toBe('/sites/43.07,-89.4/models/tar-spot')
   })
 
   it('format coordinates with hemispheres', () => {
