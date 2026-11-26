@@ -4,7 +4,7 @@
      (./place.ts) and passes /locate's answer as `location` when it loads it anyway; without `location`, the picker
      asks /locate itself. -->
 <script lang="ts">
-  import { onDestroy, untrack } from 'svelte'
+  import { onDestroy, tick, untrack } from 'svelte'
 
   import type { LocateResponse, LocateData } from '@/types/api'
 
@@ -57,6 +57,27 @@
     onpick({ lat: found.lat, lng: found.lng, name: found.name || null })
   }
 
+  // The search goes once a place is found, so focus moves to the place's name rather than being lost; opening the
+  // search with Change place takes focus to it
+  let titleEl = $state<HTMLElement>()
+  let focusTitle = $state(false)
+  function found(place: PickedPlace) {
+    focusTitle = true
+    pick(place)
+  }
+  $effect(() => {
+    if (focusTitle && titleEl) {
+      titleEl.focus()
+      focusTitle = false
+    }
+  })
+  async function toggleSearch() {
+    searching = !searching
+    if (!searching) return
+    await tick()
+    document.getElementById(`${id}-find`)?.focus()
+  }
+
   function save() {
     if (!place) return
     const result = addSite({ lat: place.lat, lng: place.lng, name: title })
@@ -72,7 +93,9 @@
   {#if place}
     <div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
       <div class="min-w-0">
-        <p class="text-lg font-semibold wrap-break-word">{title}</p>
+        <p bind:this={titleEl} tabindex="-1" class="text-lg font-semibold wrap-break-word focus:outline-none">
+          {title}
+        </p>
         <p class="text-sm text-ink-muted">{placeLine(place, where)}</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -97,7 +120,7 @@
           class="rounded-md border border-line px-3 py-1 text-sm font-medium hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
           aria-expanded={searching}
           aria-controls="{id}-search"
-          onclick={() => (searching = !searching)}
+          onclick={toggleSearch}
         >
           Change place
         </button>
@@ -116,7 +139,7 @@
 
   {#if !place || searching}
     <div id="{id}-search">
-      <FindPlace id="{id}-find" {label} onpick={pick} />
+      <FindPlace id="{id}-find" {label} onpick={found} />
     </div>
   {/if}
   {#if sites.length}

@@ -81,11 +81,13 @@
       onkeydown={onKey}
       {placeholder}
       aria-describedby={message ? `${id}-message` : undefined}
-      class="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm focus:ring-0"
+      class="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm focus:ring-0 focus-visible:outline-2
+        focus-visible:-outline-offset-2 focus-visible:outline-brand-600"
     />
     <button
       type="button"
-      class="px-4 text-sm font-medium text-ink hover:bg-brand-50 disabled:opacity-60"
+      class="px-4 text-sm font-medium text-ink hover:bg-brand-50 focus-visible:outline-2 focus-visible:-outline-offset-2
+        focus-visible:outline-brand-600 disabled:opacity-60"
       onclick={search}
       disabled={searching}
     >
@@ -102,7 +104,12 @@
     >
       {#each places as place (place.label)}
         <li>
-          <button type="button" class="block w-full px-3 py-2 text-left hover:bg-brand-50" onclick={() => pick(place)}>
+          <button
+            type="button"
+            class="block w-full px-3 py-2 text-left hover:bg-brand-50 focus-visible:outline-2 focus-visible:-outline-offset-2
+              focus-visible:outline-brand-600"
+            onclick={() => pick(place)}
+          >
             {place.label}
           </button>
         </li>
