@@ -47,11 +47,19 @@ def spans(first: date, last: date, today: date) -> list[tuple[str, date, date]]:
 
 
 def cell_hours(
-    latitude: float, longitude: float, start: datetime, end: datetime, now: datetime, session=None
+    latitude: float,
+    longitude: float,
+    start: datetime,
+    end: datetime,
+    now: datetime,
+    session=None,
+    *,
+    fetch: bool = True,
 ) -> tuple[dict[str, np.ndarray], list[str | None], tuple[str, ...]]:
     """Each catalog variable's hours ending start..end (UTC, inclusive) at the point's O1280 cell, each hour's kind
     (observed up to `now`, forecast after, None past the forecast), and the corrections applied (D51; the cache
-    keeps Open-Meteo's values, corrected as they're read), filling the cache as needed."""
+    keeps Open-Meteo's values, corrected as they're read), filling the cache as needed. With `fetch` false, only
+    the cache is read: a span it doesn't hold raises `Unavailable`, as an unreachable Open-Meteo does."""
     cell = openmeteo.cell_for(latitude, longitude)
     session = session or requests.Session()
     n = (end - start) // HOUR + 1
@@ -59,7 +67,7 @@ def cell_hours(
     reached = start - HOUR
     applied: list[str] = []
     for endpoint, first, last in spans((start - HOUR).date(), end.date(), now.date()):
-        hours = openmeteo.correct(_cached(cell, endpoint, first, last, now, session), cell, endpoint)
+        hours = openmeteo.correct(_cached(cell, endpoint, first, last, now, session, fetch=fetch), cell, endpoint)
         applied += [c for c in hours.corrections if c not in applied]
         k0 = (hours.start - start) // HOUR
         for name, series in hours.values.items():
@@ -104,12 +112,16 @@ def point_days(
     )
 
 
-def _cached(cell, endpoint: str, first: date, last: date, now: datetime, session) -> openmeteo.Hours:
+def _cached(
+    cell, endpoint: str, first: date, last: date, now: datetime, session, *, fetch: bool = True
+) -> openmeteo.Hours:
     row = WeatherCellCache.objects.filter(cell=cell.key, endpoint=endpoint, first_day=first).first()
     if row is not None and row.last_day >= last and (row.expires_at is None or row.expires_at > now):
         held = _unpack(bytes(row.data))
         if all(name in held.values for name in openmeteo.SOIL_MOISTURE):  # rows cached before it are fetched again
             return held
+    if not fetch:
+        raise Unavailable(f"Open-Meteo {endpoint}: not in the cell cache, and this request may fetch no more")
     try:
         hours, calls = fetch_counted(  # counted against the plan, failures too (D115)
             endpoint,
