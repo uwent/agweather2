@@ -222,7 +222,7 @@ def _thermal_models(rest: list[str], params: dict[str, str], here: Here, legacy:
     if action == "dd-map":
         return _dd_map(params, here)
     if action == "frost-map":
-        return here("/tools/freeze")
+        return here("/tools/freeze", at=at)
     if action in ("oak-wilt", "oak-wilt-dd"):
         return here("/tools/oak-wilt", at=at)
     if action in TOPICS:

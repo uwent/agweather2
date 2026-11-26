@@ -1,3 +1,11 @@
+<script lang="ts" module>
+  import type { Loaded } from '../sites/request.svelte'
+  import type { TableResponse as Answer } from '@/types/api'
+
+  /** The component's three answers as they load: `/climate/frost`, `/climate/frost/chances` and the year's `/freeze` */
+  export type FreezeAnswers = { frost: Loaded<Answer>; chances: Loaded<Answer>; observed: Loaded<Answer> }
+</script>
+
 <script lang="ts">
   import { onDestroy, untrack } from 'svelte'
 
@@ -37,6 +45,8 @@
     thresholds = [...FREEZE_THRESHOLDS_F],
     show = 'both',
     thisYear,
+    table = true,
+    onanswers,
   }: {
     lat: number
     lng: number
@@ -48,6 +58,11 @@
     show?: FreezeShow
     /** The year whose own freeze dates are shown beside the odds: default this year; null for none */
     thisYear?: number | null
+    /** false leaves out the dates table and its explanation (a page that shows the dates its own way, the freeze
+     * tool), keeping the chart, the notes and any failure */
+    table?: boolean
+    /** Told each answer's state as it changes, so a page can read the same answers rather than ask again */
+    onanswers?: (answers: FreezeAnswers) => void
   } = $props()
 
   const units = $derived(currentUnits())
@@ -93,6 +108,11 @@
   })
   onDestroy(() => [frost, chances, observed].forEach((r) => r.cancel()))
 
+  $effect(() => {
+    const answers = { frost: frost.value, chances: chances.value, observed: observed.value }
+    if (onanswers) untrack(() => onanswers(answers))
+  })
+
   const dates = $derived(frost.value.data ? freezeDates(frost.value.data) : null)
   const odds = $derived(chances.value.data ? freezeChances(chances.value.data) : null)
   // This year's dates by threshold, from `/freeze` (its thresholds as asked, °F)
@@ -121,12 +141,14 @@
 </script>
 
 <div class="space-y-4">
-  <GlossaryText
-    class="max-w-prose text-sm text-ink-muted"
-    paragraphs={[
-      `When the last freeze of spring and the first freeze of fall came over ${periodWords(years)}, at ${thresholdsInWords(thresholds, units)}. A typical date is the one by which half the years had had their freeze; an early or late date is the one that only 1 year in 10 came before or after.`,
-    ]}
-  />
+  {#if table}
+    <GlossaryText
+      class="max-w-prose text-sm text-ink-muted"
+      paragraphs={[
+        `When the last freeze of spring and the first freeze of fall came over ${periodWords(years)}, at ${thresholdsInWords(thresholds, units)}. A typical date is the one by which half the years had had their freeze; an early or late date is the one that only 1 year in 10 came before or after.`,
+      ]}
+    />
+  {/if}
 
   {#each [frost.value, chances.value] as value, k (k)}
     {#if value.status === 'failed'}
@@ -142,7 +164,9 @@
     </ul>
   {/if}
 
-  {#if dates}
+  {#if !table}
+    <!-- The page shows the dates itself -->
+  {:else if dates}
     <!-- Scrolls sideways on a phone; focusable so a keyboard can scroll it -->
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <div

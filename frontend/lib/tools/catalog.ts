@@ -20,6 +20,12 @@ export const TOOLS: Tool[] = [
     href: routes.toolDegreeDays(),
   },
   {
+    title: 'Freeze dates and odds',
+    question: 'When did the last spring freeze or the first fall freeze come this year, and when do they usually come?',
+    text: 'This year’s or a past year’s freeze dates at a place beside the typical dates over the last 30, 10 or 5 years, the season’s length, and the chance of a freeze after or by any date, for 32, 28 and 24 °F, a crop’s killing freeze or your own temperature.',
+    href: routes.toolFreeze(),
+  },
+  {
     title: 'Oak wilt',
     question: 'Has Wisconsin’s restricted period for pruning, wounding and harvesting oaks begun where I am?',
     text: 'Degree days since January 1 against the DNR’s 231 degree-day start, through July 15, with the oak wilt vector model’s level, its map and season chart, and the DNR’s calendar periods.',
