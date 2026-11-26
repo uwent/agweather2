@@ -8,6 +8,7 @@ INSECT = Insect(
     id="mint-root-borer",
     name="Mint root borer",
     season=("06-01", "10-31"),
+    opens="degree_days",
     crops=("mint",),
     # USPest's method: single sine above 50 °F from April 1; its upper threshold, 129–130 °F, is never reached, so
     # none here (the stored total)
@@ -31,7 +32,7 @@ INSECT = Insect(
     # Pheromone traps and sweep nets show when moths fly (Pacific Northwest handbook): from the first catch (2 %) to
     # 90 % caught, USPest's two flight events
     action_windows=(ActionWindow(label="Trap or sweep for moths", stage="Moth flight", between=(0.02, 0.9)),),
-    version="0.3",
+    version="0.4",
     status="beta",
     # Berry, Takeyasu and Morris's peppermint fields were in the Pacific Northwest; the years aren't in hand (the model
     # is dated 1997): 1990–1997 is an estimate
@@ -50,6 +51,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-26",
             note="In season from June 1 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="The season opens at each place about a week before the first moth flight in a typical year (the day the 30-year normal degree days, averaged over about 50 km, reach it), rather than on June 1 everywhere; where we don't have the normals, it still opens on June 1.",
         ),
     ),
     checks=(

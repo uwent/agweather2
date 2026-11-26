@@ -7,6 +7,7 @@ INSECT = Insect(
     id="western-bean-cutworm",
     name="Western bean cutworm",
     season=("06-15", "09-30"),
+    opens="degree_days",
     crops=("corn", "sweet-corn", "dry-bean"),
     # Hanson et al. 2015's best model: the simple average with the daily mean (not each temperature) capped at the
     # upper threshold, 3.3 and 23.9 °C (38 and 75 °F), from March 1. NEWA uses the same numbers; its deployed code
@@ -35,7 +36,7 @@ INSECT = Insect(
     # says to start at 25 % flight or the first moths caught nearby and continue 7–10 days past the peak
     action_windows=(ActionWindow(label="Scout corn for egg masses", stage="Adult flight", between=(0.05, 0.9)),),
     status="beta",
-    version="0.4",
+    version="0.5",
     changelog=(
         Change(
             version="0.2",
@@ -51,6 +52,11 @@ INSECT = Insect(
             version="0.4",
             date="2026-11-26",
             note="In season from June 15 to September 30: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to the end of the month its latest activity ended in (September 16). Activity ends after September 30 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
+        ),
+        Change(
+            version="0.5",
+            date="2026-11-26",
+            note="The season opens at each place about a week before the first adult flight in a typical year (the day the 30-year normal degree days, averaged over about 50 km, reach it), rather than on June 15 everywhere; where we don't have the normals, it still opens on June 15.",
         ),
     ),
     trained=TrainingArea(

@@ -1,4 +1,4 @@
-{"version": "0.5", "rows": [
+{"version": "0.6", "rows": [
 {"inputs":{"dd_total":0.0},"outputs":{"activity_adult_flight":0.0,"generations_adult_flight":0.0,"activity_larval_feeding":0.0,"generations_larval_feeding":0.0,"window_protect_onion_seedlings_during_fly_flight":0.0,"risk":0.0}},
 {"inputs":{"dd_total":100.0},"outputs":{"activity_adult_flight":0.0,"generations_adult_flight":0.0,"activity_larval_feeding":0.0,"generations_larval_feeding":0.0,"window_protect_onion_seedlings_during_fly_flight":0.0,"risk":0.0}},
 {"inputs":{"dd_total":200.0},"outputs":{"activity_adult_flight":0.0,"generations_adult_flight":0.0,"activity_larval_feeding":0.0,"generations_larval_feeding":0.0,"window_protect_onion_seedlings_during_fly_flight":0.0,"risk":0.0}},

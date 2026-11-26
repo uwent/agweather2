@@ -18,6 +18,7 @@ INSECT = Insect(
     id="cabbage-looper",
     name="Cabbage looper",
     season=("07-15", "10-31"),
+    opens="calendar",
     crops=("celery", "cole-crops", "hops", "leafy-greens", "melon", "mint", "pea", "potato", "tomato"),
     # USPest.org's method: single sine, 50/90 °F (Toba et al. 1973: no development at 7.3 °C, 45 °F; no adults from
     # 10.0 °C and nearly all deformed at 12.7 °C, 55 °F). Both thresholds are stored. NEWA runs no looper model

@@ -3,7 +3,7 @@
 import numpy as np
 
 from agmodels.phenology import ActionWindow, EstimatedBiofix, GenerationSize, Insect, LifeStage
-from agmodels.spec import Change, Check, Citation
+from agmodels.spec import Change, Check, Citation, OpensOnCropStage
 
 # Jones et al. 2013: mean first catch (DD°C from January 1, 10/31 °C single sine with a horizontal cutoff) at sites
 # below 400 m = 1923.387 − 73.806·lat + 0.745·lat². The quadratic's minimum (≈ 95.5 DD°C at 49.5 °N) is the plateau
@@ -34,6 +34,7 @@ INSECT = Insect(
     id="codling-moth",
     name="Codling moth",
     season=("05-15", "10-31"),
+    opens=OpensOnCropStage(crop="apple-stages", stage="B", event="apples bloom"),
     crops=("apple",),
     # The sources' method (D37): single sine with a horizontal cutoff, 50 °F and 88 °F (10 and 31.1 °C). 86 °F is
     # used instead (the shared totals' upper): on the archive it removes at most 9 DD by August 4 and 16 by October 31
@@ -66,7 +67,7 @@ INSECT = Insect(
         on="08-04",
         bounds=(900, 1440, 1640, 1900),
     ),
-    version="0.2",
+    version="0.3",
     checks=(
         Check(
             kind="published",
@@ -130,6 +131,11 @@ INSECT = Insect(
             version="0.2",
             date="2026-11-26",
             note="In season from May 15 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="The season opens at each place on the day apples bloom in a typical year (from the 30-year normal temperatures, averaged over about 50 km), rather than on May 15 everywhere; where we don't have the normals, it still opens on May 15.",
         ),
     ),
 )

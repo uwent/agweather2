@@ -490,6 +490,24 @@ def _within(group: Any, attrs: dict[str, Any], *, name: str, day: date | None, w
     return out
 
 
+def slots_within(group: Any, attrs: dict[str, Any], *, name: str, first: int, last: int, window: Window) -> np.ndarray:
+    """A daily statistic's calendar slots `first` to `last` (exclusive) over any window, float32 (slots, y, x) in its
+    unit, NaN where missing or past the store's window: one read of an open store (`_opened`) for many days."""
+    array = group[name]
+    assert isinstance(array, zarr.Array)
+    w = Window(**attrs["window"])
+    out = np.full((last - first, *window.shape), np.nan, dtype=np.float32)
+    j0, j1 = max(window.j0, w.j0), min(window.j1, w.j1)
+    i0, i1 = max(window.i0, w.i0), min(window.i1, w.i1)
+    if j0 < j1 and i0 < i1:
+        packed = np.asarray(array[first:last, j0 - w.j0 : j1 - w.j0, i0 - w.i0 : i1 - w.i0])
+        scale = np.float32(float(array.attrs["scale"]))  # type: ignore[arg-type]
+        out[:, j0 - window.j0 : j1 - window.j0, i0 - window.i0 : i1 - window.i0] = np.where(
+            packed == FILL, np.float32(np.nan), packed.astype(np.float32) * scale
+        )
+    return out
+
+
 def running_change(data_dir: Path, period: str, name: str, first: date, last: date, window: Window) -> np.ndarray:
     """The normal of a running total's change from the start of `first` to the end of `last` (`<name>/mean`, from
     January 1 each year): within a year the difference of two days, across December 31 the sum of each year's

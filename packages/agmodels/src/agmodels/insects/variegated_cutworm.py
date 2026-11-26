@@ -7,6 +7,7 @@ INSECT = Insect(
     id="variegated-cutworm",
     name="Variegated cutworm",
     season=("05-15", "10-31"),
+    opens="degree_days",
     crops=(
         "asparagus",
         "beans",
@@ -52,7 +53,7 @@ INSECT = Insect(
         # Simonet et al. 1981: scouting for eggs and young caterpillars should begin at the peak capture of moths
         ActionWindow(label="Scout for eggs and young caterpillars", stage="Adult flight", between=(0.5, 0.95)),
     ),
-    version="0.3",
+    version="0.4",
     status="beta",
     trained=TrainingArea(
         description="black light trap catches at Wooster, Ohio, from 1965 to 1979 (the flights' peaks and the time between them) and in Wisconsin's trap network from 2020 to 2026 (the first flight's spread)",
@@ -70,6 +71,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-26",
             note="In season from May 15 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="The season opens at each place about a week before the first adult flight in a typical year (the day the 30-year normal degree days, averaged over about 50 km, reach it), rather than on May 15 everywhere; where we don't have the normals, it still opens on May 15.",
         ),
     ),
     checks=(

@@ -66,6 +66,9 @@ from agmodels.spec import (
     ExplorerInput,
     Input,
     ModelSpec,
+    OpensOnCalendar,
+    OpensOnCropStage,
+    OpensOnDegreeDays,
     Option,
     PlaceNormal,
     Quantity,
@@ -78,6 +81,8 @@ SEASON_END_DAY = 250
 FREEZE_KILL_DAYS = 4  # freezing days in the last 14 that end the season (VDIFN's subtraction from peak severity)
 DD_STEP, DD_MAX = 1.0, 10_000.0  # the degree-day grid the curves are tabulated on; totals past it read its last value
 RISK_THRESHOLDS = (0.05, 0.25, 0.5, 0.75)  # lower bounds of Low … Very high, in first-generation peaks of weight 1
+# A stage's first activity, where an insect's season opens from (D128): this share of its first-generation peak
+FIRST_ACTIVITY = 0.05
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -261,8 +266,13 @@ class Insect:
     biofix_fixed: bool = False  # the biofix is always the default: no grower's date (`Biofix.fixed`)
     # MM-DD first and last day it's in season (`ModelSpec.season`, `agmodels.seasons.in_season`): its activity in
     # Wisconsin, from its first activity on 2016–2025's weather to the end of its crop's season or of its activity.
-    # With life stages, activity ends after the last day (the legacy definitions only list by it)
+    # With life stages, activity ends after the last day (the legacy definitions only list by it). The first day is
+    # the calendar's, where `opens` is "calendar" or the place has no normal
     season: tuple[str, str] | None = None
+    # How its season opens at a place (D128), exactly one rule: "degree_days", a week before the area's normal degree
+    # days reach its first activity (`first_activity`); its crop's stage (`OpensOnCropStage`); or "calendar", the
+    # season's first day everywhere (migrants)
+    opens: Literal["degree_days", "calendar"] | OpensOnCropStage
 
     @property
     def has_calendar(self) -> bool:
@@ -285,6 +295,12 @@ class Insect:
                 raise ValueError(f"{self.id}: action window {w.label!r} follows an unknown stage {w.stage!r}")
         if self.season is not None and self.season[1] < self.season[0]:
             raise ValueError(f"{self.id}: an insect's season ends in the year it starts")
+        if self.opens == "degree_days" and self.estimated_biofix is not None:
+            raise ValueError(
+                f"{self.id}: a season opened by degree days counts from the biofix, not an estimated event"
+            )
+        if self.opens != "calendar" and self.season is None:
+            raise ValueError(f"{self.id}: a season that opens on warmth or a crop stage needs its calendar season too")
         if self.max_generations is not None and self.max_generations < 1:
             raise ValueError(f"{self.id}: max_generations must be at least 1")
         if (self.estimated_biofix or self.generation_size) and not self.life_stages:
@@ -358,6 +374,7 @@ class InsectModel:
             ),
             context=self._context(),
             season=insect.season,
+            opens=season_opens(insect),
             changelog=(
                 *(
                     (
@@ -643,6 +660,46 @@ def _day_after(month_day: str) -> str:
 def model_for(insect: Insect, summary: str) -> InsectModel:
     """The model for an insect: by its life stages (D36), or the legacy stage table or generations."""
     return (PhenologyModel if insect.life_stages else InsectModel)(insect=insect, summary=summary)
+
+
+def first_activity(insect: Insect) -> tuple[float, str]:
+    """The degree days from the biofix (°F, by the insect's method) at which it first shows, and the stage that
+    shows: the first total at which any life stage's activity reaches `FIRST_ACTIVITY` of its first-generation peak
+    (a stage that carries no risk counts: European corn borer's moths come before its larvae); for the legacy
+    tables, the first total with a severity of 1 or more (Low)."""
+    x = dd_grid()
+    if insect.life_stages:
+        tables = curves(insect)
+        found = [
+            (float(x[np.argmax(table >= FIRST_ACTIVITY)]), s.label)
+            for s in insect.life_stages
+            if (table := tables[f"activity_{s.key}"]).max() >= FIRST_ACTIVITY
+        ]
+        return min(found)
+    level = severity(x, insect)
+    return float(x[np.argmax(level >= 1)]), "activity"
+
+
+def season_opens(insect: Insect) -> OpensOnCalendar | OpensOnDegreeDays | OpensOnCropStage:
+    """The spec's rule for where the insect's season opens (`ModelSpec.opens`, D128), its first activity worked out
+    from its curves for a season that opens on warmth."""
+    if insect.opens == "calendar":
+        return OpensOnCalendar()
+    if isinstance(insect.opens, OpensOnCropStage):
+        return insect.opens
+    dd, label = first_activity(insect)
+    form = insect.place_form
+    return OpensOnDegreeDays(
+        method=insect.dd_method,
+        base_f=insect.base_f,
+        upper_f=insect.upper_f,
+        start=insect.biofix,
+        dd=dd,
+        event=f"the first {_lower(label)}",
+        form_dd=first_activity(form_insect(insect))[0] if form is not None else None,
+        form_normal=form.normal if form is not None else None,
+        form_below=form.below if form is not None else None,
+    )
 
 
 def slug(label: str) -> str:

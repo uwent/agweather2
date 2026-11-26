@@ -40,7 +40,18 @@ from typing import cast
 
 import numpy as np
 
-from agdata import blocks, croptiers, modelmaps, normals, planting, regions, seasonmaps, series
+from agdata import (
+    blocks,
+    climatology,
+    croptiers,
+    modelmaps,
+    normals,
+    planting,
+    regions,
+    seasonmaps,
+    seasonopens,
+    series,
+)
 from agdata import units as agunits
 from agdata.catalog import CUMULATIVE_VARIABLES
 from agdata.grid import Window
@@ -52,7 +63,7 @@ from agmodels.ingredients import Accumulation, Ingredient, until_day
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
 from agmodels.runner import default_biofix, january_crop_start, unfilled_gaps
-from agmodels.spec import Model, ModelSpec
+from agmodels.spec import Model, ModelSpec, OpensOnCropStage, OpensOnDegreeDays
 
 # The running count of days without a usable minimum and maximum temperature (`agdata.cumulative`): degree days' and
 # crop stages' days missing past the gap fill (D56)
@@ -103,7 +114,9 @@ class ModelDays:
     biofix: list[date | None]  # per day, the spec's biofix for its season (None: the model has none)
     # per day and cell, the biofix used (date ordinals; NaN: none, inf: its crop stage isn't reached yet)
     cell_biofix: np.ndarray | None = None
-    in_season: list[bool] | None  # per day, from the spec's season; None if it has none
+    in_season: list[bool] | None  # per day, from the spec's season (opening on the region's day); None if it has none
+    # (y, x): the calendar slot each cell's insect season opens on (`season_opens`); None for other models
+    opens: np.ndarray | None = None
     in_region: np.ndarray | None  # (y, x): cells in the model's states; None if it's valid anywhere
     stale: bool  # an ingredient a newer version of its model hasn't rebuilt yet (D29)
     sources: tuple[str, ...]
@@ -176,10 +189,17 @@ def model_days(
     in_region = _region_mask(spec, window)
     ordinals = np.array([d.toordinal() for d in dates], dtype=float).reshape(shape)
     before = ordinals < cells  # NaN (no biofix) compares False
+    opens = season_opens(data_dir, spec, window)
     for v in (*outputs.values(), *(x for x in (risk, level) if x is not None)):
         v[before] = np.nan  # not started, as at a point: nothing before the season's biofix
         if in_region is not None:
             v[:, ~in_region] = np.nan
+    if opens is not None:  # an insect's season not open yet at the cell (D128): its activity and risk blank there
+        slots = np.array([climatology.slot(d) for d in dates], dtype=float).reshape(shape)
+        closed = np.broadcast_to(slots < opens[None], (n, *window.shape))
+        blank = blank_before_opening(spec)
+        for v in (*(v for k, v in outputs.items() if k in blank), *(x for x in (risk, level) if x is not None)):
+            v[closed] = np.nan
     kinds = list(base.kinds)
     first_ingredient = values[spec.ingredients[0].name]
     for k in range(n):  # a day with no ingredient anywhere has nothing to show (the run's last, partial day)
@@ -193,8 +213,9 @@ def model_days(
         level=level,
         biofix=biofix,
         cell_biofix=cells if cell_biofix is not None else None,
-        in_season=None if spec.season is None else [_in_season(spec, d) for d in dates],
+        in_season=None if spec.season is None else [_in_season(spec, d, data_dir) for d in dates],
         in_region=in_region,
+        opens=opens,
         stale=reader.stale,
         sources=base.sources,
         forecast=base.forecast,
@@ -417,6 +438,7 @@ def _merged(window: Window, parts: list[Window], found: list[ModelDays]) -> Mode
         cell_biofix=whole([f.cell_biofix for f in found]),
         in_season=one.in_season,
         in_region=None if one.in_region is None else whole([f.in_region for f in found]),
+        opens=whole([f.opens for f in found]),
         stale=any(f.stale for f in found),
         sources=one.sources,
         forecast=one.forecast,
@@ -1047,5 +1069,23 @@ def _areas_mask(codes: tuple[str, ...], window: Window) -> np.ndarray:
     return mask
 
 
-def _in_season(spec: ModelSpec, day: date) -> bool:
-    return seasons.in_season(spec, day)  # the calendar: a map's cells end their seasons on their own days
+def _in_season(spec: ModelSpec, day: date, data_dir: Path | None = None) -> bool:
+    """Whether the map's day is in season over the region: an insect's season opens on the region's day
+    (`seasonopens.region`, D128); a map's cells open (`season_opens`) and end their seasons on their own days."""
+    return seasons.in_season(spec, day, opens=seasonopens.region(data_dir, spec))
+
+
+def blank_before_opening(spec: ModelSpec) -> set[str]:
+    """The outputs a map leaves blank where an insect's season hasn't opened (D128), with its risk: all but its
+    degree days, which are the weather's, not the insect's."""
+    return {q.name for q in spec.outputs if q.unit not in ("degF_day", "degC_day")}
+
+
+def season_opens(data_dir: Path, spec: ModelSpec, window: Window) -> np.ndarray | None:
+    """The calendar slot each cell's season opens on (y, x) for an insect whose season opens by the normal (D128),
+    the season's calendar first day where a cell has no normal; None for any other model."""
+    if not isinstance(spec.opens, OpensOnDegreeDays | OpensOnCropStage) or spec.season is None:
+        return None
+    found = seasonopens.slots(data_dir, spec, window)
+    first = climatology.slot(date(climatology.LEAP, *(int(p) for p in spec.season[0].split("-"))))
+    return np.where(np.isnan(found), float(first), found)

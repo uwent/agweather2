@@ -8,6 +8,7 @@ INSECT = Insect(
     id="squash-vine-borer",
     name="Squash vine borer",
     season=("06-15", "10-31"),
+    opens="degree_days",
     crops=("cucumber", "melon", "pumpkin-squash"),
     # UW–Madison Extension's method (XHT1086): the modified average, 50/86 °F, from January 1, a stored total. Its
     # degree-day table (XHT1087, Delahaut, rev. 2005; read in full 2026-11-23) gives only "base temperature = 50°F" and
@@ -37,7 +38,7 @@ INSECT = Insect(
     action_windows=(
         ActionWindow(label="Protect stems during egg laying", stage="Moth flight and egg laying", between=(0.05, 0.75)),
     ),
-    version="0.3",
+    version="0.4",
     status="beta",
     trained=TrainingArea(
         description="extension guides' timing in Wisconsin, South Dakota, Ohio and Michigan",
@@ -54,6 +55,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-26",
             note="In season from June 15 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="The season opens at each place about a week before the first moth flight and egg laying in a typical year (the day the 30-year normal degree days, averaged over about 50 km, reach it), rather than on June 15 everywhere; where we don't have the normals, it still opens on June 15.",
         ),
     ),
     checks=(

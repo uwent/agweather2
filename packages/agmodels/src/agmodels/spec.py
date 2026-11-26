@@ -220,6 +220,47 @@ class PlaceNormal:
 
 
 @dataclass(frozen=True, kw_only=True)
+class OpensOnCalendar:
+    """An insect's season opens on its calendar first day (`ModelSpec.season[0]`) everywhere: a migrant, which
+    arrives on the wind from the south rather than waking where it overwintered (D128)."""
+
+
+@dataclass(frozen=True, kw_only=True)
+class OpensOnDegreeDays:
+    """An insect's season opens `lead_days` before the day the area's 30-year normal degree days (its own method,
+    thresholds and start) reach its first activity, `dd` (D128): each cell's date from the normal maps (`last30`),
+    averaged over the land within 50 km, center-weighted (`agdata.seasonopens`)."""
+
+    method: Literal["sine", "average", "modified", "average_capped_mean"]
+    base_f: float
+    upper_f: float | None
+    start: str  # MM-DD the degree days count from (the insect's default biofix)
+    dd: float  # °F degree days from `start` to the first activity
+    event: str  # public words for the first activity: "the first adult flight"
+    lead_days: int = 7
+    # Another first activity where a normal of the place is below a bound (European corn borer's one-flight form)
+    form_dd: float | None = None
+    form_normal: PlaceNormal | None = None
+    form_below: float | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class OpensOnCropStage:
+    """An insect's season opens on the day its crop typically reaches a stage (D128): the crop model's degree days
+    on the area's 30-year normal (`agdata.seasonopens`), counted from the crop's typical planting (`planting`, a tier
+    of `agdata.potatoplanting`) or from January 1 for a perennial (apple)."""
+
+    crop: str  # the crop model's id, such as "potato-stages"
+    stage: str  # the stage's code, such as "EM"
+    event: str  # public words completing "on the day …": "early-planted potatoes emerge"
+    planting: str | None = None  # the typical planting tier counted from ("early"); None: January 1
+    lead_days: int = 0
+
+
+SeasonOpens = OpensOnCalendar | OpensOnDegreeDays | OpensOnCropStage
+
+
+@dataclass(frozen=True, kw_only=True)
 class ModelSpec:
     id: str
     name: str
@@ -250,6 +291,9 @@ class ModelSpec:
     region: tuple[str, ...] = ()  # state abbreviations where it's valid; empty: anywhere
     trained: TrainingArea | None = None  # where its data came from (D101); None: not a fit to data, or not recorded
     season: tuple[str, str] | None = None  # MM-DD first and last day it's shown
+    # How an insect's season opens at a place (D128); None: on `season`'s first day. Where the place has no normal,
+    # the calendar's first day, with a warning
+    opens: SeasonOpens | None = None
     seasonal: Seasonal | None = None  # a once-a-season product (`agmodels.seasons`); None: a daily model
     biofix: Biofix | None = None
     changelog: tuple[Change, ...] = ()

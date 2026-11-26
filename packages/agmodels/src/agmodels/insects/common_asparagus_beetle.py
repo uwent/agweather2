@@ -17,6 +17,7 @@ INSECT = Insect(
     id="common-asparagus-beetle",
     name="Common asparagus beetle",
     season=("03-15", "10-31"),
+    opens="degree_days",
     crops=("asparagus",),
     # UW–Madison's method (XHT1086; XHT1087 gives only the 50 °F base): the modified average, the minimum raised to 50 °F
     # and the maximum capped at 86 °F, from January 1 (the stored `dd_modified_50_86`). NEWA runs no asparagus beetle
@@ -51,7 +52,7 @@ INSECT = Insect(
         # marks each generation's main egg laying, from 10 to 90 % of its beetles active
         ActionWindow(label="Scout for beetles and eggs", stage="Adults feeding and laying eggs", between=(0.1, 0.9)),
     ),
-    version="0.3",
+    version="0.4",
     status="beta",
     # XHT1087 gives no years for its numbers; the span runs from Taylor and Harcourt's rearing (1975) to XHT1137's
     # revision (2026). Ontario has no code here, so only Wisconsin is named
@@ -70,6 +71,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-26",
             note="In season from March 15 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="The season opens at each place about a week before the first adults feeding and laying eggs in a typical year (the day the 30-year normal degree days, averaged over about 50 km, reach it), rather than on March 15 everywhere; where we don't have the normals, it still opens on March 15.",
         ),
     ),
     checks=(

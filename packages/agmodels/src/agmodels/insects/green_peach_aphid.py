@@ -37,6 +37,7 @@ INSECT = Insect(
     id="green-peach-aphid",
     name="Green peach aphid",
     season=("07-15", "10-31"),
+    opens="calendar",
     crops=("potato",),
     topic="aphids-on-potato",
     base_f=39.2,

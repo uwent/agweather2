@@ -234,10 +234,18 @@ def terrain_store(data_dir, window: Window, water_share: np.ndarray, elevation_m
     )
 
 
-def freeze_normal(data_dir, window: Window, spring_slot: float | np.ndarray, period: str = "last30") -> None:
+def freeze_normal(
+    data_dir,
+    window: Window,
+    spring_slot: float | np.ndarray,
+    period: str = "last30",
+    daily: dict[str, np.ndarray] | None = None,
+) -> None:
     """A period's normal maps (`agdata.normals`) over `window` holding only the median last spring freeze at 28 °F,
     as a calendar slot (`climatology.slot`; NaN missing), everywhere or per cell (y, x): what potato's planting dates
-    read (`agdata.potatoplanting`). Other statistics read as not stored."""
+    read (`agdata.potatoplanting`); and `daily`'s statistics (such as running totals' "dd_sine_50/mean"), each
+    (366, y, x) or (366,) for every cell, in its unit, stored in half units (a chunk an array). Other statistics read
+    as not stored."""
     import zarr
 
     from agdata import normals, potatoplanting
@@ -247,6 +255,12 @@ def freeze_normal(data_dir, window: Window, spring_slot: float | np.ndarray, per
     packed = np.where(np.isfinite(slots), np.round(np.nan_to_num(slots)), FILL).astype(np.int16)[None]
     array = group.create_array(potatoplanting.FREEZE, data=packed, fill_value=int(FILL))
     array.attrs.update({"scale": 1.0, "single": True})
+    for name, values in (daily or {}).items():
+        v = np.asarray(values, dtype=float)
+        v = np.broadcast_to(v.reshape(*v.shape, 1, 1) if v.ndim == 1 else v, (366, *window.shape))
+        packed = np.where(np.isfinite(v), np.round(np.nan_to_num(v) / 0.5), FILL).astype(np.int16)
+        array = group.create_array(name, data=packed, fill_value=int(FILL), chunks=packed.shape)
+        array.attrs.update({"scale": 0.5})
     group.attrs.update(
         {
             "period": period,

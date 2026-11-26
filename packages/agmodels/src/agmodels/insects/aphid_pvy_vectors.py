@@ -36,6 +36,7 @@ INSECT = Insect(
     id="aphid-pvy-vectors",
     name="Aphid PVY vectors",
     season=("04-01", "10-31"),
+    opens="calendar",
     crops=("potato",),
     base_f=39.2,
     upper_f=86,
