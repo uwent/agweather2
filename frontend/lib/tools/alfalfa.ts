@@ -518,18 +518,26 @@ export function editCuts(cuts: PlanCut[], edit: CutEdit): { cuts: string[]; held
   return { cuts: dates, held: dates.filter((d) => byDate.get(d)) }
 }
 
-/** Where the season starts and where cuts are scheduled through, and why */
-export function seasonWords(plan: Plan, units: Units): string {
+/** "this year’s" for the current year's plan, "2024’s" for a past one */
+const yearWhose = (year: number, thisYear: number) => (year === thisYear ? 'this year’s' : `${year}’s`)
+/** "this year", or "in 2024" */
+const yearIn = (year: number, thisYear: number) => (year === thisYear ? 'this year' : `in ${year}`)
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
+
+/** Where the season starts and where cuts are scheduled through, and why (`thisYear`: the current year, so a past
+ * year's plan names its year) */
+export function seasonWords(plan: Plan, units: Units, thisYear: number = plan.year): string {
+  const whose = yearWhose(plan.year, thisYear)
   const freeze = `killing freeze (${temperatureText(plan.thresholds.killingFreeze, units)} or colder)`
   const start =
     plan.springFreeze.basis === 'observed' && plan.springFreeze.date
-      ? `The season counts from this year’s last spring ${freeze}, on ${dayName(plan.springFreeze.date)}.`
+      ? `The season counts from ${whose} last spring ${freeze}, on ${dayName(plan.springFreeze.date)}.`
       : plan.springFreeze.basis === 'typical' && plan.springFreeze.date
         ? `Spring hasn’t yet reached the typical date of the last spring ${freeze}, so the season counts from that date, ${dayName(plan.springFreeze.date)}.`
-        : `There was no spring ${freeze} this year, so the season counts from January 1.`
+        : `There was no spring ${freeze} ${yearIn(plan.year, thisYear)}, so the season counts from January 1.`
   const end =
     plan.seasonEnd.basis === 'observed' && plan.seasonEnd.date
-      ? `Cuts are scheduled through this year’s first fall killing freeze, on ${dayName(plan.seasonEnd.date)}.`
+      ? `Cuts are scheduled through ${whose} first fall killing freeze, on ${dayName(plan.seasonEnd.date)}.`
       : plan.seasonEnd.basis === 'typical' && plan.seasonEnd.date
         ? `Cuts are scheduled through ${dayName(plan.seasonEnd.date)}, the date by which 1 year in 10 has had its first fall killing freeze.`
         : `Cuts are scheduled through December 31.`
@@ -561,7 +569,7 @@ export function cutLine(plan: Plan, index: number, units: Units): string {
 const yearsText = (n: number) => (n === 0 ? 'no years' : `${n} ${n === 1 ? 'year' : 'years'}`)
 
 /** The fall rule and how the plan's last cut fares against each of the period's years */
-export function fallWords(plan: Plan, units: Units): { rule: string; check: string[] } {
+export function fallWords(plan: Plan, units: Units, thisYear: number = plan.year): { rule: string; check: string[] } {
   const t = plan.thresholds
   const rule = `Before winter, alfalfa needs either too little regrowth after its last cut to draw down the reserves in its roots, under ${gddText(t.fallUnder, units)}, or enough to rebuild them, over ${gddText(t.fallOver, units)}, before the first fall killing freeze (${temperatureText(t.killingFreeze, units)} or colder). Regrowth between the two leaves the stand weaker going into winter.`
   const fall = plan.fall
@@ -581,7 +589,7 @@ export function fallWords(plan: Plan, units: Units): { rule: string; check: stri
     )
   if (fall.observedFreeze)
     check.push(
-      `This year it came on ${dayName(fall.observedFreeze)}${fall.observedRegrowth !== null ? `, after ${gddText(fall.observedRegrowth, units)} of regrowth` : ''}.`,
+      `${capitalize(yearIn(plan.year, thisYear))} it came on ${dayName(fall.observedFreeze)}${fall.observedRegrowth !== null ? `, after ${gddText(fall.observedRegrowth, units)} of regrowth` : ''}.`,
     )
   return { rule, check }
 }
@@ -634,6 +642,7 @@ export function planOption({
   const [windowLo, windowHi] = [plan.thresholds.cutFrom, plan.thresholds.cutUntil].map((v) => shown(v) as number)
   const forecastAt = days.findIndex((d) => d.kind === 'forecast' || d.kind === 'partial')
   const forecastEnd = days.findLastIndex((d) => d.kind === 'forecast' || d.kind === 'partial')
+  const weatherName = `${capitalize(yearWhose(plan.year, Number(today.slice(0, 4))))} weather`
   const unit = units.label('degF_day')
   const mark = (date: string, label: string, show: boolean, dashed = false) => ({
     xAxis: date,
@@ -666,7 +675,7 @@ export function planOption({
   const series: object[] = [
     {
       id: 'since-cut',
-      name: 'This year’s weather',
+      name: weatherName,
       type: 'line',
       xAxisIndex: 0,
       yAxisIndex: 0,
@@ -758,7 +767,7 @@ export function planOption({
     legend: {
       top: 14,
       left: 0,
-      data: ['This year’s weather', 'Normal', 'Cuts'],
+      data: [weatherName, 'Normal', 'Cuts'],
       textStyle: { color: palette.inkMuted, fontSize: 10 },
       itemWidth: 14,
       itemHeight: 8,
@@ -821,9 +830,9 @@ function planTooltip(plan: Plan, day: PlanDay, units: Units): string {
 }
 
 /** The plan chart in words: its text alternative and summary */
-export function planSummary(plan: Plan, units: Units): string {
+export function planSummary(plan: Plan, units: Units, thisYear: number = plan.year): string {
   const lines = plan.cuts.map((_, k) => cutLine(plan, k, units))
-  return [seasonWords(plan, units), ...lines].join(' ')
+  return [seasonWords(plan, units, thisYear), ...lines].join(' ')
 }
 
 /** "Summary and data"'s table for the plan, newest first */
