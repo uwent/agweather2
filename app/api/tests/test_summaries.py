@@ -117,6 +117,47 @@ def test_hourly_layers_take_no_months_and_rows_are_limited(client, archive, monk
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("layer", "params"),
+    [
+        ("air_temperature_max", {"date": "2025-07-05"}),
+        ("degree_days", {"start": "2025-07-01", "end": "2025-07-09", "stat": "sum", "dd": "dd_sine_50_86"}),
+        ("air_temperature_max", {"start": "2025-07-01", "end": "2025-07-09", "stat": "max"}),
+        ("air_temperature_min", {"first": "below_99", "end": "2025-07-09"}),
+        ("tar-spot", {"date": "2025-07-05"}),
+        ("late-blight-dsv", {"date": "2025-07-08", "output": "dsv_total"}),
+    ],
+)
+def test_a_region_reads_the_tiles_map_when_its_kept_with_the_same_answer(
+    client, archive, settings, monkeypatch, layer, params
+):
+    """The county table asks with the tiles' settings: once the tiles' map (over the whole archive) is kept, a region's
+    summary is cut from it rather than computed again over the region, and the rows are the same (Phase 7 wave 6)."""
+    from api import layermaps
+
+    settings.MAP_CACHE_DIR = None
+    layermaps._maps.clear()
+    computed: list[tuple[int, int]] = []
+    compute = layermaps.compute
+    monkeypatch.setattr(
+        layermaps, "compute", lambda a, window, now: computed.append(window.shape) or compute(a, window, now)
+    )
+    asked = {**params, "region": FAYETTE, "min_coverage": 0, "units": "us"}
+    fresh = get(client, layer, **asked).json()
+    assert len(computed) == 1  # the region's own window: nothing kept yet
+    when = f"{params['start']}..{params['end']}" if "start" in params else params.get("date", params.get("end"))
+    tile_params = {k: v for k, v in params.items() if k not in ("date", "start", "end")}
+    if "first" in params:
+        tile_params = {"first": params["first"]}
+    assert client.get(f"/api/v2/tiles/{layer}.json", {"time": when, "units": "us", **tile_params}).status_code == 200
+    assert len(computed) == 2  # the tiles' map
+    cut = get(client, layer, **asked).json()
+    assert len(computed) == 2, "the summary computed its own map"
+    assert cut["data"] == fresh["data"]
+    assert cut["meta"]["warnings"] == fresh["meta"]["warnings"]
+
+
+@pytest.mark.django_db
 def test_a_summary_revalidates_and_comes_as_csv(client, archive):
     first = get(client, "air_temperature_max", date="2025-07-05", min_coverage=0)
     again = client.get(

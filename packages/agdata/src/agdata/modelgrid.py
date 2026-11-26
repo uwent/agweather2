@@ -660,8 +660,8 @@ def _gone(inputs: list[np.ndarray], answered: list[np.ndarray | None] | None = N
     """(days, cells): the days any input (filled) is in a gap the fill didn't reach, with data on each side (D56), as
     a point counts them (`runner.unfilled_gaps`): days before the data start or after they end aren't a gap. `answered`,
     beside each input, marks its nulls that are the day's answer (a conditional mean's, `agmodels.gaps.no_value`)."""
-    answered = answered or [None] * len(inputs)
-    return np.any([unfilled_gaps(v, answered=a) for v, a in zip(inputs, answered, strict=True)], axis=0)
+    marks: list[np.ndarray | None] = list(answered) if answered else [None] * len(inputs)
+    return np.any([unfilled_gaps(v, answered=a) for v, a in zip(inputs, marks, strict=True)], axis=0)
 
 
 def _crop_stages(data_dir, sown: _Planting, first: date, last: date, now) -> np.ndarray:

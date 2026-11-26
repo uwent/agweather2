@@ -544,9 +544,9 @@ def _gone(inputs: list[np.ndarray], answered: list[np.ndarray | None] | None = N
     counted, as the update that writes them can't know whether data will follow; a map leaves out a day with no data
     anywhere (the run's partial last day). `answered`, beside each input, marks its nulls that are the day's answer
     rather than missing data (a conditional mean's, `agmodels.gaps.no_value`)."""
-    answered = answered or [None] * len(inputs)
+    marks: list[np.ndarray | None] = list(answered) if answered else [None] * len(inputs)
     valid = np.all(
-        [np.isfinite(v) if a is None else np.isfinite(v) | a for v, a in zip(inputs, answered, strict=True)], axis=0
+        [np.isfinite(v) if a is None else np.isfinite(v) | a for v, a in zip(inputs, marks, strict=True)], axis=0
     )
     seen = np.logical_or.accumulate(valid, axis=0)
     return ~valid & seen
