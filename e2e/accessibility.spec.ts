@@ -287,3 +287,21 @@ test("a site's Climate tab, in both themes", async ({ page }) => {
     if (theme === 'first' && test.info().project.name === 'desktop') await reflows(page, path)
   }
 })
+
+// The climate explorer (track 6 step 6.4): the map alone, then a place with every section scrolled in, in both themes
+test('the climate explorer, in both themes', async ({ page }) => {
+  await stubClimateApi(page)
+  await scan(page, '/climate')
+  const path = '/climate?layer=last-freeze&at=44.12,-89.52&name=Hancock'
+  for (const theme of ['first', 'other']) {
+    if (theme === 'other') await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
+    await page.goto(path)
+    for (const name of ['Temperature against normal', 'Frost and freeze', 'This month against normal', 'Normals']) {
+      await page.getByRole('heading', { level: 2, name }).scrollIntoViewIfNeeded()
+    }
+    await expect(page.getByRole('region', { name: 'Normals by month' })).toBeVisible()
+    await expect(page.locator('[data-chart] canvas')).toHaveCount(5)
+    await axeOnly(page, `the climate explorer at a place (${theme} theme)`)
+    if (theme === 'first' && test.info().project.name === 'desktop') await reflows(page, path)
+  }
+})
