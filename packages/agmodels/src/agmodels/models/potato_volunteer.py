@@ -84,6 +84,7 @@ SPEC = ModelSpec(
     risk=Risk(
         levels=("Low", "Moderate", "High", "Very high"),
         criteria="The chance tubers survive, by the depths (2, 4 and 8 in) with at least 120 hours below 27 °F from November 1 through March 31: Low at all three, Moderate at two, High at one, Very high at none.",
+        falls=True,  # Very high on November 1, lower as each depth reaches 120 hours
     ),
     explorer=tuple(
         ExplorerInput(
