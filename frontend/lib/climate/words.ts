@@ -4,6 +4,7 @@
 
 import { formatDate } from '../dates'
 import type { Units } from '../units'
+import { plural } from '../words'
 
 /** The thresholds named for freezes (Ben, 2026-11-26, track 6 Q5), in °F */
 export const FREEZE_NAMES: Record<number, string> = { 32: 'Frost', 28: 'Hard freeze', 24: 'Killing freeze' }
@@ -66,7 +67,7 @@ export function percentileWords(percentile: number): string {
 export function daysAheadWords(days: number): string {
   if (days === 0) return 'on pace with normal'
   const n = Math.abs(days)
-  return `${n} day${n === 1 ? '' : 's'} ${days > 0 ? 'ahead of' : 'behind'} normal`
+  return `${plural(n, 'day')} ${days > 0 ? 'ahead of' : 'behind'} normal`
 }
 
 /** A share of years as words: 10 → "1 year in 10", 50 → "half the years", 90 → "9 years in 10" */
@@ -74,7 +75,7 @@ export function shareOfYears(percent: number): string {
   if (percent === 50) return 'half the years'
   if (percent % 10 === 0) {
     const n = percent / 10
-    return `${n} year${n === 1 ? '' : 's'} in 10`
+    return `${plural(n, 'year')} in 10`
   }
   return `${Math.round(percent)}% of years`
 }

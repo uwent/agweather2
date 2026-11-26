@@ -2,6 +2,7 @@ import type { TableResponse } from '@/types/api'
 
 import { formatHour } from '../charts/kinds'
 import type { Units } from '../units'
+import { plural } from '../words'
 
 // Today's precipitation so far (Ben, 2026-11-26): the API leaves a day still in progress without a total, so a
 // site's today adds up its hours instead, through the newest hour that has a value, and says so: the hours reach
@@ -121,7 +122,7 @@ export function rainSoFarText(r: RainSoFar, units: Units): string {
 
 /** "; 2 hours missing", or nothing */
 export function missingWords(r: RainSoFar): string {
-  return r.missing ? `; ${r.missing} ${r.missing === 1 ? 'hour' : 'hours'} missing` : ''
+  return r.missing ? `; ${plural(r.missing, 'hour')} missing` : ''
 }
 
 /** The short form for a day's card: "0.12 in so far" */

@@ -5,6 +5,7 @@
   import { trendWords, type ModelRisk } from '../riskSpan'
   import { siteKey, siteModelUrl } from '../siteKey'
   import { riskColor } from '../riskLevels'
+  import { plural } from '../words'
   import type { RiskRow } from './text'
 
   // "Risk now": each model with a risk above the lowest today, in words first ("High risk") with the level's
@@ -42,7 +43,7 @@
   })
   const others = $derived(rows.length - withLevel.length)
   const levels = (row: RiskRow) => catalog.get(row.model)?.risk_levels ?? 5
-  const days = (count: number) => `${count} missing ${count === 1 ? 'day' : 'days'}`
+  const days = (count: number) => plural(count, 'missing day')
 </script>
 
 {#if withLevel.length}

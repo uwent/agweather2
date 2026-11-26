@@ -20,6 +20,7 @@ import { periodWords, summaryYears, type PeriodYears } from '../climate/periods'
 import { formatDate } from '../dates'
 import { columnsOf, unitSymbol, type Kind } from '../tableRows'
 import type { Units } from '../units'
+import { plural } from '../words'
 import type { EChartsCoreOption } from './echarts'
 import { band, rounded, rowLabel, thresholdLine, todayLine } from './kinds'
 import { baseOption, type Palette } from './palette'
@@ -397,7 +398,7 @@ export function compareSummary({
     )
   if (table.estimatedDays > 0 && !column.startsWith('precipitation'))
     sentences.push(
-      `Includes ${table.estimatedDays} estimated day${table.estimatedDays === 1 ? '' : 's'} where a short gap in the data was bridged.`,
+      `Includes ${plural(table.estimatedDays, 'estimated day')} where a short gap in the data was bridged.`,
     )
   return sentences.join(' ')
 }
