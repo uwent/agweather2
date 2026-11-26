@@ -34,6 +34,10 @@ class CropModel(Protocol):
 
     def stages(self, **options: str) -> tuple[CropStage, ...]: ...
 
+    # Where each stage starts in the model's running total (its first accumulation, as `gdd_total`), for the options
+    # given; None for a model whose stages don't come from one total (soybean's photothermal phases)
+    def stage_thresholds(self, **options: str) -> np.ndarray | None: ...
+
     def outputs(
         self, inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str
     ) -> dict[str, np.ndarray]: ...

@@ -118,6 +118,11 @@ def stages(**options: str) -> tuple[CropStage, ...]:
     return STAGES
 
 
+def stage_thresholds(**options: str) -> np.ndarray:
+    """Degree days since planting at which each stage starts (`dd_total`)."""
+    return THRESHOLDS
+
+
 def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
     lo, hi = (np.asarray(inputs[k], dtype=float) for k in ("air_temperature_min", "air_temperature_max"))
     return {"dd": np.maximum((lo + hi) / 2 - BASE_C, 0.0)}  # NaN where either is missing

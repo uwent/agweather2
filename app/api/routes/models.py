@@ -15,7 +15,7 @@ import itertools
 import json
 from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import numpy as np
 from django.conf import settings
@@ -29,7 +29,7 @@ from agdata.projection import PROJECTION
 from agdata.seasonopens import normal_periods
 from agdata.series import FORECAST, PARTIAL, DailySeries, Forecast, archive_years, days_needed, runs_at_point, sliced
 from agmodels import seasons
-from agmodels.crops import MARGIN, NOT_SUSCEPTIBLE, SUSCEPTIBLE
+from agmodels.crops import MARGIN, NOT_SUSCEPTIBLE, SUSCEPTIBLE, CropModel
 from agmodels.gaps import MAX_GAP_DAYS
 from agmodels.registry import all_models
 from agmodels.runner import ModelRun, default_biofix
@@ -37,7 +37,17 @@ from agmodels.scenarios import milestones, spread
 from agmodels.seasons import Season
 from agmodels.spec import Model, ModelSpec
 from api import clock, modelevents, points, runs, stations
-from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_modified, respond, table
+from api.envelope import (
+    SYSTEMS,
+    Column,
+    Result,
+    catalog_column,
+    etag_for,
+    not_modified,
+    respond,
+    shown_unit,
+    table,
+)
 from api.errors import ApiError, counted, day_text, quoted
 from api.locations import describe, describe_days
 from api.params import AreaQuery, DaysQuery, OutputQuery, PointsQuery, SeriesQuery, resolve_biofix
@@ -241,6 +251,8 @@ def run(
     elif the_plan.option_sets:
         summary["option_sets"] = the_plan.option_sets
     summary["corrections"] = _union(c for f in found for c in f.results[0].corrections)
+    if (stages := stage_summary(m, the_plan, output.units)) is not None:
+        summary["stages"] = stages
     if the_season is not None:
         observed = series.last_observed(settings.DATA_DIR, now)
         observed_day = series.last_closed_day(observed) if observed is not None else first
@@ -988,6 +1000,8 @@ def _nested(
             columns, summary, warnings = _table(the_plan.model, results, kept, labels=_labels(results))
         if the_plan.option_sets:
             summary["option_sets"] = the_plan.option_sets
+        if (stages := stage_summary(the_plan.model, the_plan, units or request.GET.get("units", "us"))) is not None:
+            summary["stages"] = stages
         request_echo = {**the_plan.request}
         if len(results) == 1 and results[0].biofix is not None:
             request_echo["biofix"] = results[0].biofix
@@ -1112,6 +1126,43 @@ class Band:
     low: dict[str, np.ndarray]
     high: dict[str, np.ndarray]
     years: np.ndarray
+
+
+def stage_summary(m: Model, the_plan: runs.Plan, units: str) -> list[dict[str, Any]] | None:
+    """`meta.summary.stages` for a crop model: each stage's code, name, whether it's estimated, and where it starts in
+    the model's running total (`progress`, its first accumulation: `gdd_total`, `dd_total`) for the run's options, in
+    the unit that column is shown in; null for a stage the options skip (a corn hybrid's later leaves) or a model whose
+    stages aren't set by one total (soybean). Several option sets give each its stages, with `option_set`."""
+    spec = m.SPEC
+    if spec.group != "crop":
+        return None
+    crop = cast(CropModel, m)
+    progress = spec.accumulations[0] if spec.accumulations else None
+    shown = None
+    if progress is not None:
+        unit = next(q.unit for q in spec.outputs if q.name == progress.name)
+        shown = shown_unit(Column(name=progress.name, values=[], unit=unit), SYSTEMS.get(units, "imperial"), {})
+    several = len(the_plan.runs) > 1
+    out: list[dict[str, Any]] = []
+    for k, run_spec in enumerate(the_plan.runs):
+        chosen = dict(run_spec.options)
+        thresholds = crop.stage_thresholds(**chosen)
+        for j, stage in enumerate(crop.stages(**chosen)):
+            value = None
+            if thresholds is not None and progress is not None and shown is not None and np.isfinite(thresholds[j]):
+                converted = agunits.convert(np.array([float(thresholds[j])]), unit, shown)[0]
+                value = round(float(converted), 1)
+            out.append(
+                {
+                    **({"option_set": k} if several else {}),
+                    "code": stage.code,
+                    "name": stage.name,
+                    "estimated": stage.estimated,
+                    "progress": progress.name if progress is not None else None,
+                    "threshold": value,
+                }
+            )
+    return out
 
 
 def _labels(results: list[ModelRun]) -> list[dict[str, Any]] | None:

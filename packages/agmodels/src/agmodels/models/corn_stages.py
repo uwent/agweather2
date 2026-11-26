@@ -181,6 +181,12 @@ def stages(**options: str) -> tuple[CropStage, ...]:
     return STAGES
 
 
+def stage_thresholds(**options: str) -> np.ndarray:
+    """GDD since planting at which each stage starts for the hybrid's maturity (`gdd_total`), NaN for leaves it
+    doesn't reach."""
+    return thresholds(number_option(options, MATURITY))
+
+
 def thresholds(black_layer_gdd: float) -> np.ndarray:
     """GDD from planting at which each stage in `STAGES` starts, NaN for leaves the hybrid doesn't reach."""
     r6 = float(black_layer_gdd)

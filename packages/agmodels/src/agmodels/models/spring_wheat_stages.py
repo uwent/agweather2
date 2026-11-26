@@ -102,6 +102,11 @@ def stages(**options: str) -> tuple[CropStage, ...]:
     return STAGES
 
 
+def stage_thresholds(**options: str) -> np.ndarray:
+    """GDD since planting at which each Haun stage starts (`gdd_total`)."""
+    return THRESHOLDS
+
+
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
     lo, hi = (np.asarray(inputs[k], dtype=float) * 1.8 + 32 for k in ("air_temperature_min", "air_temperature_max"))
     gdd = np.full(lo.shape, np.nan)
