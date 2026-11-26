@@ -178,7 +178,7 @@ v1's site and VDIFN's URLs redirect to their v2 page, or the nearest one where t
 | `/weather/data?stat=avg\|min\|max&date=` | `/map?layer=air_temperature_{mean\|min\|max}&span=day&date=` |
 | `/weather/data?cumulative=…&start_date=&end_date=` | `span=range&start=&date=` with the same stat (v1 summarized the stat's own column: the lowest daily minimum); no start: January 1 of the end's year |
 | `/weather/precip`, `/weather/et`, `/weather/insol` | `layer=precipitation_sum`, `et0_sum`, `shortwave_radiation_sum`, by day; `cumulative` a range with `stat=sum\|mean\|min\|max` (v1's `avg` is `mean`), or `span=season` without a start date (v1's default, January 1) |
-| `/weather/doycal`, `/weather/doycal-grid` | `/calendar` |
+| `/weather/doycal`, `/weather/doycal-grid` | `/calendar`, with `year=` kept (four digits) |
 | `/weather/hyd`, `/weather/hyd-grid` (HYD is gone) | `/data` |
 | `/weather/map-image`, `/weather/{weather,precip,et,insol}-data` (page fragments), any `.csv`, `.json`, `.js` or `.png` path or `format=csv\|json\|js` | legacy host |
 | `/sites`, `/sites/{lat},{lng}` | unchanged (v2's own routes) |
@@ -186,11 +186,11 @@ v1's site and VDIFN's URLs redirect to their v2 page, or the nearest one where t
 | `/sites/+{lat},{lng}`, `/sites/{lat},{lng}/` | `/sites/{lat},{lng}` |
 | `/sites/{id}` and any other `/sites/…` | `/sites`; v2's own forms stay 404 (a point out of range, any path with a `models` part) |
 | `/thermal-models` and any other `/thermal-models/…` | `/models` |
-| `/thermal-models/degree-days`, `/get-dds` | `/tools/degree-days` |
+| `/thermal-models/degree-days`, `/get-dds` | `/tools/degree-days`; `lat=&lng=` → `at={lat},{lng}` (to 4 decimals; dropped if out of range) |
 | `/thermal-models/dd-map?dd_model=dd_50_86` (the default) | `/map?layer=degree_days&dd=sine_50_86&span=season` (v1's degree days are single sine; `dd_39p2_86` → `sine_39p2_86`); `end_date` → `date`; a `start_date` other than January 1 → `span=range&start=` |
 | `/thermal-models/dd-map?map_type=dsv&dsv_model=` | `potato_blight_dsv` (the default) → `late-blight-dsv`; `potato_p_days` → `early-blight-pdays`; `carrot_foliar_dsv` → `carrot-foliar-dsv`; `cercospora_div` → `cercospora-beet-div`; `botcast_dsi` → `botrytis-onion-botcast`; `end_date` → `date` |
 | `/thermal-models/frost-map` | `/tools/freeze` |
-| `/thermal-models/oak-wilt`, `/oak-wilt-dd` | `/tools/oak-wilt` |
+| `/thermal-models/oak-wilt`, `/oak-wilt-dd` | `/tools/oak-wilt`; `lat=&lng=` → `at={lat},{lng}` |
 | `/thermal-models/{alfalfa-weevil, corn-stalk-borer, ecb, scm, western-bean-cutworm, corn-dev, potato, potato-data}` | `/topics/{alfalfa-weevil, stalk-borer, european-corn-borer, seedcorn-maggot, western-bean-cutworm, corn, potato, potato}` |
 | `/thermal-models/spongy-moth` (no model or topic) | `/models` |
 | `/thermal-models/map-image`, `/download-csv` (POST) | legacy host (307) |
@@ -198,9 +198,9 @@ v1's site and VDIFN's URLs redirect to their v2 page, or the nearest one where t
 | `/ag_weather`, `/api`, `/api/` | `/api/v2/docs` |
 | `/api/…` outside `/api/v2` | legacy host, 308 |
 | `/vdifn` | `/map`: the panel from `type`, `panel` or `p` (disease by default; another value drops the query, as VDIFN did), the model from `model` or `m` |
-| `/vdifn?m=` renamed | `early-blight` → `early-blight-pdays`; `late-blight` → `late-blight-dsv`; `carrot-foliar` → `carrot-foliar-dsv`; `cercospora-leaf-spot` → `cercospora-beet-div`; `botrytis-leaf-blight` → `botrytis-onion-botcast`; `pvy-vectors` → `aphid-pvy-vectors`; `oak-wilt` → `oak-wilt-vectors`; `cpb`, `cpb-old` → `colorado-potato-beetle`; `cpbad` → `colorado-potato-beetle-adults`; `cpbl` → `colorado-potato-beetle-larvae` |
-| `/vdifn?m=` the same id | the other 20 of VDIFN's models (all layers): `layer=` the same |
-| `/vdifn?m=tarnished-plant-bug`, `western-flower-thrips` (retired) | `/topics/{id}` |
+| `/vdifn?m=` renamed | `early-blight` → `early-blight-pdays`; `late-blight` → `late-blight-dsv`; `carrot-foliar` → `carrot-foliar-dsv`; `cercospora-leaf-spot` → `cercospora-beet-div`; `botrytis-leaf-blight` → `botrytis-onion-botcast`; `pvy-vectors` → `aphid-pvy-vectors`; `oak-wilt` → `oak-wilt-vectors`; `cpb`, `cpb-old` → `colorado-potato-beetle`; `cpbad`, `cpbl` (retired, below) |
+| `/vdifn?m=` the same id | the other 22 of VDIFN's models: `layer=` the same, but retired ones (below) |
+| `/vdifn?m=` a model v2 has retired (`cpbad`, `cpbl`, `tarnished-plant-bug`, `western-flower-thrips` today) | its topic page, the first its spec names: `/topics/colorado-potato-beetle` for both beetle models, `/topics/{id}` for the others (`legacy.retired_page`, by the spec's status, not a list) |
 | `/vdifn?type=custom` | `/map?layer=degree_days&dd=sine_50_86&span=season` (VDIFN's degree-day panel ignored `m`; one of its `DegreeDay.remote_name`s, `dd_45_80p1`, is carried as `dd=sine_45_80p1`) |
 | `/vdifn/…` (`point_details`, `severities`, `db/*`, its assets) | legacy host |
 
