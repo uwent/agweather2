@@ -19,19 +19,23 @@
     removeSite,
     siteLabel,
     sites,
+    sitesSnapshot,
     sitesState,
     type Site,
   } from '@/lib/sites.svelte'
   import AddSiteDialog from '@/lib/sites/AddSiteDialog.svelte'
   import { riskModels, topRisks, weatherByPoint, weatherQuery, type SiteWeather } from '@/lib/sites/cardData'
   import GroupsPanel from '@/lib/sites/GroupsPanel.svelte'
+  import { groupMapUrl } from '@/lib/sites/groupMap'
   import ImportDialog from '@/lib/sites/ImportDialog.svelte'
+  import { explainPrefs } from '@/lib/sites/prefs'
+  import PrefsPanel from '@/lib/sites/PrefsPanel.svelte'
   import SiteCard from '@/lib/sites/SiteCard.svelte'
   import StorageNotice from '@/lib/sites/StorageNotice.svelte'
   import type { SitesIndexProps } from '@/types'
   import type { TableResponse } from '@/types/api'
 
-  let { models }: SitesIndexProps = $props()
+  let { models, crops, settings }: SitesIndexProps = $props()
 
   const today = $derived(gridToday())
 
@@ -66,9 +70,9 @@
 
   // The group shown ('' for all); reordering works within what's shown, on the whole list's order
   let groupId = $state('')
-  const shown = $derived(
-    groupId ? sites.filter((s) => groups.find((g) => g.id === groupId)?.siteKeys.includes(s.key)) : [...sites],
-  )
+  // A group deleted while it's shown: all sites again
+  const chosenGroup = $derived(groups.find((g) => g.id === groupId))
+  const shown = $derived(chosenGroup ? sites.filter((s) => chosenGroup.siteKeys.includes(s.key)) : [...sites])
   const groupsOfSite = (key: string) => groups.filter((g) => g.siteKeys.includes(key))
 
   let announcement = $state('')
@@ -136,6 +140,19 @@
             <option value={group.id}>{group.name} ({group.siteKeys.length})</option>
           {/each}
         </select>
+        {#if chosenGroup?.siteKeys.length}
+          <a
+            href={groupMapUrl(
+              chosenGroup,
+              sites,
+              explainPrefs(sitesSnapshot(), { kind: 'group', id: chosenGroup.id }).layer.value,
+            )}
+            class="text-sm text-brand-600 underline hover:text-brand-700"
+            aria-label="Show {chosenGroup.name} on the map"
+          >
+            Show on the map
+          </a>
+        {/if}
       </div>
     {/if}
   </div>
@@ -171,13 +188,18 @@
           onmove={move}
           onremove={remove}
           readOnly={sitesState.readOnly}
+          prefsKey={JSON.stringify(effectivePrefs(site.key))}
         />
       {/each}
     </ul>
   {/if}
 
   <CollapsibleSection title="Groups" id="groups" open={false} storageKey="sites-groups">
-    <GroupsPanel />
+    <GroupsPanel {models} {crops} {settings} />
+  </CollapsibleSection>
+
+  <CollapsibleSection title="Preferences for all sites" id="preferences" open={false} storageKey="sites-prefs">
+    <PrefsPanel level={{ kind: 'all' }} {models} {crops} {settings} />
   </CollapsibleSection>
 
   <p class="sr-only" role="status" aria-live="polite">{announcement}</p>

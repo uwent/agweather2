@@ -2,6 +2,7 @@
 shows it, from its spec and its page's "How to read it" (D117). Its numbers come from the API in the browser."""
 
 import re
+from functools import cache
 
 from agdata.planting import CROPS, planting_crop
 from agmodels import croplist
@@ -16,6 +17,7 @@ from web.props import (
     ModelOption,
     ModelPlanting,
     ModelQuantity,
+    ModelSettings,
     ModelTrained,
     SiteModelBiofix,
     SiteModelInfo,
@@ -68,9 +70,9 @@ def guidance_html(model_id: str) -> str | None:
     return markdown_html(text) if text else None
 
 
-def model_info(spec: ModelSpec) -> SiteModelInfo:
+def _settings(spec: ModelSpec) -> tuple[SiteModelBiofix | None, ModelPlanting | None]:
+    """A model's date it counts from (None when it has none or it's fixed) and what a planting date gives it."""
     planting = planting_crop(spec)
-    is_crop = spec.group == "crop"
     # A crop model whose biofix is its planting takes the planting date, not a second date
     planting_biofix = planting is not None and planting[0] == spec.id
     biofix = None
@@ -86,6 +88,32 @@ def model_info(spec: ModelSpec) -> SiteModelInfo:
             typical_dates=crop in CROPS,
             options=crop_options,
         )
+    return biofix, planting_info
+
+
+@cache
+def model_settings() -> list[ModelSettings]:
+    """Every shown model that has a setting (a date it counts from, a planting date or an option), by name: what the
+    preferences panels offer for all sites, a group or a site."""
+    out: list[ModelSettings] = []
+    for found in sorted(all_models().values(), key=lambda m: m.SPEC.name.lower()):
+        spec = found.SPEC
+        if spec.status == "retired":
+            continue
+        biofix, planting = _settings(spec)
+        options = [_option(o) for o in spec.options]
+        if biofix or planting or options:
+            out.append(
+                ModelSettings(
+                    id=spec.id, name=spec.name, group=spec.group, biofix=biofix, planting=planting, options=options
+                )
+            )
+    return out
+
+
+def model_info(spec: ModelSpec) -> SiteModelInfo:
+    is_crop = spec.group == "crop"
+    biofix, planting_info = _settings(spec)
     s = spec.susceptible
     susceptible = None
     if s is not None:

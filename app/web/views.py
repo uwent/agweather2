@@ -12,7 +12,7 @@ from web.content import topics
 from web.inertia import render
 from web.middleware import grid_today
 from web.props import HomeProps, MapExplorerProps, SiteCrop, SiteModel, SiteModelProps, SiteProps, SitesIndexProps
-from web.sitemodel import model_info, shown_spec
+from web.sitemodel import model_info, model_settings, shown_spec
 
 # The longest `?name=` a site page shows from a link
 NAME_LENGTH = 80
@@ -34,7 +34,9 @@ def home(request: HttpRequest):
 def sites(request: HttpRequest):
     """Your sites (track 3): kept in the browser (D120), so the page takes only the models and crops as props and
     each card fetches its own data from the API."""
-    return render(request, "Sites/Index", SitesIndexProps(models=model_entries(), crops=crop_entries()))
+    return render(
+        request, "Sites/Index", SitesIndexProps(models=model_entries(), crops=crop_entries(), settings=model_settings())
+    )
 
 
 def map_explorer(request: HttpRequest):
@@ -59,7 +61,11 @@ def site(request: HttpRequest, lat: str, lng: str):
         for s in specs
     ]
     crops = [SiteCrop(id=c.id, name=c.name) for c in croplist.CROPS.values()]
-    return render(request, "Sites/Show", SiteProps(lat=latitude, lng=longitude, name=name, models=models, crops=crops))
+    return render(
+        request,
+        "Sites/Show",
+        SiteProps(lat=latitude, lng=longitude, name=name, models=models, crops=crops, settings=model_settings()),
+    )
 
 
 def models_index(request: HttpRequest):

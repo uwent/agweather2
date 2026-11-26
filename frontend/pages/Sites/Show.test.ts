@@ -23,6 +23,7 @@ vi.mock('@/lib/sites.svelte', () => ({
   siteAt: () => store.saved ?? undefined,
   isSaved: () => store.saved !== null,
   addSite: store.addSite,
+  groups: [],
   effectivePrefs: () => ({ crops: undefined, models: undefined, hiddenModels: [], options: {}, planting: undefined }),
 }))
 
@@ -33,6 +34,7 @@ const props: SiteProps = {
   lat: 44.12,
   lng: -89.52,
   name: null,
+  settings: [],
   crops: [{ id: 'potato', name: 'Potato' }],
   models: [
     {

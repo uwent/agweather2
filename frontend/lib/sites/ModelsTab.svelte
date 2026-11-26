@@ -8,6 +8,7 @@
   import { effectivePrefs, siteAt } from '../sites.svelte'
   import { siteKey, siteModelUrl } from '../siteKey'
   import Failed from './Failed.svelte'
+  import { modelShown } from './prefs'
   import type { Request } from './request.svelte'
   import { riskRows } from './text'
 
@@ -34,7 +35,7 @@
 
   const key = $derived(siteKey(lat, lng))
   const prefs = $derived(siteAt(lat, lng) ? effectivePrefs(key) : null)
-  const shown = $derived(models.filter((m) => !prefs?.hiddenModels.includes(m.id)))
+  const shown = $derived(models.filter((m) => modelShown(prefs, m)))
   const today_ = $derived(
     risk.value.data ? new Map(riskRows(rowsOn(risk.value.data, today)).map((r) => [r.model, r])) : null,
   )

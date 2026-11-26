@@ -493,6 +493,32 @@ export interface ModelQuantity {
   unit: string
   description: string
 }
+/**
+ * A model's settings as the preferences panels offer them (for all sites, a group or a site): the same fields as
+ * its page at a site, without the rest of its content.
+ */
+export interface ModelSettings {
+  id: string
+  name: string
+  group: string
+  biofix: SiteModelBiofix | null
+  planting: ModelPlanting | null
+  options: ModelOption[]
+}
+export interface SiteModelBiofix {
+  /**
+   * MM-DD.
+   */
+  default: string
+  /**
+   * What the date means to a grower.
+   */
+  label: string
+  /**
+   * The crop stage whose estimated date is the default instead, in words.
+   */
+  stage: string | null
+}
 export interface ModelTrained {
   description: string
   /**
@@ -543,20 +569,6 @@ export interface SiteModel {
    * The words for its risk levels, lowest first; empty for a model without risk (crop stages).
    */
   risk_levels: string[]
-}
-export interface SiteModelBiofix {
-  /**
-   * MM-DD.
-   */
-  default: string
-  /**
-   * What the date means to a grower.
-   */
-  label: string
-  /**
-   * The crop stage whose estimated date is the default instead, in words.
-   */
-  stage: string | null
 }
 /**
  * A model as its page at a site shows it (content from the registry, D117).
@@ -650,10 +662,18 @@ export interface SiteProps {
   name?: string | null
   models: SiteModel[]
   crops: SiteCrop[]
+  /**
+   * The models with settings, for the preferences panel.
+   */
+  settings: ModelSettings[]
 }
 export interface SitesIndexProps {
   models: ModelEntry[]
   crops: CropEntry[]
+  /**
+   * The models with settings, for the preferences panels.
+   */
+  settings: ModelSettings[]
 }
 /**
  * A topic as the index (`/topics`) lists it.

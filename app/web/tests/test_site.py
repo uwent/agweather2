@@ -28,6 +28,17 @@ def test_a_site_page_takes_the_point_and_the_catalog(client: Client):
     assert {"id": "corn", "name": "Corn"} in props["crops"]
 
 
+@pytest.mark.parametrize("path", ["/sites/44.12,-89.52", "/sites"])
+def test_the_preferences_panels_get_each_models_settings(client: Client, path: str):
+    settings = {m["id"]: m for m in page(client, path)["props"]["settings"]}
+    blight = settings["late-blight-dsv"]
+    assert blight["planting"]["crop"] == "Potato"
+    assert blight["biofix"]["label"]
+    # Every model listed has something to set, and none is retired
+    assert all(m["biofix"] or m["planting"] or m["options"] for m in settings.values())
+    assert "potato-volunteer" in settings
+
+
 def test_a_shared_links_name_is_trimmed_and_cut_short(client: Client):
     assert page(client, "/sites/43.07,-89.4?name=%20%20North%20%20field%20")["props"]["name"] == "North field"
     assert len(page(client, f"/sites/43,-89?name={'x' * 200}")["props"]["name"]) == 80

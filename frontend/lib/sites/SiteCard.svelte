@@ -13,6 +13,7 @@
   import { currentUnits } from '@/lib/units'
 
   import { WEATHER_UNITS, type DayWeather, type RiskSummary, type SiteWeather } from './cardData'
+  import SiteGroups from './SiteGroups.svelte'
 
   let {
     site,
@@ -25,6 +26,7 @@
     onmove,
     onremove,
     readOnly = false,
+    prefsKey = '',
   }: {
     site: Site
     index: number
@@ -36,7 +38,11 @@
     onmove: (site: Site, to: number) => void
     onremove: (site: Site) => void
     readOnly?: boolean
+    /** The site's preferences as text: when they change (a crop chosen, a model hidden), its risks load again */
+    prefsKey?: string
   } = $props()
+
+  let choosingGroups = $state(false)
 
   const units = $derived(currentUnits())
   const label = $derived(siteLabel(site))
@@ -109,6 +115,26 @@
   $effect(() => {
     if (seen) untrack(() => risk.state === 'idle' && load())
   })
+
+  // The risks again when the site's preferences change, once they've loaded
+  let loadedFor: string | null = null
+  $effect(() => {
+    const key = prefsKey
+    if (!seen) return
+    untrack(() => {
+      if (loadedFor !== null && key !== loadedFor) reloadRisk()
+      if (seen) loadedFor = key
+    })
+  })
+
+  async function reloadRisk() {
+    risk = { state: 'loading' }
+    try {
+      risk = { state: 'done', value: await loadRisk(site) }
+    } catch (error) {
+      if (!isAbort(error)) risk = { state: 'failed', error: failure(error) }
+    }
+  }
 
   const failedError = $derived(risk.state === 'failed' ? risk.error : weather.state === 'failed' ? weather.error : null)
 
@@ -265,6 +291,24 @@
       Weather and models
     </a>
     {#if !readOnly}
+      <button
+        type="button"
+        class="text-ink-muted underline hover:text-ink"
+        aria-label="Groups for {label}"
+        aria-expanded={choosingGroups}
+        onclick={() => (choosingGroups = !choosingGroups)}
+      >
+        Groups
+      </button>
+    {/if}
+    <a
+      href="{siteUrl(site.key)}#preferences"
+      class="text-ink-muted underline hover:text-ink"
+      aria-label="Preferences for {label}"
+    >
+      Preferences
+    </a>
+    {#if !readOnly}
       {#if confirming}
         <span class="ml-auto flex items-center gap-2">
           <span>Remove this site?</span>
@@ -290,4 +334,7 @@
       {/if}
     {/if}
   </div>
+  {#if choosingGroups}
+    <SiteGroups siteKey={site.key} {label} />
+  {/if}
 </li>

@@ -4,6 +4,7 @@
 
 import { addDays, parseDate } from '@/lib/dates'
 import { OVERLAY_ORDER, type OverlayId } from '@/lib/map/overlays'
+import { groupCodec, type MapGroup } from '@/lib/sites/groupMap'
 import { codecs, field, type Fields, type LatLng } from '@/lib/viewState'
 import type { LayerInfo } from '@/types/api'
 
@@ -55,6 +56,8 @@ export type ExplorerView = {
   /** The data overlay a shared link shows (radar, rain, the Drought Monitor); the basemap stays the reader's own.
    * Written only by Share: the map keeps its overlay in this browser's map settings */
   overlay: OverlayId | null
+  /** A group of sites shown on the map (F12): their coordinates and names, so a shared link shows them to anyone */
+  group: MapGroup | null
 }
 
 const option = {
@@ -95,6 +98,7 @@ export const VIEW_FIELDS: Fields<ExplorerView> = {
   c: field(codecs.latLng(3), null),
   z: field(codecs.number({ digits: 2, min: 0, max: 22 }), null),
   overlay: field(codecs.oneOf(OVERLAY_ORDER), null),
+  group: field(groupCodec, null),
 }
 
 /** The degree-day setting a first visit and the Degree days tab start from */

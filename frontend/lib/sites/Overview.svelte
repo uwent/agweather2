@@ -14,6 +14,9 @@
   import { request, type Request } from './request.svelte'
   import RiskList from './RiskList.svelte'
   import { riskSpans, rowsOn } from '../riskSpan'
+  import { siteKey } from '../siteKey'
+  import { effectivePrefs, siteAt } from '../sites.svelte'
+  import { modelShown } from './prefs'
   import { riskRows } from './text'
 
   // The Overview tab: the past week and the days ahead (ForecastStrip), the latest hour, rain and reference ET
@@ -41,6 +44,11 @@
 
   const units = $derived(currentUnits())
   const point = $derived({ lat, lng })
+
+  // A saved site's preferences choose the models its risk shows (an unsaved one shows every model in season)
+  const prefs = $derived(siteAt(lat, lng) ? effectivePrefs(siteKey(lat, lng)) : null)
+  const filtered = $derived(!!prefs && (!!prefs.crops || !!prefs.models || prefs.hiddenModels.length > 0))
+  const catalogCrops = $derived(new Map(models.map((m) => [m.id, m.crops])))
 
   const daily = request<TableResponse>()
   const week = request<TableResponse>()
@@ -229,13 +237,15 @@
   <section aria-labelledby="overview-risk" class="space-y-2">
     <h2 id="overview-risk" class="text-lg font-semibold">Risk now</h2>
     <p class="text-sm text-ink-muted">
-      {`Today's risk from each model in season here, from the weather so far and the forecast. Risk is guidance from weather data, not a guarantee.`}
+      {`Today's risk from each model in season here, from the weather so far and the forecast. Risk is guidance from weather data, not a guarantee.${filtered ? ' Only the crops and models chosen in this site’s preferences are shown.' : ''}`}
     </p>
     {#if risk.value.status === 'failed'}
       <Failed {...risk.value} retry={loadRisk} />
     {:else if risk.value.data}
       <RiskList
-        rows={riskRows(rowsOn(risk.value.data, today))}
+        rows={riskRows(rowsOn(risk.value.data, today)).filter((row) =>
+          modelShown(prefs, { id: row.model, crops: catalogCrops.get(row.model) ?? [] }),
+        )}
         spans={riskSpans(risk.value.data, today)}
         {models}
         {today}

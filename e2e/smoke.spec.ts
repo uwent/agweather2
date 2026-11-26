@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 
-import { stubSiteData } from './sites'
+import { SAVED, stubSiteData } from './sites'
 import { stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
@@ -166,6 +166,50 @@ test('a site added is kept after a reload, and exported', async ({ page }) => {
   expect(file.suggestedFilename()).toBe('agweather-sites.csv')
   const text = readFileSync(await file.path(), 'utf8')
   expect(text).toBe('﻿name,lat,lng,groups\r\nNorth field,44.1336,-89.5168,\r\n')
+})
+
+test('a group’s preferences hide a model from its sites, and reset', async ({ page }) => {
+  await stubSiteData(page)
+  await page.goto('/')
+  await page.evaluate((doc) => localStorage.setItem('agweather.sites', JSON.stringify(doc)), { ...SAVED, groups: [] })
+  await page.goto('/sites')
+  const madison = page.getByRole('listitem', { name: 'Madison' })
+  const hancock = page.getByRole('listitem', { name: 'Hancock' })
+  const rhinelander = page.getByRole('listitem', { name: 'Rhinelander' })
+  await expect(madison.getByText('Late blight')).toBeVisible()
+  await expect(hancock.getByText('Late blight')).toBeVisible()
+
+  // A group with two of the sites
+  await page.getByRole('button', { name: 'Groups', exact: true }).click()
+  await page.getByLabel('New group').fill('North farm')
+  await page.getByRole('button', { name: 'Add group' }).click()
+  const members = page.getByRole('group', { name: 'Sites in North farm' })
+  await members.getByRole('checkbox', { name: 'Madison' }).check()
+  await members.getByRole('checkbox', { name: 'Hancock' }).check()
+
+  // Late blight hidden for the group: gone from both its sites' cards, not from the third
+  await page.getByRole('button', { name: 'Preferences for North farm' }).click()
+  const panel = page.getByTestId('prefs-group')
+  await panel.getByRole('checkbox', { name: 'Late blight disease severity values' }).uncheck()
+  await expect(panel.getByText('Set for this group: Late blight disease severity values hidden.')).toBeVisible()
+  await expect(madison.getByText('Late blight')).toBeHidden()
+  await expect(hancock.getByText('Late blight')).toBeHidden()
+  await expect(rhinelander.getByText('Late blight')).toBeVisible()
+
+  // Kept after a reload; then reset
+  await page.reload()
+  await expect(madison.getByText('White mold')).toBeVisible()
+  await expect(madison.getByText('Late blight')).toBeHidden()
+  const group = page.getByTestId('group-North farm')
+  if (!(await page.getByTestId('prefs-group').isVisible()))
+    await group.getByRole('button', { name: 'Preferences for North farm' }).click()
+  await page.getByTestId('prefs-group').getByRole('button', { name: 'Reset to my defaults' }).click()
+  await expect(madison.getByText('Late blight')).toBeVisible()
+  await expect(hancock.getByText('Late blight')).toBeVisible()
+
+  // The group on the map: its sites named, the view shared with them
+  await group.getByRole('link', { name: 'Show on the map' }).click()
+  await expect(page.getByTestId('map-group')).toContainText('Showing the group North farm: 2 sites')
 })
 
 test('health check', async ({ request }) => {
