@@ -20,6 +20,12 @@ export const TOOLS: Tool[] = [
     href: routes.toolDegreeDays(),
   },
   {
+    title: 'Oak wilt',
+    question: 'Has Wisconsin’s restricted period for pruning, wounding and harvesting oaks begun where I am?',
+    text: 'Degree days since January 1 against the DNR’s 231 degree-day start, through July 15, with the oak wilt vector model’s level, its map and season chart, and the DNR’s calendar periods.',
+    href: routes.toolOakWilt(),
+  },
+  {
     title: 'Day-of-year calendar',
     question: 'What day of the year is a date, and what date is a given day of the year?',
     text: 'Converts between dates and day-of-year numbers, with a printable table for any year from 1900 to 2100.',

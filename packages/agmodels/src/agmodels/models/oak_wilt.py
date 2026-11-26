@@ -3,7 +3,7 @@
 Vector flight from degree days (base 41 °F, from January 1; Jagemann et al. 2018's Table 4 percentiles for
 C. truncatus, °C·d × 1.8; Carpophilus sayi flies later and isn't followed), with risk reduced from July
 15 as the wounds that let beetles carry the fungus become rare (two levels down, at most Low, and one more a week
-later). Ported from VDIFN (`app/models/insects/oak_wilt.rb`) with parity tests; VDIFN's freeze reduction (from
+later), and the share of C. truncatus's flight passed, as the percentile of Table 4 reached. Ported from VDIFN (`app/models/insects/oak_wilt.rb`) with parity tests; VDIFN's freeze reduction (from
 November) never applies, since risk is already Very low by then.
 """
 
@@ -28,13 +28,17 @@ from agmodels.spec import (
 
 # Degree-day bounds of each flight level (C. truncatus, C. sayi)
 FLIGHT = ((180, 0), (231, 1), (283, 2), (388, 3), (913, 4), (1792, 3), (2172, 2), (np.inf, 1))
+# Jagemann et al. 2018, Table 4: degree days (base 5 °C, from January 1) by which each share of C. truncatus's
+# season-long trap catch had flown, × 1.8 to °F and rounded (231, 283, 388, 638, 913, 1792, 2172)
+FLOWN = ((5, 128.3), (10, 157.4), (25, 215.8), (50, 354.2), (75, 507.2), (90, 995.4), (95, 1206.7))
+FLOWN_F = tuple((percent, float(round(dd_c * 1.8))) for percent, dd_c in FLOWN)  # whole °F, as the levels
 JULY_15, JULY_22 = 196, 203  # day of year in a common year (a leap year's are one later)
 
 SPEC = ModelSpec(
     id="oak-wilt-vectors",
     name="Oak wilt vector flight",
     group="insect",
-    version="0.2",
+    version="0.3",
     status="beta",
     summary="The risk of oak wilt spreading by its beetle vectors, from their flight timed by degree days (base 41 °F) and the season (wounding before mid-July).",
     topics=("oak-wilt",),
@@ -53,6 +57,12 @@ SPEC = ModelSpec(
         Quantity(name="dd_total", label="Degree days since January 1 (base 41 °F)", unit="degF_day"),
         Quantity(name="dd", label="Degree days", unit="degF_day"),
         Quantity(name="flight", label="Vector flight level", unit="index"),
+        Quantity(
+            name="flown",
+            label="Share of C. truncatus flight passed",
+            unit="percent",
+            description="The highest of Jagemann et al. 2018's flight percentiles reached (0, 5, 10, 25, 50, 75, 90 or 95): at least this share of the season's beetles have flown",
+        ),
         Quantity(
             name="seasonal",
             label="Flight level for the season",
@@ -90,9 +100,14 @@ SPEC = ModelSpec(
     changelog=(
         Change(version="0.1", date="2026-10-28", note="Ported from VDIFN."),
         Change(
-            version="0.2",
+            version="0.3",
             date="2026-11-01",
             note="The July 15 and July 22 reductions apply to runs, not only the explorer (the spec didn't ask the runner for the day of the year), and fall on those dates in leap years too.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="New output `flown`: the share of C. truncatus's flight passed, as the highest of Jagemann et al. 2018's Table 4 percentiles reached (5% at 231 degree days to 95% at 2,172). Risk levels unchanged.",
         ),
     ),
     checks=(
@@ -102,6 +117,12 @@ SPEC = ModelSpec(
             result="Given the same degree days and date, our risk level matches VDIFN's exactly in all 1,757 cases tested in a common year. In leap years our July 15 and July 22 reductions fall on those dates, where VDIFN's came a day early. The flight timing hasn't yet been checked against its source's trap data.",
             report="docs/validation/models/oak-wilt-vectors.md#against-vdifn",
         ),
+        Check(
+            kind="published",
+            against="Jagemann et al. 2018's degree days for each share of C. truncatus's flight (their Table 4)",
+            result="Every bound of the risk levels and of the share of beetles flown is the paper's value converted to °F, within half a degree day, from 5% flown at 231 degree days to 95% at 2,172.",
+            report="docs/validation/models/oak-wilt-vectors.md#against-its-sources-numbers",
+        ),
     ),
 )
 
@@ -110,6 +131,16 @@ def flight_level(dd_total) -> np.ndarray:
     total = np.asarray(dd_total, dtype=float)
     level = np.select([total < bound for bound, _ in FLIGHT], [lvl for _, lvl in FLIGHT], 1).astype(float)
     return np.where(np.isnan(total), np.nan, level)
+
+
+def flown_percent(dd_total) -> np.ndarray:
+    """At least this share (percent) of the season's C. truncatus have flown: the highest of Jagemann et al. 2018's
+    Table 4 percentiles whose degree days (°F, base 41 °F from January 1) the total has reached; 0 before 5%."""
+    total = np.asarray(dd_total, dtype=float)
+    percent = np.zeros(total.shape)
+    for share, bound in FLOWN_F:
+        percent = np.where(total >= bound, float(share), percent)
+    return np.where(np.isnan(total), np.nan, percent)
 
 
 def seasonal(level, day_of_year, year=None) -> np.ndarray:
@@ -136,7 +167,7 @@ def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
 def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
     total = values["dd_total"]
     flight = flight_level(total)
-    out = {"dd_total": total, "dd": values["dd"], "flight": flight}
+    out = {"dd_total": total, "dd": values["dd"], "flight": flight, "flown": flown_percent(total)}
     if "day_of_year" in values:
         out["seasonal"] = seasonal(flight, values["day_of_year"], values.get("year"))
     return out

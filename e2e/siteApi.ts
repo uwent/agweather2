@@ -16,6 +16,8 @@ const ANSWERS: Record<string, string> = {
   '/api/v2/risk': 'risk',
   // A model at a site (late blight's page)
   '/api/v2/models/late-blight-dsv/run': 'model-late-blight',
+  // The oak wilt tool (Madison, January 1 to August 31, 2026)
+  '/api/v2/models/oak-wilt-vectors/run': 'model-oak-wilt',
   // The Degree days and Data tabs
   '/api/v2/degree-days': 'degree-days',
   '/api/v2/degree-days/presets': 'presets',
