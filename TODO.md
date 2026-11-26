@@ -65,6 +65,7 @@ Things only you can do, by phase. Where things stand and why: [PLAN.md](PLAN.md)
 ## Phase 7: Web app, accounts and email
 
 - **Amazon SES for `agweather@cals.wisc.edu`** (D123), before accounts and email (Phase 7 track 8): ask CALS IT to verify the sender (or the domain) in the SES account WISP 3 uses and issue SMTP credentials for AgWeather; they go in the server's `infra/.env` as `SMTP_ADDRESS`, `SMTP_PORT` (587), `SMTP_USERNAME`, `SMTP_PASSWORD`.
+- [ ] **Insect seasons' opening days and the insects' stored inputs** (D128, 2026-11-26), on the dev archive and later the server: `uv run app/manage.py climatology --check` should say "work out the days insect seasons open from last30: none yet"; then `uv run app/manage.py climatology` writes `data/climate/normals/last30-season-opens.npz` (~12 s over Wisconsin's normals; until then each process works them out itself on first use, which over the launch box takes minutes). Then `uv run app/manage.py ingredients --check` and `uv run app/manage.py ingredients --background`: 23 insects' versions moved; of their stored inputs only western bean cutworm's own degree days carry its version, so that one reads as stale until rebuilt. Restart `bin/dev` after merging (the web process caches the normals' derived maps).
 
 ## Backburner (time-consuming; not soon)
 

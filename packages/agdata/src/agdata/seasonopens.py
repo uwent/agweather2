@@ -6,7 +6,9 @@ Every insect has one rule (`ModelSpec.opens`):
   The normal running totals from January 1 (`agdata.normals`' `last30`, the degree-day cubes the archive keeps, with
   the insect's own method, thresholds and start) give each cell the first day its total from the start reaches the
   first activity; that day is averaged over the land within 50 km, center-weighted, as the area's spring freeze is
-  (`agdata.springfreeze.smooth`, D127), so a frost pocket or a lake-cooled cell doesn't open its own season. European
+  (`agdata.springfreeze.smooth`, D127), so a frost pocket or a lake-cooled cell doesn't open its own season.
+  Averaging the days rather than the degree days (then finding the day) agrees within a day at 99.9 % of Wisconsin's
+  cells, at one smoothing per insect rather than one per day of the year. European
   corn borer's one-flight form opens on its own first activity where its normal is below the bound, as the model runs.
   Western bean cutworm's method (the day's mean capped at 75 °F, less 38 °F) isn't a stored cube: its days come from
   the normal daily minimum and maximum's means, which leave out the warm days of a cool spell (its first activity comes
