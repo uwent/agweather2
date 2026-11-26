@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 CROPS = ("corn", "soybean", "spring-wheat", "winter-wheat", "potato")
 SOURCES = {  # by a row's level
     "county": "Deines, J. M. et al. (2023), Remote Sensing of Environment 291, 113551 (https://doi.org/10.1016/j.rse.2023.113551; data CC BY 4.0, https://doi.org/10.5281/zenodo.7790257): median over 2000–2020",
-    "cell": "Estimated for the grid cell from its 30-year normal date of the last spring freeze at 28 °F, by the days before and after it that fit the planting dates in UW Vegetable Pathology's Vegetable Crop Updates (vegpath.plantpath.wisc.edu) at seven Wisconsin potato areas, 2020–2026",
+    "cell": "Estimated for the grid cell from the 30-year normal date of the last spring freeze at 28 °F averaged over the area within about 30 miles (nearer places counting more), by the days before and after it that fit the planting dates in UW Vegetable Pathology's Vegetable Crop Updates (vegpath.plantpath.wisc.edu) at seven Wisconsin potato areas, 2020–2026",
     "state": "USDA NASS (2010), Usual Planting and Harvesting Dates for U.S. Field Crops, Agricultural Handbook 628: 1990–2009 crop progress",
 }
 

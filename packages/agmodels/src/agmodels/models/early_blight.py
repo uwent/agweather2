@@ -33,7 +33,7 @@ SPEC = ModelSpec(
     id="early-blight-pdays",
     name="Early blight P-days",
     group="disease",
-    version="0.3",
+    version="0.4",
     status="beta",
     summary="Potato physiological days from daily minimum and maximum temperature, accumulated from emergence to time the first fungicide spray for early blight (about 300 P-days).",
     topics=("early-blight",),
@@ -115,6 +115,11 @@ SPEC = ModelSpec(
             version="0.3",
             date="2026-11-26",
             note="Maps at a planting tier start at emergence from each grid cell's estimated potato planting date (from its normal last spring freeze), where they took the nearest of UW Vegetable Pathology's seven places within 40 km and the default date beyond; a cell without an estimate is missing, as a location without one is refused.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="Typical planting dates come from the normal last spring freeze averaged over about 50 km around each grid cell, center-weighted, rather than the cell's own, so frost pockets no longer speckle the dates; early planting is 6 days before that freeze (was 7) and late 28 days after (was 29).",
         ),
     ),
 )
