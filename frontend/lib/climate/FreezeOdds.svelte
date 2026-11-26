@@ -22,6 +22,7 @@
   import { request } from '../sites/request.svelte'
   import { currentUnits } from '../units'
   import { DEFAULT_PERIOD, periodWords, periodYears, type Period } from './periods'
+  import type { Slots } from './slots'
   import { FREEZE_THRESHOLDS_F, thresholdLabel, thresholdsInWords } from './words'
 
   // A place's freeze odds (track 6.1, shared with the freeze tool and the site's Climate tab): for each threshold
@@ -37,6 +38,7 @@
     thresholds = [...FREEZE_THRESHOLDS_F],
     show = 'both',
     thisYear,
+    queue,
   }: {
     lat: number
     lng: number
@@ -48,6 +50,8 @@
     show?: FreezeShow
     /** The year whose own freeze dates are shown beside the odds: default this year; null for none */
     thisYear?: number | null
+    /** Slots the requests wait for (the Climate tab's two at a time); none: they go at once */
+    queue?: Slots
   } = $props()
 
   const units = $derived(currentUnits())
@@ -72,14 +76,18 @@
         },
   )
 
+  const ask = (path: string, params: object, signal: AbortSignal) => {
+    const send = () => get<TableResponse>(path, params, { signal })
+    return queue ? queue.run(signal, send) : send()
+  }
   function loadClimate() {
     const params = untrack(() => climateQuery)
-    frost.load((signal) => get<TableResponse>('/climate/frost', params, { signal }))
-    chances.load((signal) => get<TableResponse>('/climate/frost/chances', params, { signal }))
+    frost.load((signal) => ask('/climate/frost', params, signal))
+    chances.load((signal) => ask('/climate/frost/chances', params, signal))
   }
   function loadYear() {
     const params = untrack(() => yearQuery)
-    if (params) observed.load((signal) => get<TableResponse>('/freeze', params, { signal }))
+    if (params) observed.load((signal) => ask('/freeze', params, signal))
   }
   const climateKey = $derived(JSON.stringify(climateQuery))
   const yearKey = $derived(JSON.stringify(yearQuery))
