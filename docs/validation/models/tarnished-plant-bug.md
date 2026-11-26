@@ -32,6 +32,7 @@ We searched for a spring degree-day timing for _L. lineolaris_ (UW–Madison, Mi
 - **Not modeled:** the overwintered adults themselves (active from early spring, before the model's first nymphs), and the influx when alfalfa is cut or weedy borders are mowed.
 - **No window:** scouting runs all season (strawberries before the first flowers to harvest; sweeps in beans and potatoes), so a window would add nothing.
 - **Against VDIFN:** the 275 stays, now as the young nymphs' peak; VDIFN's peak at 1,000 and end at 2,000, which have no known source, give way to repeating generations.
+- **Season (D128):** its season opens at each place about a week before the area's 30-year normal degree days (its own method, from January 1) reach 57, the first egg hatch (where a stage's activity first reaches 5 % of its first-generation peak), averaged over about 50 km: April 10 at Madison, April 14 at Hancock, April 26 at Rhinelander on the development archive's normals, and over Wisconsin's farmland (the 10th percentile of its cultivated cells) April 7. Where we don't have the normals it opens on April 1. It ends after October 31 whatever the weather.
 
 ## Checks
 

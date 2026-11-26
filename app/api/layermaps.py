@@ -832,14 +832,13 @@ def _scale_asked(request: HttpRequest, a: "LayerAsk") -> ScaleAsked | None:
 
 def stamp(a: LayerAsk, now: datetime) -> Any:
     """The data stamp of what the map reads (`series.last_written`), for its ETag; with the normal maps' stamps for a
-    model that reads normals of the place (`ModelSpec.place_normals`)."""
+    model that reads normals of the place (`ModelSpec.place_normals`) or opens its season by them (D128)."""
     if a.climate is not None:
         own = climatemaps.stamp(a.climate)
         if a.stored_only:
             return own
         return [_weather_stamp(a, now), own]
-    if a.model is not None and a.model.spec.place_normals:
-        periods = sorted({n.period for n in a.model.spec.place_normals})
+    if a.model is not None and (periods := seasonopens.normal_periods(a.model.spec)):
         return [_weather_stamp(a, now), *(normals.stamp(_data_dir(), p) for p in periods)]
     return _weather_stamp(a, now)
 

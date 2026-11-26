@@ -26,6 +26,7 @@ Model version 0.3, written 2026-11-21 and revised 2026-11-23 for generation weig
 - **Generations:** every 912 degree days from egg laying to egg laying (USPest's first adults at 912 and first eggs at 120 after the catch: 791.5 from egg to adult, Toba et al., plus 120 before laying), with no cap: fall freezes end the season. The spread is the default (egg laying's SD, 59).
 - **Action window:** "Scout for small caterpillars", from 10 to 90 % of each generation's eggs hatched: 254–408 after the biofix. Small caterpillars are the target for sprays (A3422).
 - **Generation weights** (version 0.3; Ben, 2026-11-23): UW–Madison says the second generation does the most damage. Its caterpillars weigh 1 in the risk and the other generations' 0.5. The source says which generation matters, not by how much, so 0.5 is a judgment. Version 0.2 weighted every generation alike (D37).
+- **Season (D128):** a migrant, so its season opens on the calendar, July 15, everywhere, and ends after October 31.
 
 ## Checks
 

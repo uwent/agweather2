@@ -4,6 +4,7 @@ shows it, from its spec and its page's "How to read it" (D117). Its numbers come
 import re
 from functools import cache
 
+from agdata import seasonopens
 from agdata.planting import CROPS, planting_crop
 from agmodels import croplist
 from agmodels.registry import all_models
@@ -141,6 +142,7 @@ def model_info(spec: ModelSpec) -> SiteModelInfo:
         risk_thresholds=list(spec.risk.thresholds) if spec.risk else [],
         susceptible=susceptible,
         season=list(spec.season) if spec.season else None,
+        season_opens=seasonopens.opens_text(spec),
         region=list(spec.region),
         trained=None
         if t is None

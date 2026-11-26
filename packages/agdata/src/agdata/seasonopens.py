@@ -79,6 +79,15 @@ def crop_stage_dd(rule: OpensOnCropStage) -> tuple[DegreeDays, float]:
     return setting, dd
 
 
+def normal_periods(spec: ModelSpec) -> list[str]:
+    """The normal maps' periods a model's results at a place depend on: its normals of the place's, and `PERIOD` for
+    a season opened by the normal (for an ETag's stamp)."""
+    found = {n.period for n in spec.place_normals}
+    if isinstance(spec.opens, OpensOnDegreeDays | OpensOnCropStage):
+        found.add(PERIOD)
+    return sorted(found)
+
+
 def opening_specs() -> list[ModelSpec]:
     """Every model whose season opens by the normal (degree days or a crop stage)."""
     return [
@@ -152,6 +161,14 @@ def how(spec: ModelSpec) -> str:
         return f"on the day {rule.event} in a typical year"
     assert spec.season is not None
     return f"on {_day_text(spec.season[0])}"
+
+
+def opens_text(spec: ModelSpec) -> str | None:
+    """Public text for a model page: how an insect's season opens at each location (`how`), or None for a model
+    whose season opens on its first day everywhere."""
+    if not isinstance(spec.opens, OpensOnDegreeDays | OpensOnCropStage):
+        return None
+    return how(spec)
 
 
 def map_warning(spec: ModelSpec, opens: np.ndarray, dates: list[date], land: np.ndarray) -> str | None:
@@ -284,7 +301,8 @@ def build(data_dir: Path) -> int:
     maps = compute(data_dir, opening_specs(), Window(**attrs["window"]))
     target = path(data_dir)
     temporary = target.with_name(f".{target.name}.building.npz")
-    np.savez(temporary, key=np.array(_key(*stamps)), **{f"opens/{k}": v.astype(np.float32) for k, v in maps.items()})
+    arrays: dict[str, np.ndarray] = {f"opens/{k}": v.astype(np.float32) for k, v in maps.items()}
+    np.savez(temporary, allow_pickle=False, key=np.array(_key(*stamps)), **arrays)
     temporary.replace(target)
     _whole.cache_clear()
     _region.cache_clear()
@@ -393,7 +411,11 @@ def compute(data_dir: Path, specs: list[ModelSpec], window: Window) -> dict[str,
             for crossing, parts, setting in crossings:
                 key = parts if parts is not None else setting
                 if key not in current:
-                    current[key] = sum(sign * totals[n] for n, sign in parts) if parts is not None else running[setting]
+                    current[key] = (
+                        np.sum([sign * totals[n] for n, sign in parts], axis=0)
+                        if parts is not None
+                        else running[setting]
+                    )
                 crossing.add(s, current[key], previous.get(key))
         for total in current.values():
             known &= np.isfinite(total)

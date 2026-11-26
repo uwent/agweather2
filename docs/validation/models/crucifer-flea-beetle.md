@@ -24,6 +24,7 @@ Model version 0.2, written 2026-11-21 (D98; part H, H3); XHT1087 read in full an
 - **New summer adults** (the adults' second generation): 1,350 after the spring adults, the middle of egg laying (300 + 150) plus 911 from egg to adult (1,361, rounded). They feed on leafy and late cole crops and then overwinter. `max_generations=2`: the overwintered and the summer adults. Kinoshita et al. found a second generation in 1975 but not 1974, and UMass one in late July in Massachusetts; a partial further generation isn't modeled.
 - **Equal weights (D37):** both kinds of adults weight 1. UW Veg Ento and UMN call flea beetles an early-season pest; the spring adults do the damage to stands.
 - **Action window:** "Scout new plantings every one to two days" (UW Veg Ento), from 5 to 95 % of each generation's adults active: 129–410 in spring, 1,409–1,811 in summer.
+- **Season (D128):** its season opens at each place about a week before the area's 30-year normal degree days (its own method, from January 1) reach 101, the first adults feeding (where a stage's activity first reaches 5 % of its first-generation peak), averaged over about 50 km: April 10 at Madison, April 13 at Hancock, April 24 at Rhinelander on the development archive's normals, and over Wisconsin's farmland (the 10th percentile of its cultivated cells) April 7. Where we don't have the normals it opens on March 15. It ends after September 30 whatever the weather.
 
 ## Checks
 

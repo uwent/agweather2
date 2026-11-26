@@ -20,6 +20,7 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 - **Freezes:** after day 250 (early September), severity is lowered by the number of days in the last 14 at or below −2 °C (28.4 °F), the Crop Risk Tool's rule, used for every insect still on a legacy table; VDIFN subtracted freezing days only from November (Phase 3 D, step 3).
 - **Generations that touch:** each ends where the next starts (1,010, 1,685 and 2,360), so severity falls to Low between peaks and rises again; a later generation overrides where they meet, as in VDIFN.
 - **Which thrips:** VDIFN's description (thrips scarring cabbage heads) and its link are about onion thrips, while the name and the spreadsheet's USPest model are western flower thrips'.
+- **Season (D128):** a migrant, so its season opens on the calendar, April 15, everywhere, and ends after October 31.
 
 ## Checks
 

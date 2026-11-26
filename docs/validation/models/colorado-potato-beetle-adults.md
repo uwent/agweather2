@@ -22,6 +22,7 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 - **Days:** midnight to midnight CST (D74); VDIFN's came from the old API's local days.
 - **Text and curve:** the description puts the second-generation peak at 1,695; the curve peaks at 1,690, as VDIFN's did. A slip of 5 degree days in the text.
 - **Siblings:** `colorado-potato-beetle-larvae` is the same lab's larval curve, and `colorado-potato-beetle` the Crop Risk Tool's stage table (the same lab's later work, with its own report). The three agree in shape, not in numbers: the Crop Risk Tool's table peaks first-generation adults at 600 and second-generation adults at 1,470 (`docs/enviroweather-models.md`).
+- **Season (D128):** its season opens at each place on the day early-planted potatoes emerge in a typical year (the crop model's degree days on the area's 30-year normal, from the early planting), averaged over about 50 km: May 9 at Madison, May 15 at Hancock, May 27 at Rhinelander on the development archive's normals, and over Wisconsin's farmland (the 10th percentile of its cultivated cells) May 6. Where we don't have the normals it opens on May 1. It ends after September 30 whatever the weather.
 
 ## Checks
 

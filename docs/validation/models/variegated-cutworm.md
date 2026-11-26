@@ -23,6 +23,7 @@ Model version 0.2, written 2026-11-21 (D98; part H, batch H2). The model: `packa
 - **Larvae:** timed from each moth's emergence, 320 °F·d later (pre-oviposition and egg) for 645 °F·d (the larval stage), weight 1, the risk. Simonet's stage thresholds differ (3.5, 5.6, 6.2 °C), so each stage's °C·d was carried to the 7.2 °C base at a 20 °C day (× 0.78, 0.89 and 0.93: 99, 79 and 359 °C·d). Enviroweather puts hatch 302 after first flight.
 - **Scouting window:** "Scout for eggs and young caterpillars" from each flight's peak (50 %) to 95 % of it: 887 to 1,279 and 2,146 to 2,586 degree days.
 - **Against Coop and Berry:** their peppermint model (41/88 °F) is the other candidate. Its events (900, 1,450, 2,100) were VDIFN's; it wasn't read for this rebuild.
+- **Season (D128):** its season opens at each place about a week before the area's 30-year normal degree days (its own method, from January 1) reach 296, the first adult flight (where a stage's activity first reaches 5 % of its first-generation peak), averaged over about 50 km: April 30 at Madison, May 5 at Hancock, May 15 at Rhinelander on the development archive's normals, and over Wisconsin's farmland (the 10th percentile of its cultivated cells) April 27. Where we don't have the normals it opens on May 15. It ends after October 31 whatever the weather.
 
 ## Checks
 

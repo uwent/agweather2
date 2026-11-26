@@ -85,6 +85,7 @@ The data can't choose. Every setting's event error is 15.6–17.2 days (leave on
 - **Reading the curve:** linear between the predictions; 0 before 180 degree days (no trap data; the curve is essentially zero there); held at its last value (32 % of the peak) after 3,050 until fall freezes end the season.
 - **Risk:** activity over its peak (98.9 flies per trap per week for a typical year and trap), Low from 0.05 (about 1,130 degree days), Moderate from 0.25 (1,790), High from 0.5 (2,094), Very high from 0.75 (2,193 to 2,501), the D36 defaults.
 - **The early bump:** the curve has a small local maximum at 1,263 degree days (13 % of the peak) and a dip to 9 % at 1,453, from the first large catches of each July (July 24, 2015; July 15, 2016; July 21, 2017), each followed by lower catches for a week or two. Kept: it's in the data, and it puts activity at Low from about mid-July in Door County.
+- **Season (D128):** a migrant, so its season opens on the calendar, June 1, everywhere, and ends after October 31.
 
 ## Checks
 

@@ -118,6 +118,20 @@ def test_models_in_season_by_crop():
     assert not any("colorado-potato-beetle-adults" in ids for ids in july.values())  # retired
 
 
+def test_an_insect_is_in_season_on_the_home_page_once_open_over_the_region(monkeypatch):
+    """D128: the region's day (the 10th percentile over cultivated land) opens it; without normals, the calendar's."""
+    from agdata import seasonopens
+
+    def corn(day):
+        return {m.id for c in home.models_in_season(day) if c.crop == "corn" for m in c.models}
+
+    assert "corn-rootworm" in corn(date(2026, 5, 20))  # the calendar's May 15: the tests have no normals
+    monkeypatch.setattr(
+        seasonopens, "region", lambda data_dir, spec: "05-25" if spec.id == "corn-rootworm" else spec.season[0]
+    )
+    assert "corn-rootworm" not in corn(date(2026, 5, 20)) and "corn-rootworm" in corn(date(2026, 5, 25))
+
+
 @pytest.mark.django_db
 def test_home_page_props(client):
     props = page_props(client, "/")

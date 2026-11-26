@@ -101,5 +101,10 @@ describe('a model page', () => {
     expect(screen.getByText(/was fitted to scouting counts in commercial potato fields/)).toBeInTheDocument()
     expect(screen.getByText(/Adams County, WI/)).toBeInTheDocument()
     expect(screen.getByText(/outside that area its timing is less certain/)).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Its season opens at each location on the day early-planted potatoes emerge in a typical year, and runs to September 30. Where we don’t have the 30-year normal temperatures, it opens on May 1.',
+      ),
+    ).toBeInTheDocument()
   })
 })

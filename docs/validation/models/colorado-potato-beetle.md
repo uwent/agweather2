@@ -24,6 +24,7 @@ Model version 0.3, written 2026-11-21 (D98, D101). The model: `packages/agmodels
 - **Risk:** adults and larvae together, its count over its curve's peak (11.37 per 25 sweeps at 1,330 degree days), with the D36 thresholds. The other three curves are outputs with weight 0.
 - **"Egg hatch" is gone:** 0.2's 374 degree days was a 0.003 dip in a flat curve, not a feature of the data. The larval rise, where the larval curve passes 0.1 (about 0.1 larvae per 25 sweeps), replaces it: 402 degree days.
 - **The partial second generation** (0.2's 1,983) sits at the end of the data, past the adults' 99.9 % range, and isn't read.
+- **Season (D128):** its season opens at each place on the day early-planted potatoes emerge in a typical year (the crop model's degree days on the area's 30-year normal, from the early planting), averaged over about 50 km: May 9 at Madison, May 15 at Hancock, May 27 at Rhinelander on the development archive's normals, and over Wisconsin's farmland (the 10th percentile of its cultivated cells) May 6. Where we don't have the normals it opens on May 1. It ends after September 30 whatever the weather.
 
 ## Checks
 

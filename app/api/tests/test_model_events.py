@@ -169,7 +169,7 @@ def grid(client, layer, **params):
 def test_a_model_map_finds_the_first_day_through_the_forecast(client, archive):
     body = grid(client, "black-cutworm", first="above_1").json()
     request = body["meta"]["request"]
-    assert request["start"] == "2025-05-15" and request["output"] == "risk_level"  # its season's start
+    assert request["start"] == "2025-04-15" and request["output"] == "risk_level"  # its season's start
     assert request["end"] > "2025-07-10"  # through the forecast
     days = grid(client, "black-cutworm", start="2025-07-01", end=request["end"]).json()["data"]
     expected = first_row(days, "black-cutworm", lambda v: v >= 1)

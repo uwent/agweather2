@@ -27,6 +27,7 @@ Model version 0.2, written 2026-11-21 (D98; part H, H5); UW–Madison's degree-d
 - **One generation** (all the Wisconsin, Michigan and South Dakota guides).
 - **Action window:** "Protect stems during egg laying", from 5 % (824) to 75 % (1,242) of the flight: UW–Madison's three weeks of egg laying around 1,000, treating when moths are first seen. Later moths still lay eggs (MSU, the iNaturalist records); the page says to keep stems protected while moths are seen.
 - **Training area:** the extension guides' states (Wisconsin, South Dakota, Ohio, Michigan) and years (2005, XHT1087's printing, to 2026).
+- **Season (D128):** its season opens at each place about a week before the area's 30-year normal degree days (its own method, from January 1) reach 754, the first moth flight and egg laying (where a stage's activity first reaches 5 % of its first-generation peak), averaged over about 50 km: June 9 at Madison, June 13 at Hancock, June 23 at Rhinelander on the development archive's normals, and over Wisconsin's farmland (the 10th percentile of its cultivated cells) June 5. Where we don't have the normals it opens on June 15. It ends after October 31 whatever the weather.
 
 ## Checks
 

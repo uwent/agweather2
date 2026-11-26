@@ -565,3 +565,20 @@ def test_a_points_etag_follows_the_normals_of_the_place_it_reads(client, archive
     monkeypatch.setattr(normals, "stamp", lambda data_dir, period: f"{period}:rebuilt")
     rebuilt = client.get("/api/v2/models/european-corn-borer/run", params, HTTP_IF_NONE_MATCH=first["ETag"])
     assert rebuilt.status_code == 200 and rebuilt["ETag"] != first["ETag"]
+
+
+def test_an_insects_season_opens_on_its_places_day(client, archive, monkeypatch):
+    """D128: a point opens an insect's season on its cell's day; without the normal (the fixture's have no degree
+    days), on the calendar's first day, with a warning."""
+    from agdata import seasonopens
+
+    params = {"lat": LAT, "lng": LNG, "date": "2025-07-08", "models": "japanese-beetle"}
+    body = client.get("/api/v2/risk", params).json()
+    assert body["data"]["in_season"] == [True]  # from June 1
+    assert seasonopens.MISSING in body["meta"]["warnings"]
+    monkeypatch.setattr(seasonopens, "at", lambda data_dir, spec, cell: "07-15")
+    later = client.get("/api/v2/risk", params).json()
+    assert later["data"]["in_season"] == [False]
+    assert seasonopens.MISSING not in later["meta"]["warnings"]
+    listed = client.get("/api/v2/risk", {"lat": LAT, "lng": LNG, "date": "2025-07-08"}).json()["data"]["model"]
+    assert "japanese-beetle" not in listed and "aphid-pvy-vectors" in listed  # a migrant opens on the calendar

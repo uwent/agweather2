@@ -20,6 +20,7 @@ Model version 0.1, written 2026-11-21 (D98, D101). The model: `packages/agmodels
 - **Count:** the typical year's fitted mean for a typical farm, 7.9 potato aphids per 25 sweeps at the degree-day curve's highest (3,760), 12.5 at the calendar curve's last day.
 - **Risk:** the count over its highest, with the D36 thresholds.
 - **Training area (D101):** the scouting service's counties in central Wisconsin (the 12 with 10 or more scouted fields for the Colorado potato beetle; 11 of them have 10 or more fields with potato aphid counts).
+- **Season (D128):** its season opens at each place on the day early-planted potatoes emerge in a typical year (the crop model's degree days on the area's 30-year normal, from the early planting), averaged over about 50 km: May 9 at Madison, May 15 at Hancock, May 27 at Rhinelander on the development archive's normals, and over Wisconsin's farmland (the 10th percentile of its cultivated cells) May 6. Where we don't have the normals it opens on June 15. It ends after September 30 whatever the weather.
 
 ## Checks
 

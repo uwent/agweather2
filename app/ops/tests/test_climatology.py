@@ -141,3 +141,22 @@ def test_a_run_stops_between_files_when_asked(tmp_path, monkeypatch):
         tmp_path, WINDOW, p, report=Reporter(quiet=True), lock=nullcontext, stopping=lambda: next(asked, True)
     )
     assert len(fetched) == 2
+
+
+def test_the_insect_seasons_opening_days_are_built_with_last30_or_when_stale(tmp_path, monkeypatch):
+    """D128: the days insect seasons open are worked out from `last30` whenever it's built in the run, or the file
+    is missing or stale."""
+    from agdata import seasonopens
+
+    archive(tmp_path, range(2016, 2027))
+    p = climatology.plan(tmp_path, TODAY, WINDOW)
+    assert p.openings == "last30's normal maps are built in this run"
+    assert (
+        "work out the days insect seasons open from last30: last30's normal maps are built in this run"
+        in climatology.describe(p)
+    )
+    monkeypatch.setattr(climatology, "period_years", lambda p, name: [])  # no normal maps to build
+    monkeypatch.setattr(seasonopens, "status", lambda data_dir: None)
+    assert climatology.plan(tmp_path, TODAY, WINDOW).openings is None
+    monkeypatch.setattr(seasonopens, "status", lambda data_dir: "none yet")
+    assert climatology.plan(tmp_path, TODAY, WINDOW).openings == "none yet"

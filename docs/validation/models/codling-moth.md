@@ -25,6 +25,7 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 - **First catch:** the first moth caught (WSU's and Jones's definition), not the first sustained catch (Riedl's, NEWA's). Default: Jones et al. 2013's curve plus 120 DD°F (`WISCONSIN_SHIFT_F`), from the trap network below: 349 DD at 43 °N, 309 at 46 °N.
 - **Hatch window:** 1 % to 95 % of each generation's hatch, about 262 to 809 DD after first catch.
 - **Against NEWA:** a later default biofix in NEWA (404, which matches DATCP's first week with 5 or more moths), and its second-generation biofix at 1501 after the first, which is Riedl et al. 1976's summer peak catch (1486 ± 74) rather than the second flight's start (NEWA's own guide has second-generation moths from 771).
+- **Season (D128):** its season opens at each place on the day apples bloom in a typical year (the crop model's degree days on the area's 30-year normal, from January 1), averaged over about 50 km: May 6 at Madison, May 11 at Hancock, May 21 at Rhinelander on the development archive's normals, and over Wisconsin's farmland (the 10th percentile of its cultivated cells) May 3. Where we don't have the normals it opens on May 15. It ends after October 31 whatever the weather.
 
 ## Checks
 

@@ -12,6 +12,7 @@ from functools import cache
 
 from markdown_it import MarkdownIt
 
+from agdata import seasonopens
 from agdata.catalog import DAILY_VARIABLES
 from agdata.computed import DAILY_COMPUTED
 from agdata.layers import LAYERS
@@ -184,6 +185,7 @@ def page_props(spec: ModelSpec) -> ModelPageProps:
         ],
         region=[NamedId(id=code, name=STATES.get(code, code)) for code in spec.region],
         season=list(spec.season) if spec.season else None,
+        season_opens=seasonopens.opens_text(spec),
         seasonal_appears=spec.seasonal.appears if spec.seasonal else None,
         biofix=None
         if b is None

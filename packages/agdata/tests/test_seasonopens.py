@@ -141,3 +141,18 @@ def test_built_maps_are_read_while_current(tmp_path, monkeypatch):
         np.testing.assert_array_equal(seasonopens.slots(tmp_path, spec, WINDOW), computed[spec.id])
     _store(tmp_path, rate=6.0)  # the normals rebuilt
     assert seasonopens.status(tmp_path) is not None
+
+
+def test_a_map_says_where_the_season_hasnt_opened():
+    spec = registry.model("corn-rootworm").SPEC
+    opens = np.array([[140.0, 150.0]])  # May 20 and May 30
+    land = np.ones(opens.shape, dtype=bool)
+    assert seasonopens.map_warning(spec, opens, [date(2026, 5, 31)], land) is None
+    text = seasonopens.map_warning(spec, opens, [date(2026, 5, 25)], land)
+    assert (
+        text
+        == "Blank areas are where the season for corn rootworm hasn't opened yet. It opens about a week before the first egg hatch in a typical year."
+    )
+    assert seasonopens.map_warning(spec, opens, [date(2026, 5, 25)], np.array([[True, False]])) is None  # water
+    potato = registry.model("colorado-potato-beetle").SPEC
+    assert seasonopens.how(potato) == "on the day early-planted potatoes emerge in a typical year"

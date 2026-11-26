@@ -259,6 +259,9 @@ class ModelPageProps(Props):
     inputs: list[ModelInput]
     region: list[NamedId] = Field(description="States where it's valid (postal code, name); empty: anywhere.")
     season: list[str] | None = Field(description="[first, last] day it's shown, MM-DD; None: all year.")
+    season_opens: str | None = Field(
+        description="How an insect's season opens at each location (D128), completing 'Its season opens …'; None: on its season's first day."
+    )
     seasonal_appears: str | None = Field(description="A once-a-season map's first day, MM-DD; None: a daily model.")
     biofix: ModelBiofix | None
     susceptible: ModelSusceptibility | None
@@ -355,6 +358,9 @@ class SiteModelInfo(Props):
     risk_thresholds: list[float]
     susceptible: str | None = Field(description="The crop stages a disease affects, in words, or None.")
     season: list[str] | None = Field(description="MM-DD first and last day it runs, or None (all year).")
+    season_opens: str | None = Field(
+        description="How an insect's season opens at each location (D128), completing 'Its season opens …'; None: on its season's first day."
+    )
     region: list[str] = Field(description="State abbreviations where it's valid; empty: anywhere.")
     trained: ModelTrained | None
     guidance_html: str | None = Field(description="The model page's 'How to read it', as HTML; None without a page.")

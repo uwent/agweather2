@@ -25,6 +25,7 @@ Model version 0.2, written 2026-11-21 (D98; part H, H5); Régnière et al. 1981 
 - **The last adults:** USPest's 2,700 is a last catch, raised above its data's mean (2,534) for longer southern seasons; the curve is done by about 2,500. Beetles caught after 2,300 are a few percent of the season.
 - **Action window:** "Scout for beetles feeding", from 2 % (921) to 94 % (2,085, USPest's end of main activity, 2,110).
 - **Against UW–Madison:** UW's guides time the first adults at about 1,000 degree days (base 50 °F; the horticulture page) or in mid-June (Vegetable Entomology). The curve's first beetles come in the last days of June in southern Wisconsin (below).
+- **Season (D128):** its season opens at each place about a week before the area's 30-year normal degree days (its own method, from January 1) reach 797, the first adult beetles (where a stage's activity first reaches 5 % of its first-generation peak), averaged over about 50 km: June 14 at Madison, June 19 at Hancock, July 1 at Rhinelander on the development archive's normals, and over Wisconsin's farmland (the 10th percentile of its cultivated cells) June 10. Where we don't have the normals it opens on June 1. It ends after October 31 whatever the weather.
 
 ## Checks
 

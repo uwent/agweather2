@@ -23,6 +23,7 @@ Model version 0.2, written 2026-11-21 (D98; part H, H5). The model: `packages/ag
 - **Adult feeding** (a `DerivedStage`, weight 1): 600 degree days after each adult emerges, about three to four weeks in July: two to three weeks of feeding before egg laying, and some while laying (the handbook; a judgment).
 - **Action window:** "Sweep mint for adults", from 2 % to 95 % of emergence (1,479 to 2,001). A3422's thresholds are adults per 100 sweeps, and sprays go on after most adults are out and before egg laying begins two to three weeks later.
 - **Training area:** USPest's model is from Pacific Northwest mint (Oregon, Washington, Idaho); Berry et al.'s years aren't in hand, so 1990–1997 is an estimate.
+- **Season (D128):** its season opens at each place about a week before the area's 30-year normal degree days (its own method, from January 1) reach 387, the first egg hatch (where a stage's activity first reaches 5 % of its first-generation peak), averaged over about 50 km: April 27 at Madison, May 3 at Hancock, May 12 at Rhinelander on the development archive's normals, and over Wisconsin's farmland (the 10th percentile of its cultivated cells) April 24. Where we don't have the normals it opens on April 15. It ends after August 31 whatever the weather.
 
 ## Checks
 
