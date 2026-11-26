@@ -2,7 +2,7 @@
 
 A running summary for Ben, kept current as agents' work merges (newest at the top of each list). The plan and its decisions are in [phase-7-web-app.md](phase-7-web-app.md); the handoff is PLAN.md's. Branch `phase-7` (from `main` after PR #1).
 
-Last updated: 2026-11-27, 01:10 CST.
+Last updated: 2026-11-27, 01:40 CST.
 
 ## Built (merged into `phase-7`)
 
@@ -24,6 +24,7 @@ Last updated: 2026-11-27, 01:10 CST.
 | `/tools/degree-days` | Calculator: place picker, up to 3 settings, through a date or the forecast, projection, map link |
 | `/tools/freeze` | Freeze dates and odds: this year against typical, cards per threshold, odds chart, look up a date, crop killing freezes, past years |
 | `/tools/oak-wilt` | DNR's restricted period from 231 °F·d through July 15, model level and share of beetle flight (`flown`), map, chart, DNR periods |
+| `/tools/crop-gdd` | Crop GDD outlook: the answer in a sentence (reached, forecast, projected with its range and the freeze chance before it); GDD since planting over the normal and comparison years with stage lines, over the fall freeze chance; a stage table. Corn through corn-stages, other crops by preset and a typed maturity |
 | `/calendar` | Day-of-year calendar, 1900–2100, printable |
 | `/data` | Weather at up to 50 locations; maps as data files with an exact size estimate; yearly files with R and Python snippets |
 | `/status` | Sources on time or late, forecast, gaps in the last 30 days, outages; refreshes every 60 s |
@@ -45,10 +46,10 @@ Last updated: 2026-11-27, 01:10 CST.
 
 ## On deck (in order)
 
-1. **Running now:** review round 1 (frontend); the crop GDD outlook, potato volunteer and alfalfa pages.
+1. **Running now:** review round 1 (frontend); the potato volunteer and alfalfa pages; backend fixes (crop runs projecting from a future planting date, corn-stages ignoring `biofix=`, the Madison cell's degree days by year, count departures' colour scale).
 2. **Next:** a keyboard spec over the tools; the map explorer reading the counts from `/layers` instead of its own copy.
 3. **Reviews** (Ben, 2026-11-26): periodic review agents over what's been built (bugs, refactoring, duplication); findings and fixes below.
-4. **Small:** a flaky smoke test (the glossary not always scrolled to a linked term); count departures' colour scale ([0, 6.25] for days ≥ 90 °F, not centred on 0); climate endpoints' speed on a quiet server (`/climate/compare` 13 s under load); the legend at full strength while the map is at 80 % (Ben's call).
+4. **Small:** the map explorer reading counts from `/layers`; a flaky smoke test (the glossary not always scrolled to a linked term); count departures' colour scale ([0, 6.25] for days ≥ 90 °F, not centred on 0); climate endpoints' speed on a quiet server (`/climate/compare` 13 s under load); the legend at full strength while the map is at 80 % (Ben's call).
 5. **Ben:** the alfalfa planner's last cut lands on the 1-in-10 24 °F date (Nov 1 at Madison), later than most growers cut: should the season end earlier? About's drafts and credits; oak wilt's wording with DNR (their 2026 guidelines don't mention 231 °F·d); restart `bin/dev` after pulling; the interface design pass (map explorer plus bespoke model and topic pages in WISP 3's map-plus-feed frame).
 6. **Later:** accounts and email (track 8, when SES is set up); Phase 9's observed phenologies.
 
