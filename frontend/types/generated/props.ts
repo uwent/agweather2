@@ -572,44 +572,20 @@ export interface ModelsIndexProps {
   groups: NamedId[]
 }
 /**
- * Oak wilt (`/tools/oak-wilt`, track 5).
+ * Oak wilt (`/tools/oak-wilt`, track 5 T1 d): the `oak-wilt-vectors` model's content for its chart and guidance,
+ * the years the archive holds and the oak wilt topic's management advice. The place and its numbers the page fetches
+ * from the API (`/models/oak-wilt-vectors/run`, D117).
  */
-export interface OakWiltToolProps {}
-export interface SharedProps {
-  app: AppInfo
-  /**
-   * The grid's current day: midnight to midnight Central Standard Time all year (D74).
-   */
-  today: string
-  /**
-   * None until the archive's status has first been read.
-   */
-  status: DataStatus | null
-}
-export interface SiteCrop {
-  id: string
-  name: string
-}
-/**
- * A model in the site page's short catalog: what it's called and which crops it's for.
- */
-export interface SiteModel {
-  id: string
-  name: string
-  group: string
-  crops: string[]
-  status: string
-  /**
-   * The words for its risk levels, lowest first; empty for a model without risk (crop stages).
-   */
-  risk_levels: string[]
-}
-/**
- * One model across your saved sites (`/sites/models/{id}`): the model's content. The sites are kept in the
- * browser, which runs the model over them (`/models/{id}/run?points=`, D117).
- */
-export interface SiteModelFeedProps {
+export interface OakWiltToolProps {
   model: SiteModelInfo
+  /**
+   * The years with weather to run the model on, newest first.
+   */
+  years: number[]
+  /**
+   * The oak wilt topic's Management section as HTML, without its citation markers; None without it.
+   */
+  management_html: string | null
 }
 /**
  * A model as its page at a site shows it (content from the registry, D117).
@@ -672,6 +648,42 @@ export interface SiteModelInfo {
    * The model page's 'How to read it', as HTML; None without a page.
    */
   guidance_html: string | null
+}
+export interface SharedProps {
+  app: AppInfo
+  /**
+   * The grid's current day: midnight to midnight Central Standard Time all year (D74).
+   */
+  today: string
+  /**
+   * None until the archive's status has first been read.
+   */
+  status: DataStatus | null
+}
+export interface SiteCrop {
+  id: string
+  name: string
+}
+/**
+ * A model in the site page's short catalog: what it's called and which crops it's for.
+ */
+export interface SiteModel {
+  id: string
+  name: string
+  group: string
+  crops: string[]
+  status: string
+  /**
+   * The words for its risk levels, lowest first; empty for a model without risk (crop stages).
+   */
+  risk_levels: string[]
+}
+/**
+ * One model across your saved sites (`/sites/models/{id}`): the model's content. The sites are kept in the
+ * browser, which runs the model over them (`/models/{id}/run?points=`, D117).
+ */
+export interface SiteModelFeedProps {
+  model: SiteModelInfo
 }
 /**
  * A model at a site (`/sites/{lat},{lng}/models/{id}`): the point, a shared link's name, the model's content and

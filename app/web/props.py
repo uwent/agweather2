@@ -516,7 +516,15 @@ class DegreeDaysToolProps(Props):
 
 
 class OakWiltToolProps(Props):
-    """Oak wilt (`/tools/oak-wilt`, track 5)."""
+    """Oak wilt (`/tools/oak-wilt`, track 5 T1 d): the `oak-wilt-vectors` model's content for its chart and guidance,
+    the years the archive holds and the oak wilt topic's management advice. The place and its numbers the page fetches
+    from the API (`/models/oak-wilt-vectors/run`, D117)."""
+
+    model: SiteModelInfo
+    years: list[int] = Field(description="The years with weather to run the model on, newest first.")
+    management_html: str | None = Field(
+        description="The oak wilt topic's Management section as HTML, without its citation markers; None without it."
+    )
 
 
 class FreezeToolProps(Props):

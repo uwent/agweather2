@@ -190,6 +190,14 @@ test('topic and methods pages in the other theme', async ({ page }) => {
   for (const path of CONTENT_PAGES) await scan(page, path, { reflow: false })
 })
 
+// The oak wilt tool at a location, its run stubbed (track 5 T1 d)
+test('the oak wilt tool, in both themes', async ({ page }) => {
+  await stubSiteApi(page)
+  await scan(page, '/tools/oak-wilt?at=43.07,-89.4')
+  await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
+  await scan(page, '/tools/oak-wilt?at=43.07,-89.4', { reflow: false })
+})
+
 test('the settings dialog', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Settings' }).click()

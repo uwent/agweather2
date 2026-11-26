@@ -4,6 +4,7 @@ import { units as unitsFor } from '@/lib/units'
 import cornRun from '@/test/fixtures/site/model-corn-stages.json'
 import ecbRun from '@/test/fixtures/site/model-ecb-2025.json'
 import lateBlightRun from '@/test/fixtures/site/model-late-blight.json'
+import oakWiltRun from '@/test/fixtures/site/model-oak-wilt.json'
 import { testPalette as palette } from '@/test/palette'
 import type { SiteModelInfo } from '@/types'
 import type { TableResponse } from '@/types/api'
@@ -182,6 +183,37 @@ describe('modelOption', () => {
     expect(o.series.some((s) => s.id?.startsWith('shading-'))).toBe(true)
     const temperature = o.series.find((s) => s.id === 'input-degC-temperature_mean_rh_over_90_from_6pm')!
     expect(temperature.data.some((d) => typeof d === 'object' && d !== null && 'symbol' in d)).toBe(true)
+  })
+
+  it('draws guides: a date through every grid and a value on the grid of its column, in the reader’s units', () => {
+    const run = modelRun(oakWiltRun as unknown as TableResponse)
+    const panels = modelPanels(ecb, run)
+    const o = modelOption({
+      model: ecb,
+      run,
+      panels,
+      units: us,
+      palette,
+      today: '2026-11-25',
+      guides: {
+        dates: [
+          { date: '2026-07-15', label: 'July 15' },
+          { date: '2030-01-01', label: 'Not shown' },
+        ],
+        values: [{ column: 'dd_total', value: 231 / 1.8, label: '231' }],
+      },
+    }) as unknown as Option & { yAxis: { max?: (extent: { max: number }) => number | undefined }[] }
+    const firsts = o.series.filter((s) => s.markLine)
+    expect(firsts.length).toBe(panels.length)
+    for (const s of firsts) expect(s.markLine!.data.map((d) => d.xAxis)).toContain('2026-07-15')
+    expect(firsts.flatMap((s) => s.markLine!.data.map((d) => d.xAxis))).not.toContain('2030-01-01')
+    const totals = o.series.find((s) => s.id === 'output-totals-dd_total')!
+    const line = (totals.markLine!.data as { yAxis?: number }[]).find((d) => d.yAxis !== undefined)!
+    expect(line.yAxis).toBeCloseTo(231)
+    const g = panels.findIndex((p) => p.key === 'output-totals')
+    expect(o.yAxis[g].max!({ max: 100 })).toBeCloseTo(231)
+    expect(o.yAxis[g].max!({ max: 3000 })).toBeUndefined()
+    expect(o.yAxis[g + 1].max).toBeUndefined()
   })
 
   it("shades each action window's days in its strip", () => {

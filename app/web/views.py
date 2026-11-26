@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings
 from django.http import Http404, HttpRequest
 from django.urls import reverse
@@ -5,6 +7,7 @@ from django.urls import reverse
 from agdata.series import archive_years
 from agmodels import croplist
 from agmodels.registry import all_models
+from updates.render import markdown_html
 from web import home as home_content
 from web import methodspage, modelpages, topicpages
 from web.catalog import crop_entries, model_entries
@@ -31,7 +34,10 @@ from web.props import (
     StatusPageProps,
     ToolsIndexProps,
 )
-from web.sitemodel import model_info, model_settings, shown_spec
+from web.sitemodel import model_info, model_settings, section, shown_spec
+
+# The model the oak wilt tool reads
+OAK_WILT = "oak-wilt-vectors"
 
 # The longest `?name=` a site page shows from a link
 NAME_LENGTH = 80
@@ -118,15 +124,22 @@ def site_model(request: HttpRequest, lat: str, lng: str, model_id: str):
     spec = shown_spec(model_id)
     if spec is None:
         raise Http404("No such model")
+    return render(
+        request,
+        "Sites/Model",
+        SiteModelProps(
+            lat=latitude, lng=longitude, name=_name(request), model=model_info(spec), years=_archive_years()
+        ),
+    )
+
+
+def _archive_years() -> list[int]:
+    """The years with weather to run a model on, newest first, this year always among them."""
     this_year = grid_today().year
     years = sorted((y for y in archive_years(settings.DATA_DIR) if y <= this_year), reverse=True)
     if this_year not in years:
         years.insert(0, this_year)
-    return render(
-        request,
-        "Sites/Model",
-        SiteModelProps(lat=latitude, lng=longitude, name=_name(request), model=model_info(spec), years=years),
-    )
+    return years
 
 
 def topics_index(request: HttpRequest):
@@ -168,7 +181,22 @@ def degree_days_tool(request: HttpRequest):
 
 
 def oak_wilt_tool(request: HttpRequest):
-    return render(request, "Tools/OakWilt", OakWiltToolProps())
+    """Oak wilt (track 5 T1 d): Wisconsin DNR's restricted period at a place, from the oak wilt model's run, which the
+    page fetches; the model's content, the archive's years and the topic's management advice as props."""
+    spec = shown_spec(OAK_WILT)
+    if spec is None:
+        raise Http404("No such model")
+    page = topics().get("oak-wilt")
+    management = section(page.body, "Management") if page else None
+    return render(
+        request,
+        "Tools/OakWilt",
+        OakWiltToolProps(
+            model=model_info(spec),
+            years=_archive_years(),
+            management_html=markdown_html(re.sub(r"\[\^[\w-]+\]", "", management)) if management else None,
+        ),
+    )
 
 
 def freeze_tool(request: HttpRequest):

@@ -313,6 +313,19 @@ test('a group’s preferences hide a model from its sites, and reset', async ({ 
   await expect(page.getByTestId('map-group')).toContainText('Showing the group North farm: 2 sites')
 })
 
+// The oak wilt tool (track 5 T1 d)
+test('oak wilt: the restricted period at a location, its chart and DNR’s rules', async ({ page }) => {
+  await stubSiteApi(page)
+  await page.goto('/tools/oak-wilt')
+  await expect(page.getByRole('heading', { level: 1, name: /^Oak wilt/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Oak Harvesting Guidelines (PUB-FR-560, PDF)' })).toBeVisible()
+  await page.goto('/tools/oak-wilt?at=43.07,-89.4')
+  await expect(page.getByText(/The oak wilt vector model’s level/)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'The season' })).toBeVisible()
+  await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
+  await expect(page.getByRole('heading', { name: 'Managing oak wilt' })).toBeVisible()
+})
+
 test('health check', async ({ request }) => {
   const response = await request.get('/up')
   expect(await response.json()).toMatchObject({ status: 'ok', database: 'ok' })

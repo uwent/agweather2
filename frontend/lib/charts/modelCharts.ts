@@ -305,10 +305,26 @@ export type ModelChartOptions = {
   palette: Palette
   /** The grid's today (ISO date), for the dashed Today line */
   today: string
+  /** Reference lines: a labelled vertical line through every grid on each date, and a horizontal line at a value
+   * (in the column's stored unit) on the grid that draws the column, whose axis then reaches it */
+  guides?: ChartGuides
+}
+
+export type ChartGuides = {
+  dates?: { date: string; label: string }[]
+  values?: { column: string; value: number; label: string }[]
 }
 
 /** The ECharts option: a grid per panel, stacked on one time axis */
-export function modelOption({ model, run, panels, units, palette, today }: ModelChartOptions): EChartsCoreOption {
+export function modelOption({
+  model,
+  run,
+  panels,
+  units,
+  palette,
+  today,
+  guides = {},
+}: ModelChartOptions): EChartsCoreOption {
   const { table } = run
   const days = table.days
   const dates = days.map((day) => day.date)
@@ -328,6 +344,21 @@ export function modelOption({ model, run, panels, units, palette, today }: Model
   const series: object[] = []
   const legends: object[] = []
   const titles: object[] = []
+  const guideStyle = { color: palette.inkMuted, type: 'dotted', width: 1.5 }
+  const guideLabel = (text: string, position: string, show: boolean) =>
+    show ? { formatter: text, position, color: palette.inkMuted, fontSize: 10 } : { show: false }
+  const dateGuides = (guides.dates ?? []).filter((guide) => dates.includes(guide.date))
+  // Each values grid's horizontal guides, in the reader's units
+  const valueGuides = panels.map((panel) =>
+    panel.kind === 'values'
+      ? (guides.values ?? []).flatMap((guide) => {
+          if (!panel.series.some((m) => m.column === guide.column)) return []
+          const symbol = table.units[guide.column]
+          const value = symbol ? units.toDisplay(symbol, guide.value) : guide.value
+          return value === null ? [] : [{ ...guide, value }]
+        })
+      : [],
+  )
 
   panels.forEach((panel, g) => {
     const top = grids[g].top
@@ -337,7 +368,7 @@ export function modelOption({ model, run, panels, units, palette, today }: Model
       left: 0,
       textStyle: { fontSize: 11, fontWeight: 'normal', color: palette.inkMuted, width: 900, overflow: 'truncate' },
     })
-    const marks = {
+    const marks: { silent: boolean; symbol: string; data: object[] } = {
       silent: true,
       symbol: 'none',
       data:
@@ -354,6 +385,18 @@ export function modelOption({ model, run, panels, units, palette, today }: Model
             ]
           : [],
     }
+    for (const guide of dateGuides)
+      marks.data.push({
+        xAxis: guide.date,
+        lineStyle: guideStyle,
+        label: guideLabel(guide.label, 'insideEndTop', g === labelled),
+      })
+    for (const guide of valueGuides[g])
+      marks.data.push({
+        yAxis: guide.value,
+        lineStyle: guideStyle,
+        label: guideLabel(guide.label, 'insideStartTop', true),
+      })
     const first = { markLine: marks, markArea: g === labelled ? forecastLabel : undefined }
     const common = { xAxisIndex: g, yAxisIndex: g }
 
@@ -530,6 +573,13 @@ export function modelOption({ model, run, panels, units, palette, today }: Model
               gridIndex: g,
               scale: !panel.bars,
               min: panel.bars ? 0 : undefined,
+              // An axis reaches its guides, so a threshold not yet reached still shows (left to ECharts otherwise)
+              max: valueGuides[g].length
+                ? (extent: { max: number }) => {
+                    const top = Math.max(...valueGuides[g].map((guide) => guide.value))
+                    return top > extent.max ? top : undefined
+                  }
+                : undefined,
               splitNumber: 2,
               axisLabel: base.axisLabel,
               splitLine: base.splitLine,
