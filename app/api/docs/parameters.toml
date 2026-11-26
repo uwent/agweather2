@@ -140,6 +140,14 @@ date = "A single day of the year, as YYYY-MM-DD, in place of `start` and `end`."
 start = "The first day, as YYYY-MM-DD. The default is January 1. The start and end must be in the same calendar year."
 end = "The last day, as YYYY-MM-DD. The default is December 31 of this year, or of the year of `start`."
 
+[alfalfa_plan]
+year = "The year of the plan, from the first year of our records through this one. The default is this year. For a past year, the plan uses that year's weather and checks the fall rule against the period's years."
+period = "The years the normal comes from: `last30` (the default), the 30 complete years before this one; `last20`, the last 20; `last10`, the last 10; or `last5`, the last 5. They give the degree days after the forecast, the typical spring and fall killing freezes, and the years the fall rule is checked against."
+interval = "Schedule the cuts this many degree days apart, as near as the season allows: from 800 to 1,200 GDD (444 to 667 °C·d with `units=metric`). The default is 1,000. Leave it out with `count` or `cuts`."
+count = "Schedule this many cuts in all, from 1 to 8, held cuts included, in place of `interval`."
+held = "Cuts to keep where they are while the rest are scheduled, as dates (YYYY-MM-DD) in the plan's year separated by commas, such as `2026-06-01`. With `cuts`, the held cuts must be among them."
+cuts = "Check these cutting dates as they are, without scheduling: dates (YYYY-MM-DD) in the plan's year separated by commas, up to 12. Leave out `interval` and `count`."
+
 [discovery_models]
 crop = "Only the models for one crop, by its id in `/crops` (such as `potato`). A crop also finds the models for a group it belongs to: `broccoli` finds the cole crop models. A group finds the models for any of its crops."
 group = "Only the models of one group: `disease`, `insect`, `crop` (growth stages), `agronomic` (field management, such as volunteer plants) or `degree_days`. Leave it out for every model."

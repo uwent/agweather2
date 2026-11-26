@@ -8,6 +8,7 @@ from ninja.operation import Operation
 from api import docs, errors, strict
 from api.params import QueryParser
 from api.routes import (
+    alfalfa,
     changelog,
     climate,
     crops,
@@ -47,6 +48,7 @@ api = AgWeatherAPI(
     parser=QueryParser(),
 )
 errors.install(api)
+api.add_router("/", alfalfa.router)  # /models/alfalfa-growth/plan
 api.add_router("/", models.router)  # before discovery: /models/run isn't a model id
 api.add_router("/", discovery.router)
 api.add_router("/", methods.router)

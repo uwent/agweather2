@@ -529,8 +529,19 @@ Opening days on the development archive's normals (Madison / Hancock / Rhineland
 
 Versions: every insect whose opening changed moved by 0.1 with a changelog line (all but the six migrants other than black cutworm); of the stored ingredients only western bean cutworm's own degree days carry its version and need rebuilding (`manage.py ingredients`; the others are shared degree-day cubes and the shared freeze factor), and `manage.py climatology` builds the opening maps. Risks: the first activity is a share of the model's own curve, so a curve's start moves its season; potato aphid now opens at emergence (May) where D125 had June 15, before its flights; the region's day is Wisconsin's until the launch normals are built; the normal is a typical year, so in a warm spring activity can show before a place's season opens (a point's runs show it, marked out of season; a map leaves it blank).
 
-## Questions
+### D129. The alfalfa cutting planner: the tool's scheduler on the normal's mean, with its latent bugs fixed
 
+_2026-11-26._ (Ben, 2026-11-26, Phase 7 track 5's questions 5–7, as recommended.) `GET /models/alfalfa-growth/plan` runs `agmodels.alfalfa_plan`, a port of the UW alfalfa tool's cut scheduler (`schedule_cut_dates`, `tmp/R/alfalfa-tool/app/src/3_timing.R`, on `global.R`'s `buildGrowthData`): GDD 41/86 °F single sine (the `alfalfa-growth` model's) from the last spring killing freeze (≤ 24 °F), this year's days through the forecast and then the period's normal mean daily GDD (each year's own days' running total averaged, `climatology.running`, differenced); held cuts kept, the stretches between them and to the season's end split into equal parts nearest the interval (800–1,200 GDD, default 1,000, ties to more cuts) or by a number of cuts (each extra to the widest), a last stretch under 360 GDD left uncut; the season's end, where the last cut lands, the date by which 10 % of the period's years had their first fall killing freeze (or this year's, if earlier). A parity test holds the segment arithmetic to the tool's own R function on 15 cases (`make_alfalfa_plan.R`). Intended differences:
+
+- (a) The tool keeps generated cuts with `between(gen_days, 60, end_gdd)`, a day of year against a GDD total, so the upper bound never applies; we keep cuts from the season's start to its end.
+- (b) The tool's chance of a freeze by a date is 1 − ∏(1 − p) over days, treating days as independent; ours counts each year's own first fall (last spring) killing freeze (`climatology.freezes`, as `/climate/frost/chances`).
+- (c) The tool projects a killing freeze on every day whose chance is ≥ 95 %; we start the season at the median last spring killing freeze while this year's spring hasn't reached it, at this year's own after.
+- (d) The tool's thresholds disagree (900–1,100, 800–1,100; fall "under 360 or over 800"); we use the model's 900–1,100 window and Newell's under 360 or over 900. A cut's status is judged on whole degree days, as shown.
+- (e) Future days come from the normal's mean, as the tool's do, not D63's earlier-year paths: a plan needs one smooth path to place cuts on while it's edited. The years' spread is checked where it matters: the fall rule counts the regrowth from the last cut to each of the period's years' own first fall killing freeze (under 360, over 900, between, or a freeze before the cut).
+
+The normal's part (a cell's mean daily GDD and its 24 °F freezes over a period) is kept in the web process per cell, period and data stamp (~0.85 s to read 30 years at Madison, then ~0.2 s a plan). Plans are offered only inside the coverage, for archive years through this one.
+
+## Questions
 
 ### Q1–Q3
 
