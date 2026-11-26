@@ -137,7 +137,11 @@
     {/if}
 
     {#if rows}
-      <ol class="divide-y divide-line rounded-lg border border-line" aria-busy={answers.value.status === 'loading'}>
+      <ol
+        class="divide-y divide-line rounded-lg border border-line"
+        aria-label="Your sites"
+        aria-busy={answers.value.status === 'loading'}
+      >
         {#each sorted as row (row.site.key)}
           <li class="grid gap-x-4 gap-y-1.5 p-3 sm:grid-cols-[minmax(0,12rem)_10rem_minmax(0,1fr)] sm:items-center">
             <div class="min-w-0">
