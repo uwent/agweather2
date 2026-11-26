@@ -1,7 +1,7 @@
 ---
 id: oak-wilt-vectors
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 summary: Estimates the risk of oak wilt spreading to fresh wounds on oaks by its sap beetle vector, from the beetle's flight timed by degree days (base 41 °F) and lowered after mid-July.
 sources:
   - Jagemann, Juzwik, Tobin and Raffa 2018 (sap beetle flight in Wisconsin by degree days; the flight percentiles behind the levels)
@@ -23,6 +23,8 @@ Degree days are counted from January 1 by the single-sine method, base 41 °F (5
 - **Very high** from 388 (25 %) to 913 (75 %), the peak of the flight.
 - Then **High** until 1,792 (90 %), **Moderate** until 2,172 (95 %) and **Low** after that.
 
+The model also gives the share of the season's _C. truncatus_ that have flown, as the highest of the study's percentiles reached: at least 5 % from 231 degree days, 10 % from 283, 25 % from 388, 50 % from 638, 75 % from 913, 90 % from 1,792 and 95 % from 2,172.
+
 From July 15 the level drops two steps, to Low at most, and from July 22 one step more. These steps follow the end of Wisconsin's restricted period for oak harvesting on July 15, not the beetles' flight. The model runs from March through July.
 
 ## How to read it
@@ -36,7 +38,7 @@ The [oak wilt topic page](/topics/oak-wilt) explains the disease, its beetle vec
 
 ## Validation and caveats
 
-- Draft (model version 0.2, beta).
+- Draft (model version 0.3, beta).
 - Given the same degree days and date, the model's level matches VDIFN's, the Wisconsin tool it replaces, in all 1,757 cases tested. In leap years its July steps fall on July 15 and 22, where VDIFN's came a day early.
 - The levels haven't been compared with the study's trap catches or other observations of beetle flight.
 - The study counted degree days by a modified sine method (Allen 1976); the model uses the single sine with no upper threshold, which may give somewhat different totals.

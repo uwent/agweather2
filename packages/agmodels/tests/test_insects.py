@@ -60,6 +60,31 @@ def test_oak_wilt_matches_vdifn():
     np.testing.assert_array_equal(ours, [float(r["severity"]) for r in rows])
 
 
+def test_oak_wilts_share_flown_follows_jagemanns_table_4():
+    """`flown` is the highest of Table 4's percentiles reached, at the table's degree days × 1.8 rounded to whole °F,
+    the same bounds as the flight levels' (5, 10, 25, 75, 90 and 95%)."""
+    table_c = {5: 128.3, 10: 157.4, 25: 215.8, 50: 354.2, 75: 507.2, 90: 995.4, 95: 1206.7}  # Jagemann et al. 2018
+    bounds = dict(oak_wilt.FLOWN_F)
+    assert bounds == {5: 231, 10: 283, 25: 388, 50: 638, 75: 913, 90: 1792, 95: 2172}
+    for percent, dd_c in table_c.items():
+        assert abs(bounds[percent] - dd_c * 1.8) < 0.5
+    levels = {bound for bound, _ in oak_wilt.FLIGHT if np.isfinite(bound)} - {180}
+    assert levels == {bounds[p] for p in (5, 10, 25, 75, 90, 95)}
+    totals = [0, 230.9, 231, 282.9, 283, 388, 637.9, 638, 912.9, 913, 1792, 2171.9, 2172, 5000, np.nan]
+    np.testing.assert_array_equal(
+        oak_wilt.flown_percent(totals), [0, 0, 5, 5, 10, 25, 25, 50, 50, 75, 90, 90, 95, 95, np.nan]
+    )
+    grid = oak_wilt.flown_percent(np.full((4, 2, 3), 700.0))
+    assert grid.shape == (4, 2, 3) and (grid == 50).all()
+
+
+def test_oak_wilts_runs_give_the_share_flown():
+    inputs = {"air_temperature_min": np.full(200, -2.0), "air_temperature_max": np.full(200, 12.0)}
+    out = oak_wilt.outputs(inputs)
+    np.testing.assert_array_equal(out["flown"], oak_wilt.flown_percent(out["dd_total"]))
+    assert out["flown"][0] == 0 and out["flown"][-1] == 50  # ~802 °F·d by day 200 of this cool year
+
+
 def test_every_insect_is_a_model_with_a_severity_rule():
     insects = [m for m in all_models().values() if isinstance(m, InsectModel)]
     assert len(insects) == len(all_insects()) == 29
