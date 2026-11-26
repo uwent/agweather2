@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { SAVED, stubSiteData } from './sites'
 import { stubDataApi } from './dataApi'
 import { stubClimateApi } from './climateApi'
-import { stubCropGddApi, stubFeedApi, stubFreezeApi, stubPotatoApi, stubSiteApi } from './siteApi'
+import { stubAlfalfaApi, stubCropGddApi, stubFeedApi, stubFreezeApi, stubPotatoApi, stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
 // Every page loads with no console errors (a CSP violation shows as one) and no failed requests
@@ -421,6 +421,21 @@ test('potato volunteer: a winter’s hours at each depth, the survival risk, its
   await expect(page.getByRole('heading', { name: 'Winter 2025–26 on the map' })).toBeVisible()
   await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
   await expect(page.getByRole('heading', { name: 'Managing volunteers' })).toBeVisible()
+})
+
+// The alfalfa planner (track 5 P1)
+test('alfalfa: growth since the cut, the season plan and a cut held', async ({ page }) => {
+  await stubAlfalfaApi(page)
+  await page.goto('/tools/alfalfa')
+  await expect(page.getByRole('heading', { level: 1, name: 'Alfalfa growth and cutting planner' })).toBeVisible()
+  await page.goto('/tools/alfalfa?at=43.07,-89.4&cut=2026-08-15')
+  await expect(page.getByText(/GDD since the cut on August 15/).first()).toBeVisible()
+  await expect(page.getByRole('heading', { level: 3, name: 'Cut 5' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 3, name: 'The last cut and winter' })).toBeVisible()
+  await expect(page.locator('[data-chart] canvas')).toHaveCount(2)
+  await page.getByRole('button', { name: 'Hold cut 2 in place' }).click()
+  await expect(page.getByRole('button', { name: 'Hold cut 2 in place' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByText(/^Cut 2, July 10: 1,118 GDD/)).toBeVisible()
 })
 
 test('health check', async ({ request }) => {

@@ -44,6 +44,12 @@ export const TOOLS: Tool[] = [
     href: routes.toolPotatoVolunteer(),
   },
   {
+    title: 'Alfalfa cutting planner',
+    question: 'Is my alfalfa ready to cut, and when should I plan the season’s cuts?',
+    text: 'Growing degree days since your last cut against the cutting window, and a season’s plan of cuts you can move and hold, with the fall cutting rule checked against past years’ killing freezes.',
+    href: routes.toolAlfalfa(),
+  },
+  {
     title: 'Day-of-year calendar',
     question: 'What day of the year is a date, and what date is a given day of the year?',
     text: 'Converts between dates and day-of-year numbers, with a printable table for any year from 1900 to 2100.',

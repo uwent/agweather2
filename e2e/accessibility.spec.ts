@@ -5,7 +5,7 @@ import { type Page } from '@playwright/test'
 import { SAVED, stubSiteData } from './sites'
 import { stubDataApi } from './dataApi'
 import { stubClimateApi } from './climateApi'
-import { stubCropGddApi, stubFeedApi, stubFreezeApi, stubPotatoApi, stubSiteApi } from './siteApi'
+import { stubAlfalfaApi, stubCropGddApi, stubFeedApi, stubFreezeApi, stubPotatoApi, stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
 // WCAG 2.1 A and AA checks (axe) on every page, in light (desktop) and dark (phone), and on desktop
@@ -277,6 +277,15 @@ test('the potato volunteer tool, in both themes', async ({ page }) => {
   await scan(page, '/tools/potato-volunteer?at=44.12,-89.53&name=Hancock&winter=2025-26')
   await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
   await scan(page, '/tools/potato-volunteer?at=44.12,-89.53&name=Hancock&winter=2025-26', { reflow: false })
+})
+
+// The alfalfa planner before and after a place is chosen, its answers stubbed (track 5 P1)
+test('the alfalfa planner, in both themes', async ({ page }) => {
+  await stubAlfalfaApi(page)
+  await scan(page, '/tools/alfalfa')
+  await scan(page, '/tools/alfalfa?at=43.07,-89.4&cut=2026-08-15')
+  await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
+  await scan(page, '/tools/alfalfa?at=43.07,-89.4&cut=2026-08-15', { reflow: false })
 })
 
 test('the settings dialog', async ({ page }) => {

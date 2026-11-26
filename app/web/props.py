@@ -558,7 +558,11 @@ class CropGddToolProps(Props):
 
 
 class AlfalfaToolProps(Props):
-    """The alfalfa cutting planner (`/tools/alfalfa`, track 5 P1)."""
+    """The alfalfa cutting planner (`/tools/alfalfa`, track 5 P1): the years a season can be planned for. The place,
+    its growth since the last cut and the plan the page fetches from the API (`/models/alfalfa-growth/run` and
+    `/models/alfalfa-growth/plan`, D117, D129)."""
+
+    years: list[int] = Field(description="The years with weather in our archive, newest first.")
 
 
 class PotatoVolunteerToolProps(Props):
