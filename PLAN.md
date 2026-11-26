@@ -33,7 +33,7 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 
 ## Handoff (2026-11-26, evening)
 
-**Phase 7, the web app** (branch `phase-6`, not yet renamed): [docs/plans/phase-7-web-app.md](docs/plans/phase-7-web-app.md). Phase 6 closed this morning (below). Ben settled Phase 7's architecture (D117–D123) and the detailed plans of tracks 2 (map explorer) and 3 (sites, home), all as recommended, with the map explorer split 50:50 (map left, controls right, detail below the fold). Claude orchestrates; agents build in worktrees, at most four at once.
+**Phase 7, the web app** (branch `phase-7`): [docs/plans/phase-7-web-app.md](docs/plans/phase-7-web-app.md). Phase 6 closed this morning (below). Ben settled Phase 7's architecture (D117–D123) and the detailed plans of tracks 2 (map explorer) and 3 (sites, home), all as recommended, with the map explorer split 50:50 (map left, controls right, detail below the fold). Claude orchestrates; agents build in worktrees, at most four at once.
 
 **2026-11-26: Phase 7 waves 1–3** (11 build agents, 3 planning agents; each merged and checked; suite and Playwright 36/36 pass after the last merge):
 
@@ -45,7 +45,7 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 
 **Wave 5 (2026-11-26, night; done):** the map's date control (the data's range moved from the title chip into a timeline slider after Ben's alfalfa tool: observed solid, forecast hatched, "Recent weeks" or a year, the stepper, a sentence on what can be mapped); the site page's Degree days and Data tabs and the one-model feed `/sites/models/{id}`; groups and preferences at three levels with where each value comes from, a group's map view, saving from the map into a group; topic pages `/topics`, `/topics/{id}` and the generated methods page `/methods`; potato planting per cell (D126, replacing D64's 40 km circles; maps show no data where a cell has no typical date). Suite 4,807 passed; pyright clean; vitest 504; Playwright 78. **Data:** `manage.py ingredients` restarted on the merged code at ~19:40 (the version bumps of D124–D126 make every year stale; ~15–18 min a year, ~3 h, ~3 GB; log `tmp/ingredients-w5.log`); blight and potato maps answer 503 "updating" until it's done. Check `ingredients --check` next session.
 
-**Branches (Ben, 2026-11-26):** once wave 6 is merged and the suite is green, a PR `phase-6` → `main` (167 commits behind; Phase 6 is closed), merged after CI, then a `phase-7` branch from the new `main`; wave 7's briefs then start from `phase-7` (and worktrees from `main` need no reset).
+**Branches:** `phase-6` merged to `main` (PR #1, 2026-11-26, CI green); Phase 7 continues on `phase-7`.
 
 **Next, in order:**
 
