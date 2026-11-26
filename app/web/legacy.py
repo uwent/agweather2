@@ -19,6 +19,8 @@ from collections.abc import Callable
 from datetime import date
 from urllib.parse import parse_qs, urlencode
 
+from agmodels.registry import all_models
+
 # The paths the catch-all route takes (config/urls.py), all after v2's own routes: v1's controllers, VDIFN, v1's
 # `/ag_weather`, the old API, and `/sites/…` paths that aren't v2's site pages
 PREFIXES = (
@@ -97,12 +99,12 @@ VDIFN_SAME = frozenset(
         "spotted-wing-drosophila",
         "squash-vine-borer",
         "stalk-borer",
+        "tarnished-plant-bug",
         "variegated-cutworm",
         "western-bean-cutworm",
+        "western-flower-thrips",
     }
 )
-# VDIFN's models retired in v2: their topic pages
-VDIFN_RETIRED = frozenset({"tarnished-plant-bug", "western-flower-thrips"})
 VDIFN_PANELS = frozenset({"disease", "insect", "custom"})
 
 # v1's and VDIFN's degree-day models: `dd_50_86`, `dd_39p2_86`, `dd_41` (°F, single sine in v1's API)
@@ -177,7 +179,8 @@ def _weather(rest: list[str], params: dict[str, str], here: Here, legacy: Legacy
     if action in ("map-image", "weather-data", "precip-data", "et-data", "insol-data"):
         return legacy()
     if action in ("doycal", "doycal-grid"):
-        return here("/calendar")
+        year = params.get("year", "")
+        return here("/calendar", year=year if re.fullmatch(r"\d{4}", year) else None)
     if action in ("hyd", "hyd-grid"):
         return here("/data")  # HYD isn't in v2: the downloads are nearest
     if action == "data":
@@ -211,14 +214,17 @@ def _thermal_models(rest: list[str], params: dict[str, str], here: Here, legacy:
     action = rest[0] if rest else ""
     if action in ("map-image", "download-csv"):
         return legacy()
+    # The tools open on v1's point (`lat`, `lng`) as their `at`, where v1's link gave one
+    point = _point(params.get("lat", ""), params.get("lng", ""))
+    at = f"{point[0]},{point[1]}" if point else None
     if action in ("degree-days", "get-dds"):
-        return here("/tools/degree-days")
+        return here("/tools/degree-days", at=at)
     if action == "dd-map":
         return _dd_map(params, here)
     if action == "frost-map":
         return here("/tools/freeze")
     if action in ("oak-wilt", "oak-wilt-dd"):
-        return here("/tools/oak-wilt")
+        return here("/tools/oak-wilt", at=at)
     if action in TOPICS:
         return here(f"/topics/{TOPICS[action]}")
     return here("/models")  # the index, spongy moth (no model or topic in v2) and anything else
@@ -250,13 +256,20 @@ def _vdifn(params: dict[str, str], here: Here) -> Redirect:
     if panel == "custom":
         # VDIFN's degree-day panel ignored `model`; one of its `DegreeDay.remote_name`s (`dd_50_86`) is kept
         return here("/map", layer="degree_days", dd=_dd_setting(model) or "sine_50_86", span="season")
-    if model in VDIFN_RETIRED:
-        return here(f"/topics/{model}")
-    if model in VDIFN_RENAMED:
-        return here("/map", layer=VDIFN_RENAMED[model])
-    if model in VDIFN_SAME:
-        return here("/map", layer=model)
-    return here("/map")
+    layer = VDIFN_RENAMED.get(model) or (model if model in VDIFN_SAME else None)
+    if layer is None:
+        return here("/map")
+    retired = retired_page(layer)
+    return here(retired) if retired else here("/map", layer=layer)
+
+
+def retired_page(model_id: str) -> str | None:
+    """Where a retired model's old links go, since it has no map layer or page in v2: its topic page (the first
+    topic its spec names), or the models' index without one; None for a model still in service."""
+    found = all_models().get(model_id)
+    if found is None or found.SPEC.status != "retired":
+        return None
+    return f"/topics/{found.SPEC.topics[0]}" if found.SPEC.topics else "/models"
 
 
 def _sites(rest: list[str], params: dict[str, str], here: Here) -> Redirect | None:

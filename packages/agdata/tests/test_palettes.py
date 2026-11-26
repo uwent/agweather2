@@ -72,19 +72,28 @@ def test_levels_stay_distinct_under_color_vision_deficiencies(p):
                 assert delta >= MIN_CATEGORY_DELTA, f"{p.id} levels {a} and {b} under {vision}: ΔE {delta:.1f}"
 
 
-def test_a_scale_of_two_or_three_risk_levels_takes_the_five_levels_colors_by_name():
+def test_every_scale_of_risk_levels_takes_the_five_levels_colors_by_name():
     five = palettes.PALETTES["BuYlRd_5"].colors
-    by_name = dict(zip(SEVERITY_LEVELS, five, strict=True))
+    assert list(palettes.RISK_STEPS)[:5] == list(SEVERITY_LEVELS)
+    by_name = {name: five[step] for name, step in palettes.RISK_STEPS.items()}
+    scales = set()
     for model in all_models().values():
         risk = model.SPEC.risk
         if risk is None:
             continue
+        assert set(risk.levels) <= set(palettes.RISK_STEPS), model.SPEC.id
         colors = palettes.use_palette(palettes.risk_use(risk.levels)).colors
-        assert set(colors) <= set(five), model.SPEC.id
-        if len(risk.levels) < 4:  # Low, Moderate and High the same color wherever they appear
-            for level, color in zip(risk.levels, colors, strict=True):
-                assert level not in by_name or color == by_name[level], (model.SPEC.id, level)
-    assert palettes.use_palette("risk_3").colors == five[1:4]
+        assert list(colors) == [by_name[level] for level in risk.levels], model.SPEC.id
+        scales.add(tuple(risk.levels))
+    assert ("Very low", "Low", "Moderate", "High") in scales and ("Low", "Moderate", "High", "Very high") in scales
+    with pytest.raises(ValueError, match="Severe"):
+        palettes.risk_steps(["Low", "Severe"])
+
+
+def test_every_risk_palette_is_some_scales():
+    used = {palettes.USES[u].palette for u in palettes.USES}
+    categorical = {p.id for p in palettes.PALETTES.values() if p.kind == "categorical"}
+    assert categorical <= used
 
 
 def test_every_layer_and_output_has_a_use_whose_palette_exists():
@@ -176,7 +185,7 @@ def test_colors_follow_the_domain():
     rgba = palettes.colorize(np.array([0.0, 100.0, 50.0, np.nan, 500.0]), p, (0, 100))
     assert tuple(rgba[0, :3]) == palettes.rgb(p.colors[0]) and tuple(rgba[1, :3]) == palettes.rgb(p.colors[-1])
     assert tuple(rgba[2, :3]) == palettes.rgb(p.colors[4]) and rgba[3, 3] == 0 and tuple(rgba[4]) == tuple(rgba[1])
-    risk = palettes.colorize(np.array([0.0, 3.0, 7.0]), palettes.PALETTES["BuYlRd_4"], (0, 3))
+    risk = palettes.colorize(np.array([0.0, 3.0, 7.0]), palettes.PALETTES["LbYlOrRd_4"], (0, 3))
     assert tuple(risk[1, :3]) == palettes.rgb("#a50026") and risk[2, 3] == 0
     assert palettes.auto_domain(np.array([3.0, 870.0, 1234.0, np.nan])) == (0.0, 1250.0)
     assert palettes.auto_domain(np.array([-3.2, 1.1]), centered=True) == (-3.25, 3.25)
@@ -184,7 +193,7 @@ def test_colors_follow_the_domain():
 
 def test_potato_volunteer_survival_reads_as_every_risk_does():
     """Its risk falls through the winter (`Risk.falls`), but a level means the same as any model's: Very high (the
-    most tubers surviving) is the risk palette's top color, dark red, and Low its blue (Ben noticed the gradient)."""
+    most tubers surviving) is the risk palette's top color, dark red, and Low its light blue, as on every scale (Ben noticed the gradient)."""
     from agmodels.registry import model
 
     spec = model("potato-volunteer").SPEC
@@ -192,4 +201,4 @@ def test_potato_volunteer_survival_reads_as_every_risk_does():
     layer = LAYERS["potato-volunteer"]
     p = palettes.use_palette(layer.use)
     assert not palettes.USES[layer.use].reverse
-    assert p.colors[-1] == "#a50026" and p.colors[0] == "#4575b4"
+    assert p.colors[-1] == "#a50026" and p.colors[0] == "#abd9e9"

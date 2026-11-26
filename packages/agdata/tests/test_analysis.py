@@ -82,6 +82,15 @@ def test_rtma_precip_is_read_from_its_own_bucket(bucket):
     np.testing.assert_allclose(RTMA.fetch_precip(when, WINDOW, bucket), 0.8, atol=0.01)  # type: ignore[arg-type]
 
 
+def test_rtma_precip_since_july_2020_is_filed_at_mean_sea_level(bucket):
+    # RTMA's precip files name the level "0 m above mean sea level" since July 2020 (URMA's still "surface"); read as
+    # "surface" only, the newest hours' provisional precip came back None and waited ~7 h for URMA's
+    when = datetime(2026, 11, 25, 20, tzinfo=UTC)
+    url = "https://noaa-rtma-pds.s3.amazonaws.com/rtma2p5.20261125/rtma2p5.2026112520.pcp.184.grb2"
+    bucket.add(url, [(("APCP", "0 m above mean sea level"), "0-1 hour acc fcst", 2.5)])
+    np.testing.assert_allclose(RTMA.fetch_precip(when, WINDOW, bucket), 2.5, atol=0.01)  # type: ignore[arg-type]
+
+
 SUBHOURLY = "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20250715/conus/hrrr.t18z.wrfsubhf01.grib2"
 DSWRF = ("DSWRF", "surface")
 

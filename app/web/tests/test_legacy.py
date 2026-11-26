@@ -4,7 +4,9 @@ catch-all route over the real URL configuration."""
 import pytest
 from django.test import Client, override_settings
 
-from web.legacy import legacy_target
+from agmodels.registry import all_models
+from web.content import topics
+from web.legacy import VDIFN_RENAMED, VDIFN_SAME, legacy_target, retired_page
 
 LEGACY = "https://legacy.agweather.cals.wisc.edu"
 
@@ -79,8 +81,10 @@ def test_weather_insol():
 
 
 def test_weather_doycal_is_the_calendar():
-    assert to("/weather/doycal", "year=2024") == "/calendar"
+    assert to("/weather/doycal", "year=2024") == "/calendar?year=2024"
+    assert to("/weather/doycal-grid", "year=2023") == "/calendar?year=2023"
     assert to("/weather/doycal-grid") == "/calendar"
+    assert to("/weather/doycal", "year=next") == "/calendar"
 
 
 def test_weather_hyd_is_the_downloads():
@@ -132,7 +136,9 @@ def test_thermal_models_index():
 
 def test_degree_days_and_get_dds():
     assert to("/thermal-models/degree-days") == "/tools/degree-days"
-    assert to("/thermal-models/get-dds", "lat=43&lng=-89&base_temp=50") == "/tools/degree-days"
+    assert to("/thermal-models/get-dds", "lat=43&lng=-89&base_temp=50") == "/tools/degree-days?at=43,-89"
+    assert to("/thermal-models/get-dds", "lat=43.07305&lng=-89.40123") == "/tools/degree-days?at=43.0731,-89.4012"
+    assert to("/thermal-models/get-dds", "lat=91&lng=-89") == "/tools/degree-days"
 
 
 def test_get_dds_as_csv_or_json_goes_to_the_legacy_host():
@@ -178,7 +184,8 @@ def test_frost_map_is_the_freeze_tool():
 
 def test_oak_wilt():
     assert to("/thermal-models/oak-wilt") == "/tools/oak-wilt"
-    assert to("/thermal-models/oak-wilt-dd", "lat=43&lng=-89") == "/tools/oak-wilt"
+    assert to("/thermal-models/oak-wilt-dd", "lat=43&lng=-89") == "/tools/oak-wilt?at=43,-89"
+    assert to("/thermal-models/oak-wilt-dd", "lat=43") == "/tools/oak-wilt"
 
 
 @pytest.mark.parametrize(
@@ -250,8 +257,6 @@ def test_api_v2_is_not_legacy():
         ("oak-wilt", "oak-wilt-vectors"),
         ("cpb", "colorado-potato-beetle"),
         ("cpb-old", "colorado-potato-beetle"),
-        ("cpbad", "colorado-potato-beetle-adults"),
-        ("cpbl", "colorado-potato-beetle-larvae"),
     ],
 )
 def test_vdifn_renamed_models(model: str, layer: str):
@@ -287,9 +292,29 @@ def test_vdifn_models_with_the_same_id(model: str):
     assert to("/vdifn", f"type=insect&model={model}") == f"/map?layer={model}"
 
 
-@pytest.mark.parametrize("model", ["tarnished-plant-bug", "western-flower-thrips"])
-def test_vdifn_retired_models_go_to_their_topics(model: str):
-    assert to("/vdifn", f"panel=insect&model={model}") == f"/topics/{model}"
+@pytest.mark.parametrize(
+    ("model", "topic"),
+    [
+        ("tarnished-plant-bug", "tarnished-plant-bug"),
+        ("western-flower-thrips", "western-flower-thrips"),
+        ("cpbad", "colorado-potato-beetle"),
+        ("cpbl", "colorado-potato-beetle"),
+    ],
+)
+def test_vdifn_retired_models_go_to_their_topics(model: str, topic: str):
+    assert to("/vdifn", f"panel=insect&model={model}") == f"/topics/{topic}"
+
+
+def test_every_retired_model_vdifn_linked_goes_to_a_topic_that_exists():
+    # One rule by the spec's status, not a list: every VDIFN model whose v2 model is retired lands on a topic page
+    linked = {VDIFN_RENAMED.get(m, m) for m in [*VDIFN_RENAMED, *VDIFN_SAME]}
+    retired = {i for i, m in all_models().items() if m.SPEC.status == "retired"}
+    assert retired & linked
+    for model_id in retired & linked:
+        page = retired_page(model_id)
+        assert page is not None and page.startswith("/topics/"), model_id
+        assert page.removeprefix("/topics/") in topics(), model_id
+    assert retired_page("colorado-potato-beetle") is None and retired_page("no-such-model") is None
 
 
 def test_vdifn_query_keys_and_defaults():

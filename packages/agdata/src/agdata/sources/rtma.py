@@ -3,7 +3,8 @@
 The analysis files follow URMA's naming (`_ext` until 2017-05-01, `_wexp` from 2017-05-02); hourly precip is
 rtma2p5.YYYYMMDDHH.pcp.184.grb2 (the 2145 x 1377 grid, with .idx) in every year since 2016 (checked
 2026-10-27), named by the end of the hour, in that day's directory. The ingest uses RTMA for the newest hours
-and for precip before URMA's hourly precip begins (D23).
+and for precip before URMA's hourly precip begins (D23). Its precip message's level is "0 m above mean sea level"
+since July 2020 ("surface" before), so both are read (`analysis.PRECIP_KEYS`).
 """
 
 from datetime import UTC, date, datetime

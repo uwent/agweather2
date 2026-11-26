@@ -144,37 +144,30 @@ _ALL = [
         n=12,
         description="Around the compass, back to where it started",
     ),
-    # Levels picked from ColorBrewer RdYlBu's 11 classes for distinct lightness under color-vision deficiencies
-    _listed(
-        id="BuRd_2",
-        kind="categorical",
-        colors=["#4575b4", "#d73027"],
-        description="Blue, red",
-        source="ColorBrewer RdYlBu, 2 of its 11 classes",
-    ),
-    _listed(
-        id="BuYlRd_3",
-        kind="categorical",
-        colors=["#4575b4", "#fee090", "#d73027"],
-        description="Blue, yellow, red",
-        source="ColorBrewer RdYlBu, 3 of its 11 classes",
-    ),
-    _listed(
-        id="BuYlRd_4",
-        kind="categorical",
-        colors=["#4575b4", "#fee090", "#f46d43", "#a50026"],
-        description="Blue, yellow, orange, dark red",
-        source="ColorBrewer RdYlBu, 4 of its 11 classes",
-    ),
+    # Risk levels (Ben, 2026-11-26): the five levels' colors, picked from ColorBrewer RdYlBu's 11 classes for distinct
+    # lightness under color-vision deficiencies, and a palette for each subset of them a model's scale names, so each
+    # level's name is one color on every map (`RISK_STEPS`)
     _listed(
         id="BuYlRd_5",
         kind="categorical",
         colors=["#4575b4", "#abd9e9", "#fee090", "#f46d43", "#a50026"],
-        description="Blue, light blue, yellow, orange, dark red",
+        description="Blue, light blue, yellow, orange, dark red: Very low, Low, Moderate, High and Very high",
         source="ColorBrewer RdYlBu, 5 of its 11 classes",
     ),
-    # Scales of two or three risk levels take BuYlRd_5's colors for the same names (Ben, 2026-11-26), so Low,
-    # Moderate and High are one color on every map: `risk_steps`
+    _listed(
+        id="BuLbYlOr_4",
+        kind="categorical",
+        colors=["#4575b4", "#abd9e9", "#fee090", "#f46d43"],
+        description="Blue, light blue, yellow, orange: Very low, Low, Moderate and High of the five risk levels",
+        source="ColorBrewer RdYlBu, as BuYlRd_5's first four",
+    ),
+    _listed(
+        id="LbYlOrRd_4",
+        kind="categorical",
+        colors=["#abd9e9", "#fee090", "#f46d43", "#a50026"],
+        description="Light blue, yellow, orange, dark red: Low, Moderate, High and Very high of the five risk levels",
+        source="ColorBrewer RdYlBu, as BuYlRd_5's last four",
+    ),
     _listed(
         id="LbYlOr_3",
         kind="categorical",
@@ -283,11 +276,12 @@ USES: dict[str, Use] = {
     "risk_value": Use(palette="viridis"),  # insects' activity (Ben, 2026-11-06)
     "chance": Use(palette="magma", day=(0, 100), bounded=True),
     "crop_stage": Use(palette="viridis"),
-    # Risk levels (`risk_use`): five, four (BuYlRd_5 less its light blue), and two or three by their names' steps
+    # Risk levels (`risk_use`): each scale's levels by name on the five levels' colors (`RISK_STEPS`)
     "risk_2": Use(palette="LbRd_2"),  # apple scab: Low, Infection
     "risk_3": Use(palette="LbYlOr_3"),  # Low, Moderate, High
     "risk_3_extreme": Use(palette="LbOrRd_3"),  # fire blight: Low, High, Extreme
-    "risk_4": Use(palette="BuYlRd_4"),
+    "risk_4": Use(palette="BuLbYlOr_4"),  # the probability models: Very low to High
+    "risk_4_high": Use(palette="LbYlOrRd_4"),  # potato volunteer: Low to Very high
     "risk_5": Use(palette="BuYlRd_5"),
     "susceptibility": Use(palette="GyOrRd_3"),
     # Climate (D86): a departure from normal centered on none, a percentile among the period's years, a season's
@@ -303,21 +297,19 @@ USES: dict[str, Use] = {
     "default": Use(palette="viridis"),
 }
 
-# A risk level's step on the five levels' colors (BuYlRd_5), by name, for scales of two or three levels (Ben,
-# 2026-11-26): Low, Moderate and High are one color everywhere; fire blight's Extreme and apple scab's Infection, each
-# its scale's top, take Very high's dark red, as far from Low's light blue as the scale goes. Mirrored by the
-# frontend's `lib/riskLevels.ts` (its test reads this table)
+# A risk level's step on the five levels' colors (BuYlRd_5), by name, on every scale whatever its length (Ben,
+# 2026-11-26): each name is one color everywhere; fire blight's Extreme and apple scab's Infection, each its scale's
+# top, take Very high's dark red, as far from Low's light blue as the scale goes. Mirrored by the frontend's
+# `lib/riskLevels.ts` (its test reads this table)
 RISK_STEPS = {"Very low": 0, "Low": 1, "Moderate": 2, "High": 3, "Very high": 4, "Extreme": 4, "Infection": 4}
-_RISK_USES = ("risk_2", "risk_3", "risk_3_extreme", "risk_4", "risk_5")
+_RISK_USES = ("risk_2", "risk_3", "risk_3_extreme", "risk_4", "risk_4_high", "risk_5")
 
 
 def risk_steps(levels: Sequence[str]) -> tuple[int, ...]:
-    """Each level's step (0 to 4) on the five risk levels' colors: five as they are, four as BuYlRd_4 (Very low,
-    Moderate, High and Very high's colors), two or three by their names (`RISK_STEPS`)."""
-    if len(levels) == 5:
-        return (0, 1, 2, 3, 4)
-    if len(levels) == 4:
-        return (0, 2, 3, 4)
+    """Each level's step (0 to 4) on the five risk levels' colors, by its name (`RISK_STEPS`)."""
+    unknown = [level for level in levels if level not in RISK_STEPS]
+    if unknown:
+        raise ValueError(f"no color for the risk levels {', '.join(unknown)}")
     return tuple(RISK_STEPS[level] for level in levels)
 
 
