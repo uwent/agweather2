@@ -110,7 +110,7 @@
               {#if run.level[i] !== null}
                 <span
                   class="mr-1 inline-block size-2.5 rounded-full border border-line align-middle"
-                  style:background-color={riskColor(run.level[i], levels)}
+                  style:background-color={riskColor(run.level[i], model.risk_levels)}
                   aria-hidden="true"
                 ></span>
               {/if}

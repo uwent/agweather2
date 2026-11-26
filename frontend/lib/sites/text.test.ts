@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import risk from '@/test/fixtures/site/risk.json'
 
-import { coordinates, dayBasisWords, placeName, rangeDays, riskColor, riskRows, sourceWords } from './text'
+import { coordinates, dayBasisWords, placeName, rangeDays, riskRows, sourceWords } from './text'
 
 describe('site text', () => {
   it('names the place and the point', () => {
@@ -22,13 +22,6 @@ describe('site text', () => {
     )
     expect(sourceWords({ in_box: false })).toContain('Open-Meteo')
     expect(sourceWords({ in_box: true })).toContain('NOAA')
-  })
-
-  it("colors a level by its model's scale", () => {
-    expect(riskColor(0, 5)).toBe('var(--color-risk-severity-1)')
-    expect(riskColor(4, 5)).toBe('var(--color-risk-severity-5)')
-    expect(riskColor(3, 4)).toBe('var(--color-risk-probability-4)')
-    expect(riskColor(2, 3)).toBe('var(--color-risk-severity-5)')
   })
 
   it("reads /risk's columns, highest risk first", () => {

@@ -50,7 +50,7 @@ describe('topRisks', () => {
       risk_label: ['Moderate', 'High', 'Low', 'Low', 'Low', 'Very high', null],
     })
     const found = topRisks(body, catalog, ['hidden'])
-    expect(found.top.map((r) => [r.name, r.label, r.levels])).toEqual([
+    expect(found.top.map((r) => [r.name, r.label, r.levels.length])).toEqual([
       ['Tar spot', 'High', 4],
       ['Late blight', 'Moderate', 5],
       ['X', 'Low', 5],
@@ -117,11 +117,11 @@ describe('weather', () => {
 })
 
 describe('risk colors', () => {
-  it('use the severity tokens for five levels, the probability ones otherwise', () => {
+  it('take the five levels’ tokens: four skip Low’s light blue, two or three follow their names', () => {
     expect(riskColor(4, 5)).toBe('var(--color-risk-severity-5)')
-    expect(riskColor(0, 4)).toBe('var(--color-risk-probability-1)')
-    expect(riskColor(2, 3)).toBe('var(--color-risk-probability-4)')
-    expect(riskColor(1, 2)).toBe('var(--color-risk-probability-4)')
+    expect(riskColor(1, 4)).toBe('var(--color-risk-severity-3)')
+    expect(riskColor(2, ['Low', 'Moderate', 'High'])).toBe('var(--color-risk-severity-4)')
+    expect(riskColor(1, ['Low', 'Infection'])).toBe('var(--color-risk-severity-5)')
     expect(riskColor(null, 5)).toBeUndefined()
     expect(riskRank(3, 4)).toBe(1)
     expect(riskRank(2, 5)).toBe(0.5)

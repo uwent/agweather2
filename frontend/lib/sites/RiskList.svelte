@@ -4,7 +4,8 @@
   import RiskStrip from '../components/RiskStrip.svelte'
   import { trendWords, type ModelRisk } from '../riskSpan'
   import { siteKey, siteModelUrl } from '../siteKey'
-  import { riskColor, type RiskRow } from './text'
+  import { riskColor } from '../riskLevels'
+  import type { RiskRow } from './text'
 
   // "Risk now": each model with a risk above the lowest today, in words first ("High risk") with the level's
   // color beside it, highest first; the lowest level's models in one line, so the list leads with what needs
@@ -40,7 +41,7 @@
     return labels.map((label) => [label, lowest.filter((row) => row.label === label)] as const)
   })
   const others = $derived(rows.length - withLevel.length)
-  const levels = (row: RiskRow) => catalog.get(row.model)?.risk_levels.length ?? 5
+  const levels = (row: RiskRow) => catalog.get(row.model)?.risk_levels ?? 5
   const days = (count: number) => `${count} missing ${count === 1 ? 'day' : 'days'}`
 </script>
 

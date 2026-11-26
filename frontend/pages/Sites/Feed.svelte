@@ -117,7 +117,7 @@
             <li class="flex items-center gap-1.5">
               <span
                 class="size-3 shrink-0 rounded-sm border border-line"
-                style:background-color={riskColor(k, levels)}
+                style:background-color={riskColor(k, model.risk_levels)}
                 aria-hidden="true"
               ></span>
               {level}
@@ -155,7 +155,7 @@
             {#if levels}
               <RiskStrip
                 days={row.days}
-                {levels}
+                levels={model.risk_levels}
                 {today}
                 label={`${model.name} at ${siteLabel(row.site)}: ${trendWords({ model: model.id, name: model.name, days: row.days }, today)}.`}
                 class="w-40"
@@ -168,7 +168,7 @@
                 {#if row.answer.level !== null && levels}
                   <span
                     class="mt-1 size-3 shrink-0 rounded-full border border-line"
-                    style:background-color={riskColor(row.answer.level, levels)}
+                    style:background-color={riskColor(row.answer.level, model.risk_levels)}
                     aria-hidden="true"
                   ></span>
                 {/if}

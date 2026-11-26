@@ -1,6 +1,6 @@
 <script lang="ts">
   import { forecastIndex, type RiskDay } from '../riskSpan'
-  import { riskColor } from '../riskLevels'
+  import { riskColor, type RiskScale } from '../riskLevels'
 
   // A model's risk as a small strip of days, each colored by its level (lib/riskLevels), from two weeks back through
   // the forecast: a day without a level is left blank, a day out of season faded, the forecast shaded and today
@@ -11,7 +11,7 @@
     today,
     label,
     class: className = '',
-  }: { days: RiskDay[]; levels: number; today: string; label: string; class?: string } = $props()
+  }: { days: RiskDay[]; levels: RiskScale; today: string; label: string; class?: string } = $props()
 
   const width = 120
   const height = 10

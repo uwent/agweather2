@@ -31,8 +31,8 @@ export type RiskRow = {
   name: string
   level: number
   label: string
-  /** The number of levels in its scale, for the color */
-  levels: number
+  /** Its scale's levels, lowest first, for the color */
+  levels: readonly string[]
   /** Its days from two weeks back through the forecast, for the sparkline (an answer over several days) */
   days?: RiskDay[]
 }
@@ -72,7 +72,7 @@ export function topRisks(
       none++
       return
     }
-    const levels = entry.risk_levels.length
+    const levels = entry.risk_levels
     rows.push({ model: id, name: String(c.name?.[k] ?? id), level, label, levels, days: spans?.get(id)?.days })
   })
   rows.sort((a, b) => riskRank(b.level, b.levels) - riskRank(a.level, a.levels) || a.name.localeCompare(b.name))

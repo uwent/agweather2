@@ -16,6 +16,7 @@ import type { SiteModelInfo } from '@/types'
 import type { TableResponse } from '@/types/api'
 
 import { formatDate } from '../dates'
+import { riskStep, type RiskScale } from '../riskLevels'
 import { tableRows, type Day, type Table } from '../tableRows'
 import type { Units } from '../units'
 import type { EChartsCoreOption } from './echarts'
@@ -245,14 +246,9 @@ export function formatValue(table: Table, units: Units, column: string, day: Day
   return unit ? `${number} ${unit}` : number
 }
 
-/** The color of level `level` on a scale of `count` levels, from the palette (the same mapping as lib/riskLevels:
- * five levels severity, four probability, two or three spread over probability's) */
-export function levelColor(level: number, count: number, palette: Palette): string {
-  const k = Math.max(0, Math.min(count - 1, Math.round(level)))
-  if (count === 5) return palette.severity[k]
-  if (count === 4) return palette.probability[k]
-  const steps = count === 3 ? [0, 1, 3] : count === 2 ? [0, 3] : [3]
-  return palette.probability[steps[k]]
+/** The color of level `level` on a scale, from the palette's five risk levels (lib/riskLevels' steps) */
+export function levelColor(level: number, scale: RiskScale, palette: Palette): string {
+  return palette.severity[riskStep(level, scale) ?? 0]
 }
 
 /** Whether a day's risk counts: in season and, where the run has the crop's stages, in its susceptible window */
@@ -319,7 +315,6 @@ export function modelOption({ model, run, panels, units, palette, today }: Model
   const base = baseOption(palette)
   const { grids } = layout(panels)
   const count = panels.length
-  const levels = model.risk_levels.length
   const { shading, label: forecastLabel } = forecastBand({ dates, days, grids: count, axisOffset: count, palette })
   const projected = days.map((day) => day.kind === 'projection')
   const firstProjected = projected.indexOf(true)
@@ -375,7 +370,10 @@ export function modelOption({ model, run, panels, units, palette, today }: Model
             ? null
             : {
                 value: 1,
-                itemStyle: { color: levelColor(level, levels, palette), opacity: riskCounts(run, i) ? 1 : 0.3 },
+                itemStyle: {
+                  color: levelColor(level, model.risk_levels, palette),
+                  opacity: riskCounts(run, i) ? 1 : 0.3,
+                },
               },
         ),
       })

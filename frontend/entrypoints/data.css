@@ -25,20 +25,16 @@
   --color-chart-estimated: #5f5a47;
   --color-chart-missing: #c3c8cf;
 
-  /* Risk levels, lowest first: the API's categorical palettes (packages/agdata/src/agdata/palettes.py,
-     BuYlRd_5 for severity, Very low to Very high, and BuYlRd_4 for probability, Very low to High),
-     so the same level is the same color on a map, a chart and an image from the API. The same in
-     dark mode, with words beside them so color is never the only cue (palette.test.ts holds them to
-     palettes.py) */
+  /* Risk levels, lowest first: the API's five levels (packages/agdata/src/agdata/palettes.py's
+     BuYlRd_5, Very low to Very high), so the same level is the same color on a map, a chart and an
+     image from the API. Scales of fewer levels take steps of these (lib/riskLevels.ts: four as
+     BuYlRd_4, two or three by their levels' names). The same in dark mode, with words beside them so
+     color is never the only cue (palette.test.ts and riskLevels.test.ts hold them to palettes.py) */
   --color-risk-severity-1: #4575b4;
   --color-risk-severity-2: #abd9e9;
   --color-risk-severity-3: #fee090;
   --color-risk-severity-4: #f46d43;
   --color-risk-severity-5: #a50026;
-  --color-risk-probability-1: #4575b4;
-  --color-risk-probability-2: #fee090;
-  --color-risk-probability-3: #f46d43;
-  --color-risk-probability-4: #a50026;
 }
 
 /* Dark mode: twice, as application.css does (the system's setting with no override, and an explicit
