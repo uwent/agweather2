@@ -39,11 +39,14 @@ def source_day(target: date, years_back: int) -> date:
         return date(target.year - years_back, 2, 28)
 
 
-def projection_start(dates: Sequence[date], kinds: Sequence[str | None]) -> date | None:
-    """The day after a series' last day with data (observed, partial or forecast), or None if it has none."""
+def projection_start(dates: Sequence[date], kinds: Sequence[str | None], today: date | None = None) -> date | None:
+    """The day after a series' last day with data (observed, partial or forecast), or None if it has none. A series
+    with no data that starts after `today` (a planting date past the forecast's end) is projected from its first day."""
     for k in range(len(kinds) - 1, -1, -1):
         if kinds[k] is not None:
             return dates[k] + timedelta(days=1)
+    if today is not None and dates and dates[0] > today:
+        return dates[0]
     return None
 
 

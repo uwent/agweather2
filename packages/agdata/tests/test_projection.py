@@ -71,6 +71,9 @@ def test_the_projection_starts_after_the_last_day_with_data_and_stacks_on_the_se
     dates = [date(2026, 7, 30), date(2026, 7, 31), date(2026, 8, 1)]
     assert projection.projection_start(dates, ["observed", "forecast", None]) == date(2026, 8, 1)
     assert projection.projection_start(dates, [None, None, None]) is None
+    # No data in a series that starts after today (planted past the forecast's end): projected from its first day
+    assert projection.projection_start(dates, [None, None, None], today=date(2026, 7, 20)) == date(2026, 7, 30)
+    assert projection.projection_start(dates, [None, None, None], today=date(2026, 7, 30)) is None  # a past gap
     s = projection.build(date(2026, 8, 1), date(2026, 8, 2), [2024, 2025], ["t"], reader())
     values, kinds = projection.stacked({"t": np.array([1.0, 2.0])}, ["observed", "forecast"], s)
     assert values["t"].shape == (4, 2) and values["t"][:2].tolist() == [[1.0, 1.0], [2.0, 2.0]]

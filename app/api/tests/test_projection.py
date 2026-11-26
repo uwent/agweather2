@@ -84,6 +84,44 @@ def test_models_of_each_kind_project(client, projection_archive, model_id):
     assert date.fromisoformat(body["data"]["date"][-1]) == date(2025, 8, 20)
 
 
+CROPS_FROM_PLANTING = ["corn-stages", "soybean-stages", "potato-stages", "spring-wheat-stages"]
+
+
+@pytest.mark.parametrize("model_id", CROPS_FROM_PLANTING)
+def test_a_crop_planted_after_the_forecast_projects(client, projection_archive, model_id):
+    # The forecast ends about July 21; a planting date a week past it still has a projection from that day on
+    params = {"lat": LAT, "lng": LNG, "planting_date": "2025-07-28", "end": "2025-08-20", "projection": "true"}
+    body = get(client, model_id, **params).json()
+    data, meta = body["data"], body["meta"]
+    assert set(data["kind"]) == {"projection"}, meta["warnings"]
+    assert data["date"][0] == "2025-07-28" and data["date"][-1] == "2025-08-20"
+    assert meta["summary"]["projection"]["start"] == "2025-07-28"
+    assert meta["summary"]["projection"]["years"] == [2023, 2024]
+    assert not any("nothing to project" in w for w in meta["warnings"])
+    assert data["stage"][-1] is not None
+
+
+def test_degree_days_from_a_start_after_the_forecast_project(client, projection_archive):
+    params = {"lat": LAT, "lng": LNG, "dd": "modified_50_86", "start": "2025-07-28", "end": "2025-08-20"}
+    body = client.get("/api/v2/degree-days", {**params, "projection": "true"}).json()
+    data, meta = body["data"], body["meta"]
+    assert set(data["kind"]) == {"projection"}, meta["warnings"]
+    assert meta["summary"]["projection"]["years"] == [2023, 2024]
+    assert data["dd_modified_50_86_cum"][-1] > 0
+    # Next year's season, which has no daily store yet: still projected, from every earlier year with days then
+    later = {**params, "start": "2026-07-28", "end": "2026-08-20", "projection": "true"}
+    body = client.get("/api/v2/degree-days", later).json()
+    assert set(body["data"]["kind"]) == {"projection"}, body["meta"]["warnings"]
+    assert {2023, 2024} <= set(body["meta"]["summary"]["projection"]["years"])
+
+
+def test_a_planting_after_the_forecast_without_an_end_runs_from_it_to_the_seasons_end(client, projection_archive):
+    body = get(client, "corn-stages", lat=LAT, lng=LNG, planting_date="2025-07-28", projection="true").json()
+    data, meta = body["data"], body["meta"]
+    assert data["date"][0] == "2025-07-28" and data["date"][-1] == "2025-10-31"  # corn's season ends October 31
+    assert meta["request"]["start"] == "2025-07-28" and meta["summary"]["projection"]["start"] == "2025-07-28"
+
+
 def test_several_models_project_together(client, projection_archive):
     body = client.get(
         "/api/v2/models/run",
