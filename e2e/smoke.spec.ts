@@ -273,7 +273,7 @@ test('the topics index opens a topic page, which links its model', async ({ page
   await expect(page).toHaveURL(/\/topics$/)
   await page.getByLabel('Crop', { exact: true }).selectOption('potato')
   await page
-    .getByRole('link', { name: /^Late Blight/ })
+    .getByRole('link', { name: /^Late blight \(/ })
     .first()
     .click()
   await expect(page).toHaveURL(/\/topics\/late-blight$/)
