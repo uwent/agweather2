@@ -1036,13 +1036,15 @@ def projected_runs(
     end: date,
     years: Sequence[int],
     data_dir: Path | None = None,
+    today: date | None = None,
 ) -> Projected:
     """`runs_at_point` carried on past the series' last day with data to `end`, once per earlier year in `years`
     (`agdata.projection`; `read_past` reads a past year's days). Each run's scenarios come from
-    `agmodels.scenarios.run_scenarios`, the same as running each year alone."""
+    `agmodels.scenarios.run_scenarios`, the same as running each year alone. A run that starts after `today` with
+    no data (planted past the forecast's end) is projected from its first day."""
     first, names = days_needed(runs, start)
     days = read_days(first, end, names)
-    begins = projection.projection_start(days.dates, days.kinds)
+    begins = projection.projection_start(days.dates, days.kinds, today=today)
     county = county_at(latitude, longitude)
     if begins is None or begins > end:
         plain = runs_at_point(

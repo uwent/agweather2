@@ -381,6 +381,7 @@ def projected_at_point(
         end,
         years=series.archive_years(settings.DATA_DIR),
         data_dir=settings.DATA_DIR,
+        today=now.date(),
     )
 
 

@@ -210,7 +210,9 @@ def daily(
         tmax = np.asarray(days.values["air_temperature_max"][:n], dtype=float)[:, None]
         kinds, labels, cut = list(days.kinds[:n]), [None], n
         if mode:
-            tmin, tmax, kinds, labels, cut, info, note = _project(days, n, lat, lng, last, past, around)
+            tmin, tmax, kinds, labels, cut, info, note = _project(
+                days, n, lat, lng, last, past, around, today=now.date()
+            )
             projections.append({"point": k, **info})
             warnings += [note] if note and note not in warnings else []
         lo_f, hi_f, estimated, usable = temperatures_of(tmin, tmax, options.gaps)
@@ -356,12 +358,21 @@ def _projected_dates(dates: list[date], cut: int, rows: int) -> list[date]:
     return [start + timedelta(days=d) for d in range(rows - cut)]
 
 
-def _project(days, n: int, lat: float, lng: float, last: date, years: list[int], area: AreaAsk | None = None):
+def _project(
+    days,
+    n: int,
+    lat: float,
+    lng: float,
+    last: date,
+    years: list[int],
+    area: AreaAsk | None = None,
+    today: date | None = None,
+):
     """The point's min and max, (days × years) with each earlier year's after the series' last day with data."""
     tmin = np.asarray(days.values["air_temperature_min"][:n], dtype=float)
     tmax = np.asarray(days.values["air_temperature_max"][:n], dtype=float)
     kinds = list(days.kinds[:n])
-    begins = projection.projection_start(days.dates[:n], kinds)
+    begins = projection.projection_start(days.dates[:n], kinds, today=today)
     plain = (tmin[:, None], tmax[:, None], kinds, [None], n)
     if begins is None or begins > last:
         return (

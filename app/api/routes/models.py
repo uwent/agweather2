@@ -1115,6 +1115,8 @@ def _span(when: DaysQuery, m: Model, the_plan: runs.Plan, default_end: date, tod
         if typical is not None and typical <= last:
             anchors = [typical]
     first = min(anchors) if anchors else date(last.year, 1, 1)
+    if when.end is None and first > last:
+        return first, first  # planted past the forecast: from the planting (a projection then runs to the season's end)
     return min(first, last), last
 
 

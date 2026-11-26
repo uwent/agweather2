@@ -21,6 +21,7 @@ from agdata import computed, series
 from agdata.catalog import DAILY_VARIABLES
 from agdata.grid import NDFD
 from agdata.timezones import zone_at
+from api import clock
 from ops import openmeteo
 from ops.points import AreaAsk, FallbackBudget, day_zone, fallback_on, forecast_filler, in_archive, place_at
 
@@ -66,7 +67,9 @@ def _fallback_reads(first: date, last: date, now: datetime) -> bool:
 
 
 def from_archive(lat: float, lng: float, first: date, last: date) -> bool:
-    return in_archive(lat, lng, first, last)
+    """Whether the archive serves days first..last at a point: in the box, and a daily store for each year through
+    today's (days after today have no data from anywhere, so a season next year, to be projected, reads here too)."""
+    return in_archive(lat, lng, first, min(last, clock.now().date()))
 
 
 def stamp(
