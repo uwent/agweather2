@@ -27,10 +27,12 @@ const five = ['Very low', 'Low', 'Moderate', 'High', 'Very high']
 const colors = (scale: readonly string[]) => scale.map((_, k) => resolved(riskColor(k, scale)))
 
 describe('risk colors', () => {
-  it('give a scale of three levels a subset of the five levels’ colors, the same color for the same name', () => {
+  it('give every scale a subset of the five levels’ colors, the same color for the same name', () => {
     const fiveColors = colors(five)
     expect(fiveColors).toEqual(apiPalette('BuYlRd_5'))
     for (const scale of [
+      ['Very low', 'Low', 'Moderate', 'High'],
+      ['Low', 'Moderate', 'High', 'Very high'],
       ['Low', 'Moderate', 'High'],
       ['Low', 'High', 'Extreme'],
       ['Low', 'Infection'],
@@ -47,7 +49,8 @@ describe('risk colors', () => {
     expect(colors(['Low', 'Moderate', 'High'])).toEqual(apiPalette('LbYlOr_3'))
     expect(colors(['Low', 'High', 'Extreme'])).toEqual(apiPalette('LbOrRd_3'))
     expect(colors(['Low', 'Infection'])).toEqual(apiPalette('LbRd_2'))
-    expect(colors(['Very low', 'Low', 'Moderate', 'High'])).toEqual(apiPalette('BuYlRd_4'))
+    expect(colors(['Very low', 'Low', 'Moderate', 'High'])).toEqual(apiPalette('BuLbYlOr_4'))
+    expect(colors(['Low', 'Moderate', 'High', 'Very high'])).toEqual(apiPalette('LbYlOrRd_4'))
   })
 
   it("follow agdata's table of steps by name", () => {
@@ -59,6 +62,7 @@ describe('risk colors', () => {
   it('read a count alone as Low, Moderate, High (or Low and Very high), and leave a missing level blank', () => {
     expect(riskSteps(3)).toEqual([1, 2, 3])
     expect(riskSteps(2)).toEqual([1, 4])
+    expect(riskSteps(4)).toEqual([0, 1, 2, 3])
     expect(riskSteps(['Low', 'Unknown', 'High'])).toEqual([1, 2, 3])
     expect(riskColor(null, 5)).toBeUndefined()
     expect(riskColor(9, ['Low', 'High', 'Extreme'])).toBe('var(--color-risk-severity-5)')

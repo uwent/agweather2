@@ -295,7 +295,9 @@ describe('words and table', () => {
 
   it('takes a scale of 2 to 5 levels in the palette', () => {
     expect(levelColor(4, 5, palette)).toBe('s5')
-    expect([0, 1, 2, 3].map((l) => levelColor(l, 4, palette))).toEqual(['s1', 's3', 's4', 's5'])
+    expect([0, 1, 2, 3].map((l) => levelColor(l, 4, palette))).toEqual(['s1', 's2', 's3', 's4'])
+    const volunteer = ['Low', 'Moderate', 'High', 'Very high']
+    expect([0, 1, 2, 3].map((l) => levelColor(l, volunteer, palette))).toEqual(['s2', 's3', 's4', 's5'])
     expect([0, 1, 2].map((l) => levelColor(l, ['Low', 'Moderate', 'High'], palette))).toEqual(['s2', 's3', 's4'])
     expect([0, 1, 2].map((l) => levelColor(l, ['Low', 'High', 'Extreme'], palette))).toEqual(['s2', 's4', 's5'])
     expect([0, 1].map((l) => levelColor(l, ['Low', 'Infection'], palette))).toEqual(['s2', 's5'])

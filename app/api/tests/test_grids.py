@@ -316,7 +316,7 @@ def test_layers_list_each_mapped_models_outputs_and_options(client, archive):
     tar = data["tar-spot"]
     assert tar["group"] == "model" and tar["time_axis"] == "day" and tar["options"] == []
     assert [o["name"] for o in tar["outputs"]] == ["risk_level", "probability", "susceptibility"]
-    assert tar["palette"] == "BuYlRd_4" and tar["planting"] == ["early", "mid", "late", "none"]
+    assert tar["palette"] == "BuLbYlOr_4" and tar["planting"] == ["early", "mid", "late", "none"]
     assert data["alfalfa-weevil"]["planting"] == [] and data["late-blight-dsv"]["planting"]
     assert data["white-mold"]["options"] == ["irrigation", "row_spacing"]
     assert data["corn-stages"]["outputs"][0]["name"] == "stage" and data["corn-stages"]["options"] == []

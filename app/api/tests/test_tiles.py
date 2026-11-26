@@ -144,7 +144,7 @@ def test_legends_palettes_and_domains(client, archive):
     total = client.get("/api/v2/tiles/dd_modified_50_86/legend.png", {"time": "2025-07-08"})
     assert total.status_code == 200  # its domain from the map
     found = {p["id"]: p for p in client.get("/api/v2/palettes").json()}
-    assert found["BuYlRd"]["kind"] == "diverging" and found["BuYlRd_4"]["colors"][0] == "#4575b4"
+    assert found["BuYlRd"]["kind"] == "diverging" and found["BuLbYlOr_4"]["colors"][0] == "#4575b4"
     assert not found["rainbow"]["colorblind_safe"] and found["BuYlRd"]["source"] == "ColorBrewer RdYlBu, reversed"
     layers = {layer["id"]: layer for layer in client.get("/api/v2/layers").json()["data"]}
     assert layers["air_temperature_max"]["domain"] == [-30, 40]
@@ -239,7 +239,7 @@ def test_palette_chooses_the_colors(client, archive):
         return client.get(f"/api/v2/maps/{layer}.png", params).json()["errors"][0]
 
     assert error(palette="plaid")["code"] == "unknown_palette"
-    assert error(palette="BuYlRd_3")["code"] == "not_applicable"  # categorical on a range of values
+    assert error(palette="LbYlOr_3")["code"] == "not_applicable"  # categorical on a range of values
     assert error(layer="late-blight-dsv", date="2025-07-08", palette="viridis")["code"] == "not_applicable"
 
 
