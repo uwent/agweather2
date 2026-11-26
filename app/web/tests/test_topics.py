@@ -9,7 +9,7 @@ from django.urls import Resolver404, resolve
 
 from agdata import corrections, provenance
 from agmodels.registry import all_models
-from web import modelpages, topicpages
+from web import catalog, modelpages, topicpages
 from web.content import model_pages, topics
 from web.props import MethodsProps, SharedProps, TopicPageProps, TopicsIndexProps
 
@@ -97,7 +97,7 @@ def test_links_between_pages_resolve():
                 continue
             if match.url_name == "topic" and match.kwargs["topic_id"] not in topics():
                 broken.append(f"{p.id}: {path}")
-            if match.url_name == "model" and modelpages.page_spec(match.kwargs["model_id"]) is None:
+            if match.url_name == "model" and catalog.shown_spec(match.kwargs["model_id"]) is None:
                 broken.append(f"{p.id}: {path}")
     assert not broken, "\n".join(broken)
 

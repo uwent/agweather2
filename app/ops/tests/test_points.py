@@ -145,8 +145,8 @@ def test_after_a_failure_or_once_its_time_is_spent_a_request_asks_open_meteo_no_
     settings.OPEN_METEO_FALLBACK = True
     asked = []
 
-    def down(lat, lon, first, last, now):
-        asked.append(lat)
+    def down(lat, lon, first, last, now, *, fetch=True):
+        asked.append(lat if fetch else "cache only")
         raise points.openmeteo.Unavailable("refused")
 
     monkeypatch.setattr(points.openmeteo, "cell_hours", down)
@@ -156,7 +156,8 @@ def test_after_a_failure_or_once_its_time_is_spent_a_request_asks_open_meteo_no_
     soil = points._soil_filler(*MADISON, NOW, budget)
     assert first is not None and first(*hours) is None and budget.failed
     assert soil(*hours) is None  # the soil (D44) degrades the same way: no 503
-    assert asked == [MADISON[0]]
+    assert asked == [MADISON[0], "cache only"]  # after the failure, only the cell cache is read
     spent = points.FallbackBudget(seconds=0)
     fill = points.forecast_filler(*MADISON, NOW, spent)
-    assert fill is not None and fill(*hours) is None and asked == [MADISON[0]]
+    assert fill is not None and fill(*hours) is None and asked == [MADISON[0], "cache only", "cache only"]
+    assert not spent.failed  # a cache miss isn't Open-Meteo failing

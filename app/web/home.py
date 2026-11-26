@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 
 from django.conf import settings
 
-from agdata import seasonopens
+from agdata import coverage, seasonopens
 from agmodels import croplist, seasons
 from agmodels.spec import ModelSpec
 from web.catalog import specs
@@ -20,7 +20,7 @@ from web.props import CropModels, HeadlineMap, ModelLink
 
 # A model valid only in some states (cotton, pecan) shows only if one of them is in the launch coverage (D105): the
 # 12 Midwest states and Kentucky
-COVERED_STATES = {"IA", "IL", "IN", "KS", "KY", "MI", "MN", "MO", "ND", "NE", "OH", "SD", "WI"}
+COVERED_STATES = frozenset(coverage.preset("upper_midwest").states or ())
 IMAGE_WIDTH = 640  # pixels: the API's maps take 400 to 2000
 
 

@@ -92,6 +92,25 @@ def test_a_month_cached_before_soil_moisture_is_fetched_again(fake_fetch):
 
 
 @pytest.mark.django_db
+def test_a_spent_budget_still_reads_the_cell_cache_and_fetches_nothing(fake_fetch, settings):
+    """A request's Open-Meteo budget (`ops.points.FallbackBudget`) stops its fetches, not its reads of the cache:
+    a cell cached by an earlier request still gets its forecast, and one not cached goes without."""
+    settings.OPEN_METEO_FALLBACK = True
+    madison, oshkosh = (43.07, -89.42), (44.02, -88.54)
+    start, end = datetime(2026, 7, 14, tzinfo=UTC), datetime(2026, 7, 18, tzinfo=UTC)
+    openmeteo.cell_hours(*madison, start, end, NOW)  # an earlier request's
+    assert len(fake_fetch) == 1
+    spent = points.FallbackBudget(seconds=0)
+    cached = points.forecast_filler(*madison, NOW, spent)
+    missed = points.forecast_filler(*oshkosh, NOW, spent)
+    assert cached is not None and missed is not None
+    found = cached(start, end, ["air_temperature"])
+    assert found is not None and found.values["air_temperature"][-1] == 25
+    assert missed(start, end, ["air_temperature"]) is None
+    assert len(fake_fetch) == 1 and not spent.failed
+
+
+@pytest.mark.django_db
 def test_a_model_outside_the_box_runs_on_open_meteo(fake_fetch, settings, tmp_path):
     settings.DATA_DIR = tmp_path
     settings.SERVICE_BOX = "wisconsin"

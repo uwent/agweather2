@@ -287,14 +287,16 @@ def forecast_filler(
 
 
 def _fetch(latitude: float, longitude: float, start: datetime, end: datetime, now: datetime, budget: FallbackBudget):
-    """`ops.openmeteo.cell_hours`, or None when the request's budget is spent or Open-Meteo can't be reached (which
-    spends it)."""
-    if not budget.allows():
-        return None
+    """`ops.openmeteo.cell_hours`, or None when Open-Meteo can't be reached (which spends the request's budget) or,
+    once the budget is spent, the cell cache doesn't hold the hours: a spent budget still reads the cache."""
+    fetch = budget.allows()
     try:
+        if not fetch:
+            return openmeteo.cell_hours(latitude, longitude, start, end, now, fetch=False)
         return openmeteo.cell_hours(latitude, longitude, start, end, now)
     except openmeteo.Unavailable:
-        budget.failed = True
+        if fetch:
+            budget.failed = True
         return None
 
 

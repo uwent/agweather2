@@ -34,9 +34,8 @@ from agdata import climatology, normals, regions, springfreeze
 from agdata.grid import Window
 
 PERIOD = "last30"
-FREEZE = (
-    springfreeze.SPRING_28
-)  # the median last spring freeze at 28 °F, averaged over the area (`agdata.springfreeze`)
+# The median last spring freeze at 28 °F, averaged over the area (`agdata.springfreeze`)
+FREEZE = springfreeze.SPRING_28
 # Days from the freeze to each tier's planting: medians of Veg Path's dates less the freeze at their places
 OFFSETS = {"early": -6, "mid": 7, "late": 28}
 

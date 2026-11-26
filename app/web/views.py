@@ -11,7 +11,7 @@ from agmodels.registry import all_models
 from updates.render import markdown_html
 from web import contentpages, datapage, methodspage, modelpages, statuspage, topicpages
 from web import home as home_content
-from web.catalog import crop_entries, model_entries
+from web.catalog import crop_entries, model_entries, shown_spec
 from web.content import topics
 from web.inertia import render
 from web.legacy import legacy_target
@@ -37,7 +37,7 @@ from web.props import (
     SitesIndexProps,
     ToolsIndexProps,
 )
-from web.sitemodel import model_info, model_settings, section, shown_spec
+from web.sitemodel import model_info, model_settings, section
 
 # The model the oak wilt tool reads
 OAK_WILT = "oak-wilt-vectors"
@@ -109,7 +109,7 @@ def models_index(request: HttpRequest):
 
 def model_page(request: HttpRequest, model_id: str):
     """A model's page (track 4): sections from its spec and its Markdown page; 404 for unknown and retired ids."""
-    spec = modelpages.page_spec(model_id)
+    spec = shown_spec(model_id)
     if spec is None:
         raise Http404("No such model")
     return render(request, "Models/Show", modelpages.page_props(spec))
@@ -178,7 +178,7 @@ def site_model_feed(request: HttpRequest, model_id: str):
     return render(request, "Sites/Feed", SiteModelFeedProps(model=model_info(spec)))
 
 
-# Tracks 5–7's pages, stubbed 2026-11-26 so their routes exist before the waves build them
+# Tracks 5–7's pages: those without props fetch what they show from the API in the browser (D117)
 
 
 def tools_index(request: HttpRequest):

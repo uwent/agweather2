@@ -24,6 +24,7 @@ from agmodels.registry import all_models
 from agmodels.registry import model as find_model
 from agmodels.spec import ModelSpec
 from api.routes.discovery import report_link
+from web.catalog import crops_named
 from web.content import model_pages
 from web.props import (
     CatalogModel,
@@ -57,17 +58,9 @@ def catalog_specs() -> list[ModelSpec]:
     return [m.SPEC for m in all_models().values() if m.SPEC.status != "retired" and m.SPEC.group in GROUPS]
 
 
-def page_spec(model_id: str) -> ModelSpec | None:
-    """The spec of a model that has a page: any model but a retired one."""
-    found = all_models().get(model_id)
-    return None if found is None or found.SPEC.status == "retired" else found.SPEC
-
-
 def index_props() -> ModelsIndexProps:
     specs = sorted(catalog_specs(), key=lambda s: s.name.lower())
-    named = {c for s in specs for c in s.crops}
-    order = list(croplist.CATEGORIES)
-    crops = sorted((c for c in croplist.CROPS.values() if c.id in named), key=lambda c: order.index(c.category))
+    crops = crops_named(c for s in specs for c in s.crops)
     return ModelsIndexProps(
         models=[
             CatalogModel(id=s.id, name=s.name, group=s.group, summary=s.summary, status=s.status, crops=list(s.crops))
