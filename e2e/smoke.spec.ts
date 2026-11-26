@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { SAVED, stubSiteData } from './sites'
 import { stubDataApi } from './dataApi'
 import { stubClimateApi } from './climateApi'
-import { stubFeedApi, stubFreezeApi, stubSiteApi } from './siteApi'
+import { stubCropGddApi, stubFeedApi, stubFreezeApi, stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
 // Every page loads with no console errors (a CSP violation shows as one) and no failed requests
@@ -390,6 +390,20 @@ test('freeze dates and odds: this year against the typical dates, the odds and a
   await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
   await expect(page.getByRole('heading', { name: 'Look up a date' })).toBeVisible()
   await expect(page.getByRole('link', { name: /typical first fall frost/ })).toBeVisible()
+})
+
+// The crop GDD outlook (track 5 P1)
+test('crop GDD outlook: when corn reaches black layer, its stages and a past year', async ({ page }) => {
+  await stubCropGddApi(page)
+  await page.goto('/tools/crop-gdd')
+  await expect(page.getByRole('heading', { level: 1, name: 'Crop GDD outlook' })).toBeVisible()
+  await page.goto('/tools/crop-gdd?at=43.07,-89.4&hybrid=2700&planting=2026-05-08&years=2012')
+  await expect(page.getByText('A 2700 GDD hybrid planted May 8 reached black layer on Sep 27.')).toBeVisible()
+  await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
+  const table = page.getByRole('table')
+  await expect(table.getByRole('columnheader', { name: '2012' })).toBeVisible()
+  await expect(table.getByRole('row', { name: /R6 Black layer/ })).toContainText('Sep 13')
+  await expect(page.getByRole('button', { name: 'Remove 2012' })).toBeVisible()
 })
 
 test('health check', async ({ request }) => {

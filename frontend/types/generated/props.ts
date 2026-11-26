@@ -114,9 +114,156 @@ export interface CropEntry {
   category: string
 }
 /**
- * Crop growing degree days (`/tools/crop-gdd`, track 5 P1).
+ * The crop GDD outlook (`/tools/crop-gdd`, track 5 P1): the corn stage model's content (its hybrid maturities and
+ * default planting date) and the years our own archive holds. The place, its run, the normal and the freeze odds the
+ * page fetches from the API (`/models/corn-stages/run`, `/degree-days`, `/climate/compare`, `/climate/frost/chances`,
+ * D117); a comparison year before the archive's first comes from Open-Meteo.
  */
-export interface CropGddToolProps {}
+export interface CropGddToolProps {
+  model: SiteModelInfo
+  /**
+   * The years with weather in our archive, newest first.
+   */
+  years: number[]
+}
+/**
+ * A model as its page at a site shows it (content from the registry, D117).
+ */
+export interface SiteModelInfo {
+  id: string
+  name: string
+  group: string
+  status: 'beta' | 'stable'
+  version: string
+  summary: string
+  /**
+   * The crops' names.
+   */
+  crops: string[]
+  /**
+   * The model's own inputs (not its crop model's).
+   */
+  inputs: ModelQuantity[]
+  /**
+   * Its outputs; the first is the primary one.
+   */
+  outputs: ModelQuantity[]
+  options: ModelOption[]
+  /**
+   * None for a model without a biofix, or with one fixed.
+   */
+  biofix: SiteModelBiofix | null
+  /**
+   * None for a model that takes no planting date.
+   */
+  planting: ModelPlanting | null
+  /**
+   * A crop model's stages in order; empty for other models.
+   */
+  stages: CropStageInfo[]
+  /**
+   * Its risk levels, lowest first; empty for a model without risk.
+   */
+  risk_levels: string[]
+  /**
+   * How its outputs become each level, in words; empty without risk.
+   */
+  risk_criteria: string
+  risk_thresholds: number[]
+  /**
+   * The crop stages a disease affects, in words, or None.
+   */
+  susceptible: string | null
+  /**
+   * MM-DD first and last day it runs, or None (all year).
+   */
+  season: string[] | null
+  /**
+   * How an insect's season opens at each location (D128), completing 'Its season opens …'; None: on its season's first day.
+   */
+  season_opens: string | null
+  /**
+   * State abbreviations where it's valid; empty: anywhere.
+   */
+  region: string[]
+  trained: ModelTrained | null
+  /**
+   * The model page's 'How to read it', as HTML; None without a page.
+   */
+  guidance_html: string | null
+}
+/**
+ * An input or output of a model: its API column, label and stored unit (the API's run gives it in metric).
+ */
+export interface ModelQuantity {
+  name: string
+  label: string
+  unit: string
+  description: string
+}
+/**
+ * A choice that changes the model, sent to its run as a plain parameter (`maturity_group=2.5`).
+ */
+export interface ModelOption {
+  name: string
+  label: string
+  /**
+   * Empty for a value the reader types (a date, YYYY-MM-DD).
+   */
+  choices: ModelChoice[]
+  default: string
+  /**
+   * Whether the value is a date (an option without choices named `…_date`).
+   */
+  date: boolean
+}
+export interface ModelChoice {
+  value: string
+  label: string
+}
+export interface SiteModelBiofix {
+  /**
+   * MM-DD.
+   */
+  default: string
+  /**
+   * What the date means to a grower.
+   */
+  label: string
+  /**
+   * The crop stage whose estimated date is the default instead, in words.
+   */
+  stage: string | null
+}
+/**
+ * What a planting date adds: the crop's stages, a disease's susceptible window or a stage biofix (D64).
+ */
+export interface ModelPlanting {
+  /**
+   * The crop's name.
+   */
+  crop: string
+  /**
+   * Whether `early`, `mid` and `late` typical dates exist for it.
+   */
+  typical_dates: boolean
+  /**
+   * The crop model's own options, sent to the run too.
+   */
+  options: ModelOption[]
+}
+export interface CropStageInfo {
+  code: string
+  name: string
+}
+export interface ModelTrained {
+  description: string
+  /**
+   * The first and last year of its data.
+   */
+  years: number[]
+  states: string[]
+}
 export interface CropModels {
   crop: string
   name: string
@@ -127,10 +274,6 @@ export interface ModelLink {
   name: string
   group: string
   url: string
-}
-export interface CropStageInfo {
-  code: string
-  name: string
 }
 /**
  * The states and counties `/data` offers for a map file (`web.datapage.areas`).
@@ -535,10 +678,6 @@ export interface ModelCheck {
    */
   report_url: string
 }
-export interface ModelChoice {
-  value: string
-  label: string
-}
 export interface ModelCitation {
   text: string
   doi: string | null
@@ -577,22 +716,6 @@ export interface ModelInput {
    * The variable's description in the catalog (`/variables`' long_name).
    */
   definition: string
-}
-/**
- * A choice that changes the model, sent to its run as a plain parameter (`maturity_group=2.5`).
- */
-export interface ModelOption {
-  name: string
-  label: string
-  /**
-   * Empty for a value the reader types (a date, YYYY-MM-DD).
-   */
-  choices: ModelChoice[]
-  default: string
-  /**
-   * Whether the value is a date (an option without choices named `…_date`).
-   */
-  date: boolean
 }
 export interface ModelOutput {
   label: string
@@ -720,32 +843,6 @@ export interface ModelTrainingArea {
   calendar_curve: boolean
 }
 /**
- * What a planting date adds: the crop's stages, a disease's susceptible window or a stage biofix (D64).
- */
-export interface ModelPlanting {
-  /**
-   * The crop's name.
-   */
-  crop: string
-  /**
-   * Whether `early`, `mid` and `late` typical dates exist for it.
-   */
-  typical_dates: boolean
-  /**
-   * The crop model's own options, sent to the run too.
-   */
-  options: ModelOption[]
-}
-/**
- * An input or output of a model: its API column, label and stored unit (the API's run gives it in metric).
- */
-export interface ModelQuantity {
-  name: string
-  label: string
-  unit: string
-  description: string
-}
-/**
  * A model's settings as the preferences panels offer them (for all sites, a group or a site): the same fields as
  * its page at a site, without the rest of its content.
  */
@@ -756,28 +853,6 @@ export interface ModelSettings {
   biofix: SiteModelBiofix | null
   planting: ModelPlanting | null
   options: ModelOption[]
-}
-export interface SiteModelBiofix {
-  /**
-   * MM-DD.
-   */
-  default: string
-  /**
-   * What the date means to a grower.
-   */
-  label: string
-  /**
-   * The crop stage whose estimated date is the default instead, in words.
-   */
-  stage: string | null
-}
-export interface ModelTrained {
-  description: string
-  /**
-   * The first and last year of its data.
-   */
-  years: number[]
-  states: string[]
 }
 export interface ModelsIndexProps {
   /**
@@ -808,72 +883,6 @@ export interface OakWiltToolProps {
    * The oak wilt topic's Management section as HTML, without its citation markers; None without it.
    */
   management_html: string | null
-}
-/**
- * A model as its page at a site shows it (content from the registry, D117).
- */
-export interface SiteModelInfo {
-  id: string
-  name: string
-  group: string
-  status: 'beta' | 'stable'
-  version: string
-  summary: string
-  /**
-   * The crops' names.
-   */
-  crops: string[]
-  /**
-   * The model's own inputs (not its crop model's).
-   */
-  inputs: ModelQuantity[]
-  /**
-   * Its outputs; the first is the primary one.
-   */
-  outputs: ModelQuantity[]
-  options: ModelOption[]
-  /**
-   * None for a model without a biofix, or with one fixed.
-   */
-  biofix: SiteModelBiofix | null
-  /**
-   * None for a model that takes no planting date.
-   */
-  planting: ModelPlanting | null
-  /**
-   * A crop model's stages in order; empty for other models.
-   */
-  stages: CropStageInfo[]
-  /**
-   * Its risk levels, lowest first; empty for a model without risk.
-   */
-  risk_levels: string[]
-  /**
-   * How its outputs become each level, in words; empty without risk.
-   */
-  risk_criteria: string
-  risk_thresholds: number[]
-  /**
-   * The crop stages a disease affects, in words, or None.
-   */
-  susceptible: string | null
-  /**
-   * MM-DD first and last day it runs, or None (all year).
-   */
-  season: string[] | null
-  /**
-   * How an insect's season opens at each location (D128), completing 'Its season opens …'; None: on its season's first day.
-   */
-  season_opens: string | null
-  /**
-   * State abbreviations where it's valid; empty: anywhere.
-   */
-  region: string[]
-  trained: ModelTrained | null
-  /**
-   * The model page's 'How to read it', as HTML; None without a page.
-   */
-  guidance_html: string | null
 }
 /**
  * Potato volunteer survival (`/tools/potato-volunteer`, track 5 P1).

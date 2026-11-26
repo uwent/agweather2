@@ -53,3 +53,21 @@ export async function stubFreezeApi(page: Page) {
     return name ? route.fulfill({ json: climate(name) }) : route.fallback()
   })
 }
+
+/** The crop GDD outlook's answers (Madison, corn planted May 8, recorded for frontend/test/fixtures/tools), with the
+ * site's and the freeze tool's */
+export async function stubCropGddApi(page: Page) {
+  await stubFreezeApi(page)
+  const tools = (name: string) =>
+    JSON.parse(readFileSync(new URL(`../frontend/test/fixtures/tools/${name}.json`, import.meta.url), 'utf8'))
+  await page.route('**/api/v2/**', (route) => {
+    const url = new URL(route.request().url())
+    if (url.pathname === '/api/v2/models/corn-stages/run') return route.fulfill({ json: tools('corn-run') })
+    if (url.pathname === '/api/v2/climate/compare') return route.fulfill({ json: tools('compare-corn') })
+    if (url.pathname === '/api/v2/degree-days')
+      return route.fulfill({
+        json: tools(url.searchParams.get('biofix')?.startsWith('2012') ? 'year-2012' : 'degree-days-soybean'),
+      })
+    return route.fallback()
+  })
+}
