@@ -14,22 +14,19 @@ import type { TableResponse } from '@/types/api'
 
 import { normalBand, normalName, type CompareTable, type FreezeChances } from '../charts/climateCharts'
 import type { EChartsCoreOption } from '../charts/echarts'
-import { band, rowLabel, thresholdLine, todayLine } from '../charts/kinds'
+import { band, rounded, rowLabel, thresholdLine, todayLine } from '../charts/kinds'
 import { baseOption, type Palette } from '../charts/palette'
 import { forecastShading } from '../charts/shading'
 import { formatDate } from '../dates'
-import type { Kind } from '../tableRows'
+import { columnsOf, type Kind } from '../tableRows'
 import type { Units } from '../units'
 import type { PeriodYears } from '../climate/periods'
 import { freezeNoun } from './freeze'
 
 type Body = Pick<TableResponse, 'meta' | 'data'>
-type Columns = Record<string, unknown[]>
-const columnsOf = (body: Body): Columns => (Array.isArray(body.data) ? {} : (body.data as Columns))
 const record = (value: unknown) => (value && typeof value === 'object' ? (value as Record<string, unknown>) : {})
 const numberOr = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : null)
 const textOr = (value: unknown) => (typeof value === 'string' ? value : null)
-const rounded = (value: number | null) => (value === null ? null : Number(value.toFixed(3)))
 
 // --- The crops ----------------------------------------------------------------------------------------------------
 
