@@ -65,9 +65,34 @@ describe('precipitation so far today', () => {
         precipitation: [1, 2, 4, 8],
       },
     } as unknown as TableResponse
-    const [a, b] = rainSoFarByPoint(body, 2, '2026-11-25')
+    const [a, b] = rainSoFarByPoint(body, 2, '2026-11-25', Date.parse('2026-11-25T18:00Z'))
     expect(a?.amount).toBe(3)
     expect(b).toMatchObject({ amount: 8, through: '2026-11-25T09:00Z', missing: 0 })
+  })
+
+  it("takes a point's today on its own clock outside the area, when it differs from the grid's", () => {
+    const body = {
+      meta: {
+        locations: [
+          { in_box: true, timezone: 'America/Chicago' },
+          { in_box: false, timezone: 'America/Los_Angeles' },
+          { in_box: false, timezone: 'America/New_York' },
+        ],
+      },
+      data: {
+        point: [0, 1, 1, 2, 2],
+        time: ['2026-11-26T06:00Z', '2026-11-25T20:00Z', '2026-11-26T06:00Z', '2026-11-25T10:00Z', '2026-11-26T05:00Z'],
+        kind: ['observed', 'observed', 'observed', 'observed', 'observed'],
+        precipitation: [1, 2, 4, 8, 16],
+      },
+    } as unknown as TableResponse
+    // 12:30 a.m. CST on November 26 is still 10:30 p.m. on the 25th in Los Angeles
+    const [a, b] = rainSoFarByPoint(body, 3, '2026-11-26', Date.parse('2026-11-26T06:30Z'))
+    expect(a).toBeNull() // the grid's November 26 has no whole hour yet
+    expect(b).toMatchObject({ amount: 6, through: '2026-11-26T06:00Z' })
+    // 11:30 p.m. CST on November 25 is 12:30 a.m. on the 26th in New York, whose day has no whole hour yet
+    const [, , c] = rainSoFarByPoint(body, 3, '2026-11-25', Date.parse('2026-11-26T05:30Z'))
+    expect(c).toBeNull()
   })
 
   it('says how far the total goes and what is missing, in the reader’s units', () => {
