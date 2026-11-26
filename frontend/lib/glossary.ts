@@ -64,6 +64,56 @@ export const GLOSSARY: GlossaryEntry[] = [
     definition:
       "A heat total like degree days, weighted for the potato plant: each day's temperatures are scored by how well they suit potato growth. Early blight models use 300 P-days from emergence as the time to begin protecting the crop.",
   },
+  // Climate (Phase 7 track 6.1): normals, their spread and freezes
+  {
+    id: 'normal',
+    term: 'Normal',
+    matches: ['climate normals', 'climate normal', 'normals'],
+    definition:
+      "The usual weather for a place and time of year: the average over a run of recent years, the last 30 by default, or the last 10 or 5. We compute a place's normals from its own past years, so a normal total to a date is each year's own total, averaged.",
+  },
+  {
+    id: 'percentile',
+    term: 'Percentile',
+    matches: ['percentiles', 'percentile'],
+    definition:
+      'Where a value ranks among past years. The 50th percentile is the middle year; the 90th is a value only 1 year in 10 went above. The range from the 10th to the 90th percentile holds 8 years in 10, so a value outside it is unusual.',
+  },
+  {
+    id: 'departure',
+    term: 'Departure from normal',
+    matches: ['departures from normal', 'departure from normal', 'departures', 'departure'],
+    definition:
+      "How far a value is from its normal: this year's value less the normal. Above normal is positive and below normal negative.",
+  },
+  {
+    id: 'frost',
+    term: 'Frost',
+    matches: ['frosts', 'frost'],
+    definition:
+      'A night when the air falls to 32 °F (0 °C) or colder, 2 m (6.5 ft) above the ground. Tender crops can be damaged. Low spots and plants near the ground can frost on nights a little warmer than this.',
+  },
+  {
+    id: 'hard_freeze',
+    term: 'Hard freeze',
+    matches: ['hard freezes', 'hard freeze'],
+    definition:
+      'A night when the air falls to 28 °F (−2.2 °C) or colder. It kills or badly damages most warm-season crops and ends the growing season for many annual plants.',
+  },
+  {
+    id: 'killing_freeze',
+    term: 'Killing freeze',
+    matches: ['killing freezes', 'killing freeze'],
+    definition:
+      "A night when the air falls to 24 °F (−4.4 °C) or colder, cold enough to kill the top growth of hardier crops such as alfalfa. Crops differ, and a tool for one crop may use that crop's own killing temperature.",
+  },
+  {
+    id: 'frost_free_season',
+    term: 'Frost-free season',
+    matches: ['frost-free seasons', 'frost-free season', 'season without a frost'],
+    definition:
+      "The days between the last frost of spring and the first frost of fall, when crops can grow without one. It's counted in each year, so its typical length isn't simply the time between the typical dates.",
+  },
 ]
 
 const byId = new Map(GLOSSARY.map((entry) => [entry.id, entry]))
