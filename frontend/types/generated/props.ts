@@ -115,6 +115,133 @@ export interface HomeProps {
  * The map explorer's props: none yet. Its layers, palettes, models and crops come from the API (D117).
  */
 export interface MapExplorerProps {}
+/**
+ * A correction (`agdata.corrections`), as `/api/v2/methods` serves it.
+ */
+export interface MethodsCorrection {
+  id: string
+  title: string
+  summary: string
+  variables: string[]
+  version: string
+  /**
+   * YYYY-MM-DD the table was fitted; None without a fitted table.
+   */
+  fitted: string | null
+  scores: MethodsScore[]
+  /**
+   * Links to the validation reports on GitHub.
+   */
+  evidence: string[]
+}
+export interface MethodsScore {
+  measure: string
+  /**
+   * The stored unit's symbol (`agdata.units`); the page converts it.
+   */
+  unit: string
+  before: number
+  after: number
+  tested: string
+}
+/**
+ * The grid and the days, from `agdata.grid.NDFD` and `agdata.timezones` (D74).
+ */
+export interface MethodsGrid {
+  name: string
+  /**
+   * A cell's width, km.
+   */
+  cell_km: number
+  /**
+   * The grid's days' time zone, in words ('Central Standard Time').
+   */
+  day_zone: string
+  /**
+   * 'CST'.
+   */
+  day_zone_abbreviation: string
+  /**
+   * The UTC hour a grid day starts (6 for CST).
+   */
+  day_start_utc: number
+  /**
+   * The clock hour the day from 6 pm and the night start at (18).
+   */
+  evening_hour: number
+  /**
+   * The clock hour the overnight minimum's window starts at (12, noon).
+   */
+  overnight_hour: number
+  /**
+   * The longest gap a model's daily input is interpolated across (D45).
+   */
+  interpolate_days: number
+  /**
+   * The longest gap a running total bridges with an estimate (D25).
+   */
+  bridge_days: number
+}
+/**
+ * The methods page (`/methods`): generated from the code and data (D92), never written by hand.
+ */
+export interface MethodsProps {
+  grid: MethodsGrid
+  sources: MethodsSource[]
+  corrections: MethodsCorrection[]
+  /**
+   * Hourly, then daily, then running totals, as /variables.
+   */
+  variables: MethodsVariable[]
+  api_methods_url: string
+}
+/**
+ * A source by use (`agdata.provenance.USES`).
+ */
+export interface MethodsSource {
+  source: string
+  name: string
+  role: 'archive' | 'provisional' | 'forecast' | 'outside' | 'normals'
+  /**
+   * Catalog names: hourly, or daily for the normals.
+   */
+  variables: string[]
+  /**
+   * YYYY-MM-DD; None: from the archive's first day.
+   */
+  first: string | null
+  /**
+   * YYYY-MM-DD; None: still in use.
+   */
+  last: string | null
+  description: string
+  url: string
+}
+/**
+ * A variable of the catalog, as `/api/v2/variables` serves it.
+ */
+export interface MethodsVariable {
+  name: string
+  long_name: string
+  kind: 'hourly' | 'daily' | 'cumulative'
+  unit: string
+  notes: string
+  /**
+   * Daily: min, max, mean or sum of its hourly variable.
+   */
+  statistic: string | null
+  hourly_sources: string[]
+  computed_from: string[]
+  /**
+   * Source ids (`MethodsSource.source`).
+   */
+  sources: string[]
+  gap_fill: ('interpolate' | 'zero') | null
+  /**
+   * Correction ids.
+   */
+  corrections: string[]
+}
 export interface ModelBiofix {
   /**
    * MM-DD.
@@ -527,4 +654,85 @@ export interface SiteProps {
 export interface SitesIndexProps {
   models: ModelEntry[]
   crops: CropEntry[]
+}
+/**
+ * A topic as the index (`/topics`) lists it.
+ */
+export interface TopicEntry {
+  id: string
+  title: string
+  kind: 'disease' | 'insect' | 'crop' | 'agronomic' | 'weather'
+  scientific_name: string | null
+  /**
+   * Crop ids (`agmodels.croplist`); empty for a topic of no one crop.
+   */
+  crops: string[]
+}
+/**
+ * A model that predicts the topic's pest, disease or crop (its spec's `topics`).
+ */
+export interface TopicModel {
+  id: string
+  name: string
+  summary: string
+  model_status: 'beta' | 'stable' | 'retired'
+  /**
+   * Its layer on the map explorer (`/map?layer=`); None if it has none.
+   */
+  map_layer: string | null
+}
+/**
+ * A topic page (`/topics/{id}`): its Markdown and front matter (`content/topics/<id>.md`) as content (D117).
+ */
+export interface TopicPageProps {
+  id: string
+  title: string
+  kind: 'disease' | 'insect' | 'crop' | 'agronomic' | 'weather'
+  /**
+   * The kind's public name, singular ('Disease').
+   */
+  kind_name: string
+  scientific_name: string | null
+  summary: string
+  crops: NamedId[]
+  /**
+   * The photo's static URL; None without one.
+   */
+  image_url: string | null
+  /**
+   * The credit's first sentence, which describes the photo.
+   */
+  image_alt: string
+  image_credit: string
+  /**
+   * The page's text is a draft (its front matter's status).
+   */
+  draft: boolean
+  /**
+   * When the page's text last changed (YYYY-MM-DD).
+   */
+  updated: string | null
+  sections: ModelSection[]
+  /**
+   * The page's keyed sources, numbered as the text cites them.
+   */
+  sources: ModelSource[]
+  /**
+   * The models naming this topic, but retired ones, by name.
+   */
+  models: TopicModel[]
+}
+export interface TopicsIndexProps {
+  /**
+   * Every topic page, by title.
+   */
+  topics: TopicEntry[]
+  /**
+   * The crops some topic names, by category as `agmodels.croplist` orders them.
+   */
+  crops: NamedId[]
+  /**
+   * The kinds in the order a crop lists them, with their public names.
+   */
+  kinds: NamedId[]
 }

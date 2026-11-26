@@ -187,3 +187,33 @@ test('the model catalog filters by crop and opens a model page', async ({ page }
 test('a retired or unknown model has no page', async ({ request }) => {
   expect((await request.get('/models/no-such-model')).status()).toBe(404)
 })
+
+test('the topics index opens a topic page, which links its model', async ({ page }) => {
+  await page.goto('/models')
+  await page.getByRole('link', { name: 'Pests and diseases' }).click()
+  await expect(page).toHaveURL(/\/topics$/)
+  await page.getByLabel('Crop', { exact: true }).selectOption('potato')
+  await page
+    .getByRole('link', { name: /^Late Blight/ })
+    .first()
+    .click()
+  await expect(page).toHaveURL(/\/topics\/late-blight$/)
+  await expect(page.getByRole('heading', { level: 2, name: 'Identification' })).toBeVisible()
+  await expect(page.getByRole('img', { name: 'Late blight spots on potato leaves' })).toHaveJSProperty('complete', true)
+  await page.getByRole('link', { name: 'Late blight disease severity values' }).first().click()
+  await expect(page).toHaveURL(/\/models\/late-blight-dsv$/)
+})
+
+test('an unknown topic has no page', async ({ request }) => {
+  expect((await request.get('/topics/no-such-topic')).status()).toBe(404)
+})
+
+test('the methods page, linked from the footer and from a model’s inputs', async ({ page }) => {
+  await page.goto('/models/tar-spot')
+  await page.getByRole('link', { name: 'Minimum temperature' }).click()
+  await expect(page).toHaveURL(/\/methods#variable-air_temperature_min$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Methods' })).toBeVisible()
+  await expect(page.locator('#variable-air_temperature_min')).toBeInViewport()
+  await page.getByRole('contentinfo').getByRole('link', { name: 'Methods' }).click()
+  await expect(page).toHaveURL(/\/methods$/)
+})

@@ -87,7 +87,8 @@ def _parser() -> MarkdownIt:
 
 
 def slug(title: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+    """'agweathers-models' for "AgWeather's models": an apostrophe joins its word."""
+    return re.sub(r"[^a-z0-9]+", "-", re.sub(r"['\u2019]", "", title.lower())).strip("-")
 
 
 def keyed_sources(page: Page) -> list[ModelSource]:
@@ -111,7 +112,8 @@ def render_markdown(text: str, numbers: dict[str, int]) -> str:
         n = numbers[key]
         return f'<sup><a href="#source-{key}" aria-label="Source {n}">{n}</a></sup>'
 
-    return CITATION.sub(marker, _parser().render(text))
+    # Markers side by side share one superscript, separated by commas ("1,2", not "12")
+    return CITATION.sub(marker, _parser().render(text)).replace("</a></sup><sup><a", "</a>,<a")
 
 
 def sections(page: Page, numbers: dict[str, int]) -> list[ModelSection]:

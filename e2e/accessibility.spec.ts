@@ -118,6 +118,19 @@ test('model pages in the other theme', async ({ page }) => {
   for (const path of MODEL_PAGES) await scan(page, path, { reflow: false })
 })
 
+// The topics index, a disease and an insect's topic pages, and the methods page
+const CONTENT_PAGES = ['/topics', '/topics/late-blight', '/topics/european-corn-borer', '/methods']
+
+test('topic and methods pages', async ({ page }) => {
+  for (const path of CONTENT_PAGES) await scan(page, path)
+})
+
+test('topic and methods pages in the other theme', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
+  for (const path of CONTENT_PAGES) await scan(page, path, { reflow: false })
+})
+
 test('the settings dialog', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Settings' }).click()
