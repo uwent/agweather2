@@ -1,6 +1,7 @@
 from django.conf import settings
-from django.http import Http404, HttpRequest
+from django.http import Http404, HttpRequest, HttpResponse
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
 
 from agdata.series import archive_years
 from agmodels import croplist
@@ -10,6 +11,7 @@ from web import methodspage, modelpages, topicpages
 from web.catalog import crop_entries, model_entries
 from web.content import topics
 from web.inertia import render
+from web.legacy import legacy_target
 from web.middleware import grid_today
 from web.props import (
     CalendarProps,
@@ -200,3 +202,21 @@ def content_page(request: HttpRequest, page: str):
 
 def glossary(request: HttpRequest):
     return render(request, "Glossary", GlossaryProps())
+
+
+@csrf_exempt  # v1's forms posted to some of these (the maps, the degree-day lookup); they're redirected, never acted on
+def legacy_redirect(request: HttpRequest, path: str) -> HttpResponse:
+    """A v1 or VDIFN URL (D62): a redirect to its v2 page or to v1 on the legacy host (`web.legacy`), else not found."""
+    found = legacy_target(
+        request.path,
+        request.META.get("QUERY_STRING", ""),
+        method=request.method or "GET",
+        permanent=settings.LEGACY_REDIRECT_PERMANENT,
+        legacy_host=settings.LEGACY_HOST,
+    )
+    if found is None:
+        raise Http404("No such page")
+    url, status = found
+    response = HttpResponse(status=status)
+    response["Location"] = url
+    return response

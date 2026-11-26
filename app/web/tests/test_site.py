@@ -53,18 +53,33 @@ def test_whole_and_signed_numbers(client: Client, path: str):
 @pytest.mark.parametrize(
     "path",
     [
-        "/sites/91,-89",  # past the pole
-        "/sites/43,-181",
-        "/sites/43,-89/",
         "/sites/madison",
         "/sites/43,-89,1",
         "/sites/43;-89",
         "/sites/1e1,-89",
+    ],
+)
+def test_anything_but_a_point_goes_to_the_sites_list(client: Client, path: str):
+    """As v1 sent any other path under /sites/ (D62, web.legacy)."""
+    response = client.get(path)
+    assert (response.status_code, response["Location"]) == (302, "/sites")
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/sites/91,-89",  # past the pole
+        "/sites/43,-181",
         "/sites/models",  # another page under /sites/ some day, never a site
     ],
 )
-def test_anything_but_a_point_is_not_found(client: Client, path: str):
+def test_v2s_own_forms_are_not_found(client: Client, path: str):
     assert client.get(path).status_code == 404
+
+
+def test_a_trailing_slash_goes_to_the_site(client: Client):
+    response = client.get("/sites/43,-89/")
+    assert (response.status_code, response["Location"]) == (302, "/sites/43,-89")
 
 
 def test_the_route_is_named_for_links():
