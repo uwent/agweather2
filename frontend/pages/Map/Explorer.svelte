@@ -205,7 +205,7 @@
       framed = key
       const bounds = group ? groupBounds(group) : null
       const { c, z } = $view
-      if (bounds && !(view.fromLink && c && z !== null)) m.fitBounds(bounds, { padding: 80, maxZoom: 10, duration: 0 })
+      if (bounds && !(view.fromLink && c && z !== null)) m.fitBounds(bounds, { padding: 80, maxZoom: 8, duration: 0 })
     })
   })
   // A basemap switch replaces the style, and the sites with it

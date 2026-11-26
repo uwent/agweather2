@@ -85,6 +85,53 @@ test('your sites with saved sites, and the add-site dialog', async ({ page }) =>
   expect(violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([])
 })
 
+// Groups and preferences: /sites with a group's preferences and a card's groups open, and a saved site's page with
+// its preferences open, in both themes
+async function axeOnly(page: Page, what: string) {
+  await page.mouse.move(0, 0)
+  const { violations } = await new AxeBuilder({ page }).withTags(TAGS).analyze()
+  expect
+    .soft(
+      violations.map((v) => `${v.id}: ${v.help} at ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`),
+      `${what} has accessibility violations`,
+    )
+    .toEqual([])
+}
+
+test('groups and preferences panels', async ({ page }) => {
+  await stubSiteData(page)
+  await stubSiteApi(page)
+  await page.goto('/')
+  const saved = {
+    ...SAVED,
+    sites: [...SAVED.sites, { ...SAVED.sites[0], key: '44.12,-89.52', lat: 44.12, lng: -89.52, name: 'Plover' }],
+    prefs: { all: { crops: ['potato'] }, groups: { g1: { hiddenModels: ['tar-spot'] } }, sites: {} },
+  }
+  saved.groups = [{ ...SAVED.groups[0], siteKeys: ['44.1336,-89.5168', '44.12,-89.52'] }]
+  await page.evaluate((doc) => localStorage.setItem('agweather.sites', JSON.stringify(doc)), saved)
+  for (const theme of ['first', 'other']) {
+    if (theme === 'other') {
+      await page.goto('/')
+      await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
+    }
+    await page.goto('/sites')
+    await expect(page.locator('main h1').first()).toBeVisible()
+    const closed = page.locator('[data-section-toggle][aria-expanded="false"]')
+    while ((await closed.count()) > 0) await closed.first().click()
+    await page.getByRole('button', { name: 'Preferences for Research stations' }).click()
+    await page.getByRole('button', { name: 'Groups for Madison' }).click()
+    await page.getByTestId('prefs-group').getByLabel('Change a model’s settings').selectOption('late-blight-dsv')
+    await axeOnly(page, `/sites (${theme} theme)`)
+
+    await page.goto('/sites/44.12,-89.52#preferences')
+    await expect(page.getByRole('heading', { name: 'Preferences for this site' })).toBeVisible()
+    await expect(page.getByText('This site follows its group: Research stations.')).toBeVisible()
+    await axeOnly(page, `a site's preferences (${theme} theme)`)
+    await page.getByRole('button', { name: /^Groups/ }).click()
+    await axeOnly(page, `a site's groups (${theme} theme)`)
+  }
+})
+
 // A site page, its API answers stubbed: the Overview, the Weather tab's charts, the Models tab, and a model at the site
 const SITE_PAGES = [
   '/sites/44.12,-89.52',

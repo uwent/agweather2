@@ -72,7 +72,9 @@
 
   function line<T>(item: Explained<T>, value: string, none: string): string {
     if (item.value === undefined || (Array.isArray(item.value) && !item.value.length && item.source.kind === 'default'))
-      return item.source.kind === 'default' ? none : `${sourceWords(item.source, level)}: ${none}`
+      return item.source.kind === 'default'
+        ? `${none[0].toUpperCase()}${none.slice(1)}`
+        : `${sourceWords(item.source, level)}: ${none}`
     return `${sourceWords(item.source, level)}: ${value}`
   }
   const cropsLine = $derived(
@@ -189,7 +191,8 @@
   }
 
   const resetClass = 'text-ink-muted underline hover:text-ink'
-  const input = 'rounded-md border border-line bg-surface px-2 py-1 text-sm'
+  // No right padding of our own: a select keeps the room its arrow needs
+  const input = 'max-w-full rounded-md border border-line bg-surface py-1 pl-2 text-sm'
 </script>
 
 <div class="space-y-5 text-sm" data-testid="prefs-{level.kind}">
@@ -210,7 +213,7 @@
         </button>
       {/if}
     </p>
-    <div class="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-4">
       {#each crops as crop (crop.id)}
         <label class="flex items-center gap-2">
           <input

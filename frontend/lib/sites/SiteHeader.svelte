@@ -98,6 +98,21 @@
       <ShareButton url={shareUrl} />
     </div>
   </div>
+  <p class="text-sm" role="status">
+    {#if status}{status}{' '}<a href="/sites" class="text-brand-600 underline hover:text-brand-700">Your sites</a>{/if}
+  </p>
+  <ul class="space-y-0.5 text-sm text-ink-muted">
+    {#if location?.in_box && location.cell}
+      <li>
+        {`Weather for the 2.5 km grid cell centered at ${coordinates(location.cell.lat, location.cell.lng)}.`}
+      </li>
+    {/if}
+    <li>{dayBasisWords(location)}</li>
+    {#if location}<li>{sourceWords(location)}</li>{/if}
+    {#if latest}
+      <li>{`Observed through ${formatHour(latest, location?.timezone ?? undefined)}; forecast after that.`}</li>
+    {/if}
+  </ul>
   {#if saved && panel === 'groups'}
     <section
       id="site-groups"
@@ -117,19 +132,4 @@
       <PrefsPanel level={{ kind: 'site', key: saved.key }} {models} {crops} {settings} />
     </section>
   {/if}
-  <p class="text-sm" role="status">
-    {#if status}{status}{' '}<a href="/sites" class="text-brand-600 underline hover:text-brand-700">Your sites</a>{/if}
-  </p>
-  <ul class="space-y-0.5 text-sm text-ink-muted">
-    {#if location?.in_box && location.cell}
-      <li>
-        {`Weather for the 2.5 km grid cell centered at ${coordinates(location.cell.lat, location.cell.lng)}.`}
-      </li>
-    {/if}
-    <li>{dayBasisWords(location)}</li>
-    {#if location}<li>{sourceWords(location)}</li>{/if}
-    {#if latest}
-      <li>{`Observed through ${formatHour(latest, location?.timezone ?? undefined)}; forecast after that.`}</li>
-    {/if}
-  </ul>
 </header>

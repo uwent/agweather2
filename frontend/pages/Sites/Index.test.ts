@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/svelte'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError } from '@/lib/api'
-import { addSite, memoryBackend, sites, useSitesBackend } from '@/lib/sites.svelte'
+import { addGroup, addSite, memoryBackend, setInGroup, setPrefs, sites, useSitesBackend } from '@/lib/sites.svelte'
 import { setUnitSystem } from '@/lib/unitSystem.svelte'
 import type { ModelEntry } from '@/types'
 
@@ -131,5 +131,22 @@ describe('the sites page', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Remove A' }))
     expect(sites).toHaveLength(0)
     expect(screen.getByRole('heading', { name: 'No sites yet' })).toBeVisible()
+  })
+
+  it('loads a card’s risks again when its group’s preferences change', async () => {
+    const a = addSite({ lat: 43.07, lng: -89.4, name: 'Home farm' })
+    const b = addSite({ lat: 44.5, lng: -89.5, name: 'Hancock' })
+    const group = addGroup('Farm')
+    if (!a.ok || !b.ok || !group.ok) throw new Error('not saved')
+    setInGroup(group.value.id, a.value.key, true)
+    setInGroup(group.value.id, b.value.key, true)
+    render(Index, { models, crops: [], settings: [] })
+    const card = (await screen.findByRole('listitem', { name: 'Hancock' })) as HTMLElement
+    expect(await within(card).findByText('Late blight', {}, { timeout: 2000 })).toBeVisible()
+    setPrefs({ kind: 'group', id: group.value.id }, { hiddenModels: ['late-blight-dsv'] })
+    await vi.waitFor(() => expect(within(card).queryByText('Late blight')).toBeNull())
+    const home = screen.getByRole('listitem', { name: 'Home farm' })
+    expect(within(home).queryByText('Late blight')).toBeNull()
+    expect(get.mock.calls.filter(([path]) => path === '/risk')).toHaveLength(4)
   })
 })
