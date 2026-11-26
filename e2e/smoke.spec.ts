@@ -182,7 +182,7 @@ test('the data status page says how current the data are', async ({ page }) => {
   await expect(page.getByText(/^Checked at /)).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Weather observations' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Missing hours in the last 30 days' })).toBeVisible()
-  await page.getByRole('link', { name: 'changelog' }).click()
+  await page.getByRole('main').getByRole('link', { name: 'changelog', exact: true }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Changes and announcements' })).toBeVisible()
 })
 
