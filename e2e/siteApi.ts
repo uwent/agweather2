@@ -53,3 +53,16 @@ export async function stubFreezeApi(page: Page) {
     return name ? route.fulfill({ json: climate(name) }) : route.fallback()
   })
 }
+
+/** The alfalfa planner's answers (Madison, November 26, 2026, recorded for frontend/test/fixtures/alfalfa), with
+ * the site's */
+export async function stubAlfalfaApi(page: Page) {
+  await stubSiteApi(page)
+  const alfalfa = (name: string) =>
+    JSON.parse(readFileSync(new URL(`../frontend/test/fixtures/alfalfa/${name}.json`, import.meta.url), 'utf8'))
+  await page.route('**/api/v2/models/alfalfa-growth/**', (route) => {
+    const url = new URL(route.request().url())
+    if (url.pathname.endsWith('/run')) return route.fulfill({ json: alfalfa('run-cut') })
+    return route.fulfill({ json: alfalfa(url.searchParams.has('cuts') ? 'plan-cuts' : 'plan') })
+  })
+}

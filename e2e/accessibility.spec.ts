@@ -6,6 +6,7 @@ import { SAVED, stubSiteData } from './sites'
 import { stubDataApi } from './dataApi'
 import { stubClimateApi } from './climateApi'
 import { stubFeedApi, stubFreezeApi, stubSiteApi } from './siteApi'
+import { stubAlfalfaApi } from './siteApi'
 import { expect, test } from './test'
 
 // WCAG 2.1 A and AA checks (axe) on every page, in light (desktop) and dark (phone), and on desktop
@@ -259,6 +260,15 @@ test('the freeze tool, in both themes', async ({ page }) => {
   await scan(page, '/tools/freeze?at=43.07,-89.4')
   await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
   await scan(page, '/tools/freeze?at=43.07,-89.4', { reflow: false })
+})
+
+// The alfalfa planner before and after a place is chosen, its answers stubbed (track 5 P1)
+test('the alfalfa planner, in both themes', async ({ page }) => {
+  await stubAlfalfaApi(page)
+  await scan(page, '/tools/alfalfa')
+  await scan(page, '/tools/alfalfa?at=43.07,-89.4&cut=2026-08-15')
+  await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
+  await scan(page, '/tools/alfalfa?at=43.07,-89.4&cut=2026-08-15', { reflow: false })
 })
 
 test('the settings dialog', async ({ page }) => {

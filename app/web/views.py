@@ -219,7 +219,7 @@ def crop_gdd_tool(request: HttpRequest):
 
 
 def alfalfa_tool(request: HttpRequest):
-    return render(request, "Tools/Alfalfa", AlfalfaToolProps())
+    return render(request, "Tools/Alfalfa", AlfalfaToolProps(years=_archive_years()))
 
 
 def potato_volunteer_tool(request: HttpRequest):
