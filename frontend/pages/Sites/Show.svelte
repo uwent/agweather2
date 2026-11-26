@@ -5,7 +5,10 @@
   import { get } from '@/lib/api'
   import { addDays, today as gridToday } from '@/lib/dates'
   import { riskSpanQuery } from '@/lib/riskSpan'
+  import { DEFAULT_NORMAL_VARIABLE, NORMAL_VARIABLE_IDS } from '@/lib/climate/Normals.svelte'
+  import { DEFAULT_PERIOD, NORMAL_PERIODS } from '@/lib/climate/periods'
   import { request } from '@/lib/sites/request.svelte'
+  import ClimateTab, { type ClimateView } from '@/lib/sites/ClimateTab.svelte'
   import DataTab, { type DataView } from '@/lib/sites/DataTab.svelte'
   import DegreeDaysTab, { type DegreeDaysView } from '@/lib/sites/DegreeDaysTab.svelte'
   import ModelsTab from '@/lib/sites/ModelsTab.svelte'
@@ -28,7 +31,7 @@
 
   const today = $derived(gridToday())
 
-  const TAB_IDS = ['overview', 'weather', 'models', 'degree-days', 'data'] as const
+  const TAB_IDS = ['overview', 'weather', 'models', 'degree-days', 'climate', 'data'] as const
   type Tab = (typeof TAB_IDS)[number]
 
   const view = viewState({
@@ -44,6 +47,13 @@
     since: field(codecs.date, null),
     season: field(codecs.integer({ min: 2000, max: 2100 }), null),
     projection: field(codecs.boolean, false),
+    // The Climate tab
+    cperiod: field(codecs.oneOf(NORMAL_PERIODS), DEFAULT_PERIOD),
+    cdd: field(codecs.string, ''),
+    cstart: field(codecs.date, null),
+    cyear: field(codecs.integer({ min: 2000, max: 2100 }), null),
+    cmonth: field(codecs.integer({ min: 1, max: 12 }), null),
+    cvar: field(codecs.oneOf(NORMAL_VARIABLE_IDS), DEFAULT_NORMAL_VARIABLE),
     // The Data tab
     get: field(codecs.oneOf(['daily', 'hourly', 'totals', 'degree-days', 'model'] as const), 'daily'),
   })
@@ -124,6 +134,22 @@
     projection: $view.projection,
   })
   const dataView = $derived<DataView>({ get: $view.get })
+  const climateView = $derived<ClimateView>({
+    period: $view.cperiod,
+    dd: $view.cdd,
+    start: $view.cstart,
+    year: $view.cyear,
+    month: $view.cmonth,
+    variable: $view.cvar,
+  })
+  function patchClimate(changes: Partial<ClimateView>) {
+    const names = { period: 'cperiod', dd: 'cdd', start: 'cstart', year: 'cyear', month: 'cmonth', variable: 'cvar' }
+    view.patch(
+      Object.fromEntries(
+        Object.entries(changes).map(([key, value]) => [names[key as keyof ClimateView], value]),
+      ) as Partial<typeof $view>,
+    )
+  }
   // A saved site's planting date (its preferences), for the Degree days tab's count from planting
   const savedPlanting = $derived(saved ? (effectivePrefs(saved.key).planting ?? null) : null)
   const savedBiofix = $derived(saved ? (effectivePrefs(saved.key).biofix ?? null) : null)
@@ -137,6 +163,7 @@
     { value: 'weather', label: 'Weather' },
     { value: 'models', label: 'Models' },
     { value: 'degree-days', label: 'Degree days' },
+    { value: 'climate', label: 'Climate' },
     { value: 'data', label: 'Data' },
   ] as const
 </script>
@@ -217,6 +244,11 @@
               ...('projection' in changes ? { projection: changes.projection } : {}),
             })}
         />
+      {/if}
+    </Tabs.Content>
+    <Tabs.Content value="climate" class="pt-6">
+      {#if $view.tab === 'climate'}
+        <ClimateTab {lat} {lng} {today} {location} view={climateView} onchange={patchClimate} />
       {/if}
     </Tabs.Content>
     <Tabs.Content value="data" class="pt-6">

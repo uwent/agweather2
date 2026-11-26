@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 
 import { SAVED, stubSiteData } from './sites'
 import { stubDataApi } from './dataApi'
+import { stubClimateApi } from './climateApi'
 import { stubFeedApi, stubFreezeApi, stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
@@ -506,4 +507,22 @@ test('the glossary filters its terms, and a term on another page links to its en
   await page.getByRole('link', { name: 'See the glossary' }).click()
   await expect(page).toHaveURL(/\/glossary#growing_degree_days$/)
   await expect(page.locator('#growing_degree_days')).toBeInViewport()
+})
+
+// The site page's Climate tab (track 6.2): each section loads as it scrolls in
+test("a site's Climate tab", async ({ page }) => {
+  await stubSiteApi(page)
+  await stubClimateApi(page)
+  await page.goto('/sites/44.12,-89.52?name=Hancock&tab=climate&cperiod=last10')
+  await expect(page.getByRole('tab', { name: 'Climate' })).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByRole('radio', { name: /^10 years/ })).toBeChecked()
+  await expect(page.getByText(/^Degree days from Jan 1 through Nov 24:/)).toBeVisible()
+  for (const name of ['Temperature against normal', 'Frost and freeze', 'This month against normal', 'Normals']) {
+    await page.getByRole('heading', { level: 2, name }).scrollIntoViewIfNeeded()
+  }
+  await expect(page.getByRole('table', { name: /^Days counted in / })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Normals by month' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Average high: normal through the year' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Freeze dates' })).toBeVisible()
+  await expect(page.locator('[data-chart] canvas')).toHaveCount(5)
 })

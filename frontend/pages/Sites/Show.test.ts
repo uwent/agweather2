@@ -236,6 +236,49 @@ describe('the site page', () => {
     )
   })
 
+  it('shows the climate a section at a time, in the period and month a shared link names', async () => {
+    const climate: Record<string, unknown> = {
+      '/climate/compare': (await import('@/test/fixtures/climate/compare.json')).default,
+      '/climate/frost': (await import('@/test/fixtures/climate/frost.json')).default,
+      '/climate/frost/chances': (await import('@/test/fixtures/climate/chances.json')).default,
+      '/freeze': (await import('@/test/fixtures/climate/freeze.json')).default,
+      '/climate/normals': (await import('@/test/fixtures/climate/months.json')).default,
+    }
+    get.mockImplementation((path: string) => Promise.resolve(climate[path] ?? ANSWERS[path]))
+    window.history.replaceState(
+      null,
+      '',
+      '/sites/44.12,-89.52?tab=climate&cperiod=last10&cmonth=7&cvar=precipitation_sum',
+    )
+    render(Show, props)
+    expect(screen.getByRole('tab', { name: 'Climate' })).toHaveAttribute('aria-selected', 'true')
+    for (const name of [
+      'This season so far',
+      'Temperature against normal',
+      'Frost and freeze',
+      'This month against normal',
+      'Normals',
+    ])
+      expect(screen.getByRole('heading', { level: 2, name })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /^10 years/ })).toBeChecked()
+    await vi.waitFor(() => expect(get.mock.calls.some(([path]) => path === '/climate/frost')).toBe(true))
+    const climateCalls = get.mock.calls.filter(([path]) => path.startsWith('/climate'))
+    expect(climateCalls.every(([, params]) => params.period === 'last10' && params.units === 'us')).toBe(true)
+    await vi.waitFor(() =>
+      expect(
+        get.mock.calls.some(([path, params]) => path === '/climate/compare' && params.start === '2026-07-01'),
+      ).toBe(true),
+    )
+    expect(
+      get.mock.calls.some(([path, params]) => path === '/climate/normals' && params.vars?.[0] === 'precipitation_sum'),
+    ).toBe(true)
+    expect(get.mock.calls.some(([path]) => path === '/risk')).toBe(false)
+    await fireEvent.click(screen.getByRole('radio', { name: /^30 years/ }))
+    await vi.waitFor(() =>
+      expect(get.mock.calls.findLast(([path]) => path === '/climate/frost')![1].period).toBe('last30'),
+    )
+  })
+
   it('builds a download and shows its address, saying when it is too long', async () => {
     window.history.replaceState(null, '', '/sites/44.12,-89.52?tab=data')
     render(Show, props)
