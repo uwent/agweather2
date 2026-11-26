@@ -2,7 +2,7 @@
 
 A running summary for Ben, kept current as agents' work merges (newest at the top of each list). The plan and its decisions are in [phase-7-web-app.md](phase-7-web-app.md); the handoff is PLAN.md's. Branch `phase-7` (from `main` after PR #1).
 
-Last updated: 2026-11-26, 23:45 CST.
+Last updated: 2026-11-27, 00:20 CST.
 
 ## Built (merged into `phase-7`)
 
@@ -34,6 +34,7 @@ Last updated: 2026-11-26, 23:45 CST.
 
 ### Backend and data (this phase)
 
+- The alfalfa planner `GET /api/v2/models/alfalfa-growth/plan` (D129: the Shiny tool's scheduling, 15 parity cases exact; the season from the last spring killing freeze to the 1-in-10 fall one; the fall rule checked against each year's own freeze; ~0.2 s a plan); `meta.summary.stages` on crop-model runs; stored counts listed on `/layers`; routes for the three P1 tools.
 - D124 percent outputs; D125→D128 insect seasons opening on the area's normal degree days, the crop's stage or the calendar; D126→D127 potato planting from the area's 28 °F freeze (50 km); apple scab 0.2 (no interpolated wet temperature); oak wilt 0.3 (`flown`).
 - Null inputs no longer counted estimated or missing; potato volunteer's falling-risk milestones; unknown POST body fields refused (422).
 - County table from the tiles' map (~0.05 s a state); `/grids`/`/maps`/`/summaries` `region=` limited to the coverage's states.
@@ -44,11 +45,11 @@ Last updated: 2026-11-26, 23:45 CST.
 
 ## On deck (in order)
 
-1. **Running now:** the P1 tools' backend (the alfalfa planner `GET /models/alfalfa-growth/plan`, `meta.summary.stages`, routes for the P1 tools, the counts on `/layers`); `/methods#normals`.
-2. **Next:** the P1 tool pages: crop GDD outlook, potato volunteer, alfalfa "since the last cut" and the calculator's increments; then the alfalfa season planner page; a keyboard spec over the tools; the map explorer reading the counts from `/layers`.
+1. **Running now:** `/methods#normals`; review round 1 (frontend, backend); the crop GDD outlook page.
+2. **Next:** the potato volunteer page; the alfalfa page (since the last cut and the season planner); a keyboard spec over the tools; the map explorer reading the counts from `/layers` instead of its own copy.
 3. **Reviews** (Ben, 2026-11-26): periodic review agents over what's been built (bugs, refactoring, duplication); findings and fixes below.
 4. **Small:** count departures' colour scale ([0, 6.25] for days ≥ 90 °F, not centred on 0); climate endpoints' speed on a quiet server (`/climate/compare` 13 s under load); the legend at full strength while the map is at 80 % (Ben's call).
-5. **Ben:** About's drafts and credits; oak wilt's wording with DNR (their 2026 guidelines don't mention 231 °F·d); restart `bin/dev` after pulling; the interface design pass (map explorer plus bespoke model and topic pages in WISP 3's map-plus-feed frame).
+5. **Ben:** the alfalfa planner's last cut lands on the 1-in-10 24 °F date (Nov 1 at Madison), later than most growers cut: should the season end earlier? About's drafts and credits; oak wilt's wording with DNR (their 2026 guidelines don't mention 231 °F·d); restart `bin/dev` after pulling; the interface design pass (map explorer plus bespoke model and topic pages in WISP 3's map-plus-feed frame).
 6. **Later:** accounts and email (track 8, when SES is set up); Phase 9's observed phenologies.
 
 ## Data jobs
