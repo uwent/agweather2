@@ -2,7 +2,7 @@
 
 A running summary for Ben, kept current as agents' work merges (newest at the top of each list). The plan and its decisions are in [phase-7-web-app.md](phase-7-web-app.md); the handoff is PLAN.md's. Branch `phase-7` (from `main` after PR #1).
 
-Last updated: 2026-11-27, 02:50 CST.
+Last updated: 2026-11-27, 03:15 CST.
 
 ## Built (merged into `phase-7`)
 
@@ -48,10 +48,10 @@ Last updated: 2026-11-27, 02:50 CST.
 
 ## On deck (in order)
 
-1. **Running now:** the map explorer reading counts from `/layers`, the flaky glossary test, a keyboard spec over the tools; backend fixes (crop runs projecting from a future planting date, corn-stages ignoring `biofix=`, the Madison cell's degree days by year, count departures' colour scale).
+1. **Running now:** review round 2 (the P1 tools and normals; round 1's refactors); backend fixes (crop runs projecting from a future planting date, corn-stages ignoring `biofix=`, the Madison cell's degree days by year, count departures' colour scale).
 2. **Next:** review round 2 over waves 9–10 (the climate pages and the P1 tools); a full Playwright and CI run.
 3. **Reviews** (Ben, 2026-11-26): periodic review agents over what's been built (bugs, refactoring, duplication); findings and fixes below.
-4. **Small:** the API serves the current winter's potato volunteer map before January 1 though the model says it appears then (the page waits); the map explorer reading counts from `/layers`; a flaky smoke test (the glossary not always scrolled to a linked term); count departures' colour scale ([0, 6.25] for days ≥ 90 °F, not centred on 0); climate endpoints' speed on a quiet server (`/climate/compare` 13 s under load); the legend at full strength while the map is at 80 % (Ben's call).
+4. **Done overnight:** the map explorer reads counts from `/layers`; a keyboard spec over every tool (focus outlines fixed on the place search fields; focus kept when a place is found). **Small:** the API serves the current winter's potato volunteer map before January 1 though the model says it appears then (the page waits); count departures' colour scale ([0, 6.25] for days ≥ 90 °F, not centred on 0); climate endpoints' speed on a quiet server (`/climate/compare` 13 s under load); the legend at full strength while the map is at 80 % (Ben's call).
 5. **Ben:** the alfalfa planner's season end stays on the typical 1-in-10 date even when this year's own freeze came later (Nov 24 and 26 in 2026 and 2024) — as D129's rule says, but readers may ask; the alfalfa planner's last cut lands on the 1-in-10 24 °F date (Nov 1 at Madison), later than most growers cut: should the season end earlier? About's drafts and credits; oak wilt's wording with DNR (their 2026 guidelines don't mention 231 °F·d); restart `bin/dev` after pulling; the interface design pass (map explorer plus bespoke model and topic pages in WISP 3's map-plus-feed frame).
 6. **Later:** accounts and email (track 8, when SES is set up); Phase 9's observed phenologies.
 
