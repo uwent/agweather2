@@ -2,7 +2,7 @@
 
 A running summary for Ben, kept current as agents' work merges (newest at the top of each list). The plan and its decisions are in [phase-7-web-app.md](phase-7-web-app.md); the handoff is PLAN.md's. Branch `phase-7` (from `main` after PR #1).
 
-Last updated: 2026-11-27, 03:15 CST.
+Last updated: 2026-11-27, 03:45 CST.
 
 ## Built (merged into `phase-7`)
 
@@ -37,6 +37,7 @@ Last updated: 2026-11-27, 03:15 CST.
 
 ### Backend and data (this phase)
 
+- Crop models and `/degree-days` project from a planting or start date past the forecast (a spring reader planning ahead; points into next year read the archive, not Open-Meteo); `biofix=` on the crop-stage models is the planting date (a different `planting_date` beside it is refused); count departures' colours centred on 0.
 - The alfalfa planner `GET /api/v2/models/alfalfa-growth/plan` (D129: the Shiny tool's scheduling, 15 parity cases exact; the season from the last spring killing freeze to the 1-in-10 fall one; the fall rule checked against each year's own freeze; ~0.2 s a plan); `meta.summary.stages` on crop-model runs; stored counts listed on `/layers`; routes for the three P1 tools.
 - D124 percent outputs; D125→D128 insect seasons opening on the area's normal degree days, the crop's stage or the calendar; D126→D127 potato planting from the area's 28 °F freeze (50 km); apple scab 0.2 (no interpolated wet temperature); oak wilt 0.3 (`flown`).
 - Null inputs no longer counted estimated or missing; potato volunteer's falling-risk milestones; unknown POST body fields refused (422).
@@ -52,7 +53,7 @@ Last updated: 2026-11-27, 03:15 CST.
 2. **Next:** review round 2 over waves 9–10 (the climate pages and the P1 tools); a full Playwright and CI run.
 3. **Reviews** (Ben, 2026-11-26): periodic review agents over what's been built (bugs, refactoring, duplication); findings and fixes below.
 4. **Done overnight:** the map explorer reads counts from `/layers`; a keyboard spec over every tool (focus outlines fixed on the place search fields; focus kept when a place is found). **Small:** the API serves the current winter's potato volunteer map before January 1 though the model says it appears then (the page waits); count departures' colour scale ([0, 6.25] for days ≥ 90 °F, not centred on 0); climate endpoints' speed on a quiet server (`/climate/compare` 13 s under load); the legend at full strength while the map is at 80 % (Ben's call).
-5. **Ben:** the alfalfa planner's season end stays on the typical 1-in-10 date even when this year's own freeze came later (Nov 24 and 26 in 2026 and 2024) — as D129's rule says, but readers may ask; the alfalfa planner's last cut lands on the 1-in-10 24 °F date (Nov 1 at Madison), later than most growers cut: should the season end earlier? About's drafts and credits; oak wilt's wording with DNR (their 2026 guidelines don't mention 231 °F·d); restart `bin/dev` after pulling; the interface design pass (map explorer plus bespoke model and topic pages in WISP 3's map-plus-feed frame).
+5. **Ben:** **the Madison cell (and the row beside it) is treated as lake water by URMA itself since 2017**, so its degree days ran 300–380 below Madison's airport in 2017–2020 and about even since 2021 (cool maxima, warm minima, changing over the years; the airport's own cell tracks the station within ~2 % every year): leave the data and (b) suggest `radius` or `land_only` on pages when a location's cell is mostly water (Madison 24 %), (c) note that normals and projections at inland-lake cells mix the periods (ties to the Lake Winnebago normals question), (d) record the 2017 and ~2021 changes in a weather validation report — which? The alfalfa planner's season end stays on the typical 1-in-10 date even when this year's own freeze came later (Nov 24 and 26 in 2026 and 2024) — as D129's rule says, but readers may ask; the alfalfa planner's last cut lands on the 1-in-10 24 °F date (Nov 1 at Madison), later than most growers cut: should the season end earlier? About's drafts and credits; oak wilt's wording with DNR (their 2026 guidelines don't mention 231 °F·d); restart `bin/dev` after pulling; the interface design pass (map explorer plus bespoke model and topic pages in WISP 3's map-plus-feed frame).
 6. **Later:** accounts and email (track 8, when SES is set up); Phase 9's observed phenologies.
 
 ## Data jobs
