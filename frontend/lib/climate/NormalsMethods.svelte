@@ -115,7 +115,14 @@
         {` The ${andList(atLocationsOnly.map((p) => `${periodLength(p.period)}-year`))} period${atLocationsOnly.length > 1 ? 's are' : ' is'} available only for a location, through the API, not as maps.`}
       {/if}
     </p>
-    <div class="overflow-x-auto">
+    <!-- Scrolls sideways on a phone; focusable so a keyboard can scroll it -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <div
+      class="overflow-x-auto focus-visible:outline-2 focus-visible:outline-brand-600"
+      role="region"
+      aria-label="Periods and their years"
+      tabindex="0"
+    >
       <table class="w-full min-w-120 text-left text-sm">
         <caption class="sr-only">The periods normals cover and where their years come from</caption>
         <thead class="border-b border-line">
@@ -283,7 +290,14 @@
     <p>
       {`Where we don’t have the normal for a location, every season opens on its fixed date. For the region as a whole, as in the home page’s list and a map’s notes, a season opens on the day it has opened on ${n.region_percentile}% of the area’s cropland.`}
     </p>
-    <div class="overflow-x-auto">
+    <!-- Scrolls sideways on a phone; focusable so a keyboard can scroll it -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <div
+      class="overflow-x-auto focus-visible:outline-2 focus-visible:outline-brand-600"
+      role="region"
+      aria-label="Insect seasons"
+      tabindex="0"
+    >
       <table class="w-full min-w-xl text-left text-sm">
         <caption class="sr-only">When each insect’s season opens</caption>
         <thead class="border-b border-line">

@@ -52,12 +52,12 @@ describe('the glossary page', () => {
     expect(within(screen.getByRole('region', { name: 'B' })).getByText('Biofix')).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Letters' })).toBeInTheDocument()
     // The climate terms link to how normals are made
-    const normal = container.querySelector('#normal dd') as HTMLElement
+    const normal = container.querySelector('#normal') as HTMLElement
     expect(within(normal).getByRole('link', { name: 'How we make normals' })).toHaveAttribute(
       'href',
       '/methods#normals',
     )
-    expect(within(container.querySelector('#biofix dd') as HTMLElement).queryByRole('link')).toBeNull()
+    expect(within(container.querySelector('#biofix') as HTMLElement).queryByRole('link')).toBeNull()
   })
 
   it('filters by words in a term or its definition, and shows all again', async () => {
