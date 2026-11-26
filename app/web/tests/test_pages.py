@@ -158,3 +158,23 @@ def test_catalog_lists_retired_models_only_when_asked():
     assert "tarnished-plant-bug" not in {m.id for m in model_entries()}
     assert "tarnished-plant-bug" in {m.id for m in model_entries(retired=True)}
     assert {c.id for c in crop_entries()} >= {"corn", "potato", "apple", "oak"}
+
+
+@pytest.mark.django_db
+def test_the_status_page_shows_the_apis_answer_with_each_sources_usual_delay_and_recent_outages(client, archive):
+    from updates.models import ChangelogEntry
+
+    today = datetime.now(UTC).date()
+    ChangelogEntry.objects.create(title="Late hours", kind="outage", published=True, date=today - timedelta(days=3))
+    ChangelogEntry.objects.create(title="Long ago", kind="outage", published=True, date=today - timedelta(days=200))
+    ChangelogEntry.objects.create(title="Not an outage", kind="data", published=True, date=today)
+    response = client.get("/status", headers=INERTIA).json()
+    assert response["component"] == "Status/Show"
+    props = response["props"]
+    assert props["report"] == client.get("/api/v2/status").json()["data"]
+    sources = {s["id"]: s for s in props["sources"]}
+    assert list(sources) == ["urma", "rtma", "hrrr", "era5land", "ifs"]
+    assert sources["urma"]["normal_lag_hours"] == 14 and sources["era5land"]["normal_lag_hours"] == 168
+    assert sources["hrrr"]["name"].startswith("HRRR (High-Resolution Rapid Refresh)")
+    assert [e["title"] for e in props["outages"]] == ["Late hours"]
+    assert props["refresh_seconds"] == 60

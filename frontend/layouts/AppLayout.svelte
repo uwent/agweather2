@@ -9,6 +9,7 @@
   import SettingsDialog from '@/lib/components/SettingsDialog.svelte'
   import { routes } from '@/lib/routes'
   import StaleBanner from '@/lib/components/StaleBanner.svelte'
+  import AnnouncementBanner from '@/lib/components/AnnouncementBanner.svelte'
 
   let { children }: { children: Snippet } = $props()
 
@@ -147,6 +148,7 @@
   </div>
 
   <StaleBanner />
+  <AnnouncementBanner />
 
   <SettingsDialog bind:open={settingsOpen} />
 

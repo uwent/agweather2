@@ -89,6 +89,23 @@ class DownloadsStatus(Schema):
     built_at: str | None  # when the newest was built
 
 
+class GapDay(Schema):
+    date: str
+    missing_hours: int
+
+
+class VariableGaps(Schema):
+    variable: str  # one of ops.status.SOURCE_VARIABLES: each feed's variable
+    sources: list[str]  # the sources that filled its hours over the span
+    days: list[GapDay]  # only days missing an hour
+
+
+class GapsStatus(Schema):
+    first: str | None  # the span's first and last grid days
+    last: str | None
+    variables: list[VariableGaps]
+
+
 class StatusData(Schema):
     service: str
     version: str
@@ -97,6 +114,7 @@ class StatusData(Schema):
     forecast: ForecastStatus
     models: int
     downloads: DownloadsStatus
+    gaps: GapsStatus
 
 
 class StatusResponse(Schema):
@@ -111,6 +129,11 @@ def _iso(when: datetime | None) -> str | None:
 @router.get("/status", response=responses(StatusResponse), summary="Service status: what the archive and forecast hold")
 def status(request: HttpRequest) -> HttpResponse:
     """From `DatasetStatus`, which every write refreshes (`ops.status.refresh_dataset_status`): no store is opened."""
+    return respond(request, Result(request={}, data=status_data().model_dump()))
+
+
+def status_data() -> StatusData:
+    """`/status`'s data, which the status page (`web.statuspage`) shows first too."""
     rows = dataset_status(settings.DATA_DIR)
     files = [e for e in downloads.read_index(settings.DATA_DIR) if e.variable in downloads.OFFERED]
     hourly, daily, run = rows["hourly"], rows["daily"], rows["forecast"]
@@ -144,8 +167,9 @@ def status(request: HttpRequest) -> HttpResponse:
         ),
         models=len(all_models()),
         downloads=DownloadsStatus(files=len(files), built_at=max((e.built_at for e in files), default=None)),
+        gaps=GapsStatus.model_validate(hourly.details.get("gaps") or {"first": None, "last": None, "variables": []}),
     )
-    return respond(request, Result(request={}, data=data.model_dump()))
+    return data
 
 
 # --- /downloads ----------------------------------------------------------------------------------------------------

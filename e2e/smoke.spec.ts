@@ -72,7 +72,8 @@ test('API use form sends a report', async ({ page }) => {
   // A form sent within seconds of the page loading is taken for a program's (updates/forms.py)
   await page.waitForTimeout(3500)
   await page.getByRole('button', { name: 'Send' }).click()
-  await expect(page.getByRole('status')).toContainText('Thank you')
+  await expect(page.getByRole('heading', { name: 'Thank you' })).toBeVisible()
+  await page.getByRole('button', { name: 'Send another response' }).click()
   await expect(page.getByLabel('Your name')).toHaveValue('')
 })
 
@@ -171,6 +172,17 @@ test('a site outside latitude and longitude is not found', async ({ request }) =
 
 test('changelog page', async ({ page }) => {
   await page.goto('/changelog')
+  await expect(page.getByRole('heading', { level: 1, name: 'Changes and announcements' })).toBeVisible()
+})
+
+// Data status (track 7 step 7.2)
+test('the data status page says how current the data are', async ({ page }) => {
+  await page.goto('/status')
+  await expect(page.getByRole('heading', { level: 1, name: 'Data status' })).toBeVisible()
+  await expect(page.getByText(/^Checked at /)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Weather observations' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Missing hours in the last 30 days' })).toBeVisible()
+  await page.getByRole('link', { name: 'changelog' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Changes and announcements' })).toBeVisible()
 })
 

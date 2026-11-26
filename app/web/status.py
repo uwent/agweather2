@@ -22,8 +22,15 @@ TTL = 0.0 if settings.TESTING else 30.0
 # Past these, a page says the data are behind. Looser than `/up`'s alarms (ops.health): the analyses come out an
 # hour or two after the hour, and URMA's about 6 hours, so a banner only shows when something is really late.
 OBSERVED_LAG = timedelta(hours=6)
-# Each source of observed hours, and how far behind it normally runs before it counts as late
-SOURCE_LAG = {"rtma": timedelta(hours=4), "urma": timedelta(hours=14), "hrrr": timedelta(hours=4)}
+# Each source of observed hours, and how far behind it normally runs before it counts as late: the analyses an hour or
+# so after the hour (URMA about 6 hours), ERA5-Land about 5 days, IFS's soil a run every 6 hours (`/status` lists them)
+SOURCE_LAG = {
+    "urma": timedelta(hours=14),
+    "rtma": timedelta(hours=4),
+    "hrrr": timedelta(hours=4),
+    "era5land": timedelta(days=7),
+    "ifs": timedelta(hours=14),
+}
 
 _lock = threading.Lock()
 _kept: tuple[float, DataStatus | None] | None = None

@@ -16,6 +16,8 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
 const PAGES = ['/', '/sites', '/changelog', '/api-use', '/map', '/data']
 // The reference pages (track 7 step 7.4)
 PAGES.push('/about', '/accessibility', '/contact', '/glossary')
+// Data status (track 7 step 7.2)
+PAGES.push('/status')
 
 async function scan(page: Page, path: string, { reflow = true }: { reflow?: boolean } = {}) {
   await page.goto(path)

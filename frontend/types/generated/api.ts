@@ -716,6 +716,44 @@ export interface ForecastStatus {
    */
   fallback: string | null
 }
+export interface GapDay {
+  /**
+   * The day, as YYYY-MM-DD.
+   */
+  date: string
+  /**
+   * How many of the day's 24 hours are missing.
+   */
+  missing_hours: number
+}
+export interface GapsStatus {
+  /**
+   * The first day checked for gaps. Days run from midnight to midnight Central Standard Time.
+   */
+  first: string | null
+  /**
+   * The last day checked, today. Hours newer than a source's newest hour count as not yet received, not as missing.
+   */
+  last: string | null
+  /**
+   * For each kind of data, the days with missing hours. Each kind comes from its own sources: air temperature and humidity, precipitation, solar radiation, and soil temperature and moisture.
+   */
+  variables: VariableGaps[]
+}
+export interface VariableGaps {
+  /**
+   * The variable checked for each kind of data, as `/variables` names it: `air_temperature`, `precipitation`, `shortwave_radiation` or `soil_temperature_4cm`.
+   */
+  variable: string
+  /**
+   * The sources that supplied its hours over these days, by short name (as in `last_hour_by_source`).
+   */
+  sources: string[]
+  /**
+   * The days missing at least one hour. Empty when no hour is missing.
+   */
+  days: GapDay[]
+}
 export interface GridQuery {
   date?: string | null
   time?: string | null
@@ -1511,6 +1549,7 @@ export interface StatusData {
    */
   models: number
   downloads: DownloadsStatus
+  gaps: GapsStatus
 }
 /**
  * What the archive and forecast hold now.

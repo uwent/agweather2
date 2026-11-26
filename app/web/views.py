@@ -9,7 +9,7 @@ from agdata.series import archive_years
 from agmodels import croplist
 from agmodels.registry import all_models
 from updates.render import markdown_html
-from web import contentpages, datapage, methodspage, modelpages, topicpages
+from web import contentpages, datapage, methodspage, modelpages, statuspage, topicpages
 from web import home as home_content
 from web.catalog import crop_entries, model_entries
 from web.content import topics
@@ -32,7 +32,6 @@ from web.props import (
     SiteModelProps,
     SiteProps,
     SitesIndexProps,
-    StatusPageProps,
     ToolsIndexProps,
 )
 from web.sitemodel import model_info, model_settings, section, shown_spec
@@ -226,7 +225,8 @@ def data(request: HttpRequest):
 
 
 def status(request: HttpRequest):
-    return render(request, "Status/Show", StatusPageProps())
+    """Data status (track 7 step 7.2): `/api/v2/status` in words, which the page refreshes every minute."""
+    return render(request, "Status/Show", statuspage.props())
 
 
 def content_page(request: HttpRequest, page: str):

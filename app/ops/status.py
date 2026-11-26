@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import zarr
@@ -24,6 +25,7 @@ from agdata import forecast
 from agdata.ingest import SOIL
 from agdata.rebuild import find_stale
 from agdata.store import CUMULATIVE, DAILY, HOURLY, SOURCE_NAMES, StoreLayout
+from agdata.timezones import GRID_ZONE, day_bounds
 from ops.forecast import forecast_health
 from ops.health import failures_since, ingest_health
 from ops.ifs import last_read
@@ -353,6 +355,50 @@ SOURCE_VARIABLES = ("air_temperature", "precipitation", "shortwave_radiation", "
 SPAN_VARIABLES = {"hourly": "air_temperature", "daily": "air_temperature_min", "cumulative": "dd_sine_50"}
 
 
+GAP_DAYS = 30  # `/status`'s recent gaps: the grid days this far back, through today
+
+
+def recent_gaps(
+    data_dir: Path, now: datetime, *, since: datetime | None = None, days: int = GAP_DAYS
+) -> dict[str, Any]:
+    """The grid days (midnight to midnight CST, D74) of the last `days` through today that miss any hour, for each
+    of `SOURCE_VARIABLES` (each feed), with the sources that filled its hours over those days: `{"first", "last",
+    "variables": [{"variable", "sources", "days": [{"date", "missing_hours"}]}]}`. Only hours from the archive's
+    first (`since`) up to the variable's newest count: a feed running behind is late, not missing (the sources'
+    newest hours say how late)."""
+    zone = ZoneInfo(GRID_ZONE)
+    today = now.astimezone(zone).date()
+    first = today - timedelta(days=days - 1)
+    start, _ = day_bounds(first, GRID_ZONE)
+    _, end = day_bounds(today, GRID_ZONE)
+    stamps = [start + timedelta(hours=k) for k in range(int((end - start) / timedelta(hours=1)) + 1)]
+    out = []
+    for name in SOURCE_VARIABLES:
+        by_year = {y: _meta(HOURLY.path(data_dir, y), name) for y in {s.year for s in stamps}}
+        codes = np.zeros(len(stamps), dtype=np.uint8)
+        for k, stamp in enumerate(stamps):
+            found = by_year[stamp.year]
+            n = int((stamp - datetime(stamp.year, 1, 1, tzinfo=UTC)) / timedelta(hours=1))
+            if found is not None and n < len(found):
+                codes[k] = found[n]
+        written = np.flatnonzero(codes > 0)
+        missing: dict[date, int] = {}
+        if written.size:
+            for k in np.flatnonzero(codes[: written[-1]] == 0).tolist():
+                if since is not None and stamps[k] < since:
+                    continue
+                day = (stamps[k] - timedelta(hours=1)).astimezone(zone).date()  # a stamp ends its hour
+                missing[day] = missing.get(day, 0) + 1
+        out.append(
+            {
+                "variable": name,
+                "sources": sorted(SOURCE_NAMES.get(int(c), str(c)) for c in np.unique(codes[codes > 0])),
+                "days": [{"date": d.isoformat(), "missing_hours": n} for d, n in sorted(missing.items())],
+            }
+        )
+    return {"first": first.isoformat(), "last": today.isoformat(), "variables": out}
+
+
 def refresh_dataset_status(data_dir: Path, now: datetime | None = None) -> None:
     """Reads each dataset's extent, sources and stale variables from the stores into `DatasetStatus` (~0.5 s: the
     stale check opens every store). Called with the write lock held, as it's released (`ops.locks.write_lock`), and
@@ -370,6 +416,7 @@ def refresh_dataset_status(data_dir: Path, now: datetime | None = None) -> None:
         rows[layout.kind] = {"first": first, "last": last, "stale": stale.get(layout.kind, {})}
     sources = last_hour_by_source(data_dir, now.year, SOURCE_VARIABLES)
     rows["hourly"]["last_by_source"] = {k: v.isoformat() for k, v in sources.items() if k != "derived"}
+    rows["hourly"]["details"] = {"gaps": recent_gaps(data_dir, now, since=rows["hourly"]["first"])}
     run = forecast.current_run(data_dir)
     info = forecast.run_info(run) if run is not None else {}
     rows["forecast"] = {

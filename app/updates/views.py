@@ -12,28 +12,16 @@ from django.views.decorators.http import require_http_methods
 from api.ratelimit import address_key, client_key
 from updates import forms
 from updates.models import ApiUseReport, ChangelogEntry
-from updates.props import ApiUseProps, ChangelogEntryProps, ChangelogProps, FrequencyChoice
-from updates.render import markdown_html
+from updates.props import ApiUseProps, ChangelogEntryProps, ChangelogKind, ChangelogProps, FrequencyChoice
 from web.inertia import redirect_with_errors, render
 
 THANKS = "Thank you. We've received your answers."
 
 
 def changelog(request: HttpRequest) -> HttpResponse:
-    entries = [
-        ChangelogEntryProps(
-            id=e.pk,
-            date=e.date,
-            kind=e.kind,
-            kind_label=e.get_kind_display(),  # pyright: ignore[reportAttributeAccessIssue]
-            title=e.title,
-            body_html=markdown_html(e.body),
-            model=e.model_id or None,
-            endpoint=e.endpoint or None,
-        )
-        for e in ChangelogEntry.objects.visible()
-    ]
-    return render(request, "Updates/Changelog", ChangelogProps(entries=entries))
+    entries = [ChangelogEntryProps.of(e) for e in ChangelogEntry.objects.visible()]
+    kinds = [ChangelogKind(value=v, label=str(label)) for v, label in ChangelogEntry.Kind.choices]
+    return render(request, "Updates/Changelog", ChangelogProps(entries=entries, kinds=kinds))
 
 
 def _sent(request: HttpRequest) -> dict[str, Any]:
