@@ -33,6 +33,7 @@
     searched = null,
     model = null,
     group = null,
+    outsideTraining = false,
     onclear,
   }: {
     /** The point chosen (a click, or a place found by search) */
@@ -50,6 +51,8 @@
     model?: { id: string; name: string } | null
     /** The name of the group of sites the map shows; a site saved here goes into it when it's one of yours */
     group?: string | null
+    /** Whether the cell is outside the area the map's model was fitted to (D101) */
+    outsideTraining?: boolean
     onclear: () => void
   } = $props()
 
@@ -110,6 +113,10 @@
     <p class="mt-1 text-sm text-ink-muted">
       This place is outside the area AgWeather maps, so the map has no value here. Its site page has its weather from
       Open-Meteo.
+    </p>
+  {:else if outsideTraining && model}
+    <p class="mt-1 text-sm" data-testid="outside-training">
+      {`This place is outside the area ${model.name}'s data came from (the dashed line on the map), so its timing here is less certain.`}
     </p>
   {/if}
   <ul class="mt-2 space-y-1 text-sm">

@@ -27,3 +27,5 @@ app/*/tests/fixtures/**/*.json
 frontend/lib/map/us-outline.json
 # recorded API responses for the frontend tests, kept as recorded
 frontend/test/fixtures/**/*.json
+# fitted models' training areas (scripts/make_training_areas.py; a test checks they are current)
+frontend/lib/map/training-areas.json

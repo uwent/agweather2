@@ -28,7 +28,14 @@ const catalog = [
 ]
 
 const table = (data: Record<string, unknown[]>) => ({ meta: {}, data }) as unknown as TableResponse
-const prefs = { crops: undefined, models: undefined, hiddenModels: [], options: {}, planting: undefined }
+const prefs = {
+  crops: undefined,
+  models: undefined,
+  hiddenModels: [],
+  options: {},
+  planting: undefined,
+  biofix: undefined,
+}
 
 describe('riskModels', () => {
   it('asks for the chosen models with risk; else the chosen crops’; else lets the API choose', () => {

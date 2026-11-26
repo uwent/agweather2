@@ -1,5 +1,8 @@
 <script lang="ts" module>
-  import type { TileCategory } from './dataTiles'
+  import { formatNumber } from '@/lib/units'
+
+  import { categoryCode, fittedTicks, formatDays, NONE_COLOR, type TileCategory } from './dataTiles'
+  import type { ImageLegend } from './exportImage'
 
   /** What a data map's legend shows, in the reader's units */
   export type DataLegendSpec = {
@@ -19,25 +22,40 @@
     /** Whether the map can show "none" (a first or last day not found) */
     none: boolean
   }
+
+  /** A continuous legend's ticks with their labels (a stage map's labelled with the stages' codes); none for levels */
+  export function legendTicksOf(legend: DataLegendSpec): { value: number; at: number; label: string }[] {
+    if (legend.categorical) return []
+    const stages = legend.categories?.some((c) => c.value < 0) ? legend.categories : undefined
+    if (stages) return fittedTicks(legend.low, legend.high, (v) => (Number.isInteger(v) ? categoryCode(stages, v) : ''))
+    return fittedTicks(legend.low, legend.high, legend.dates ? (v) => formatDays(v, false) : formatNumber)
+  }
+
+  /** A level's name in the legend */
+  export const levelNameOf = (legend: DataLegendSpec, level: number) =>
+    legend.categories?.find((c) => c.value === level)?.name ?? `Level ${level}`
+
+  /** The legend as a saved image draws it: the same title, ticks and names */
+  export function imageLegendOf(legend: DataLegendSpec): ImageLegend {
+    return {
+      title: `${legend.title}${legend.unit && !legend.categorical ? ` (${legend.unit})` : ''}`,
+      bar: legend.categorical ? null : { colors: legend.colors, ticks: legendTicksOf(legend) },
+      levels: legend.categorical ? legend.colors.map((color, i) => ({ color, label: levelNameOf(legend, i) })) : [],
+      none: legend.none ? NONE_COLOR : null,
+    }
+  }
 </script>
 
 <script lang="ts">
-  import { formatNumber } from '@/lib/units'
-
-  import { categoryCode, cssGradient, fittedTicks, formatDays, NONE_COLOR } from './dataTiles'
+  import { cssGradient } from './dataTiles'
 
   // A data map's legend, placed by DataMap at its lower left with the scale bar above it: the layer's title, then a
   // color bar with round ticks in the reader's units (a stage map's labelled with the stages' codes), or a swatch
   // per level named in words; and a hatched swatch for "No data", where the map is left clear
   let { legend }: { legend: DataLegendSpec } = $props()
 
-  const stages = $derived(legend.categories?.some((c) => c.value < 0) ? legend.categories : undefined)
-  const ticks = $derived.by(() => {
-    if (legend.categorical) return []
-    if (stages) return fittedTicks(legend.low, legend.high, (v) => (Number.isInteger(v) ? categoryCode(stages, v) : ''))
-    return fittedTicks(legend.low, legend.high, legend.dates ? (v) => formatDays(v, false) : formatNumber)
-  })
-  const levelName = (level: number) => legend.categories?.find((c) => c.value === level)?.name ?? `Level ${level}`
+  const ticks = $derived(legendTicksOf(legend))
+  const levelName = (level: number) => levelNameOf(legend, level)
 </script>
 
 <div

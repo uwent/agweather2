@@ -35,6 +35,8 @@ export type Prefs = {
   /** A planting date for every model that takes one: YYYY-MM-DD, or `early`, `mid` or `late` for the place's typical
    * dates */
   planting?: string
+  /** The Degree days tab's biofix, the day it counts from when counting from a biofix: YYYY-MM-DD */
+  biofix?: string
   /** The map's layer for a group's map view (a `/layers` id) */
   layer?: string
 }
@@ -57,6 +59,7 @@ export type EffectivePrefs = {
   hiddenModels: string[]
   options: Record<string, Record<string, string>>
   planting: string | undefined
+  biofix: string | undefined
 }
 
 /** Where the document lives: this browser (`localBackend`), memory (`memoryBackend`, tests), the account later */
@@ -158,6 +161,7 @@ function readPrefs(value: unknown): Prefs {
     }
   }
   if (typeof value.planting === 'string') prefs.planting = value.planting
+  if (typeof value.biofix === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.biofix)) prefs.biofix = value.biofix
   if (typeof value.layer === 'string') prefs.layer = value.layer
   return prefs
 }
@@ -236,7 +240,8 @@ export function resolvePrefs(doc: SitesDoc, key: string): EffectivePrefs {
     for (const [model, chosen] of Object.entries(level.options ?? {})) options[model] = { ...options[model], ...chosen }
   }
   const planting = site.planting ?? groups.find((g) => g.planting !== undefined)?.planting ?? all.planting
-  return { crops: list('crops'), models, hiddenModels: hidden, options, planting }
+  const biofix = site.biofix ?? groups.find((g) => g.biofix !== undefined)?.biofix ?? all.biofix
+  return { crops: list('crops'), models, hiddenModels: hidden, options, planting, biofix }
 }
 
 /** `b`'s choices over `a`'s, field by field (options model by model, name by name) */

@@ -113,12 +113,30 @@ test("a site's Degree days and Data tabs", async ({ page }) => {
   await expect(page.getByRole('combobox', { name: 'Setting 1' })).toHaveValue('corn')
   await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
   await expect(page.getByRole('rowheader', { name: 'Corn (field)' })).toBeVisible()
+  // Every tab is on the screen, a phone's too (they wrap rather than scroll out of sight)
+  await expect(page.getByRole('tab', { name: 'Data' })).toBeInViewport()
   await page.getByRole('tab', { name: 'Data' }).click()
   await expect(page.getByRole('link', { name: 'Download CSV' })).toHaveAttribute('href', /^\/api\/v2\/weather\/daily\?/)
   await page.getByRole('radio', { name: /A model run/ }).check()
   await expect(page.getByRole('textbox', { name: 'The request’s address, for a script' })).toHaveValue(
     /\/api\/v2\/models\/late-blight-dsv\/run\?format=csv&lat=44\.12&lng=-89\.52/,
   )
+})
+
+test('a date to count degree days from is kept with a saved site', async ({ page }) => {
+  await stubSiteApi(page)
+  await page.goto('/')
+  await page.evaluate((doc) => localStorage.setItem('agweather.sites', JSON.stringify(doc)), SAVED)
+  await page.goto('/sites/44.1336,-89.5168?tab=degree-days&from=planting')
+  await page.getByRole('textbox', { name: 'Planting date' }).fill('2026-05-12')
+  await expect(page.getByText('Saved as this site’s planting date.')).toBeVisible()
+  const kept = await page.evaluate(() => JSON.parse(localStorage.getItem('agweather.sites') ?? '{}'))
+  expect(kept.prefs.sites['44.1336,-89.5168'].planting).toBe('2026-05-12')
+  // Opened again without the date in the link, the site's own date is the one counted from
+  await page.goto('/sites/44.1336,-89.5168?tab=degree-days&from=planting')
+  await expect(page.getByText(/Counting from this site’s planting date, May 12/)).toBeVisible()
+  await page.getByRole('button', { name: 'Forget this date' }).click()
+  await expect(page.getByText(/Counting from this site’s planting date/)).toBeHidden()
 })
 
 test('one model across your sites', async ({ page }) => {
@@ -173,6 +191,54 @@ test('the map explorer shows a layer and a clicked cell', async ({ page }) => {
   // The map's values by county, below the fold
   await page.getByRole('heading', { name: 'This map by county' }).scrollIntoViewIfNeeded()
   await expect(page.getByRole('table', { name: /by county in Wisconsin/ })).toContainText('Dane County')
+})
+
+test('the map explorer saves the map as a PNG', async ({ page }) => {
+  await page.goto('/')
+  await page.evaluate((doc) => localStorage.setItem('agweather.sites', JSON.stringify(doc)), SAVED)
+  await page.goto('/map?layer=air_temperature_min&date=2026-11-20')
+  await expect(page.getByTestId('data-legend')).toBeVisible()
+  await page.getByRole('button', { name: 'Save image' }).first().click()
+  await expect(page.getByLabel('Name my saved sites on the map')).toBeChecked()
+  const download = page.waitForEvent('download')
+  await page.getByTestId('save-image').click()
+  const file = await download
+  expect(file.suggestedFilename()).toMatch(/^agweather-air_temperature_min-[\d-]+\.png$/)
+  const bytes = readFileSync(await file.path())
+  // A PNG's signature, then its header's width: twice the map's at least
+  expect(bytes.subarray(1, 4).toString('latin1')).toBe('PNG')
+  expect(bytes.readUInt32BE(16)).toBeGreaterThan(400)
+  await expect(page.getByText('Saved. Look for the image in your downloads.')).toBeVisible()
+})
+
+test('a fitted model’s map outlines its training area and says when the cell is outside it', async ({ page }) => {
+  // The recorded /models predates `trained`: the beetle's, as /models gives it now
+  const models = JSON.parse(readFileSync(new URL('../frontend/test/fixtures/models.json', import.meta.url), 'utf8'))
+  const beetle = models.data.find((m: { id: string }) => m.id === 'colorado-potato-beetle')
+  beetle.trained = {
+    description: 'scouting counts in commercial potato fields in central Wisconsin, mostly the Central Sands',
+    years: [2014, 2025],
+    states: [],
+    counties: [
+      '55001',
+      '55137',
+      '55097',
+      '55077',
+      '55135',
+      '55111',
+      '55049',
+      '55057',
+      '55141',
+      '55021',
+      '55073',
+      '55103',
+    ],
+  }
+  await page.route('**/api/v2/models', (route) => route.fulfill({ json: models }))
+  await page.goto('/map?layer=colorado-potato-beetle&at=43.07,-89.4')
+  await expect(page.getByTestId('training-area-note')).toContainText('The dashed line on the map outlines that area.')
+  // The recorded cell is Madison's, in Dane County, outside the Central Sands
+  await expect(page.getByTestId('outside-training')).toContainText('outside the area')
 })
 
 test('a site added is kept after a reload, and exported', async ({ page }) => {

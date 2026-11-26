@@ -62,6 +62,16 @@
     /** A map of levels' or stages' names by value, or null */
     categories: TileCategory[] | null
   }
+
+  /** What a saved image shows beyond the map: its title and date, the reach of the data, and named points */
+  export type ImageOptions = {
+    title: string
+    subtitle: string
+    through: string
+    fileName: string
+    /** Points to name on the image (the reader's saved sites); those outside the view are left out */
+    labels: { id: string; text: string; lat: number; lng: number }[]
+  }
 </script>
 
 <script lang="ts">
@@ -76,7 +86,9 @@
   import { currentUnits, units as unitsOf } from '@/lib/units'
 
   import BasemapToggle from './BasemapToggle.svelte'
-  import DataLegend, { type DataLegendSpec } from './DataLegend.svelte'
+  import { readPalette } from '@/lib/charts/palette'
+
+  import DataLegend, { type DataLegendSpec, imageLegendOf } from './DataLegend.svelte'
   import {
     colorExpression,
     findPalette,
@@ -90,7 +102,9 @@
     type TileJson,
     TileValues,
   } from './dataTiles'
+  import { attributionText, composeImage, downloadCanvas, legendBox, type Measure, resolveColor } from './exportImage'
   import HoverLabel from './HoverLabel.svelte'
+  import { layoutLabels } from './labels'
   import { MapHover } from './hover.svelte'
   import MapLayersButton from './MapLayersButton.svelte'
   import { MapOverlays } from './mapOverlays.svelte'
@@ -111,7 +125,7 @@
     params = {},
     palette = null,
     scale = 'auto',
-    opacity = 1,
+    opacity = 0.8,
     label,
     prefsKey = 'data-map',
     map = $bindable(),
@@ -447,6 +461,92 @@
   /** Shows an overlay (a shared link's), replacing this browser's own choice */
   export function showOverlay(id: OverlayId | null) {
     prefs.overlay = id
+  }
+
+  /**
+   * Saves the map as a PNG: the view as it is, at twice the screen's resolution (or the screen's, where higher), with
+   * the title, the legend in the reader's units, the named points and the credits redrawn around it (late-blight-db's
+   * `saveImage`). The selected cell's outline is left off: it's the reader's selection, not the map's content.
+   */
+  export async function saveImage(options: ImageOptions) {
+    const m = map
+    const shownLegend = legend
+    if (!m || !shownLegend) throw new Error('The map is still loading. Try again when it has drawn.')
+    const previousRatio = m.getPixelRatio()
+    const scale = Math.max(2, previousRatio)
+    const hidden = ['data-cell', 'data-cell-halo'].filter(
+      (id) => m.getLayer(id) && m.getLayoutProperty(id, 'visibility') !== 'none',
+    )
+    hidden.forEach((id) => m.setLayoutProperty(id, 'visibility', 'none'))
+    m.setPixelRatio(scale)
+    try {
+      // Tiles at the new resolution, but never a hang on a slow tile host
+      await Promise.race([m.once('idle'), new Promise((resolve) => setTimeout(resolve, 8000))])
+      // A WebGL canvas is cleared after it's composited, so the frame is copied inside the render callback, while
+      // it's still there (`preserveDrawingBuffer` would cost every frame for an occasional action)
+      const frame = await new Promise<HTMLCanvasElement>((resolve) => {
+        m.once('render', () => {
+          const source = m.getCanvas()
+          const copy = document.createElement('canvas')
+          copy.width = source.width
+          copy.height = source.height
+          copy.getContext('2d')?.drawImage(source, 0, 0)
+          resolve(copy)
+        })
+        m.triggerRepaint()
+      })
+      // Text drawn before the web font loads falls back to a default face
+      await document.fonts.ready
+
+      const font = getComputedStyle(document.body).fontFamily
+      const scratch = document.createElement('canvas').getContext('2d')
+      const measure: Measure = (text, size) => {
+        if (!scratch) return text.length * size * 0.55
+        scratch.font = `500 ${size}px ${font}`
+        return scratch.measureText(text).width
+      }
+      const cssWidth = m.getCanvas().clientWidth
+      const cssHeight = m.getCanvas().clientHeight
+      const imageLegend = imageLegendOf(shownLegend)
+      const labels = layoutLabels(
+        options.labels,
+        (lng, lat) => m.project([lng, lat]),
+        { width: cssWidth, height: cssHeight },
+        (text) => measure(text, 12),
+        [legendBox(imageLegend, cssHeight, measure)],
+      )
+      const palette = readPalette()
+      // The credits as MapLibre's control shows them: the data's and the basemap's (OpenFreeMap's arrive with its
+      // TileJSON, not in the style)
+      const credits = attributionText([
+        m.getContainer().querySelector('.maplibregl-ctrl-attrib-inner')?.innerHTML ?? '',
+      ])
+      const canvas = composeImage({
+        map: frame,
+        cssWidth,
+        cssHeight,
+        scale,
+        labels,
+        legend: imageLegend,
+        title: options.title,
+        subtitle: options.subtitle,
+        through: options.through,
+        credit: 'AgWeather · University of Wisconsin–Madison',
+        sources: [credits, location.host],
+        colors: {
+          background: resolveColor('--color-surface'),
+          foreground: palette.ink,
+          muted: palette.inkMuted,
+          border: palette.line,
+          card: palette.surface,
+        },
+        font,
+      })
+      await downloadCanvas(canvas, options.fileName)
+    } finally {
+      m.setPixelRatio(previousRatio)
+      hidden.forEach((id) => m.getLayer(id) && m.setLayoutProperty(id, 'visibility', 'visible'))
+    }
   }
 
   async function pick(event: MapMouseEvent) {

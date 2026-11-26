@@ -22,7 +22,14 @@ const site = (lat: number, lng: number, name: string): Site => ({
   updatedAt: at,
 })
 const SITES = [site(43.07, -89.4, 'Madison'), site(44.1336, -89.5168, 'Hancock'), site(45.65, -89.38, 'Rhinelander')]
-const none: EffectivePrefs = { crops: undefined, models: undefined, hiddenModels: [], options: {}, planting: undefined }
+const none: EffectivePrefs = {
+  crops: undefined,
+  models: undefined,
+  hiddenModels: [],
+  options: {},
+  planting: undefined,
+  biofix: undefined,
+}
 
 describe('the requests', () => {
   it('runs every site in one request from two weeks back, unless their settings differ', () => {

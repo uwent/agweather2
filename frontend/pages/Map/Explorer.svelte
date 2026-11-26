@@ -21,8 +21,11 @@
   import CountyTable from '@/lib/explorer/CountyTable.svelte'
   import { buildCellChart, cellSummary, cellTable, shownValues } from '@/lib/explorer/cellChart'
   import { type CellSeries, readSeries, seriesRequest } from '@/lib/explorer/cellSeries'
+  import { type Bounds, downloadLinks } from '@/lib/explorer/downloads'
   import LayerPicker from '@/lib/explorer/LayerPicker.svelte'
+  import MapDownloads from '@/lib/explorer/MapDownloads.svelte'
   import LayerSettings, { type ModelOption } from '@/lib/explorer/LayerSettings.svelte'
+  import SaveImageButton from '@/lib/explorer/SaveImageButton.svelte'
   import MapOptions from '@/lib/explorer/MapOptions.svelte'
   import { prefetchTiles } from '@/lib/explorer/prefetch'
   import TimeControls from '@/lib/explorer/TimeControls.svelte'
@@ -44,7 +47,10 @@
   import { dataThrough, timeWords } from '@/lib/explorer/words'
   import { shortTitle } from '@/lib/explorer/catalog'
   import DataMap, { type DataInfo, type DataPick, type DataScale } from '@/lib/map/DataMap.svelte'
+  import { imageFileName } from '@/lib/map/exportImage'
+  import { insideOutline, outlineFeature, trainingOutline, type TrainingOutline } from '@/lib/map/trainingArea'
   import { motion } from '@/lib/motion'
+  import { siteLabel, sites } from '@/lib/sites.svelte'
   import { drawGroup, groupBounds } from '@/lib/sites/groupMap'
   import { currentUnits } from '@/lib/units'
   import { viewState } from '@/lib/viewState'
@@ -160,6 +166,23 @@
       : null,
   )
 
+  // --- A fitted model's training area (D101): outlined on its map, and said when the chosen cell is outside it
+
+  const trained = $derived(mapModel ? (models.find((m) => m.id === mapModel.id)?.trained ?? null) : null)
+  let trainedArea = $state<TrainingOutline | null>(null)
+  $effect(() => {
+    const id = trained && mapModel ? mapModel.id : null
+    untrack(() => {
+      trainedArea = null
+      if (!id) return
+      trainingOutline(id)
+        .then((found) => {
+          if (mapModel?.id === id) trainedArea = found
+        })
+        .catch(() => {})
+    })
+  })
+
   // --- The map
 
   let map: MapLibreMap | undefined = $state()
@@ -231,6 +254,53 @@
     view.patch({ overlay: dataMap?.currentOverlay() ?? null })
     return view.shareUrl()
   }
+
+  // Save image (F13): the map as on screen, with the title chip's text, the data's reach and the saved sites in view
+  async function saveImage({ labels }: { labels: boolean }) {
+    if (!dataMap || !shown) throw new Error('The map is still loading. Try again when it has drawn.')
+    const asked = info?.request ?? {}
+    const date =
+      typeof asked.date === 'string'
+        ? asked.date
+        : typeof asked.start === 'string' && typeof asked.end === 'string'
+          ? `${asked.start}..${asked.end}`
+          : shown.time
+    await dataMap.saveImage({
+      title,
+      subtitle: `${subtitle || when}${shownForecast ? ' · Forecast' : ''}`,
+      through: through ? `${through}.` : '',
+      fileName: imageFileName(shown.layer, date),
+      labels: labels
+        ? sites.map((site) => ({ id: site.key, text: siteLabel(site), lat: site.lat, lng: site.lng }))
+        : [],
+    })
+  }
+
+  // The area in view, for the downloads
+  let bounds = $state<Bounds | null>(null)
+  $effect(() => {
+    const m = map
+    if (!m) return
+    const track = () => {
+      const b = m.getBounds()
+      bounds = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]
+    }
+    track()
+    m.on('moveend', track)
+    return () => {
+      m.off('moveend', track)
+    }
+  })
+  const downloads = $derived(
+    shown
+      ? downloadLinks(shown, {
+          bounds,
+          system: units.system === 'metric' ? 'metric' : 'us',
+          palette: $view.palette,
+          scale: $view.scale,
+        })
+      : null,
+  )
 
   // The phone's stepper, under the map: the same steps as the controls'
   const stepWhen = $derived(layer ? stepperWhen($view, layer, today) : null)
@@ -374,6 +444,55 @@
     })
   }
 
+  const outsideTraining = $derived(
+    trainedArea && place?.cell ? !insideOutline(trainedArea.geometry, place.cell.lng, place.cell.lat) : false,
+  )
+
+  // The training area's outline: dashed, above the data and beneath the cell's
+  $effect(() => {
+    const m = map
+    const area = trainedArea
+    if (!m) return
+    const draw = () => {
+      try {
+        trainedOutline(m, area)
+      } catch {
+        m.once('idle', draw)
+      }
+    }
+    draw()
+  })
+
+  function trainedOutline(m: MapLibreMap, area: TrainingOutline | null) {
+    const data: GeoJSONSourceSpecification['data'] = {
+      type: 'FeatureCollection',
+      features: area ? [outlineFeature(area.geometry)] : [],
+    }
+    const source = m.getSource('data-trained') as GeoJSONSource | undefined
+    if (source) return source.setData(data)
+    const palette = readPalette()
+    const below = m.getLayer('data-cell-halo') ? 'data-cell-halo' : undefined
+    m.addSource('data-trained', { type: 'geojson', data })
+    m.addLayer(
+      {
+        id: 'data-trained-halo',
+        type: 'line',
+        source: 'data-trained',
+        paint: { 'line-color': palette.surface, 'line-width': 4, 'line-opacity': 0.8 },
+      },
+      below,
+    )
+    m.addLayer(
+      {
+        id: 'data-trained',
+        type: 'line',
+        source: 'data-trained',
+        paint: { 'line-color': palette.ink, 'line-width': 1.5, 'line-dasharray': [3, 2] },
+      },
+      below,
+    )
+  }
+
   // The cell's days: the same settings as the map's tiles
   let series = $state<CellSeries | null>(null)
   let seriesError = $state<string | null>(null)
@@ -445,7 +564,12 @@
       <h1 class="text-xl font-semibold">Weather and pest maps</h1>
       <p class="text-sm text-ink-muted">Choose a map, a day and a place. Click the map for a cell's recent days.</p>
     </div>
-    {#if wide.current}<ShareButton url={shareUrl} />{/if}
+    {#if wide.current}
+      <div class="flex shrink-0 gap-2">
+        <SaveImageButton save={saveImage} sites={sites.length} disabled={!info} />
+        <ShareButton url={shareUrl} />
+      </div>
+    {/if}
   </div>
   {#if $view.group}
     <p class="flex flex-wrap items-center gap-x-3 text-sm" data-testid="map-group">
@@ -480,6 +604,7 @@
       {placeError}
       searched={searchedName}
       model={mapModel}
+      {outsideTraining}
       group={$view.group?.name ?? null}
       onclear={() => change({ at: null })}
     />
@@ -495,6 +620,7 @@
     {#if layer}
       <TimeControls view={$view} {layer} {today} onchange={change} />
       <MapOptions view={$view} {layer} {info} {palettes} onchange={change} />
+      {#if downloads}<MapDownloads links={downloads} />{/if}
     {/if}
   {:else if !loadError}
     <p class="text-sm text-ink-muted">Loading the maps…</p>
@@ -513,6 +639,7 @@
         params={shown.params}
         palette={$view.palette}
         {scale}
+        opacity={$view.opacity / 100}
         label="Map of {title}, {subtitle || when}"
         prefsKey="map-explorer"
         class="h-full"
@@ -573,6 +700,7 @@
           </span>
           <span aria-hidden="true" class="text-ink-muted">▴</span>
         </button>
+        <SaveImageButton save={saveImage} sites={sites.length} disabled={!info} compact />
         <ShareButton url={shareUrl} />
       </div>
       {#if layer && stepWhen}
@@ -646,6 +774,11 @@
         <p class="max-w-prose rounded-md border border-line bg-surface-raised p-2 text-sm" role="note">{warning}</p>
       {/each}
       <p class="max-w-prose text-sm">{layer.group === 'degree_days' ? DEGREE_DAYS_ABOUT : layer.description}</p>
+      {#if trained && trainedArea}
+        <p class="max-w-prose text-sm" data-testid="training-area-note">
+          {`${mapModel?.name ?? title} was fitted to ${trained.description}, ${trained.years[0]}–${trained.years[1]}. The dashed line on the map outlines that area. The model runs outside it too, but its timing there is less certain.`}
+        </p>
+      {/if}
       {#each info?.caption ?? [] as line (line)}<p class="max-w-prose text-sm text-ink-muted">{line}</p>{/each}
       {#if through}<p class="text-sm text-ink-muted">{through}.</p>{/if}
       <p class="max-w-prose text-sm text-ink-muted">

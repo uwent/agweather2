@@ -6,6 +6,7 @@ import type { LayerInfo } from '@/types/api'
 
 import {
   biofixDate,
+  DEFAULT_OPACITY,
   type ExplorerView,
   firstView,
   isForecast,
@@ -174,5 +175,15 @@ describe('the overlay in a Share link', () => {
     expect(fromQuery(VIEW_FIELDS, 'overlay=radar').overlay).toBe('radar')
     expect(fromQuery(VIEW_FIELDS, 'overlay=nothing').overlay).toBeUndefined()
     expect(toQuery(VIEW_FIELDS, view({ overlay: 'drought' })).get('overlay')).toBe('drought')
+  })
+})
+
+describe('the opacity in a Share link', () => {
+  it('starts at the default, left out of the link, and reads back a reader’s own', () => {
+    expect(defaults(VIEW_FIELDS).opacity).toBe(DEFAULT_OPACITY)
+    expect(toQuery(VIEW_FIELDS, view()).has('opacity')).toBe(false)
+    expect(toQuery(VIEW_FIELDS, view({ opacity: 55 })).get('opacity')).toBe('55')
+    expect(fromQuery(VIEW_FIELDS, 'opacity=55').opacity).toBe(55)
+    expect(fromQuery(VIEW_FIELDS, 'opacity=400').opacity).toBeUndefined()
   })
 })

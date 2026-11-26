@@ -52,6 +52,8 @@
     today,
     location,
     planting = null,
+    biofix = null,
+    onsave,
     view,
     onchange,
   }: {
@@ -61,6 +63,11 @@
     location: LocateData | null
     /** The site's saved planting date, if it's saved with one */
     planting?: string | null
+    /** The site's saved biofix, if it's saved with one */
+    biofix?: string | null
+    /** Keeps a date chosen to count from in the site's preferences (a saved site's; absent for an unsaved one), or
+     * forgets it (null) */
+    onsave?: (from: 'planting' | 'biofix', date: string | null) => void
     view: DegreeDaysView
     onchange: (changes: Partial<DegreeDaysView>) => void
   } = $props()
@@ -84,11 +91,32 @@
   const series = $derived(resolveSeries(tokens, presetList))
 
   const fallback = $derived(
-    defaultStart({ from: view.from, series, year, planting: location?.planting ?? null, saved: planting }),
+    defaultStart({
+      from: view.from,
+      series,
+      year,
+      planting: location?.planting ?? null,
+      saved: planting,
+      savedBiofix: biofix,
+    }),
   )
   const start = $derived(
     view.from !== 'jan1' && view.since && view.since.startsWith(`${year}-`) ? view.since : fallback.date,
   )
+
+  // The date kept with a saved site for the way of counting shown, when it's this season's
+  const keptDate = $derived.by(() => {
+    const kept = view.from === 'planting' ? planting : view.from === 'biofix' ? biofix : null
+    return kept && /^\d{4}-\d{2}-\d{2}$/.test(kept) && kept.startsWith(`${year}-`) ? kept : null
+  })
+  let savedNote = $state('')
+  // Another way of counting or season starts without the last save's message (a derived key, as the view is a new
+  // object with every change)
+  const counting = $derived(`${view.from}:${year}`)
+  $effect(() => {
+    void counting
+    savedNote = ''
+  })
 
   const answer = request<TableResponse>()
   const query = $derived(
@@ -202,7 +230,15 @@
           value={start}
           onchange={(event) => {
             const value = event.currentTarget.value
-            if (value) onchange({ since: value })
+            if (!value) return
+            onchange({ since: value })
+            if (onsave && view.from !== 'jan1') {
+              onsave(view.from, value)
+              savedNote =
+                view.from === 'planting'
+                  ? 'Saved as this site’s planting date. Models that take a planting date here use it too.'
+                  : 'Saved as this site’s biofix.'
+            }
           }}
         />
       </label>
@@ -219,7 +255,25 @@
       </label>
     {/if}
   </div>
-  {#if view.from !== 'jan1' && !(view.since && view.since.startsWith(`${year}-`))}
+  {#if onsave && view.from !== 'jan1' && keptDate}
+    <p class="flex flex-wrap items-center gap-x-3 text-xs" role="status">
+      <span>
+        {savedNote ||
+          `Counting from ${view.from === 'planting' ? 'this site’s planting date' : 'this site’s biofix'}, ${formatDate(keptDate)}, saved with the site.`}
+      </span>
+      <button
+        type="button"
+        class="text-ink-muted underline hover:text-ink"
+        onclick={() => {
+          onsave(view.from as 'planting' | 'biofix', null)
+          onchange({ since: null })
+          savedNote = ''
+        }}
+      >
+        Forget this date
+      </button>
+    </p>
+  {:else if view.from !== 'jan1' && !(view.since && view.since.startsWith(`${year}-`))}
     <p class="text-xs text-ink-muted">
       {fallback.reason
         ? `Starting from ${fallback.reason}, ${formatDate(fallback.date)}. Choose your own date above.`

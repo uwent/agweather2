@@ -81,7 +81,15 @@ export function filterLayers<L extends Pick<LayerInfo, 'title' | 'id'>>(layers: 
 }
 
 /** A model as `/models` lists it (the fields the picker reads) */
-export type ModelSummary = { id: string; name: string; group: string; crop_ids: string[]; summary: string }
+export type ModelSummary = {
+  id: string
+  name: string
+  group: string
+  crop_ids: string[]
+  summary: string
+  /** Where a fitted model's data came from (D101), or null */
+  trained?: { description: string; years: [number, number]; states: string[]; counties: string[] } | null
+}
 /** A crop as `/crops` lists it */
 export type CropSummary = { id: string; name: string; models: Record<string, string[]> }
 
