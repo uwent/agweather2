@@ -28,7 +28,10 @@ declared one of three ways:
 
 At the end of the season (after day 250, early September), freezes end it. With life stages, activity is scaled by a
 freeze factor, max(0, 1 − f/4) for f days in the last 14 with a minimum at or below −2 °C, held at its lowest so
-far that year, so a warm spell can't bring insects back; once it reaches 0 the season is complete. The legacy
+far that year, so a warm spell can't bring insects back; once it reaches 0 the season is complete. An insect's
+`season` (the calendar months it's active in Wisconsin) ends it too: from the day after its last day the factor is 0,
+whatever the freezes (a mild fall, or a place without four hard freezes, otherwise held a stalled curve's activity
+into winter). The legacy
 definitions instead lower severity by f (the Crop Risk Tool's rule; VDIFN's applied only from November).
 `day_of_year` is supplied with the inputs by whoever runs the model (it isn't stored); without it there's no freeze
 reduction.
@@ -40,7 +43,7 @@ import math
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
-from datetime import date
+from datetime import date, timedelta
 from functools import cache
 from typing import Literal
 
@@ -256,6 +259,10 @@ class Insect:
     generation_weights: tuple[float, ...] = ()
     place_form: PlaceForm | None = None  # other life stages where a normal of the place is below a bound
     biofix_fixed: bool = False  # the biofix is always the default: no grower's date (`Biofix.fixed`)
+    # MM-DD first and last day it's in season (`ModelSpec.season`, `agmodels.seasons.in_season`): its activity in
+    # Wisconsin, from its first activity on 2016–2025's weather to the end of its crop's season or of its activity.
+    # With life stages, activity ends after the last day (the legacy definitions only list by it)
+    season: tuple[str, str] | None = None
 
     @property
     def has_calendar(self) -> bool:
@@ -276,6 +283,8 @@ class Insect:
         for w in self.action_windows:
             if w.stage not in stages:
                 raise ValueError(f"{self.id}: action window {w.label!r} follows an unknown stage {w.stage!r}")
+        if self.season is not None and self.season[1] < self.season[0]:
+            raise ValueError(f"{self.id}: an insect's season ends in the year it starts")
         if self.max_generations is not None and self.max_generations < 1:
             raise ValueError(f"{self.id}: max_generations must be at least 1")
         if (self.estimated_biofix or self.generation_size) and not self.life_stages:
@@ -348,6 +357,7 @@ class InsectModel:
                 fixed=insect.biofix_fixed,
             ),
             context=self._context(),
+            season=insect.season,
             changelog=(
                 *(
                     (
@@ -391,7 +401,7 @@ class InsectModel:
         return (
             "day_of_year",
             *(("latitude",) if i.estimated_biofix else ()),
-            *(("year",) if i.generation_size else ()),
+            *(("year",) if i.generation_size or i.season else ()),
             *((i.place_form.normal.key,) if i.place_form else ()),
         )
 
@@ -518,6 +528,11 @@ class PhenologyModel(InsectModel):
 
     def finish(self, values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
         total, factor = values["dd_total"], values[self.FREEZE]
+        if self.insect.season is not None and "day_of_year" in values and "year" in values:
+            over = _on_or_after(_day_after(self.insect.season[1]), values["day_of_year"], values["year"])
+            if over.ndim == 1 and np.ndim(total) > 1:  # a series of days against a grid's days × cells
+                over = over.reshape(-1, *([1] * (np.ndim(total) - 1)))
+            factor = np.where(over, 0.0, factor)
         alive = factor > 0
         out = {"dd_total": total, "dd": values["dd"]}
         timed, extra = self._timed(values, total)
@@ -617,6 +632,12 @@ def _on_or_after(month_day: str, day_of_year: np.ndarray, year: np.ndarray) -> n
     leap = (years % 4 == 0) & ((years % 100 != 0) | (years % 400 == 0))
     first = date(2001, month, day).timetuple().tm_yday + (leap & (month > 2))
     return doy >= first
+
+
+def _day_after(month_day: str) -> str:
+    """The MM-DD after `month_day` (in a common year: February 28 is followed by March 1)."""
+    month, day = (int(p) for p in month_day.split("-"))
+    return (date(2001, month, day) + timedelta(days=1)).strftime("%m-%d")
 
 
 def model_for(insect: Insect, summary: str) -> InsectModel:
@@ -935,7 +956,7 @@ def phenology_criteria(insect: Insect) -> str:
     since = "the biofix"
     if (e := insect.estimated_biofix) is not None:
         since = f"the {e.event} (a grower's date, or where none is given the day the total from January 1 reaches the {e.event} expected at the place's latitude)"
-    return f"{method} degree days (base {insect.base_f:g} °F, {upper}) since {since} time each life stage's first generation ({stages}).{repeat} {weighting}: {levels}. After day 250, fall freezes end the season."
+    return f"{method} degree days (base {insect.base_f:g} °F, {upper}) since {since} time each life stage's first generation ({stages}).{repeat} {weighting}: {levels}. After day 250, fall freezes end the season{_season_end_words(insect)}."
 
 
 def _fitted_criteria(insect: Insect) -> str:
@@ -947,7 +968,15 @@ def _fitted_criteria(insect: Insect) -> str:
         f"{word} from {t:g}" for word, t in zip(SEVERITY_LEVELS[1:], insect.risk_thresholds, strict=True)
     )
     since = "January 1" if insect.biofix == "01-01" else "the biofix"
-    return f"Single-sine degree days (base {insect.base_f:g} °F, {upper}) since {since} read each stage's value off a curve fitted to field counts ({peaks}). Activity is a stage's value over its curve's peak; risk is {weighted}: {levels}. After day 250, fall freezes end the season."
+    return f"Single-sine degree days (base {insect.base_f:g} °F, {upper}) since {since} read each stage's value off a curve fitted to field counts ({peaks}). Activity is a stage's value over its curve's peak; risk is {weighted}: {levels}. After day 250, fall freezes end the season{_season_end_words(insect)}."
+
+
+def _season_end_words(insect: Insect) -> str:
+    """ ", and it ends after October 31 whatever the weather" for an insect with a season, else nothing."""
+    if insect.season is None:
+        return ""
+    month, day = (int(p) for p in insect.season[1].split("-"))
+    return f", and it ends after {date(2001, month, day):%B} {day} whatever the weather"
 
 
 def _ordinal(n: int) -> str:

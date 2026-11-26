@@ -1,6 +1,6 @@
 """Mappable layers (Phase 5 E, docs/api.md "Grids"): what `/layers` lists and `/grids/{layer}` reads.
 
-A layer is a catalog variable on the grid with a time axis: a daily variable (local days, `agdata.daily`), an
+A layer is a catalog variable on the grid with a time axis: a daily variable (grid days, `agdata.daily`), an
 hourly one (hours by their UTC end), either of them computed when read from stored ones (`agdata.computed`), a
 running total from January 1 (`agdata.cumulative`), degree days for any setting (`degree_days`, computed from each
 day's minimum and maximum, the same way as at points), or a model's outputs (`model`, finished from its ingredients
@@ -9,7 +9,7 @@ by `agdata.modelgrid`; the layer's id is the model's).
 Climate (D86): a layer whose normal the stored normal maps hold (`agdata.normals`, D85) takes `climate=normal`,
 `departure` or `percentile` (`Layer.climate` lists which), from the same layer rather than a copy of it; the
 freeze layers come from those maps alone (`freeze_chance` by day of year, `freeze_dates` with no time at all), and
-`elevation` from the terrain store (D6), with no time either. Their statistics are `outputs`, as a model's are.
+`elevation` from the terrain store (Phase 6 D6), with no time either. Their statistics are `outputs`, as a model's are.
 
 A model layer's value is one of the model's outputs (`output=`): by default its risk level (an index into the
 spec's levels), or a crop model's stage; `risk_value` is a continuous risk (the insects' summed activity) before it
@@ -129,6 +129,7 @@ _USES = (
     ("et0", "evapotranspiration"),
     ("hours_", "hours"),
     ("incidence", "chance"),  # a predicted share of plants or fields, 0–100 %
+    ("probability", "chance"),  # a disease model's probability, 0–100 %
 )
 # Internal variables that aren't layers: HRRR's shortwave before correction, the daily ET0 estimate the running
 # totals use for days missing hours, and the running counts of estimated and missing days
@@ -320,6 +321,7 @@ RISK_LEVEL, RISK_VALUE, SUSCEPTIBILITY = "risk_level", "risk_value", "susceptibi
 
 
 def _model_layers() -> list[Layer]:
+    from agdata import palettes
     from agdata.modelgrid import OUTPUT_STEPS, mapped, tiered  # imports every model
 
     found = []
@@ -337,7 +339,7 @@ def _model_layers() -> list[Layer]:
             for q in spec.outputs
         ]
         if spec.risk is not None:
-            levels = f"risk_{len(spec.risk.levels)}"
+            levels = palettes.risk_use(spec.risk.levels)
             risk = [LayerOutput(name=RISK_LEVEL, label="Risk level", unit="index", step=1, use=levels)]
             if spec.risk.thresholds:
                 risk.append(LayerOutput(name=RISK_VALUE, label="Risk", unit="index", step=0.001, use="risk_value"))

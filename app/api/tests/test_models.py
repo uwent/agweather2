@@ -44,7 +44,7 @@ def test_a_disease_model_from_its_biofix_through_the_forecast(client, archive):
     assert data["pdays_total"][1] == pytest.approx(2 * OBSERVED_PDAYS, abs=0.001)
     assert data["risk_label"][0] == "Very low" and data["risk_level"][0] == 0
     assert data["in_season"][0] is True
-    assert meta["request"]["model"] == "early-blight-pdays" and meta["request"]["version"] == "0.2"
+    assert meta["request"]["model"] == "early-blight-pdays" and meta["request"]["version"] == "0.4"
     assert meta["request"]["biofix"] == "2025-07-02" and meta["request"]["planting_date"] is None
     assert meta["units"]["air_temperature_min"] == "°C" and "risk_label" not in meta["units"]
     assert meta["sources"][:1] == ["urma"] and meta["location"]["in_box"] is True
@@ -104,8 +104,33 @@ def test_a_typical_planting_date_comes_with_its_source(client, archive):
     ]["date"]
 
 
+def test_a_typical_potato_planting_date_is_the_cells_estimate(client, archive, monkeypatch):
+    """Potato's typical dates are estimated per grid cell from the normal last spring freeze around it (`agdata.potatoplanting`):
+    a point gets its cell's, named as such. This archive has no 30-year normals, so the freeze is stood in for."""
+    from agdata import potatoplanting
+
+    monkeypatch.setattr(
+        potatoplanting,
+        "_computed",
+        lambda data_dir, tier, window, stamp: np.full(window.shape, 121.0 + potatoplanting.OFFSETS[tier]),
+    )
+    potatoplanting._slots.cache_clear()
+    try:
+        body = get(client, "late-blight-dsv", planting_date="mid", start="2025-07-05", end="2025-07-06").json()
+        echo = body["meta"]["request"]["planting_date"]
+        cell = NDFD.cell_of(LAT, LNG)
+        assert cell is not None and echo["level"] == "cell" and echo["area"] == f"{cell[0]},{cell[1]}"
+        assert echo["date"] == "2025-05-08" and echo["typical"] == {"early": "04-25", "mid": "05-08", "late": "05-29"}
+        assert "28 °F" in echo["source"]
+        located = client.get("/api/v2/locate", {"lat": LAT, "lng": LNG}).json()["data"]["planting"]
+        potato = next(p for p in located if p["crop"] == "potato")
+        assert potato["typical"] == "05-08" and potato["level"] == "cell"
+    finally:
+        potatoplanting._slots.cache_clear()
+
+
 def test_planting_dates_that_cannot_apply_are_refused(client, archive):
-    no_crop = get(client, "late-blight-dsv", planting_date="early")  # potato: no typical dates near this point
+    no_crop = get(client, "late-blight-dsv", planting_date="early")  # potato: no normals here to estimate it from
     assert no_crop.status_code == 422 and no_crop.json()["errors"][0]["code"] == "no_estimate"
     none = get(client, "custom-degree-days", planting_date="2025-05-01")
     assert none.status_code == 422 and none.json()["errors"][0]["code"] == "not_applicable"
@@ -329,6 +354,15 @@ def test_risk_lists_models_in_season_and_in_region(client, archive, no_open_mete
     k = data["model"].index("early-blight-pdays")
     assert data["kind"][k] == "observed" and data["risk_label"][k] == "Very low" and data["reason"][k] is None
     assert body["meta"]["summary"]["models"] == len(data["model"]) and body["meta"]["request"]["models"] == "in season"
+    assert "tarnished-plant-bug" not in data["model"]  # retired: only by id
+    assert "alfalfa-weevil" in data["model"] and "corn-earworm" not in data["model"]  # insects by their seasons
+
+
+def test_risk_leaves_out_retired_models_unless_named(client, archive):
+    every = client.get("/api/v2/risk", {"lat": LAT, "lng": LNG, "date": "2025-07-08", "models": "all"}).json()["data"]
+    assert "colorado-potato-beetle" in every["model"] and "colorado-potato-beetle-adults" not in every["model"]
+    named = {"lat": LAT, "lng": LNG, "date": "2025-07-08", "models": "colorado-potato-beetle-adults"}
+    assert client.get("/api/v2/risk", named).json()["data"]["model"] == ["colorado-potato-beetle-adults"]
 
 
 def test_risk_for_models_asked_includes_why_there_is_none(client, archive):
@@ -337,6 +371,39 @@ def test_risk_for_models_asked_includes_why_there_is_none(client, archive):
     ).json()["data"]
     assert data["model"] == ["pecan-scab", "tar-spot"]
     assert data["reason"][0] == "outside the model's region" and data["risk_level"][0] is None
+
+
+def test_risk_through_the_forecast_is_a_row_per_model_and_day(client, archive):
+    """`start`/`end` (Phase 7 track 3 Q1): each model's risk on each day, from one run per model, the same as the
+    one-day answers; days past the forecast are left out."""
+    params = {"lat": LAT, "lng": LNG, "models": "early-blight-pdays,tar-spot"}
+    body = client.get("/api/v2/risk", {**params, "start": "2025-07-06"}).json()
+    data, meta = body["data"], body["meta"]
+    n = meta["summary"]["days"]
+    assert meta["summary"]["models"] == 2 and len(data["date"]) == 2 * n
+    assert data["model"] == ["early-blight-pdays"] * n + ["tar-spot"] * n
+    assert data["date"][0] == "2025-07-06" and data["date"][n - 1] == meta["request"]["end"] > "2025-07-10"
+    kinds = data["kind"][:n]
+    assert kinds[0] == "observed" and kinds[-1] == "forecast" and None not in kinds  # trimmed to the forecast's end
+    assert not any("projection" in w for w in meta["warnings"])  # the default end isn't news
+    one = client.get("/api/v2/risk", {**params, "date": "2025-07-08"}).json()["data"]
+    assert "date" not in one  # the one-day answer keeps its shape
+    k = data["date"].index("2025-07-08")
+    assert [data["risk_level"][k], data["risk_level"][k + n]] == one["risk_level"]
+    assert [data["missing_days"][k], data["missing_days"][k + n]] == one["missing_days"]
+    asked = client.get("/api/v2/risk", {**params, "start": "2025-07-06", "end": "2025-07-31"}).json()
+    assert asked["meta"]["request"]["end"] == meta["request"]["end"] and asked["data"] == data
+    assert any("'projection=true'" in w for w in asked["meta"]["warnings"])
+
+
+def test_risk_over_days_is_checked(client, archive):
+    params = {"lat": LAT, "lng": LNG, "models": "tar-spot"}
+    years = client.get("/api/v2/risk", {**params, "start": "2025-12-30", "end": "2026-01-02"})
+    assert years.status_code == 422 and years.json()["errors"][0]["param"] == "end"
+    both = client.get("/api/v2/risk", {**params, "date": "2025-07-08", "end": "2025-07-12"})
+    assert both.status_code == 422 and both.json()["errors"][0]["code"] == "conflict"
+    backwards = client.get("/api/v2/risk", {**params, "start": "2025-07-12", "end": "2025-07-08"})
+    assert backwards.status_code == 422 and backwards.json()["errors"][0]["param"] == "start"
 
 
 def test_risk_with_a_planting_date_shows_susceptibility(client, archive):
@@ -362,6 +429,20 @@ def test_evaluate_runs_the_models_core(client):
     assert body["data"]["pdays"] == [pytest.approx(OBSERVED_PDAYS, abs=0.001)]
     assert body["data"]["tmin"] == [9.0] and body["meta"]["units"]["tmin"] == "°C"
     assert body["meta"]["request"]["inputs"] == {"tmin": 9.0, "tmax": 21.0} and body["meta"]["warnings"] == []
+
+
+def test_evaluate_refuses_a_value_beside_inputs(client):
+    """Ninja drops a field the body doesn't declare, so a value sent beside 'inputs' ran at its default: refused."""
+    path = "/api/v2/models/early-blight-pdays/evaluate"
+    beside = client.post(path, {"inputs": {}, "tmin": 9}, content_type="application/json")
+    error = beside.json()["errors"][0]
+    assert beside.status_code == 422 and (error["code"], error["param"]) == ("unknown_parameter", "tmin")
+    assert (
+        error["message"]
+        == """Put 'tmin' inside 'inputs', such as '"inputs": {"tmin": 9}': the values to evaluate go there."""
+    )
+    other = client.post(path, {"input": {"tmin": 9}}, content_type="application/json").json()["errors"][0]
+    assert other["param"] == "input" and "inside 'inputs', such as" in other["message"]
 
 
 def test_evaluate_takes_the_requests_units_and_sweeps_lists(client):

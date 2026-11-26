@@ -46,7 +46,7 @@ bin/agwx                              # the data dashboard (section 6); bin/agwx
 bin/ci                                # every check, in CI's order; stops at the first failure
 bin/e2e                               # Playwright on a production build and the agweather2_e2e database
 bin/e2e smoke.spec.ts --project desktop
-bin/types                             # after changing a props.py; commit frontend/types/generated
+bin/types                             # after changing a props.py or a page URL; commit frontend/types/generated and frontend/lib/routes.ts
 uv run app/manage.py createsuperuser  # for /admin
 uv run pytest packages/agmodels       # one package's tests
 uv run pytest --network               # also the tests that read NOAA's bucket (not run in CI)
@@ -71,7 +71,11 @@ SECRET_KEY=anything docker compose -f infra/compose.yaml --profile local down -v
 ```
 
 On a server, settings go in `infra/.env` (gitignored): `SECRET_KEY`, `DATABASE_URL` (RDS), `ALLOWED_HOSTS`,
-`SITE_ADDRESS` (the hostname, so Caddy gets a certificate), `HTTP_PORT=80`, `HTTPS_PORT=443`, `APP_VERSION`.
+`SITE_ADDRESS` (the hostname, so Caddy gets a certificate), `HTTP_PORT=80`, `HTTPS_PORT=443`, `APP_VERSION`, and `BLOCK_WORKERS`, `WEB_MEMORY` and `WORKER_MEMORY` as `.env.example` describes.
+
+Open-Meteo's plan (D115): `OPEN_METEO_API_KEY` uses the customer hosts; `OPEN_METEO_MONTHLY_CALLS` (default 5,000,000 with a key, 300,000 without), `OPEN_METEO_DAILY_CALLS` (none with a key, 10,000 without) and `OPEN_METEO_BILLING_DAY` (default 12, the day the billing month renews) set what the app's use is measured against. The admin's Open-Meteo usage page, `/up` and `manage.py jobs` show the billing month so far. Development scripts that read Open-Meteo through `agdata.clients.openmeteo_points` aren't counted: run them without the production key, or they draw on the plan unseen. `OPEN_METEO_FALLBACK=0` stops points in the box from taking Open-Meteo's forecast while ours is stale (D114).
+
+The API's limits: `API_RATE_LIMIT` (default 200 units a minute per client, D69) and `API_TIME_LIMIT` (default 30 seconds; 0 turns it off). Each of these settings left blank in `infra/.env` takes its default.
 
 ## 5. Scratch and data
 
@@ -121,7 +125,7 @@ bin/agwx archive clear                             # forget finished runs and th
 bin/agwx jobs                                      # the worker's jobs, the archive's and forecast's health
 ```
 
-Every data command (`backfill`, `era5land`, `rollup`, `rebuild`, `pastyears`, `ingredients`, `downloads`, `refetch_precip`, `forecast`, `archive fill`) takes `--background`, and `--quiet` to print only warnings, failures and the summary. On a terminal it draws its progress in place; in a log it writes timestamped lines. Each exits nonzero if anything failed.
+Every data command (`backfill`, `era5land`, `rollup`, `rebuild`, `pastyears`, `ingredients`, `timecopy`, `downloads`, `climatology`, `terrain`, `cropland`, `verify`, `refetch_precip`, `forecast`, `archive fill`) takes `--background`, and `--quiet` to print only warnings, failures and the summary. On a terminal it draws its progress in place; in a log it writes timestamped lines. Each exits nonzero if anything failed.
 
 ### Filling years
 
@@ -137,7 +141,7 @@ Everything resumes: a rerun skips hours, days and copies that are already there,
 
 The hours are what take the time: about 11.5 hours a year here. Each URMA analysis is a whole CONUS field (~43 MB an hour, ~50 MB with precip and HRRR), and the connection is the limit (~100 Mbit/s), not the CPU: decoding a file takes 0.1–0.4 s of its 8–35 s. `--workers` (default 4) is how many hours download at once; memory peaks under 2 GB.
 
-`backfill --start --end` does the hours alone for a range (`--end` is the day after the last; days are UTC). It works in 5-day blocks (`--block-days`), downloading the next block while it writes this one. Hours RTMA filled because URMA wasn't out yet are fetched again once URMA is. After each block it rolls up the local days the block finished into `data/daily/<year>.zarr` and rebuilds that year's running totals in `data/cumulative/<year>.zarr`.
+`backfill --start --end` does the hours alone for a range (`--end` is the day after the last; days are UTC). It works in 5-day blocks (`--block-days`), downloading the next block while it writes this one. Hours RTMA filled because URMA wasn't out yet are fetched again once URMA is. After each block it rolls up the grid days (midnight to midnight CST) the block finished into `data/daily/<year>.zarr` and rebuilds that year's running totals in `data/cumulative/<year>.zarr`.
 
 ### The write lock
 
@@ -159,6 +163,10 @@ uv run app/manage.py rollup --start 2025-01-01 --end 2025-01-30    # grid days, 
 
 `latency` times the requests docs/architecture.md §3 sets targets for (a map's first tile and a kept one, a point's hourly season, every model at a point) on this archive, and says which are over (`--lat --lng --day` to choose the place and day).
 
+`timecopy --check` lists the years whose season-read copy of the daily minimum and maximum (`data/daily-by-time/`, what a custom degree-day map reads) is behind the daily store, and `timecopy` fills it; the jobs keep it current after that.
+
+The static and outside stores are built once on a new machine, each with `--check` to say what a run would do: `climatology` (gridMET's 30 years, fitted to the archive and derived, then the normal maps; a monthly job keeps it current), `terrain` (each cell's water share and elevation from NHDPlus V2), `cropland` (each cell's crop shares from NASS's Cropland Data Layer; the zips, ~10 GB, are kept in `data/cdl/`). `verify` scores the kept forecast runs (D113), as the daily job does, and `verify --report` prints the scores by variable and lead.
+
 When a variable's stored scale changes in the catalog, stores written before refuse to open until they're repacked (`GridStore.rescale`). For precip, `refetch_precip --start --end --rescale` repacks and fetches the hours again at the new precision (precip files are small: about 2 minutes a month).
 
 Stored hours and days are raw: a missing hour or an incomplete day stays missing. Only the running totals estimate across gaps (up to 7 days), and they count the estimated and missing days (docs/decisions.md D25).
@@ -177,7 +185,9 @@ The worker in `bin/dev` keeps the archive current:
 | `precompute_maps`     | after the crop stages | every model's and the main weather layers' latest map, kept on disk for visitors |
 | `build_past_years`    | Mondays        | the past-years copies                                        |
 | `build_downloads`     | Mondays        | the yearly NetCDF downloads                                  |
-| `housekeeping`        | daily, at 4:10 | drops API rate-limit counts over a week old and map images unused for 14 days |
+| `update_climatology`  | monthly, the 15th | in January, the normals' 30 years rolled forward (a new gridMET year fetched, the oldest dropped, the maps rebuilt); other months, anything left undone |
+| `score_forecasts`     | daily, at 14:25 | scores the kept forecast runs' days the archive has closed (D113) |
+| `housekeeping`        | daily, at 4:10 | drops API rate-limit counts over a week old, map images unused for 14 days, computed maps kept on disk over 2 days and Open-Meteo usage over two years; warns while Open-Meteo's use nears the plan |
 
 `bin/agwx jobs` lists them and their last runs, and `jobs run NAME` runs one now. Each ingest run and backfill block is listed in Django admin under Operations → Ingest records, and `/up` shows how far behind the archive is:
 

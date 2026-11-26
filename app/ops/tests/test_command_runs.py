@@ -173,7 +173,17 @@ def record(status, **fields) -> IngestRecord:
     return IngestRecord(**{**defaults, **fields})
 
 
-def test_forecast_publishes_and_reports_the_run(data_dir, monkeypatch):
+@pytest.fixture
+def queued(monkeypatch) -> list[str]:
+    """The follow-on jobs the command queues, recorded instead of written to the job queue."""
+    from ops import tasks
+
+    names: list[str] = []
+    monkeypatch.setattr(tasks, "queue_next", lambda task, timestamp: names.append(task.name) or True)
+    return names
+
+
+def test_forecast_publishes_and_reports_the_run(data_dir, monkeypatch, queued):
     from ops.management.commands import forecast
 
     calls = []
@@ -186,6 +196,7 @@ def test_forecast_publishes_and_reports_the_run(data_dir, monkeypatch):
     out, _ = run("forecast", "--before", "2025-07-01T18", "--box", BOX)
     assert calls == [(data_dir, BOX, datetime(2025, 7, 1, 18, tzinfo=UTC), True)]  # a command retries failed cycles
     assert "before 2025-07-01 18Z" in out and "forecast 2025-07-01 12Z +264 h: ok" in out
+    assert queued == ["ops.tasks.update_crop_tiers"] and "crop stages and maps: queued" in out  # as after the job
 
 
 def test_forecast_with_nothing_new_says_so(data_dir, monkeypatch):
@@ -196,7 +207,7 @@ def test_forecast_with_nothing_new_says_so(data_dir, monkeypatch):
     assert "nothing new" in out
 
 
-def test_forecast_partial_run_warns_about_failed_hours_and_exits_cleanly(data_dir, monkeypatch):
+def test_forecast_partial_run_warns_about_failed_hours_and_exits_cleanly(data_dir, monkeypatch, queued):
     from ops.management.commands import forecast
 
     rec = record(IngestRecord.Status.PARTIAL, failed_hours=["2025-07-02T00:00:00+00:00"])
@@ -642,3 +653,18 @@ def test_pastyears_year_must_have_a_daily_store(data_dir, monkeypatch):
     monkeypatch.setattr(pastyears, "build", lambda data, year, progress: None)
     out, _ = run("pastyears", "--year", "2024")
     assert "2024 (asked for)" in out and "1 years built" in out
+
+
+def test_no_command_hides_djangos_system_checks():
+    """A command's own `check` method replaced `BaseCommand.check` (the system checks), so `manage.py verify` failed
+    from the command line in every mode while `call_command` (which skips the checks) passed (2026-11-26)."""
+    import importlib
+    import pkgutil
+
+    from django.core.management.base import BaseCommand
+
+    import ops.management.commands as commands
+
+    for module in pkgutil.iter_modules(commands.__path__):
+        command = importlib.import_module(f"{commands.__name__}.{module.name}").Command
+        assert command.check is BaseCommand.check, f"manage.py {module.name} overrides BaseCommand.check"

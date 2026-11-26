@@ -1,0 +1,611 @@
+{
+ "meta": {
+  "request": {
+   "group": null,
+   "crop": null
+  },
+  "params": {
+   "group": null,
+   "crop": null
+  },
+  "units": {},
+  "summary": {},
+  "sources": [],
+  "warnings": [],
+  "attribution": "AgWeather, University of Wisconsin\u2013Madison. Weather from NOAA (URMA, RTMA, HRRR, NBM), Open-Meteo (CC BY 4.0) and ECMWF; contains modified Copernicus Climate Change Service information 2026.",
+  "api_version": "2.0",
+  "generated_at": "2026-11-25T21:29:12Z",
+  "compute_ms": 4
+ },
+ "data": [
+  {
+   "id": "alfalfa-growth",
+   "name": "Alfalfa growth since cutting",
+   "group": "crop",
+   "crop_ids": [
+    "alfalfa"
+   ],
+   "summary": "Growing degree days (base 41 \u00b0F, upper 86 \u00b0F) since spring or the last cutting, and when alfalfa is ready to cut (900\u20131100 GDD)."
+  },
+  {
+   "id": "alfalfa-weevil",
+   "name": "Alfalfa weevil",
+   "group": "insect",
+   "crop_ids": [
+    "alfalfa"
+   ],
+   "summary": "Times alfalfa weevil egg hatch, larval feeding, pupation and new adults from degree days since January 1 (base 48 \u00b0F), on NEWA's model, and marks when to scout stem tips for feeding on the first crop."
+  },
+  {
+   "id": "aphid-pvy-vectors",
+   "name": "Aphid PVY vectors",
+   "group": "insect",
+   "crop_ids": [
+    "potato"
+   ],
+   "summary": "Estimates the typical risk of potato virus Y spread by winged aphids through the season, by degree days or calendar date, using curves fitted to Wisconsin's suction trap catches."
+  },
+  {
+   "id": "apple-scab",
+   "name": "Apple scab",
+   "group": "disease",
+   "crop_ids": [
+    "apple"
+   ],
+   "summary": "Primary apple scab infection periods from wet hours and temperature, with the share of the season's ascospores mature and released, from green tip until they're released."
+  },
+  {
+   "id": "apple-stages",
+   "name": "Apple bud and bloom stages",
+   "group": "crop",
+   "crop_ids": [
+    "apple"
+   ],
+   "summary": "Apple's stages from silver tip to fruit set, by degree days (base 43 \u00b0F) from January 1, at the thresholds NEWA uses."
+  },
+  {
+   "id": "black-cutworm",
+   "name": "Black cutworm",
+   "group": "insect",
+   "crop_ids": [
+    "asparagus",
+    "beans",
+    "beet",
+    "carrot",
+    "celery",
+    "corn",
+    "sweet-corn",
+    "cucumber",
+    "hops",
+    "melon",
+    "mint",
+    "pea",
+    "potato",
+    "tomato"
+   ],
+   "summary": "Times black cutworm egg laying, leaf feeding and the cutting stages from degree days after a significant moth capture, your trap date or May 1, so you know when to scout seedlings for cutting."
+  },
+  {
+   "id": "botrytis-onion-botcast",
+   "name": "Botrytis leaf blight (BOTCAST)",
+   "group": "disease",
+   "crop_ids": [
+    "onion"
+   ],
+   "summary": "BOTCAST's daily disease severity index from inoculum and infection conditions, accumulated from emergence to time fungicide sprays for Botrytis leaf blight of onion."
+  },
+  {
+   "id": "cabbage-looper",
+   "name": "Cabbage looper",
+   "group": "insect",
+   "crop_ids": [
+    "celery",
+    "cole-crops",
+    "hops",
+    "leafy-greens",
+    "melon",
+    "mint",
+    "pea",
+    "potato",
+    "tomato"
+   ],
+   "summary": "Times cabbage looper egg laying and caterpillar feeding from degree days since the first moth caught in a pheromone trap, or July 15 without one, for each generation to the season's end, and marks when to scout for small caterpillars."
+  },
+  {
+   "id": "cabbage-maggot",
+   "name": "Cabbage maggot",
+   "group": "insect",
+   "crop_ids": [
+    "cole-crops"
+   ],
+   "summary": "Times cabbage maggot fly flights and the root feeding that follows from degree days since January 1, by NEWA's model with a longer generation from New York and Wisconsin trap studies, and marks when to have seedlings and transplants protected during each flight."
+  },
+  {
+   "id": "carrot-foliar-dsv",
+   "name": "Carrot foliar blight disease severity values (TOMCAST)",
+   "group": "disease",
+   "crop_ids": [
+    "carrot"
+   ],
+   "summary": "Daily disease severity values (0\u20134) from hours of leaf wetness and their temperature, for Alternaria and Cercospora leaf blights of carrot: the total since planting or the last spray times fungicide sprays, and the last 7 days' total sets the risk level."
+  },
+  {
+   "id": "cercospora-beet-div",
+   "name": "Cercospora leaf spot daily infection values",
+   "group": "disease",
+   "crop_ids": [
+    "sugarbeet",
+    "beet"
+   ],
+   "summary": "Daily infection values (0\u20137) from hours of high humidity and their temperature; their 2- and 7-day means time fungicide sprays for Cercospora leaf spot of table and sugar beet."
+  },
+  {
+   "id": "codling-moth",
+   "name": "Codling moth",
+   "group": "insect",
+   "crop_ids": [
+    "apple"
+   ],
+   "summary": "Times codling moth flight and egg hatch in apple orchards from degree days, from your first trap catch or one estimated for your latitude, and marks when to protect fruit during each generation's egg hatch."
+  },
+  {
+   "id": "colorado-potato-beetle",
+   "name": "Colorado potato beetle",
+   "group": "insect",
+   "crop_ids": [
+    "potato",
+    "tomato",
+    "eggplant"
+   ],
+   "summary": "Follows Colorado potato beetle adults, egg masses and larvae through the season, by degree days or calendar date, using curves fitted to a decade of scouting counts in central Wisconsin's potato fields."
+  },
+  {
+   "id": "colorado-potato-beetle-adults",
+   "name": "Colorado Potato Beetle (Adults)",
+   "group": "insect",
+   "crop_ids": [
+    "eggplant",
+    "potato",
+    "tomato"
+   ],
+   "summary": "Retired. The Colorado potato beetle model now shows adults as one of its outputs."
+  },
+  {
+   "id": "colorado-potato-beetle-larvae",
+   "name": "Colorado Potato Beetle (Larvae)",
+   "group": "insect",
+   "crop_ids": [
+    "eggplant",
+    "potato",
+    "tomato"
+   ],
+   "summary": "Retired. The Colorado potato beetle model now shows larvae as one of its outputs."
+  },
+  {
+   "id": "common-asparagus-beetle",
+   "name": "Common asparagus beetle",
+   "group": "insect",
+   "crop_ids": [
+    "asparagus"
+   ],
+   "summary": "Follows common asparagus beetles from the overwintered adults feeding and laying eggs on spears in spring through up to three generations, from degree days since January 1 by UW\u2013Madison's method, and marks when to scout for beetles and eggs."
+  },
+  {
+   "id": "corn-earworm",
+   "name": "Corn earworm",
+   "group": "insect",
+   "crop_ids": [
+    "beans",
+    "corn",
+    "sweet-corn"
+   ],
+   "summary": "Times corn earworm caterpillars in sweet corn ears from degree days after egg laying, from the day you first find eggs on silks or catch a significant moth flight, or August 15 without a date."
+  },
+  {
+   "id": "corn-rootworm",
+   "name": "Corn rootworm",
+   "group": "insect",
+   "crop_ids": [
+    "corn",
+    "sweet-corn"
+   ],
+   "summary": "Times corn rootworm egg hatch, larvae feeding on corn roots and the beetles that follow from air-temperature degree days since January 1 (base 52 \u00b0F), on Wisconsin's northern corn rootworm study, and marks when to dig and rate roots."
+  },
+  {
+   "id": "corn-stages",
+   "name": "Corn growth stages",
+   "group": "crop",
+   "crop_ids": [
+    "corn"
+   ],
+   "summary": "Corn's vegetative and reproductive stages from planting, by growing degree days (modified 50/86 \u00b0F), for any hybrid maturity."
+  },
+  {
+   "id": "cotton-planting",
+   "name": "Cotton planting stand risk",
+   "group": "agronomic",
+   "crop_ids": [
+    "cotton"
+   ],
+   "summary": "For each possible planting date, the predicted emerged cotton stand in plants per acre, with its 95% confidence interval, from the rain over the next 3 days and the minimum temperatures over the next 9, compared with a yield-limiting stand."
+  },
+  {
+   "id": "crucifer-flea-beetle",
+   "name": "Crucifer flea beetle",
+   "group": "insect",
+   "crop_ids": [
+    "cole-crops"
+   ],
+   "summary": "Times crucifer flea beetle adults from degree days since January 1, the overwintered beetles that feed on seedlings and transplants in spring and the new adults of late summer, and marks when to scout new plantings every one to two days."
+  },
+  {
+   "id": "custom-degree-days",
+   "name": "Custom degree days",
+   "group": "degree_days",
+   "crop_ids": [],
+   "summary": "Degree days since a biofix, with any base and upper threshold, method and unit."
+  },
+  {
+   "id": "early-blight-pdays",
+   "name": "Early blight P-days",
+   "group": "disease",
+   "crop_ids": [
+    "potato"
+   ],
+   "summary": "Potato physiological days from daily minimum and maximum temperature, accumulated from emergence to time the first fungicide spray for early blight (about 300 P-days)."
+  },
+  {
+   "id": "european-corn-borer",
+   "name": "European corn borer",
+   "group": "insect",
+   "crop_ids": [
+    "beans",
+    "corn",
+    "sweet-corn",
+    "eggplant",
+    "pepper",
+    "potato"
+   ],
+   "summary": "Times European corn borer moth flights, egg laying and young caterpillars from degree days since January 1, and marks when to scout and treat young caterpillars before they bore into the plant, with two generations in southern and central Wisconsin and one in the north."
+  },
+  {
+   "id": "fire-blight",
+   "name": "Fire blight (blossom blight)",
+   "group": "disease",
+   "crop_ids": [
+    "apple"
+   ],
+   "summary": "Fire blight blossom infection risk during bloom, by Cougarblight 2010's four-day temperature risk and MaryBlyt's infection potential, with wetting and expected symptoms."
+  },
+  {
+   "id": "frogeye-leaf-spot",
+   "name": "Frogeye leaf spot spore probability",
+   "group": "disease",
+   "crop_ids": [
+    "soybean"
+   ],
+   "summary": "The probability of frogeye leaf spot spores being present, from a month of maximum temperature and humid hours; soybean is susceptible from R1 (flowering) to R5 (beginning seed)."
+  },
+  {
+   "id": "gibberella-ear-rot-don",
+   "name": "Gibberella ear rot DON probability",
+   "group": "disease",
+   "crop_ids": [
+    "corn"
+   ],
+   "summary": "The probability of DON above 1 ppm from Gibberella ear rot, from temperature and rain 21 to 7 days before and humidity over the last 14 days; corn is susceptible during silking."
+  },
+  {
+   "id": "gray-leaf-spot",
+   "name": "Gray leaf spot spore probability",
+   "group": "disease",
+   "crop_ids": [
+    "corn"
+   ],
+   "summary": "The probability of gray leaf spot spores being present, from three weeks of minimum temperature and a month of minimum dew point; corn is susceptible from V10 to R3."
+  },
+  {
+   "id": "green-peach-aphid",
+   "name": "Green peach aphid",
+   "group": "insect",
+   "crop_ids": [
+    "potato"
+   ],
+   "summary": "Shows the typical season's flight of winged green peach aphids in Wisconsin, by calendar date or degree days, from curves fitted to the state's suction trap catches."
+  },
+  {
+   "id": "imported-cabbageworm",
+   "name": "Imported cabbageworm",
+   "group": "insect",
+   "crop_ids": [
+    "cole-crops"
+   ],
+   "summary": "Times the cabbage white butterfly's flights, egg laying and imported cabbageworm caterpillar feeding from degree days since January 1, for each generation through the season, and marks when to scout for eggs and young caterpillars."
+  },
+  {
+   "id": "japanese-beetle",
+   "name": "Japanese beetle",
+   "group": "insect",
+   "crop_ids": [
+    "asparagus",
+    "beans",
+    "beet",
+    "blackberry",
+    "cole-crops",
+    "eggplant",
+    "hops",
+    "horseradish",
+    "leafy-greens",
+    "melon",
+    "mint",
+    "pea",
+    "pepper",
+    "potato",
+    "pumpkin-squash",
+    "raspberry",
+    "tomato"
+   ],
+   "summary": "Follows Japanese beetle adult activity through the summer from degree days since January 1, by Oregon State's model, and marks when to scout for beetles feeding, from the first beetles at about 920 degree days to the end of main activity at about 2,100."
+  },
+  {
+   "id": "late-blight-dsv",
+   "name": "Late blight disease severity values",
+   "group": "disease",
+   "crop_ids": [
+    "potato",
+    "tomato"
+   ],
+   "summary": "Daily disease severity values (0\u20134) from hours of high humidity and their temperature, accumulated from potato emergence (or a date you enter, such as tomato transplanting or the last spray) to time fungicide sprays for late blight of potato and tomato."
+  },
+  {
+   "id": "mint-flea-beetle",
+   "name": "Mint flea beetle",
+   "group": "insect",
+   "crop_ids": [
+    "mint"
+   ],
+   "summary": "Follows mint flea beetle larvae in the roots and adults on the leaves from degree days since January 1 (base 41 \u00b0F), by Oregon State's model, and marks when to sweep mint for adults as they emerge."
+  },
+  {
+   "id": "mint-root-borer",
+   "name": "Mint root borer",
+   "group": "insect",
+   "crop_ids": [
+    "mint"
+   ],
+   "summary": "Follows mint root borer moth flight and the larvae feeding in mint roots from degree days since April 1 (base 50 \u00b0F), by Oregon State's model, and marks when to trap or sweep for moths."
+  },
+  {
+   "id": "oak-wilt-vectors",
+   "name": "Oak wilt vector flight",
+   "group": "insect",
+   "crop_ids": [
+    "oak"
+   ],
+   "summary": "The risk of oak wilt spreading by its beetle vectors, from their flight timed by degree days (base 41 \u00b0F) and the season (wounding before mid-July)."
+  },
+  {
+   "id": "onion-maggot",
+   "name": "Onion maggot",
+   "group": "insect",
+   "crop_ids": [
+    "onion"
+   ],
+   "summary": "Times the three onion maggot fly flights and the feeding that follows from degree days since January 1, by NEWA's model, and marks when onion plantings should be protected during each flight."
+  },
+  {
+   "id": "pecan-scab",
+   "name": "Pecan scab hours",
+   "group": "disease",
+   "crop_ids": [
+    "pecan"
+   ],
+   "summary": "Hours warm (70 \u00b0F or more) and humid (RH 90% or more) since March 1 or the last fungicide spray, and whether a spray is advised: the total has reached the threshold for your variety's susceptibility and the waiting period after March 1 or the last spray has passed."
+  },
+  {
+   "id": "potato-aphid",
+   "name": "Potato aphid",
+   "group": "insect",
+   "crop_ids": [
+    "potato"
+   ],
+   "summary": "Shows the typical season's potato aphid counts in central Wisconsin potato fields, by degree days or calendar date, from curves fitted to a decade of scouting counts."
+  },
+  {
+   "id": "potato-stages",
+   "name": "Potato emergence",
+   "group": "crop",
+   "crop_ids": [
+    "potato"
+   ],
+   "summary": "The date half of a potato planting has emerged, by degree days in air above 4 \u00b0C from planting: the start of the early and late blight models."
+  },
+  {
+   "id": "potato-volunteer",
+   "name": "Potato volunteer survival",
+   "group": "agronomic",
+   "crop_ids": [
+    "potato"
+   ],
+   "summary": "Whether potato tubers left in the field are likely to survive the winter, from the hours of soil below 27 \u00b0F at 2, 4 and 8 in; surviving volunteers can carry late blight and insect pests into the next season."
+  },
+  {
+   "id": "red-crown-rot",
+   "name": "Red crown rot incidence",
+   "group": "disease",
+   "crop_ids": [
+    "soybean"
+   ],
+   "summary": "Predicted share of soybean plants with red crown rot, from temperature and rain in the month either side of the beginning of flowering (R1)."
+  },
+  {
+   "id": "rye-biomass",
+   "name": "Winter rye cover crop biomass",
+   "group": "agronomic",
+   "crop_ids": [
+    "rye"
+   ],
+   "summary": "Spring biomass of a fall-planted cereal rye cover crop, from growing degree days (base 32 \u00b0F) since planting, against the biomass cover crop goals need. Fitted on Wisconsin data, mostly from southern and central Wisconsin."
+  },
+  {
+   "id": "seedcorn-maggot",
+   "name": "Seedcorn maggot",
+   "group": "insect",
+   "crop_ids": [
+    "corn",
+    "sweet-corn",
+    "beans",
+    "cucumber",
+    "melon",
+    "pumpkin-squash"
+   ],
+   "summary": "Times each generation's adult flight and the larval feeding that follows from degree days since January 1, and marks the windows when planting a susceptible crop is most likely to be hit."
+  },
+  {
+   "id": "soybean-cercospora",
+   "name": "Soybean Cercospora leaf blight spore probability",
+   "group": "disease",
+   "crop_ids": [
+    "soybean"
+   ],
+   "summary": "Spore probabilities for three Cercospora species causing leaf blight of soybean, from recent temperature, dew point depression, wind and humid hours."
+  },
+  {
+   "id": "soybean-stages",
+   "name": "Soybean growth stages",
+   "group": "crop",
+   "crop_ids": [
+    "soybean"
+   ],
+   "summary": "Soybean's vegetative and reproductive stages from planting, from temperature and day length, for any maturity group (SOYDEV)."
+  },
+  {
+   "id": "spotted-wing-drosophila",
+   "name": "Spotted Wing Drosophila",
+   "group": "insect",
+   "crop_ids": [
+    "blackberry",
+    "cherry",
+    "raspberry"
+   ],
+   "summary": "Estimates how active spotted wing drosophila adults are through the season from degree days, using a curve fitted to weekly trap catches in Wisconsin tart cherry orchards."
+  },
+  {
+   "id": "spring-wheat-stages",
+   "name": "Spring wheat growth stages",
+   "group": "crop",
+   "crop_ids": [
+    "spring-wheat"
+   ],
+   "summary": "Spring wheat's Haun stages from planting through flowering and watery-ripe kernels, by growing degree days (base 32 \u00b0F)."
+  },
+  {
+   "id": "squash-vine-borer",
+   "name": "Squash vine borer",
+   "group": "insect",
+   "crop_ids": [
+    "cucumber",
+    "melon",
+    "pumpkin-squash"
+   ],
+   "summary": "Follows squash vine borer moth flight and egg laying, and the larvae boring in the vines, from degree days since January 1 (modified average, 50/86 \u00b0F), and marks when to protect stems during egg laying, from about 825 to 1,240 degree days."
+  },
+  {
+   "id": "stalk-borer",
+   "name": "Stalk borer",
+   "group": "insect",
+   "crop_ids": [
+    "corn",
+    "sweet-corn"
+   ],
+   "summary": "Times stalk borer caterpillars moving from grasses and weeds into corn from degree days since January 1, and marks the window to scout field borders and treat if needed."
+  },
+  {
+   "id": "tar-spot",
+   "name": "Tar spot risk",
+   "group": "disease",
+   "crop_ids": [
+    "corn"
+   ],
+   "summary": "The probability that recent weather has favored tar spot increasing in a corn field, from a month of temperature and humidity; corn is susceptible from V10 (10th leaf) to R3 (milk)."
+  },
+  {
+   "id": "tarnished-plant-bug",
+   "name": "Tarnished plant bug",
+   "group": "insect",
+   "crop_ids": [
+    "beans",
+    "celery",
+    "leafy-greens",
+    "pepper",
+    "potato",
+    "raspberry",
+    "tomato"
+   ],
+   "summary": "Retired. No study times the tarnished plant bug's spring generation by degree days, so the model's generations had no supported start."
+  },
+  {
+   "id": "variegated-cutworm",
+   "name": "Variegated cutworm",
+   "group": "insect",
+   "crop_ids": [
+    "asparagus",
+    "beans",
+    "beet",
+    "carrot",
+    "celery",
+    "corn",
+    "sweet-corn",
+    "cucumber",
+    "hops",
+    "leafy-greens",
+    "melon",
+    "mint",
+    "potato",
+    "tomato"
+   ],
+   "summary": "Times variegated cutworm's two moth flights and the caterpillars from each from degree days since January 1, and marks when to scout for eggs and young caterpillars after each flight's peak."
+  },
+  {
+   "id": "western-bean-cutworm",
+   "name": "Western bean cutworm",
+   "group": "insect",
+   "crop_ids": [
+    "corn",
+    "sweet-corn",
+    "dry-bean"
+   ],
+   "summary": "Times the western bean cutworm moth flight and the egg masses that follow from degree days since March 1, on Hanson et al.'s 2015 model, which NEWA also uses, and marks when to scout corn for egg masses."
+  },
+  {
+   "id": "western-flower-thrips",
+   "name": "Western Flower Thrips",
+   "group": "insect",
+   "crop_ids": [
+    "cucumber",
+    "eggplant",
+    "pepper",
+    "tomato"
+   ],
+   "summary": "Retired. Western flower thrips don't survive the winter outdoors in Wisconsin, so degree days from January 1 don't time them here."
+  },
+  {
+   "id": "wheat-scab",
+   "name": "Wheat scab (Fusarium head blight) probability",
+   "group": "disease",
+   "crop_ids": [
+    "wheat"
+   ],
+   "summary": "The probability of severe Fusarium head blight (scab) for wheat flowering on the day shown, from the mean humidity of the two weeks before, for the variety's resistance class."
+  },
+  {
+   "id": "white-mold",
+   "name": "White mold apothecia probability",
+   "group": "disease",
+   "crop_ids": [
+    "soybean"
+   ],
+   "summary": "The probability of white mold apothecia in soybean fields, from a month of temperature, humidity and wind (non-irrigated) or temperature, humidity and row spacing (irrigated); susceptible from R1 to R3."
+  }
+ ]
+}

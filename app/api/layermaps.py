@@ -18,6 +18,9 @@ seasonal product (D68) takes `season=`.
 
 A daily variable that a newer version of its code hasn't rebuilt yet (D29: between a deploy and `rebuild --stale`)
 is computed from the hours for up to MAX_STALE_DAYS days; a longer range is a 503 until the rebuild is done.
+
+A computation that can hold gigabytes (a model computed on request, a long range over a large window) first takes one
+of the process's few heavy slots (`api.heavy`, `is_heavy`), or is answered 503 `busy` if none frees within seconds.
 """
 
 import hashlib
@@ -29,6 +32,7 @@ import threading
 import time
 import zlib
 from collections import OrderedDict
+from contextlib import nullcontext
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, Literal
@@ -48,14 +52,15 @@ from agdata.planting import planting_crop, planting_map
 from agdata.rolling import Roll
 from agdata.store import CUMULATIVE, DAILY
 from agmodels import seasons
+from agmodels.gaps import MAX_GAP_DAYS
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
 from agmodels.runner import stage_date_option
 from agmodels.seasons import Season
 from agmodels.spec import ModelSpec
-from api import climatemaps, counts, events, modelevents
+from api import climatemaps, counts, events, heavy, modelevents
 from api.envelope import SYSTEMS, Column, shown_unit, unit_overrides
-from api.errors import ApiError, day_text, hour_text, quoted
+from api.errors import ApiError, counted, day_text, hour_text, quoted
 from api.maptitles import layer_title
 from api.params import degree_day_settings, parse_hour, resolve_biofix
 from api.runs import option_values
@@ -887,33 +892,50 @@ class Computed:
     from_cubes: bool  # degree days read from the running totals
     ms: float  # time to compute
     notes: list[str] = field(default_factory=list)  # warnings the values bring, kept with them (`cached`)
+    # A model map's (y, x): each cell's most days still missing after the gap fill that a day shown rests on (D56,
+    # `ModelDays.missing_days`); None for other layers and models that count none
+    behind: np.ndarray | None = None
 
 
 def compute(a: LayerAsk, window: Window, now: datetime) -> Computed:
-    """The layer's map over `window`."""
+    """The layer's map over `window`, with every warning computing it added to `a.warnings` kept in its `notes`, so
+    a map kept (`cached`) brings them to the next request that reads it."""
+    before = len(a.warnings)
+    found = _compute_map(a, window, now)
+    found.notes = list(dict.fromkeys([*found.notes, *a.warnings[before:]]))
+    return found
+
+
+def _compute_map(a: LayerAsk, window: Window, now: datetime) -> Computed:
     started = time.perf_counter()
     data_dir = _data_dir()
     if a.climate is not None:
         return _climate_compute(a, window, now, started)
-    if a.model is not None:
-        found = _model_compute(
-            a.layer, a.model, a.first, a.last, window, a.stat, data_dir, now, a.stores, a.warnings, a.count_bounds
-        )
-    else:
-        found = _compute(
-            a.layer,
-            a.first,
-            a.last,
-            window,
-            a.stat,
-            a.setting,
-            a.gaps,
-            a.cubes,
-            data_dir,
-            now,
-            a.stores,
-            a.count_bounds,
-        )
+    gate = (
+        heavy.slot(f"{a.layer.id} over {window.shape[0] * window.shape[1]:,} cells")
+        if is_heavy(a, window)
+        else nullcontext()
+    )
+    with gate:
+        if a.model is not None:
+            found = _model_compute(
+                a.layer, a.model, a.first, a.last, window, a.stat, data_dir, now, a.stores, a.warnings, a.count_bounds
+            )
+        else:
+            found = _compute(
+                a.layer,
+                a.first,
+                a.last,
+                window,
+                a.stat,
+                a.setting,
+                a.gaps,
+                a.cubes,
+                data_dir,
+                now,
+                a.stores,
+                a.count_bounds,
+            )
     values, kinds, extra, sources, run, steps, from_cubes = found
     notes: list[str] = []
     if a.roll is not None:
@@ -929,7 +951,51 @@ def compute(a: LayerAsk, window: Window, now: datetime) -> Computed:
         from_cubes=from_cubes,
         ms=(time.perf_counter() - started) * 1000,
         notes=notes,
+        behind=a.model.behind if a.model is not None else None,
     )
+
+
+def missing_note(c: Computed, cells: np.ndarray | None = None) -> str | None:
+    """The warning for a model map with cells whose results rest on days missing past the gap fill (D56), among
+    `cells` (y, x; default all) with a value; None where there are none."""
+    behind = getattr(c, "behind", None)  # a map kept on disk before it was counted has none
+    if behind is None:
+        return None
+    with np.errstate(invalid="ignore"):
+        hit = (behind > 0) & np.isfinite(c.values).any(axis=0)
+    if cells is not None:
+        hit &= cells
+    if not hit.any():
+        return None
+    most = int(np.max(behind[hit]))
+    return f"At {counted(int(hit.sum()), 'grid cell')} on this map, the weather data the model reads have days missing (up to {counted(most, 'day')}), in gaps longer than the {MAX_GAP_DAYS} days we fill with estimates. The model's running totals add nothing for those days, so its results there may be late."
+
+
+def map_notes(a: LayerAsk, c: Computed, cells: np.ndarray | None = None) -> list[str]:
+    """The warnings a map's values bring beyond the request's: steps with no data yet, a forecast out of date, and
+    cells whose results rest on days missing past the gap fill (`missing_note`, among `cells`)."""
+    notes = []
+    missing_steps = sum(k is None for k in c.kinds)
+    if missing_steps:
+        notes.append(
+            f"{counted(missing_steps, a.layer.time_axis)} of the {len(c.kinds)} asked for {'has' if missing_steps == 1 else 'have'} no data yet and show as missing."
+        )
+        if c.run.reason == "stale":
+            notes.append("The forecast is out of date, so the map ends with the last observed day.")
+    if (note := missing_note(c, cells)) is not None:
+        notes.append(note)
+    return notes
+
+
+def is_heavy(a: LayerAsk, window: Window) -> bool:
+    """Whether computing `a` over `window` reads enough to wait for one of the process's heavy slots (`api.heavy`):
+    the days or hours asked for (two days for a degree-day sum read from the running totals; a projection's earlier
+    seasons as `heavy.PROJECTED_STEPS`) over the window's cells. A model computed on request past its stored season
+    takes its slot in `_model_compute`, whatever its range."""
+    steps = 2 if a.cubes else a.steps
+    if a.model is not None and a.model.projected:
+        steps = max(steps, heavy.PROJECTED_STEPS)
+    return heavy.is_heavy(cells=window.shape[0] * window.shape[1], steps=steps)
 
 
 def _climate_compute(a: LayerAsk, window: Window, now: datetime, started: float) -> Computed:
@@ -1172,6 +1238,7 @@ class ModelRequest:
     window: Window | None = None
     season: Season | None = None  # a seasonal product's season the map is in
     projection: seasonal.Projection | None = None  # once computed
+    behind: np.ndarray | None = None  # once computed: `Computed.behind`
 
     @property
     def projected(self) -> bool:
@@ -1233,23 +1300,24 @@ def model_request(request: HttpRequest, layer: Layer, query: LayerQuery, warning
 
 
 def planting_summary(model: ModelRequest, mask: np.ndarray, warnings: list[str]) -> dict[str, Any]:
-    """The tier's planting dates over the cells asked for, and how many have none (the model's defaults)."""
-    assert model.planted is not None
-    land = mask & (regions.cell_counties(model.window) > 0)  # open water is in no county, so has no crop
+    """The tier's planting dates over the cells asked for, and how many have none (missing on the map, as a point
+    without one refuses)."""
+    assert model.planted is not None and model.window is not None
+    land = mask & regions.land(model.window)  # open water has no crop (the county grid reaches ~10 km into lakes)
     dates = model.planted[land]
     known = dates[np.isfinite(dates)]
     without = int(dates.size - known.size)
+    advice = (
+        f"To run the model there, give your planting date for a location with GET /api/v2/models/{model.spec.id}/run."
+    )
     if not known.size:
         warnings.append(
-            f"We have no typical {model.crop} planting dates in this area, so the map uses the model's default dates."
+            f"We have no typical {model.crop} planting date in this area, so the map shows no data. {advice}"
         )
     elif without:
-        then = "take the model's default dates"
-        if model.spec.id in modelmaps.TIER_MODELS:
-            then = "have no stages"
-        elif model.spec.susceptible is not None:
-            then = "aren't gated by the crop's stages"
-        warnings.append(f"Some grid cells ({without:,}) have no typical {model.crop} planting date, so they {then}.")
+        warnings.append(
+            f"Some grid cells ({without:,}) have no typical {model.crop} planting date, so the map shows no data there. {advice}"
+        )
     span = [date.fromordinal(int(v)).isoformat() for v in (known.min(), known.max())] if known.size else None
     return {"crop": model.crop, "tier": model.tier, "dates": span, "cells_without": without}
 
@@ -1259,10 +1327,21 @@ def _model_compute(
 ):
     """A model layer's output over days first..last, as `_compute` returns a layer's."""
     found = modelgrid.model_map(
-        data_dir, layer.id, first, last, window, model.options, tier=model.tier, now=now, stores=stores
+        data_dir,
+        layer.id,
+        first,
+        last,
+        window,
+        model.options,
+        tier=model.tier,
+        now=now,
+        stores=stores,
+        on_request=lambda: heavy.slot(
+            f"{layer.id} computed on request over {window.shape[0] * window.shape[1]:,} cells"
+        ),
     )
     if model.tier is not None and model.crop is not None:
-        model.planted = planting_map(model.crop, model.tier, window, season=first.year)
+        model.planted = planting_map(model.crop, model.tier, window, season=first.year, data_dir=data_dir)
         model.window = window
     if found.stale:
         raise ApiError(
@@ -1273,6 +1352,7 @@ def _model_compute(
         )
     name = model.output.name
     extra: dict[str, np.ndarray] = {}
+    model.behind = _behind(found, window)
     if model.projected:
         years = series.archive_years(data_dir)
         model.projection = seasonal.project(data_dir, layer.id, first, window, found, years, stores=stores, now=now)
@@ -1317,6 +1397,18 @@ def _model_compute(
         value, _, missing = reduce(values, stat, None)
         values, extra = value[None], {"missing_days": missing}
     return values, found.kinds, extra, found.sources, found.forecast, found.dates, False
+
+
+def _behind(found: modelgrid.ModelDays, window: Window) -> np.ndarray | None:
+    """Each land cell's most days missing past the gap fill on the days shown with data (D56): a day with none
+    anywhere (the forecast's partial last day) is left out, as it shows nothing."""
+    if found.missing_days is None:
+        return None
+    shown = [k for k, kind in enumerate(found.kinds) if kind is not None]
+    if not shown:
+        return None
+    most = np.fmax.reduce(np.asarray(found.missing_days, dtype=float)[shown], axis=0)
+    return np.where(regions.land(window), most, np.nan)
 
 
 def season_span(
@@ -1384,12 +1476,16 @@ def season_name(spec: ModelSpec, year: int) -> str:
 
 def warm_kernels() -> None:
     """Load the Numba kernels a map of many days runs (decoding a season, `agdata.fastdecode`; degree days,
-    `agmodels.degree_days_grid`): ~0.5–0.8 s the first time in a process, so the web process does it at start."""
+    `agmodels.degree_days_grid`; apple scab's maturity, `agmodels.normal`) and a point's rollup runs (apple scab's
+    and the CCI's features, `agmodels.features_grid`): ~0.5–0.8 s each the first time in a process, so the web
+    process does it at start."""
     from agdata import fastdecode
-    from agmodels import degree_days_grid
+    from agmodels import degree_days_grid, features_grid, normal
 
     fastdecode.warm()
     degree_days_grid.warm()
+    features_grid.warm()
+    normal.normal_cdf(np.zeros(normal.PARALLEL_SIZE))
 
 
 def _counted(values: np.ndarray, bounds, time_axis: str) -> tuple[np.ndarray, dict[str, np.ndarray]]:
@@ -1575,17 +1671,33 @@ _maps_lock = threading.Lock()
 _computing: dict[str, threading.Lock] = {}  # maps being computed, by key: one at a time each
 
 
+def _map_key(a: LayerAsk, window: Window, data_stamp: Any) -> str:
+    # The bounds as resolved: `days_above_86` or `below_10` mean another bound in another `units`
+    return json.dumps([a.echo(), a.count_bounds, data_stamp, [window.j0, window.j1, window.i0, window.i1]], default=str)
+
+
+def is_kept(a: LayerAsk, window: Window, data_stamp: Any) -> bool:
+    """Whether `cached` has this map over `window` kept (in memory or on disk) or being computed, so reading it costs
+    no computation of its own: the county table reads the tiles' map this way (`routes.summaries`)."""
+    key = _map_key(a, window, data_stamp)
+    with _maps_lock:
+        if key in _maps or key in _computing:
+            return True
+    path = _disk_path(key)
+    return path is not None and path.exists()
+
+
 def cached(a: LayerAsk, window: Window, now: datetime, data_stamp: Any) -> Computed:
     """`compute` over `window`, kept for the next request asking the same of the same data."""
-    # The bounds as resolved: `days_above_86` or `below_10` mean another bound in another `units`
-    key = json.dumps([a.echo(), a.count_bounds, data_stamp, [window.j0, window.j1, window.i0, window.i1]], default=str)
+    key = _map_key(a, window, data_stamp)
     with _maps_lock:
         found = _kept(a, key)
         if found is not None:
             return found
         computing = _computing.setdefault(key, threading.Lock())
     # One computation of a map at a time (D109): a second request waits for the first and takes its result, rather
-    # than starting another beside it (a request past the time limit keeps computing in its thread)
+    # than starting another beside it (a request past the time limit keeps computing in its thread). A heavy map's slot
+    # (`api.heavy`) is taken inside this lock, in `compute`, so a request waiting here holds none
     with computing:
         with _maps_lock:
             found = _kept(a, key)
@@ -1600,18 +1712,20 @@ def cached(a: LayerAsk, window: Window, now: datetime, data_stamp: Any) -> Compu
                 a.warnings += [n for n in found.notes if n not in a.warnings]
         except BaseException:
             with _maps_lock:
-                _computing.pop(key, None)
+                if _computing.get(key) is computing:  # not a newer request's lock, made after this one's was dropped
+                    _computing.pop(key, None)
             raise
         with _maps_lock:  # kept before the lock goes, so a request arriving now finds it
             _maps[key] = found
             while len(_maps) > MAP_CACHE_SIZE:
                 _maps.popitem(last=False)
-            _computing.pop(key, None)  # a request already waiting holds the lock and finds the result kept
+            if _computing.get(key) is computing:  # a request already waiting holds the lock and finds the result kept
+                _computing.pop(key, None)
     return found
 
 
 # Maps kept on disk (`settings.MAP_CACHE_DIR`), so every web worker and a restarted one find a map any of them or the
-# precomputing job (`api.precompute`, step 7 D5) computed: pickled and compressed (cells outside the coverage are
+# precomputing job (`ops.precompute`, Phase 6 step 7 D5) computed: pickled and compressed (cells outside the coverage are
 # missing). The key holds the data stamp, so a map isn't read after its data changes; `prune_disk` deletes old ones.
 DISK_KEEP_DAYS = 2
 

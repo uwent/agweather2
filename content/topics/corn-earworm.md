@@ -1,6 +1,6 @@
 ---
 id: corn-earworm
-title: Corn Earworm
+title: Corn earworm
 kind: insect
 crops:
   - beans
@@ -11,7 +11,7 @@ summary: A migratory moth whose caterpillars feed in the tips of sweet corn ears
 image: images/corn-earworm.jpg
 image_credit: 'Corn earworm caterpillar feeding in the tip of a corn ear. Photo by Cyndy Sims (cyanocorax), via Wikimedia Commons (File:Helicoverpa zea larva.jpg, from Flickr), CC BY-SA 2.0 (https://creativecommons.org/licenses/by-sa/2.0/).'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Corn Earworm. University of Wisconsin–Madison, updated 2026.'

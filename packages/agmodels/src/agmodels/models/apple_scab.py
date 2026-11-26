@@ -31,11 +31,11 @@ Stensvand et al. (1997)'s rows below 34 °F, light, moderate and heavy infection
 (no source found).
 """
 
-import math
 from collections.abc import Mapping
 
 import numpy as np
 
+from agmodels.normal import normal_cdf
 from agmodels.spec import Biofix, Change, Check, Citation, ExplorerInput, Input, ModelSpec, Quantity, Risk
 
 # NEWA's Revised Mills table: the period's mean temperature (°F, rounded) → wet hours an infection needs. MacHardy and
@@ -68,7 +68,7 @@ SPEC = ModelSpec(
     id="apple-scab",
     name="Apple scab",
     group="disease",
-    version="0.1",
+    version="0.2",
     status="beta",
     summary="Primary apple scab infection periods from wet hours and temperature, with the share of the season's ascospores mature and released, from green tip until they're released.",
     topics=("apple-scab",),
@@ -184,7 +184,14 @@ SPEC = ModelSpec(
     season=("03-01", "07-31"),
     biofix=Biofix(default="04-15", label="Green tip (50% of McIntosh buds showing green)"),
     biofix_stage=("apple-stages", "GT"),
-    changelog=(Change(version="0.1", date="2026-11-18", note="First version."),),
+    changelog=(
+        Change(version="0.1", date="2026-11-18", note="First version."),
+        Change(
+            version="0.2",
+            date="2026-11-25",
+            note="A day without a wet period shows no wet-period temperature, and a day without rainy hours from 7 am to 7 pm has no temperature for them: neither is estimated from the days around it any more.",
+        ),
+    ),
 )
 
 
@@ -248,12 +255,9 @@ def infection_periods(temperature_c, rh_percent, precipitation_mm, day_hours: in
     }
 
 
-_normal_cdf = np.vectorize(lambda z: 0.5 * (1 + math.erf(z / math.sqrt(2))) if math.isfinite(z) else math.nan)
-
-
 def maturity_percent(dd_c) -> np.ndarray:
     """Gadoury and MacHardy (1982): the percent of ascospores mature after `dd_c` degree days (base 0 °C)."""
-    return 100 * _normal_cdf(PROBIT_A + PROBIT_B * np.asarray(dd_c, dtype=float) - 5)
+    return 100 * normal_cdf(PROBIT_A + PROBIT_B * np.asarray(dd_c, dtype=float) - 5)
 
 
 def counted_days(precipitation_mm: np.ndarray) -> np.ndarray:

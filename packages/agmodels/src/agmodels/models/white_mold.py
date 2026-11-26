@@ -35,7 +35,7 @@ SPEC = ModelSpec(
     id="white-mold",
     name="White mold apothecia probability",
     group="disease",
-    version="0.2",
+    version="0.3",
     status="beta",
     summary="The probability of white mold apothecia in soybean fields, from a month of temperature, humidity and wind (non-irrigated) or temperature, humidity and row spacing (irrigated); susceptible from R1 to R3.",
     topics=("white-mold",),
@@ -144,6 +144,11 @@ SPEC = ModelSpec(
             date="2026-11-19",
             note="The third non-irrigated logit's temperature coefficient is −0.56, per the 2025 algorithm (the tool had −0.86); the algorithm's gate (inactive unless the 30-day mean maximum is above 10 °C) replaces the tool's scaling by the 21-day mean minimum, for irrigated fields too. Non-irrigated probabilities run about 1.5 times higher in summer.",
         ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="The probabilities are given in percent (0 to 100), as their unit says, rather than as fractions (0 to 1). Risk levels are unchanged.",
+        ),
     ),
     checks=(
         Check(
@@ -186,8 +191,8 @@ def active(probability, temperature_max_30day) -> np.ndarray:
 def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
     t, rh = values["air_temperature_max_30_day"], values["relative_humidity_max_30_day"]
     if options.get("irrigation", "dry") == "irrigated":
-        return {"probability": active(probability_irrigated(t, rh, options.get("row_spacing", "30")), t)}
-    return {"probability": active(probability_dry(t, values["wind_speed_max_30_day"], rh), t)}
+        return {"probability": 100 * active(probability_irrigated(t, rh, options.get("row_spacing", "30")), t)}
+    return {"probability": 100 * active(probability_dry(t, values["wind_speed_max_30_day"], rh), t)}
 
 
 def outputs(inputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: str) -> dict[str, np.ndarray]:
@@ -209,7 +214,7 @@ def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: st
 
 def explore(temperature_max_30day: float, rh_max_30day: float, wind_max_30day: float) -> dict[str, float]:
     return {
-        "probability_dry": float(probability_dry(temperature_max_30day, wind_max_30day, rh_max_30day)),
-        "probability_irrigated_30in": float(probability_irrigated(temperature_max_30day, rh_max_30day, "30")),
-        "probability_irrigated_15in": float(probability_irrigated(temperature_max_30day, rh_max_30day, "15")),
+        "probability_dry": float(100 * probability_dry(temperature_max_30day, wind_max_30day, rh_max_30day)),
+        "probability_irrigated_30in": float(100 * probability_irrigated(temperature_max_30day, rh_max_30day, "30")),
+        "probability_irrigated_15in": float(100 * probability_irrigated(temperature_max_30day, rh_max_30day, "15")),
     }

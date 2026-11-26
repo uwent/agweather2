@@ -7,6 +7,7 @@ from agmodels.spec import Change, Check, Citation, TrainingArea
 INSECT = Insect(
     id="onion-maggot",
     name="Onion maggot",
+    season=("04-01", "10-31"),
     crops=("onion",),
     # NEWA's method (D95): the day's simple average above 40 °F, no upper threshold, from January 1. Eckenrode et al.
     # 1975 counted above 40 °F with Arnold's correction; Liu et al. 1982 by Allen's sine above 4 °C
@@ -49,7 +50,7 @@ INSECT = Insect(
         # weeks past the spring peak. From first emergence (5 %) to 95 % of each flight
         ActionWindow(label="Protect onion seedlings during fly flight", stage="Adult flight", between=(0.05, 0.95)),
     ),
-    version="0.4",
+    version="0.5",
     status="beta",
     # NEWA's table cites Andaloro, Rose and Eckenrode 1984 (Search: Agriculture, Cornell; not in hand, title and years unknown), built on the trapping
     # Eckenrode et al. 1975 began in 1971 in New York's muck onion fields: the last year is an estimate
@@ -73,6 +74,11 @@ INSECT = Insect(
             version="0.4",
             date="2026-11-23",
             note="The second flight weighs a tenth of the spring flight in the risk and the third half: the second generation was the smallest in New York's traps and did a tenth or less of the first's damage in Ontario (Eckenrode, Vea and Stone 1975, p. 787; Liu, McEwen and Ritcey 1982, Fig. 4), while the third damages bulbs near harvest and in storage.",
+        ),
+        Change(
+            version="0.5",
+            date="2026-11-26",
+            note="In season from April 1 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

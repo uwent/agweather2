@@ -37,6 +37,11 @@ class Command(ReportingCommand):
             return
         if record.status == IngestRecord.Status.FAILED:
             self.report.fail(f"the run from {record.first_hour}", record.error)
-        elif record.failed_hours:
-            self.report.warn(f"{len(record.failed_hours)} hours failed to fetch: {record.failed_hours}")
+        else:
+            if record.failed_hours:
+                self.report.warn(f"{len(record.failed_hours)} hours failed to fetch: {record.failed_hours}")
+            from ops import tasks  # the crop stages and maps follow a published run, as after the job
+
+            queued = tasks.queue_next(tasks.update_crop_tiers, timestamp=int(now.timestamp()))
+            self.report.step("crop stages and maps: " + ("queued" if queued else "already queued"))
         self.finish(f"{record} in {time.time() - began:.0f} s")

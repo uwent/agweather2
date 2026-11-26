@@ -6,8 +6,10 @@ and cumulative ones (`data/ingredients/{year}.zarr`):
 
 - each stored ingredient's daily values, under `{model_id}.{name}`, or its `shared` name for one kept once (the
   insects' freeze factor, the moving means three models use);
-- for one that's accumulated, its running total from local January 1 (`….total`), and for one averaged, the
-  running count of days with a value (`….known`), so a total, sum or mean over any days is `cum[d] − cum[b − 1]`.
+- for one that's accumulated, its running total from January 1 (`….total`), and for one averaged, the
+  running count of days with a value (`….known`), so a total, sum or mean over any days is `cum[d] − cum[b − 1]`;
+- for one that's accumulated, the running count of days its model's inputs had a day still missing after the gap
+  fill (`….missing`, D56): the days a total over any span added nothing for, so a map can say where it runs behind.
 
 Degree days and catalog variables' totals aren't kept here: the cumulative store's running totals stand in (`degree_days`,
 `cumulative` on the ingredient). The forecast run keeps its own in its directory, continuing the archive's.
@@ -38,7 +40,7 @@ from agdata.catalog import DAILY_VARIABLES, GAP_FILL, Variable
 from agdata.grid import Window
 from agdata.store import DAILY, INGREDIENTS, GridStore
 from agmodels.accumulate import cumsum_days
-from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps, fill_zero
+from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps, fill_zero, no_value
 from agmodels.ingredients import LOOKBACK_DAYS, Ingredient
 from agmodels.registry import all_models
 from agmodels.spec import Model
@@ -67,7 +69,8 @@ _TOTAL_STEP: dict[str, float] = {"hour": 0.5, "index": 0.2, "degF_day": 0.5}
 @dataclass(frozen=True, kw_only=True)
 class Stored:
     """An ingredient kept in the store: its key, the declaration, the model that computes it (the first to declare
-    a shared one), whether it's accumulated (its running total kept) and averaged (its known days counted)."""
+    a shared one), whether it's accumulated (its running total and the days its inputs were missing kept) and
+    averaged (its known days counted)."""
 
     key: str
     ingredient: Ingredient
@@ -111,6 +114,18 @@ class Stored:
                     **common,
                 )
             )
+        if self.total:
+            out.append(
+                Variable(
+                    name=f"{self.key}.missing",
+                    long_name=f"Days with an input to {self.key} missing past the gap fill since Jan 1",
+                    unit="day",
+                    scale=1,
+                    valid_min=0,
+                    valid_max=366,
+                    **common,
+                )
+            )
         if self.known:
             out.append(
                 Variable(
@@ -124,6 +139,11 @@ class Stored:
                 )
             )
         return out
+
+
+def missing_key(key: str) -> str:
+    """Where an accumulated ingredient's running count of days missing past the fill is kept (D56)."""
+    return f"{key}.missing"
 
 
 def key(model_id: str, ingredient: Ingredient) -> str:
@@ -207,6 +227,8 @@ _SEASON_OUTPUTS: dict[str, tuple[float, float, float]] = {  # `{model}.{output}`
     "red-crown-rot.precipitation_days_missing": (1, 0, 400),
 }
 SEASON_RISK = "risk"  # a model's risk is kept too, computed before the outputs are packed (thresholds stay exact)
+# And each cell's days still missing after the gap fill from its biofix, which a map warns of (D56)
+SEASON_MISSING = "missing_days"
 
 
 def season_key(model_id: str, output: str) -> str:
@@ -223,6 +245,7 @@ def season_variables() -> list[Variable]:
         kept = [(q.name, q.label, q.unit, *_SEASON_OUTPUTS[season_key(model_id, q.name)]) for q in spec.outputs]
         if spec.risk is not None:
             kept.append((SEASON_RISK, "Risk", "index", 1, 0, len(spec.risk.levels)))
+        kept.append((SEASON_MISSING, "Days missing past the gap fill", "day", 1, 0, 400))
         for name, label, unit, scale, low, high in kept:
             out.append(
                 Variable(
@@ -446,7 +469,8 @@ def status(data_dir: Path, year: int) -> str | None:
 def _rolled_days(data_dir: Path, year: int) -> np.ndarray | None:
     """The day indexes of a year rolled up in its daily store, or None (no store, nothing rolled up)."""
     try:
-        daily = GridStore.open(data_dir, DAILY, year, DAILY_VARIABLES.values(), add_missing=True)
+        # read-only: the dashboard and the crop stages job call this outside the write lock
+        daily = GridStore.open(data_dir, DAILY, year, [DAILY_VARIABLES["air_temperature_min"]], read_only=True)
     except FileNotFoundError:
         return None
     rolled = np.flatnonzero(daily.read_meta("air_temperature_min.source") > 0)
@@ -499,13 +523,33 @@ def _compute(data_dir, run, run_first, band: Window, begin: date, end: date, ahe
         "day_of_year": np.array([d.timetuple().tm_yday for d in dates], dtype=float),
         "year": np.array([d.year for d in dates], dtype=float),
     }
-    inputs = {name: _filled(name, _read(data_dir, run, run_first, name, read_from, n, band)) for name in names}
+    inputs, blank = filled_inputs({name: _read(data_dir, run, run_first, name, read_from, n, band) for name in names})
     values: dict[str, np.ndarray] = {}
     for m, wanted in computing:
         out = m.ingredients({q.name: inputs[q.name] for q in m.SPEC.inputs} | context)  # type: ignore[attr-defined]
+        gone = None
         for s in wanted:
             values[s.key] = np.asarray(out[s.ingredient.name], dtype=np.float32)[keep]
+            if s.total:
+                if gone is None:
+                    names_ = [q.name for q in m.SPEC.inputs]
+                    gone = _gone([inputs[x] for x in names_], answered=[blank.get(x) for x in names_])[keep]
+                values[missing_key(s.key)] = gone
     return values
+
+
+def _gone(inputs: list[np.ndarray], answered: list[np.ndarray | None] | None = None) -> np.ndarray:
+    """The days any input (filled) is still missing after the gap fill (D56), from the first day every input had a
+    value in what's read (the lookback included): days before the weather starts aren't a gap. Days at the end are
+    counted, as the update that writes them can't know whether data will follow; a map leaves out a day with no data
+    anywhere (the run's partial last day). `answered`, beside each input, marks its nulls that are the day's answer
+    rather than missing data (a conditional mean's, `agmodels.gaps.no_value`)."""
+    marks: list[np.ndarray | None] = list(answered) if answered else [None] * len(inputs)
+    valid = np.all(
+        [np.isfinite(v) if a is None else np.isfinite(v) | a for v, a in zip(inputs, marks, strict=True)], axis=0
+    )
+    seen = np.logical_or.accumulate(valid, axis=0)
+    return ~valid & seen
 
 
 def _read(data_dir: Path, run: Path | None, run_first: date | None, name: str, first: date, n: int, window: Window):
@@ -520,9 +564,9 @@ def _read(data_dir: Path, run: Path | None, run_first: date | None, name: str, f
     for k, d in enumerate(days):
         groups.setdefault((root_of(d), d.year), []).append(k)
     for (root, year), ks in groups.items():
-        try:
-            store = GridStore.open(root, DAILY, year, DAILY_VARIABLES.values(), add_missing=True)
-        except FileNotFoundError:
+        try:  # only the variable read, and nothing added: this runs in the block pool's workers (`agdata.blocks`)
+            store = GridStore.open(root, DAILY, year, [DAILY_VARIABLES[name]])
+        except (FileNotFoundError, KeyError):  # no store, or a variable not rolled up there yet: missing
             continue
         t0 = store.index_of(days[ks[0]])
         out[ks[0] : ks[-1] + 1] = store.read_steps(name, t0, t0 + len(ks), window, dtype=np.float32)
@@ -545,6 +589,18 @@ def interior_gaps(flat: np.ndarray) -> np.ndarray:
         found |= ~valid[d] & seen & later[d]
         seen |= valid[d]
     return found
+
+
+def filled_inputs(raw: dict[str, np.ndarray]) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+    """Each daily input with the runner's gap estimate (`_filled`, D45), as `agmodels.gaps.fill_inputs` fills a
+    point's, and a conditional mean's no-value days (`agmodels.gaps.no_value`): those stay null, not estimated.
+    Fills `raw`'s arrays in place."""
+    blank = no_value(raw)
+    filled = {name: _filled(name, values) for name, values in raw.items()}
+    for name, mask in blank.items():
+        if mask.any():
+            filled[name][mask] = np.nan
+    return filled, blank
 
 
 def _filled(name: str, values: np.ndarray) -> np.ndarray:
@@ -590,17 +646,22 @@ def _write(data_dir, root, band, begin, values, entries, is_run) -> list[tuple[i
             if s.known:
                 base = _previous(data_dir, root, f"{s.key}.known", day_before, band, is_run) if continuing else 0
                 out[f"{s.key}.known"] = np.nan_to_num(base) + cumsum_days(known)
+            if s.total:
+                name = missing_key(s.key)
+                base = _previous(data_dir, root, name, day_before, band, is_run) if continuing else 0
+                out[name] = np.nan_to_num(base) + cumsum_days(values[name][k0:k1].astype(np.float64))
         store.write(first, out, source="derived", window=band, record=False)
         written.append((year, first, k1 - k0, list(out)))
     return written
 
 
 def _store_window(root: Path, data_dir: Path, year: int, band: Window) -> Window:
-    """The window a store covers: the daily store's for that year (a band is only part of it)."""
+    """The window a store covers: the daily store's for that year (a band is only part of it). Opened for no
+    variables: it's called in the block pool's workers, where adding an array would race another worker's."""
     for path in (root, data_dir):
         for y in (year, year - 1, year + 1):
             try:
-                return GridStore.open(path, DAILY, y, DAILY_VARIABLES.values(), add_missing=True).window
+                return GridStore.open(path, DAILY, y, []).window  # no variables: nothing checked or added
             except FileNotFoundError:
                 continue
     return band
@@ -610,7 +671,10 @@ def _previous(data_dir: Path, root: Path, name: str, day: date, band: Window, is
     """A stored value on `day` (a run's own, else the archive's); NaN where none."""
     for path in (root, data_dir) if is_run else (root,):
         try:
-            store = GridStore.open(path, INGREDIENTS, day.year, variables(), add_missing=True)
+            # read-only: it runs in the block pool's workers, and on a run reads the archive's store
+            store = GridStore.open(
+                path, INGREDIENTS, day.year, [v for v in variables() if v.name == name], read_only=True
+            )
         except FileNotFoundError:
             continue
         t = store.index_of(day)

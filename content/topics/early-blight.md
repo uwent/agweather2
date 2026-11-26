@@ -1,6 +1,6 @@
 ---
 id: early-blight
-title: Early Blight (Potato/Tomato)
+title: Early blight (potato/tomato)
 kind: disease
 crops:
   - potato
@@ -9,7 +9,7 @@ summary: A fungal leaf spot of potato and tomato that builds through midsummer o
 image: images/early-blight.jpg
 image_credit: 'Early blight spots with target-like rings on potato leaves, Rupert, Idaho. Photo by Gerald Holmes, Strawberry Center, Cal Poly San Luis Obispo, Bugwood.org (image 5606706), CC BY-NC 3.0 US (https://creativecommons.org/licenses/by-nc/3.0/us/).'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: uw-potato-eb
     text: 'Gevens, A., A. Abbrescia, R. Groves and B. Bradford. Potato Early Blight. UW–Madison Vegetable Pathology, updated 2026.'

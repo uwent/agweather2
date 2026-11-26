@@ -1,5 +1,5 @@
 """Keeping the forecast current (Phase 4 F): the newest long NBM run built, published and recorded, and the
-published run restitched whenever the archive gains hours."""
+published run restitched after each update of the archive's days (D108)."""
 
 import logging
 from collections.abc import Callable
@@ -11,9 +11,12 @@ from django.utils import timezone
 
 from agdata import forecast
 from agdata.grid import service_window
+from agdata.series import MAX_RUN_AGE
 from agdata.sources import ifs, nbm
 from ops.ingest import update_if_due
 from ops.models import IngestRecord
+from ops.points import fallback_on
+from ops.verification import keep_published
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +71,7 @@ def refresh_forecast(
             error=repr(error),
         )
     forecast.publish(data_dir, path)
+    verified = keep_published(data_dir, path, now)  # before any restitch: its days as published (D113); never raises
     info = forecast.run_info(path)
     failed = info.get("failed_leads", [])
     logger.info("published the %s NBM run (%d leads failed)", cycle, len(failed))
@@ -80,7 +84,7 @@ def refresh_forecast(
         started_at=started,
         finished_at=timezone.now(),
         failed_hours=[(cycle + timedelta(hours=lead)).isoformat() for lead in failed],
-        sources={"last_observed": info.get("last_observed")},
+        sources={"last_observed": info.get("last_observed"), "verified_days": verified},
     )
 
 
@@ -94,10 +98,11 @@ def restitch_current(data_dir: Path, box: str) -> datetime | None:
 
 
 def forecast_health(data_dir: Path, now: datetime) -> tuple[dict[str, Any], list[str]]:
-    """The forecast section of `/up` and its problems; no run yet is "not started", as for the archive."""
+    """The forecast section of `/up` and its problems; no run yet is "not started", as for the archive.
+    `points_fallback`: points in the box take Open-Meteo's forecast, ours being stale or missing (D114)."""
     current = forecast.current_run(data_dir)
     if current is None:
-        return {"state": "not started"}, []
+        return {"state": "not started", "points_fallback": fallback_on()}, []
     info = forecast.run_info(current)
     cycle = datetime.fromisoformat(info["cycle"])
     age = round((now - cycle) / timedelta(hours=1), 1)
@@ -107,6 +112,7 @@ def forecast_health(data_dir: Path, now: datetime) -> tuple[dict[str, Any], list
         "last_hour": info["last_hour"],
         "last_observed": info.get("last_observed"),
         "failed_leads": len(info.get("failed_leads", [])),
+        "points_fallback": fallback_on() and now - cycle > MAX_RUN_AGE,
     }
     problems = [f"forecast run more than {MAX_RUN_AGE_HOURS} h old"] if age > MAX_RUN_AGE_HOURS else []
     return body, problems

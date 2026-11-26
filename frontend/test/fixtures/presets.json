@@ -1,0 +1,784 @@
+{
+ "meta": {
+  "request": {
+   "group": null,
+   "crop": null
+  },
+  "params": {
+   "group": null,
+   "crop": null
+  },
+  "units": {},
+  "summary": {},
+  "sources": [],
+  "warnings": [],
+  "attribution": "AgWeather, University of Wisconsin\u2013Madison. Weather from NOAA (URMA, RTMA, HRRR, NBM), Open-Meteo (CC BY 4.0) and ECMWF; contains modified Copernicus Climate Change Service information 2026.",
+  "api_version": "2.0",
+  "generated_at": "2026-11-25T21:29:18Z",
+  "compute_ms": 4
+ },
+ "data": [
+  {
+   "id": "corn",
+   "group": "crop",
+   "label": "Corn (field)",
+   "method": "modified",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "modified_50_86",
+    "metric": "modified_10_30"
+   },
+   "starts": "planting",
+   "biofix": null,
+   "model": "corn-stages"
+  },
+  {
+   "id": "soybean",
+   "group": "crop",
+   "label": "Soybean",
+   "method": "modified",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "modified_50_86",
+    "metric": "modified_10_30"
+   },
+   "starts": "planting",
+   "biofix": null,
+   "model": null
+  },
+  {
+   "id": "alfalfa",
+   "group": "crop",
+   "label": "Alfalfa",
+   "method": "sine",
+   "base": {
+    "us": 41.0,
+    "metric": 5.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "sine_41_86",
+    "metric": "sine_5_30"
+   },
+   "starts": "january_1",
+   "biofix": null,
+   "model": "alfalfa-growth"
+  },
+  {
+   "id": "spring-wheat",
+   "group": "crop",
+   "label": "Spring wheat",
+   "method": "modified",
+   "base": {
+    "us": 32.0,
+    "metric": 0.0
+   },
+   "upper": {
+    "us": 95.0,
+    "metric": 35.0
+   },
+   "dd": {
+    "us": "modified_32_95",
+    "metric": "modified_0_35"
+   },
+   "starts": "planting",
+   "biofix": null,
+   "model": "spring-wheat-stages"
+  },
+  {
+   "id": "barley",
+   "group": "crop",
+   "label": "Barley",
+   "method": "modified",
+   "base": {
+    "us": 32.0,
+    "metric": 0.0
+   },
+   "upper": {
+    "us": 95.0,
+    "metric": 35.0
+   },
+   "dd": {
+    "us": "modified_32_95",
+    "metric": "modified_0_35"
+   },
+   "starts": "planting",
+   "biofix": null,
+   "model": null
+  },
+  {
+   "id": "dry-bean",
+   "group": "crop",
+   "label": "Dry (edible) bean",
+   "method": "modified",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "modified_50_86",
+    "metric": "modified_10_30"
+   },
+   "starts": "planting",
+   "biofix": null,
+   "model": null
+  },
+  {
+   "id": "sorghum",
+   "group": "crop",
+   "label": "Grain sorghum",
+   "method": "modified",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": {
+    "us": 100.0,
+    "metric": 37.78
+   },
+   "dd": {
+    "us": "modified_50_100",
+    "metric": "modified_10_37p78"
+   },
+   "starts": "planting",
+   "biofix": null,
+   "model": null
+  },
+  {
+   "id": "sugarbeet",
+   "group": "crop",
+   "label": "Sugarbeet",
+   "method": "modified",
+   "base": {
+    "us": 34.0,
+    "metric": 1.11
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "modified_34_86",
+    "metric": "modified_1p11_30"
+   },
+   "starts": "planting",
+   "biofix": null,
+   "model": null
+  },
+  {
+   "id": "sunflower",
+   "group": "crop",
+   "label": "Sunflower",
+   "method": "modified",
+   "base": {
+    "us": 44.0,
+    "metric": 6.67
+   },
+   "upper": null,
+   "dd": {
+    "us": "modified_44",
+    "metric": "modified_6p67"
+   },
+   "starts": "planting",
+   "biofix": null,
+   "model": null
+  },
+  {
+   "id": "potato",
+   "group": "crop",
+   "label": "Potato (to emergence)",
+   "method": "average",
+   "base": {
+    "us": 39.2,
+    "metric": 4.0
+   },
+   "upper": null,
+   "dd": {
+    "us": "average_39p2",
+    "metric": "average_4"
+   },
+   "starts": "planting",
+   "biofix": null,
+   "model": "potato-stages"
+  },
+  {
+   "id": "sweet-corn",
+   "group": "crop",
+   "label": "Sweet corn (processing)",
+   "method": "modified",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "modified_50_86",
+    "metric": "modified_10_30"
+   },
+   "starts": "planting",
+   "biofix": null,
+   "model": null
+  },
+  {
+   "id": "pea",
+   "group": "crop",
+   "label": "Green pea (processing)",
+   "method": "average",
+   "base": {
+    "us": 40.0,
+    "metric": 4.44
+   },
+   "upper": null,
+   "dd": {
+    "us": "average_40",
+    "metric": "average_4p44"
+   },
+   "starts": "planting",
+   "biofix": null,
+   "model": null
+  },
+  {
+   "id": "snap-bean",
+   "group": "crop",
+   "label": "Snap bean",
+   "method": "sine",
+   "base": {
+    "us": 40.0,
+    "metric": 4.44
+   },
+   "upper": {
+    "us": 90.0,
+    "metric": 32.22
+   },
+   "dd": {
+    "us": "sine_40_90",
+    "metric": "sine_4p44_32p22"
+   },
+   "starts": "planting",
+   "biofix": null,
+   "model": null
+  },
+  {
+   "id": "alfalfa-weevil",
+   "group": "insect",
+   "label": "Alfalfa weevil",
+   "method": "average",
+   "base": {
+    "us": 48.0,
+    "metric": 8.89
+   },
+   "upper": null,
+   "dd": {
+    "us": "average_48",
+    "metric": "average_8p89"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "alfalfa-weevil"
+  },
+  {
+   "id": "aphid-pvy-vectors",
+   "group": "insect",
+   "label": "Aphid PVY vectors",
+   "method": "sine",
+   "base": {
+    "us": 39.2,
+    "metric": 4.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "sine_39p2_86",
+    "metric": "sine_4_30"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "aphid-pvy-vectors"
+  },
+  {
+   "id": "black-cutworm",
+   "group": "insect",
+   "label": "Black cutworm",
+   "method": "sine",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "sine_50_86",
+    "metric": "sine_10_30"
+   },
+   "starts": "biofix",
+   "biofix": "05-01",
+   "model": "black-cutworm"
+  },
+  {
+   "id": "cabbage-looper",
+   "group": "insect",
+   "label": "Cabbage looper",
+   "method": "sine",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": {
+    "us": 90.0,
+    "metric": 32.22
+   },
+   "dd": {
+    "us": "sine_50_90",
+    "metric": "sine_10_32p22"
+   },
+   "starts": "biofix",
+   "biofix": "07-15",
+   "model": "cabbage-looper"
+  },
+  {
+   "id": "cabbage-maggot",
+   "group": "insect",
+   "label": "Cabbage maggot",
+   "method": "average",
+   "base": {
+    "us": 40.0,
+    "metric": 4.44
+   },
+   "upper": null,
+   "dd": {
+    "us": "average_40",
+    "metric": "average_4p44"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "cabbage-maggot"
+  },
+  {
+   "id": "codling-moth",
+   "group": "insect",
+   "label": "Codling moth",
+   "method": "sine",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "sine_50_86",
+    "metric": "sine_10_30"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "codling-moth"
+  },
+  {
+   "id": "colorado-potato-beetle",
+   "group": "insect",
+   "label": "Colorado potato beetle",
+   "method": "sine",
+   "base": {
+    "us": 52.0,
+    "metric": 11.11
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "sine_52_86",
+    "metric": "sine_11p11_30"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "colorado-potato-beetle"
+  },
+  {
+   "id": "common-asparagus-beetle",
+   "group": "insect",
+   "label": "Common asparagus beetle",
+   "method": "modified",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "modified_50_86",
+    "metric": "modified_10_30"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "common-asparagus-beetle"
+  },
+  {
+   "id": "corn-earworm",
+   "group": "insect",
+   "label": "Corn earworm",
+   "method": "sine",
+   "base": {
+    "us": 55.0,
+    "metric": 12.78
+   },
+   "upper": {
+    "us": 92.0,
+    "metric": 33.33
+   },
+   "dd": {
+    "us": "sine_55_92",
+    "metric": "sine_12p78_33p33"
+   },
+   "starts": "biofix",
+   "biofix": "08-15",
+   "model": "corn-earworm"
+  },
+  {
+   "id": "corn-rootworm",
+   "group": "insect",
+   "label": "Corn rootworm",
+   "method": "sine",
+   "base": {
+    "us": 52.0,
+    "metric": 11.11
+   },
+   "upper": null,
+   "dd": {
+    "us": "sine_52",
+    "metric": "sine_11p11"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "corn-rootworm"
+  },
+  {
+   "id": "crucifer-flea-beetle",
+   "group": "insect",
+   "label": "Crucifer flea beetle",
+   "method": "modified",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "modified_50_86",
+    "metric": "modified_10_30"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "crucifer-flea-beetle"
+  },
+  {
+   "id": "european-corn-borer",
+   "group": "insect",
+   "label": "European corn borer",
+   "method": "modified",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "modified_50_86",
+    "metric": "modified_10_30"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "european-corn-borer"
+  },
+  {
+   "id": "green-peach-aphid",
+   "group": "insect",
+   "label": "Green peach aphid",
+   "method": "sine",
+   "base": {
+    "us": 39.2,
+    "metric": 4.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "sine_39p2_86",
+    "metric": "sine_4_30"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "green-peach-aphid"
+  },
+  {
+   "id": "imported-cabbageworm",
+   "group": "insect",
+   "label": "Imported cabbageworm",
+   "method": "modified",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "modified_50_86",
+    "metric": "modified_10_30"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "imported-cabbageworm"
+  },
+  {
+   "id": "japanese-beetle",
+   "group": "insect",
+   "label": "Japanese beetle",
+   "method": "sine",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": {
+    "us": 92.0,
+    "metric": 33.33
+   },
+   "dd": {
+    "us": "sine_50_92",
+    "metric": "sine_10_33p33"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "japanese-beetle"
+  },
+  {
+   "id": "mint-flea-beetle",
+   "group": "insect",
+   "label": "Mint flea beetle",
+   "method": "sine",
+   "base": {
+    "us": 41.0,
+    "metric": 5.0
+   },
+   "upper": null,
+   "dd": {
+    "us": "sine_41",
+    "metric": "sine_5"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "mint-flea-beetle"
+  },
+  {
+   "id": "mint-root-borer",
+   "group": "insect",
+   "label": "Mint root borer",
+   "method": "sine",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": null,
+   "dd": {
+    "us": "sine_50",
+    "metric": "sine_10"
+   },
+   "starts": "biofix",
+   "biofix": "04-01",
+   "model": "mint-root-borer"
+  },
+  {
+   "id": "oak-wilt-vectors",
+   "group": "insect",
+   "label": "Oak wilt vector flight",
+   "method": "sine",
+   "base": {
+    "us": 41.0,
+    "metric": 5.0
+   },
+   "upper": null,
+   "dd": {
+    "us": "sine_41",
+    "metric": "sine_5"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "oak-wilt-vectors"
+  },
+  {
+   "id": "onion-maggot",
+   "group": "insect",
+   "label": "Onion maggot",
+   "method": "average",
+   "base": {
+    "us": 40.0,
+    "metric": 4.44
+   },
+   "upper": null,
+   "dd": {
+    "us": "average_40",
+    "metric": "average_4p44"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "onion-maggot"
+  },
+  {
+   "id": "potato-aphid",
+   "group": "insect",
+   "label": "Potato aphid",
+   "method": "sine",
+   "base": {
+    "us": 39.2,
+    "metric": 4.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "sine_39p2_86",
+    "metric": "sine_4_30"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "potato-aphid"
+  },
+  {
+   "id": "seedcorn-maggot",
+   "group": "insect",
+   "label": "Seedcorn maggot",
+   "method": "average",
+   "base": {
+    "us": 39.0,
+    "metric": 3.89
+   },
+   "upper": {
+    "us": 84.2,
+    "metric": 29.0
+   },
+   "dd": {
+    "us": "average_39_84p2",
+    "metric": "average_3p89_29"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "seedcorn-maggot"
+  },
+  {
+   "id": "spotted-wing-drosophila",
+   "group": "insect",
+   "label": "Spotted Wing Drosophila",
+   "method": "sine",
+   "base": {
+    "us": 45.0,
+    "metric": 7.22
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "sine_45_86",
+    "metric": "sine_7p22_30"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "spotted-wing-drosophila"
+  },
+  {
+   "id": "squash-vine-borer",
+   "group": "insect",
+   "label": "Squash vine borer",
+   "method": "modified",
+   "base": {
+    "us": 50.0,
+    "metric": 10.0
+   },
+   "upper": {
+    "us": 86.0,
+    "metric": 30.0
+   },
+   "dd": {
+    "us": "modified_50_86",
+    "metric": "modified_10_30"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "squash-vine-borer"
+  },
+  {
+   "id": "stalk-borer",
+   "group": "insect",
+   "label": "Stalk borer",
+   "method": "sine",
+   "base": {
+    "us": 41.0,
+    "metric": 5.0
+   },
+   "upper": null,
+   "dd": {
+    "us": "sine_41",
+    "metric": "sine_5"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "stalk-borer"
+  },
+  {
+   "id": "variegated-cutworm",
+   "group": "insect",
+   "label": "Variegated cutworm",
+   "method": "sine",
+   "base": {
+    "us": 45.0,
+    "metric": 7.22
+   },
+   "upper": null,
+   "dd": {
+    "us": "sine_45",
+    "metric": "sine_7p22"
+   },
+   "starts": "biofix",
+   "biofix": "01-01",
+   "model": "variegated-cutworm"
+  }
+ ]
+}

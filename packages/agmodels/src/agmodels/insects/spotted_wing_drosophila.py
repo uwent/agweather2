@@ -6,7 +6,7 @@ trap's weekly catch on degree days 45/86 °F (7.2/30 °C, single sine, from Janu
 collection week, with each year's own curve, trap and trap-season effects, zeros kept; 772 trap-weeks at 13 traps in
 four orchards, 2015–2018, on AgWeather v2's weather (the archive from 2016; gridMET on the archive's basis for 2015).
 `spotted_wing_drosophila_fit.csv` is the typical year's curve (random effects at zero) on the log scale, every 10
-degree days over the data's range, 180 to 3,050; before it activity is 0, after it held until fall freezes.
+degree days over the data's range, 180 to 3,050; before it activity is 0, after it held until fall freezes or the season's end (October 31).
 
 Version 0.1 was VDIFN's ramp (1276, 3180, 4000) on 45/86 °F. Those numbers came from the paper, whose degree days
 were computed as a modified average with base 39 °F (gdd_script.r), not the 7.2 °C its methods state, so they ran
@@ -33,7 +33,8 @@ _dd, _log_count = _fit()
 
 INSECT = Insect(
     id="spotted-wing-drosophila",
-    name="Spotted Wing Drosophila",
+    name="Spotted wing drosophila",
+    season=("06-01", "10-31"),
     crops=("blackberry", "cherry", "raspberry"),
     base_f=45,
     upper_f=86,
@@ -50,12 +51,17 @@ INSECT = Insect(
         ),
     ),
     source="Kamiyama et al. 2020, refitted",
-    version="0.2",
+    version="0.3",
     changelog=(
         Change(
             version="0.2",
             date="2026-11-19",
             note="Rebuilt on a refit of Kamiyama et al. 2020's trap counts on AgWeather v2's weather at 45/86 °F (one negative binomial GAM with year, trap and trap-season effects): activity peaks near 2,330 degree days. VDIFN's window (1,276 to 4,000, peaking at 3,180) took the paper's numbers, which were computed at base 39 °F by a modified average and run about 1.5 times AgWeather's 45/86 °F, so its peak came weeks after the flies' and isn't reached in Door County in an average year.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="In season from June 1 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

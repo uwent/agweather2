@@ -25,7 +25,7 @@ from typing import Any
 import numpy as np
 import zarr
 
-from agdata import blocks, modelmaps
+from agdata import blocks, coverage, modelmaps
 from agdata.grid import Window
 from agdata.store import INGREDIENTS, GridStore
 from agmodels.registry import model as find_model
@@ -34,15 +34,11 @@ BIOFIX = "_season_biofix"  # in each ingredients store: `{model_id}`, each cell'
 RUN_STAMP = "seasonmaps.first_day"  # in a forecast run: the first day its seasons were computed from
 
 
-# The days kept for a model whose spec sets no season: red crown rot's 31 days either side of soybean's R1
-SEASONS = {"red-crown-rot": ("05-15", "10-15")}
-
-
 def season(model_id: str, year: int) -> tuple[date, date]:
-    """The days of `year` a model's season is kept for: its spec's season, or `SEASONS`'."""
+    """The days of `year` a model's season is kept for: its spec's season."""
     spec = find_model(model_id).SPEC
-    found = spec.season or SEASONS[model_id]
-    first, last = ((int(p) for p in s.split("-")) for s in found)
+    assert spec.season is not None, f"{model_id} is kept by season, so it needs one"
+    first, last = ((int(p) for p in s.split("-")) for s in spec.season)
     return date(year, *first), date(year, *last)
 
 
@@ -57,10 +53,12 @@ def in_season(day: date) -> bool:
 
 
 def names(model_id: str) -> list[str]:
-    """The variables a model's season is kept in: its outputs, then its risk where it has one."""
+    """The variables a model's season is kept in: its outputs, then its risk where it has one, and each cell's days
+    missing past the gap fill from its biofix (D56)."""
     spec = find_model(model_id).SPEC
     risk = [modelmaps.season_key(model_id, modelmaps.SEASON_RISK)] if spec.risk is not None else []
-    return [modelmaps.season_key(model_id, q.name) for q in spec.outputs] + risk
+    gaps = [modelmaps.season_key(model_id, modelmaps.SEASON_MISSING)]
+    return [modelmaps.season_key(model_id, q.name) for q in spec.outputs] + risk + gaps
 
 
 def update(
@@ -134,6 +132,8 @@ def _season_block(
     values = {modelmaps.season_key(model_id, name): v[k:] for name, v in found.outputs.items()}
     if found.risk is not None:
         values[modelmaps.season_key(model_id, modelmaps.SEASON_RISK)] = found.risk[k:]
+    if found.missing_days is not None:
+        values[modelmaps.season_key(model_id, modelmaps.SEASON_MISSING)] = found.missing_days[k:]
     store = GridStore.open(root, INGREDIENTS, write_from.year, modelmaps.variables())
     store.write(write_from, values, source="derived", window=part, record=False)
     biofix = found.cell_biofix[-1] if found.cell_biofix is not None else np.full(part.shape, np.nan)
@@ -149,7 +149,8 @@ def _write_biofix(store: GridStore, model_id: str, part: Window, values: np.ndar
     array = group[model_id]
     assert isinstance(array, zarr.Array)
     y0, x0 = store.window.local(part.j0, part.i0)
-    array[y0 : y0 + part.shape[0], x0 : x0 + part.shape[1]] = values
+    kept = coverage.covered(store.window, part)  # missing outside the coverage, as `GridStore.write` keeps values
+    array[y0 : y0 + part.shape[0], x0 : x0 + part.shape[1]] = np.where(kept, values, np.nan)
 
 
 def stored_through(root: Path, model_id: str, year: int) -> date | None:

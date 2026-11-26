@@ -1,5 +1,6 @@
 """Model maps finished from the stored ingredients (`agdata.modelgrid`): the same as running each model at a cell."""
 
+from contextlib import contextmanager
 from datetime import date, timedelta
 
 import numpy as np
@@ -9,7 +10,7 @@ from agdata import croptiers, cumulative, modelgrid, modelmaps, seasonmaps
 from agdata.catalog import DAILY_VARIABLES, GAP_FILL
 from agdata.grid import NDFD
 from agdata.store import DAILY, INGREDIENTS, GridStore
-from agdata.testing import WINDOW
+from agdata.testing import WINDOW, freeze_normal
 from agmodels import runner
 from agmodels.accumulate import rolling_mean, rolling_sum, running_total
 from agmodels.testing import DATES, WEATHER
@@ -52,6 +53,18 @@ def _weather() -> dict[str, np.ndarray]:
     return out
 
 
+def _potato_freeze() -> np.ndarray:
+    """Each cell's median last spring freeze at 28 °F (calendar slots) for potato's planting (`agdata.potatoplanting`):
+    May 3 (early planting April 26, after the weather starts), May 5 on the second row, and none at the corner."""
+    slots = np.full(WINDOW.shape, 123.0)
+    slots[1] = 125.0
+    slots[0, 0] = np.nan
+    return slots
+
+
+POTATO_FREEZE = _potato_freeze()
+
+
 @pytest.fixture(scope="module")
 def built(tmp_path_factory):
     root = tmp_path_factory.mktemp("maps")
@@ -60,10 +73,9 @@ def built(tmp_path_factory):
     store.write(FIRST, weather, source="test")
     cumulative.rebuild_year(root, WINDOW, 2025)
     modelmaps.update(root, WINDOW, FIRST, LAST)
-    with pytest.MonkeyPatch.context() as monkeypatch:
-        _potato_place(monkeypatch)
-        # soybean's, corn's and potato's tiers (spring wheat has no dates in Fayette County)
-        croptiers.update(root, WINDOW, 2025, LAST)
+    freeze_normal(root, WINDOW, POTATO_FREEZE)
+    # soybean's, corn's and potato's tiers (spring wheat has no dates in Fayette County)
+    croptiers.update(root, WINDOW, 2025, LAST)
     planting_tiers_cleared()
     return root, weather
 
@@ -72,19 +84,6 @@ def planting_tiers_cleared() -> None:
     from agdata import planting
 
     planting._tier_days.cache_clear()
-
-
-def _potato_place(monkeypatch) -> None:
-    """A Veg Path potato place at the test window (there's none in Fayette County, Iowa), planted Apr 28 / May 5 /
-    May 12."""
-    from agdata import planting
-
-    lat, lng = NDFD.latlon(WINDOW.j0, WINDOW.i0)
-    row = planting.PlantingDate(
-        crop="potato", early="04-28", typical="05-05", late="05-12", level="location", area="Here"
-    )
-    planting._tier_days.cache_clear()
-    monkeypatch.setattr(planting, "_potato_table", lambda: ((float(lat), float(lng), row),))
 
 
 def _at_point(
@@ -167,7 +166,16 @@ def test_a_model_computed_on_request_is_the_same_a_block_at_a_time(built, model_
     whole = modelgrid.model_map(root, model_id, DAYS[0], DAYS[1], WINDOW, tier=None)
     monkeypatch.setattr(modelgrid.blocks, "SIZE", 1)  # a cell a block
     assert len(modelgrid.blocks.blocks(WINDOW)) == WINDOW.size
-    split = modelgrid.model_map(root, model_id, DAYS[0], DAYS[1], WINDOW, tier=None)
+    entered: list[str] = []
+
+    @contextmanager
+    def gate():  # the web app's limit on heavy computations (`api.heavy`) holds the blocks' whole computation
+        entered.append("in")
+        yield
+        entered.append("out")
+
+    split = modelgrid.model_map(root, model_id, DAYS[0], DAYS[1], WINDOW, tier=None, on_request=gate)
+    assert entered == ["in", "out"]
     assert split.dates == whole.dates and split.kinds == whole.kinds
     for name, values in whole.outputs.items():
         np.testing.assert_array_equal(split.outputs[name], values, err_msg=name)
@@ -243,26 +251,19 @@ def test_a_sum_and_mean_over_days_start_at_the_biofix():
 # Planting tiers (D66): each place's typical date drives a crop model's start, a stage biofix and the gating
 
 
-@pytest.fixture
-def potato_here(monkeypatch):
-    """The potato place `built` stored the tiers with (`_potato_place`)."""
-    _potato_place(monkeypatch)
-    yield
-    planting_tiers_cleared()
-
-
-def test_a_planting_map_is_each_cells_typical_date():
+def test_a_planting_map_is_each_cells_typical_date(tmp_path):
     from agdata import planting
 
-    found = planting.planting_map("corn", "late", WINDOW, season=2025)
+    found = planting.planting_map("corn", "late", WINDOW, season=2025, data_dir=tmp_path)
     for y in range(WINDOW.shape[0]):
         for x in range(WINDOW.shape[1]):
             lat, lng = NDFD.latlon(WINDOW.j0 + y, WINDOW.i0 + x)
-            typical = planting.typical_planting("corn", float(lat), float(lng))
+            typical = planting.typical_planting("corn", float(lat), float(lng), data_dir=tmp_path)
             assert typical is not None
             month, day = (int(p) for p in typical.late.split("-"))
             assert found[y, x] == date(2025, month, day).toordinal()
-    assert np.isnan(planting.planting_map("potato", "mid", WINDOW, season=2025)).all()  # no Veg Path place near
+    # potato's come from the normals, which aren't built here
+    assert np.isnan(planting.planting_map("potato", "mid", WINDOW, season=2025, data_dir=tmp_path)).all()
 
 
 TIERED = ("corn-stages", "tar-spot", "gray-leaf-spot", "gibberella-ear-rot-don", "potato-stages")
@@ -271,7 +272,9 @@ TIERED += ("soybean-cercospora", "red-crown-rot")
 
 
 @pytest.mark.parametrize("model_id", TIERED)
-def test_a_tiered_maps_cell_is_the_model_run_with_that_cells_planting(built, potato_here, model_id):
+def test_a_tiered_maps_cell_is_the_model_run_with_that_cells_planting(built, model_id):
+    """Each cell of a map at a planting tier is the model run at the cell from its typical date; a cell with none
+    (potato's corner) is missing, as a point without one refuses, not the model's default dates."""
     from agdata import planting
 
     root, weather = built
@@ -279,9 +282,13 @@ def test_a_tiered_maps_cell_is_the_model_run_with_that_cells_planting(built, pot
     crop_id, crop = planting.planting_crop(m.SPEC)  # type: ignore[misc]
     for day in DAYS:
         found = modelgrid.model_map(root, model_id, day, day, WINDOW, tier="mid")
-        planted = planting.planting_map(crop, "mid", WINDOW, season=day.year)
+        planted = planting.planting_map(crop, "mid", WINDOW, season=day.year, data_dir=root)
         for y in range(WINDOW.shape[0]):
             for x in range(WINDOW.shape[1]):
+                if np.isnan(planted[y, x]):
+                    assert all(np.isnan(v[0, y, x]) for v in found.outputs.values()), (model_id, y, x)
+                    assert found.level is None or np.isnan(found.level[0, y, x])
+                    continue
                 sown = date.fromordinal(int(planted[y, x]))
                 point = _at_point(model_id, weather, y, x, day, sown=sown, own=crop_id == model_id)
                 where = f"{model_id} {day} cell {y},{x}"
@@ -321,7 +328,7 @@ def test_stored_tiers_are_the_crop_model_run_from_each_planting(built):
     from agdata import planting
 
     root, weather = built
-    sown = planting.planting_map("soybean", "early", WINDOW, season=2025)
+    sown = planting.planting_map("soybean", "early", WINDOW, season=2025, data_dir=root)
     store = GridStore.open(root, modelmaps.INGREDIENTS, 2025, modelmaps.variables())
     t0 = store.index_of(DAYS[2])
     stage = store.read_steps(modelmaps.tier_key("soybean-stages", "stage", "early"), t0, t0 + 1)[0]
@@ -373,7 +380,7 @@ def test_a_tier_stored_crop_takes_a_tier(built):
         modelgrid.model_map(root, "soybean-stages", DAYS[1], DAYS[1], WINDOW, tier=None)
 
 
-def test_stored_stage_days_are_the_stages_first_days_and_a_store_without_them_says_so(built, potato_here, monkeypatch):
+def test_stored_stage_days_are_the_stages_first_days_and_a_store_without_them_says_so(built, monkeypatch):
     """`croptiers` keeps each tier's first day at each stage (D70), the first day the stored stage series reaches
     it; a blight's emergence biofix reads them. A store without them is one to rebuild (`modelmaps.status`), and
     until then the blight's planted cells are missing rather than started on a guess."""
@@ -383,8 +390,9 @@ def test_stored_stage_days_are_the_stages_first_days_and_a_store_without_them_sa
     root, _ = built
     found = croptiers.reached(root, "potato-stages", "mid", 2025, WINDOW)
     assert found is not None and found[1] == LAST
-    sown = modelgrid._Planting(crop_id="potato-stages", crop="potato", tier="mid", window=WINDOW)
-    p = planting.planting_map("potato", "mid", WINDOW, season=2025)
+    sown = modelgrid._Planting(crop_id="potato-stages", crop="potato", tier="mid", window=WINDOW, data_dir=root)
+    p = planting.planting_map("potato", "mid", WINDOW, season=2025, data_dir=root)
+    assert np.isnan(p).sum() == 1  # the corner has no estimate
     k = 1  # emergence
     begin = date.fromordinal(int(np.nanmin(p)))
     index = stage_days(modelgrid._crop_stages(root, sown, begin, LAST, None), k + 1)[k]
@@ -510,3 +518,85 @@ def test_spans_taken_cell_by_cell_are_the_whole_maps_spans():
     whole = modelgrid._spans(fetch, list(pairs), window)  # (pairs, y, x)
     expected = whole.reshape(len(pairs), -1)[group, cells]
     np.testing.assert_array_equal(modelgrid._cell_spans(fetch, pairs, group, cells), expected)
+
+
+LONG_HOLE = (date(2025, 6, 20), date(2025, 6, 29))  # ten days at one cell: longer than the fill reaches (D56)
+
+
+@pytest.fixture(scope="module")
+def long_hole(built, tmp_path_factory):
+    """`built`'s weather with every variable missing at cell (0, 0) through LONG_HOLE."""
+    root = tmp_path_factory.mktemp("hole")
+    weather = {name: v.copy() for name, v in built[1].items()}
+    gone = [k for k, d in enumerate(SPAN) if LONG_HOLE[0] <= d <= LONG_HOLE[1]]
+    for v in weather.values():
+        v[np.ix_(gone, [0], [0])] = np.nan
+    store = GridStore.create(root, DAILY, 2025, WINDOW, DAILY_VARIABLES.values())
+    store.write(FIRST, weather, source="test")
+    cumulative.rebuild_year(root, WINDOW, 2025)
+    modelmaps.update(root, WINDOW, FIRST, LAST, keys=["late-blight-dsv.dsv"])
+    return root
+
+
+@pytest.mark.parametrize("model_id", ["alfalfa-growth", "late-blight-dsv", "apple-scab"])
+def test_a_map_counts_each_cells_days_missing_past_the_fill(built, long_hole, model_id):
+    """Degree days from the running totals' count, a stored ingredient's own count and a model computed on request
+    from its inputs: ten days at the hole's cell, none elsewhere, none before the hole and none without one."""
+    after, before = date(2025, 7, 10), date(2025, 6, 15)
+    found = modelgrid.model_map(long_hole, model_id, before, after, WINDOW, tier=None)
+    assert found.missing_days is not None
+    last = found.missing_days[-1]
+    assert last[0, 0] == 10 and (np.delete(last.ravel(), 0) == 0).all()
+    assert np.nanmax(found.missing_days[0]) == 0  # before the hole
+    clean = modelgrid.model_map(built[0], model_id, after, after, WINDOW, tier=None)
+    assert clean.missing_days is not None and np.nanmax(clean.missing_days) == 0  # three days: filled
+
+
+DRY_SPELL = (date(2025, 6, 20), date(2025, 7, 1))  # twelve days at one cell without humid hours, wet periods or rain
+
+
+@pytest.fixture(scope="module")
+def dry_spell(built, tmp_path_factory):
+    """`built`'s weather with cell (0, 0) dry through DRY_SPELL: no humid hours, wet period or rainy hours, so their
+    temperatures are null (the answer, not missing data)."""
+    root = tmp_path_factory.mktemp("dry")
+    weather = {name: v.copy() for name, v in built[1].items()}
+    dry = [k for k, d in enumerate(SPAN) if DRY_SPELL[0] <= d <= DRY_SPELL[1]]
+    at = np.ix_(dry, [0], [0])
+    for name in ("hours_rh_over_90_from_6pm", "scab_wet_hours", "scab_infection", "precipitation_7am_to_7pm"):
+        weather[name][at] = 0.0
+    for name in ("temperature_mean_rh_over_90_from_6pm", "scab_wet_temperature", "temperature_mean_rain_7am_to_7pm"):
+        weather[name][at] = np.nan
+    store = GridStore.create(root, DAILY, 2025, WINDOW, DAILY_VARIABLES.values())
+    store.write(FIRST, weather, source="test")
+    cumulative.rebuild_year(root, WINDOW, 2025)
+    modelmaps.update(root, WINDOW, FIRST, LAST, keys=["late-blight-dsv.dsv"])
+    return root, weather
+
+
+@pytest.mark.parametrize("model_id", ["late-blight-dsv", "apple-scab"])
+def test_a_conditional_means_null_on_a_dry_day_is_not_a_missing_day(dry_spell, model_id):
+    """A day without humid hours (or a wet period, or rainy hours) has no temperature for them: no day is missing,
+    from a stored ingredient's count (late blight) or a model computed on request (apple scab), as at a point."""
+    root, weather = dry_spell
+    found = modelgrid.model_map(root, model_id, DRY_SPELL[0], date(2025, 7, 10), WINDOW, tier=None)
+    assert found.missing_days is not None and np.nanmax(found.missing_days) == 0
+    k0 = DATES.index(FIRST)
+    daily = {name: np.concatenate([WEATHER[name][:k0], weather[name][:, 0, 0]]) for name in WEATHER}
+    dates = DATES[: k0 + len(SPAN)]
+    point = runner.run(model_id, dates=dates, daily=daily, latitude=43.0, start=DRY_SPELL[0], gap_fill=GAP_FILL)
+    assert point.estimated == {} and point.missing == {}
+
+
+def test_a_stored_season_keeps_its_days_missing_past_the_fill(long_hole, tmp_path):
+    import shutil
+
+    root = tmp_path / "root"
+    shutil.copytree(long_hole, root)
+    day = date(2025, 7, 10)
+    seasonmaps.update(root, WINDOW, 2025, day)
+    stored = modelgrid.model_map(root, "fire-blight", day, day, WINDOW, tier=None)
+    computed = modelgrid.model_map(root, "fire-blight", day, day, WINDOW, tier=None, compute=True)
+    assert stored.missing_days is not None and computed.missing_days is not None
+    np.testing.assert_array_equal(stored.missing_days, computed.missing_days)
+    assert stored.missing_days[0, 0, 0] == 10

@@ -1,6 +1,6 @@
 ---
 id: alfalfa-weevil
-title: Alfalfa Weevil
+title: Alfalfa weevil
 kind: insect
 crops:
   - alfalfa
@@ -9,7 +9,7 @@ summary: A snout beetle whose green larvae feed on the tips of first-crop alfalf
 image: images/alfalfa-weevil.jpg
 image_credit: 'An alfalfa weevil larva on an alfalfa shoot. Photo: Clemson University – USDA Cooperative Extension Slide Series, Bugwood.org (image 1233149), via Wikimedia Commons (File:Alfalfa weevil (Hypera postica).jpg), CC BY 3.0 US; resized.'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-25
 sources:
   - key: bick-2025
     text: 'Bick, E. N. Managing Alfalfa Weevil in Wisconsin Alfalfa Fields. UW–Madison Division of Extension, Crops and Soils, updated 2025.'

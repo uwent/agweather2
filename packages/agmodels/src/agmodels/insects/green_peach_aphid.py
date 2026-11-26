@@ -36,6 +36,7 @@ _days, _log_days = _read(FIT_CALENDAR, "day_of_year")
 INSECT = Insect(
     id="green-peach-aphid",
     name="Green peach aphid",
+    season=("07-15", "10-31"),
     crops=("potato",),
     topic="aphids-on-potato",
     base_f=39.2,
@@ -56,13 +57,18 @@ INSECT = Insect(
     ),
     clock="calendar",
     source="UW–Madison Vegetable Entomology",
-    version="0.1",
+    version="0.2",
     trained=TrainingArea(description="catches in Wisconsin's suction traps", years=(2010, 2023), states=("WI",)),
     changelog=(
         Change(
             version="0.1",
             date="2026-11-21",
             note="New: the typical season's flight of winged green peach aphids, from Wisconsin's suction trap catches, by calendar date or degree days.",
+        ),
+        Change(
+            version="0.2",
+            date="2026-11-26",
+            note="In season from July 15 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

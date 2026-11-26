@@ -19,6 +19,7 @@ PUPATION_F = 613
 INSECT = Insect(
     id="black-cutworm",
     name="Black cutworm",
+    season=("05-15", "07-31"),
     crops=(
         "asparagus",
         "beans",
@@ -87,7 +88,7 @@ INSECT = Insect(
             when="present",
         ),
     ),
-    version="0.4",
+    version="0.5",
     status="beta",
     trained=TrainingArea(
         description="caterpillar development measured outdoors in weather shelters in Iowa, the egg's in the laboratory in Illinois, and the default capture date from the first weeks with 9 or more moths in Wisconsin's black cutworm pheromone traps",
@@ -110,6 +111,11 @@ INSECT = Insect(
             version="0.4",
             date="2026-11-23",
             note="Caterpillar development from Kaster and Showers 1984 (Table 1, spring), measured outdoors in weather shelters in Iowa, in place of Luckmann et al. 1976's constant laboratory temperatures, with Luckmann's egg: the fourth instar 284 degree days after an egg is laid (was 306) and pupation 613 (was 729). The window to scout and treat now runs from about 290 to 790 degree days after the capture (was 311 to 903), ending about 6 days sooner in a normal June.",
+        ),
+        Change(
+            version="0.5",
+            date="2026-11-26",
+            note="In season from May 15 to July 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to the end of the month its latest activity ended in (July 16). Activity ends after July 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

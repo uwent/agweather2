@@ -1,4 +1,4 @@
-"""Open-Meteo hours for points outside the box or before the archive, through the per-cell cache (D42). CLAUDE.md's
+"""Open-Meteo hours for points outside the box or before the archive, or inside it while the forecast is stale (D114), through the per-cell cache (D42). CLAUDE.md's
 one exception to fetching weather only in jobs: a request may fill a cell's cache."""
 
 import io
@@ -14,6 +14,7 @@ from agdata.series import FORECAST, OBSERVED, DailySeries, day_kinds
 from agdata.sources import openmeteo
 from agdata.timezones import zone_at
 from ops.models import WeatherCellCache
+from ops.openmeteo_usage import fetch_counted
 
 HOUR = timedelta(hours=1)
 FORECAST_TTL = timedelta(hours=3)
@@ -26,7 +27,7 @@ REQUEST_TRIES = 2
 
 class Unavailable(Exception):
     """Open-Meteo couldn't be reached or didn't answer in time (after `openmeteo.fetch`'s retries), so a point it
-    serves has no weather for now; the API answers 503."""
+    serves has no weather for now: the API answers 503 (`weather_unavailable`), or, where only the forecast or soil fill inside the box was asked of it (D114, D44), the observed days with a warning."""
 
 
 def spans(first: date, last: date, today: date) -> list[tuple[str, date, date]]:
@@ -35,7 +36,7 @@ def spans(first: date, last: date, today: date) -> list[tuple[str, date, date]]:
     recent = today - timedelta(days=openmeteo.RECENT_DAYS)
     out: list[tuple[str, date, date]] = []
     month = date(first.year, first.month, 1)
-    while month < recent and month <= last:
+    while first < recent and month < recent and month <= last:  # no history when every day is the forecast's
         following = date(month.year + month.month // 12, month.month % 12 + 1, 1)
         end = min(following - timedelta(days=1), recent - timedelta(days=1))
         out.append((openmeteo.endpoint_for(month, today), month, end))
@@ -110,7 +111,7 @@ def _cached(cell, endpoint: str, first: date, last: date, now: datetime, session
         if all(name in held.values for name in openmeteo.SOIL_MOISTURE):  # rows cached before it are fetched again
             return held
     try:
-        hours, calls = openmeteo.fetch(
+        hours, calls = fetch_counted(  # counted against the plan, failures too (D115)
             endpoint,
             cell,
             first,

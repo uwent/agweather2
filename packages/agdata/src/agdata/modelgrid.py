@@ -18,14 +18,20 @@ day before it is missing, as a point returns nothing before its biofix. Maps tak
 user's dates (D66). `model_map` adds the planting tier (early, mid, late; `/grids`' `planting=`): a crop model
 starts at each cell's typical planting date, a stage-anchored biofix (the blights' potato emergence) is each cell's
 first day at that stage, read from what `agdata.croptiers` stored (`_reached`), and a stage-gated disease gets
-`susceptibility`. Soybean, spring wheat, corn and potato stages are read as stored per tier (D70); red crown rot
-is computed on request from each cell's R1 (`ON_REQUEST`). With `tier=None` nothing is gated and a stage-anchored
+`susceptibility`. Soybean, spring wheat, corn and potato stages are read as stored per tier (D70); red crown rot,
+apple scab and fire blight carry a state from each cell's biofix (`ON_REQUEST`): their stored seasons are read (`agdata.seasonmaps`; red crown rot's mid tier only), and computed on request, a block at a time, past what's stored. With `tier=None` nothing is gated and a stage-anchored
 biofix is the spec's date, as at a point given no planting date (`api.runs`). Cells outside a model's states are
 missing. The forecast's days come from the current run's own stores, which continue the archive's totals, as
 `series.grid_days` splits them.
+
+Each map counts, per cell and day, the days of its inputs still missing after the gap fill that the day's results rest
+on (`ModelDays.missing_days`, D56), from running counts as its accumulations are: `temperature_missing_days` for
+degree days and crop stages, a stored ingredient's `….missing`, a stored season's own, or its inputs when computed on
+request. Its reads never mark the map stale: a store built before the counts reads as none counted.
 """
 
 from collections.abc import Callable, Iterable, Mapping
+from contextlib import AbstractContextManager, nullcontext
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from functools import cache
@@ -36,15 +42,21 @@ import numpy as np
 
 from agdata import blocks, croptiers, modelmaps, normals, planting, regions, seasonmaps, series
 from agdata import units as agunits
+from agdata.catalog import CUMULATIVE_VARIABLES
 from agdata.grid import Window
 from agdata.grids import cube_terms
 from agdata.store import CUMULATIVE, DAILY, INGREDIENTS, StoreLayout
+from agmodels import seasons
 from agmodels.crops import CropModel, disease_susceptibility
 from agmodels.ingredients import Accumulation, Ingredient, until_day
 from agmodels.registry import all_models
 from agmodels.registry import model as find_model
-from agmodels.runner import default_biofix, january_crop_start
+from agmodels.runner import default_biofix, january_crop_start, unfilled_gaps
 from agmodels.spec import Model, ModelSpec
+
+# The running count of days without a usable minimum and maximum temperature (`agdata.cumulative`): degree days' and
+# crop stages' days missing past the gap fill (D56)
+TEMPERATURE_MISSING = "temperature_missing_days"
 
 # Models with ingredients that aren't model layers, and why
 NOT_MAPPED = {
@@ -102,6 +114,10 @@ class ModelDays:
     accumulated: dict[str, np.ndarray] = field(default_factory=dict)  # each accumulation, (days, y, x)
     # each normal of the place the model reads (`ModelSpec.place_normals`), (y, x), NaN where the normals don't reach
     place: dict[str, np.ndarray] = field(default_factory=dict)
+    # (days, y, x): the days still missing after the gap fill (D56) that each day's results rest on, from each cell's
+    # biofix (its accumulations' spans, or the season's state): a running total added nothing for them. NaN where it
+    # isn't counted (not started, a model without accumulations); None if the map counts none
+    missing_days: np.ndarray | None = None
 
 
 def model_days(
@@ -135,6 +151,7 @@ def model_days(
     values = {i.name: reader.daily(spec, i, dates) for i in spec.ingredients}
     for a in spec.accumulations:
         values[a.name] = _accumulated(reader, spec, a, dates, cells)
+    missing_days = _missing_days(reader, spec, dates, cells)
     shape = (n, 1, 1)
     values["day_of_year"] = np.array([d.timetuple().tm_yday for d in dates], dtype=float).reshape(shape)
     values["year"] = np.array([d.year for d in dates], dtype=float).reshape(shape)
@@ -186,6 +203,7 @@ def model_days(
         options=opts,
         accumulated={a.name: values[a.name] for a in spec.accumulations},
         place=place,
+        missing_days=missing_days,
     )
 
 
@@ -214,6 +232,9 @@ def read_names(model_id: str) -> list[str]:
             extra.append(f"{k}.total")
             if any(a.how == "mean" and a.of == i.name for a in spec.accumulations):
                 extra.append(f"{k}.known")
+            extra.append(modelmaps.missing_key(k))
+    if any(i.degree_days is not None for i in spec.ingredients):
+        totals.append(TEMPERATURE_MISSING)
     return [*stored, *extra, *totals]
 
 
@@ -231,9 +252,10 @@ class _Planting:
     crop: str  # `agdata.planting`'s name
     tier: str
     window: Window
+    data_dir: Path  # its normals give potato's dates (`agdata.potatoplanting`)
 
     def __call__(self, day: date) -> np.ndarray:
-        return planting.planting_map(self.crop, self.tier, self.window, season=day.year)
+        return planting.planting_map(self.crop, self.tier, self.window, season=day.year, data_dir=self.data_dir)
 
 
 def model_map(
@@ -247,17 +269,70 @@ def model_map(
     now=None,
     stores: series.Stores | None = None,
     compute: bool = False,
+    on_request: Callable[[], AbstractContextManager[object]] | None = None,
 ) -> ModelDays:
     """A model's map with each place's own settings (D66): with a planting `tier` (early, mid, late; None for none),
     a crop model starts at each cell's typical planting date (soybean's and spring wheat's stored per tier,
     `agdata.croptiers`), a stage-anchored biofix is the day the crop reaches that stage from it (not started until
-    then), and a stage-gated disease gets `susceptibility` (D33) from the crop's stages. Cells without a typical
-    date take the spec's defaults, as a point given no planting date (a stored crop has no stages there).
+    then), and a stage-gated disease gets `susceptibility` (D33) from the crop's stages. A cell without a typical
+    date for the tier is missing, as a point without one refuses (`no_estimate`; Ben 2026-11-26): the spec's default
+    dates there were a guess the map didn't show as one.
 
     A season-stored model (`modelmaps.SEASON_MODELS`, `agdata.seasonmaps`) is read from its stored season where it's
     stored through the days asked for, else computed as `compute` asks (the job storing it). A model computed on
     request (`ON_REQUEST`) runs a block at a time (`agdata.blocks`) and the blocks are put together: it reads a
-    season of days, and over a whole launch-size window that was tens of GB (D109)."""
+    season of days, and over a whole launch-size window that was tens of GB (D109). Its blocks are computed inside
+    `on_request()` if given: the web app's limit on heavy computations (`api.heavy`), which can refuse."""
+    found = _model_map(data_dir, model_id, first, last, window, options, tier, now, stores, compute, on_request)
+    crop = tiered(model_id)
+    if tier is not None and crop is not None:
+        _unplanted_missing(
+            found, planting=_Planting(crop_id=crop[0], crop=crop[1], tier=tier, window=window, data_dir=data_dir)
+        )
+    return found
+
+
+def _unplanted_missing(found: ModelDays, planting: "_Planting") -> None:
+    """Makes `found` missing, in place, in the cells with no typical planting date for its tier in each day's season."""
+    by_season: dict[int, np.ndarray] = {}
+    days = []
+    for k, d in enumerate(found.dates):
+        if d.year not in by_season:
+            by_season[d.year] = np.isnan(planting(d))
+        if by_season[d.year].any():
+            days.append(k)
+    if not days:
+        return
+
+    def blank(v: np.ndarray) -> np.ndarray:
+        if v.ndim != 3:
+            return v
+        if not (np.issubdtype(v.dtype, np.floating) and v.flags.writeable):
+            v = v.astype(np.result_type(v.dtype, np.float32))
+        for k in days:
+            v[k][by_season[found.dates[k].year]] = np.nan
+        return v
+
+    found.outputs = {name: blank(v) for name, v in found.outputs.items()}
+    found.accumulated = {name: blank(v) for name, v in found.accumulated.items()}
+    found.risk = None if found.risk is None else blank(found.risk)
+    found.level = None if found.level is None else blank(found.level)
+    found.missing_days = None if found.missing_days is None else blank(found.missing_days)
+
+
+def _model_map(
+    data_dir: Path,
+    model_id: str,
+    first: date,
+    last: date,
+    window: Window,
+    options: Mapping[str, str] | None,
+    tier: str | None,
+    now,
+    stores: series.Stores | None,
+    compute: bool,
+    on_request: Callable[[], AbstractContextManager[object]] | None,
+) -> ModelDays:
     if (
         model_id in modelmaps.SEASON_MODELS
         and not compute
@@ -269,16 +344,21 @@ def model_map(
     if model_id in ON_REQUEST:
         parts = blocks.blocks(window)
         if len(parts) > 1 or (parts and parts[0] != window):
-            found = [
-                model_map(
-                    data_dir, model_id, first, last, part, options, tier=tier, now=now, stores=stores, compute=True
-                )
-                for part in parts
-            ]
+            with on_request() if on_request is not None else nullcontext():
+                found = [
+                    model_map(
+                        data_dir, model_id, first, last, part, options, tier=tier, now=now, stores=stores, compute=True
+                    )
+                    for part in parts
+                ]
             return _merged(window, parts, found)
     spec = find_model(model_id).SPEC
     crop = tiered(model_id)
-    sown = None if tier is None or crop is None else _Planting(crop_id=crop[0], crop=crop[1], tier=tier, window=window)
+    sown = (
+        None
+        if tier is None or crop is None
+        else _Planting(crop_id=crop[0], crop=crop[1], tier=tier, window=window, data_dir=data_dir)
+    )
     if model_id in modelmaps.TIER_MODELS:
         if sown is not None:
             return _stored_days(data_dir, sown, first, last, now, stores)
@@ -345,6 +425,7 @@ def _merged(window: Window, parts: list[Window], found: list[ModelDays]) -> Mode
         options=one.options,
         accumulated=each(lambda f: f.accumulated),
         place=each(lambda f: f.place),
+        missing_days=None if any(f.missing_days is None for f in found) else whole([f.missing_days for f in found]),
     )
 
 
@@ -364,7 +445,7 @@ def _base(data_dir, spec: ModelSpec, first: date, last: date, window: Window, no
     return base, reader
 
 
-def _finished(spec, base, dates, outputs, risk, level, reader, cells=None, place=None) -> ModelDays:
+def _finished(spec, base, dates, outputs, risk, level, reader, cells=None, place=None, missing_days=None) -> ModelDays:
     """A ModelDays from outputs computed outside `model_days`: missing days (nothing stored anywhere) have no kind."""
     primary = outputs[spec.outputs[0].name]
     kinds = [None if np.isnan(primary[k]).all() else kind for k, kind in enumerate(base.kinds)]
@@ -384,6 +465,7 @@ def _finished(spec, base, dates, outputs, risk, level, reader, cells=None, place
         run_from=base.run_from,
         reads=reader.reads,
         place=place or {},
+        missing_days=missing_days,
     )
 
 
@@ -393,14 +475,24 @@ def _stored_days(data_dir, sown: _Planting, first: date, last: date, now, stores
     spec = find_model(sown.crop_id).SPEC
     wanted = [q for q in spec.outputs if only is None or q.name in only]
     names = [modelmaps.tier_key(spec.id, q.name, sown.tier) for q in wanted]
-    base, reader = _base(data_dir, spec, first, last, sown.window, now, stores, names)
+    base, reader = _base(data_dir, spec, first, last, sown.window, now, stores, [*names, TEMPERATURE_MISSING])
     dates = [first + timedelta(days=k) for k in range(len(base.steps))]
     outputs = {}
     for q, name in zip(wanted, names, strict=True):
         found = reader.days(INGREDIENTS, name, dates)
         outputs[q.name] = np.stack([found[d] for d in dates])
     planted = np.stack([sown(d) for d in dates])  # the biofix is the planting
-    return _finished(spec, base, dates, outputs, None, None, reader, cells=planted)
+    gaps = None
+    if only is None:  # the stages run on temperature from planting: its days missing past the fill (D56)
+        gaps = _spanned(
+            lambda days: reader.counted(TEMPERATURE_MISSING, days),
+            None,
+            Accumulation(name=TEMPERATURE_MISSING, of=TEMPERATURE_MISSING),
+            dates,
+            planted,
+            sown.window,
+        )
+    return _finished(spec, base, dates, outputs, None, None, reader, cells=planted, missing_days=gaps)
 
 
 def _stored_season(data_dir, model_id: str, first: date, last: date, window: Window, now, stores) -> ModelDays | None:
@@ -412,7 +504,8 @@ def _stored_season(data_dir, model_id: str, first: date, last: date, window: Win
     if first.year != last.year:
         return None
     start, end = seasonmaps.season(model_id, first.year)
-    keys = seasonmaps.names(model_id)
+    gaps = modelmaps.season_key(model_id, modelmaps.SEASON_MISSING)
+    keys = [k for k in seasonmaps.names(model_id) if k != gaps]
     if last < start or first > end:  # wholly out of the season it's shown in: nothing to show, nothing to compute
         base, reader = _base(data_dir, spec, first, last, window, now, stores, keys)
         dates = [first + timedelta(days=k) for k in range(len(base.steps))]
@@ -422,7 +515,7 @@ def _stored_season(data_dir, model_id: str, first: date, last: date, window: Win
         return _finished(spec, base, dates, outputs, risk, risk, reader, cells=empty)
     if first < start or last > end:
         return None
-    base, reader = _base(data_dir, spec, first, last, window, now, stores, keys)
+    base, reader = _base(data_dir, spec, first, last, window, now, stores, [*keys, gaps])
     dates = [first + timedelta(days=k) for k in range(len(base.steps))]
     archive_last = min(last, reader.cut - timedelta(days=1))
     if first <= archive_last:
@@ -445,8 +538,17 @@ def _stored_season(data_dir, model_id: str, first: date, last: date, window: Win
         level = np.where(np.isfinite(risk), risk, np.nan)
     root = reader.run_path if last >= reader.cut and reader.run_path is not None else data_dir
     cells = seasonmaps.biofix(root, model_id, first.year, window)
+    counted = reader.days(INGREDIENTS, gaps, dates, quiet=True)  # a season stored before they were kept: none
     return _finished(
-        spec, base, dates, outputs, risk, level, reader, cells=np.broadcast_to(cells, (len(dates), *window.shape))
+        spec,
+        base,
+        dates,
+        outputs,
+        risk,
+        level,
+        reader,
+        cells=np.broadcast_to(cells, (len(dates), *window.shape)),
+        missing_days=np.stack([counted[d] for d in dates]),
     )
 
 
@@ -471,22 +573,35 @@ def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Win
     reach = spec.lookback_days  # days of weather before the biofix a run reads
     place = normals.place_normals(data_dir, spec, window)  # each cell's normals the model reads, (y, x)
     outputs = {q.name: np.full((n, *window.shape), np.nan) for q in spec.outputs}
+    missing_days = np.full((n, *window.shape), np.nan)
     starts = np.unique(cells[np.isfinite(cells)])
     if starts.size:
         a = min(date.fromordinal(int(starts.min())) - timedelta(days=reach), first)
         days = [a + timedelta(days=k) for k in range((last - a).days + 1)]
         raw = {q.name: reader.days(DAILY, q.name, days) for q in spec.inputs}
         series_ = {name: np.stack([v[d] for d in days]) for name, v in raw.items()}
-        filled = {name: modelmaps._filled(name, v.copy()) for name, v in series_.items()}
+        filled, blank = modelmaps.filled_inputs({name: v.copy() for name, v in series_.items()})
         # Cells in biofix order, so each group is a run of columns (days, cells): picking a group's cells out of
         # (days, y, x) with a mask took ~2 s an array over a block, and a model with many biofix days has many groups
         order = np.argsort(cells.ravel(), kind="stable")
         ranked = cells.ravel()[order]
         nd = len(days)
         by_cell = {name: np.take(v.reshape(nd, -1), order, axis=1) for name, v in filled.items()}
-        missing = {name: np.isnan(np.take(v.reshape(nd, -1), order, axis=1)) for name, v in series_.items()}
+        # The days each input's fill estimated (`<input>_estimated`, as the runner's): a no-value day isn't one
+        missing = {
+            name: np.take((np.isnan(v) & np.isfinite(filled[name])).reshape(nd, -1), order, axis=1)
+            for name, v in series_.items()
+        }
         place_by_cell = {key: v.ravel()[order] for key, v in place.items()}
         ranked_out = {q.name: np.full((n, cells.size), np.nan) for q in spec.outputs}
+        gone = _gone(
+            list(by_cell.values()),
+            answered=[
+                None if (b := blank.get(name)) is None else np.take(b.reshape(nd, -1), order, axis=1)
+                for name in by_cell
+            ],
+        )
+        ranked_gone = np.full((n, cells.size), np.nan)
         for u in starts:
             biofix = date.fromordinal(int(u))
             if biofix > last:
@@ -511,20 +626,42 @@ def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Win
                 count = min(n - i0, len(v) - (shown + i0))
                 if count > 0:
                     ranked_out[name][i0 : i0 + count, lo:hi] = v[shown + i0 : shown + i0 + count]
+            count = min(n - i0, nd - k0 - (shown + i0))
+            if count > 0:  # the days missing past the fill from the run's first day, as the outputs are placed
+                counted = np.cumsum(gone[k0:, lo:hi], axis=0)
+                ranked_gone[i0 : i0 + count, lo:hi] = counted[shown + i0 : shown + i0 + count]
         for name, v in ranked_out.items():
             flat = outputs[name].reshape(n, -1)
             flat[:, order] = v
+        missing_days.reshape(n, -1)[:, order] = ranked_gone
     ordinals = np.array([d.toordinal() for d in dates], dtype=float)[:, None, None]
     before = ordinals < cells[None]  # not started, as at a point (inf: R1 not reached)
-    for v in outputs.values():
+    for v in (*outputs.values(), missing_days):
         v[before | np.isnan(cells)[None]] = np.nan
     risk = level = None
     if spec.risk is not None:
         risk = np.asarray(m.risk(outputs), dtype=float)
         level = np.where(np.isfinite(risk), risk, np.nan)
     return _finished(
-        spec, base, dates, outputs, risk, level, reader, cells=np.broadcast_to(cells, (n, *window.shape)), place=place
+        spec,
+        base,
+        dates,
+        outputs,
+        risk,
+        level,
+        reader,
+        cells=np.broadcast_to(cells, (n, *window.shape)),
+        place=place,
+        missing_days=missing_days,
     )
+
+
+def _gone(inputs: list[np.ndarray], answered: list[np.ndarray | None] | None = None) -> np.ndarray:
+    """(days, cells): the days any input (filled) is in a gap the fill didn't reach, with data on each side (D56), as
+    a point counts them (`runner.unfilled_gaps`): days before the data start or after they end aren't a gap. `answered`,
+    beside each input, marks its nulls that are the day's answer (a conditional mean's, `agmodels.gaps.no_value`)."""
+    marks: list[np.ndarray | None] = list(answered) if answered else [None] * len(inputs)
+    return np.any([unfilled_gaps(v, answered=a) for v, a in zip(inputs, marks, strict=True)], axis=0)
 
 
 def _crop_stages(data_dir, sown: _Planting, first: date, last: date, now) -> np.ndarray:
@@ -556,8 +693,11 @@ def _stage_reached(data_dir, sown: _Planting, code: str, last: date, now):
             if stored is None:
                 seasons[day.year] = np.where(np.isnan(p), np.nan, np.inf)
             else:
-                # As `update` kept them: a day after the request's last counts as not reached yet
-                seasons[day.year] = np.where(stored[k] > last.toordinal(), np.inf, stored[k])
+                # As `update` kept them: a day after the request's last counts as not reached yet, and a cell
+                # planted now that the store kept none for (built before its planting date was known) as not
+                # reached, not the spec's default
+                kept = np.where(stored[k] > last.toordinal(), np.inf, stored[k])
+                seasons[day.year] = np.where(np.isnan(p), np.nan, np.where(np.isnan(kept), np.inf, kept))
         return seasons[day.year]
 
     return biofix
@@ -636,8 +776,11 @@ class _Reader:
     stale: bool = False
     reads: int = 0
     cache: dict[tuple[str, str, date], np.ndarray] = field(default_factory=dict)
+    firsts: dict[int, date | None] = field(default_factory=dict)  # each year's first day of weather (`first_day`)
 
-    def days(self, layout: StoreLayout, name: str, days: Iterable[date]) -> dict[date, np.ndarray]:
+    def days(self, layout: StoreLayout, name: str, days: Iterable[date], quiet: bool = False) -> dict[date, np.ndarray]:
+        """`name` on `days`; `quiet` doesn't mark the map stale where the store lacks it or holds an older version (the
+        days missing past the fill, D56: a store built before they were kept reads as none counted)."""
         wanted = sorted(set(days))
         missing = [d for d in wanted if (layout.kind, name, d) not in self.cache]
         for run in _runs(missing):
@@ -645,7 +788,7 @@ class _Reader:
             values, stale, _ = series.read_split(
                 self.stores, self.data_dir, self.run_path, layout, name, run, cut, self.window
             )
-            self.stale |= bool(stale.any())
+            self.stale |= bool(stale.any()) and not quiet
             self.reads += len(run)
             for k, d in enumerate(run):
                 self.cache[(layout.kind, name, d)] = values[k].astype(np.float64)
@@ -668,6 +811,41 @@ class _Reader:
     def known(self, ingredient: Ingredient, model_id: str, days: Iterable[date]) -> dict[date, np.ndarray]:
         """The running count of days with a value from January 1 (an averaged ingredient's)."""
         return self.days(modelmaps.INGREDIENTS, f"{modelmaps.key(model_id, ingredient)}.known", days)
+
+    def missing(self, ingredient: Ingredient, model_id: str, days: Iterable[date]) -> dict[date, np.ndarray] | None:
+        """The running count from January 1 of days an ingredient's inputs were still missing after the gap fill
+        (D56): the temperature's for degree days, a catalog total's own, a stored one's (`modelmaps.missing_key`);
+        None where none is kept."""
+        if ingredient.degree_days is not None:
+            return self.counted(TEMPERATURE_MISSING, days)
+        if ingredient.cumulative is not None:
+            name = f"{ingredient.cumulative}_missing_days"
+            return self.counted(name, days) if name in CUMULATIVE_VARIABLES else None
+        return self.days(INGREDIENTS, modelmaps.missing_key(modelmaps.key(model_id, ingredient)), days, quiet=True)
+
+    def counted(self, name: str, days: Iterable[date]) -> dict[date, np.ndarray]:
+        """A running count of missing days from the cumulative store, from each year's first day of weather: it
+        counts every day from January 1 without one, and the days before the archive starts aren't a gap (as a
+        stored ingredient's count leaves them out, `modelmaps._gone`)."""
+        days = list(days)
+        starts = {year: self.first_day(year) for year in {d.year for d in days}}
+        before = {f - timedelta(days=1) for f in starts.values() if f is not None and (f.month, f.day) != (1, 1)}
+        found = self.days(CUMULATIVE, name, [*days, *before], quiet=True)
+        out = {}
+        for d in days:
+            f = starts[d.year]
+            if f is None or (f.month, f.day) == (1, 1):
+                out[d] = found[d]
+            else:
+                out[d] = np.maximum(found[d] - np.nan_to_num(found[f - timedelta(days=1)]), 0)
+        return out
+
+    def first_day(self, year: int) -> date | None:
+        """The first day of `year` the archive has weather for (None: none)."""
+        if year not in self.firsts:
+            rolled = modelmaps._rolled_days(self.data_dir, year)
+            self.firsts[year] = None if rolled is None else date(year, 1, 1) + timedelta(days=int(rolled[0]))
+        return self.firsts[year]
 
     def daily(self, spec: ModelSpec, ingredient: Ingredient, dates: list[date]) -> np.ndarray:
         """An ingredient's values on `dates`: as stored, or its running total's change over each day."""
@@ -739,7 +917,6 @@ def _accumulated(reader: _Reader, spec: ModelSpec, a: Accumulation, dates: list[
     ingredient = next(i for i in spec.ingredients if i.name == a.of)
     if spec.biofix is None:
         raise ValueError(f"{spec.id}: an accumulation needs a biofix")
-    out = np.full(biofix.shape, np.nan)
 
     def total(days):
         return reader.total(ingredient, spec.id, days)
@@ -747,6 +924,36 @@ def _accumulated(reader: _Reader, spec: ModelSpec, a: Accumulation, dates: list[
     def known(days):
         return reader.known(ingredient, spec.id, days)
 
+    return _spanned(total, known, a, dates, biofix, reader.window)
+
+
+def _missing_days(reader: _Reader, spec: ModelSpec, dates: list[date], biofix: np.ndarray) -> np.ndarray | None:
+    """Each cell's days missing past the gap fill (D56) in its accumulations' spans on each day, the most of any:
+    those a total or sum added nothing for. A mean divides by the days with a value, so it doesn't run low; a model
+    without accumulations reads each day's ingredients, which carry their own gaps. None where none is counted."""
+    counts = []
+    for a in spec.accumulations:
+        if a.how == "mean":
+            continue
+        ingredient = next(i for i in spec.ingredients if i.name == a.of)
+        if reader.missing(ingredient, spec.id, []) is None:
+            continue
+
+        def total(days, ingredient=ingredient):
+            found = reader.missing(ingredient, spec.id, days)
+            assert found is not None
+            return found
+
+        counts.append(_spanned(total, None, a, dates, biofix, reader.window))
+    if not counts:
+        return None
+    with np.errstate(invalid="ignore"):
+        return np.fmax.reduce(counts) if len(counts) > 1 else counts[0]
+
+
+def _spanned(total, known, a: Accumulation, dates: list[date], biofix: np.ndarray, window: Window) -> np.ndarray:
+    """`_accumulated` on running totals from `total(days)` ({day: map}) and, for a mean, counts from `known(days)`."""
+    out = np.full(biofix.shape, np.nan)
     for k, d in enumerate(dates):
         b = biofix[k]
         started = np.isfinite(b) & (b <= d.toordinal())
@@ -768,9 +975,9 @@ def _accumulated(reader: _Reader, spec: ModelSpec, a: Accumulation, dates: list[
             out[k].reshape(-1)[cells] = sums
             continue
         pairs: list[tuple[date | None, date]] = list(within)
-        sums = _spans(total, pairs, reader.window)
+        sums = _spans(total, pairs, window)
         if a.how == "mean":
-            counts = _spans(known, pairs, reader.window)
+            counts = _spans(known, pairs, window)
             with np.errstate(invalid="ignore", divide="ignore"):
                 sums = np.where(counts > 0, sums / counts, np.nan)
         for u, v in zip(starts, sums, strict=True):
@@ -820,7 +1027,7 @@ def _day_of_year(ordinals: np.ndarray) -> np.ndarray:
 
 
 def _region_mask(spec: ModelSpec, window: Window) -> np.ndarray | None:
-    return _states_mask(spec.region, window) if spec.region else None
+    return _areas_mask(spec.region, window) if spec.region else None
 
 
 def training_mask(spec: ModelSpec, window: Window) -> np.ndarray | None:
@@ -831,7 +1038,8 @@ def training_mask(spec: ModelSpec, window: Window) -> np.ndarray | None:
 
 @cache
 def _areas_mask(codes: tuple[str, ...], window: Window) -> np.ndarray:
-    """Cells in any of the states or counties (postal codes or five-digit FIPS), cached."""
+    """Cells in any of the states or counties (postal codes or five-digit FIPS), cached (~0.2 s for a box and 17
+    states)."""
     found = [regions.find(code) for code in codes]
     masks = [regions.mask(r, window) for r in found if r is not None]
     mask = np.any(masks, axis=0) if masks else np.zeros(window.shape, dtype=bool)
@@ -839,17 +1047,5 @@ def _areas_mask(codes: tuple[str, ...], window: Window) -> np.ndarray:
     return mask
 
 
-@cache
-def _states_mask(states: tuple[str, ...], window: Window) -> np.ndarray:
-    """Cells in any of the states (cached: ~0.2 s for a box and 17 states)."""
-    found = [regions.find(code) for code in states]
-    mask = np.any([regions.mask(r, window) for r in found if r is not None], axis=0)
-    mask.setflags(write=False)
-    return mask
-
-
 def _in_season(spec: ModelSpec, day: date) -> bool:
-    assert spec.season is not None
-    md = (day.month, day.day)
-    first, last = (tuple(int(p) for p in s.split("-")) for s in spec.season)
-    return first <= md <= last if first <= last else (md >= first or md <= last)
+    return seasons.in_season(spec, day)  # the calendar: a map's cells end their seasons on their own days

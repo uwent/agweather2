@@ -2,6 +2,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 
 from django.conf import settings
+from procrastinate import exceptions as procrastinate_errors
 from procrastinate.contrib.django import app
 
 from agdata import croptiers, pastyears, seasonmaps, series
@@ -28,6 +29,18 @@ def _waiting_lock(label: str):
     return lambda: write_lock(settings.DATA_DIR, wait=DOWNLOAD_LOCK_WAIT_S, label=label)
 
 
+def queue_next(task, timestamp: int) -> bool:
+    """Queues a follow-on job, unless a run of it is already waiting (its queueing lock): that run reads the data as
+    it is when it starts, so it covers this one. Without this, the ingest or forecast job that finished its work
+    failed on `AlreadyEnqueued` when both queued the crop stages close together."""
+    try:
+        task.defer(timestamp=timestamp)
+    except procrastinate_errors.AlreadyEnqueued:
+        logger.info("%s already queued", task.name)
+        return False
+    return True
+
+
 @app.periodic(cron="40 * * * *")  # after RTMA's hour is usually published
 @app.task(queue="ingest", queueing_lock="ingest_recent", task_middleware=JOB_MIDDLEWARE)
 def ingest_recent(timestamp: int) -> None:
@@ -45,7 +58,7 @@ def ingest_recent(timestamp: int) -> None:
         logger.warning("ingest_recent skipped: %s", error)
         return
     if updated:
-        update_crop_tiers.defer(timestamp=timestamp)
+        queue_next(update_crop_tiers, timestamp=timestamp)
 
 
 @app.periodic(cron="15,45 * * * *")  # cheap when nothing's new; picks up late and missed runs
@@ -60,7 +73,7 @@ def ingest_forecast(timestamp: int) -> None:
         logger.warning("ingest_forecast skipped: %s", error)
         return
     if record is not None and record.status != IngestRecord.Status.FAILED:
-        update_crop_tiers.defer(timestamp=timestamp)
+        queue_next(update_crop_tiers, timestamp=timestamp)
 
 
 @app.periodic(cron="20 */6 * * *")  # ERA5-Land publishes once a day; a run with nothing new asks nothing
@@ -167,12 +180,12 @@ def update_crop_tiers(timestamp: int) -> None:
             logger.info("disease seasons written: %s", {where: len(names) for where, names in seasons.items()})
     except WriteLocked as error:
         logger.warning("update_crop_tiers skipped: %s", error)
-    precompute_maps.defer(timestamp=timestamp)  # the maps read what it wrote
+    queue_next(precompute_maps, timestamp=timestamp)  # the maps read what it wrote
 
 
 @app.task(queue="maintenance", queueing_lock="precompute_maps", task_middleware=JOB_MIDDLEWARE)
 def precompute_maps(timestamp: int) -> None:
-    """The default maps of every model and the main weather layers (`ops.precompute`, step 7 D5), computed into the
+    """The default maps of every model and the main weather layers (`ops.precompute`, Phase 6 step 7 D5), computed into the
     disk cache so a visitor's first map is a read. Queued after the crop stages; reads only, so no write lock."""
     from ops import precompute
 
@@ -197,7 +210,8 @@ def build_downloads(timestamp: int) -> None:
 @app.task(queue="maintenance", queueing_lock="housekeeping", task_middleware=JOB_MIDDLEWARE)
 def housekeeping(timestamp: int) -> None:
     """Daily cleanup: deletes the API's usage counts (`ops.models.ApiUsage`, D69) older than a week, and the kept
-    static map images (`api.routes.maps`, D60) unused for two weeks, with any temporary files left by a crash."""
+    static map images (`api.routes.maps`, D60) unused for two weeks, with any temporary files left by a crash; then
+    Open-Meteo's usage (`open_meteo_housekeeping`, D115)."""
     from api import layermaps
     from api.routes import maps
     from ops.models import ApiUsage
@@ -211,6 +225,32 @@ def housekeeping(timestamp: int) -> None:
     old = layermaps.prune_disk()
     if old:
         logger.info("maps: %d computed maps kept over %d days deleted", old, layermaps.DISK_KEEP_DAYS)
+    open_meteo_housekeeping(datetime.now(UTC))
+
+
+def open_meteo_housekeeping(now: datetime) -> None:
+    """Open-Meteo's usage counts (D115): rows older than two years deleted, and a warning a day while the billing
+    month's use is past `OPEN_METEO_WARN_SHARE` of the plan or on pace to pass it."""
+    from ops import openmeteo_usage
+    from ops.models import OpenMeteoUsage
+
+    deleted, _ = OpenMeteoUsage.objects.filter(day__lt=now.date() - timedelta(days=2 * 365)).delete()
+    if deleted:
+        logger.info("Open-Meteo usage: %d rows older than two years deleted", deleted)
+    for warning in openmeteo_usage.warnings_for(openmeteo_usage.period_usage(now)):
+        logger.warning("%s", warning)
+
+
+@app.periodic(cron="25 14 * * *")  # yesterday's grid day closed at 06Z, and URMA's hours are in by now
+@app.task(queue="maintenance", queueing_lock="score_forecasts", task_middleware=JOB_MIDDLEWARE)
+def score_forecasts(timestamp: int) -> None:
+    """Scores the kept forecast runs' days the archive has closed, and again those it has rewritten since
+    (`ops.verification`, D113). Reads the stores and writes Postgres, so no write lock."""
+    from ops import verification
+
+    done = verification.score(settings.DATA_DIR, datetime.fromtimestamp(timestamp, UTC))
+    if done.days:
+        logger.info("verification: %d days scored (%d rows)", done.days, done.rows)
 
 
 # The order `manage.py jobs run all` and `jobs start` use: the archive first, then soil (IFS's provisional hours, then
@@ -221,5 +261,6 @@ CATCH_UP = (
     ingest_era5land,
     ingest_forecast,
     update_crop_tiers,
+    score_forecasts,
     housekeeping,
 )

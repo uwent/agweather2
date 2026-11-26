@@ -10,6 +10,8 @@ from django.views.static import serve
 
 from ops.forecast import forecast_health
 from ops.health import ingest_health
+from ops.openmeteo_usage import usage_health
+from ops.verification import verification_health
 
 logger = logging.getLogger(__name__)
 CACHE_S = 30  # the checks open every store's metadata; a monitor (or anyone) polling /up reuses them this long
@@ -17,7 +19,7 @@ CACHE_S = 30  # the checks open every store's metadata; a monitor (or anyone) po
 
 def up(request: HttpRequest) -> JsonResponse:
     """Public health check for the uptime monitor: down (503) when the database doesn't answer; degraded (still 200)
-    when ingest or the forecast is behind or jobs failed, with the reasons."""
+    when ingest or the forecast is behind, jobs failed or Open-Meteo's use nears the plan (D115), with the reasons."""
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
@@ -34,15 +36,25 @@ def up(request: HttpRequest) -> JsonResponse:
         now = timezone.now()
         ingest, problems = ingest_health(settings.DATA_DIR, now)
         forecast, forecast_problems = forecast_health(settings.DATA_DIR, now)
-        checked = (ingest, forecast, problems + forecast_problems)
+        verified, verification_problems = verification_health(settings.DATA_DIR, now)
+        if verified is not None:  # nothing kept or scored yet: left out
+            forecast = {**forecast, "verification": verified}
+        open_meteo, open_meteo_problems = usage_health(now)  # D115
+        checked = (
+            ingest,
+            forecast,
+            open_meteo,
+            problems + forecast_problems + verification_problems + open_meteo_problems,
+        )
         cache.set(key, checked, CACHE_S)
-    ingest, forecast, problems = checked
+    ingest, forecast, open_meteo, problems = checked
     body = {
         "status": "degraded" if problems else "ok",
         "version": settings.APP_VERSION,
         "database": database,
         "ingest": ingest,
         "forecast": forecast,
+        "open_meteo": open_meteo,
         "problems": problems,
     }
     return JsonResponse(body)

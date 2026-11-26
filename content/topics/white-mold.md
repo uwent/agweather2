@@ -1,6 +1,6 @@
 ---
 id: white-mold
-title: White Mold (Soybean)
+title: White mold (soybean)
 kind: disease
 crops:
   - soybean
@@ -9,7 +9,7 @@ summary: A fungal disease that kills soybean plants in patches in cool, wet summ
 image: images/white-mold.jpg
 image_credit: 'White mold on soybean stems, with white fungal growth and black sclerotia. Photo by Daren Mueller, Iowa State University, Bugwood.org (image 5465746), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/).'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: smith-2026
     text: 'Smith, D., C. Bradley, M. Chilvers and others. An Overview of White Mold (CPN-1005). Crop Protection Network, revised 2026.'

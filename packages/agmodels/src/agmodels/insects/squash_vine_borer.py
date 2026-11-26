@@ -7,6 +7,7 @@ from agmodels.spec import Change, Check, Citation, TrainingArea
 INSECT = Insect(
     id="squash-vine-borer",
     name="Squash vine borer",
+    season=("06-15", "10-31"),
     crops=("cucumber", "melon", "pumpkin-squash"),
     # UW–Madison Extension's method (XHT1086): the modified average, 50/86 °F, from January 1, a stored total. Its
     # degree-day table (XHT1087, Delahaut, rev. 2005; read in full 2026-11-23) gives only "base temperature = 50°F" and
@@ -36,7 +37,7 @@ INSECT = Insect(
     action_windows=(
         ActionWindow(label="Protect stems during egg laying", stage="Moth flight and egg laying", between=(0.05, 0.75)),
     ),
-    version="0.2",
+    version="0.3",
     status="beta",
     trained=TrainingArea(
         description="extension guides' timing in Wisconsin, South Dakota, Ohio and Michigan",
@@ -48,6 +49,11 @@ INSECT = Insect(
             version="0.2",
             date="2026-11-21",
             note="Rebuilt from the extension guides (UW–Madison, South Dakota State, Ohio State, Michigan State): UW–Madison's modified-average degree days, 50/86 °F from January 1; the moth flight and egg laying as a curve from about 825 (5 %) through half at 1,085 to the last moths by 1,900, the larvae in the vines timed from it (hatch 270 degree days after laying, 660 of feeding), and a window to protect stems from the first moths until three quarters have flown (about 1,240). Replaces VDIFN's window (750, 900, 1,000 degree days, single sine 50 °F), which ended in the middle of egg laying.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="In season from June 15 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

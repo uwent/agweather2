@@ -34,7 +34,7 @@ SPEC = ModelSpec(
     id="gibberella-ear-rot-don",
     name="Gibberella ear rot DON probability",
     group="disease",
-    version="0.2",
+    version="0.3",
     status="beta",
     summary="The probability of DON above 1 ppm from Gibberella ear rot, from temperature and rain 21 to 7 days before and humidity over the last 14 days; corn is susceptible during silking.",
     topics=("gibberella-ear-rot",),
@@ -180,6 +180,11 @@ SPEC = ModelSpec(
             date="2026-11-19",
             note="Humid days are those with mean RH ≥ 80 %, as the authors' algorithm has it (the tool counts > 80 %). The days without precipitation data in the rain window are counted and shown; they count as days without rain, as before (0.1's note said otherwise).",
         ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="The probability is given in percent (0 to 100), as its unit says, rather than as a fraction (0 to 1). Risk levels are unchanged.",
+        ),
     ),
     checks=(
         Check(
@@ -235,7 +240,7 @@ def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.nda
         "days_rh_over_80_14_day",
     )
     return {
-        "probability": probability(*(values[name] for name in names)),
+        "probability": 100 * probability(*(values[name] for name in names)),
         "precipitation_days_missing": values["days_precipitation_missing_14_day_lag_7"],
     }
 
@@ -256,4 +261,4 @@ def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: st
 
 
 def explore(**values: float) -> dict[str, float]:
-    return {"probability": float(probability(**values))}
+    return {"probability": float(100 * probability(**values))}

@@ -49,5 +49,5 @@ def test_values_come_back_from_the_png_to_their_step():
 def test_maplibre_factors_decode_the_same():
     f = tiles.Encoding(step=0.5, unit="degF_day").factors
     r, g, b = 128, 1, 3  # code 2^23 + 259
-    assert r * f["redFactor"] + g * f["greenFactor"] + b * f["blueFactor"] + f["baseShift"] == 259 * 0.5
+    assert r * f["redFactor"] + g * f["greenFactor"] + b * f["blueFactor"] - f["baseShift"] == 259 * 0.5
     assert tiles.codes(np.array([1e12, -1e12]), 0.1).tolist() == [tiles.TOP, tiles.NONE + 1]  # never missing or none

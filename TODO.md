@@ -57,6 +57,15 @@ Things only you can do, by phase. Where things stand and why: [PLAN.md](PLAN.md)
 
 - [ ] **Soil moisture into the archive** (2026-11-25; D110): `uv run app/manage.py era5land --start 2016-01-01 --end 2026-11-20 --concurrent 3 --background` asks the CDS for every month again with the moisture layers (~130 requests, hours of queueing; resumable; each month is written and rolled up as it arrives; the kept ERA5-Land store grows ~75%). Then `uv run app/manage.py downloads` and `uv run app/manage.py rebuild --check` (should list nothing). IFS needs nothing: its next run writes moisture.
 
+- [ ] **Step 5's site services, locally** (2026-11-25): `uv run app/manage.py migrate` is done on the dev database (ops 0006–0007, updates 0001). Optionally write a first changelog entry in the admin (Updates and feedback → Changelog entries, tick Published), and run `uv run app/manage.py verify --keep-current` so the run already published is kept without waiting for the next one.
+- [ ] **Step 5 on the server** (with the next deploy): set `OPEN_METEO_API_KEY` in `infra/.env` (the plan's defaults, 5,000,000 calls a month renewing on the 12th, need nothing more; if the plan changes, set `OPEN_METEO_MONTHLY_CALLS` and `OPEN_METEO_BILLING_DAY` there). Allow ~5 GB on the data volume for `data/forecast/verify`. After deploying, check `/admin/ops/openmeteousage/` and `curl -s https://<host>/up | jq .open_meteo`, and after a week `uv run app/manage.py verify --report --days 7 --by-cycle`.
+
+- [ ] **Cropland each February** (D116): once NASS publishes the new year (2026's about February 2027), `uv run app/manage.py cropland --years 2022-2026 --box upper_midwest --block-workers 4 --background` (~2 GB download, ~15 GB free while it runs, ~8 min). Delete the oldest zip from `data/cdl/` by hand if you want the space. When the server exists, copy the store (`rsync -a data/cropland.zarr SERVER:…/data/`, 11 MB), and `data/cdl/` (9.7 GB) only if it should rebuild there.
+
+## Phase 7: Web app, accounts and email
+
+- **Amazon SES for `agweather@cals.wisc.edu`** (D123), before accounts and email (Phase 7 track 8): ask CALS IT to verify the sender (or the domain) in the SES account WISP 3 uses and issue SMTP credentials for AgWeather; they go in the server's `infra/.env` as `SMTP_ADDRESS`, `SMTP_PORT` (587), `SMTP_USERNAME`, `SMTP_PASSWORD`.
+
 ## Backburner (time-consuming; not soon)
 
 - [ ] **Onion thrips data** (2026-11-19, for the planned model in `docs/plans/models.md` part G): your lab's untreated-check onion thrips counts by date and site, with spray dates and irrigation records, to fit a base and test a heavy-rain term.
@@ -70,7 +79,8 @@ Things only you can do, by phase. Where things stand and why: [PLAN.md](PLAN.md)
 - [ ] **The season-read copy:** run `uv run app/manage.py timecopy` once after the archive is copied to the server.
 - [ ] **Water and terrain** (2026-11-11; Phase 6 D6): `uv run app/manage.py terrain --check`, then `uv run app/manage.py terrain --background`. It downloads NHDPlus V2.1's archives for the service box (~2.3 GB for Wisconsin's units 04, 07 and 09; on the server, the launch box's 36 archives, ~12 GB, and ~20 min to build) and builds `data/terrain.zarr` (~3 min and 153 MB over Wisconsin). The web process picks it up without a restart.
 - [ ] **The 30-year climatology** (2026-11-11; Phase 6 D3–D4). Once the server's archive is full from 2016: `uv run app/manage.py climatology --check`, then `uv run app/manage.py climatology --background`. It downloads gridMET's 1996–2025 over the service box (the box's part of each file; ~1.8 h over Wisconsin, so expect much longer over the launch box), fits the adjustment, derives 1996–2015 and builds the `last5`, `last10` and `last30` normal maps (~9 GB a period at the launch box, several hours each). A monthly job (`update_climatology`, the 15th at 06:00) keeps it current after that.
-- [ ] **The legacy host** (D62), with IT: DNS for `legacy.agweather.cals.wisc.edu` pointing at the old server, its TLS certificate, and nginx's `server_name` on the old server answering to it. Check v1 serves its API there before `agweather.cals.wisc.edu` moves to v2.
+- [ ] **The legacy host** (D62), with IT: DNS for `legacy.agweather.cals.wisc.edu` pointing at the old server, its TLS certificate, and nginx's `server_name` on the old server answering to it. Check v1 serves its API there before `agweather.cals.wisc.edu` moves to v2. If the host's name differs, set `LEGACY_HOST=https://…` in the server's `infra/.env` (Django and Caddy both read it).
+- [ ] **Legacy redirects permanent, four weeks after launch** (2026-11-26, Phase 7 step 7.5): v1's and VDIFN's pages redirect to v2's with 302 at first. Check the logs for legacy paths that land somewhere wrong (`docker compose -f infra/compose.yaml logs web | grep -E ' (GET|POST) /(weather|thermal-models|vdifn|sites/|home|king-hall|ag_weather)'`), fix any in `app/web/legacy.py`, then set `LEGACY_REDIRECT_PERMANENT=1` in the server's `infra/.env` and `docker compose -f infra/compose.yaml up -d web` to make them 301. Redirects to the legacy host stay temporary.
 
 ## Any time
 

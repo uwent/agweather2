@@ -53,3 +53,20 @@ def test_killing_hours_from_hourly_soil_temperature():
     deep = features.soil_features(soil, np.full(4, -4.0), np.full(4, -2.0))
     assert deep["hours_soil_8in_below_27f"] == 4 and features.soil_between(20.32, 10, -4.0, 30, -2.0) < -2.78
     assert np.isnan(features.soil_features(soil, soil, np.array([0, 0, 0, np.nan]))["hours_soil_8in_below_27f"])
+
+
+def test_milestones_are_the_days_the_survival_risk_fell_to_each_level():
+    """The risk starts Very high on November 1 and falls as each depth reaches 120 hours: its milestones are the
+    days it fell to High, Moderate and Low, not every level "reached" on November 1 (the tools planner's finding)."""
+    from agmodels import registry, runner, scenarios
+
+    first = date(2025, 11, 1)
+    dates = [first + timedelta(days=k) for k in range(60)]
+    daily = {q.name: np.full(60, -5.0) for q in pv.SPEC.inputs}  # soil minimums: shown, not used
+    daily |= {f"hours_soil_{d}_below_27f": np.full(60, h) for d, h in zip(pv.DEPTHS, (12.0, 6.0, 0.0), strict=True)}
+    run = runner.run("potato-volunteer", dates=dates, daily=daily, latitude=44.5)
+    assert run.level is not None and run.level[0] == 3
+    found = {r.name: r.p50 for r in scenarios.milestones(registry.model("potato-volunteer"), [run]) if r.what == "risk"}
+    # 120 hours at 2 in on the 10th day, at 4 in on the 20th; never at 8 in
+    assert found == {"High": date(2025, 11, 10), "Moderate": date(2025, 11, 20), "Low": None}
+    assert list(found) == ["High", "Moderate", "Low"]

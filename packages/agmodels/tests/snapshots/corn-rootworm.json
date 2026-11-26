@@ -1,4 +1,4 @@
-{"version": "0.3", "rows": [
+{"version": "0.4", "rows": [
 {"inputs":{"dd_total":0.0},"outputs":{"activity_egg_hatch":0.0,"generations_egg_hatch":0.0,"activity_larvae_feeding_on_roots":0.0,"generations_larvae_feeding_on_roots":0.0,"activity_beetles":0.0,"generations_beetles":0.0,"window_dig_and_rate_roots_for_larval_injury":0.0,"risk":0.0}},
 {"inputs":{"dd_total":100.0},"outputs":{"activity_egg_hatch":0.0,"generations_egg_hatch":0.0,"activity_larvae_feeding_on_roots":0.0,"generations_larvae_feeding_on_roots":0.0,"activity_beetles":0.0,"generations_beetles":0.0,"window_dig_and_rate_roots_for_larval_injury":0.0,"risk":0.0}},
 {"inputs":{"dd_total":200.0},"outputs":{"activity_egg_hatch":0.0,"generations_egg_hatch":0.0,"activity_larvae_feeding_on_roots":0.0,"generations_larvae_feeding_on_roots":0.0,"activity_beetles":0.0,"generations_beetles":0.0,"window_dig_and_rate_roots_for_larval_injury":0.0,"risk":0.0}},

@@ -1,4 +1,4 @@
-"""Running totals from local January 1, so any range is cum[end] − cum[start − 1] (docs/architecture.md §5.3, D25–D27).
+"""Running totals from January 1 (grid days, D74), so any range is cum[end] − cum[start − 1] (docs/architecture.md §5.3, D25–D27).
 
 The year is rebuilt from the daily store whenever a day changes: totals are summed in float64 and each day
 rounded once on writing, so rounding never compounds. Degree days are cubes per threshold (single sine) plus

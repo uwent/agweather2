@@ -1,4 +1,4 @@
-{"version": "0.3", "rows": [
+{"version": "0.4", "rows": [
 {"inputs":{"dd_total":0.0},"outputs":{"activity_adults_and_larvae":0.0,"count_adults_and_larvae":0.0,"activity_adults":0.0,"count_adults":0.0,"activity_egg_masses":0.0,"count_egg_masses":0.0,"activity_larvae":0.0,"count_larvae":0.0,"risk":0.0}},
 {"inputs":{"dd_total":100.0},"outputs":{"activity_adults_and_larvae":0.0,"count_adults_and_larvae":0.0,"activity_adults":0.0,"count_adults":0.0,"activity_egg_masses":0.0,"count_egg_masses":0.0,"activity_larvae":0.0,"count_larvae":0.0,"risk":0.0}},
 {"inputs":{"dd_total":200.0},"outputs":{"activity_adults_and_larvae":0.0,"count_adults_and_larvae":0.0,"activity_adults":0.0,"count_adults":0.0,"activity_egg_masses":0.0,"count_egg_masses":0.0,"activity_larvae":0.0,"count_larvae":0.0,"risk":0.0}},

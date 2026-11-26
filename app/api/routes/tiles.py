@@ -22,7 +22,10 @@ from ninja import Query, Router, Schema
 from agdata import mapimage, palettes, tiles
 from agdata import units as agunits
 from agdata.grid import NDFD
-from api import clock, layermaps, takes
+from agdata.layers import SUSCEPTIBILITY
+from agdata.seasonal import level_key
+from agmodels.registry import model as find_model
+from api import clock, layermaps, maptitles, takes
 from api.envelope import Column, etag_for, not_modified, output_units, shown_unit
 from api.errors import ApiError, quoted
 from api.layermaps import LayerQuery
@@ -193,13 +196,17 @@ def tilejson(
 ) -> HttpResponse:
     """TileJSON 3.0 for a layer at `time` (default `latest`) with its settings: the tile URL, the box's bounds, the
     zooms, and `encoding`, the decoding of a pixel (MapLibre's `raster-dem` custom factors, in the layer's stored
-    unit)."""
-    a, _ = _ask(request, layer, time, query, output.units)
-    window = layermaps.archive_window(_data_dir(), a.stores)
+    unit); and the map image's text (`subtitle`, `caption`), the map's `warnings` and a categorical map's
+    `categories`, so a page draws its title, notes and legend without another request. It reads the map its tiles
+    read (`layermaps.cached`), so the tiles that follow find it computed."""
+    a, now, window, data_stamp = _prepared(request, layer, time, query, output.units)
+    etag = etag_for(request, a.echo(), data_stamp)
+    if (unchanged := not_modified(request, etag)) is not None:
+        return unchanged
+    found = layermaps.cached(a, window, now, data_stamp)
     colored = {}
     if query.style == "default":  # what the colors stand for, for a client's own legend
-        _, now, kept_window, data_stamp = _prepared(request, layer, time, query, output.units)
-        stored = a.domain(layermaps.cached(a, kept_window, now, data_stamp).values[0])
+        stored = a.domain(found.values[0])
         column = Column(name=a.layer.id, values=[], unit=a.unit, step=a.step, variable=a.layer.variable or a.layer.id)
         system, overrides = output_units(request)
         shown_as = shown_unit(column, system, overrides)
@@ -213,7 +220,9 @@ def tilejson(
     suffix = f"?{params.urlencode()}" if params else ""
     base = request.build_absolute_uri(f"/api/v2/tiles/{layer}/{time}")
     encoding = tiles.Encoding(step=a.step, unit=a.unit)
-    return JsonResponse(
+    warnings = list(a.warnings)
+    warnings += [n for n in layermaps.map_notes(a, found) if n not in warnings]
+    response = JsonResponse(
         {
             "tilejson": "3.0.0",
             "name": a.label,
@@ -223,6 +232,10 @@ def tilejson(
             "minzoom": tiles.MIN_ZOOM,
             "maxzoom": tiles.MAX_ZOOM,
             "bounds": [float(lon.min()), float(lat.min()), float(lon.max()), float(lat.max())],
+            "subtitle": maptitles.subtitle(a),
+            "caption": maptitles.caption(a, found),
+            "warnings": warnings,
+            "categories": categories(a),
             "request": a.echo(),
             "params": takes.values(request, a.echo()),
             **colored,
@@ -238,6 +251,26 @@ def tilejson(
         },
         json_dumps_params={"default": str},
     )
+    response["ETag"] = etag
+    response["Cache-Control"] = layermaps.cache_control(a, now, latest=time == "latest")
+    return response
+
+
+def categories(a: layermaps.LayerAsk) -> list[dict[str, Any]] | None:
+    """A map of levels' names by value, for a legend: a risk level's (with the name `first=` takes as `code`), a
+    stage-gated disease's susceptibility, or a crop model's stages (with each stage's code, and −1 before the
+    first); None for any other map, and for a count, event or climate map of a model's levels."""
+    if a.model is None or a.count is not None or a.event is not None or a.climate is not None:
+        return None
+    if a.model.output.name == "stage" and a.model.spec.group == "crop":
+        stages = find_model(a.model.spec.id).stages()  # type: ignore[attr-defined]
+        before = {"value": -1, "code": None, "name": f"Before {stages[0].code}"}
+        return [before, *({"value": k, "code": s.code, "name": s.name} for k, s in enumerate(stages))]
+    names = a.categories
+    if names is None:
+        return None
+    risk = a.model.output.name != SUSCEPTIBILITY
+    return [{"value": k, "code": level_key(n) if risk else None, "name": n} for k, n in enumerate(names)]
 
 
 def _data_dir():

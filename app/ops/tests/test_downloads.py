@@ -120,6 +120,7 @@ def test_the_api_lists_and_serves_them(data_dir, client):
     assert int(response["Content-Length"]) == first["bytes"]
     status = client.get("/api/v2/status").json()["data"]["downloads"]
     assert status["files"] == len(NAMES)
+    response.close()  # the file it streamed
 
 
 def test_after_a_build_nothing_is_left_wanted_even_a_variable_never_given_a_value(data_dir):

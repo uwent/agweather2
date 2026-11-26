@@ -8,8 +8,15 @@ either: asgiref's `sync_to_async`, cancelled, waits for its thread to finish bef
 `asyncio.wait_for` would answer only when the hang ended. Instead the rest of the chain runs as a task of its own;
 past the limit the client gets a 503 `timeout` envelope at once, and the task is left to finish in the background
 with its answer dropped. What it holds is safe to leave: API code never takes the archive's write lock, and the map
-caches' locks are held only around dictionary updates. The rate limit sits inside, so the client is still charged
-the request's whole time when it finishes.
+caches' locks are held only around dictionary updates. The rate limit (`api.ratelimit`) sits inside: as the limit
+passes the client is charged the time so far (on a thread of its own: the request's is still running it), and the
+rest when the request finishes, in the minute it finishes in.
+
+A request left running still holds its thread and memory, so a client with `API_OVERRUN_LIMIT` requests running past
+the limit in this process gets a 429 (`too_many_running`, with `Retry-After`) for any other API request until one
+finishes. A 429 rather than a 503: it's the client's own requests in the way, and other clients are still answered.
+Clients the rate limit exempts (`API_RATE_EXEMPT`, loopback) are never refused this way; the cap applies whether or
+not the rate limit is on. Memory across clients is `api.heavy`'s to guard.
 
 To find a hang, the log gets the request's path and query and the stack of the thread running it at the moment the
 limit passed (`TimingMiddleware` records which thread that is), then the total time once it finishes.
@@ -22,25 +29,31 @@ import time
 import traceback
 from collections.abc import Awaitable, Callable
 
-from asgiref.sync import markcoroutinefunction
+from asgiref.sync import markcoroutinefunction, sync_to_async
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 
-from api import envelope
+from api import envelope, ratelimit
 
 logger = logging.getLogger(__name__)
 
 RETRY_AFTER_SECONDS = 120
+RUNNING_RETRY_SECONDS = 60  # a client's requests still running: they've run 30 s and may take minutes more
 # Frames of Django's middleware plumbing, left out of the logged stack (each middleware adds two)
 _PLUMBING = ("django/core/handlers/", "django/utils/deprecation.py")
-# Requests answered with a timeout whose work is still running: kept so the tasks aren't collected, and counted in
-# the log so a pile-up shows
-_overrunning: set[asyncio.Task] = set()
+# Requests answered with a timeout whose work is still running, by client (`ratelimit.client_key`, None for an exempt
+# one): kept so the tasks aren't collected, counted in the log so a pile-up shows, and capped per client
+_overrunning: dict[str | None, set[asyncio.Task]] = {}
 
 
 def overrunning() -> int:
     """How many requests past the limit are still running."""
-    return len(_overrunning)
+    return sum(len(tasks) for tasks in _overrunning.values())
+
+
+def overrunning_for(client: str | None) -> int:
+    """How many of one client's requests past the limit are still running."""
+    return len(_overrunning.get(client, ()))
 
 
 def message(limit: float) -> str:
@@ -48,9 +61,15 @@ def message(limit: float) -> str:
     return f"This request took longer than {seconds}, so we stopped waiting for it. Please try again in a few minutes; a request for a smaller area or a shorter period may help."
 
 
+def running_message(n: int) -> str:
+    requests = "1 request" if n == 1 else f"{n} requests"
+    return f"This address already has {requests} still running after the time limit, so we can't take another from it until one finishes. Please wait a minute or two and try again."
+
+
 class TimeLimitMiddleware:
     """First in `MIDDLEWARE`: an API request still running after `API_TIME_LIMIT` seconds is answered with a 503
-    (None turns the limit off, as it is under pytest unless a test sets it). Async only: production runs under ASGI."""
+    (None turns the limit off, as it is under pytest unless a test sets it), and a client with `API_OVERRUN_LIMIT`
+    such requests still running is refused. Async only: production runs under ASGI."""
 
     async_capable = True
     sync_capable = False
@@ -63,6 +82,10 @@ class TimeLimitMiddleware:
         limit = settings.API_TIME_LIMIT
         if limit is None or not request.path.startswith("/api/"):
             return await self.get_response(request)
+        client = ratelimit.client_key(request.META.get("REMOTE_ADDR"))
+        cap = settings.API_OVERRUN_LIMIT
+        if client is not None and cap is not None and (running := overrunning_for(client)) >= cap:
+            return _too_many(request, running)
         started = time.perf_counter()
         task = asyncio.ensure_future(self.get_response(request))
         try:
@@ -72,32 +95,50 @@ class TimeLimitMiddleware:
             raise
         if done:
             return task.result()
-        _overran(request, task, started, limit)
+        _overran(request, task, client, started, limit)
         response = envelope.error_response(
             request, [{"code": "timeout", "param": None, "message": message(limit)}], status=503
         )
         response["Retry-After"] = str(RETRY_AFTER_SECONDS)
+        # Charged its time so far on another thread: the request's own is still running it
+        await sync_to_async(ratelimit.charge_overrun, thread_sensitive=False)(request, response)
         return response
 
 
-def _overran(request: HttpRequest, task: asyncio.Task, started: float, limit: float) -> None:
+def _too_many(request: HttpRequest, running: int) -> HttpResponse:
+    logger.warning(
+        "API request refused, %d of its client's requests still running past the time limit: %s",
+        running,
+        request.get_full_path(),
+    )
+    item = {"code": "too_many_running", "param": None, "message": running_message(running)}
+    response = envelope.error_response(request, [item], status=429)
+    response["Retry-After"] = str(RUNNING_RETRY_SECONDS)
+    return response
+
+
+def _overran(request: HttpRequest, task: asyncio.Task, client: str | None, started: float, limit: float) -> None:
     """Log where the request is stuck, and again when it finishes."""
     where = request.get_full_path()
     ident = getattr(request, "api_thread", None)
     frame = sys._current_frames().get(ident) if ident is not None else None
     frames = traceback.format_stack(frame) if frame is not None else ["(the thread isn't known)\n"]
     stack = "".join(f for f in frames if not any(part in f for part in _PLUMBING))
-    _overrunning.add(task)
+    _overrunning.setdefault(client, set()).add(task)
     logger.warning(
         "API request over its %gs limit, answered with a timeout (%d now running past the limit): %s\nIts thread is at:\n%s",
         limit,
-        len(_overrunning),
+        overrunning(),
         where,
         stack.rstrip(),
     )
 
     def finished(task: asyncio.Task) -> None:
-        _overrunning.discard(task)
+        tasks = _overrunning.get(client)
+        if tasks is not None:
+            tasks.discard(task)
+            if not tasks:
+                _overrunning.pop(client, None)
         seconds = time.perf_counter() - started
         if task.cancelled():
             logger.warning("API request past its limit was cancelled after %.1fs: %s", seconds, where)

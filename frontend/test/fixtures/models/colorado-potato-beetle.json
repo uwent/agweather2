@@ -1,0 +1,217 @@
+{
+  "id": "colorado-potato-beetle",
+  "name": "Colorado potato beetle",
+  "group": "insect",
+  "group_name": "Insects",
+  "model_status": "beta",
+  "version": "0.3",
+  "summary": "Follows Colorado potato beetle adults, egg masses and larvae through the season, by degree days or calendar date, using curves fitted to a decade of scouting counts in central Wisconsin's potato fields.",
+  "crops": [
+    {
+      "id": "potato",
+      "name": "Potato"
+    },
+    {
+      "id": "tomato",
+      "name": "Tomato"
+    },
+    {
+      "id": "eggplant",
+      "name": "Eggplant"
+    }
+  ],
+  "sections": [
+    {
+      "id": "what-it-predicts",
+      "title": "What it predicts",
+      "html": "<p>The model shows how many Colorado potato beetles a typical field has at each point in the season, by life stage:</p>\n<ul>\n<li><strong>Adults and larvae</strong> together, per 25 sweeps of a standard sweep net. This is the risk the map shows.</li>\n<li><strong>Adults</strong> per 25 sweeps.</li>\n<li><strong>Egg masses</strong> per 10 plants.</li>\n<li><strong>Larvae</strong> per 25 sweeps.</li>\n</ul>\n<p>Each is a typical count for commercial potato fields in central Wisconsin at that point in the season, not a count for your field. Use it to know which stage to scout for and when, and scout to see how many beetles you have.</p>\n"
+    },
+    {
+      "id": "how-it-works",
+      "title": "How it works",
+      "html": "<p>The curves come from scouting counts in commercial potato fields in central Wisconsin, mostly the Central Sands, from 2014 to 2025. Each visit's count is the average of the scout's count across the field and the counts at its edges and in hot spots, where the scout recorded them. A smooth curve was fitted to the counts of each stage by degree days, counted from January 1 by the single-sine method, base 52 °F with a cutoff at 86 °F.</p>\n<ul>\n<li><strong>Colonization:</strong> overwintered adults begin to appear in fields at about 205 degree days (about May 22 in a typical year in central Wisconsin).</li>\n<li><strong>First eggs</strong> at about 215, with egg masses most numerous around 530 (mid-June).</li>\n<li><strong>Larvae</strong> begin to show at about 400 degree days and peak around 735 (early July).</li>\n<li><strong>Adults</strong> peak around 560 (the overwintered adults, mid-June), fall to a low around 905, then peak again around 1,450 (early August) as first-generation adults emerge. Some of them lay eggs before leaving for their winter sites, and egg masses rise again from about 1,860.</li>\n<li><strong>Adults and larvae together</strong> peak around 735, dip slightly around 975 and peak again around 1,325. Between the peaks they stay near their highest, so risk stays high through midsummer.</li>\n</ul>\n<p>You can also read the same curves by <strong>calendar date</strong>, which gives the typical central Wisconsin season: colonization about May 22, the overwintered adults' peak about June 18, the larval peak about July 2 and the first-generation adults' peak about August 5. Degree days move these dates with each year's weather; the calendar doesn't.</p>\n<p>The numbers vary from year to year more than the timing does: fits by year show some years' counts well below others' at the same degree days. The curves end where the scouting data become sparse, at about 2,180 degree days or early September; after that the counts stay where they were until fall freezes end the season.</p>\n"
+    },
+    {
+      "id": "how-to-read-it",
+      "title": "How to read it",
+      "html": "<ul>\n<li>Scout fields from colonization on, and use the stage curves to know whether to look for adults, egg masses or larvae.</li>\n<li>The risk levels compare today's count of adults and larvae with the season's peak: Very high means numbers are near the peak of a typical season.</li>\n<li>The counts are typical values for fields that were treated at planting and sprayed for the beetle. They run below the average of fields' counts, and individual fields vary widely around them.</li>\n</ul>\n"
+    },
+    {
+      "id": "validation-and-caveats",
+      "title": "Validation and caveats",
+      "html": "<ul>\n<li>Draft (model version 0.3, beta). Refitted with each year left out, the curves described a held-out season's counts better than no curve, and their events moved little (within about 20 degree days or 2 days).</li>\n<li>In these fields the calendar timed a held-out year's events as well as degree days did: colonization and the season's peaks varied little from year to year. The fields lie close together, so the data can't show how the timing shifts farther north or south, which is where degree days should do better.</li>\n<li>The counts are from central Wisconsin's commercial fields. Elsewhere, and in tomato and eggplant, the model runs with a warning: the timing is likely similar by degree days, but the numbers may differ, and the calendar dates are central Wisconsin's.</li>\n<li>The Crop Risk Tool used rounded values from an earlier version of the same analysis on degree days from a base of 50 °F, so its events came several days earlier than this model's.</li>\n</ul>\n"
+    }
+  ],
+  "draft": true,
+  "updated": "2026-11-21",
+  "acknowledgments": null,
+  "sources": [],
+  "risk": {
+    "levels": [
+      "Very low",
+      "Low",
+      "Moderate",
+      "High",
+      "Very high"
+    ],
+    "criteria": "Single-sine degree days (base 52 °F, upper 86 °F) since January 1 read each stage's value off a curve fitted to field counts (adults and larvae peaking at 1,330; adults peaking at 1,450; egg masses peaking at 530; larvae peaking at 730). Activity is a stage's value over its curve's peak; risk is 1 × adults and larvae: Low from 0.05, Moderate from 0.25, High from 0.5, Very high from 0.75. After day 250, fall freezes end the season."
+  },
+  "outputs": [
+    {
+      "label": "Degree days since the biofix",
+      "unit": "degF_day",
+      "description": ""
+    },
+    {
+      "label": "Degree days",
+      "unit": "degF_day",
+      "description": ""
+    },
+    {
+      "label": "Adults and larvae activity",
+      "unit": "index",
+      "description": ""
+    },
+    {
+      "label": "Adults and larvae per 25 sweeps (typical count)",
+      "unit": "index",
+      "description": ""
+    },
+    {
+      "label": "Adults activity",
+      "unit": "index",
+      "description": ""
+    },
+    {
+      "label": "Adults per 25 sweeps (typical count)",
+      "unit": "index",
+      "description": ""
+    },
+    {
+      "label": "Egg masses activity",
+      "unit": "index",
+      "description": ""
+    },
+    {
+      "label": "Egg masses per 10 plants (typical count)",
+      "unit": "index",
+      "description": ""
+    },
+    {
+      "label": "Larvae activity",
+      "unit": "index",
+      "description": ""
+    },
+    {
+      "label": "Larvae per 25 sweeps (typical count)",
+      "unit": "index",
+      "description": ""
+    },
+    {
+      "label": "Share left after fall freezes",
+      "unit": "index",
+      "description": ""
+    },
+    {
+      "label": "Season ended by freezes",
+      "unit": "index",
+      "description": ""
+    }
+  ],
+  "inputs": [
+    {
+      "name": "air_temperature_min",
+      "label": "Minimum temperature",
+      "unit": "degC",
+      "description": "",
+      "definition": "Air temperature at 2 m, daily min"
+    },
+    {
+      "name": "air_temperature_max",
+      "label": "Maximum temperature",
+      "unit": "degC",
+      "description": "",
+      "definition": "Air temperature at 2 m, daily max"
+    }
+  ],
+  "region": [],
+  "season": null,
+  "seasonal_appears": null,
+  "biofix": {
+    "default": "01-01",
+    "label": "January 1",
+    "fixed": false,
+    "stage_model": null,
+    "stage": null
+  },
+  "susceptible": null,
+  "trained": {
+    "description": "scouting counts in commercial potato fields in central Wisconsin, mostly the Central Sands",
+    "years": [
+      2014,
+      2025
+    ],
+    "states": [],
+    "counties": [
+      "Adams County, WI",
+      "Waushara County, WI",
+      "Portage County, WI",
+      "Marquette County, WI",
+      "Waupaca County, WI",
+      "Sauk County, WI",
+      "Iowa County, WI",
+      "Juneau County, WI",
+      "Wood County, WI",
+      "Columbia County, WI",
+      "Marathon County, WI",
+      "Richland County, WI"
+    ],
+    "calendar_curve": true
+  },
+  "changelog": [
+    {
+      "version": "0.3",
+      "date": "2026-11-21",
+      "note": "Refitted on AgWeather's own degree days (the fit had used another weather source's, which ran about 30 degree days higher) and on every scouting record, each visit's count the mean of the field, edge and patch counts the scout recorded. Events come 5 to 80 degree days earlier: colonization at about 205, the larval peak at 735, and counts run higher with the edge counts in. Adds the same curves by calendar date, as an option."
+    },
+    {
+      "version": "0.2",
+      "date": "2026-11-18",
+      "note": "Rebuilt on the scouting fits themselves (adults, egg masses, larvae, and adults and larvae together) on degree days 52/86 °F, where the Crop Risk Tool used a rounded step table of them on 50/86 °F. Replaces the separate adults and larvae models."
+    },
+    {
+      "version": "0.1",
+      "date": "2026-10-28",
+      "note": "Ported from the Crop Risk Tool."
+    }
+  ],
+  "citations": [
+    {
+      "text": "Bradford, B. Z. and Groves, R. L. Colorado potato beetle phenology from Wisconsin field scouting counts, 2014–2025 (Pest Pros data). Vegetable Entomology Lab, UW–Madison, unpublished analysis.",
+      "doi": null,
+      "url": null
+    }
+  ],
+  "checks": [
+    {
+      "kind": "published",
+      "against": "The events of the scouting analysis's refit behind the model (Bradford and Groves, unpublished)",
+      "result": "Every event of the four degree-day curves falls within 10 degree days of the refit's own, and every calendar event within a day: colonization at 203 degree days (May 22 on the calendar) and the larval peak at 734 (July 2), for example. The curves are fitted to the same scouting data, so this shows the model carries the analysis over faithfully.",
+      "report_url": "https://github.com/uwent/agweather2/blob/main/docs/validation/models/colorado-potato-beetle.md#against-the-refits-own-events"
+    },
+    {
+      "kind": "observations",
+      "against": "Central Wisconsin scouting counts, 2014–2025, refitted with each year left out",
+      "result": "Fitted without the year it was tested on, the degree-day curves timed that year's events within 3.6 to 10.2 days (root mean square error) and the calendar curves within 3.2 to 8.0 days, so in these fields the calendar did as well. The fields lie close together, so these data can't test how the timing shifts north or south, which is where degree days should do better.",
+      "report_url": "https://github.com/uwent/agweather2/blob/main/docs/validation/models/colorado-potato-beetle.md#leaving-each-year-out"
+    },
+    {
+      "kind": "system",
+      "against": "The Crop Risk Tool, which this model replaces, on the weather of Eau Claire, Wisconsin, 2025",
+      "result": "Each event comes 3 to 9 days later than in the Crop Risk Tool, which used rounded values from the first analysis on degree days from a base of 50 °F rather than 52 °F.",
+      "report_url": "https://github.com/uwent/agweather2/blob/main/docs/validation/models/colorado-potato-beetle.md#against-the-crop-risk-tool-on-the-same-weather"
+    }
+  ],
+  "report_url": "https://github.com/uwent/agweather2/blob/main/docs/validation/models/colorado-potato-beetle.md",
+  "map_layer": "colorado-potato-beetle"
+}

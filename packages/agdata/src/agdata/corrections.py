@@ -1,7 +1,7 @@
 """Every correction v2 applies to a source's weather, in one place: what it corrects, how, against what, where its
 table lives and where the raw value is kept. `docs/corrections.md` is generated from it
-(`uv run python -m agdata.corrections > docs/corrections.md`; a test checks it's current), and the methods pages
-and the API will read it too (Phase 6), so the record follows the code.
+(`uv run python -m agdata.corrections > docs/corrections.md`; a test checks it's current), and `/methods`
+serves it (D92), so the record follows the code.
 
 A correction's version and fitted date come from its table, so refitting one updates the record. `title`, `summary`
 and `scores` are public text, served by `/methods` (CLAUDE.md's "Writing for the public"); the other text fields are
@@ -133,7 +133,7 @@ NBM_SHORTWAVE = Correction(
 NBM_MAX = Correction(
     id="nbm-max",
     title="Daily highs in the forecast",
-    summary="NBM's hourly temperatures and its own forecast of the day's high don't always agree. We reshape each day's warm hours to reach NBM's forecast high, less a small seasonal offset (−0.4 to +0.6 °C) fitted against the archive's daily highs in 2025.",
+    summary="NBM's hourly temperatures and its own forecast of the day's high don't always agree. We reshape each day's warm hours to reach NBM's forecast high, less a small seasonal offset of −0.7 to +1.1 °F (−0.4 to +0.6 °C), fitted against the archive's daily highs in 2025.",
     variables=("air_temperature",),
     scores=(
         Score(
@@ -158,7 +158,7 @@ NBM_MAX = Correction(
 NBM_NIGHT_MIN = Correction(
     id="nbm-night-min",
     title="Overnight lows in the forecast",
-    summary="NBM's hourly temperatures run warm at night, by about 0.5 °C on the first night and up to 1.9 °C a week or more ahead. We lower each night's coldest hours (6 p.m. to 6 a.m. CST) by that warm bias for how far ahead the night is, fitted against the archive's daily lows in 2025.",
+    summary="NBM's hourly temperatures run warm at night, by about 0.9 °F (0.5 °C) on the first night and up to 3.4 °F (1.9 °C) a week or more ahead. We lower each night's coldest hours (6 p.m. to 6 a.m. CST) by that warm bias for how far ahead the night is, fitted against the archive's daily lows in 2025.",
     variables=("air_temperature",),
     scores=(
         Score(
@@ -348,7 +348,7 @@ IFS_SOIL_SEAM = Correction(
 GRIDMET_BASIS = Correction(
     id="gridmet-basis",
     title="The earlier years of the 30-year normal",
-    summary="Our archive begins in 2016, so the 30-year normal takes its earlier years from gridMET, a gridded daily weather dataset (Abatzoglou, 2013). The two differ: gridMET's daily highs, for one, run about 0.7 °F warmer than the archive's over the years both cover. We adjust gridMET to the archive cell by cell and day of the year, by the difference (temperature, humidity) or the ratio (precipitation, solar radiation, wind, evapotranspiration) between them, so the normal's years are on one basis. We leave out gridMET's daily highs and evapotranspiration for 2011–2013, which run 3–6 °F warm in summer against every station we checked.",
+    summary="Our archive begins in 2016, so the 30-year normal takes its earlier years from gridMET, a gridded daily weather dataset (Abatzoglou, 2013). The two differ: gridMET's daily highs, for one, run about 0.7 °F (0.4 °C) warmer than the archive's over the years both cover. We adjust gridMET to the archive cell by cell and day of the year, by the difference (temperature, humidity) or the ratio (precipitation, solar radiation, wind, evapotranspiration) between them, so the normal's years are on one basis. We leave out gridMET's daily highs and evapotranspiration for 2011–2013, which run 3–6 °F (1.7–3.3 °C) warm in summer against every station we checked.",
     variables=tuple(climatestore.ADJUST),
     source="gridMET (the 30-year normal's years before the archive)",
     variable=", ".join(climatestore.ADJUST),

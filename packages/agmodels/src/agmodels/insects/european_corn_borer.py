@@ -31,6 +31,7 @@ ONE_FLIGHT_NORMAL = PlaceNormal(
 INSECT = Insect(
     id="european-corn-borer",
     name="European corn borer",
+    season=("05-15", "10-31"),
     crops=("beans", "corn", "sweet-corn", "eggplant", "pepper", "potato"),
     # The modified of the two methods UW–Madison Extension's XHT1086 describes (it names no preference), the one
     # Flandermeyer and Bick use for corn borer: the minimum raised to 50 °F and the maximum capped at 86 °F, from January 1. The table (XHT1087, Delahaut, rev. 2005; read in full 2026-11-23) gives only "base
@@ -90,7 +91,7 @@ INSECT = Insect(
         # 671–986 and 1,713–2,142 degree days, against UW–Madison's 800–1,000 and 1,550–2,100 (Flandermeyer and Bick)
         ActionWindow(label="Scout and treat young larvae before they bore in", stage="Egg masses", between=(0.1, 0.9)),
     ),
-    version="0.4",
+    version="0.5",
     status="beta",
     # The table's own data and years aren't stated; Apple's field years were 1946–1951 (north-central Illinois and
     # south-central Wisconsin), but the table's numbers aren't his, so the span runs from his paper (1952) to the
@@ -115,6 +116,11 @@ INSECT = Insect(
             version="0.4",
             date="2026-11-23",
             note="The 30-year normal that decides between one flight and two is now the average over land within about 6 miles (10 km) of the location, rather than the one grid cell's value. This keeps cells cooled by a nearby lake, and small cell-to-cell differences along the 1,500 line, from deciding the number of flights cell by cell. No trap site changed form.",
+        ),
+        Change(
+            version="0.5",
+            date="2026-11-26",
+            note="In season from May 15 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(

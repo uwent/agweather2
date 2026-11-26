@@ -52,7 +52,7 @@ SPEC = ModelSpec(
     id="wheat-scab",
     name="Wheat scab (Fusarium head blight) probability",
     group="disease",
-    version="0.4",
+    version="0.5",
     status="beta",
     summary="The probability of severe Fusarium head blight (scab) for wheat flowering on the day shown, from the mean humidity of the two weeks before, for the variety's resistance class.",
     topics=("wheat-scab",),
@@ -149,6 +149,11 @@ SPEC = ModelSpec(
             date="2026-11-19",
             note="For spring wheat from a planting date, the window runs through 7 days after flowering begins (Haun 11.4), as for a flowering date you give, rather than ending at the end of flowering (Haun 11.6), which came only 2 to 3 days after its start.",
         ),
+        Change(
+            version="0.5",
+            date="2026-11-26",
+            note="The probabilities are given in percent (0 to 100), as their unit says, rather than as fractions (0 to 1). Risk levels are unchanged.",
+        ),
     ),
     checks=(
         Check(
@@ -183,7 +188,7 @@ def rh_before(relative_humidity_mean) -> np.ndarray:
 
 
 def finish(values: Mapping[str, np.ndarray], **options: str) -> dict[str, np.ndarray]:
-    each = probabilities(values["relative_humidity_mean_14_day_lag_1"])
+    each = {name: 100 * p for name, p in probabilities(values["relative_humidity_mean_14_day_lag_1"]).items()}
     return {"probability": each[f"probability_{options.get('resistance', 's')}"], **each}
 
 
@@ -203,4 +208,4 @@ def risk(outputs: Mapping[str, np.ndarray], biofix_index: int = 0, **options: st
 
 
 def explore(rh_mean_14day: float) -> dict[str, float]:
-    return {name: float(p) for name, p in probabilities(rh_mean_14day).items()}
+    return {name: float(100 * p) for name, p in probabilities(rh_mean_14day).items()}

@@ -134,6 +134,15 @@ def test_running_totals_and_counts_restart_on_january_1(built):
             if s.known:
                 known = _series(root, f"{s.key}.known", begin, last)
                 np.testing.assert_array_equal(known, np.cumsum(np.isfinite(v), axis=0), err_msg=s.key)
+            # D56: HOLE is short enough to fill, so no day is missing past the fill
+            assert (_series(root, modelmaps.missing_key(s.key), begin, last) == 0).all(), s.key
+
+
+def test_days_missing_past_the_fill_count_from_the_first_day_of_weather():
+    t = np.array([np.nan, np.nan, 1.0, np.nan, 2.0, np.nan])[:, None]
+    rh = np.array([np.nan, np.nan, 5.0, 5.0, 5.0, 5.0])[:, None]
+    # before the weather starts: no; a day an input lacks: yes; the end: yes (a map leaves out a day with none anywhere)
+    assert modelmaps._gone([t, rh]).ravel().tolist() == [False, False, False, True, False, True]
 
 
 def test_an_update_from_a_day_gives_what_building_from_january_gives(tmp_path, built):
@@ -252,3 +261,19 @@ def test_the_gap_fill_skips_only_cells_it_would_leave_as_they_are(method, monkey
     inside = modelmaps.interior_gaps(values.reshape(30, -1)).reshape(6, 7)
     assert inside[1, 1] and inside[2, 3] and inside[3, 3] and inside[4, 4]
     assert inside.sum() == 4
+
+
+def test_the_grids_fill_leaves_a_conditional_means_no_value_days_as_a_points_does():
+    from agmodels.gaps import fill_inputs
+
+    rng = np.random.default_rng(3)
+    hours = rng.integers(0, 4, (30, 3, 4)).astype(np.float32)  # many days without humid hours
+    temperature = np.where(hours > 0, rng.uniform(5, 25, hours.shape), np.nan).astype(np.float32)
+    hours[12:14, 1, 2] = temperature[12:14, 1, 2] = np.nan  # a short gap in the data
+    raw = {"hours_rh_over_90_from_6pm": hours, "temperature_mean_rh_over_90_from_6pm": temperature}
+    found, blank = modelmaps.filled_inputs({name: v.copy() for name, v in raw.items()})
+    expected, _ = fill_inputs(raw, {name: modelmaps.GAP_FILL[name] for name in raw})
+    for name in raw:
+        np.testing.assert_allclose(found[name], expected[name], rtol=1e-6, equal_nan=True)
+    assert (blank["temperature_mean_rh_over_90_from_6pm"] == (hours == 0)).all()
+    assert np.isfinite(found["temperature_mean_rh_over_90_from_6pm"][12:14, 1, 2]).all()  # the gap: filled

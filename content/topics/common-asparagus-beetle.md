@@ -1,6 +1,6 @@
 ---
 id: common-asparagus-beetle
-title: Asparagus Beetle (Common)
+title: Asparagus beetle (common)
 kind: insect
 crops:
   - asparagus
@@ -9,7 +9,7 @@ summary: A small blue-black and cream leaf beetle that feeds on asparagus spears
 image: images/common-asparagus-beetle.jpg
 image_credit: 'Common asparagus beetle on an asparagus fern in Madison, Wisconsin. Photo by Mike Gibson, via iNaturalist (observation 309573295), CC BY-NC 4.0 (https://creativecommons.org/licenses/by-nc/4.0/); resized.'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Asparagus Beetle. Updated 2026.'

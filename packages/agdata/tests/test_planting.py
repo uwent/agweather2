@@ -1,6 +1,7 @@
 """County lookup and typical planting dates (D34)."""
 
 import csv
+from datetime import date
 
 import numpy as np
 import pytest
@@ -38,17 +39,17 @@ def test_county_ids_take_arrays():
 
 
 def test_dane_county_from_deines_and_alabama_from_nass():
-    corn = typical_planting("corn", 43.0731, -89.4012)
+    corn = typical_planting("corn", 43.0731, -89.4012, data_dir=None)
     assert corn is not None and corn.level == "county" and corn.typical == "05-08" and "Deines" in corn.source
-    soy = typical_planting("soybean", 43.0731, -89.4012)
+    soy = typical_planting("soybean", 43.0731, -89.4012, data_dir=None)
     assert soy is not None and soy.typical > corn.typical
-    south = typical_planting("corn", 32.37, -86.30)  # Montgomery, outside Deines's 12 states
+    south = typical_planting("corn", 32.37, -86.30, data_dir=None)  # Montgomery, outside Deines's 12 states
     assert south is not None and south.level == "state" and south.area == "AL" and "NASS" in south.source
-    kansas = typical_planting("winter-wheat", 38.0, -97.5)
+    kansas = typical_planting("winter-wheat", 38.0, -97.5, data_dir=None)
     assert kansas is not None and kansas.typical.startswith("10-")  # in the fall
-    assert typical_planting("corn", 61.2, -149.9) is None
+    assert typical_planting("corn", 61.2, -149.9, data_dir=None) is None
     with pytest.raises(ValueError):
-        typical_planting("rice", 43.0, -89.4)
+        typical_planting("rice", 43.0, -89.4, data_dir=None)
 
 
 def test_the_table_is_consistent():
@@ -63,22 +64,54 @@ def test_the_table_is_consistent():
         if r["crop"] != "winter-wheat":  # winter wheat's can run into January
             assert season == sorted(season), r
     for crop in CROPS:
-        if crop != "potato":  # its own table, by place
+        if crop != "potato":  # estimated on the grid (`agdata.potatoplanting`)
             assert any(r["crop"] == crop and r["level"] == "state" for r in rows)
 
 
-def test_potato_near_veg_paths_places_only():
-    plover = typical_planting("potato", 44.40, -89.50)  # ~8 km from Veg Path's Plover field
-    assert (
-        plover is not None and plover.area == "Plover" and plover.level == "location" and "Vegetable" in plover.source
-    )
-    assert plover.early < plover.typical < plover.late
-    antigo = typical_planting("potato", 45.14, -89.15)
-    assert antigo is not None and antigo.area == "Antigo" and antigo.typical > plover.typical  # the north plants later
-    assert typical_planting("potato", 43.07, -87.91) is None  # Milwaukee: ~120 km from Arlington
-    with (DATA / "potato_planting.csv").open() as f:
-        for r in csv.DictReader(f):
-            assert r["early"] < r["mid"] < r["late"], r
+def test_potato_dates_are_each_cells_estimate_from_its_freeze_normal(tmp_path):
+    """Potato's early, mid and late planting are the median last 28 °F spring freeze (`last30`) over the area around
+    the cell (D127) plus fixed days, at a point as on the map (one answer per cell); None where the normal doesn't
+    reach or isn't built."""
+    from agdata import springfreeze
+    from agdata.grid import NDFD, Window
+    from agdata.planting import planting_map
+    from agdata.potatoplanting import OFFSETS
+    from agdata.testing import freeze_normal
+
+    cell = NDFD.cell_of(44.40, -89.50)  # near Plover
+    assert cell is not None
+    window = Window(j0=cell[0] - 2, j1=cell[0] + 3, i0=cell[1] - 2, i1=cell[1] + 3)
+    assert typical_planting("potato", 44.40, -89.50, data_dir=tmp_path) is None  # no normals built
+    slots = 105.0 + np.arange(window.size, dtype=float).reshape(window.shape)  # April 15 onward (a leap year's days)
+    slots[0, 0] = np.nan
+    freeze_normal(tmp_path, window, slots)
+    plover = typical_planting("potato", 44.40, -89.50, data_dir=tmp_path)
+    assert plover is not None and plover.level == "cell" and plover.area == f"{cell[0]},{cell[1]}"
+    assert "28 °F" in plover.source and "Vegetable Pathology" in plover.source
+    area = springfreeze.at(tmp_path, springfreeze.SPRING_28, *cell)  # the freeze over the area around the cell
+    assert 115 < area < 119  # near the middle cell's own, slot 117 (April 27): the field rises evenly
+    freeze = date(2000, 1, 1).toordinal() + round(area)
+    expected = [date.fromordinal(freeze + OFFSETS[t]).strftime("%m-%d") for t in ("early", "mid", "late")]
+    assert [plover.early, plover.typical, plover.late] == expected
+    for tier, field in (("early", "early"), ("mid", "typical"), ("late", "late")):
+        found = planting_map("potato", tier, window, season=2026, data_dir=tmp_path)
+        assert np.isnan(found[0, 0]) and np.isfinite(found[1:]).all()
+        lat, lng = NDFD.window_latlon(window)
+        for y, x in ((2, 2), (4, 3)):
+            point = typical_planting("potato", float(lat[y, x]), float(lng[y, x]), data_dir=tmp_path)
+            assert point is not None
+            assert date.fromordinal(int(found[y, x])) == date.fromisoformat(f"2026-{getattr(point, field)}")
+    assert typical_planting("potato", 43.07, -80.0, data_dir=tmp_path) is None  # outside the normals' window
+    assert typical_planting("potato", 44.40, -89.50, data_dir=None) is None
+
+
+def test_a_leap_days_slot_is_march_1_in_other_years():
+    from agdata.planting import _slot_dates
+
+    found = _slot_dates(np.array([59.0, 60.0, np.nan]), season=2025)
+    assert [date.fromordinal(int(v)) for v in found[:2]] == [date(2025, 3, 1)] * 2 and np.isnan(found[2])
+    leap = _slot_dates(np.array([59.0]), season=2024)
+    assert date.fromordinal(int(leap[0])) == date(2024, 2, 29)
 
 
 def test_crop_models_have_planting_dates():
@@ -108,6 +141,8 @@ def test_a_gate_from_a_given_planting_only_has_no_map_tier_or_typical_date():
     assert planting_crop(spec) == ("spring-wheat-stages", "spring-wheat") and map_crop(spec) is None
     assert map_crop(all_models()["tar-spot"].SPEC) == ("corn-stages", "corn")
     run = RunSpec(model_id="wheat-scab")
-    assert with_planting(run, latitude=46.9, longitude=-97.0, start=date(2025, 6, 1)).planting is None
-    tar = with_planting(RunSpec(model_id="tar-spot"), latitude=43.0, longitude=-89.4, start=date(2025, 6, 1))
+    assert with_planting(run, latitude=46.9, longitude=-97.0, start=date(2025, 6, 1), data_dir=None).planting is None
+    tar = with_planting(
+        RunSpec(model_id="tar-spot"), latitude=43.0, longitude=-89.4, start=date(2025, 6, 1), data_dir=None
+    )
     assert tar.planting is not None

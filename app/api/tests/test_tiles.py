@@ -60,7 +60,8 @@ def test_a_tile_is_revalidated_and_a_far_one_is_empty(client, archive):
 
 @pytest.mark.django_db
 def test_model_degree_day_and_range_tiles(client, archive):
-    risk = _cells_seen(_pixels(_tile(client, "late-blight-dsv", "2025-07-08")), step=1)
+    # no typical potato planting dates in this archive (no 30-year normals), so the spec's dates
+    risk = _cells_seen(_pixels(_tile(client, "late-blight-dsv", "2025-07-08", planting="none")), step=1)
     assert set(risk.values()) <= {0, 1, 2, 3, 4}
     dd = _tile(client, "degree_days", "2025-07-01..2025-07-07", dd="sine_50_86", stat="sum")
     week = client.get(
@@ -81,9 +82,38 @@ def test_tilejson_gives_the_url_and_decoding(client, archive):
     assert body["tiles"][0].endswith("/api/v2/tiles/degree_days/2025-07-08/{z}/{x}/{y}.png?dd=sine_50_86")
     enc = body["encoding"]
     assert enc["unit"] == "degF_day" and enc["blueFactor"] == pytest.approx(0.1)
-    assert enc["baseShift"] == pytest.approx(-(2**23) * 0.1)
+    assert enc["baseShift"] == pytest.approx(2**23 * 0.1)  # MapLibre subtracts it
     lat, lon = NDFD.window_latlon(WINDOW)
     assert body["bounds"] == pytest.approx([float(lon.min()), float(lat.min()), float(lon.max()), float(lat.max())])
+
+
+@pytest.mark.django_db
+def test_tilejson_carries_the_map_images_text_and_is_revalidated(client, archive):
+    asked = {"time": "2025-07-01..2025-07-07", "stat": "sum"}
+    response = client.get("/api/v2/tiles/precipitation_sum.json", asked)
+    body = response.json()
+    assert body["subtitle"] == "Jul 1 – Jul 7, 2025 (7 days)"
+    assert body["caption"][0].startswith("Data sources: ") and body["caption"][0].endswith(".")
+    grid = client.get("/api/v2/grids/precipitation_sum", {"start": "2025-07-01", "end": "2025-07-07", "stat": "sum"})
+    assert body["warnings"] == grid.json()["meta"]["warnings"] != []  # the fixture's July 7 has no data
+    assert body["categories"] is None
+    assert "max-age=" in response["Cache-Control"]
+    again = client.get(response.wsgi_request.get_full_path(), headers={"If-None-Match": response["ETag"]})
+    assert again.status_code == 304
+    day = client.get("/api/v2/tiles/air_temperature_max.json", {"time": "2025-07-08"}).json()
+    assert day["subtitle"] == "Jul 8, 2025" and len(day["caption"]) == 1
+
+
+@pytest.mark.django_db
+def test_tilejson_names_a_categorical_maps_levels(client, archive):
+    risk = client.get("/api/v2/tiles/late-blight-dsv.json", {"time": "2025-07-08"}).json()
+    assert [c["value"] for c in risk["categories"]] == list(range(len(risk["categories"])))
+    assert risk["categories"][0]["code"] == "very_low" and risk["categories"][0]["name"] == "Very low"
+    stages = client.get("/api/v2/tiles/corn-stages.json", {"time": "2025-07-08"}).json()["categories"]
+    assert stages[0] == {"value": -1, "code": None, "name": "Before VE"}
+    assert stages[1] == {"value": 0, "code": "VE", "name": "Emergence"}
+    dd = client.get("/api/v2/tiles/late-blight-dsv.json", {"time": "2025-07-08", "output": "dsv_total"}).json()
+    assert dd["categories"] is None
 
 
 @pytest.mark.django_db

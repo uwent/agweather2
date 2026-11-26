@@ -1,6 +1,6 @@
 ---
 id: tarnished-plant-bug
-title: Tarnished Plant Bug (Lygus Bug)
+title: Tarnished plant bug (Lygus bug)
 kind: insect
 crops:
   - beans
@@ -15,7 +15,7 @@ summary: A small, mottled plant bug that feeds on the buds, flowers, young fruit
 image: images/tarnished-plant-bug.jpg
 image_credit: 'Tarnished plant bug adult on a leaf. Photo by Katja Schulz, via Wikimedia Commons (File:Tarnished Plant Bug - Flickr - treegrow.jpg), CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/); resized.'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: uw-vegento-tpb
     text: 'Tarnished Plant Bug. UW–Madison Vegetable Entomology, updated 2026.'
@@ -105,4 +105,4 @@ For products and current registrations in Wisconsin, see [Commercial Vegetable P
 
 ## AgWeather's models
 
-AgWeather has no tarnished plant bug model. An earlier one followed egg hatch, nymphs and adults through overlapping generations by [degree days](/topics/degree-days) above 52 °F from January 1, with the time from hatch to adult and between generations from a laboratory study of the species.[^ugine-2012] It placed the spring generation so that young nymphs peaked at 275 degree days, the number UW–Madison's vegetable newsletter gives for the start of the bugs' summer activity.[^uw-vegpath-2021] That number most likely comes from a model of a western lygus bug, and we found no source that times the tarnished plant bug's spring generation by degree days, so every generation the model showed rested on an unsupported start. It was retired in 2026, and its [page](/models/tarnished-plant-bug) and validation report say why.[^agweather-tpb] Overwintered adults are active from early spring: scout from then on, as described above.
+AgWeather has no tarnished plant bug model. An earlier one followed egg hatch, nymphs and adults through overlapping generations by [degree days](/topics/degree-days) above 52 °F from January 1, with the time from hatch to adult and between generations from a laboratory study of the species.[^ugine-2012] It placed the spring generation so that young nymphs peaked at 275 degree days, the number UW–Madison's vegetable newsletter gives for the start of the bugs' summer activity.[^uw-vegpath-2021] That number most likely comes from a model of a western lygus bug, and we found no source that times the tarnished plant bug's spring generation by degree days, so every generation the model showed rested on an unsupported start. It was retired in 2026, and its validation report says why.[^agweather-tpb] Overwintered adults are active from early spring: scout from then on, as described above.

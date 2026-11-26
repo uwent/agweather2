@@ -1,0 +1,142 @@
+/*
+ * Chart and map colors, and MapLibre's controls in the app's colors (from WISP 3's application.css,
+ * app/frontend/entrypoints/application.css). application.css imports this file after its own tokens.
+ */
+
+/* Charts and maps read these from JavaScript (lib/charts/palette.ts) rather than through classes, so
+   `static` makes Tailwind always emit them */
+@theme static {
+  /* Chart series, light mode. WISP 3's colors validated for color-vision deficiency, light and dark:
+     the high temperature its warm orange, the low its rain blue (they share a panel), the mean a
+     neutral between them; precipitation a deeper blue than the low (they never share a panel:
+     no dual axes), ET its sunshine gold, degree days its canopy green. The normal is a muted line
+     drawn dashed, the forecast's shading and the projection's band are drawn faint (opacity in the
+     option builders), estimated days are hollow points in their series' color, and missing days a
+     light gray hatch. */
+  --color-chart-temperature-max: #eb6834;
+  --color-chart-temperature-min: #2a78d6;
+  --color-chart-temperature-mean: #6b6552;
+  --color-chart-precipitation: #1c5cab;
+  --color-chart-et: #d9a600;
+  --color-chart-degree-days: #1baf7a;
+  --color-chart-normal: #8b846a;
+  --color-chart-forecast: #8b846a;
+  --color-chart-projection: #4a3aa7;
+  --color-chart-estimated: #5f5a47;
+  --color-chart-missing: #c3c8cf;
+
+  /* Risk levels, lowest first: the API's five levels (packages/agdata/src/agdata/palettes.py's
+     BuYlRd_5, Very low to Very high), so the same level is the same color on a map, a chart and an
+     image from the API. Scales of fewer levels take steps of these (lib/riskLevels.ts: four as
+     BuYlRd_4, two or three by their levels' names). The same in dark mode, with words beside them so
+     color is never the only cue (palette.test.ts and riskLevels.test.ts hold them to palettes.py) */
+  --color-risk-severity-1: #4575b4;
+  --color-risk-severity-2: #abd9e9;
+  --color-risk-severity-3: #fee090;
+  --color-risk-severity-4: #f46d43;
+  --color-risk-severity-5: #a50026;
+}
+
+/* Dark mode: twice, as application.css does (the system's setting with no override, and an explicit
+   data-theme="dark"). Series a step lighter or darker to hold their contrast on the dark surface */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-chart-temperature-max: #d95926;
+    --color-chart-temperature-min: #3987e5;
+    --color-chart-temperature-mean: #b5ab8f;
+    --color-chart-precipitation: #6da7ec;
+    --color-chart-et: #b38f00;
+    --color-chart-degree-days: #199e70;
+    --color-chart-normal: #aea686;
+    --color-chart-forecast: #aea686;
+    --color-chart-projection: #9085e9;
+    --color-chart-estimated: #d3caa9;
+    --color-chart-missing: #5f5a47;
+  }
+}
+
+:root[data-theme='dark'] {
+  --color-chart-temperature-max: #d95926;
+  --color-chart-temperature-min: #3987e5;
+  --color-chart-temperature-mean: #b5ab8f;
+  --color-chart-precipitation: #6da7ec;
+  --color-chart-et: #b38f00;
+  --color-chart-degree-days: #199e70;
+  --color-chart-normal: #aea686;
+  --color-chart-forecast: #aea686;
+  --color-chart-projection: #9085e9;
+  --color-chart-estimated: #d3caa9;
+  --color-chart-missing: #5f5a47;
+}
+
+/* Map attribution links stand out from its text by more than color (WCAG 1.4.1); specific enough
+   to win over MapLibre's stylesheet, which loads after this one */
+.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-inner a {
+  text-decoration: underline;
+}
+
+/* MapLibre's buttons (zoom, fit, find my location) and credits in the app's colors, light and dark.
+   Each rule starts with .maplibregl-map to outrank MapLibre's own, which loads after this one. Its
+   icons are dark gray background images: in dark mode they're inverted, and turned back around the
+   color wheel so the location button's blue (and error red) keep their hue */
+.maplibregl-map .maplibregl-ctrl-group {
+  border-radius: 6px;
+  background: var(--color-surface-raised);
+  color: var(--color-ink);
+}
+.maplibregl-map .maplibregl-ctrl-group:not(:empty) {
+  box-shadow:
+    0 0 0 1px var(--color-line),
+    0 1px 3px rgb(0 0 0 / 0.15);
+}
+.maplibregl-map .maplibregl-ctrl-group button + button {
+  border-top-color: var(--color-line);
+}
+.maplibregl-map .maplibregl-ctrl-group button:not(:disabled):hover {
+  background-color: var(--color-surface);
+}
+.maplibregl-map .maplibregl-ctrl-group button:focus:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-brand-500);
+}
+.maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact {
+  background-color: color-mix(in srgb, var(--color-surface-raised) 90%, transparent);
+  color: var(--color-ink);
+}
+.maplibregl-map .maplibregl-ctrl-attrib a {
+  color: var(--color-ink);
+}
+.maplibregl-map :is(.maplibregl-ctrl-icon, .maplibregl-ctrl-attrib-button) {
+  @variant dark {
+    filter: invert(1) hue-rotate(180deg);
+  }
+}
+
+/* The scale bar as a small see-through card in the app's colors. MapLibre sets the element's
+   width to the bar's length, so padding goes outside that width (content-box) and the bar is drawn
+   across the content. The card is 75% opaque, not less, and the label is full ink, not muted: that
+   keeps it at 4.5:1 over any imagery, black or white, in light and dark mode. Three classes deep to
+   win over MapLibre's stylesheet (loaded after this one), whose control margins are two */
+.maplibregl-map .maplibregl-ctrl-bottom-left .maplibregl-ctrl-scale {
+  position: relative;
+  box-sizing: content-box;
+  margin: 0 0 10px 10px;
+  padding: 4px 6px 11px;
+  border: 0;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-surface-raised) 75%, transparent);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+  color: var(--color-ink);
+  font: 500 11px/1.2 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.maplibregl-map .maplibregl-ctrl-bottom-left .maplibregl-ctrl-scale::after {
+  content: '';
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  left: 6px;
+  height: 5px;
+  border: 1.5px solid var(--color-ink);
+  border-top: 0;
+}

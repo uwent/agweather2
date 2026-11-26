@@ -29,6 +29,11 @@ export default defineConfig({
     manifest: 'manifest.json',
     rollupOptions: { input: fileURLToPath(new URL('./frontend/entrypoints/inertia.ts', import.meta.url)) },
   },
-  // MapLibre's worker is an ES module
+  // MapLibre's worker is an ES module (lib/map/maplibre.ts)
   worker: { format: 'es' },
+  // Loaded on demand (charts on mount, the map when shown), so the dev server would otherwise only
+  // find them on first use, prebundle them and reload the page (as WISP 3 does)
+  optimizeDeps: {
+    include: ['echarts/core', 'echarts/charts', 'echarts/components', 'echarts/renderers', 'maplibre-gl'],
+  },
 })

@@ -128,7 +128,7 @@ _coverage_spec: Callable[[], str] | None = None
 
 
 def use_terrain(data_dir: Callable[[], Path] | None) -> None:
-    """Take open water from the terrain store in the folder `data_dir()` gives (`agdata.terrain`, D6) where it's
+    """Take open water from the terrain store in the folder `data_dir()` gives (`agdata.terrain`, Phase 6 D6) where it's
     built; the app calls this at start, with a function so that a changed setting (tests) is followed. Without it,
     or outside the store's window, open water is the wave-height mask's."""
     global _terrain_dir

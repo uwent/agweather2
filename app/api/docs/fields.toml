@@ -90,6 +90,7 @@ cycle = "When the forecast in use was issued, in UTC. Null when there is none."
 last_hour = "The forecast's last hour, in UTC."
 in_use = "Whether results run through the forecast. A forecast issued more than 12 hours ago is not used."
 reason = "Why the forecast is not in use: `none` when there isn't one, `stale` when it is too old. Null when it is in use."
+fallback = "While our forecast is not in use, `openmeteo` when the forecast for locations inside our area comes from Open-Meteo instead. Our maps show no forecast meanwhile. Null when our forecast is in use."
 
 [DownloadsStatus]
 files = "The number of yearly data files available from `/downloads`."
@@ -114,6 +115,26 @@ first = "The first day the file holds."
 last = "The last day the file holds."
 complete = "Whether the file holds every day of its year. The current year's file is not complete."
 built_at = "When the file was made, in UTC. A file is made again whenever the data in it are revised."
+
+# --- /changelog ----------------------------------------------------------------------------------------------------
+
+[ChangelogResponse]
+meta = "What the answer was computed for and how to read it."
+data = "The entries."
+
+[ChangelogData]
+entries = "Each published entry, newest first."
+
+[ChangelogEntryInfo]
+id = "The entry's number, which does not change."
+date = "The date of the entry."
+kind = "What the entry is about: `api` (a change to the API), `model` (the models), `data` (the data and their sources), `outage` (an outage or delay) or `announcement` (other news)."
+title = "The entry's title."
+body = "The entry's text, in Markdown."
+model = "The id of the model the entry is about, as in `/models`. Null when it is not about one model."
+endpoint = "The endpoint the entry is about, as `/degree-days`. Null when it is not about one endpoint."
+banner_until = "Until when, in UTC, the website shows the entry as a notice at the top of its pages. Null when it is not shown as a notice."
+url = "The entry's address on the changelog page."
 
 # --- /variables ----------------------------------------------------------------------------------------------------
 
@@ -159,7 +180,7 @@ crops = "The crops the model concerns, by name."
 crop_ids = "The same crops by their ids in `/crops`. A group, such as `cole-crops`, means each of its crops."
 topics = "The diseases or insects the model predicts, by short name."
 region = "The states where the model was developed or tested, as postal abbreviations. Empty when it is not limited to a region."
-season = "The first and last days of the year the model's results are shown, as `MM-DD`. Null when it runs all year."
+season = "The first and last days of the year the model is in season, as `MM-DD`. `/risk` lists a model only in its season, and an insect's activity ends after its last day. Null when it runs all year."
 seasonal_appears = "For a model with one result a season: the day of the year (`MM-DD`) the new season's map first appears. Until then, the last season's map is shown. Null for a model with results each day."
 citations = "The research the model is based on."
 trained = "Where and when the data the model was fitted to came from, for a model fitted to field or trap counts. Outside this area the model still runs, with a warning that it reaches beyond its data. Null for other models."
@@ -280,7 +301,7 @@ crop = "The crop."
 early = "An early planting date, as `MM-DD`: when about 10% of the crop is usually planted (the start of the busiest planting period where only state dates are known)."
 typical = "The typical planting date, as `MM-DD`: when about half the crop is usually planted."
 late = "A late planting date, as `MM-DD`: when about 90% of the crop is usually planted (the end of the busiest planting period where only state dates are known)."
-level = "What the dates describe: `county`, `state`, or for potatoes `location`, the nearest place with published dates."
+level = "What the dates describe: `county`, `state`, or for potatoes `cell`, an estimate for the grid cell from its 30-year normal date of the last spring freeze."
 source = "Where the dates come from."
 
 # --- /layers -------------------------------------------------------------------------------------------------------

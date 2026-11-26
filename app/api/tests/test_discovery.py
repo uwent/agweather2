@@ -24,16 +24,19 @@ def test_status_reports_what_the_archive_and_forecast_hold(client, archive):
         "last_hour": "2025-07-21T13:00Z",
         "in_use": True,
         "reason": None,
+        "fallback": None,
     }
     assert "ETag" not in client.get("/api/v2/status")  # read fresh each time
     assert not {"jobs", "lock", "failures"} & set(data)  # internals stay on /up and manage.py jobs
 
 
 @pytest.mark.django_db
-def test_status_says_when_the_forecast_is_too_old_to_use(client, archive, monkeypatch):
+def test_status_says_when_the_forecast_is_too_old_to_use(client, archive, monkeypatch, settings):
     monkeypatch.setattr("api.clock.now", lambda: NOW + timedelta(hours=13))
     forecast = client.get("/api/v2/status").json()["data"]["forecast"]
-    assert forecast["in_use"] is False and forecast["reason"] == "stale"
+    assert forecast["in_use"] is False and forecast["reason"] == "stale" and forecast["fallback"] is None
+    settings.OPEN_METEO_FALLBACK = True  # points in the box take Open-Meteo's forecast meanwhile (D114)
+    assert client.get("/api/v2/status").json()["data"]["forecast"]["fallback"] == "openmeteo"
 
 
 @pytest.mark.django_db

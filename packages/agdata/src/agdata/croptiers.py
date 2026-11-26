@@ -30,7 +30,7 @@ from typing import Any, cast
 import numpy as np
 import zarr
 
-from agdata import blocks, modelmaps, planting
+from agdata import blocks, coverage, modelmaps, planting
 from agdata.grid import NDFD, Window
 from agdata.store import INGREDIENTS, GridStore
 from agmodels.crops import CropModel, stage_days
@@ -92,7 +92,7 @@ def update(
         # Each tier with planting dates here and days to write: (its planting map, the first day written)
         tiers: dict[str, tuple[np.ndarray, date]] = {}
         for tier in modelmaps.TIERS:
-            sown = planting.planting_map(crop, tier, window, season=year)
+            sown = planting.planting_map(crop, tier, window, season=year, data_dir=data_dir)
             if not np.isfinite(sown).any():
                 continue
             planted_from = date.fromordinal(int(np.nanmin(sown)))
@@ -117,11 +117,13 @@ def update(
         model_id, part = key
         for tier, (write_from, names, reached) in found.items():
             store.record(names, write_from, (min(last, season(model_id, year)[1]) - write_from).days + 1, "derived")
-            store.mark_current(names)
             _write_reached(store, model_id, tier, part, reached, min(last, season(model_id, year)[1]))
             written.extend(name for name in names if name not in written)
 
     blocks.run(chains, handle, hold=lock, progress=progress)
+    if written:  # current once every block is written (each mark rewrites the array's metadata)
+        with (lock or nullcontext)():
+            store.mark_current(written)
     return written
 
 
@@ -143,10 +145,9 @@ def _tiers_block(
     spec = m.SPEC
     options = {o.name: o.default for o in spec.options}
     n = (end - begin).days + 1
-    inputs = {
-        q.name: modelmaps._filled(q.name, modelmaps._read(data_dir, run, run_first, q.name, begin, n, part))
-        for q in spec.inputs
-    }
+    inputs, _ = modelmaps.filled_inputs(
+        {q.name: modelmaps._read(data_dir, run, run_first, q.name, begin, n, part) for q in spec.inputs}
+    )
     store = GridStore.open(root, INGREDIENTS, year, modelmaps.variables())
     out = {}
     for tier, (sown, write_from) in planted.items():
@@ -206,7 +207,8 @@ def _write_reached(store: GridStore, model_id: str, tier: str, band: Window, val
     array = group[name]
     assert isinstance(array, zarr.Array)
     y0, x0 = store.window.local(band.j0, band.i0)
-    array[:, y0 : y0 + band.shape[0], x0 : x0 + band.shape[1]] = values
+    kept = coverage.covered(store.window, band)  # missing outside the coverage, as `GridStore.write` keeps values
+    array[:, y0 : y0 + band.shape[0], x0 : x0 + band.shape[1]] = np.where(kept[None], values, np.nan)
     array.attrs["through"] = through.isoformat()
 
 
@@ -247,7 +249,8 @@ def missing_reached(store: GridStore) -> list[str]:
 def last_stored(data_dir: Path, year: int, root: Path | None = None) -> date | None:
     """The last day any tier's stage is written for in `year` (the archive's, or a run's under `root`)."""
     try:
-        store = GridStore.open(root or data_dir, INGREDIENTS, year, modelmaps.variables(), add_missing=True)
+        # read-only: the crop stages job calls this before it takes the write lock
+        store = GridStore.open(root or data_dir, INGREDIENTS, year, modelmaps.tier_variables(), read_only=True)
     except FileNotFoundError:
         return None
     days = [

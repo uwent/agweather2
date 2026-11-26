@@ -1,6 +1,6 @@
 ---
 id: carrot-cercospora-leaf-blight
-title: Cercospora Leaf Blight (Carrot)
+title: Cercospora leaf blight (carrot)
 kind: disease
 crops:
   - carrot
@@ -9,7 +9,7 @@ summary: A fungal disease that spots and kills carrot leaves, often alongside Al
 image: images/carrot-cercospora-leaf-blight.jpg
 image_credit: 'Cercospora leaf blight spots on carrot leaflets. Photo by Thirunarayanan Perumal, Banaras Hindu University, Bugwood.org (image 5627153), CC BY-NC 3.0 US.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-25
 sources:
   - key: uw-vegpath-carrot
     text: 'Delahaut, K. and W. Stevenson, updated by A. Gevens and B. Bradford. Carrot Alternaria and Cercospora Leaf Blights. UW–Madison Vegetable Pathology, updated 2026.'

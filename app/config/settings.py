@@ -34,6 +34,13 @@ APP_VERSION = os.environ.get("APP_VERSION", "dev")
 # Where the code and its validation reports are public; links name APP_VERSION's commit, or main in development
 REPOSITORY_URL = "https://github.com/uwent/agweather2"
 
+# v1's site and API for a year after launch (D62): machine endpoints and the subscriber pages redirect there
+# (web.legacy), and Caddy sends the old API's paths there itself (infra/Caddyfile)
+LEGACY_HOST = (os.environ.get("LEGACY_HOST") or "https://legacy.agweather.cals.wisc.edu").rstrip("/")
+# Redirects from v1's and VDIFN's pages to v2's are 302 for the first four weeks after launch, checked against the
+# logs, then 301 (Ben, 2026-11-26; TODO.md)
+LEGACY_REDIRECT_PERMANENT = os.environ.get("LEGACY_REDIRECT_PERMANENT", "0") == "1"
+
 # The grid window the archive covers (docs/decisions.md D20): a preset name or south,west,north,east
 SERVICE_BOX = os.environ.get("SERVICE_BOX", "wisconsin")
 # Tests never read the real archive: their fixtures point DATA_DIR at their own, and otherwise it's a folder that
@@ -42,19 +49,47 @@ DATA_DIR = Path(os.environ.get("DATA_DIR", REPO_DIR / ("tmp/no-data-under-test" 
 # Maps computed for tiles and images, kept on disk for every web worker (`api.layermaps`, step 7 D5); off under test
 MAP_CACHE_DIR: Path | None = None if TESTING else DATA_DIR / "maps" / "computed"
 OPEN_METEO_API_KEY = os.environ.get("OPEN_METEO_API_KEY") or None  # the customer hosts; None: the free ones
+# Open-Meteo's plan (D115, ops.openmeteo_usage): calls a billing month (from OPEN_METEO_BILLING_DAY to the day before
+# it next month, UTC days), and a day's cap if it has one. Defaults: the customer plan's 5,000,000 a month with a key
+# (renewing on the 12th), the free API's 300,000 a month and 10,000 a day without. Warned of, never enforced, at
+# OPEN_METEO_WARN_SHARE of either, or when the last week's pace would pass the month's.
+OPEN_METEO_MONTHLY_CALLS = int(
+    os.environ.get("OPEN_METEO_MONTHLY_CALLS") or (5_000_000 if OPEN_METEO_API_KEY else 300_000)
+)
+OPEN_METEO_DAILY_CALLS: int | None = (
+    int(os.environ["OPEN_METEO_DAILY_CALLS"])
+    if os.environ.get("OPEN_METEO_DAILY_CALLS")
+    else (None if OPEN_METEO_API_KEY else 10_000)
+)
+OPEN_METEO_BILLING_DAY = int(os.environ.get("OPEN_METEO_BILLING_DAY") or "12")
+if not 1 <= OPEN_METEO_BILLING_DAY <= 28:
+    raise RuntimeError(f"OPEN_METEO_BILLING_DAY must be a day of the month from 1 to 28, not {OPEN_METEO_BILLING_DAY}")
+if OPEN_METEO_MONTHLY_CALLS <= 0:  # the share of it used is shown in /up, the admin and jobs status
+    raise RuntimeError(f"OPEN_METEO_MONTHLY_CALLS must be a number of calls over 0, not {OPEN_METEO_MONTHLY_CALLS}")
+OPEN_METEO_WARN_SHARE = 0.8
 COPERNICUS_API_KEY = os.environ.get("COPERNICUS_API_KEY") or None  # the CDS, for ERA5-Land (D52); None: no job
+# Points in the box take Open-Meteo's forecast while ours is stale or missing (D114, ops.points.forecast_filler). Off
+# in tests (their own turn it on), since a test's archive run goes stale as soon as its clock moves on.
+OPEN_METEO_FALLBACK = not TESTING and (os.environ.get("OPEN_METEO_FALLBACK") or "1") == "1"
 # The worker's jobs recorded as runs in DATA_DIR/runs/ for the dashboard (ops.jobruns): development only
 JOB_RUNS = os.environ.get("JOB_RUNS", "1" if ENV == "development" else "0") == "1"
 # The API's rate limit (D69, api.ratelimit): units a minute per client (an IPv4 address or IPv6 /64), a request
 # costing 1 plus 1 per API_RATE_UNIT_MS of server time. Off in tests (their own turn it on); local addresses exempt.
-API_RATE_LIMIT: int | None = None if TESTING else int(os.environ.get("API_RATE_LIMIT", "200"))
+API_RATE_LIMIT: int | None = None if TESTING else int(os.environ.get("API_RATE_LIMIT") or "200")
 API_RATE_UNIT_MS = 100
 API_RATE_EXEMPT = [n.strip() for n in os.environ.get("API_RATE_EXEMPT", "127.0.0.0/8,::1/128").split(",") if n.strip()]
 # A line per request with its status and time in the log (web.requestlog), as Rails writes it: development only
 REQUEST_LOG = os.environ.get("REQUEST_LOG", "1" if ENV == "development" else "0") == "1"
 # The API's time limit (api.timelimit): seconds before a request still running is answered with a 503; 0 turns it
 # off. Off in tests (their own turn it on). Caddy's response_header_timeout (infra/Caddyfile) is the outer bound.
-API_TIME_LIMIT: float | None = None if TESTING else (float(os.environ.get("API_TIME_LIMIT", "30")) or None)
+API_TIME_LIMIT: float | None = None if TESTING else (float(os.environ.get("API_TIME_LIMIT") or "30") or None)
+# A client with this many requests still running past the time limit (in one web process) is refused with a 429
+# until one finishes (api.timelimit); 0 turns it off
+API_OVERRUN_LIMIT: int | None = int(os.environ.get("API_OVERRUN_LIMIT") or "2") or None
+# Computations that can take GBs (api.heavy: maps computed on request, long ranges over large areas) take one of this
+# many slots per web process, waiting up to API_HEAVY_WAIT seconds for one before a 503; 0 turns the limit off
+API_HEAVY_SLOTS: int | None = int(os.environ.get("API_HEAVY_SLOTS") or "1") or None
+API_HEAVY_WAIT = float(os.environ.get("API_HEAVY_WAIT") or "5")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -70,6 +105,7 @@ INSTALLED_APPS = [
     "web",
     "ops",
     "api",
+    "updates",
 ]
 
 MIDDLEWARE = [
@@ -127,7 +163,8 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", REPO_DIR / "staticfiles"))
-STATICFILES_DIRS = [APP_DIR / "static"]
+# The topic pages' photos (web.topicpages) as /static/content/images/…
+STATICFILES_DIRS = [APP_DIR / "static", ("content/images", REPO_DIR / "content" / "images")]
 
 # Inertia v3's client sends the CSRF token from the XSRF-TOKEN cookie in an X-XSRF-TOKEN header
 CSRF_COOKIE_NAME = "XSRF-TOKEN"

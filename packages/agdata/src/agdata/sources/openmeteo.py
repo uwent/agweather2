@@ -19,6 +19,7 @@ archive's), keeping the values before in `Hours.raw` (`agdata.corrections` lists
 import json
 import math
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 
@@ -79,6 +80,17 @@ class Cell:
         return f"o1280:{self.ring}:{self.index}"
 
 
+@dataclass(frozen=True, kw_only=True)
+class Call:
+    """One HTTP attempt at Open-Meteo, as `fetch` reports it to `on_call` (D115): every try, retries and failures
+    included, with the calls Open-Meteo counts for the request it carried (`weight`)."""
+
+    endpoint: str
+    calls: float
+    status: int | None  # the HTTP status, or None when no response came (a timeout, a dropped connection)
+    ok: bool  # a 200 whose body was JSON
+
+
 @dataclass(kw_only=True)
 class Hours:
     """Hours ending at `start`, `start` + 1 h, … at a cell, in catalog variables and stored units."""
@@ -122,11 +134,13 @@ def fetch(
     api_key: str | None = None,
     timeout: float = TIMEOUT,
     tries: int = TRIES,
+    on_call: Callable[[Call], None] | None = None,
 ) -> tuple[Hours, float]:
     """The hours ending in UTC days first..last (00Z … 23Z) at a cell from one endpoint, merged across the models
     in order; returns the hours and the calls Open-Meteo counts for them. The forecast endpoint reaches
     RECENT_DAYS back and FORECAST_DAYS ahead (`endpoint_for`). Each call waits up to `timeout` seconds and is tried
-    up to `tries` times."""
+    up to `tries` times. `on_call` hears of every HTTP attempt as it ends, failed ones too (the app counts them
+    against the plan through `ops.openmeteo_usage.fetch_counted`, D115)."""
     session = session or requests.Session()
     names = list(VARIABLES)
     start = datetime(first.year, first.month, first.day, tzinfo=UTC)  # the UTC day's hours end 00Z … 23Z
@@ -155,8 +169,10 @@ def fetch(
             params["models"] = model
         if api_key:
             params["apikey"] = api_key
-        body = _get(session, url(endpoint, api_key), params, timeout=timeout, tries=tries)
-        calls += weight(len(variables), days)
+        cost = weight(len(variables), days)
+        report = _reporter(on_call=on_call, endpoint=endpoint, cost=cost)
+        body = _get(session, url(endpoint, api_key), params, timeout=timeout, tries=tries, report=report)
+        calls += cost
         elevation = elevation if elevation is not None else body.get("elevation")
         times = np.asarray(body["hourly"]["time"], dtype=np.int64)
         for variable in variables:
@@ -186,24 +202,53 @@ def cell_for(latitude: float, longitude: float) -> Cell:
     return Cell(latitude=_ring_latitude(j), longitude=centre, ring=j, index=i)
 
 
+def _reporter(
+    on_call: Callable[[Call], None] | None, endpoint: str, cost: float
+) -> Callable[[int | None, bool], None] | None:
+    """`_get`'s `report` for one request: each attempt as a `Call` to `on_call`."""
+    if on_call is None:
+        return None
+
+    def report(status: int | None, ok: bool) -> None:
+        on_call(Call(endpoint=endpoint, calls=cost, status=status, ok=ok))
+
+    return report
+
+
 RETRY_SECONDS = 5  # times the attempt number, between tries (a 429 retried at once only makes it worse)
 
 
-def _get(session: requests.Session, address: str, params: dict, timeout: float = TIMEOUT, tries: int = TRIES) -> dict:
+def _get(
+    session: requests.Session,
+    address: str,
+    params: dict,
+    timeout: float = TIMEOUT,
+    tries: int = TRIES,
+    report: Callable[[int | None, bool], None] | None = None,
+) -> dict:
     """The JSON body, retrying throttling (429), server errors, dropped connections and a 200 whose body isn't JSON
-    (Open-Meteo's "timeoutReached"); any other status raises with Open-Meteo's reason."""
+    (Open-Meteo's "timeoutReached"); any other status raises with Open-Meteo's reason. `report` is told of each
+    attempt as it ends: its status (None without a response) and whether it succeeded."""
     for attempt in range(1, tries + 1):
+        status, ok = None, False
         try:
-            response = session.get(address, params=params, timeout=timeout)
-            if response.status_code == 429 or response.status_code >= 500:
-                raise requests.HTTPError(f"Open-Meteo {response.status_code}", response=response)
-            if response.status_code != 200:
-                try:
-                    reason = response.json().get("reason", "")
-                except ValueError:
-                    reason = response.text[:200]
-                raise ValueError(f"Open-Meteo {response.status_code}: {reason}")
-            return response.json()
+            try:
+                response = session.get(address, params=params, timeout=timeout)
+                status = response.status_code
+                if status == 429 or status >= 500:
+                    raise requests.HTTPError(f"Open-Meteo {status}", response=response)
+                if status != 200:
+                    try:
+                        reason = response.json().get("reason", "")
+                    except ValueError:
+                        reason = response.text[:200]
+                    raise ValueError(f"Open-Meteo {status}: {reason}")
+                body = response.json()
+                ok = True
+                return body
+            finally:
+                if report is not None:
+                    report(status, ok)
         except (requests.ConnectionError, requests.Timeout, requests.HTTPError, requests.JSONDecodeError):
             if attempt == tries:
                 raise

@@ -238,3 +238,24 @@ def test_update_climatology_runs_only_when_the_plan_has_work(monkeypatch, settin
     assert len(ran) == 1
     logged = [r.getMessage() for r in caplog.records if r.name == tasks.__name__]
     assert logged[-1] == "climatology: 1 files fetched, 0 years derived"
+
+
+def test_a_follow_on_job_already_queued_is_left_as_it_is_not_a_failure(caplog):
+    """The ingest and the forecast both queue the crop stages; when one run of it is already waiting, the second
+    queueing is a no-op, not an `AlreadyEnqueued` that fails the job that queued it (bin/dev, 2026-11-25)."""
+    from procrastinate import exceptions as procrastinate_errors
+
+    class Queued:
+        name = "ops.tasks.update_crop_tiers"
+        calls = 0
+
+        def defer(self, **kwargs):
+            Queued.calls += 1
+            if Queued.calls > 1:
+                raise procrastinate_errors.AlreadyEnqueued("there is already a job in the queue")
+
+    task = Queued()
+    with caplog.at_level(logging.INFO, logger="ops.tasks"):
+        assert tasks.queue_next(task, timestamp=NOW) is True
+        assert tasks.queue_next(task, timestamp=NOW) is False
+    assert "already queued" in caplog.text

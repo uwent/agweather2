@@ -1,6 +1,6 @@
 ---
 id: variegated-cutworm
-title: Variegated Cutworm
+title: Variegated cutworm
 kind: insect
 crops:
   - asparagus
@@ -22,7 +22,7 @@ summary: A climbing cutworm that eats the leaves, buds and fruit of many vegetab
 image: images/variegated-cutworm.jpg
 image_credit: 'A variegated cutworm caterpillar, with the pale spots down its back. Photo by Ryan Hodnett, via Wikimedia Commons (File:Variegated Cutworm Moth (Peridroma saucia) - Thunder Bay, Ontario 2012-06-29.jpg), CC BY-SA 4.0.'
 status: draft
-updated: 2026-11-21
+updated: 2026-11-25
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cutworms. University of Wisconsin–Madison, updated 2026.'

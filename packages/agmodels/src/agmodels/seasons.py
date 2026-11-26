@@ -6,6 +6,10 @@ starts in, with the year it ends in when that differs: potato volunteer's Novemb
 "2025-26" (shown "2025–26"). The current season is the newest whose product has appeared (`Seasonal.appears`, the
 first such MM-DD on or after its start): potato volunteer's 2025-26 from January 1, 2026, so in November and
 December the settled 2024-25 is current, while 2025-26's partial count is there when asked for.
+
+`in_season` is the one rule for whether any model is in season on a day (the API's `/risk` and `in_season` columns,
+the maps' warnings and the home page all ask it): within its spec's season, and not ended at the place by the weather
+(an insect's fall freezes).
 """
 
 import re
@@ -73,6 +77,23 @@ def current_season(spec: ModelSpec, today: date) -> Season:
     while found.appears > today:
         found = season_starting(spec, found.first.year - 1)
     return found
+
+
+def in_season(spec: ModelSpec, day: date, *, ended: bool = False) -> bool:
+    """Whether `day` is in the model's season: within its spec's `season` (MM-DD to MM-DD, which may cross New Year;
+    a model without one, such as the degree-day calculator, is never out of season) and, at a place, not `ended` there
+    by the weather (an insect's season ended by fall freezes: its run's `season_complete`)."""
+    if ended:
+        return False
+    if spec.season is None:
+        return True
+    first, last, md = _month_day(spec.season[0]), _month_day(spec.season[1]), (day.month, day.day)
+    return first <= md <= last if first <= last else (md >= first or md <= last)
+
+
+def _month_day(mmdd: str) -> tuple[int, int]:
+    month, day = (int(p) for p in mmdd.split("-"))
+    return month, day
 
 
 def _on(mmdd: str, year: int) -> date:

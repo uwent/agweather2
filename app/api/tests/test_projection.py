@@ -138,6 +138,12 @@ def test_risk_past_the_forecast(client, projection_archive):
     hole = client.get("/api/v2/risk", {**params, "date": "2025-08-01", "projection": "true"}).json()["data"]
     # Inside 2023's hole: early blight's daily P-days need that day; tar spot's 30-day means span the gap
     assert hole["projection_years"] == [1, 2]
+    days = {"start": "2025-08-09", "end": "2025-08-11", "projection": "true"}
+    models = {"lat": LAT, "lng": LNG, "models": params["models"]}
+    ranged = client.get("/api/v2/risk", {**models, **days}).json()["data"]
+    assert ranged["date"] == ["2025-08-09", "2025-08-10", "2025-08-11"] * 2
+    assert set(ranged["kind"]) == {"projection"} and ranged["projection_years"][1] == 2
+    assert [ranged["risk_level"][1], ranged["risk_level"][4]] == data["risk_level"]  # Aug 10, as the one-day answer
 
 
 def test_the_copies_laid_out_for_points_give_the_same_projection(client, projection_archive, tmp_path):
@@ -145,10 +151,28 @@ def test_the_copies_laid_out_for_points_give_the_same_projection(client, project
 
     first = get(client, "early-blight-pdays", **BLIGHT, projection="years")
     before = first.json()["data"]
+    from agdata.store import DAILY
+    from agmodels import runner
+    from agmodels.registry import model
+
     copy_dir = tmp_path / "with-copies"  # the archive (read only, so linked: 20,000 files) and the copies
     copy_dir.mkdir()
     for entry in projection_archive.iterdir():
-        (copy_dir / entry.name).symlink_to(entry)
+        if entry.name != "daily":
+            (copy_dir / entry.name).symlink_to(entry)
+    # The past years' daily stores with only the model's variables linked (a copy reads every variable's year, a
+    # chunk a day: 14 -> 0.5 s)
+    names = runner.required_inputs(model("early-blight-pdays"))
+    for store in DAILY.path(projection_archive, 2023).parent.iterdir():
+        linked = DAILY.path(copy_dir, 2023).parent / store.name
+        if store.name not in (DAILY.path(projection_archive, y).name for y in (2023, 2024)):
+            linked.parent.mkdir(parents=True, exist_ok=True)
+            linked.symlink_to(store)
+            continue
+        linked.mkdir(parents=True)
+        for entry in store.iterdir():
+            if entry.name in ("zarr.json", "_meta", *names):
+                (linked / entry.name).symlink_to(entry)
     for year in (2023, 2024):
         pastyears.build(copy_dir, year)
     from django.conf import settings

@@ -651,7 +651,9 @@ def chill_at_points(
     rows: dict[str, list] = {key: [] for key in ("point", "date", "kind", "chill", "chill_total", "missing_hours")}
     sources: list[str] = []
     totals: list[float] = []
-    for k, found in enumerate(points.many_hours(sites, start, end, ["air_temperature"], now, area=around)):
+    every = points.many_hours(sites, start, end, ["air_temperature"], now, area=around)
+    warnings += points.forecast_warnings([h.forecast for h in every], options.forecast)
+    for k, found in enumerate(every):
         t = np.asarray(found.values["air_temperature"], dtype=float)
         hourly = _chill_hours(method, t, low_c, high_c)
         kinds = day_kinds(found.times, found.kinds, zones[k], dates)

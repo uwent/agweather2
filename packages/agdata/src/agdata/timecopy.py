@@ -21,6 +21,7 @@ from pathlib import Path
 
 import numpy as np
 
+from agdata import coverage
 from agdata.catalog import DAILY_VARIABLES, Variable
 from agdata.grid import Window
 from agdata.store import DAILY, GridStore, StoreLayout, steps_in_year
@@ -50,19 +51,20 @@ def update(data_dir: Path, first: date, last: date) -> None:
         )
         t0, t1 = daily.index_of(a), daily.index_of(b) + 1
         step = CHUNKS[0]
+        part = coverage.extent(daily.window)  # outside it every value is missing in both
         for c0 in range(t0, t1, step):  # a chunk's days at a time, aligned to the copy's chunks
             c1 = min(t1, (c0 // step + 1) * step)
-            values = {name: daily.read_steps(name, c0, c1) for name in NAMES}
-            copy.write(daily.time_of(c0).date(), values, source="derived")
+            for name in NAMES:  # as stored: the same variable packed the same way, no decoding and encoding again
+                copy.write_packed(daily.time_of(c0).date(), name, daily.read_packed(name, c0, c1, part), window=part)
 
 
 def behind(data_dir: Path, year: int) -> int:
     """How many of a year's days the daily store has written since the copy last copied them (all of them written
     so far, without a copy); 0 if the year has no daily store."""
-    daily = _open(data_dir, DAILY, year)
+    daily = _open(data_dir, DAILY, year, read_only=True)
     if daily is None:
         return 0
-    copy = _open(data_dir, COPY, year)
+    copy = _open(data_dir, COPY, year, read_only=True)
     out = 0
     for name in NAMES:
         theirs = daily.read_meta(f"{name}.written")
@@ -112,9 +114,12 @@ def runs_of(mask: np.ndarray) -> Iterable[tuple[int, int]]:
         yield start, k
 
 
-def _open(data_dir: Path, layout: StoreLayout, year: int) -> GridStore | None:
+def _open(data_dir: Path, layout: StoreLayout, year: int, read_only: bool = False) -> GridStore | None:
+    """A year's daily store or copy for the copied variables: read-only for a check outside the write lock (`behind`)."""
     wanted = variables() if layout is COPY else [DAILY_VARIABLES[name] for name in NAMES]
     try:
-        return GridStore.open(data_dir, layout, year, wanted, add_missing=layout is DAILY)
+        return GridStore.open(
+            data_dir, layout, year, wanted, add_missing=layout is DAILY and not read_only, read_only=read_only
+        )
     except FileNotFoundError:
         return None

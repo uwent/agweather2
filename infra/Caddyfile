@@ -3,6 +3,17 @@
 
 encode zstd gzip
 
+# v1's API (D62): every /api/ path outside /api/v2 goes to v1 on the legacy host for the year it stays up, with its
+# path and query and keeping its method (308); bare /api goes to v2's docs. v1's and VDIFN's pages are Django's
+# (web.legacy), which also answers these where Caddy isn't in front.
+@legacy_api {
+	path /api/*
+	not path /api/ /api/v2 /api/v2/*
+}
+redir @legacy_api {$LEGACY_HOST:https://legacy.agweather.cals.wisc.edu}{uri} 308
+redir /api /api/v2/docs
+redir /api/ /api/v2/docs
+
 # Collected static files, including the Vite build, which has hashed names and never changes
 handle_path /static/* {
 	root * /srv/static

@@ -79,13 +79,20 @@ def test_a_failed_cycle_isnt_rebuilt_for_a_while_unless_asked(tmp_path):
     assert retried is not None and retried.status == "ok"  # the command doesn't
 
 
-def test_forecast_health(tmp_path):
-    assert forecast_health(tmp_path, NOW) == ({"state": "not started"}, [])
+def test_forecast_health(tmp_path, settings):
+    assert forecast_health(tmp_path, NOW) == ({"state": "not started", "points_fallback": False}, [])
+    settings.OPEN_METEO_FALLBACK = True  # with no run at all, points take Open-Meteo's forecast too (D114)
+    assert forecast_health(tmp_path, NOW)[0]["points_fallback"] is True
+    settings.OPEN_METEO_FALLBACK = False
     forecast.publish(tmp_path, fake_build()(tmp_path, None, CYCLE))
     body, problems = forecast_health(tmp_path, NOW)
     assert body["age_hours"] == 1.2 and body["cycle"] == CYCLE.isoformat() and problems == []
-    _, problems = forecast_health(tmp_path, CYCLE + timedelta(hours=10))
-    assert problems == ["forecast run more than 9 h old"]
+    assert body["points_fallback"] is False
+    body, problems = forecast_health(tmp_path, CYCLE + timedelta(hours=10))
+    assert problems == ["forecast run more than 9 h old"] and body["points_fallback"] is False
+    assert forecast_health(tmp_path, CYCLE + timedelta(hours=13))[0]["points_fallback"] is False  # the setting's off
+    settings.OPEN_METEO_FALLBACK = True  # past 12 hours, points take Open-Meteo's forecast (D114)
+    assert forecast_health(tmp_path, CYCLE + timedelta(hours=13))[0]["points_fallback"] is True
 
 
 def test_the_forecast_job_is_periodic_and_takes_the_lock(tmp_path, settings, monkeypatch):

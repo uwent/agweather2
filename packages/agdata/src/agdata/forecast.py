@@ -89,7 +89,7 @@ def last_observed_hour(data_dir: Path, before: datetime, lookback: timedelta = t
     while t > stop:
         try:
             # only temperature's sources are read: opening for every variable checks each (~90 ms)
-            store = GridStore.open(data_dir, HOURLY, t.year, [VARIABLES["air_temperature"]])
+            store = GridStore.open(data_dir, HOURLY, t.year, [VARIABLES["air_temperature"]], read_only=True)
         except FileNotFoundError:
             t = datetime(t.year, 1, 1, tzinfo=UTC) - HOUR
             continue
@@ -110,7 +110,7 @@ def archive_pressure_kpa(data_dir: Path, window: Window, before: date) -> np.nda
     count = np.zeros(window.shape)
     for year in sorted({d.year for d in days}):
         try:
-            store = GridStore.open(data_dir, DAILY, year, DAILY_VARIABLES.values(), add_missing=True)
+            store = GridStore.open(data_dir, DAILY, year, [DAILY_VARIABLES["surface_pressure_mean"]], read_only=True)
         except FileNotFoundError:
             continue
         in_year = sorted(d for d in days if d.year == year)
@@ -399,17 +399,21 @@ def stitch(data_dir: Path, path: Path, window: Window) -> datetime | None:
 
 
 def publish(data_dir: Path, path: Path, keep: int = 2) -> None:
-    """Points `current` at the run (an atomic rename of a new symlink) and deletes all but the newest `keep` runs."""
+    """Points `current` at the run (an atomic rename of a new symlink) and deletes the runs older than it but the
+    newest `keep` − 1. The run that was current until now is kept too (readers may still be on it), and so is any
+    newer run (another build's, not published yet), so builds that overlap never delete what the other reads."""
     root = forecast_dir(data_dir)
+    previous = current_run(data_dir)
     tmp = root / "current.tmp"
     if tmp.is_symlink() or tmp.exists():
         tmp.unlink()
     tmp.symlink_to(path.relative_to(root))
     os.replace(tmp, root / "current")
-    runs = sorted((root / "runs").iterdir())
-    for old in runs[:-keep]:
-        if old.resolve() != path.resolve():
-            shutil.rmtree(old)
+    mine = path.resolve()
+    older = [run for run in sorted((root / "runs").iterdir()) if run.name < path.name]
+    for old in older[: max(0, len(older) - (keep - 1))]:
+        if old.resolve() not in (mine, previous):
+            shutil.rmtree(old, ignore_errors=True)  # another publish may be deleting it too
 
 
 def _copy_archive_hours(data_dir: Path, path: Path, window: Window, start: datetime, last: datetime) -> None:

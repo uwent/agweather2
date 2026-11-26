@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from agdata import forecast, series
-from agdata.catalog import DAILY_VARIABLES, VARIABLES
+from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, VARIABLES
 from agdata.cumulative import update_days
 from agdata.daily import days_from_hours
 from agdata.store import CUMULATIVE, DAILY, HOURLY, GridStore
@@ -80,6 +80,110 @@ def test_without_a_fresh_run_the_series_ends_with_the_archive(world):
     assert np.isnan(days.values["air_temperature_max"][1:]).all()
     frame = series.point_hours(world, *CELL, CYCLE, CYCLE + 4 * HOUR, ["air_temperature"], now=later)
     assert frame.kinds == ["observed"] * 3 + [None, None]
+
+
+def _fallback(temperature=30.0, through=None, corrections=("openmeteo-shortwave v1",), asked=None):
+    """A stand-in for Open-Meteo's forecast (D114): every variable at `temperature` through `through`."""
+
+    def fill(first_hour, last_hour, names):
+        if asked is not None:
+            asked.append((first_hour, last_hour, list(names)))
+        n = (last_hour - first_hour) // HOUR + 1
+        last = min(last_hour, through) if through is not None else last_hour
+        values = {name: np.where(np.arange(n) <= (last - first_hour) // HOUR, temperature, np.nan) for name in names}
+        return series.FallbackHours(values=values, first_hour=first_hour, last_hour=last, corrections=corrections)
+
+    return fill
+
+
+def test_without_a_fresh_run_a_fallback_forecast_follows_the_archive(world):
+    later = NOW + timedelta(hours=13)
+    asked = []
+    end = CYCLE + 5 * HOUR
+    never = lambda *_: pytest.fail("filled soil without a run")  # noqa: E731
+    frame = series.point_hours(
+        world,
+        *CELL,
+        CYCLE,
+        end,
+        ["air_temperature", "soil_temperature_10cm"],
+        now=later,
+        fill_soil=never,
+        fill_forecast=_fallback(asked=asked),
+    )
+    # From the hour after the archive's last (the ingest lag included), marked forecast and sourced openmeteo
+    assert asked == [(OBSERVED_UNTIL + HOUR, end, ["air_temperature", "soil_temperature_10cm"])]
+    assert frame.kinds == ["observed"] * 3 + ["forecast"] * 3
+    assert frame.sources["air_temperature"] == ["urma"] * 3 + ["openmeteo"] * 3
+    assert list(frame.values["air_temperature"][3:]) == [30.0] * 3
+    assert list(frame.values["soil_temperature_10cm"][3:]) == [30.0] * 3  # its soil comes with it
+    assert frame.forecast.reason == "stale" and frame.forecast.fallback == series.OPENMETEO
+
+
+def test_a_fallback_forecasts_days_have_its_corrections_and_no_running_totals(world):
+    later = NOW + timedelta(hours=13)
+    days = series.point_days(
+        world,
+        *CELL,
+        date(2025, 7, 9),
+        date(2025, 7, 13),
+        ["air_temperature_max", "shortwave_radiation_sum"],
+        totals=["dd_sine_50"],
+        now=later,
+        fill_forecast=_fallback(through=datetime(2025, 7, 12, 23, tzinfo=UTC)),
+    )
+    assert days.kinds == ["observed", "partial", "forecast", None, None]  # the 12th's grid day ends 06Z on the 13th
+    assert days.values["air_temperature_max"][2] == 30.0
+    assert days.corrections == ("hrrr-shortwave v2", "openmeteo-shortwave v1")  # Open-Meteo's, not the run's
+    assert days.totals["dd_sine_50"][0] > 0 and np.isnan(days.totals["dd_sine_50"][1:]).all()
+
+
+def test_an_unavailable_fallback_ends_the_series_with_the_archive_and_says_so(world):
+    later = NOW + timedelta(hours=13)
+    days = series.point_days(
+        world,
+        *CELL,
+        date(2025, 7, 9),
+        date(2025, 7, 12),
+        ["air_temperature_max"],
+        now=later,
+        fill_forecast=lambda *_: None,
+    )
+    assert days.kinds == ["observed", None, None, None] and days.forecast.fallback == series.UNAVAILABLE
+
+
+def test_a_fresh_run_never_asks_the_fallback(world):
+    never = lambda *_: pytest.fail("asked the fallback with a fresh run")  # noqa: E731
+    frame = series.point_hours(world, *CELL, CYCLE, CYCLE + 5 * HOUR, ["air_temperature"], now=NOW, fill_forecast=never)
+    assert frame.kinds == ["observed"] * 3 + ["forecast"] * 3 and frame.forecast.fallback is None
+
+
+def test_each_cells_day_kinds_are_its_own(world):
+    """One cell's fallback answering and another's not give each its own kinds (`cells_days` once took every cell's
+    from the first's)."""
+    later = NOW + timedelta(hours=13)
+    found = series.cells_days(
+        world,
+        [CELL, (CELL[0] + 1, CELL[1])],
+        date(2025, 7, 9),
+        date(2025, 7, 12),
+        ["air_temperature_max"],
+        totals=["dd_sine_50"],
+        now=later,
+        fill_forecast=[lambda *_: None, _fallback()],
+    )
+    assert found[0].kinds == ["observed", None, None, None] and found[0].forecast.fallback == series.UNAVAILABLE
+    assert found[1].kinds == ["observed", "partial", "forecast", "forecast"]
+    assert found[1].forecast.fallback == series.OPENMETEO
+    assert np.isnan(found[0].values["air_temperature_max"][1:]).all()
+    assert found[1].values["air_temperature_max"][2] == 30.0
+
+
+def test_soil_that_cannot_be_filled_is_missing_and_said_so(world):
+    frame = series.point_hours(
+        world, *CELL, CYCLE, CYCLE + 5 * HOUR, ["soil_temperature_10cm"], now=NOW, fill_soil=lambda *_: None
+    )
+    assert frame.forecast.soil_unavailable and frame.forecast.path is not None
 
 
 def test_map_days_by_kind(world, fx_module):
@@ -285,6 +389,54 @@ def test_a_stale_daily_variable_is_flagged(world, fx_module, monkeypatch):
         world, DAILY, "air_temperature_max", date(2025, 7, 8), date(2025, 7, 9), fx_module.window, now=NOW
     )
     assert found.stale.all()
+
+
+def test_a_variable_the_stores_lack_reads_as_one_added_empty_and_the_stores_are_left_alone(world, fx_module, tmp_path):
+    """A request reads stores read-only (`Stores`): a variable the catalog gained before `rebuild --stale` added it
+    to the stores (here taken out of the archive's and the run's) reads as the empty, stale array the rebuild adds
+    would, and no array is made in an archive store or a forecast run's."""
+    import shutil
+
+    copy = tmp_path / "archive"
+    shutil.copytree(world, copy, symlinks=True)
+    lacking = {"hourly": "air_temperature", "daily": "air_temperature_max", "cumulative": "dd_sine_50"}
+    stores = [p for kind in lacking for p in copy.rglob(f"{kind}/2025.zarr")]
+    assert len(stores) >= 6  # the archive's and the run's
+    for path in stores:
+        name = lacking[path.parent.name]
+        shutil.rmtree(path / name)
+        for kind in ("source", "written"):
+            shutil.rmtree(path / "_meta" / f"{name}.{kind}")
+    tree = sorted(str(p) for p in copy.rglob("*"))
+    window, first, last = fx_module.window, date(2025, 7, 8), date(2025, 7, 12)
+
+    def reads():
+        return (
+            series.grid_days(copy, DAILY, "air_temperature_max", first, last, window, now=NOW),
+            series.grid_days(copy, CUMULATIVE, "dd_sine_50", first, last, window, now=NOW),
+            series.point_days(copy, *CELL, first, last, ["air_temperature_max"], totals=["dd_sine_50"], now=NOW),
+            series.point_hours(copy, *CELL, CYCLE - 3 * HOUR, CYCLE + 3 * HOUR, ["air_temperature"], now=NOW),
+        )
+
+    days, totals, point, hours = reads()
+    assert sorted(str(p) for p in copy.rglob("*")) == tree  # nothing added
+    assert np.isnan(totals.values).all() and np.isnan(point.totals["dd_sine_50"]).all()
+    assert np.isnan(hours.values["air_temperature"]).all()
+    assert days.stale.all()  # derived: computed from the hours, as a stale variable is
+
+    # The same reads once the stores have the arrays, added empty as `rebuild --stale` first adds them
+    for path in stores:
+        layout = {"hourly": HOURLY, "daily": DAILY, "cumulative": CUMULATIVE}[path.parent.name]
+        catalog = {"hourly": VARIABLES, "daily": DAILY_VARIABLES, "cumulative": CUMULATIVE_VARIABLES}[path.parent.name]
+        variable = catalog[lacking[path.parent.name]]
+        GridStore.open(path.parent.parent, layout, 2025, [variable], add_missing=True)
+    again = reads()
+    np.testing.assert_array_equal(again[0].values, days.values)
+    np.testing.assert_array_equal(again[0].stale, days.stale)
+    np.testing.assert_array_equal(again[1].values, totals.values)
+    np.testing.assert_array_equal(again[2].totals["dd_sine_50"], point.totals["dd_sine_50"])
+    np.testing.assert_array_equal(again[2].values["air_temperature_max"], point.values["air_temperature_max"])
+    np.testing.assert_array_equal(again[3].values["air_temperature"], hours.values["air_temperature"])
 
 
 def test_days_from_hours_are_the_rollups_days(world, fx_module):

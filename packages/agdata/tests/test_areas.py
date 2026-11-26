@@ -89,12 +89,19 @@ def test_an_area_s_daily_means_are_its_cells_means_where_none_has_gaps(mixed):
     np.testing.assert_allclose(single.values["air_temperature_mean"], found.values["air_temperature_mean"])
 
 
-def test_the_past_years_copies_read_an_area(mixed):
-    pastyears.build(mixed, 2024)
-    reader = pastyears.Reader(mixed)
+def test_the_past_years_copies_read_an_area(mixed, tmp_path):
+    import shutil
+
+    from agdata.store import DAILY
+
+    names = ["air_temperature_min", "precipitation_sum"]
+    # 2024's daily store with only the variables read (a copy reads every one's year), so `mixed` stays as it was
+    shutil.copytree(DAILY.path(mixed, 2024), DAILY.path(tmp_path, 2024))
+    testing.keep_only(tmp_path, DAILY, 2024, names)
+    pastyears.build(tmp_path, 2024)
+    reader = pastyears.Reader(tmp_path)
     cells = [(900, 1401), (900, 1400), (901, 1402)]
     area = _area(cells, [3, 1, 1])
-    names = ["air_temperature_min", "precipitation_sum"]
     first, last = date(2024, 12, 28), date(2024, 12, 31)
     found = reader.read_area(area, first, last, names)
     assert found is not None

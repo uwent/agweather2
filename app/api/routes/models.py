@@ -2,13 +2,15 @@
 forecast, from our weather.
 
 One row per day (and option set, with `option_set` indexing `meta.summary.option_sets`): `date`, `kind`, the model's
-inputs as read (missing where missing, D45) with `<input>_estimated` where its gaps were filled, the outputs, and the
+inputs as read (missing where missing, D45) with `<input>_estimated` where its gaps were filled and `<input>_missing` where
+a gap was too long to fill (D56, with a warning), the outputs, and the
 risk as `risk_level` (an index into the spec's levels), `risk_label` and, for a continuous risk (insects, D36),
 `risk_value`. A disease gated by crop stage (D33) adds `susceptibility` only when a planting date is given; a model with
 a season adds `in_season`. Insects' action windows go in `meta.summary.windows`.
 
 Response shapes for model runs stay provisional until Phase 7's frontend uses them (D64)."""
 
+import difflib
 import itertools
 import json
 from dataclasses import dataclass, field, replace
@@ -27,6 +29,7 @@ from agdata.projection import PROJECTION
 from agdata.series import FORECAST, PARTIAL, DailySeries, Forecast, archive_years, days_needed, runs_at_point, sliced
 from agmodels import seasons
 from agmodels.crops import MARGIN, NOT_SUSCEPTIBLE, SUSCEPTIBLE
+from agmodels.gaps import MAX_GAP_DAYS
 from agmodels.registry import all_models
 from agmodels.runner import ModelRun, default_biofix
 from agmodels.scenarios import milestones, spread
@@ -34,12 +37,12 @@ from agmodels.seasons import Season
 from agmodels.spec import Model, ModelSpec
 from api import clock, modelevents, points, runs, stations
 from api.envelope import SYSTEMS, Column, Result, catalog_column, etag_for, not_modified, respond, table
-from api.errors import ApiError, day_text, quoted
+from api.errors import ApiError, counted, day_text, quoted
 from api.locations import describe, describe_days
 from api.params import AreaQuery, DaysQuery, OutputQuery, PointsQuery, SeriesQuery, resolve_biofix
 from api.routes.weather import FORECAST_DAYS, MAX_DAYS, EventsQuery, check_size, envelope_parts, located
 from api.schemas import TableResponse, responses
-from ops.points import day_zone, models_at_point, models_at_points, projected_at_point
+from ops.points import FallbackBudget, day_zone, models_at_point, models_at_points, projected_at_point
 
 router = Router(tags=["Models"])
 
@@ -186,8 +189,9 @@ def run(
     locations = located(where, needed, last, options, area=around)
     zones = [day_zone(lat, lng, options.day_basis) for lat, lng in sites]
     if mode:
+        budget = FallbackBudget()  # the points share one request's time for Open-Meteo (D114)
         found = [
-            _run_site(p, lat, lng, first, last, now, mode, zone, options.forecast, trim_end, around)
+            _run_site(p, lat, lng, first, last, now, mode, zone, options.forecast, trim_end, around, budget=budget)
             for p, (lat, lng), zone in zip(plans, sites, zones, strict=True)
         ]
     else:  # every point's weather on one read (`ops.points.models_at_points`)
@@ -215,7 +219,8 @@ def run(
         if f.projection is not None:
             summary["projection"] = f.projection
         summary |= _found_days(m, f, asked_events, since_end=when.end or today)
-    warnings = [*notes, *warnings]
+    stale = points.forecast_warnings([r.forecast for f in found for r in f.results], options.forecast)
+    warnings = [*notes, *stale, *warnings]
     if trim_end and any(f.projection is None for f in found):
         ends = [f.results[0].dates[f.kept - 1] for f in found if f.projection is None and f.results and f.kept]
         if ends:
@@ -328,7 +333,7 @@ def run_several(
             location=location,
             summary={"corrections": list(some.corrections)},
             sources=list(some.sources),
-            warnings=notes,
+            warnings=[*notes, *points.forecast_warnings([r.forecast for rs in grouped for r in rs], options.forecast)],
             etag=etag,
         ),
     )
@@ -338,9 +343,9 @@ def run_several(
 def risk(
     request: HttpRequest,
     where: Query[PointsQuery],
+    when: Query[DaysQuery],
     output: Query[OutputQuery],
     area: Query[AreaQuery],
-    date: date | None = None,
     models: str | None = None,
     planting_date: str | None = None,
     projection: str | None = None,
@@ -348,101 +353,162 @@ def risk(
 ) -> HttpResponse:
     """One row per model with a risk layer: `model`, `name`, `group`, `version`, the day's `kind`, `risk_level`,
     `risk_label`, `risk_value` (continuous risk), `susceptibility` (with a planting date), `in_season` and `reason`
-    (why there's no risk). `date` defaults to today. Without `models`, only those in season and in their region; with
-    it (`models=a,b` or `all`), every one asked. The Crop Risk Tool's dashboard and the alerts' query. With
+    (why there's no risk). `date` defaults to today. Without `models`, only those in season (`agmodels.seasons.in_season`:
+    the spec's season, and for an insect not ended at the place by fall freezes) and in their region, and none retired;
+    with it (`models=a,b` or `all`), every one asked (`all` leaves out retired models, which come only by id). The Crop Risk Tool's dashboard and the alerts' query. With
     `projection=true`, a `date` past the forecast takes each model's P50 across the archive's earlier years (D63),
-    with `projection_years` saying how many."""
+    with `projection_years` saying how many.
+
+    With `start` or `end` (Phase 7 track 3 Q1: a site card's risk through the forecast in one request), a row per
+    model and day from `start` (default today) through `end` (default the forecast's last day), within one calendar
+    year, led by a `date` column; each model runs once over the span. Without `projection`, days past the forecast's
+    last day with data are left out (with a warning when `end` asked for them); without `models`, a model is listed
+    if it's in season on any day shown."""
     lat, lng = _one_point(where)
     now = clock.now()
-    day = date or now.date()
+    today = now.date()
+    ranged = when.start is not None or when.end is not None
+    mode = projection_mode(projection)
+    first = when.date or when.start or today
+    if not ranged:
+        last = first
+    elif when.end is not None:
+        last = when.end
+    else:
+        last = min(max(first, today + timedelta(days=FORECAST_DAYS)), date(first.year, 12, 31))
+    if first > last:
+        raise ApiError(
+            "out_of_order",
+            f"The start date ({day_text(first)}) is after the end date ({day_text(last)}). Choose a start date on or before the end date.",
+            "start",
+        )
+    if first.year != last.year:
+        raise ApiError(
+            "invalid",
+            f"Risk is given within one calendar year, and {day_text(first)} and {day_text(last)} are in different years. Choose a start and end in the same year.",
+            "end",
+        )
     asked = models is not None
     chosen = [m for m in _models(models or "all") if m.SPEC.risk is not None]
     plans = [
-        runs.plan(m, request.GET, lat, lng, day.year, biofix=None, planting=planting_date, lenient=True) for m in chosen
+        runs.plan(m, request.GET, lat, lng, first.year, biofix=None, planting=planting_date, lenient=True)
+        for m in chosen
     ]
-    if sum(len(p.runs) for p in plans) > MAX_RUNS:
-        raise ApiError("too_many", too_many_runs(sum(len(p.runs) for p in plans)), "models")
-    computed = {**where.echo(), "date": day, "models": [m.SPEC.id for m in chosen] if asked else "in season"}
-    mode = projection_mode(projection)
+    total = sum(len(p.runs) for p in plans)
+    if total > MAX_RUNS:
+        raise ApiError("too_many", too_many_runs(total), "models")
+    days = (last - first).days + 1
+    when_asked: dict[str, Any] = {"start": first, "end": last} if ranged else {"date": first}
+    computed = {**where.echo(), **when_asked, "models": [m.SPEC.id for m in chosen] if asked else "in season"}
     computed |= {"planting_date": planting_date, "units": output.units, "projection": mode and "band"}
     days_on = SeriesQuery(day_basis=day_basis)
     computed |= days_on.echo() | area.echo()
     around = area.ask(output.units)
     etag, unchanged, needed = _revalidate(
-        request, plans, computed, [(lat, lng)], day, day, now, projecting=bool(mode), area=around
+        request, plans, computed, [(lat, lng)], first, last, now, projecting=bool(mode), area=around
     )
     if unchanged is not None:
         return unchanged
-    location = located(where, needed, day, days_on, area=around)[0]
+    location = located(where, needed, last, days_on, area=around)[0]
     zone = day_zone(lat, lng, day_basis)
-    found, notes = _projected(plans, lat, lng, day, day, now, "band", zone, around) if mode else (None, [])
-    projected_years = [None] * len(plans)
+    found, notes = _projected(plans, lat, lng, first, last, now, "band", zone, around) if mode else (None, [])
+    projected_years: list[Any] = [None] * len(plans)
     if found is not None:
         grouped = [f.results for f in found]
         projected_years = [f.bands for f in found]
     else:
-        grouped = _execute(plans, lat, lng, day, day, now, zone, around)
-    rows: dict[str, list[Any]] = {
-        name: []
-        for name in (
-            "model",
-            "option_set",
-            "name",
-            "group",
-            "version",
-            "kind",
-            "risk_level",
-            "risk_label",
-            "risk_value",
-            "susceptibility",
-            "in_season",
-            "reason",
-            "projection_years",
-        )
-    }
+        grouped = _execute(plans, lat, lng, first, last, now, zone, around)
+    shown = days
+    if ranged and found is None:  # through the forecast's last day with data at most
+        kept = max((points.keep(r.kinds, True, True) for rs in grouped for r in rs), default=0)
+        if 0 < kept < days:
+            shown = kept
+            computed["end"] = first + timedelta(days=kept - 1)
+            if when.end is not None:
+                notes = [
+                    *notes,
+                    f"The forecast runs through {day_text(computed['end'])}, so the results end there. Add 'projection=true' to carry them on to {day_text(last)} with the weather of earlier years.",
+                ]
+    names = ["date"] if ranged else []
+    names += [
+        "model",
+        "option_set",
+        "name",
+        "group",
+        "version",
+        "kind",
+        "risk_level",
+        "risk_label",
+        "risk_value",
+        "susceptibility",
+        "in_season",
+        "reason",
+        "projection_years",
+        "missing_days",
+    ]
+    rows: dict[str, list[Any]] = {name: [] for name in names}
+    listed = 0
     place_warnings: set[str] = set()  # a normal of the place a model reads, missing here (`ModelSpec.place_normals`)
+    behind: dict[str, int] = {}  # per model with any, the most days missing past the fill of any input (D56)
     for the_plan, results, bands in zip(plans, grouped, projected_years, strict=True):
         spec = the_plan.model.SPEC
         assert spec.risk is not None
         for k, r in enumerate(results):
-            years_behind = int(bands[k].years[0]) if bands and bands[k].years.size and bands[k].years[0] > 0 else None
-            in_season = None if r.in_season is None else bool(r.in_season[0])
-            if not asked and (in_season is False or r.reason == "outside the model's region"):
+            seasons_in = [None if r.in_season is None else bool(r.in_season[d]) for d in range(shown)]
+            out_of_season = False in seasons_in and True not in seasons_in
+            if not asked and (out_of_season or r.reason == "outside the model's region"):
                 continue
             if not r.reason:
                 place_warnings.update(r.place_warnings)
-            level = None if r.level is None or r.level[0] != r.level[0] else int(r.level[0])
-            gate = None if r.susceptibility is None else r.susceptibility[0]
-            rows["model"].append(spec.id)
-            rows["option_set"].append(k if len(results) > 1 else None)
-            rows["name"].append(spec.name)
-            rows["group"].append(spec.group)
-            rows["version"].append(spec.version)
-            rows["kind"].append(r.kinds[0])
-            rows["risk_level"].append(level)
-            rows["risk_label"].append(None if level is None else spec.risk.levels[level])
-            continuous = spec.risk.thresholds and r.risk is not None
-            rows["risk_value"].append(float(r.risk[0]) if continuous and r.risk is not None else float("nan"))
-            rows["susceptibility"].append(None if gate is None or gate != gate else SUSCEPTIBILITY.get(float(gate)))
-            rows["in_season"].append(in_season)
-            rows["reason"].append(r.reason)
-            rows["projection_years"].append(years_behind)
+            listed += 1
+            years = bands[k].years if bands else None
+            for d in range(shown):
+                years_behind = int(years[d]) if years is not None and years.size > d and years[d] > 0 else None
+                level = None if r.level is None or r.level[d] != r.level[d] else int(r.level[d])
+                gate = None if r.susceptibility is None else r.susceptibility[d]
+                if ranged:
+                    rows["date"].append(first + timedelta(days=d))
+                rows["model"].append(spec.id)
+                rows["option_set"].append(k if len(results) > 1 else None)
+                rows["name"].append(spec.name)
+                rows["group"].append(spec.group)
+                rows["version"].append(spec.version)
+                rows["kind"].append(r.kinds[d] if d < len(r.kinds) else None)
+                rows["risk_level"].append(level)
+                rows["risk_label"].append(None if level is None else spec.risk.levels[level])
+                continuous = spec.risk.thresholds and r.risk is not None
+                rows["risk_value"].append(float(r.risk[d]) if continuous and r.risk is not None else float("nan"))
+                rows["susceptibility"].append(None if gate is None or gate != gate else SUSCEPTIBILITY.get(float(gate)))
+                rows["in_season"].append(seasons_in[d])
+                rows["reason"].append(r.reason)
+                rows["projection_years"].append(years_behind)
+                gaps = {} if r.reason else days_behind(r, gap_flags(r, d + 1))
+                rows["missing_days"].append(max(gaps.values(), default=0) if not r.reason else None)
+                if gaps:
+                    behind[spec.id] = max(behind.get(spec.id, 0), *gaps.values())
     columns = [
         Column(name=name, values=values, unit="index" if name == "risk_value" else None)
         for name, values in rows.items()
     ]
     some = grouped[0][0] if grouped and grouped[0] else None
     sets = {p.model.SPEC.id: p.option_sets for p in plans if p.option_sets}
+    summary: dict[str, Any] = {"models": listed, **({"days": shown} if ranged else {})}
     return respond(
         request,
         Result(
             request=computed,
             columns=columns,
             location=location,
-            summary={"models": len(rows["model"]), **({"option_sets": sets} if sets else {})},
+            summary={**summary, **({"option_sets": sets} if sets else {})},
             sources=list(some.sources) if some else [],
-            warnings=[*notes, *sorted({w for p in plans for w in p.warnings}), *sorted(place_warnings)],
-            filename=f"agweather-risk-{day}",
+            warnings=[
+                *notes,
+                *points.forecast_warnings([r.forecast for rs in grouped for r in rs], forecast_asked=True),
+                *sorted({w for p in plans for w in p.warnings}),
+                *sorted(place_warnings),
+                *([risk_missing_text(behind)] if behind else []),
+            ],
+            filename=f"agweather-risk-{first}" + (f"-{computed['end']}" if ranged else ""),
             etag=etag,
         ),
     )
@@ -456,6 +522,7 @@ def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Qu
     m = runs.model_or_404(model_id)
     spec = m.SPEC
     explorer = {e.name: e for e in spec.explorer}
+    _check_evaluate_fields(request, explorer)
     unknown = sorted(set(body.inputs) - set(explorer))
     if unknown:
         raise ApiError(
@@ -524,6 +591,28 @@ def evaluate(request: HttpRequest, model_id: str, body: EvaluateBody, output: Qu
     )
 
 
+def _check_evaluate_fields(request: HttpRequest, explorer: dict[str, Any]) -> None:
+    """Refuses a field of the evaluate body beside `inputs` (Ninja drops it): an input sent there ran at its default."""
+    try:
+        sent = json.loads(request.body or b"{}")
+    except ValueError:
+        return  # Ninja has parsed it already; anything else isn't JSON and was refused there
+    extra = [str(key) for key in sent if key != "inputs"] if isinstance(sent, dict) else []
+    if not extra:
+        return
+    key = extra[0]
+    if key in explorer:
+        example = json.dumps({"inputs": {key: sent[key]}})[1:-1]
+        message = f"Put {quoted(key)} inside 'inputs', such as {quoted(example)}: the values to evaluate go there."
+    else:
+        message = f"The request body has a field named {quoted(key)}, which this request doesn't take. Send the values to evaluate inside 'inputs'"
+        if explorer:
+            first = next(iter(explorer.values()))
+            message += f", such as {quoted(json.dumps({'inputs': {first.name: first.default}})[1:-1])}"
+        message += "."
+    raise ApiError("unknown_parameter", message, key)
+
+
 # --- Runs on your own weather (D58) -----------------------------------------------------------------------------
 
 POST_FIELDS = (
@@ -557,12 +646,32 @@ def run_posted(request: HttpRequest, model_id: str) -> HttpResponse:
 @router.post("/models/run", summary="Several models on your weather")
 def run_posted_several(request: HttpRequest) -> HttpResponse:
     """Several models (`"models": ["tar-spot", …]` or `"all"`) on weather you send, shaped as `GET /models/run`."""
-    body, _ = _posted(request)
+    body, _ = _posted(request, several=True)
     raw = body.get("models", "all")
     return _run_posted(request, _models(raw if isinstance(raw, str) else ",".join(map(str, raw))), single=False)
 
 
-def _posted(request: HttpRequest) -> tuple[dict[str, Any], dict[str, str]]:
+# A JSON body's fields; `models` only for several models. Anything else is refused (`_check_fields`): a model's
+# setting sent beside them (`"biofix"`) rather than inside `options` was ignored without a word
+BODY_FIELDS = (
+    "location",
+    "units",
+    "input_units",
+    "hourly",
+    "daily",
+    "start",
+    "end",
+    "options",
+    "fill",
+    "extend",
+    "day_basis",
+    "first",
+    "last",
+    "since",
+)
+
+
+def _posted(request: HttpRequest, several: bool = False) -> tuple[dict[str, Any], dict[str, str]]:
     """(the weather and settings, the model options as strings) from a JSON body, or a CSV body and the query."""
     kind = request.content_type or ""
     if kind == "text/csv":
@@ -585,8 +694,36 @@ def _posted(request: HttpRequest) -> tuple[dict[str, Any], dict[str, str]]:
         raise ApiError(
             "invalid", "The request body must be a JSON object, with the weather under 'hourly' or 'daily'.", "body"
         )
+    _check_fields(body, several=several)
     options = {str(k): str(v) for k, v in (body.get("options") or {}).items()}
     return body, options
+
+
+def _check_fields(body: dict[str, Any], several: bool) -> None:
+    """Refuses a JSON body's field the endpoint doesn't read: a model's setting (`biofix`, `planting_date`, an option)
+    belongs inside `options`, and anything else is named with the fields it takes."""
+    from api.layermaps import POINT_ONLY
+    from api.strict import every_option
+
+    fields = (*BODY_FIELDS, "models") if several else BODY_FIELDS
+    unknown = [str(key) for key in body if key not in fields]
+    if not unknown:
+        return
+    key = unknown[0]
+    if key in POINT_ONLY or key in every_option():
+        example = json.dumps({"options": {key: body[key]}})[1:-1]
+        raise ApiError(
+            "unknown_parameter",
+            f"Put {quoted(key)} inside 'options', such as {quoted(example)}: in a JSON body, a model's settings go there.",
+            key,
+        )
+    close = difflib.get_close_matches(key, fields, n=1, cutoff=0.75)
+    hint = f" Did you mean {quoted(close[0])}?" if close else ""
+    raise ApiError(
+        "unknown_parameter",
+        f"The request body has a field named {quoted(key)}, which this request doesn't take.{hint} It takes {', '.join(quoted(f) for f in fields)}, with a model's settings inside 'options'.",
+        key,
+    )
 
 
 def _date_field(body: dict[str, Any], name: str) -> date | None:
@@ -600,7 +737,7 @@ def _date_field(body: dict[str, Any], name: str) -> date | None:
 
 
 def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> HttpResponse:
-    body, options = _posted(request)
+    body, options = _posted(request, several=not single)
     location = body.get("location") or {}
     try:
         lat, lng = float(location["lat"]), float(location["lng"])
@@ -702,6 +839,8 @@ def _run_posted(request: HttpRequest, chosen: list[Model], single: bool) -> Http
             f"{', '.join(quoted(n) for n in lacking)} come from our archive at the cell ('fill=grid'), since the weather sent doesn't include them."
         )
     days, sources = _station_days(station, zone, needed, last, names, lat, lng, now, fill, extend, sent[1])
+    if extend == "forecast":
+        warnings += points.forecast_warnings([days.forecast], forecast_asked=True)
     results = runs_at_point(
         lambda first_day, _last, wanted: sliced(days, first_day, wanted),
         lat,
@@ -800,8 +939,10 @@ def _station_days(
         "provided" if any(np.isfinite(values[name][k]) for name in names) else None for k in range(n)
     ]
     sources = ["provided"]
+    forecast = Forecast(path=None)
     if fill == "grid" or extend == "forecast":
         ours = points.days(lat, lng, first, last, names, now, zone=zone)
+        forecast = ours.forecast
         used = False
         for k, day in enumerate(dates):
             theirs = ours.kinds[k]
@@ -824,7 +965,7 @@ def _station_days(
                 kinds[k], used = ours_kind, True
         if used:
             sources += [s for s in ours.sources if s not in sources]
-    return DailySeries(dates=dates, values=values, kinds=kinds, forecast=Forecast(path=None), zone=zone), sources
+    return DailySeries(dates=dates, values=values, kinds=kinds, forecast=forecast, zone=zone), sources
 
 
 def _nested(
@@ -863,8 +1004,9 @@ def _nested(
 
 
 def _models(raw: str) -> list[Model]:
+    """The models a `models` list names: by id (retired ones too), or `all`, every model but the retired."""
     if raw.strip() == runs.ALL:
-        return list(all_models().values())
+        return [m for m in all_models().values() if m.SPEC.status != "retired"]
     ids = [part.strip() for part in raw.split(",") if part.strip()]
     if not ids:
         raise ApiError("missing", "The 'models' list is empty. Give model ids separated by commas, or 'all'.", "models")
@@ -903,11 +1045,21 @@ def _revalidate(request, plans, computed, sites, first, last, now, projecting: b
 
 
 def _execute(
-    plans: list[runs.Plan], lat: float, lng: float, first: date, last: date, now, zone: str, area=None
+    plans: list[runs.Plan],
+    lat: float,
+    lng: float,
+    first: date,
+    last: date,
+    now,
+    zone: str,
+    area=None,
+    budget: FallbackBudget | None = None,
 ) -> list[list[ModelRun]]:
     """Every plan's runs on one read of the weather (days on `zone`'s clock), split back per plan."""
     every = [r for p in plans for r in p.runs]
-    results = models_at_point(lat, lng, every, first, last, now, planting_default=False, zone=zone, area=area)
+    results = models_at_point(
+        lat, lng, every, first, last, now, planting_default=False, zone=zone, area=area, budget=budget
+    )
     grouped, k = [], 0
     for p in plans:
         grouped.append(results[k : k + len(p.runs)])
@@ -990,6 +1142,10 @@ def _table(
                 add(f"{name}_{suffix}", _values(side.get(name), count))
 
     estimated = sorted({name for r in results for name in r.estimated})
+    gaps_shown = [gap_flags(r, keep[k]) for k, r in enumerate(results)]
+    missing = sorted({name for flags in gaps_shown for name in flags})
+    flagged = [q.name for q in spec.inputs if q.name in estimated or q.name in missing]
+    behind: dict[str, int] = {}  # per input, the days missing past the fill that the runs' results rest on
     gated = any(r.susceptibility is not None for r in results)
     is_crop = spec.group == "crop"
     stages = [s.code for s in m.stages()] if is_crop else []  # type: ignore[attr-defined]
@@ -1005,9 +1161,11 @@ def _table(
         add("kind", r.kinds[:n])
         for q in spec.inputs:
             numbers(q.name, _values(r.inputs.get(q.name), count), k, count)
-        for name in estimated:
-            flags = r.estimated.get(name)
-            add(f"{name}_estimated", [False] * count if flags is None else [bool(f) for f in flags[:n]])
+        for name in flagged:
+            for suffix, found, names in (("estimated", r.estimated, estimated), ("missing", gaps_shown[k], missing)):
+                if name in names:
+                    flags = found.get(name)
+                    add(f"{name}_{suffix}", [False] * count if flags is None else [bool(f) for f in flags[:n]])
         for q in spec.outputs:
             numbers(q.name, _values(r.outputs.get(q.name), count), k, count)
         if is_crop:
@@ -1032,6 +1190,11 @@ def _table(
             reasons.append((label, training_area_text(spec)))
         if not r.reason:  # a normal of the place the model reads, missing here (`ModelSpec.place_normals`)
             reasons.extend((label, text) for text in r.place_warnings)
+            gaps = days_behind(r, gaps_shown[k])
+            for name, days in gaps.items():
+                behind[name] = behind.get(name, 0) + days
+            if gaps:
+                reasons.append((label, missing_text(gaps)))
         if r.windows:
             windows.append(
                 {
@@ -1072,11 +1235,66 @@ def _table(
             for name in estimated
         },
     }
+    if behind:
+        summary["missing_by_input"] = behind
     if bands is not None:
         summary["days_projected"] = sum(kind == PROJECTION for kind in kinds)
     if windows:
         summary["windows"] = windows
     return table, summary, _grouped(reasons, len(results))
+
+
+def this_year(missing: dict[str, np.ndarray], k: int) -> dict[str, np.ndarray]:
+    """A run's days missing past the fill (`ModelRun.missing`) on its rows before `k`, the first projected (D63):
+    the projected rows are earlier years' weather, whose gaps say nothing about this year's results."""
+    out = {}
+    for name, flags in missing.items():
+        kept = np.asarray(flags, dtype=bool).copy()
+        kept[max(k, 0) :] = False
+        if kept.any():
+            out[name] = kept
+    return out
+
+
+def gap_flags(r: ModelRun, n: int) -> dict[str, np.ndarray]:
+    """Per input with any, which of the run's first `n` days are in a gap the fill didn't reach (`ModelRun.missing`,
+    D56): the `_missing` columns. A run without outputs has none."""
+    if r.reason:
+        return {}
+    shown = {name: np.asarray(flags[:n], dtype=bool) for name, flags in r.missing.items()}
+    return {name: flags for name, flags in shown.items() if flags.any()}
+
+
+def days_behind(r: ModelRun, flags: dict[str, np.ndarray]) -> dict[str, int]:
+    """Per input with any, the days missing past the fill that the run's days shown rest on: those flagged
+    (`gap_flags`) and those read before the first day shown (`ModelRun.missing_before`). A running total added
+    nothing for them. A run whose first day is projected (`/risk` on a day past the forecast) read earlier years'
+    weather before it, whose gaps aren't this year's, so only its flagged days count."""
+    out = {} if r.kinds and r.kinds[0] == PROJECTION else dict(r.missing_before)
+    for name, shown in flags.items():
+        out[name] = out.get(name, 0) + int(shown.sum())
+    return out
+
+
+def missing_text(behind: dict[str, int]) -> str:
+    """The warning for a run with days missing past the fill (D56): how many, of which inputs, and what it means."""
+    by_count: dict[int, list[str]] = {}
+    for name, days in behind.items():
+        by_count.setdefault(days, []).append(quoted(name))
+    parts = [f"{counted(days, 'day')} of {and_list(names)}" for days, names in sorted(by_count.items(), reverse=True)]
+    return f"The weather data have {and_list(parts)} missing, in gaps longer than the {MAX_GAP_DAYS} days we fill with estimates, so the model's running totals add nothing for those days and may run behind. Its results after them may be late. The columns ending in '_missing' mark the days shown."
+
+
+def risk_missing_text(behind: dict[str, int]) -> str:
+    """/risk's warning for models whose weather has days missing past the fill (D56)."""
+    most = max(behind.values())
+    ids = and_list([quoted(i) for i in behind])
+    return f"The weather data that {ids} {'reads' if len(behind) == 1 else 'read'} have days missing (up to {counted(most, 'day')}), in gaps longer than the {MAX_GAP_DAYS} days we fill with estimates, so the running totals add nothing for those days and the risk may be late. The 'missing_days' column gives each model's count."
+
+
+def and_list(items: list[str]) -> str:
+    """ "a", "a and b", "a, b and c"."""
+    return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} and {items[-1]}"
 
 
 def _median(m: Model, runs: list[ModelRun], begins: date) -> tuple[ModelRun, Band]:
@@ -1121,6 +1339,7 @@ def _median(m: Model, runs: list[ModelRun], begins: date) -> tuple[ModelRun, Ban
         biofix=first.biofix if len(biofixes) == 1 else None,
         reason=first.reason if len(reasons) == 1 else None,
         windows={},
+        missing=this_year(first.missing, k),
     )
     counts = np.where(np.arange(len(first.dates)) >= k, years.count, 0)
     return merged, Band(low=low, high=high, years=counts)
@@ -1164,8 +1383,11 @@ def _run_site(
     forecast: bool,
     trim_end: bool,
     area=None,
+    budget: FallbackBudget | None = None,
 ) -> SiteRun:
-    found, notes = _projected([the_plan], lat, lng, first, last, now, mode, zone, area) if mode else (None, [])
+    found, notes = (
+        _projected([the_plan], lat, lng, first, last, now, mode, zone, area, budget=budget) if mode else (None, [])
+    )
     if found is not None:
         results = found[0].results
         return SiteRun(
@@ -1177,7 +1399,7 @@ def _run_site(
             notes=notes,
             paths=found[0].paths,
         )
-    results = _execute([the_plan], lat, lng, first, last, now, zone, area)[0]
+    results = _execute([the_plan], lat, lng, first, last, now, zone, area, budget=budget)[0]
     kept = max(points.keep(r.kinds, forecast, trim_end) for r in results)
     return SiteRun(results=results, kept=kept, labels=_labels(results), notes=notes)
 
@@ -1273,11 +1495,20 @@ def _season_end(spec, first: date) -> date:
 
 
 def _projected(
-    plans: list[runs.Plan], lat: float, lng: float, first: date, last: date, now, mode: str, zone: str, area=None
+    plans: list[runs.Plan],
+    lat: float,
+    lng: float,
+    first: date,
+    last: date,
+    now,
+    mode: str,
+    zone: str,
+    area=None,
+    budget: FallbackBudget | None = None,
 ) -> tuple[list[Projected] | None, list[str]]:
     """Each plan's runs carried past the forecast on the archive's earlier years, or None outside the archive."""
     every = [r for p in plans for r in p.runs]
-    found = projected_at_point(lat, lng, every, first, last, now, zone=zone, area=area)
+    found = projected_at_point(lat, lng, every, first, last, now, zone=zone, area=area, budget=budget)
     if found is None:
         return None, [NO_PROJECTION]
     warnings = []
@@ -1315,6 +1546,8 @@ def _projected(
             results, labels = [], []
             for s_index, rs in enumerate(groups):
                 for year, r in zip(found.years or [None], rs, strict=False):
+                    if found.start is not None and r.dates:  # a past year's gaps aren't this year's
+                        r = replace(r, missing=this_year(r.missing, (found.start - r.dates[0]).days))
                     results.append(r)
                     labels.append(
                         {**({"option_set": s_index} if sets else {}), **({"year": year} if found.years else {})}

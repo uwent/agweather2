@@ -5,7 +5,7 @@ RTMA's where URMA is now out (`agdata.ingest.stale_hours`). Then two things run 
 
 - a fetcher thread downloads one block of those hours after another (`agdata.ingest.fetch_block`, `workers` hours
   in parallel), without the lock, keeping at most one block ready ahead;
-- this thread writes each fetched block (`write_block`), records it and rolls up the local days it finished,
+- this thread writes each fetched block (`write_block`), records it and rolls up the grid days it finished,
   holding the lock only for that (seconds), and politely, so the worker's hourly jobs get their turns.
 
 So block N+1 downloads while block N is written, and a stop (`stopping`) lands between blocks: the blocks written

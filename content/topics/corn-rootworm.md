@@ -1,6 +1,6 @@
 ---
 id: corn-rootworm
-title: Corn Rootworm
+title: Corn rootworm
 kind: insect
 crops:
   - corn
@@ -10,7 +10,7 @@ summary: Beetles whose larvae prune corn roots where corn follows corn; crop rot
 image: images/corn-rootworm.jpg
 image_credit: 'Adult southern, northern and western corn rootworms, left to right. Photo by R.L. Croissant, Bugwood.org (image 5361235), via Wikimedia Commons (File:Diabrotica undecimpunctata howardi and D. barberi and D. virgifera virgifera.jpg), CC BY 3.0 US.'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Corn Rootworm. University of Wisconsin–Madison, updated 2026.'

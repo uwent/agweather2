@@ -42,6 +42,7 @@ from api.locations import describe
 from api.params import PointsQuery
 from api.schemas import Location, Meta, responses
 from ops import downloads
+from ops.points import fallback_on
 from ops.status import dataset_status
 
 router = Router(tags=["About the data"])
@@ -72,6 +73,7 @@ class ForecastStatus(Schema):
     last_hour: str | None
     in_use: bool  # fresh enough that series run through it (within MAX_RUN_AGE of its cycle)
     reason: str | None  # when not in use: "none" (no run published) or "stale"
+    fallback: str | None  # when not in use: "openmeteo" if points in the box take Open-Meteo's forecast (D114)
 
 
 class ArchiveStatus(Schema):
@@ -138,6 +140,7 @@ def status(request: HttpRequest) -> HttpResponse:
             last_hour=_iso(run.last),
             in_use=in_use,
             reason=None if in_use else ("none" if cycle is None else "stale"),
+            fallback="openmeteo" if not in_use and fallback_on() else None,
         ),
         models=len(all_models()),
         downloads=DownloadsStatus(files=len(files), built_at=max((e.built_at for e in files), default=None)),
@@ -620,7 +623,7 @@ def locate(request: HttpRequest, where: Query[PointsQuery]) -> HttpResponse:
             corners.append([round(corner_lat, 5), round(corner_lng, 5)])
     planting = []
     for crop in CROPS:
-        found = typical_planting(crop, lat, lng)
+        found = typical_planting(crop, lat, lng, data_dir=settings.DATA_DIR)
         if found is not None:
             planting.append(
                 PlantingInfo(

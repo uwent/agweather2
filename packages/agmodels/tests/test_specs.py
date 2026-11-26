@@ -79,3 +79,25 @@ def test_every_explore_output_is_declared_with_a_unit(model_id):
     values = m.explore(**{e.name: e.default for e in m.SPEC.explorer})
     assert set(values) <= declared, f"undeclared: {sorted(set(values) - declared)}"
     assert not {q.name for q in m.SPEC.explorer_outputs} & {q.name for q in m.SPEC.outputs}
+
+
+@pytest.mark.parametrize(("model_id", "m"), MODELS, ids=IDS)
+def test_a_model_for_a_crop_has_a_season(model_id, m: Model):
+    """`/risk` and the home page list a model only in its season (`agmodels.seasons.in_season`): one with a crop or a
+    risk declares it (an insect's from its activity, 2026-11-26), so none counts as in season all winter."""
+    spec = m.SPEC
+    if spec.crops or spec.risk is not None:
+        assert spec.season is not None, f"{model_id} has no season"
+        assert all(re.fullmatch(r"\d{2}-\d{2}", d) for d in spec.season)
+
+
+# Words after the first that may be capitalized in a model's name: genera, acronyms and method names
+CAPITALIZED = {"Cercospora", "Fusarium", "BOTCAST", "TOMCAST", "PVY", "DON", "P-days", "VDIFN"}
+
+
+@pytest.mark.parametrize(("model_id", "m"), MODELS, ids=IDS)
+def test_names_are_sentence_case(model_id, m: Model):
+    """Names are public text in sentence case: after the first word, a capital only for a genus or an acronym."""
+    for word in m.SPEC.name.split()[1:]:
+        bare = word.strip("()")
+        assert bare[:1].islower() or bare[:1].isdigit() or bare in CAPITALIZED, f"{model_id}: {m.SPEC.name!r}"

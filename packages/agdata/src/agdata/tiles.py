@@ -38,12 +38,14 @@ class Encoding:
 
     @property
     def factors(self) -> dict[str, float]:
-        """MapLibre's custom `raster-dem` encoding."""
+        """MapLibre's custom `raster-dem` encoding: value = R·redFactor + G·greenFactor + B·blueFactor − baseShift.
+        MapLibre subtracts `baseShift` (as its Terrarium and Mapbox encodings' 32768 and 10000), though its style spec
+        says "added", so the shift is positive (Phase 7, 2026-11-26)."""
         return {
             "redFactor": SIZE * SIZE * self.step,
             "greenFactor": SIZE * self.step,
             "blueFactor": self.step,
-            "baseShift": -ZERO * self.step,
+            "baseShift": ZERO * self.step,
         }
 
 

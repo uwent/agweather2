@@ -1,9 +1,12 @@
 """The root maggots (part H, H1): cabbage and onion maggot rebuilt on NEWA's models (D95), checked against NEWA's
 tables and their sources; seedcorn maggot's first emergence against Olaya-Arenas et al. 2024 and Cho et al. 2025."""
 
+from datetime import date, timedelta
+
 import numpy as np
 import pytest
 
+from agmodels import runner
 from agmodels.degree_days import degree_days_average
 from agmodels.insects import cabbage_maggot, onion_maggot, seedcorn_maggot
 from agmodels.phenology import DD_STEP, PhenologyModel, curves, dd_grid, generation_densities
@@ -88,18 +91,44 @@ def test_cabbage_maggots_fourth_flight_ends_with_fall_freezes():
     warm = (doy > 90) & (doy < 274)
     tmax = np.where(warm, 23.0, 7.0)
     tmin = np.where(warm, 11.5, 0.0)
-    tmin[305:309] = -4.0  # four freezing nights from November 2
+    tmin[292:296] = -4.0  # four freezing nights from October 20
     inputs = {"air_temperature_min": tmin, "air_temperature_max": tmax, "day_of_year": doy, "latitude": np.array(43.3), "year": np.full(n, 2025.0)}  # fmt: skip
     out = m.outputs({k: inputs[k] for k in ("air_temperature_min", "air_temperature_max", *m.SPEC.context)})
     risk = m.risk(out)
     fourth = np.asarray(out["generations_adult_flight"]) - 3
     window = np.asarray(out["window_protect_seedlings_and_transplants_during_fly_flight"])
-    before, after = 304, 308  # the day before the freezes, and the fourth
+    before, after = 291, 295  # the day before the freezes, and the fourth
     assert 0.05 < fourth[before] < 0.95  # part of the fourth flight emerged
     assert out["activity_adult_flight"][before] > 0 and window[before] == 1 and risk[before] > 0
     assert out["freeze_factor"][after] == 0 and out["season_complete"][after] == 1
     assert out["activity_adult_flight"][after] == 0 and window[after] == 0 and risk[after] == 0
     assert np.all(np.asarray(out["freeze_factor"])[after:] == 0)  # held: no flight comes back
+
+
+def test_an_insects_season_ends_its_activity_whatever_the_weather():
+    """With no hard freezes (a mild fall), the fourth flight's stalled activity would hold into winter: the season's
+    last day (October 31) ends it, as freezes do, and the run says the season is over from November 1."""
+    m = PhenologyModel(insect=CM, summary="")
+    assert CM.season == ("04-01", "10-31")
+    n = 330  # January 1 to November 26, 2025
+    doy = np.arange(1.0, n + 1)
+    warm = (doy > 90) & (doy < 274)
+    inputs = {"air_temperature_min": np.where(warm, 11.5, 2.0), "air_temperature_max": np.where(warm, 23.0, 9.0), "day_of_year": doy, "latitude": np.array(43.3), "year": np.full(n, 2025.0)}  # fmt: skip
+    out = m.outputs({k: inputs[k] for k in ("air_temperature_min", "air_temperature_max", *m.SPEC.context)})
+    risk = m.risk(out)
+    october_31, november_1 = 303, 304
+    assert out["activity_adult_flight"][october_31] > 0 and risk[october_31] > 0
+    assert out["season_complete"][october_31] == 0 and out["season_complete"][november_1] == 1
+    assert np.all(np.asarray(risk)[november_1:] == 0) and np.all(np.asarray(out["freeze_factor"])[november_1:] == 0)
+    dates = [date(2025, 1, 1) + timedelta(days=k) for k in range(n)]
+    run = runner.run(
+        "cabbage-maggot",
+        dates=dates,
+        daily={k: inputs[k] for k in ("air_temperature_min", "air_temperature_max")},
+        latitude=43.3,
+    )
+    assert run.in_season is not None and run.in_season[october_31] and not run.in_season[november_1:].any()
+    assert not run.in_season[: date(2025, 4, 1).timetuple().tm_yday - 1].any()  # before its season
 
 
 def test_cabbage_maggots_spring_flight_weighs_most():

@@ -1,6 +1,6 @@
 ---
 id: mint-flea-beetle
-title: Flea Beetle (Mint)
+title: Flea beetle (mint)
 kind: insect
 crops:
   - mint
@@ -9,7 +9,7 @@ summary: A tiny flea beetle of peppermint and spearmint whose larvae feed on roo
 image: null
 image_credit: null
 status: draft
-updated: 2026-11-21
+updated: 2026-11-25
 sources:
   - key: a3422-2026
     text: 'Bradford, B. Z., J. B. Colquhoun, S. A. Chapman, A. J. Gevens, R. L. Groves, D. J. Heider, G. R. W. Nice, M. D. Ruark, Y. Wang and R. Dewerff. Commercial Vegetable Production in Wisconsin—2026 (A3422). UW–Madison Division of Extension, 2026.'

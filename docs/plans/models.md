@@ -56,7 +56,7 @@ From PLAN.md (moved here 2026-11-17, verbatim):
 
 (The inventory found winter wheat a stub with no thresholds, so it moved to part J; "D7" there means Phase 3 D's step 7, not decision D7.)
 
-### B. Apple: stages, scab, fire blight, codling moth (planned 2026-11-17; sources read; Ben's answers in; B5's reference and B1–B4 done 2026-11-18; the wrap-up next)
+### B. Apple: stages, scab, fire blight, codling moth (planned 2026-11-17; sources read; Ben's answers in; B5's reference, B1–B4 and the wrap-up done 2026-11-18)
 
 Apples are Wisconsin's main tree fruit (about 4,000 acres in nearly 300 commercial orchards in 57 counties, per the State Climatology Office; Michigan is the third US state). Scab and fire blight are the sprays growers time by weather; codling moth is the key internal fruit pest; apple stages feed all three. **Size: L** (four models, two with hourly wetness rules; mostly sources and checking). Existing code that changes: `croplist` (a crop), `agmodels.models` and `insects` (new modules), the ingredients for maps, topic and model pages; no API change beyond new model ids.
 
@@ -283,7 +283,7 @@ Also from step 3 (D94): the 24 insects on VDIFN's rounded sine ramp move to D36'
 
 **Round 2, Ben's answers (2026-11-23, D103; built the same day by two agents in worktrees, brief `tmp/briefs/h2-build-brief.md`, their reports in `tmp/h2/`).** Ben agreed with every proposal: corn borer's one flight in the north (a normal of each place, the engine's `PlaceNormal` and `PlaceForm`); cabbage maggot kept on NEWA's 850, capped at three flights; weights per generation (both maggots, seedcorn maggot, cabbageworm, looper); variegated cutworm on Simonet; the trap-fitted defaults labelled, western bean cutworm's March 1 fixed (`Biofix.fixed`, refused by the API); `tarnished-plant-bug` retired, `mint-flea-beetle` kept; corn rootworm on air degree days; cautions, no shift, for squash vine borer and mint root borer; a "present" action window (black cutworm). Seven insects to 0.3. Open from it: the weights are judgments (the looper's halve the season's only caterpillar peak north of Arlington, where the second generation doesn't arrive before October 15 on the normals); northern trap counts near 1,500 would test the corn borer bound (Manitowoc, on the lakeshore, goes one-flight on 2 moths in 4 years); the one-flight treat window (1,323–1,828) runs later than Minnesota's 1,100–1,300 for one-generation larvae; the changed pages need a cold check.
 
-### I. Validation reports and write-ups for every model (planned 2026-11-18; I1 done and I2's worked example drafted 2026-11-18)
+### I. Validation reports and write-ups for every model (planned 2026-11-18; I1 and I2 done by 2026-11-21)
 
 Two research rounds (Ben, 2026-11-18), independent enough to run side by side: **I1** brings the 50 models written before D98 up to its standard from what already exists (no web, mostly reading code and notes); **I2** writes the public topic and model pages from extension and research sources (web research, each claim checked). The apple models are the worked examples for both: their validation reports and model pages are done (B wrap-up, 2026-11-18); their four topic pages are I2's first batch.
 

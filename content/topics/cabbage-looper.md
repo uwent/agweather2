@@ -1,6 +1,6 @@
 ---
 id: cabbage-looper
-title: Cabbage Looper
+title: Cabbage looper
 kind: insect
 crops:
   - celery
@@ -17,7 +17,7 @@ summary: A moth that migrates into Wisconsin from the south each summer; its gre
 image: images/cabbage-looper.jpg
 image_credit: 'Cabbage looper caterpillar on a damaged leaf. Photo by Alton N. Sparks, Jr., University of Georgia, Bugwood.org (image 1327034), via Wikimedia Commons (File:Trichoplusia ni larva.jpg), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/).'
 status: draft
-updated: 2026-11-23
+updated: 2026-11-25
 sources:
   - key: uw-vegento
     text: 'UW–Madison Vegetable Entomology. Cabbage Looper. Updated 2026.'

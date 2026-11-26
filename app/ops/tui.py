@@ -294,6 +294,9 @@ class Dashboard(App):
             if f.get("cycle"):
                 lines.append(" | forecast: ", style="bold")
                 lines.append(f"run {_ago(f['cycle'])}")
+            if status.open_meteo is not None:  # D115
+                lines.append(" | open-meteo: ", style="bold")
+                lines.append(f"{status.open_meteo.share:.0%} of the month's plan")
             jobs = ", ".join(f"{j.name} {_ago(j.last_finished)}" for j in status.jobs if j.schedule and j.last_finished)
             lines.append("\n")
             lines.append("jobs: ", style="bold")

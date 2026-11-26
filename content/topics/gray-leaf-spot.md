@@ -1,6 +1,6 @@
 ---
 id: gray-leaf-spot
-title: Gray Leaf Spot (Corn)
+title: Gray leaf spot (corn)
 kind: disease
 crops:
   - corn
@@ -9,7 +9,7 @@ summary: A fungal leaf disease of corn, common in southern Wisconsin, that is wo
 image: images/gray-leaf-spot.jpg
 image_credit: 'Gray leaf spot lesions on a corn leaf. Photo by Daren Mueller, Iowa State University, Bugwood.org (image 5465607), via Wikimedia Commons (File:Gray leaf spot Cercospora zeae-maydis 5465607.png), CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/); converted to JPEG.'
 status: draft
-updated: 2026-11-18
+updated: 2026-11-25
 sources:
   - key: a3646-2025
     text: 'Dewerff, R., E. Bick, P. J. Liesch, G. Nice, M. Renz, D. Smith, R. Werle and J. Kampa. Pest Management in Wisconsin Field Crops (A3646). UW–Madison Division of Extension, 2025.'

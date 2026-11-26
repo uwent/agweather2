@@ -1,3 +1,4 @@
+import asyncio
 import shutil
 from contextlib import nullcontext
 from datetime import UTC, date, datetime, timedelta
@@ -18,15 +19,33 @@ BOX = "43.0,-88.1,43.05,-88.05"  # inland Milwaukee, inside the fixture's area
 NOW = datetime(2025, 12, 21, 12, tzinfo=UTC)  # ERA5-Land reaches Dec 16
 
 
-@pytest.fixture
-def data_dir(tmp_path):
+def _with_mask(folder: Path) -> Path:
     window = service_window(BOX)
-    static = tmp_path / "static"
+    static = folder / "static"
     static.mkdir()
     # The fixture's mask covers the box's request area, so it stands in for the downloaded one
     name = f"era5land_land_{window.j0}_{window.j1}_{window.i0}_{window.i1}.npz"
     shutil.copy(FIXTURES / "era5land_milwaukee_lsm.npz", static / name)
-    return tmp_path
+    return folder
+
+
+@pytest.fixture
+def data_dir(tmp_path):
+    return _with_mask(tmp_path)
+
+
+@pytest.fixture(scope="module")
+def refreshed_once(tmp_path_factory):
+    """The job run once on the recorded Dec 16 (~5 s), for the tests that start from it."""
+    folder = _with_mask(tmp_path_factory.mktemp("era5land"))
+    refresh_era5land(folder, BOX, NOW, "key", retrieve=fixture_retrieve([]), lock=nullcontext)
+    return folder
+
+
+@pytest.fixture
+def refreshed(refreshed_once, tmp_path):
+    """A copy of `refreshed_once` the test may change."""
+    return shutil.copytree(refreshed_once, tmp_path / "archive")
 
 
 def fixture_retrieve(calls: list):
@@ -65,8 +84,8 @@ def test_the_job_writes_the_days_without_era5land_and_skips_them_next_time(data_
     assert all(last < date(2025, 12, 16) for _, last in calls)  # Dec 16 isn't asked for again
 
 
-def test_a_day_is_missing_until_every_variable_is_era5lands(data_dir):
-    refresh_era5land(data_dir, BOX, NOW, "key", retrieve=fixture_retrieve([]), lock=nullcontext)
+def test_a_day_is_missing_until_every_variable_is_era5lands(refreshed):
+    data_dir = refreshed
     window = service_window(BOX)
     day = date(2025, 12, 16)
     assert missing_days(data_dir, window, day, day) == []
@@ -75,8 +94,8 @@ def test_a_day_is_missing_until_every_variable_is_era5lands(data_dir):
     assert missing_days(data_dir, window, day, day) == [day]
 
 
-def test_a_day_ingested_before_it_was_kept_as_received_is_missing(data_dir):
-    refresh_era5land(data_dir, BOX, NOW, "key", retrieve=fixture_retrieve([]), lock=nullcontext)
+def test_a_day_ingested_before_it_was_kept_as_received_is_missing(refreshed):
+    data_dir = refreshed
     window = service_window(BOX)
     day = date(2025, 12, 16)
     assert era5store.written_hours(data_dir, 2025)[(day - date(2025, 1, 1)).days * 24 :][:24].all()
@@ -84,8 +103,8 @@ def test_a_day_ingested_before_it_was_kept_as_received_is_missing(data_dir):
     assert missing_days(data_dir, window, day, day) == [day]
 
 
-def test_soil_is_derived_again_from_what_was_kept(data_dir):
-    refresh_era5land(data_dir, BOX, NOW, "key", retrieve=fixture_retrieve([]), lock=nullcontext)
+def test_soil_is_derived_again_from_what_was_kept(refreshed):
+    data_dir = refreshed
     window = service_window(BOX)
     store = open_or_create_hourly(data_dir, 2025, window)
     t0 = store.index_of(datetime(2025, 12, 16, tzinfo=UTC))
@@ -125,11 +144,11 @@ class Constant:
         return np.full((cells.stop - cells.start, steps.stop - steps.start), self.value)
 
 
-def test_ifs_fills_the_hours_after_era5land_and_keeps_the_forecast_hours(data_dir):
+def test_ifs_fills_the_hours_after_era5land_and_keeps_the_forecast_hours(refreshed):
+    data_dir = refreshed
     from agdata.sources import ifs
     from ops.ifs import refresh_ifs
 
-    refresh_era5land(data_dir, BOX, NOW, "key", retrieve=fixture_retrieve([]), lock=nullcontext)
     run = datetime(2025, 12, 21, 6, tzinfo=UTC)
     meta = lambda: {"last_run_initialisation_time": run.timestamp()}  # noqa: E731
     read = lambda: refresh_ifs(  # noqa: E731
@@ -172,13 +191,13 @@ def test_ifs_fills_the_hours_after_era5land_and_keeps_the_forecast_hours(data_di
     np.testing.assert_allclose(np.asarray(group["soil_temperature_10cm_seam_offset"]), era5 - 3.0, atol=1e-4)
 
 
-def test_ifs_reads_the_same_run_again_when_era5land_moves_the_seam(data_dir, monkeypatch):
+def test_ifs_reads_the_same_run_again_when_era5land_moves_the_seam(refreshed, monkeypatch):
+    data_dir = refreshed
     from ops import ifs as ops_ifs
 
     seams = iter([datetime(2025, 12, 15, 23, tzinfo=UTC), datetime(2025, 12, 16, 23, tzinfo=UTC)])
     current = {"seam": next(seams)}
     monkeypatch.setattr(ops_ifs, "seam_hour", lambda *a: current["seam"])
-    refresh_era5land(data_dir, BOX, NOW, "key", retrieve=fixture_retrieve([]), lock=nullcontext)
     run = datetime(2025, 12, 21, 6, tzinfo=UTC)
     read = lambda: ops_ifs.refresh_ifs(  # noqa: E731
         data_dir,
@@ -192,3 +211,30 @@ def test_ifs_reads_the_same_run_again_when_era5land_moves_the_seam(data_dir, mon
     assert read() is True and read() is False
     current["seam"] = next(seams)
     assert read() is True and read() is False
+
+
+class Stalled(Constant):
+    """A fake IFS chunk whose reads never finish."""
+
+    async def read_array(self, key):
+        await asyncio.sleep(3600)
+
+
+def test_an_ifs_read_past_its_deadline_fails_the_job_and_keeps_the_last_read(data_dir, monkeypatch):
+    from agdata.sources import ifs
+    from ops.ifs import refresh_ifs
+
+    monkeypatch.setattr(ifs, "READ_DEADLINE", 0.1)
+    run = datetime(2025, 12, 21, 6, tzinfo=UTC)
+    with pytest.raises(ifs.ReadTimedOut, match="the next run tries again"):
+        refresh_ifs(
+            data_dir,
+            BOX,
+            NOW,
+            None,
+            opener=lambda v, c: Stalled(3.0),
+            meta=lambda: {"last_run_initialisation_time": run.timestamp()},
+            lock=nullcontext,
+        )
+    latest = ifs.latest_path(data_dir)
+    assert not latest.exists() and not latest.with_name(latest.name + ".part").exists()

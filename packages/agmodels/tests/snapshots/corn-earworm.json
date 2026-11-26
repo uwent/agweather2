@@ -1,4 +1,4 @@
-{"version": "0.2", "rows": [
+{"version": "0.3", "rows": [
 {"inputs":{"dd_total":0.0},"outputs":{"activity_egg_laying":0.0,"generations_egg_laying":0.0,"activity_larvae_in_ears":0.0,"generations_larvae_in_ears":0.0,"risk":0.0}},
 {"inputs":{"dd_total":100.0},"outputs":{"activity_egg_laying":0.913248946,"generations_egg_laying":0.342299009,"activity_larvae_in_ears":0.096588545,"generations_larvae_in_ears":0.0,"risk":0.096588545}},
 {"inputs":{"dd_total":200.0},"outputs":{"activity_egg_laying":0.63769297,"generations_egg_laying":0.623118409,"activity_larvae_in_ears":0.485019661,"generations_larvae_in_ears":0.0,"risk":0.485019661}},

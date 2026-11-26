@@ -19,7 +19,18 @@ x-app: &app
     SERVICE_BOX: ${SERVICE_BOX:-wisconsin}
     BLOCK_WORKERS: ${BLOCK_WORKERS:-1}  # worker processes for jobs over the grid's blocks (agdata.blocks), a few GB each
     OPEN_METEO_API_KEY: ${OPEN_METEO_API_KEY:-}
+    OPEN_METEO_MONTHLY_CALLS: ${OPEN_METEO_MONTHLY_CALLS:-}  # the plan (D115); blank: the defaults in config/settings.py
+    OPEN_METEO_DAILY_CALLS: ${OPEN_METEO_DAILY_CALLS:-}
+    OPEN_METEO_BILLING_DAY: ${OPEN_METEO_BILLING_DAY:-}
+    OPEN_METEO_FALLBACK: ${OPEN_METEO_FALLBACK:-}  # 0: points in the box take no forecast from Open-Meteo while ours is stale (D114)
     COPERNICUS_API_KEY: ${COPERNICUS_API_KEY:-}
+    API_RATE_LIMIT: ${API_RATE_LIMIT:-}  # blank for each: the defaults in config/settings.py
+    API_TIME_LIMIT: ${API_TIME_LIMIT:-}
+    API_OVERRUN_LIMIT: ${API_OVERRUN_LIMIT:-}
+    API_HEAVY_SLOTS: ${API_HEAVY_SLOTS:-}
+    LEGACY_HOST: ${LEGACY_HOST:-}  # blank for each: the defaults in config/settings.py (web.legacy, D62)
+    LEGACY_REDIRECT_PERMANENT: ${LEGACY_REDIRECT_PERMANENT:-}
+    API_HEAVY_WAIT: ${API_HEAVY_WAIT:-}
   volumes:
     - data:/data
 
@@ -59,6 +70,7 @@ services:
       - "${HTTPS_PORT:-8443}:443"
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+      LEGACY_HOST: ${LEGACY_HOST:-https://legacy.agweather.cals.wisc.edu}  # v1 for a year after launch (D62)
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - static:/srv/static:ro

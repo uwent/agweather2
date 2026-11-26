@@ -6,6 +6,7 @@ from agmodels.spec import Change, Check, Citation, TrainingArea
 INSECT = Insect(
     id="western-bean-cutworm",
     name="Western bean cutworm",
+    season=("06-15", "09-30"),
     crops=("corn", "sweet-corn", "dry-bean"),
     # Hanson et al. 2015's best model: the simple average with the daily mean (not each temperature) capped at the
     # upper threshold, 3.3 and 23.9 °C (38 and 75 °F), from March 1. NEWA uses the same numbers; its deployed code
@@ -34,7 +35,7 @@ INSECT = Insect(
     # says to start at 25 % flight or the first moths caught nearby and continue 7–10 days past the peak
     action_windows=(ActionWindow(label="Scout corn for egg masses", stage="Adult flight", between=(0.05, 0.9)),),
     status="beta",
-    version="0.3",
+    version="0.4",
     changelog=(
         Change(
             version="0.2",
@@ -45,6 +46,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-21",
             note="Rebuilt on Hanson et al. 2015's flight model, which NEWA runs (D95): the simple average with the daily mean capped, 38/75 °F from March 1, the whole moth flight as a curve (half flown at 2,705) with egg masses timed from it, and a window to scout for egg masses from 5 % to 90 % of the flight. Replaces VDIFN's 25–75 % ramp on single sine 50 °F from May 1 (Ahmad 1979).",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="In season from June 15 to September 30: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to the end of the month its latest activity ended in (September 16). Activity ends after September 30 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     trained=TrainingArea(

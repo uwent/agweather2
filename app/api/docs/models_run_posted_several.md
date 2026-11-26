@@ -9,6 +9,7 @@ Several models (`"models": ["tar-spot", "white-mold"]`, or `"all"`) on weather y
 - Each model's own `meta.summary` holds what `POST /models/{model_id}/run` gives:
   - `days_returned`, `days_forecast` and `days_missing`: The number of rows returned, how many are forecast days, and how many have no data.
   - `estimated_by_input`: For each input the model needed an estimate for, the number of rows on which it was estimated.
+  - `missing_by_input`: For each input with days missing in gaps longer than seven days, the number of those days the results depend on, including any before the first day returned. Only present when there are any.
   - `days_projected`: With `projection`, the number of rows past the forecast.
   - `windows`: For an insect, each action window's periods as pairs of first and last days, by window name. With several locations, option sets or projected years, each entry names its `point`, `option_set` or `year`.
   - `option_sets`: When an option is given as `all`, the option values of each `option_set`.

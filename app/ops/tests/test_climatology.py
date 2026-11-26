@@ -5,6 +5,8 @@ from contextlib import nullcontext
 from datetime import date
 from pathlib import Path
 
+import pytest
+
 from agdata.grid import Window
 from agdata.progress import Reporter
 from agdata.sources import gridmet
@@ -97,3 +99,45 @@ def test_each_periods_normal_maps_are_planned_with_their_years(tmp_path):
     assert climatology.period_years(p, "last10") == list(range(2016, 2026))
     assert climatology.period_years(p, "last30") == list(range(1996, 2026))
     assert "build last30's normal maps: missing" in climatology.describe(p)
+
+
+def test_a_failed_download_is_reported_the_rest_go_on_and_no_normal_maps_are_built(tmp_path, monkeypatch):
+    """A file that fails is reported and skipped; files and years no longer in the period are still dropped; and the
+    normal maps wait for a rerun rather than being built on a year that's missing."""
+    from agdata import climatestore, normals
+
+    archive(tmp_path, range(2016, 2027))
+    keep(tmp_path, [1995])
+    fetched: list[tuple[str, int]] = []
+
+    def fetch(name, year, path, extent):
+        if year == 1996:
+            raise OSError("the server closed the connection")
+        fetched.append((name, year))
+        return 1e6, 1.0
+
+    monkeypatch.setattr(gridmet, "fetch_with_retries", fetch)
+    monkeypatch.setattr(climatestore, "drop", lambda data_dir, year: dropped.append(year))
+    monkeypatch.setattr(normals, "build", lambda *a, **k: pytest.fail("normal maps built over a failed download"))
+    dropped: list[int] = []
+    p = climatology.plan(tmp_path, TODAY, WINDOW)
+    p.fetch = [(s.name, y) for y in (1996, 1997) for s in gridmet.SOURCES]
+    p.refit, p.derive, p.drop_years = None, {}, [1995]
+    report = Reporter(quiet=True)
+    assert climatology.run(tmp_path, WINDOW, p, report=report, lock=nullcontext) == 0
+    assert [f.split(":")[0] for f in report.failures] == [f"gridMET {s.name} 1996" for s in gridmet.SOURCES]
+    assert fetched == [(s.name, 1997) for s in gridmet.SOURCES]
+    assert not any(f.exists() for f in p.drop_files) and p.drop_files and dropped == [1995]
+    assert p.normals  # planned, and left for the rerun
+
+
+def test_a_run_stops_between_files_when_asked(tmp_path, monkeypatch):
+    archive(tmp_path, range(2016, 2027))
+    fetched = []
+    monkeypatch.setattr(gridmet, "fetch_with_retries", lambda name, year, path, extent: fetched.append(year) or (1, 1))
+    p = climatology.plan(tmp_path, TODAY, WINDOW)
+    asked = iter([False, False, True])
+    climatology.run(
+        tmp_path, WINDOW, p, report=Reporter(quiet=True), lock=nullcontext, stopping=lambda: next(asked, True)
+    )
+    assert len(fetched) == 2

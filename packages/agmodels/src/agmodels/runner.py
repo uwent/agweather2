@@ -3,12 +3,14 @@
 The caller reads the days (`agdata.series`): `required_inputs` says which, `first_day_needed` from when (the
 biofix or planting, less the model's lookback). `run` supplies the context (day of year, latitude, year), places
 the biofix (a date, the spec's default for the season, or a crop stage's predicted date), runs the outputs and
-risk, gates the risk by crop stage or a stage date the user gives (D33), finds the action windows' dates (D36) and which days are in season, and
+risk, gates the risk by crop stage or a stage date the user gives (D33), finds the action windows' dates (D36) and which days are in season (`agmodels.seasons.in_season`: an insect's ends early where fall freezes end it), and
 returns it all with each day's kind (observed, partial, forecast) and the model's id and version.
 
 Missing days in the inputs are estimated first, by each variable's method (`gap_fill`, from the catalog: D45,
 `agmodels.gaps`). The model sees the filled values and, as `<input>_estimated`, which days were filled; the inputs
-layer returned keeps the raw values with their gaps, and `estimated` says which days were filled.
+layer returned keeps the raw values with their gaps, and `estimated` says which days were filled. A gap longer than the
+fill reaches stays missing (`missing` on the days returned, `missing_before` counting those read before them): a
+running total adds nothing for those days, so the caller says so (D56).
 
 No I/O and nothing from `agdata`: region masks need the county grid, so the caller says whether the point is in
 the model's region.
@@ -17,14 +19,15 @@ the model's region.
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
-from typing import cast
+from typing import Any, cast
 
 import numpy as np
 
 from agmodels.crops import CropModel, date_susceptibility, disease_susceptibility, stage_days
-from agmodels.gaps import GapFill, fill_inputs
+from agmodels.gaps import GapFill, fill_inputs, no_value
 from agmodels.phenology import PhenologyModel, window_periods
 from agmodels.registry import model as find_model
+from agmodels.seasons import in_season
 from agmodels.spec import Model, ModelSpec, StageDate, Susceptibility
 
 CONTEXT = ("day_of_year", "latitude", "year")
@@ -46,9 +49,13 @@ class ModelRun:
     in_season: np.ndarray | None = None  # per day, from the spec's season; None if it has none
     windows: dict[str, list[tuple[date, date]]] = field(default_factory=dict)  # action windows' periods (D36)
     estimated: dict[str, np.ndarray] = field(default_factory=dict)  # per input with any, the days filled (D45)
-    # Per input with any, the days still missing after the fill (a gap longer than MAX_GAP_DAYS): a running total
+    # Per input with any, the days still missing after the fill (a gap longer than MAX_GAP_DAYS, with data on each
+    # side: `unfilled_gaps`), on the days returned: a running total
     # adds nothing for them, so a long outage would otherwise read as a quiet stretch
     missing: dict[str, np.ndarray] = field(default_factory=dict)
+    # Per input with any, how many of the days the run read before `start` (its biofix and lookback) are in such gaps
+    # (the most of any scenario): not shown, but the results from `start` rest on them (D56)
+    missing_before: dict[str, int] = field(default_factory=dict)
     biofix: date | None = None
     # Why there are no outputs: "outside the model's region", "biofix after the series" (not started yet), "biofix
     # not in the series" (the days given start after it: read from `first_day_needed`), "<stage> isn't reached in the
@@ -63,6 +70,9 @@ class ModelRun:
     # Where the weather came from, set by the caller that read it (`agdata.series`): its sources and corrections
     sources: tuple[str, ...] = ()
     corrections: tuple[str, ...] = ()
+    # The forecast the weather came with (`agdata.series.Forecast`, set there): which run, or why none and whether
+    # another source stood in (D114), for the answer's warnings
+    forecast: Any = None
 
 
 def required_inputs(m: Model) -> list[str]:
@@ -149,6 +159,8 @@ def run(
     if shown is None:
         raise ValueError(f"start {start} isn't in the series")
     result = ModelRun(model_id=spec.id, version=spec.version, dates=dates[shown:], kinds=day_kinds[shown:])
+    if spec.season is not None:  # the calendar, also for a run that doesn't start (refined below by its own end)
+        result.in_season = np.array([in_season(spec, d) for d in result.dates])
     if not in_region:
         result.reason = "outside the model's region"
         return result
@@ -185,8 +197,11 @@ def run(
 
     result.inputs = {q.name: raw[q.name][shown:] for q in spec.inputs}
     result.estimated = {q.name: estimated[q.name][shown:] for q in spec.inputs if estimated[q.name][shown:].any()}
-    gaps = {q.name: np.isnan(daily[q.name][shown:]) for q in spec.inputs}
-    result.missing = {name: gap for name, gap in gaps.items() if gap.any()}
+    blank = no_value(raw)  # a conditional mean's null on a day without its hours is no gap
+    gaps = {q.name: unfilled_gaps(daily[q.name], answered=blank.get(q.name)) for q in spec.inputs}
+    result.missing = {name: gap[shown:] for name, gap in gaps.items() if gap[shown:].any()}
+    before = {name: int(np.max(np.sum(gap[:shown], axis=0), initial=0)) for name, gap in gaps.items()}
+    result.missing_before = {name: count for name, count in before.items() if count}
     result.outputs = {name: np.asarray(values, dtype=float)[shown:] for name, values in outputs.items()}
     if risk is not None and spec.risk is not None:
         result.risk = risk[shown:]
@@ -206,12 +221,29 @@ def run(
             margin_days=window.margin_days,
         )
     if spec.season is not None:
-        result.in_season = np.array([_in_season(spec, d) for d in result.dates])
+        ended = np.nan_to_num(result.outputs.get("season_complete", np.zeros(len(result.dates)))) == 1
+        if ended.ndim > 1:  # a grid's days × cells: the calendar alone (maps say where each cell's season ended)
+            ended = np.zeros(len(result.dates), dtype=bool)
+        result.in_season = np.array(
+            [in_season(spec, d, ended=bool(e)) for d, e in zip(result.dates, ended, strict=True)]
+        )
     if isinstance(m, PhenologyModel) and next(iter(result.outputs.values())).ndim == 1:  # scenarios: per year
         for w in m.insect.action_windows:
             periods = window_periods(result.outputs[f"window_{w.key}"])
             result.windows[w.label] = [(result.dates[a], result.dates[b]) for a, b in periods]
     return result
+
+
+def unfilled_gaps(filled: np.ndarray, answered: np.ndarray | None = None) -> np.ndarray:
+    """The days of an input (filled, days on axis 0) still missing with a value on each side: a gap longer than the
+    fill reaches (D56). Days before the data start or after they end aren't a gap: the series reaches past them.
+    `answered` marks nulls that are the day's answer, not missing data (a conditional mean's, `gaps.no_value`)."""
+    valid = np.isfinite(np.asarray(filled, dtype=float))
+    if answered is not None:
+        valid = valid | answered
+    earlier = np.logical_or.accumulate(valid, axis=0)
+    later = np.flip(np.logical_or.accumulate(np.flip(valid, axis=0), axis=0), axis=0)
+    return ~valid & earlier & later
 
 
 def stage_date_option(spec: ModelSpec) -> str | None:
@@ -303,9 +335,3 @@ def _after_season(spec: ModelSpec, day: date) -> bool:
     """Between a New Year–crossing season's end and its next start (the next season is the one that applies)."""
     assert spec.season is not None
     return _mmdd(spec.season[1]) < (day.month, day.day) < _mmdd(spec.season[0])
-
-
-def _in_season(spec: ModelSpec, day: date) -> bool:
-    assert spec.season is not None
-    first, last, md = _mmdd(spec.season[0]), _mmdd(spec.season[1]), (day.month, day.day)
-    return first <= md <= last if first <= last else (md >= first or md <= last)

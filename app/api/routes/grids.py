@@ -36,7 +36,7 @@ from api.envelope import (
     respond,
     shown_unit,
 )
-from api.errors import ApiError, counted, quoted
+from api.errors import ApiError, quoted
 from api.events import to_date
 from api.gridfiles import GridFile, geotiff, netcdf
 from api.layermaps import LayerQuery
@@ -247,13 +247,7 @@ def grid(request: HttpRequest, layer: str, query: Query[GridQuery], output: Quer
         values = values[:, :: query.stride, :: query.stride]
         extra = {name: v[:: query.stride, :: query.stride] for name, v in extra.items()}
 
-    missing_steps = sum(k is None for k in kinds)
-    if missing_steps:
-        warnings.append(
-            f"{counted(missing_steps, found.time_axis)} of the {len(kinds)} asked for {'has' if missing_steps == 1 else 'have'} no data yet and show as missing."
-        )
-    if run.reason == "stale" and any(k is None for k in kinds):
-        warnings.append("The forecast is out of date, so the map ends with the last observed day.")
+    warnings += [n for n in layermaps.map_notes(a, c, mask) if n not in warnings]
     summary: dict[str, Any] = {
         "steps": len(kinds),
         "kinds": {kind or "missing": kinds.count(kind) for kind in dict.fromkeys(kinds)},

@@ -1,6 +1,6 @@
 ---
 id: onion-botrytis-leaf-blight
-title: Botrytis Leaf Blight (Onion)
+title: Botrytis leaf blight (onion)
 kind: disease
 crops:
   - onion
@@ -9,7 +9,7 @@ summary: A fungal disease that spots and kills onion leaves after long wet perio
 image: images/onion-botrytis-leaf-blight.jpg
 image_credit: 'Botrytis leaf blight spots on onion leaves. Photo by David B. Langston, University of Georgia, Bugwood.org (image 5076070), CC BY 3.0 US.'
 status: draft
-updated: 2026-11-19
+updated: 2026-11-25
 sources:
   - key: vegpath-onion
     text: 'Onion Botrytis Leaf Spot/Leaf Blight. UW Vegetable Pathology (Gevens lab), UW–Madison, updated 2026.'

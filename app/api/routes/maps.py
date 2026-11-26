@@ -198,7 +198,7 @@ def _draw(
     computed = layermaps.cached(a, archive, now, data_stamp)
     values = computed.values[0]
     states = layermaps.event_states(computed)  # a first or last day's none and no data (D78)
-    window, region = archive, None
+    window, region, inside = archive, None, None
     if q.region is not None:
         region = layermaps.find_region(q.region)
         inside = regions.mask(region, archive)
@@ -226,7 +226,7 @@ def _draw(
         agunits.unit(shown_as).label,
         lambda v: agunits.convert(v, a.unit, shown_as),
         categories=a.categories,
-        caption=maptitles.caption(a, computed),
+        caption=[*maptitles.caption(a, computed), *filter(None, [layermaps.missing_note(computed, inside)])],
         width=q.width,
         dates=a.unit == "date",
         states=states,

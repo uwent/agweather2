@@ -17,6 +17,7 @@ GENERATION = 912
 INSECT = Insect(
     id="cabbage-looper",
     name="Cabbage looper",
+    season=("07-15", "10-31"),
     crops=("celery", "cole-crops", "hops", "leafy-greens", "melon", "mint", "pea", "potato", "tomato"),
     # USPest.org's method: single sine, 50/90 °F (Toba et al. 1973: no development at 7.3 °C, 45 °F; no adults from
     # 10.0 °C and nearly all deformed at 12.7 °C, 55 °F). Both thresholds are stored. NEWA runs no looper model
@@ -50,7 +51,7 @@ INSECT = Insect(
         # From 10 to 90 % of each generation's eggs hatched: small caterpillars, the target for sprays (A3422; UW)
         ActionWindow(label="Scout for small caterpillars", stage="Eggs", between=(0.1, 0.9)),
     ),
-    version="0.3",
+    version="0.4",
     status="beta",
     trained=TrainingArea(
         description="development times measured in the laboratory in Riverside, California, as USPest.org's model uses them",
@@ -67,6 +68,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-23",
             note="The second generation's caterpillars weigh twice as much as the others' in the risk, since UW–Madison says the second generation does the most damage.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="In season from July 15 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
         ),
     ),
     checks=(
