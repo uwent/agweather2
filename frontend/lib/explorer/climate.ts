@@ -13,7 +13,7 @@ import { chanceWords, ordinal, percentileWords, shareOfYears, thresholdLabel, th
 import { formatDate } from '@/lib/dates'
 import { formatDays } from '@/lib/map/dataTiles'
 import type { Units } from '@/lib/units'
-import type { LayerInfo } from '@/types/api'
+import type { LayerCount, LayerInfo } from '@/types/api'
 
 import { ddParts } from './catalog'
 
@@ -30,58 +30,19 @@ export const FREEZE_MAP_F = [32, 28, 24] as const
 /** The degree-day settings with percentile maps (`agdata.layers.NORMAL_DECILES`) */
 export const PERCENTILE_DD = ['modified_50_86', 'sine_41_86']
 
-/** The counts of days whose normals are kept (`agdata.normals.COUNTS`, D88), by layer, as `count=` takes them in US
- * units, each with the name a grower knows it by (or none) */
-export const STORED_COUNTS: Record<string, { count: string; name: string | null }[]> = {
-  air_temperature_max: [
-    { count: 'days_above_86', name: null },
-    { count: 'days_above_90', name: null },
-    { count: 'days_above_93p2', name: 'heat days' },
-    { count: 'days_below_32', name: 'days that stay freezing' },
-  ],
-  air_temperature_min: [
-    { count: 'days_below_32', name: 'frost' },
-    { count: 'days_below_28', name: 'hard freeze' },
-    { count: 'days_above_70', name: 'warm nights' },
-  ],
-  precipitation_sum: [
-    { count: 'days_below_0p01', name: 'dry days' },
-    { count: 'days_above_0p5', name: null },
-    { count: 'days_above_1', name: 'heavy rain' },
-  ],
-  shortwave_radiation_sum: [
-    { count: 'days_above_20', name: 'sunny days' },
-    { count: 'days_below_10', name: 'cloudy days' },
-  ],
-}
-
-/** The unit a count's bounds are written in (`units=us`) */
-const COUNT_UNITS: Record<string, string> = {
-  air_temperature_max: 'degF',
-  air_temperature_min: 'degF',
-  precipitation_sum: 'in',
-  shortwave_radiation_sum: 'MJ_m2',
-}
-
-/** The counts a layer offers on a range */
-export const countsFor = (layer: Pick<LayerInfo, 'id'>): string[] => (STORED_COUNTS[layer.id] ?? []).map((c) => c.count)
-
-/** `days_above_93p2` → above, 93.2 */
-export function countParts(count: string): { above: boolean; value: number } | null {
-  const match = /^days_(above|below)_([\dp.]+)$/.exec(count)
-  if (!match) return null
-  return { above: match[1] === 'above', value: Number(match[2].replace('p', '.')) }
-}
+/** The counts of days whose normals are kept (`agdata.normals.COUNTS`, D88), as `/layers` lists them on a layer:
+ * `count=`'s value in US units, each with its bounds and the name a grower knows it by (or none) */
+export const countsFor = (layer: Pick<LayerInfo, 'counts'>): string[] => (layer.counts ?? []).map((c) => c.count)
 
 /** "Days at or above 93 °F (heat days)", in the reader's units */
-export function countLabel(layerId: string, count: string, units: Units): string {
-  const parts = countParts(count)
-  const unit = COUNT_UNITS[layerId]
-  if (!parts || !unit) return count
+export function countLabel(count: LayerCount, units: Units): string {
+  const above = count.low !== null
+  const bound = count.low ?? count.high
+  if (bound === null) return count.count
+  const unit = count.unit
   const digits = unit === 'degF' && units.system === 'metric' ? 1 : unit === 'MJ_m2' ? 0 : undefined
-  const value = units.format(unit, parts.value, digits === undefined ? undefined : { digits })
-  const name = STORED_COUNTS[layerId]?.find((c) => c.count === count)?.name
-  return `Days at or ${parts.above ? 'above' : 'below'} ${value}${name ? ` (${name})` : ''}`
+  const value = units.format(unit, bound, digits === undefined ? undefined : { digits })
+  return `Days at or ${above ? 'above' : 'below'} ${value}${count.name ? ` (${count.name})` : ''}`
 }
 
 /** The degree-day settings with kept running totals: the `dd_*` running totals that list normals */
@@ -103,7 +64,7 @@ export function ddHasNormals(dd: string, stored: readonly string[]): boolean {
 
 /** What a map's comparison depends on */
 export type ClimateCase = {
-  layer: Pick<LayerInfo, 'id' | 'group' | 'climate' | 'time_axis'>
+  layer: Pick<LayerInfo, 'id' | 'group' | 'climate' | 'time_axis' | 'counts'>
   /** The span the map shows (`spanFor`) */
   span: string | null
   /** Degree days' setting */

@@ -284,7 +284,7 @@
             onchange={(event) => onchange({ count: event.currentTarget.value || null })}
           >
             <option value="">No: combine the days</option>
-            {#each counts as c (c)}<option value={c}>{countLabel(layer.id, c, units)}</option>{/each}
+            {#each layer.counts ?? [] as c (c.count)}<option value={c.count}>{countLabel(c, units)}</option>{/each}
           </select>
         </div>
       {/if}
