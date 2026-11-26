@@ -49,6 +49,29 @@
    "climate": [
     "normal",
     "departure"
+   ],
+   "counts": [
+    {
+     "count": "days_below_32",
+     "name": "frost",
+     "low": null,
+     "high": 32.0,
+     "unit": "degF"
+    },
+    {
+     "count": "days_below_28",
+     "name": "hard freeze",
+     "low": null,
+     "high": 28.0,
+     "unit": "degF"
+    },
+    {
+     "count": "days_above_70",
+     "name": "warm nights",
+     "low": 70.0,
+     "high": null,
+     "unit": "degF"
+    }
    ]
   },
   {
@@ -88,6 +111,36 @@
    "climate": [
     "normal",
     "departure"
+   ],
+   "counts": [
+    {
+     "count": "days_above_86",
+     "name": null,
+     "low": 86.0,
+     "high": null,
+     "unit": "degF"
+    },
+    {
+     "count": "days_above_90",
+     "name": null,
+     "low": 90.0,
+     "high": null,
+     "unit": "degF"
+    },
+    {
+     "count": "days_above_93p2",
+     "name": "heat days",
+     "low": 93.2,
+     "high": null,
+     "unit": "degF"
+    },
+    {
+     "count": "days_below_32",
+     "name": "days that stay freezing",
+     "low": null,
+     "high": 32.0,
+     "unit": "degF"
+    }
    ]
   },
   {
@@ -569,6 +622,29 @@
    "climate": [
     "normal",
     "departure"
+   ],
+   "counts": [
+    {
+     "count": "days_below_0p01",
+     "name": "dry days",
+     "low": null,
+     "high": 0.01,
+     "unit": "in"
+    },
+    {
+     "count": "days_above_0p5",
+     "name": null,
+     "low": 0.5,
+     "high": null,
+     "unit": "in"
+    },
+    {
+     "count": "days_above_1",
+     "name": "heavy rain",
+     "low": 1.0,
+     "high": null,
+     "unit": "in"
+    }
    ]
   },
   {
@@ -609,6 +685,22 @@
    "climate": [
     "normal",
     "departure"
+   ],
+   "counts": [
+    {
+     "count": "days_above_20",
+     "name": "sunny days",
+     "low": 20.0,
+     "high": null,
+     "unit": "MJ_m2"
+    },
+    {
+     "count": "days_below_10",
+     "name": "cloudy days",
+     "low": null,
+     "high": 10.0,
+     "unit": "MJ_m2"
+    }
    ]
   },
   {

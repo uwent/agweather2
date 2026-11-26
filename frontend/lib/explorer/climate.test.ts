@@ -249,10 +249,16 @@ describe('the cell panel agrees with the tiles', () => {
 
 describe('a count in words', () => {
   it('names the bound in the reader’s units, with the name growers know', () => {
-    expect(countLabel('air_temperature_max', 'days_above_93p2', US)).toBe('Days at or above 93 °F (heat days)')
-    expect(countLabel('air_temperature_min', 'days_below_32', METRIC)).toBe('Days at or below 0.0 °C (frost)')
-    expect(countLabel('precipitation_sum', 'days_below_0p01', US)).toBe('Days at or below 0.01 in (dry days)')
-    expect(countLabel('shortwave_radiation_sum', 'days_above_20', US)).toBe('Days at or above 20 MJ/m² (sunny days)')
+    const label = (id: string, count: string, units = US) =>
+      countLabel(
+        layer(id).counts!.find((c) => c.count === count)!,
+        units,
+      )
+    expect(label('air_temperature_max', 'days_above_93p2')).toBe('Days at or above 93 °F (heat days)')
+    expect(label('air_temperature_max', 'days_above_90')).toBe('Days at or above 90 °F')
+    expect(label('air_temperature_min', 'days_below_32', METRIC)).toBe('Days at or below 0.0 °C (frost)')
+    expect(label('precipitation_sum', 'days_below_0p01')).toBe('Days at or below 0.01 in (dry days)')
+    expect(label('shortwave_radiation_sum', 'days_above_20')).toBe('Days at or above 20 MJ/m² (sunny days)')
   })
 })
 
