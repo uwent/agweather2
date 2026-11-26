@@ -4,6 +4,7 @@ import { type Page } from '@playwright/test'
 
 import { SAVED, stubSiteData } from './sites'
 import { stubDataApi } from './dataApi'
+import { stubClimateApi } from './climateApi'
 import { stubFeedApi, stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
@@ -239,4 +240,25 @@ test('the settings dialog', async ({ page }) => {
   await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible()
   const { violations } = await new AxeBuilder({ page }).withTags(TAGS).analyze()
   expect(violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([])
+})
+
+// The site page's Climate tab (track 6.2), every section scrolled in so all of them are checked, in both themes
+test("a site's Climate tab, in both themes", async ({ page }) => {
+  await stubSiteApi(page)
+  await stubClimateApi(page)
+  const path = '/sites/44.12,-89.52?tab=climate'
+  for (const theme of ['first', 'other']) {
+    if (theme === 'other') {
+      await page.goto('/')
+      await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
+    }
+    await page.goto(path)
+    for (const name of ['Temperature against normal', 'Frost and freeze', 'This month against normal', 'Normals']) {
+      await page.getByRole('heading', { level: 2, name }).scrollIntoViewIfNeeded()
+    }
+    await expect(page.getByRole('region', { name: 'Normals by month' })).toBeVisible()
+    await expect(page.locator('[data-chart] canvas')).toHaveCount(5)
+    await axeOnly(page, `a site's Climate tab (${theme} theme)`)
+    if (theme === 'first' && test.info().project.name === 'desktop') await reflows(page, path)
+  }
 })
