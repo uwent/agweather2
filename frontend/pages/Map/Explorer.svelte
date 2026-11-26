@@ -21,7 +21,9 @@
   import CountyTable from '@/lib/explorer/CountyTable.svelte'
   import { buildCellChart, cellSummary, cellTable, shownValues } from '@/lib/explorer/cellChart'
   import { type CellSeries, readSeries, seriesRequest } from '@/lib/explorer/cellSeries'
+  import { type Bounds, downloadLinks } from '@/lib/explorer/downloads'
   import LayerPicker from '@/lib/explorer/LayerPicker.svelte'
+  import MapDownloads from '@/lib/explorer/MapDownloads.svelte'
   import LayerSettings, { type ModelOption } from '@/lib/explorer/LayerSettings.svelte'
   import SaveImageButton from '@/lib/explorer/SaveImageButton.svelte'
   import MapOptions from '@/lib/explorer/MapOptions.svelte'
@@ -255,6 +257,32 @@
         : [],
     })
   }
+
+  // The area in view, for the downloads
+  let bounds = $state<Bounds | null>(null)
+  $effect(() => {
+    const m = map
+    if (!m) return
+    const track = () => {
+      const b = m.getBounds()
+      bounds = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]
+    }
+    track()
+    m.on('moveend', track)
+    return () => {
+      m.off('moveend', track)
+    }
+  })
+  const downloads = $derived(
+    shown
+      ? downloadLinks(shown, {
+          bounds,
+          system: units.system === 'metric' ? 'metric' : 'us',
+          palette: $view.palette,
+          scale: $view.scale,
+        })
+      : null,
+  )
 
   // The phone's stepper, under the map: the same steps as the controls'
   const stepWhen = $derived(layer ? stepperWhen($view, layer, today) : null)
@@ -524,6 +552,7 @@
     {#if layer}
       <TimeControls view={$view} {layer} {today} onchange={change} />
       <MapOptions view={$view} {layer} {info} {palettes} onchange={change} />
+      {#if downloads}<MapDownloads links={downloads} />{/if}
     {/if}
   {:else if !loadError}
     <p class="text-sm text-ink-muted">Loading the maps…</p>
