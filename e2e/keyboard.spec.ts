@@ -25,6 +25,8 @@ test('the controls run in order: find a map, kind of map, daily or hourly, the m
   await page.keyboard.press('Tab')
   await expect(page.getByRole('radio', { name: 'Off' })).toBeFocused()
   await page.keyboard.press('Tab')
+  await expect(page.getByRole('link', { name: 'How normals are made' })).toBeFocused()
+  await page.keyboard.press('Tab')
   await expect(page.getByRole('radio', { name: 'Day', exact: true })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(page.getByLabel('Date', { exact: true })).toBeFocused()

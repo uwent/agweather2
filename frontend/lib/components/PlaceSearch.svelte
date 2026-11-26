@@ -1,4 +1,4 @@
-<!-- WISP 3: app/frontend/lib/map/PlaceSearch.svelte (adapted: the danger token for its error) -->
+<!-- WISP 3: app/frontend/lib/map/PlaceSearch.svelte (adapted: the danger token for its error; a visible focus outline on the field and buttons) -->
 <script lang="ts">
   import type { Map as MapLibreMap } from 'maplibre-gl'
 
@@ -80,7 +80,11 @@
     >
       {#each places as place (place.label)}
         <li>
-          <button type="button" class="block w-full px-3 py-2 text-left hover:bg-brand-50" onclick={() => goTo(place)}>
+          <button
+            type="button"
+            class="block w-full px-3 py-2 text-left hover:bg-brand-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600"
+            onclick={() => goTo(place)}
+          >
             {place.label}
           </button>
         </li>
@@ -100,11 +104,11 @@
       onkeydown={onKey}
       placeholder="Find a place, e.g. Hancock WI"
       aria-label="Find a place on the map"
-      class="min-w-0 flex-1 border-0 bg-transparent px-3 py-1.5 text-sm focus:ring-0"
+      class="min-w-0 flex-1 border-0 bg-transparent px-3 py-1.5 text-sm focus:ring-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600"
     />
     <button
       type="button"
-      class="px-3 text-sm font-medium text-ink hover:bg-brand-50 disabled:opacity-60"
+      class="px-3 text-sm font-medium text-ink hover:bg-brand-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600 disabled:opacity-60"
       onclick={search}
       disabled={searching}
     >
