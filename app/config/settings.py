@@ -90,6 +90,9 @@ API_OVERRUN_LIMIT: int | None = int(os.environ.get("API_OVERRUN_LIMIT") or "2") 
 # many slots per web process, waiting up to API_HEAVY_WAIT seconds for one before a 503; 0 turns the limit off
 API_HEAVY_SLOTS: int | None = int(os.environ.get("API_HEAVY_SLOTS") or "1") or None
 API_HEAVY_WAIT = float(os.environ.get("API_HEAVY_WAIT") or "5")
+# The API-use form (updates.forms): one sent sooner than this many seconds after its page was made is taken for a
+# program's and dropped. The browser tests set it to 0 rather than wait.
+API_USE_MIN_SECONDS = float(os.environ.get("API_USE_MIN_SECONDS") or "3")
 
 INSTALLED_APPS = [
     "django.contrib.admin",

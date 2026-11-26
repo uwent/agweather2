@@ -26,6 +26,7 @@ export default defineConfig({
       VITE_DEV_MODE: '0',
       DATABASE_URL: process.env.E2E_DATABASE_URL!,
       DATA_DIR: `${process.cwd()}/tmp/e2e-data`, // an empty archive, so health doesn't depend on local data
+      API_USE_MIN_SECONDS: '0', // the API-use form's tests send it at once (its wait is tested in pytest)
     },
     reuseExistingServer: false,
     timeout: 120_000,

@@ -2,7 +2,7 @@
 
 - A honeypot: `website`, a field people never see (off-screen, out of the tab order, hidden from screen readers).
   A form with it filled is dropped as if it had been sent.
-- A signed token in the page's props (`form_token`): a form sent under `MIN_SECONDS` after the page was made is
+- A signed token in the page's props (`form_token`): a form sent under `settings.API_USE_MIN_SECONDS` (3) after the page was made is
   dropped the same way; one older than `MAX_AGE` asks the reader to reload the page.
 - Limits counted in the database (no shared cache is configured): `PER_CLIENT_PER_HOUR` reports from one address
   (an IPv4 address or IPv6 /64, as the API's rate limits count them) and `PER_DAY` from everyone.
@@ -20,7 +20,6 @@ from django.utils import timezone
 from updates.models import ApiUseReport
 
 SALT = "updates.api-use"
-MIN_SECONDS = 3
 MAX_AGE = timedelta(days=1)
 PER_CLIENT_PER_HOUR = 5
 PER_DAY = 100

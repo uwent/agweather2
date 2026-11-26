@@ -4,6 +4,7 @@ data and the form's round trip."""
 import json
 from typing import Any
 
+from django.conf import settings
 from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
@@ -50,7 +51,7 @@ def api_use(request: HttpRequest) -> HttpResponse:
     data = _sent(request)
     form = forms.ApiUseForm(data=data)
     age = forms.token_age(str(data.get("form_token") or ""))
-    if form.is_bot or (age is not None and age < forms.MIN_SECONDS):
+    if form.is_bot or (age is not None and age < settings.API_USE_MIN_SECONDS):
         # Dropped quietly: a bot sees what a person would
         messages.success(request, THANKS)
         return redirect("api-use")

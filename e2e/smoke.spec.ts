@@ -70,8 +70,7 @@ test('API use form sends a report', async ({ page }) => {
   await page.getByLabel('Your name').fill('Pat Grower')
   await page.getByLabel('What do you use the API for?').fill('Degree days for our fields.')
   await page.getByLabel('Weather', { exact: true }).check()
-  // A form sent within seconds of the page loading is taken for a program's (updates/forms.py)
-  await page.waitForTimeout(3500)
+  // A form sent within seconds of the page loading is taken for a program's, but not here (API_USE_MIN_SECONDS=0)
   await page.getByRole('button', { name: 'Send' }).click()
   await expect(page.getByRole('heading', { name: 'Thank you' })).toBeVisible()
   await page.getByRole('button', { name: 'Send another response' }).click()
@@ -81,7 +80,6 @@ test('API use form sends a report', async ({ page }) => {
 test('API use form shows what to correct', async ({ page }) => {
   await page.goto('/api-use')
   await page.getByLabel('Your name').fill('Pat Grower')
-  await page.waitForTimeout(3500)
   await page.getByRole('button', { name: 'Send' }).click()
   await expect(page.getByText('Tell us what you use the API for.')).toBeVisible()
   await expect(page.getByLabel('What do you use the API for?')).toHaveAttribute('aria-invalid', 'true')

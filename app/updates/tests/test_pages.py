@@ -153,6 +153,14 @@ def test_a_form_sent_too_fast_is_dropped_quietly(client):
 
 
 @pytest.mark.django_db
+def test_the_wait_follows_its_setting(client, settings):
+    """The browser tests set it to 0 so they needn't wait."""
+    settings.API_USE_MIN_SECONDS = 0
+    send(client, valid(form_token=token(age=0.5)))
+    assert ApiUseReport.objects.count() == 1
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize("bad", ["", "nonsense", "expired"])
 def test_an_old_or_missing_token_asks_for_a_reload(client, bad):
     sent = token(age=2 * 86400) if bad == "expired" else bad
