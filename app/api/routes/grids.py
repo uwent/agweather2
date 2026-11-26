@@ -18,7 +18,7 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from ninja import Field, Query, Router, Schema
 
-from agdata import modelgrid, palettes, regions, seasonal, series, terrain
+from agdata import modelgrid, palettes, seasonal, series, terrain
 from agdata import units as agunits
 from agdata.catalog import DAILY_STATISTICS
 from agdata.grid import NDFD, Box, Window
@@ -357,12 +357,14 @@ def _area(q: GridQuery, archive: Window) -> tuple[Window, np.ndarray, dict[str, 
                 "bbox",
             )
     if q.region is not None:
-        region = layermaps.find_region(q.region)
-        mask &= regions.mask(region, archive)
+        region, inside = layermaps.region_cells(q.region, archive)
+        mask &= inside
         echo["region"] = {"id": region.id, "name": region.name}
         if not mask.any():
             raise ApiError(
-                "outside_box", f"{region.name} is outside the area we cover, so it has no grid cells here.", "region"
+                "outside_box",
+                f"The 'bbox' and {region.name} have no grid cells in common. Choose a box that overlaps the region, or leave one of them out.",
+                "region",
             )
     window, crop = layermaps.window_around(archive, mask)
     if q.bbox is not None or q.region is not None:

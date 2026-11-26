@@ -54,7 +54,7 @@ def summary(request: HttpRequest, layer: str, query: Query[SummaryQuery], output
     labels = regions.area_labels(by, archive)
     echo: dict[str, Any] = {"by": by}
     if query.region is not None:
-        region = layermaps.find_region(query.region)
+        region = layermaps.offered_region(query.region)
         wanted = regions.area_indices(region, by)
         echo["region"] = {"id": region.id, "name": region.name}
     else:
@@ -62,7 +62,11 @@ def summary(request: HttpRequest, layer: str, query: Query[SummaryQuery], output
     inside = np.isin(labels, wanted)
     if not inside.any():
         name = echo["region"]["name"] if "region" in echo else "The region"
-        raise ApiError("outside_box", f"{name} is outside the area we cover, so it has no grid cells here.", "region")
+        raise ApiError(
+            "outside_box",
+            f"{name} is outside the area we cover, so it has no grid cells here. {layermaps.offered_states_sentence()}",
+            "region",
+        )
     periods = _periods(a, query.interval)
     steps = len(periods) if a.stat is not None else a.steps
     if len(wanted) * steps > MAX_ROWS:

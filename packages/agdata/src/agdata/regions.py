@@ -207,6 +207,38 @@ def mask(region: Region, window: Window) -> np.ndarray:
     return np.isin(cell_counties(window), list(region.county_ids))
 
 
+def is_state(region: Region) -> bool:
+    """Whether the region is a state (a county's id is its FIPS code)."""
+    return not region.id.isdigit()
+
+
+def region_states(region: Region) -> set[str]:
+    """The postal codes of the states the region lies in."""
+    table = counties()
+    return {c.state for k in region.county_ids if (c := table[k]) is not None}
+
+
+def offered_states() -> tuple[str, ...]:
+    """The postal codes of the states `region=` takes (`use_coverage`, D105), sorted: a coverage preset's own states,
+    which it covers whole (its buffer's strips of the states around them don't make them offered); for a box, every
+    state with a covered cell; every state when no coverage is set."""
+    if _coverage_spec is None:
+        return tuple(sorted(STATES))
+    return _offered(_coverage_spec())
+
+
+@cache
+def _offered(spec: str) -> tuple[str, ...]:
+    from agdata import coverage
+
+    found = coverage.of(spec)
+    if found.states is not None:
+        return tuple(sorted(found.states))
+    table = counties()
+    ids = np.unique(cell_counties(found.window)[found.mask])
+    return tuple(sorted({c.state for k in ids.tolist() if k > 0 and (c := table[k]) is not None}))
+
+
 # --- Summaries by county or state (Phase 6 C5) ----------------------------------------------------------
 
 

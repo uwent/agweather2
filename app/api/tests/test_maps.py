@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
+from api import layermaps
 from api.routes import maps
 
 
@@ -124,7 +125,7 @@ def test_clip_blanks_the_frame_outside_the_region(client, archive, monkeypatch):
         found[0, 0] = True
         return found
 
-    monkeypatch.setattr(maps.regions, "mask", diagonal)
+    monkeypatch.setattr(layermaps.regions, "mask", diagonal)
     asked = {"date": "2025-07-05", "region": "IA", "width": "400"}
     whole = client.get("/api/v2/maps/air_temperature_max.png", asked)
     clipped = client.get("/api/v2/maps/air_temperature_max.png", {**asked, "clip": "true"})
