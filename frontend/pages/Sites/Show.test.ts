@@ -2,10 +2,13 @@ import { fireEvent, render, screen, within } from '@testing-library/svelte'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import daily from '@/test/fixtures/site/daily.json'
+import degreeDays from '@/test/fixtures/site/degree-days.json'
 import hourly from '@/test/fixtures/site/hourly.json'
 import locate from '@/test/fixtures/site/locate.json'
+import presets from '@/test/fixtures/site/presets.json'
 import risk from '@/test/fixtures/site/risk.json'
 import totals from '@/test/fixtures/site/totals.json'
+import variables from '@/test/fixtures/site/variables.json'
 import type { SiteProps } from '@/types'
 
 vi.mock('@inertiajs/svelte', () => import('@/test/page.svelte'))
@@ -54,6 +57,9 @@ const ANSWERS: Record<string, unknown> = {
   '/weather/daily': daily,
   '/weather/totals': totals,
   '/risk': risk,
+  '/degree-days': degreeDays,
+  '/degree-days/presets': presets,
+  '/variables': variables,
 }
 
 beforeEach(() => {
@@ -183,5 +189,71 @@ describe('the site page', () => {
     await fireEvent.click(screen.getByRole('tab', { name: 'Overview' }))
     expect(await screen.findByRole('list', { name: 'Risk today by model' })).toBeInTheDocument()
     expect(get.mock.calls.filter(([path]) => path === '/risk')).toHaveLength(1)
+  })
+
+  it('compares degree-day settings from a planting date, in one request in °F, and tabulates the totals', async () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/sites/44.12,-89.52?tab=degree-days&dd=corn;sine_41_86&from=planting&projection=true',
+    )
+    render(Show, props)
+    expect(screen.getByRole('tab', { name: 'Degree days' })).toHaveAttribute('aria-selected', 'true')
+    await vi.waitFor(() => expect(get.mock.calls.some(([path]) => path === '/degree-days')).toBe(true))
+    const [, params] = get.mock.calls.findLast(([path]) => path === '/degree-days')!
+    // The typical corn planting date at the site, from /locate
+    expect(params).toMatchObject({
+      dd: ['modified_50_86', 'sine_41_86'],
+      start: '2026-05-13',
+      projection: true,
+      units: 'us',
+    })
+    expect(get.mock.calls.some(([path]) => path === '/risk')).toBe(false)
+    const table = await screen.findByRole('table')
+    expect(within(table).getByRole('rowheader', { name: 'Corn (field)' })).toBeInTheDocument()
+    expect(within(table).getByRole('columnheader', { name: 'By Dec 31 (projected)' })).toBeInTheDocument()
+    expect(
+      screen.getByText(/Starting from the typical corn \(field\) planting date here, May 13\./),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Setting 1' })).toHaveValue('corn')
+    // The second setting is the reader's own: its fields, in their units
+    expect(screen.getByRole('textbox', { name: 'Base (°F)' })).toHaveValue('41')
+  })
+
+  it('applies your own degree-day setting, and refuses an upper threshold below the base', async () => {
+    window.history.replaceState(null, '', '/sites/44.12,-89.52?tab=degree-days&dd=sine_41_86')
+    render(Show, props)
+    const base = await screen.findByRole('textbox', { name: 'Base (°F)' })
+    const upper = screen.getByRole('textbox', { name: 'Upper (°F, optional)' })
+    await fireEvent.input(base, { target: { value: '50' } })
+    await fireEvent.input(upper, { target: { value: '40' } })
+    await fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('The upper threshold must be above the base.')
+    await fireEvent.input(upper, { target: { value: '' } })
+    await fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
+    await vi.waitFor(() =>
+      expect(get.mock.calls.findLast(([path]) => path === '/degree-days')![1].dd).toEqual(['sine_50']),
+    )
+  })
+
+  it('builds a download and shows its address, saying when it is too long', async () => {
+    window.history.replaceState(null, '', '/sites/44.12,-89.52?tab=data')
+    render(Show, props)
+    const address = await screen.findByRole('textbox', { name: 'The request’s address, for a script' })
+    expect(address).toHaveValue(
+      `${window.location.origin}/api/v2/weather/daily?format=csv&lat=44.12&lng=-89.52&start=2026-01-01&units=us&vars=air_temperature_min%2Cair_temperature_max%2Cprecipitation_sum`,
+    )
+    expect(screen.getByRole('link', { name: 'Download CSV' })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/^\/api\/v2\/weather\/daily\?/),
+    )
+    expect(await screen.findByRole('checkbox', { name: /Air temperature at 2 m, daily max/ })).toBeChecked()
+    await fireEvent.click(screen.getByRole('radio', { name: /Hourly weather/ }))
+    await vi.waitFor(() => expect((address as HTMLTextAreaElement).value).toContain('/weather/hourly?'))
+    const start = screen.getByLabelText('Start date')
+    await fireEvent.input(start, { target: { value: '2024-01-01' } })
+    expect(await screen.findByRole('alert')).toHaveTextContent(/a request can include up to 17,568, about two years/)
+    expect(screen.queryByRole('link', { name: 'Download CSV' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Read the API documentation' })).toHaveAttribute('href', '/api/v2/docs')
   })
 })

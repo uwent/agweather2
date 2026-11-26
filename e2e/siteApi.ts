@@ -16,6 +16,17 @@ const ANSWERS: Record<string, string> = {
   '/api/v2/risk': 'risk',
   // A model at a site (late blight's page)
   '/api/v2/models/late-blight-dsv/run': 'model-late-blight',
+  // The Degree days and Data tabs
+  '/api/v2/degree-days': 'degree-days',
+  '/api/v2/degree-days/presets': 'presets',
+  '/api/v2/variables': 'variables',
+}
+
+/** Late blight at three saved sites (e2e/sites.ts's SAVED), for its feed: a run over several points */
+export async function stubFeedApi(page: Page) {
+  await page.route('**/api/v2/models/late-blight-dsv/run?*', (route) =>
+    route.fulfill({ json: fixture('feed-late-blight') }),
+  )
 }
 
 export async function stubSiteApi(page: Page) {

@@ -6,11 +6,13 @@
   import { addDays, today as gridToday } from '@/lib/dates'
   import { riskSpanQuery } from '@/lib/riskSpan'
   import { request } from '@/lib/sites/request.svelte'
+  import DataTab, { type DataView } from '@/lib/sites/DataTab.svelte'
+  import DegreeDaysTab, { type DegreeDaysView } from '@/lib/sites/DegreeDaysTab.svelte'
   import ModelsTab from '@/lib/sites/ModelsTab.svelte'
   import Overview from '@/lib/sites/Overview.svelte'
   import SiteHeader from '@/lib/sites/SiteHeader.svelte'
   import WeatherTab, { type WeatherView } from '@/lib/sites/WeatherTab.svelte'
-  import { siteAt } from '@/lib/sites.svelte'
+  import { effectivePrefs, siteAt } from '@/lib/sites.svelte'
   import { tableRows } from '@/lib/tableRows'
   import { codecs, field, viewState } from '@/lib/viewState'
   import type { SiteProps } from '@/types'
@@ -25,13 +27,24 @@
 
   const today = $derived(gridToday())
 
+  const TAB_IDS = ['overview', 'weather', 'models', 'degree-days', 'data'] as const
+  type Tab = (typeof TAB_IDS)[number]
+
   const view = viewState({
-    tab: field(codecs.oneOf(['overview', 'weather', 'models'] as const), 'overview'),
+    tab: field(codecs.oneOf(TAB_IDS), 'overview'),
     step: field(codecs.oneOf(['daily', 'hourly'] as const), 'daily'),
     range: field(codecs.oneOf(['week', 'month', 'season', 'custom'] as const), 'month'),
     dates: field(codecs.dateRange, null),
     roll: field(codecs.integer({ min: 2, max: 365 }), null),
     forecast: field(codecs.boolean, true),
+    // The Degree days tab
+    dd: field(codecs.string, ''),
+    from: field(codecs.oneOf(['jan1', 'planting', 'biofix'] as const), 'jan1'),
+    since: field(codecs.date, null),
+    season: field(codecs.integer({ min: 2000, max: 2100 }), null),
+    projection: field(codecs.boolean, false),
+    // The Data tab
+    get: field(codecs.oneOf(['daily', 'hourly', 'totals', 'degree-days', 'model'] as const), 'daily'),
   })
   onDestroy(() => view.destroy())
 
@@ -76,7 +89,7 @@
   // The risk once a tab that shows it opens (not for the Weather tab alone), again when the point or day changes
   let riskFor = ''
   $effect(() => {
-    if ($view.tab === 'weather' || riskFor === pointKey) return
+    if (!['overview', 'models'].includes($view.tab) || riskFor === pointKey) return
     riskFor = pointKey
     loadRisk()
   })
@@ -100,10 +113,23 @@
     forecast: $view.forecast,
   })
 
+  const ddView = $derived<DegreeDaysView>({
+    dd: $view.dd,
+    from: $view.from,
+    since: $view.since,
+    year: $view.season,
+    projection: $view.projection,
+  })
+  const dataView = $derived<DataView>({ get: $view.get })
+  // A saved site's planting date (its preferences), for the Degree days tab's count from planting
+  const savedPlanting = $derived(saved ? (effectivePrefs(saved.key).planting ?? null) : null)
+
   const tabs = [
     { value: 'overview', label: 'Overview' },
     { value: 'weather', label: 'Weather' },
     { value: 'models', label: 'Models' },
+    { value: 'degree-days', label: 'Degree days' },
+    { value: 'data', label: 'Data' },
   ] as const
 </script>
 
@@ -127,12 +153,12 @@
     <p class="text-sm text-ink-muted" role="status">{locate.value.message}</p>
   {/if}
 
-  <Tabs.Root value={$view.tab} onValueChange={(tab) => view.patch({ tab: tab as 'overview' | 'weather' | 'models' })}>
-    <Tabs.List class="flex gap-1 border-b border-line" aria-label="Site sections">
+  <Tabs.Root value={$view.tab} onValueChange={(tab) => view.patch({ tab: tab as Tab })}>
+    <Tabs.List class="flex gap-1 overflow-x-auto border-b border-line" aria-label="Site sections">
       {#each tabs as tab (tab.value)}
         <Tabs.Trigger
           value={tab.value}
-          class="-mb-px cursor-pointer border-b-2 border-transparent px-3 py-2 text-sm font-medium text-ink-muted
+          class="-mb-px cursor-pointer border-b-2 border-transparent px-3 py-2 text-sm font-medium whitespace-nowrap text-ink-muted
             hover:text-ink focus-visible:outline-2 focus-visible:outline-brand-600
             data-[state=active]:border-brand-600 data-[state=active]:text-ink"
         >
@@ -151,6 +177,31 @@
     </Tabs.Content>
     <Tabs.Content value="models" class="pt-6">
       {#if $view.tab === 'models'}<ModelsTab {lat} {lng} {today} {models} {crops} {risk} {loadRisk} />{/if}
+    </Tabs.Content>
+    <Tabs.Content value="degree-days" class="pt-6">
+      {#if $view.tab === 'degree-days'}
+        <DegreeDaysTab
+          {lat}
+          {lng}
+          {today}
+          {location}
+          planting={savedPlanting}
+          view={ddView}
+          onchange={(changes) =>
+            view.patch({
+              ...('dd' in changes ? { dd: changes.dd } : {}),
+              ...('from' in changes ? { from: changes.from } : {}),
+              ...('since' in changes ? { since: changes.since } : {}),
+              ...('year' in changes ? { season: changes.year } : {}),
+              ...('projection' in changes ? { projection: changes.projection } : {}),
+            })}
+        />
+      {/if}
+    </Tabs.Content>
+    <Tabs.Content value="data" class="pt-6">
+      {#if $view.tab === 'data'}
+        <DataTab {lat} {lng} {today} {models} view={dataView} onchange={(changes) => view.patch(changes)} />
+      {/if}
     </Tabs.Content>
   </Tabs.Root>
   {#if locate.value.data?.meta.attribution}

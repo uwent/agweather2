@@ -348,7 +348,7 @@
       >
         <h2 id="open-at-a-site-title" class="text-xl font-semibold">Open at a site</h2>
         <p class="text-sm">See this model’s results through the season and the forecast for one location.</p>
-        <OpenAtSite modelId={props.id} />
+        <OpenAtSite modelId={props.id} feed={!!props.risk} />
       </section>
 
       {#if props.updated}

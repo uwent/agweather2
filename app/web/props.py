@@ -494,3 +494,10 @@ class MethodsProps(Props):
     corrections: list[MethodsCorrection]
     variables: list[MethodsVariable] = Field(description="Hourly, then daily, then running totals, as /variables.")
     api_methods_url: str
+
+
+class SiteModelFeedProps(Props):
+    """One model across your saved sites (`/sites/models/{id}`): the model's content. The sites are kept in the
+    browser, which runs the model over them (`/models/{id}/run?points=`, D117)."""
+
+    model: SiteModelInfo
