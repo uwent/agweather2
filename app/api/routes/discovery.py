@@ -112,7 +112,7 @@ def _iso(when: datetime | None) -> str | None:
 def status(request: HttpRequest) -> HttpResponse:
     """From `DatasetStatus`, which every write refreshes (`ops.status.refresh_dataset_status`): no store is opened."""
     rows = dataset_status(settings.DATA_DIR)
-    files = downloads.read_index(settings.DATA_DIR)
+    files = [e for e in downloads.read_index(settings.DATA_DIR) if e.variable in downloads.OFFERED]
     hourly, daily, run = rows["hourly"], rows["daily"], rows["forecast"]
     cycle = run.first
     in_use = cycle is not None and clock.now() - cycle <= MAX_RUN_AGE
@@ -191,6 +191,7 @@ def download_list(request: HttpRequest) -> HttpResponse:
             built_at=e.built_at,
         )
         for e in downloads.read_index(settings.DATA_DIR)
+        if e.variable in downloads.OFFERED  # one dropped is listed no more, even before the next build prunes it
     ]
     grid = downloads.folder(settings.DATA_DIR) / downloads.GRID_FILE
     data = DownloadsData(

@@ -531,8 +531,64 @@ class ClimateProps(Props):
     """Climate (`/climate`, track 6)."""
 
 
+class DataLimits(Props):
+    """The API's limits on one request, which `/data` checks before a download is asked for."""
+
+    points: int = Field(description="Locations a GET takes (`api.params.MAX_POINTS`).")
+    days: int = Field(description="Days at a location (`api.routes.weather.MAX_DAYS`).")
+    hours: int = Field(description="Hours at a location (`MAX_HOURS`).")
+    rows: int = Field(description="Rows of a point request: steps × locations (`MAX_ROWS`).")
+    text_values: int = Field(description="Values a grid holds as JSON or CSV (`api.routes.grids.MAX_TEXT_VALUES`).")
+    file_values: int = Field(description="Values a grid holds as NetCDF or GeoTIFF (`MAX_FILE_VALUES`).")
+    map_days: int = Field(description="Days a map covers, returned or combined (`api.layermaps.MAX_DAYS`).")
+    map_hours: int = Field(description="Hours a map covers (`api.layermaps.MAX_HOURS`).")
+    stride: int = Field(description="The largest `stride` (`MAX_STRIDE`).")
+    res: float = Field(description="The finest lat/lng spacing in degrees (`agdata.regrid.MIN_LATLON_RES`).")
+
+
+class GridProjection(Props):
+    """The 2.5 km grid's Lambert projection (`agdata.grid.NDFD`), for finding the cells in a box in the browser."""
+
+    lon0: float = Field(description="The central meridian, degrees east (−95).")
+    lat1: float = Field(description="The standard parallel and origin latitude, degrees (25).")
+    radius: float = Field(description="The sphere's radius, meters.")
+    x0: float = Field(description="Projected x of cell (0, 0), meters.")
+    y0: float = Field(description="Projected y of cell (0, 0), meters.")
+    dx: float = Field(description="A cell's size, meters.")
+
+
+class GridArea(Props):
+    """A state or county as `/grids`' `region` takes it: the rectangle around its cells (what a file holds) and
+    how many cells it has (what `clip=true` keeps)."""
+
+    id: str = Field(description="As `region=` takes it: a state's postal code or a county's FIPS code.")
+    name: str = Field(description="'Wisconsin', 'Dane County'.")
+    state: str = Field(description="Its state's postal code.")
+    j0: int = Field(description="The rectangle's first row (grid index).")
+    j1: int = Field(description="One past its last row.")
+    i0: int = Field(description="Its first column.")
+    i1: int = Field(description="One past its last column.")
+    cells: int = Field(description="Its cells in the archive's window.")
+
+
+class DataAreas(Props):
+    """The states and counties `/data` offers for a map file (`web.datapage.areas`)."""
+
+    window: list[int] = Field(description="The archive's window, [j0, j1, i0, i1]: the whole area's file.")
+    states: list[GridArea] = Field(description="States with at least half their cells in the window, by name.")
+    counties: list[GridArea] = Field(description="Those states' counties with cells in the window, by name.")
+
+
 class DataPageProps(Props):
-    """Downloads (`/data`, track 7)."""
+    """Downloads (`/data`, track 7 step 7.1): weather at locations, maps as data files, the yearly files."""
+
+    limits: DataLimits
+    projection: GridProjection
+    models: list[SiteModel] = Field(description="The models a download at locations can run, by name.")
+    areas: DataAreas | None = Field(
+        default=None,
+        description="Deferred (loaded after the page shows; ~3 s the first time over the launch box), and None before the archive has a year.",
+    )
 
 
 class StatusPageProps(Props):

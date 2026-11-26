@@ -6,8 +6,8 @@ from django.views.decorators.csrf import csrf_exempt
 from agdata.series import archive_years
 from agmodels import croplist
 from agmodels.registry import all_models
+from web import datapage, methodspage, modelpages, topicpages
 from web import home as home_content
-from web import methodspage, modelpages, topicpages
 from web.catalog import crop_entries, model_entries
 from web.content import topics
 from web.inertia import render
@@ -65,12 +65,10 @@ def map_explorer(request: HttpRequest):
     return render(request, "Map/Explorer", MapExplorerProps())
 
 
-def site(request: HttpRequest, lat: str, lng: str):
-    """A site's page, saved or not (F1): any point by its coordinates, which the URL pattern takes as numbers only."""
-    latitude, longitude = _point(lat, lng)
-    name = _name(request)
+def _site_models() -> list[SiteModel]:
+    """The models a location can run, by name (retired ones left out)."""
     specs = sorted((m.SPEC for m in all_models().values() if m.SPEC.status != "retired"), key=lambda s: s.name.lower())
-    models = [
+    return [
         SiteModel(
             id=s.id,
             name=s.name,
@@ -81,11 +79,19 @@ def site(request: HttpRequest, lat: str, lng: str):
         )
         for s in specs
     ]
+
+
+def site(request: HttpRequest, lat: str, lng: str):
+    """A site's page, saved or not (F1): any point by its coordinates, which the URL pattern takes as numbers only."""
+    latitude, longitude = _point(lat, lng)
+    name = _name(request)
     crops = [SiteCrop(id=c.id, name=c.name) for c in croplist.CROPS.values()]
     return render(
         request,
         "Sites/Show",
-        SiteProps(lat=latitude, lng=longitude, name=name, models=models, crops=crops, settings=model_settings()),
+        SiteProps(
+            lat=latitude, lng=longitude, name=name, models=_site_models(), crops=crops, settings=model_settings()
+        ),
     )
 
 
@@ -186,7 +192,10 @@ def climate(request: HttpRequest):
 
 
 def data(request: HttpRequest):
-    return render(request, "Data/Index", DataPageProps())
+    """Data and downloads (track 7 step 7.1): the page fetches the variables, layers and yearly files from the API;
+    the areas a map file can cover come deferred (`web.datapage`, ~3 s the first time over the launch box)."""
+    props = DataPageProps(limits=datapage.limits(), projection=datapage.projection(), models=_site_models())
+    return render(request, "Data/Index", props, deferred={"areas": datapage.areas})
 
 
 def status(request: HttpRequest):

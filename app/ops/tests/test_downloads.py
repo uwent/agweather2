@@ -1,6 +1,7 @@
 """The yearly NetCDF downloads (`ops.downloads`, D69), on a copy of the fixture archive's daily stores."""
 
 import shutil
+from dataclasses import replace
 from datetime import date, timedelta
 
 import numpy as np
@@ -9,6 +10,7 @@ import xarray as xr
 import zarr
 
 from agdata.catalog import DAILY_VARIABLES
+from agdata.computed import DAILY_COMPUTED
 from agdata.grid import NDFD
 from agdata.store import DAILY, GridStore
 from agdata.testing import WINDOW
@@ -62,7 +64,9 @@ def test_a_file_from_an_older_format_is_rebuilt(data_dir):
     for e in entries:
         e.format = 1
     downloads.write_index(data_dir, entries)
-    assert {why for _, _, why in downloads.wanted(data_dir, NOW, NAMES)} == {"built in format 1, now 3"}
+    assert {why for _, _, why in downloads.wanted(data_dir, NOW, NAMES)} == {
+        f"built in format 1, now {downloads.FORMAT}"
+    }
 
 
 def test_hour_counts_have_no_cell_method(data_dir):
@@ -158,3 +162,65 @@ def test_over_a_coverage_window_files_take_only_the_masks_extent(tmp_path):
         assert float(ds["x"][0]) == NDFD.origin[0] + e.i0 * NDFD.dx
     with xr.open_dataset(tmp_path / "downloads" / downloads.GRID_FILE) as grid:
         assert grid["lat"].shape == e.shape
+
+
+def test_every_daily_variable_is_offered_or_left_out_with_a_reason():
+    """A new daily variable needs a decision: a yearly file, or a reason it has none."""
+    offered, left_out = set(downloads.OFFERED), set(downloads.NOT_OFFERED)
+    assert len(offered) == len(downloads.OFFERED)  # each once
+    assert not offered & left_out
+    assert offered | left_out == set(DAILY_VARIABLES) | set(DAILY_COMPUTED)
+    for name in ("soil_moisture_0_to_7cm_mean", "hours_wet", "degree_hours_over_65f", "water_balance"):
+        assert name in offered
+    assert {"precipitation_7am_to_7pm", "precipitation_8pm_to_6am"} <= offered
+    assert "et0_sum_estimate" in left_out
+
+
+def test_the_water_balance_is_computed_from_precipitation_and_et0(data_dir):
+    store = _store(data_dir, ["precipitation_sum", "et0_sum"])
+    entry = downloads.build(data_dir, "water_balance", 2025, NOW)
+    assert entry is not None
+    with xr.open_dataset(data_dir / "downloads" / entry.path) as ds:
+        found = ds["water_balance"]
+        n = ds.sizes["time"]
+        assert found.attrs["units"] == "mm"
+        assert found.attrs["cell_methods"] == "time: sum"
+        assert found.encoding["dtype"] == np.int16
+        expected = store.read_steps("precipitation_sum", 0, n) - store.read_steps("et0_sum", 0, n)
+        np.testing.assert_allclose(found.values, expected, atol=0.011)  # packed at 0.02 mm
+        assert np.isnan(found.values).sum() == np.isnan(expected).sum()  # missing where either input is
+    has = store.has_data("precipitation_sum") & store.has_data("et0_sum")
+    assert n == int(np.flatnonzero(has)[-1]) + 1
+    # built from its inputs' newest write, and wanted again once either is written
+    assert entry.written == max(store.written("precipitation_sum") or 0, store.written("et0_sum") or 0)
+    downloads.write_index(data_dir, [entry])
+    assert downloads.wanted(data_dir, NOW, ["water_balance"]) == []
+    day = store.read_steps("et0_sum", 0, 1)
+    store.write(date(2025, 1, 1), {"et0_sum": day}, source="derived")
+    later = downloads.wanted(data_dir, NOW.replace(year=2026), ["water_balance"])
+    assert later == [("water_balance", 2025, "the store has been written since")]
+
+
+def test_files_no_longer_offered_are_removed_and_no_longer_listed(data_dir):
+    downloads.build_wanted(data_dir, NOW, NAMES)
+    entries = downloads.read_index(data_dir)
+    orphan = replace(
+        entries[0], variable="hours_rh_over_90_from_8pm", path="daily/2025/hours_rh_over_90_from_8pm_2025.nc"
+    )
+    (data_dir / "downloads" / orphan.path).write_bytes(b"old")
+    downloads.write_index(data_dir, [*entries, orphan])
+    assert [e.variable for e in downloads.prune(data_dir, dry_run=True)] == ["hours_rh_over_90_from_8pm"]
+    assert (data_dir / "downloads" / orphan.path).exists()
+    downloads.build_wanted(data_dir, NOW, NAMES)
+    assert not (data_dir / "downloads" / orphan.path).exists()
+    assert {e.variable for e in downloads.read_index(data_dir)} == set(NAMES)
+
+
+@pytest.mark.django_db
+def test_the_api_leaves_out_a_file_no_longer_offered_before_a_build_prunes_it(data_dir, client):
+    downloads.build_wanted(data_dir, NOW, NAMES)
+    entries = downloads.read_index(data_dir)
+    downloads.write_index(data_dir, [*entries, replace(entries[0], variable="et0_sum_estimate")])
+    listed = {f["variable"] for f in client.get("/api/v2/downloads").json()["data"]["files"]}
+    assert listed == set(NAMES)
+    assert client.get("/api/v2/status").json()["data"]["downloads"]["files"] == len(NAMES)

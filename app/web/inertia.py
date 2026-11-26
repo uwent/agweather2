@@ -6,11 +6,12 @@ redirects back with `redirect_with_errors`, and `SharedPropsMiddleware` hands th
 `errors` (keyed exactly as the form's input names, each a list of messages).
 """
 
+from collections.abc import Callable
 from typing import Any
 
 from django.http import HttpRequest, HttpResponseRedirect
 from django.shortcuts import redirect
-from inertia import InertiaResponse
+from inertia import InertiaResponse, defer
 from inertia import render as inertia_render
 from pydantic import BaseModel, ConfigDict
 
@@ -23,9 +24,23 @@ class Props(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-def render(request: HttpRequest, component: str, props: Props | None = None) -> InertiaResponse:
-    """Render `frontend/pages/{component}.svelte` with `props`."""
-    return inertia_render(request, component, props.model_dump(mode="json") if props else {})
+def render(
+    request: HttpRequest,
+    component: str,
+    props: Props | None = None,
+    deferred: dict[str, Callable[[], Props | None]] | None = None,
+) -> InertiaResponse:
+    """Render `frontend/pages/{component}.svelte` with `props`. Each of `deferred` (a field of `props`, declared
+    with a default) is left out of the first response and computed when the page asks for it after it shows
+    (Inertia's deferred props): for a prop slow to compute that the page can show without at first."""
+    data = props.model_dump(mode="json") if props else {}
+    for key, make in (deferred or {}).items():
+        data[key] = defer(lambda make=make: _dumped(make()))
+    return inertia_render(request, component, data)
+
+
+def _dumped(value: Props | None) -> Any:
+    return None if value is None else value.model_dump(mode="json")
 
 
 def redirect_with_errors(request: HttpRequest, to: str, errors: dict[str, list[str]]) -> HttpResponseRedirect:

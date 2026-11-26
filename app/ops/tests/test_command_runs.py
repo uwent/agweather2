@@ -607,8 +607,8 @@ def test_downloads_check_lists_the_files_and_a_run_reports_each_one(data_dir, mo
     assert "air_temperature_max_2024.nc" in out and "2 files built (6 MB)" in out
 
 
-def test_downloads_refuses_a_variable_that_isnt_daily(data_dir):
-    with pytest.raises(CommandError, match="not daily variables: air_temperature"):
+def test_downloads_refuses_a_variable_that_isnt_offered(data_dir):
+    with pytest.raises(CommandError, match="not offered as yearly files: air_temperature"):
         call_command("downloads", "--variables", "air_temperature", stdout=StringIO(), stderr=StringIO())
 
 
