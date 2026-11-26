@@ -202,8 +202,9 @@ export function freezeAnswer({
     return `This fall’s first ${noun} ${verb} ${dayIn(own.fall, year, today)}${againstTypical(own.fall, typical?.firstFall[50])}.`
   }
   const median = typical?.firstFall[50]
+  const ago = median ? daysBetween(`${year}${median.slice(4, 10)}`, today) : 0
   const usual = median
-    ? ` In half the years the first came by ${monthDay(median.slice(5, 10))}${today.slice(5) > median.slice(5, 10) ? `, ${daysBetween(`${year}${median.slice(4, 10)}`, today)} days ago` : ''}.`
+    ? ` In half the years the first came by ${monthDay(median.slice(5, 10))}${ago > 0 ? `, ${ago} day${ago === 1 ? '' : 's'} ago` : ''}.`
     : ''
   return `There has been no ${noun} yet this fall.${usual}${coldestText}`
 }
