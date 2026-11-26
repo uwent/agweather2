@@ -14,6 +14,7 @@
   import { today as gridToday } from '@/lib/dates'
   import { codecs, field, viewState } from '@/lib/viewState'
   import type { DataPageProps } from '@/types'
+  import { routes } from '@/lib/routes'
 
   let props: DataPageProps = $props()
 
@@ -59,7 +60,7 @@
       {'Each download shows its address, so you can fetch it again from a script. The data come from our public API, which you can use directly; '}
       <a href="/api/v2/docs" class="underline hover:text-ink">read its documentation</a
       >{'. The weather is on a grid of cells about 2.5 km (1.5 miles) on a side, so a location’s values describe its cell as a whole. '}
-      <a href="/methods" class="underline hover:text-ink">Read how the data are made</a>{'.'}
+      <a href={routes.methods()} class="underline hover:text-ink">Read how the data are made</a>{'.'}
     </p>
   </header>
 

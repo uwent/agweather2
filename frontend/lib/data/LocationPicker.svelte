@@ -6,6 +6,7 @@
   import FindPlace from '../sites/FindPlace.svelte'
   import { MAX_POINTS } from '../sites/dataRequest'
   import { addLocation, addLocations, type Chosen } from './locations'
+  import { routes } from '@/lib/routes'
 
   let { chosen = $bindable() }: { chosen: Chosen[] } = $props()
 
@@ -83,7 +84,7 @@
   {:else}
     <p class="text-sm text-ink-muted">
       {'You have no saved sites in this browser. Find places below, or '}
-      <a href="/sites" class="underline hover:text-ink">save your sites</a>
+      <a href={routes.sites()} class="underline hover:text-ink">save your sites</a>
       {' to choose them here.'}
     </p>
   {/if}
