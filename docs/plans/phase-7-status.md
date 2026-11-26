@@ -2,7 +2,7 @@
 
 A running summary for Ben, kept current as agents' work merges (newest at the top of each list). The plan and its decisions are in [phase-7-web-app.md](phase-7-web-app.md); the handoff is PLAN.md's. Branch `phase-7` (from `main` after PR #1).
 
-Last updated: 2026-11-27, 02:30 CST.
+Last updated: 2026-11-27, 02:50 CST.
 
 ## Built (merged into `phase-7`)
 
@@ -48,7 +48,7 @@ Last updated: 2026-11-27, 02:30 CST.
 
 ## On deck (in order)
 
-1. **Running now:** review round 1 (frontend); the map explorer reading counts from `/layers`, the flaky glossary test, a keyboard spec over the tools; backend fixes (crop runs projecting from a future planting date, corn-stages ignoring `biofix=`, the Madison cell's degree days by year, count departures' colour scale).
+1. **Running now:** the map explorer reading counts from `/layers`, the flaky glossary test, a keyboard spec over the tools; backend fixes (crop runs projecting from a future planting date, corn-stages ignoring `biofix=`, the Madison cell's degree days by year, count departures' colour scale).
 2. **Next:** review round 2 over waves 9–10 (the climate pages and the P1 tools); a full Playwright and CI run.
 3. **Reviews** (Ben, 2026-11-26): periodic review agents over what's been built (bugs, refactoring, duplication); findings and fixes below.
 4. **Small:** the API serves the current winter's potato volunteer map before January 1 though the model says it appears then (the page waits); the map explorer reading counts from `/layers`; a flaky smoke test (the glossary not always scrolled to a linked term); count departures' colour scale ([0, 6.25] for days ≥ 90 °F, not centred on 0); climate endpoints' speed on a quiet server (`/climate/compare` 13 s under load); the legend at full strength while the map is at 80 % (Ben's call).
@@ -60,6 +60,12 @@ Last updated: 2026-11-27, 02:30 CST.
 - Ingredients rebuild for D127, apple scab 0.2, oak wilt 0.3 and D128, all years (`tmp/w8-ingredients2.log`); blight and potato maps answer "updating" until done.
 
 ## Reviews
+
+### Round 1, frontend (2026-11-27; merged)
+
+Fixed: **`pnpm test` exited 1 though every test passed** (charts loading ECharts after a component test ended threw in jsdom; would have failed CI; a stand-in chart in tests, and the suite runs in ~30 s instead of 73 s); **oak wilt kept the first place's projection for a second place**; two map explorer races (an older cell read could fill the panel; a superseded series request ended the new one's loading state); rain so far outside our area used the grid's date, not the place's own; glossary links landed above their entry (the flaky smoke test; 16/16 after); the freeze tool's own temperature didn't follow a units switch; "1 days ago"; typed examples in error messages quoted. Refactors: one request queue (`lib/slots.ts`), one `siteModelUrl` and `longDate`, shared `rounded()` and `columnsOf()`, page links from `lib/routes`.
+
+Left, recommended: move `lib/sites/request.svelte.ts` and `Failed.svelte` (used by 20 files) to `lib/` when no pages are being built; radar's own tile decoding (colour management on, no `bitmap.close()`) should share dataTiles'; the freeze tool can briefly show the previous place's coldest low; five `plural()` helpers and five month-name arrays; the map explorer page (870 lines) has no component test; two smoke tests wait 3.5 s each for the form timer (`page.clock`); the axe "public pages" test scans 11 pages and is near its 30 s limit under load.
 
 ### Round 1, backend (2026-11-27; merged)
 
