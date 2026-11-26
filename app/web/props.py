@@ -501,3 +501,49 @@ class SiteModelFeedProps(Props):
     browser, which runs the model over them (`/models/{id}/run?points=`, D117)."""
 
     model: SiteModelInfo
+
+
+# Stubs for the pages of tracks 5–7 (2026-11-26), so the waves' agents share one set of routes; each agent fills in its
+# page's props.
+
+
+class ToolsIndexProps(Props):
+    """The tools (`/tools`, track 5)."""
+
+
+class DegreeDaysToolProps(Props):
+    """The degree-day calculator (`/tools/degree-days`, track 5)."""
+
+
+class OakWiltToolProps(Props):
+    """Oak wilt (`/tools/oak-wilt`, track 5)."""
+
+
+class FreezeToolProps(Props):
+    """Freeze dates and odds (`/tools/freeze`, track 5)."""
+
+
+class CalendarProps(Props):
+    """The day-of-year calendar (`/calendar`, track 5)."""
+
+
+class ClimateProps(Props):
+    """Climate (`/climate`, track 6)."""
+
+
+class DataPageProps(Props):
+    """Downloads (`/data`, track 7)."""
+
+
+class StatusPageProps(Props):
+    """Data status (`/status`, track 7)."""
+
+
+class ContentPageProps(Props):
+    """A page of text from `content/pages` (`/about`, `/accessibility`, `/contact`, track 7)."""
+
+    title: str
+
+
+class GlossaryProps(Props):
+    """The glossary (`/glossary`, track 7)."""

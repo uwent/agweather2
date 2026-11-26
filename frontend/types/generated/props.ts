@@ -14,6 +14,10 @@ export interface AppInfo {
   service_box: string
 }
 /**
+ * The day-of-year calendar (`/calendar`, track 5).
+ */
+export interface CalendarProps {}
+/**
  * A model as the catalog (`/models`) lists it.
  */
 export interface CatalogModel {
@@ -40,6 +44,16 @@ export interface ChangelogEntryProps {
 export interface ChangelogProps {
   entries: ChangelogEntryProps[]
 }
+/**
+ * Climate (`/climate`, track 6).
+ */
+export interface ClimateProps {}
+/**
+ * A page of text from `content/pages` (`/about`, `/accessibility`, `/contact`, track 7).
+ */
+export interface ContentPageProps {
+  title: string
+}
 export interface CropEntry {
   id: string
   name: string
@@ -60,6 +74,10 @@ export interface CropStageInfo {
   code: string
   name: string
 }
+/**
+ * Downloads (`/data`, track 7).
+ */
+export interface DataPageProps {}
 /**
  * How current the data are (`web.status`): every page's "data through" line and the stale-data banner.
  */
@@ -93,6 +111,18 @@ export interface DataStatus {
    */
   stale_sources: string[]
 }
+/**
+ * The degree-day calculator (`/tools/degree-days`, track 5).
+ */
+export interface DegreeDaysToolProps {}
+/**
+ * Freeze dates and odds (`/tools/freeze`, track 5).
+ */
+export interface FreezeToolProps {}
+/**
+ * The glossary (`/glossary`, track 7).
+ */
+export interface GlossaryProps {}
 export interface HeadlineMap {
   layer: string
   title: string
@@ -541,6 +571,10 @@ export interface ModelsIndexProps {
    */
   groups: NamedId[]
 }
+/**
+ * Oak wilt (`/tools/oak-wilt`, track 5).
+ */
+export interface OakWiltToolProps {}
 export interface SharedProps {
   app: AppInfo
   /**
@@ -682,6 +716,14 @@ export interface SitesIndexProps {
    */
   settings: ModelSettings[]
 }
+/**
+ * Data status (`/status`, track 7).
+ */
+export interface StatusPageProps {}
+/**
+ * The tools (`/tools`, track 5).
+ */
+export interface ToolsIndexProps {}
 /**
  * A topic as the index (`/topics`) lists it.
  */

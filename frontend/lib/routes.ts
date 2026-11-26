@@ -7,14 +7,28 @@ function part(value: string | number): string {
 }
 
 export const routes = {
+  /** about: /about */
+  about: (): string => '/about',
+  /** accessibility: /accessibility */
+  accessibility: (): string => '/accessibility',
   /** api-use: /api-use */
   apiUse: (): string => '/api-use',
+  /** calendar: /calendar */
+  calendar: (): string => '/calendar',
   /** changelog: /changelog */
   changelog: (): string => '/changelog',
   /** changelog-feed: /changelog.atom */
   changelogFeed: (): string => '/changelog.atom',
+  /** climate: /climate */
+  climate: (): string => '/climate',
+  /** contact: /contact */
+  contact: (): string => '/contact',
+  /** data: /data */
+  data: (): string => '/data',
   /** downloads: /downloads/<path> */
   downloads: (params: { path: string }): string => `/downloads/${part(params.path)}`,
+  /** glossary: /glossary */
+  glossary: (): string => '/glossary',
   /** home: / */
   home: (): string => '/',
   /** map: /map */
@@ -34,6 +48,16 @@ export const routes = {
   sites: (): string => '/sites',
   /** sites-model-feed: /sites/models/<model_id> */
   sitesModelFeed: (params: { model_id: string }): string => `/sites/models/${part(params.model_id)}`,
+  /** status: /status */
+  status: (): string => '/status',
+  /** tool-degree-days: /tools/degree-days */
+  toolDegreeDays: (): string => '/tools/degree-days',
+  /** tool-freeze: /tools/freeze */
+  toolFreeze: (): string => '/tools/freeze',
+  /** tool-oak-wilt: /tools/oak-wilt */
+  toolOakWilt: (): string => '/tools/oak-wilt',
+  /** tools: /tools */
+  tools: (): string => '/tools',
   /** topic: /topics/<topic_id> */
   topic: (params: { topic_id: string }): string => `/topics/${part(params.topic_id)}`,
   /** topics: /topics */

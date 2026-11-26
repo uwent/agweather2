@@ -12,14 +12,24 @@ from web.content import topics
 from web.inertia import render
 from web.middleware import grid_today
 from web.props import (
+    CalendarProps,
+    ClimateProps,
+    ContentPageProps,
+    DataPageProps,
+    DegreeDaysToolProps,
+    FreezeToolProps,
+    GlossaryProps,
     HomeProps,
     MapExplorerProps,
+    OakWiltToolProps,
     SiteCrop,
     SiteModel,
     SiteModelFeedProps,
     SiteModelProps,
     SiteProps,
     SitesIndexProps,
+    StatusPageProps,
+    ToolsIndexProps,
 )
 from web.sitemodel import model_info, model_settings, shown_spec
 
@@ -144,3 +154,49 @@ def site_model_feed(request: HttpRequest, model_id: str):
     if spec is None:
         raise Http404("No such model")
     return render(request, "Sites/Feed", SiteModelFeedProps(model=model_info(spec)))
+
+
+# Tracks 5–7's pages, stubbed 2026-11-26 so their routes exist before the waves build them
+
+
+def tools_index(request: HttpRequest):
+    return render(request, "Tools/Index", ToolsIndexProps())
+
+
+def degree_days_tool(request: HttpRequest):
+    return render(request, "Tools/DegreeDays", DegreeDaysToolProps())
+
+
+def oak_wilt_tool(request: HttpRequest):
+    return render(request, "Tools/OakWilt", OakWiltToolProps())
+
+
+def freeze_tool(request: HttpRequest):
+    return render(request, "Tools/Freeze", FreezeToolProps())
+
+
+def calendar(request: HttpRequest):
+    return render(request, "Tools/Calendar", CalendarProps())
+
+
+def climate(request: HttpRequest):
+    return render(request, "Climate/Index", ClimateProps())
+
+
+def data(request: HttpRequest):
+    return render(request, "Data/Index", DataPageProps())
+
+
+def status(request: HttpRequest):
+    return render(request, "Status/Show", StatusPageProps())
+
+
+CONTENT_TITLES = {"about": "About AgWeather", "accessibility": "Accessibility", "contact": "Contact us"}
+
+
+def content_page(request: HttpRequest, page: str):
+    return render(request, "Content", ContentPageProps(title=CONTENT_TITLES[page]))
+
+
+def glossary(request: HttpRequest):
+    return render(request, "Glossary", GlossaryProps())
