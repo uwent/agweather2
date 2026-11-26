@@ -113,12 +113,30 @@ test("a site's Degree days and Data tabs", async ({ page }) => {
   await expect(page.getByRole('combobox', { name: 'Setting 1' })).toHaveValue('corn')
   await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
   await expect(page.getByRole('rowheader', { name: 'Corn (field)' })).toBeVisible()
+  // Every tab is on the screen, a phone's too (they wrap rather than scroll out of sight)
+  await expect(page.getByRole('tab', { name: 'Data' })).toBeInViewport()
   await page.getByRole('tab', { name: 'Data' }).click()
   await expect(page.getByRole('link', { name: 'Download CSV' })).toHaveAttribute('href', /^\/api\/v2\/weather\/daily\?/)
   await page.getByRole('radio', { name: /A model run/ }).check()
   await expect(page.getByRole('textbox', { name: 'The request’s address, for a script' })).toHaveValue(
     /\/api\/v2\/models\/late-blight-dsv\/run\?format=csv&lat=44\.12&lng=-89\.52/,
   )
+})
+
+test('a date to count degree days from is kept with a saved site', async ({ page }) => {
+  await stubSiteApi(page)
+  await page.goto('/')
+  await page.evaluate((doc) => localStorage.setItem('agweather.sites', JSON.stringify(doc)), SAVED)
+  await page.goto('/sites/44.1336,-89.5168?tab=degree-days&from=planting')
+  await page.getByRole('textbox', { name: 'Planting date' }).fill('2026-05-12')
+  await expect(page.getByText('Saved as this site’s planting date.')).toBeVisible()
+  const kept = await page.evaluate(() => JSON.parse(localStorage.getItem('agweather.sites') ?? '{}'))
+  expect(kept.prefs.sites['44.1336,-89.5168'].planting).toBe('2026-05-12')
+  // Opened again without the date in the link, the site's own date is the one counted from
+  await page.goto('/sites/44.1336,-89.5168?tab=degree-days&from=planting')
+  await expect(page.getByText(/Counting from this site’s planting date, May 12/)).toBeVisible()
+  await page.getByRole('button', { name: 'Forget this date' }).click()
+  await expect(page.getByText(/Counting from this site’s planting date/)).toBeHidden()
 })
 
 test('one model across your sites', async ({ page }) => {

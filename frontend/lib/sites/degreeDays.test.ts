@@ -80,6 +80,14 @@ describe('when counting starts', () => {
       reason: 'Cabbage looper’s usual biofix',
     })
     expect(defaultStart({ from: 'jan1', series, year: 2026 }).date).toBe('2026-01-01')
+    // The site's own biofix, saved with it, wins in its season
+    expect(defaultStart({ from: 'biofix', series: looper, year: 2026, savedBiofix: '2026-06-02' })).toEqual({
+      date: '2026-06-02',
+      reason: 'your biofix for this site',
+    })
+    expect(defaultStart({ from: 'biofix', series: looper, year: 2025, savedBiofix: '2026-06-02' }).date).toBe(
+      '2025-07-15',
+    )
   })
 
   it('asks for every setting in one request, in °F, with the projection only this year', () => {

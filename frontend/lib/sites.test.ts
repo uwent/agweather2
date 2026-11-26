@@ -175,6 +175,14 @@ describe('the store', () => {
     expect(effectivePrefs('43,-89')).toMatchObject({ crops: ['corn'], planting: '2026-05-01' })
     expect(prefsAt({ kind: 'site', key: '43,-89' })).toEqual({})
   })
+
+  it('keeps a site’s biofix for the Degree days tab, and forgets it', () => {
+    addSite({ lat: 43, lng: -89 })
+    setPrefs({ kind: 'site', key: '43,-89' }, { biofix: '2026-05-20' })
+    expect(effectivePrefs('43,-89').biofix).toBe('2026-05-20')
+    setPrefs({ kind: 'site', key: '43,-89' }, { biofix: null })
+    expect(effectivePrefs('43,-89').biofix).toBeUndefined()
+  })
 })
 
 describe('resolvePrefs', () => {
@@ -205,6 +213,7 @@ describe('resolvePrefs', () => {
       hiddenModels: [],
       options: {},
       planting: undefined,
+      biofix: undefined,
     })
   })
 

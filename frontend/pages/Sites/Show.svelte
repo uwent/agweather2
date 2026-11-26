@@ -12,7 +12,7 @@
   import Overview from '@/lib/sites/Overview.svelte'
   import SiteHeader from '@/lib/sites/SiteHeader.svelte'
   import WeatherTab, { type WeatherView } from '@/lib/sites/WeatherTab.svelte'
-  import { effectivePrefs, siteAt } from '@/lib/sites.svelte'
+  import { effectivePrefs, setPrefs, siteAt } from '@/lib/sites.svelte'
   import { tableRows } from '@/lib/tableRows'
   import { codecs, field, viewState } from '@/lib/viewState'
   import type { SiteProps } from '@/types'
@@ -123,6 +123,11 @@
   const dataView = $derived<DataView>({ get: $view.get })
   // A saved site's planting date (its preferences), for the Degree days tab's count from planting
   const savedPlanting = $derived(saved ? (effectivePrefs(saved.key).planting ?? null) : null)
+  const savedBiofix = $derived(saved ? (effectivePrefs(saved.key).biofix ?? null) : null)
+  // A date chosen to count from is kept with a saved site (D120), as a model at a site keeps its settings
+  function saveSince(from: 'planting' | 'biofix', date: string | null) {
+    if (saved) setPrefs({ kind: 'site', key: saved.key }, from === 'planting' ? { planting: date } : { biofix: date })
+  }
 
   const tabs = [
     { value: 'overview', label: 'Overview' },
@@ -154,7 +159,9 @@
   {/if}
 
   <Tabs.Root value={$view.tab} onValueChange={(tab) => view.patch({ tab: tab as Tab })}>
-    <Tabs.List class="flex gap-1 overflow-x-auto border-b border-line" aria-label="Site sections">
+    <!-- The tabs wrap rather than scroll: on a phone a sideways-scrolling row hid the Data tab past the screen's edge,
+         with nothing to say it was there -->
+    <Tabs.List class="flex flex-wrap gap-x-1 border-b border-line" aria-label="Site sections">
       {#each tabs as tab (tab.value)}
         <Tabs.Trigger
           value={tab.value}
@@ -186,6 +193,8 @@
           {today}
           {location}
           planting={savedPlanting}
+          biofix={savedBiofix}
+          onsave={saved ? saveSince : undefined}
           view={ddView}
           onchange={(changes) =>
             view.patch({

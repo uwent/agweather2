@@ -119,15 +119,21 @@ export function defaultStart({
   year,
   planting,
   saved,
+  savedBiofix,
 }: {
   from: CountFrom
   series: Series[]
   year: number
   planting?: { crop: string; typical: string }[] | null
+  /** The site's planting date, from its preferences */
   saved?: string | null
+  /** The site's biofix, from its preferences */
+  savedBiofix?: string | null
 }): { date: string; reason: string | null } {
   if (from === 'jan1') return { date: `${year}-01-01`, reason: null }
   if (from === 'biofix') {
+    if (savedBiofix && savedBiofix.startsWith(`${year}-`))
+      return { date: savedBiofix, reason: 'your biofix for this site' }
     const preset = series.find((s) => s.preset?.starts === 'biofix' && s.preset.biofix)?.preset
     if (preset && preset.biofix !== '01-01')
       return { date: `${year}-${preset.biofix}`, reason: `${preset.label}’s usual biofix` }
