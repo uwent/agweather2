@@ -4,6 +4,7 @@
   import { onDestroy, untrack } from 'svelte'
 
   import { ApiError, isAbort } from '@/lib/api'
+  import { formatHour } from '@/lib/charts/kinds'
   import { formatDate } from '@/lib/dates'
   import { riskColor } from '@/lib/riskLevels'
   import { siteLabel, type Group, type Site } from '@/lib/sites.svelte'
@@ -13,6 +14,7 @@
   import { currentUnits } from '@/lib/units'
 
   import { WEATHER_UNITS, type DayWeather, type RiskSummary, type SiteWeather } from './cardData'
+  import { missingWords, NOT_LIVE, rainSoFarShort } from './rainSoFar'
   import SiteGroups from './SiteGroups.svelte'
 
   let {
@@ -200,7 +202,18 @@
             {#if item.day}
               <span class="sr-only">High and low:</span>
               <span class="font-medium">{temp(item.day.high)} / {temp(item.day.low)}</span>
-              <span class="block text-xs text-ink-muted">Precipitation {precip(item.day)}</span>
+              {#if item.title === 'Today' && item.day.precipitation === null && weather.value.rainToday}
+                {@const rain = weather.value.rainToday}
+                <span class="block text-xs text-ink-muted" title={NOT_LIVE}>
+                  {`Precipitation ${rainSoFarShort(rain, units)}, through ${formatHour(rain.through, rain.timeZone)}${missingWords(rain)}`}<span
+                    class="sr-only"
+                  >
+                    {`. ${NOT_LIVE}`}
+                  </span>
+                </span>
+              {:else}
+                <span class="block text-xs text-ink-muted">Precipitation {precip(item.day)}</span>
+              {/if}
             {:else}
               <span class="text-ink-muted">No data</span>
             {/if}

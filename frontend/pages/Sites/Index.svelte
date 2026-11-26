@@ -24,13 +24,15 @@
     type Site,
   } from '@/lib/sites.svelte'
   import AddSiteDialog from '@/lib/sites/AddSiteDialog.svelte'
-  import { riskModels, topRisks, weatherByPoint, weatherQuery, type SiteWeather } from '@/lib/sites/cardData'
+  import { rainQuery, riskModels, topRisks, weatherByPoint, weatherQuery, type SiteWeather } from '@/lib/sites/cardData'
   import FeedPicker from '@/lib/sites/FeedPicker.svelte'
   import GroupsPanel from '@/lib/sites/GroupsPanel.svelte'
   import { groupMapUrl } from '@/lib/sites/groupMap'
   import ImportDialog from '@/lib/sites/ImportDialog.svelte'
   import { explainPrefs } from '@/lib/sites/prefs'
   import PrefsPanel from '@/lib/sites/PrefsPanel.svelte'
+  import { NOT_LIVE, rainSoFarByPoint } from '@/lib/sites/rainSoFar'
+  import { routes } from '@/lib/routes'
   import SiteCard from '@/lib/sites/SiteCard.svelte'
   import StorageNotice from '@/lib/sites/StorageNotice.svelte'
   import type { SitesIndexProps } from '@/types'
@@ -49,9 +51,14 @@
     name: 'weather',
     async fetch(keys, signal) {
       const points = keys.map((key) => sites.find((s) => s.key === key)).filter((s): s is Site => !!s)
-      const body = await get<TableResponse>('/weather/daily', weatherQuery(points, today), { signal })
+      // Today's hours for its precipitation so far alongside; without them a card shows today's total as missing
+      const [body, hours] = await Promise.all([
+        get<TableResponse>('/weather/daily', weatherQuery(points, today), { signal }),
+        get<TableResponse>('/weather/hourly', rainQuery(points, today), { signal }).catch(() => null),
+      ])
       const found = weatherByPoint(body, points.length, today)
-      return new Map(points.map((site, k) => [site.key, found[k]]))
+      const rain = hours ? rainSoFarByPoint(hours, points.length, today) : []
+      return new Map(points.map((site, k) => [site.key, { ...found[k], rainToday: rain[k] ?? null }]))
     },
   })
 
@@ -122,6 +129,16 @@
       Today’s weather and crop risk at the places you follow. Your sites are saved in this browser, so they stay here
       until you remove them; export them to keep a copy or move them to another device.
     </p>
+    {#if sites.length}
+      <p class="max-w-prose text-sm text-ink-muted">
+        {`Today’s precipitation is the total so far, through the hour shown. ${NOT_LIVE} For rain falling now, see the `}<a
+          href={`${routes.map()}?overlay=radar`}
+          class="underline hover:text-ink"
+        >
+          radar on the map
+        </a>.
+      </p>
+    {/if}
   </header>
 
   <StorageNotice />

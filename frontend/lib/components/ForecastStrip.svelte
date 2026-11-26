@@ -9,19 +9,22 @@
 
   // Days in brief, a card each: the sky in words and as an icon, high and low, precipitation, and reference ET.
   // As many across as fit, so a phone wraps rather than scrolling sideways. label names the list for screen
-  // readers. columns: each value's unit symbol (lib/tableRows' Table.units).
+  // readers. columns: each value's unit symbol (lib/tableRows' Table.units). soFar: today's precipitation added up
+  // from its hours (lib/sites/rainSoFar), shown on today's card while the day has no total.
   let {
     days,
     columns,
     units,
     today,
     label,
+    soFar = null,
   }: {
     days: Day[]
     columns: Record<string, string>
     units: Units
     today: string
     label: string
+    soFar?: { short: string; full: string } | null
   } = $props()
 
   const value = (day: Day, column: string) => day.values[column] ?? null
@@ -69,9 +72,16 @@
           <span class="font-semibold"><span class="sr-only">High </span>{degrees(day, 'air_temperature_max')}</span>
           <span class="text-ink-muted"><span class="sr-only">, low </span>{degrees(day, 'air_temperature_min')}</span>
         </span>
-        <span class="text-xs {wet ? '' : 'text-ink-muted'}">
-          <span class="sr-only">Precipitation </span>{amount(day, 'precipitation_sum')}
-        </span>
+        {#if soFar && day.date === today && value(day, 'precipitation_sum') === null}
+          <span class="text-xs" title={soFar.full}>
+            <span class="sr-only">{`Precipitation ${soFar.full}`}</span>
+            <span aria-hidden="true">{soFar.short}</span>
+          </span>
+        {:else}
+          <span class="text-xs {wet ? '' : 'text-ink-muted'}">
+            <span class="sr-only">Precipitation </span>{amount(day, 'precipitation_sum')}
+          </span>
+        {/if}
         <span class="text-xs text-ink-muted">
           <abbr title="Reference evapotranspiration" class="no-underline">ET</abbr>
           {amount(day, 'et0_sum')}
