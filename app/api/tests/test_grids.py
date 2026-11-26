@@ -146,6 +146,10 @@ def test_bbox_region_and_stride_choose_the_cells(client, archive):
         error["message"]
         == "Wisconsin is outside the area we cover. We cover Iowa only: choose it or one of its counties."
     )
+    error = get(client, "air_temperature_max", date="2025-07-05", region="Atlantis").json()["errors"][0]
+    assert error["code"] == "unknown_region" and error["message"].startswith(
+        "We don't recognize the region 'Atlantis'. Give a state's name or postal code ('wisconsin' or 'WI')"
+    )
 
 
 def test_a_region_is_kept_to_the_coverage(client, archive, monkeypatch):
