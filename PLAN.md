@@ -31,28 +31,23 @@ This file is where things stand and what's next: the one handoff, Ben's open cho
 
 Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, which runs through 2027); CONUS coverage (the box is configuration); AWON, HYD scraping, gnuplot maps, the three point-forecast vendors, Diak ET; personal API keys.
 
-## Handoff (2026-11-26, evening)
+## Handoff (2026-11-26, late night)
 
-**Phase 7, the web app** (branch `phase-7`): [docs/plans/phase-7-web-app.md](docs/plans/phase-7-web-app.md). Phase 6 closed this morning (below). Ben settled Phase 7's architecture (D117–D123) and the detailed plans of tracks 2 (map explorer) and 3 (sites, home), all as recommended, with the map explorer split 50:50 (map left, controls right, detail below the fold). Claude orchestrates; agents build in worktrees, at most four at once.
+**Phase 7, the web app** (branch `phase-7`; `phase-6` merged to `main` as PR #1, CI green): [docs/plans/phase-7-web-app.md](docs/plans/phase-7-web-app.md). Claude orchestrates; agents build in worktrees from `phase-7` (briefs in `tmp/briefs/wave6-common.md`, `wave7.md`, `wave8.md`, `wave8b.md`), at most four at once.
 
-**2026-11-26: Phase 7 waves 1–3** (11 build agents, 3 planning agents; each merged and checked; suite and Playwright 36/36 pass after the last merge):
+**Done before this session:** waves 1–5 (the base, DataMap, `/map`, `/sites`, the site page and its tabs, groups and preferences, `/models` and model pages, a model at a site, the feed, topics, `/methods`, D124–D126). See the phase plan's Waves.
 
-- **Base (wave 1):** WISP 3's frontend ported in place (D121): dependencies to its versions, tokens, `AppLayout` (six sections; phones scroll them sideways, Ben), the settings dialog with the units switch, primitives, storage, the unsaved-changes guard, test helpers and Playwright's `scan()`; the chart and map cores, overlays, place search; `lib/api.ts`, `lib/viewState.ts` with Share (D118), `lib/routes.ts` from `bin/types`; the missing-days flags for every model (`<input>_missing`, warnings on runs, `/risk` and maps; the dev archive's ingredients rebuilt for it, 1.8 h).
-- **Data tiles (wave 2):** `DataMap` colors the API's tiles with MapLibre's color-relief (D119 proved; values within the step at 25 cells). The TileJSON's `baseShift` had the wrong sign for MapLibre (it subtracts): fixed, worth a changelog line once live.
-- **Pages (wave 3):** `/map` (picker, time and stepper, options, title chip, cell panel, Share), `/sites` (cards loading as they scroll in), the site page (header, Overview, Weather), the home page, the shared `status` prop with a stale banner; the TileJSON's `subtitle`, `caption`, `warnings`, `categories`; `/risk` over several days.
+**This session (2026-11-26, evening–night):** tracks 5, 6 and 7 planned (Ben: all as recommended, with his answers recorded after each plan); wave 6 (backend fixes: null inputs no longer estimated or missing, the county table cut from the tiles' map, unknown POST fields refused, potato volunteer's falling milestones; the map's Save image, opacity 80 %, downloads of the view, training areas; D127 planting from the area's freeze; content fixes, today's rain so far, risk colours); stub routes for every page of tracks 5–7; wave 7 (legacy redirects, `/tools`, the place picker, `/calendar`, `/tools/degree-days`, the climate backend and shared charts, `/tools/oak-wilt` with oak wilt 0.3's `flown`); wave 8 (`/data` and the downloads list, About/Accessibility/Contact drafts and `/glossary`, risk colours by name on every scale, retired models' links to topics, the RTMA precipitation label bug, D128 insect seasons opening on warmth, crop stage or calendar). Suite 5,028 passed; vitest 624; Playwright 104; pyright and svelte-check clean.
 
-**Wave 4 (2026-11-26, later):** D124 (probability outputs in percent, eight models), D125 (one in-season rule; every insect a season, derived from our runs: provisional, for Ben), names; `/map` on phones, its county table and links; `/models` and the model pages; a model at a site with its chart and table; risk sparklines on cards and the site page. Suite 4,680 and Playwright 54 pass. The dev archive's ingredients were being rebuilt for the version bumps (`manage.py ingredients`, ~2 h, started 16:50).
-
-**Wave 5 (2026-11-26, night; done):** the map's date control (the data's range moved from the title chip into a timeline slider after Ben's alfalfa tool: observed solid, forecast hatched, "Recent weeks" or a year, the stepper, a sentence on what can be mapped); the site page's Degree days and Data tabs and the one-model feed `/sites/models/{id}`; groups and preferences at three levels with where each value comes from, a group's map view, saving from the map into a group; topic pages `/topics`, `/topics/{id}` and the generated methods page `/methods`; potato planting per cell (D126, replacing D64's 40 km circles; maps show no data where a cell has no typical date). Suite 4,807 passed; pyright clean; vitest 504; Playwright 78. **Data:** `manage.py ingredients` restarted on the merged code at ~19:40 (the version bumps of D124–D126 make every year stale; ~15–18 min a year, ~3 h, ~3 GB; log `tmp/ingredients-w5.log`); blight and potato maps answer 503 "updating" until it's done. Check `ingredients --check` next session.
-
-**Branches:** `phase-6` merged to `main` (PR #1, 2026-11-26, CI green); Phase 7 continues on `phase-7`.
+**Data tonight:** precipitation refilled for 2021-03-12 and 2022-09-21 (RTMA; 2020-03-21 has no source); downloads rebuilt (674 files, 5.1 GB, FORMAT 4); then `climatology` (the season-opening maps, D128) and `ingredients` (all 11 years, for D127, apple scab 0.2, oak wilt 0.3 and D128; ~3 h) running, log `tmp/w8-ingredients.log`. Blight and potato maps answer 503 "updating" until it's done. **Ben: restart `bin/dev`** to pick up the RTMA precipitation fix (the running worker still lags 7–8 h on precipitation) and the merged code.
 
 **Next, in order:**
 
-1. **Check the ingredients rebuild** (`uv run app/manage.py ingredients --check`; rerun if it stopped).
-2. **Ben's reviews** (Ben's open choices, below): D125's insect seasons, D126's planting rule, the content list from the topic and methods pages (the plan's wave 5 notes), the two small choices (today's precipitation "—"; 2- and 3-level risk colours).
-3. **Wave 6** (plan first, as each track starts): the climate pages (track 6), the tools (track 5: degree-day calculator, oak wilt, freeze dates, calendar; the alfalfa planner and crop GDD outlook), downloads, status and the reference pages (track 7), legacy redirects; the `_estimated`-on-null fix (`<input>_estimated` true where the value is null); the county table's speed (~4.5 s a state); the map's increments (Save image first). Accounts and email (track 8) when SES is set up.
-4. **Restart `bin/dev`** after pulling (dependencies changed in wave 1).
+1. **Check the rebuild** (`ingredients --check`, `climatology --check`; rerun if stopped).
+2. **Ben's reviews:** About's five "For Ben" notes and the credits (`content/pages/about.md`, `status: draft`); oak wilt's wording with DNR forest health staff (DNR's 2026 guidelines don't mention 231 degree days); the legend at full strength while the map is at 80 % (or match it).
+3. **Wave 9** (plans approved): the freeze tool (on the shared climate core); the site page's Climate tab (6.2); climate on `/map` (6.3); `/climate` as a climate explorer (map, click a location for the charts; Ben) and `/methods#normals` (6.4–6.5); `/status` and the changelog's announcement banner (7.2–7.3); then the P1 tools (crop GDD outlook, potato volunteer page, the alfalfa planner's backend and page). Small: `/grids?region=` should take only the coverage's states (it answers for 19 more, mostly empty); remeasure the climate endpoints on a quiet server (`manage.py latency`; 1–4 s under load, mostly reading the 30 years, plus 0.7 s for the ETag's stamp).
+4. **Interface design (Ben, after this wave settles):** a general-purpose map explorer plus a page per model and topic tailored to its inputs and interpretation, in WISP 3's map-plus-sidebar-feed frame for one or more sites or none (phase plan, "Ben, 2026-11-26 (later)").
+5. Accounts and email (track 8) when SES is set up.
 
 **Carried from Phase 6:**
 
@@ -72,9 +67,7 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 
 ## Ben's open choices
 
-- **Potato planting (D126), Ben 2026-11-26:** smooth the freeze over ~50 km, center-weighted, against frost pockets (wave 6 agent w6-spring building it; D127 to record).
-- **Insect seasons (D125, provisional), Ben 2026-11-26:** start each from the same per-cell last-frost determination; Feb 15 (seedcorn maggot) and Mar 15 (crucifer flea beetle) far too early, asparagus not before May. w6-spring writes the design and per-insect offsets for Ben.
-- **Ben, 2026-11-26:** content fixes from the topic and methods pages go ahead; today's rain shows the total so far with its time and a clear "not real time" note; 2- and 3-level risk scales take steps of the 5-level palette; the map's data layer gets transparency (harsh colours). Track 5's plan (phase-7-web-app.md) awaits his go.
+- **About page** drafts and credits; **oak wilt** wording with DNR (above).
 - **Generation weights** are judgments (TODO.md): the looper's halve the season's only caterpillar peak north of Arlington.
 - **The Crop Risk Tool audit's questions for the authors** (`tmp/crt-model-audit.md`).
 - **Cabbage maggot transplant timing:** UW's pages against A3422.
