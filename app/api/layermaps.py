@@ -1302,7 +1302,7 @@ def model_request(request: HttpRequest, layer: Layer, query: LayerQuery, warning
 def planting_summary(model: ModelRequest, mask: np.ndarray, warnings: list[str]) -> dict[str, Any]:
     """The tier's planting dates over the cells asked for, and how many have none (missing on the map, as a point
     without one refuses)."""
-    assert model.planted is not None
+    assert model.planted is not None and model.window is not None
     land = mask & regions.land(model.window)  # open water has no crop (the county grid reaches ~10 km into lakes)
     dates = model.planted[land]
     known = dates[np.isfinite(dates)]
