@@ -45,6 +45,10 @@ Update 2026-11-22: Paul Stoy (lead author) says the paper describing the hourly 
 - Wisconsin only: the launch box would have her values in Wisconsin and ERA5-Land elsewhere, with a seam at the state line; or her approach used to correct ERA5-Land's level by texture across the box (her suggestion: station data correcting or checking ERA5-Land).
 - Report our sources in her terms (R², RMSE, by depth, on the same withheld months and stations) so the two compare directly.
 
+## Enhancement: observed phenologies — to explore, after the frontend settles (Ben, 2026-11-26)
+
+For every species we model, compare the model's timing with when people actually see it: iNaturalist's research-grade observations (its phenology by month and place; its API or the GBIF export), and other networks where they exist (USA National Phenology Network, DATCP's trap counts in the model review below). First use: check seasons and first activity (D128) and flight timing against observations by region (Ben checked asparagus beetles on iNaturalist on 2026-11-26: both species' observations begin in April, which agrees with D128's degree-day opening). Then, possibly, download the observations and build our own phenologies: observation dates against each observation's degree days on our archive, fitting first-activity and peak thresholds by species. Questions to settle then: observation effort bias (people look on warm weekends), species identification quality, the licences of the observations (iNaturalist's per-observation CC licences), and whether presence-only data can set a threshold.
+
 ## Enhancement: model review — sketch (L, ongoing)
 
 A sweep across every model, one at a time, after launch or between phases (Ben, 2026-10-29):
