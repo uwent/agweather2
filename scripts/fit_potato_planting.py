@@ -6,14 +6,18 @@ Every rule gives a place's early, mid and late dates from a climatological stati
 tier as the median over the training rows, and is scored held out by place (each place's dates predicted from the
 other six):
 
-- freeze: the cell's median last spring freeze (28 or 32 °F) over a stored normal (`last30`, `last10`), plus days;
+- freeze: the cell's median last spring freeze (28 or 32 °F) over a stored normal (`last30`, `last10`), plus days,
+  as the cell's own and averaged over the area around it (`agdata.springfreeze`, 50 km, D127; the rule in use);
 - soil degree days: the first day the archive's normal running total of 4 cm soil temperature above 0 °C from
   January 1 (the last 10 complete years, each day's mean over the years) reaches a threshold (the 2026-11-03 fit on
   Open-Meteo, here on the archive);
 - air degree days: the same on the stored normals of the running degree days above 32 °F (single sine) and 39.2 °F
   (average).
 
-The fitted freeze offsets (all 120 rows) are checked against `potatoplanting.OFFSETS`.
+The fitted freeze offsets (all 120 rows, on the area's 28 °F freeze over `last30`) are checked against
+`potatoplanting.OFFSETS`. The speckle of each rule's mid date over the normals' area is measured too: the mean over
+land cells of the largest difference from a neighbouring cell (the 8 around it), and the share of cells more than 3 days
+from one.
 
 uv run python scripts/fit_potato_planting.py [--data-dir data] [--quiet]
 """
@@ -26,7 +30,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata import normals, potatoplanting
+from agdata import normals, potatoplanting, regions, springfreeze
 from agdata.catalog import DAILY_VARIABLES
 from agdata.grid import NDFD, Window
 from agdata.progress import Reporter
@@ -58,6 +62,7 @@ def main() -> None:
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
     report = Reporter(quiet=args.quiet)
+    regions.use_terrain(lambda: args.data_dir)  # open water as the app takes it
     with report.activate():
         rows = list(csv.DictReader(DATES.open()))
         places = {r["location"]: (float(r["lat"]), float(r["lng"])) for r in rows}
@@ -119,11 +124,26 @@ def main() -> None:
                 curve[n], float(np.median([curve[o["location"]][slot_of(o["planting_date"])] for o in train]))
             )
 
+        def area(period: str, name: str) -> dict[str, float]:
+            out = {}
+            for n, cell in cells.items():
+                assert cell is not None
+                out[n] = springfreeze.at(args.data_dir, name, *cell, period=period)
+            return out
+
         freeze = {}
         for period in ("last30", "last10"):
             for f in (28, 32):
-                freeze[(period, f)] = single(period, f"freeze_{f}/spring_p50")
-                score(f"{period}: last {f} °F spring freeze (median) + days", offset_rule(freeze[(period, f)]))
+                name = f"freeze_{f}/spring_p50"
+                score(
+                    f"{period}: last {f} °F spring freeze (median), the cell's + days",
+                    offset_rule(single(period, name)),
+                )
+                freeze[(period, f)] = area(period, name)
+                score(
+                    f"{period}: last {f} °F spring freeze (median), over {springfreeze.RADIUS_KM:g} km + days",
+                    offset_rule(freeze[(period, f)]),
+                )
         score("archive 2016–2025: soil (4 cm) degree days above 0 °C", total_rule(soil()))
         for name, label in (
             ("dd_sine_32", "air degree days above 32 °F (sine)"),
@@ -140,7 +160,7 @@ def main() -> None:
 
         chosen = freeze[("last30", 28)]
         report.step(
-            "last30's median last 28 °F spring freeze at each place: "
+            f"last30's median last 28 °F spring freeze over {springfreeze.RADIUS_KM:g} km at each place: "
             + ", ".join(f"{n} {potatoplanting.slot_text(round(v))}" for n, v in chosen.items())
         )
         fitted = {
@@ -170,7 +190,33 @@ def main() -> None:
                     for n in places
                 )
             )
+        speckle(report, args.data_dir)
     report.finish("fitted")
+
+
+def speckle(report: Reporter, data_dir: Path) -> None:
+    """How much the mid planting date jumps between neighbouring land cells over the normals' area, by the cell's own
+    freeze and by the area's."""
+    w = Window(**(normals.info(data_dir, "last30") or {})["window"])
+    land = ~regions.water(w)
+    for label, freeze in (
+        ("the cell's own freeze", normals.read_within(data_dir, "last30", potatoplanting.FREEZE, None, w)),
+        (f"the freeze over {springfreeze.RADIUS_KM:g} km", springfreeze.within(data_dir, potatoplanting.FREEZE, w)),
+    ):
+        mid = np.where(land, np.round(freeze), np.nan)
+        jumps = np.full((8, *mid.shape), np.nan)
+        padded = np.pad(mid, 1, constant_values=np.nan)
+        k = 0
+        for dj in (-1, 0, 1):
+            for di in (-1, 0, 1):
+                if dj or di:
+                    jumps[k] = np.abs(padded[1 + dj : 1 + dj + mid.shape[0], 1 + di : 1 + di + mid.shape[1]] - mid)
+                    k += 1
+        largest = np.nanmax(np.where(np.isfinite(jumps), jumps, -1.0), axis=0)
+        cells = np.isfinite(mid) & (largest >= 0)
+        report.step(
+            f"speckle by {label}: {int(cells.sum())} land cells, the largest step to a neighbour {largest[cells].mean():.2f} days on average, {100 * (largest[cells] > 3).mean():.1f}% of cells more than 3 days from one, SD of mid dates {np.nanstd(mid):.1f} days"
+        )
 
 
 if __name__ == "__main__":

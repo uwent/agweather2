@@ -38,7 +38,7 @@ At a 45 °F base the same dates take about 250 °F·d (the plans, `docs/plans/`)
 
 ## Typical planting dates
 
-Written 2026-11-26 with model version 0.2. When a request asks for a typical planting (`planting_date=early|mid|late` at a location, `planting=` on a map), the dates are each grid cell's estimate (`agdata.potatoplanting`): its median last spring freeze at 28 °F over the 30-year normal (`last30`, `freeze_28/spring_p50`, D85), less 7 days for early planting, plus 7 for mid and plus 29 for late. The numbers are the medians, over Veg Path's 120 plantings (`docs/validation/data/vegpath-potato-planting/`), of each planting date less the freeze date at its place's cell. They replace D64's interim rule, the mean dates of the nearest of Veg Path's seven places within 40 km and none beyond, which drew circles on the early and late blight maps (Ben, 2026-11-26).
+Written 2026-11-26 with model version 0.2, revised the same day for 0.3 (D127). When a request asks for a typical planting (`planting_date=early|mid|late` at a location, `planting=` on a map), the dates are each grid cell's estimate (`agdata.potatoplanting`): the median last spring freeze at 28 °F over the 30-year normal (`last30`, `freeze_28/spring_p50`, D85), averaged over the land within 50 km of the cell with a Gaussian weight (σ 25 km; `agdata.springfreeze`), less 6 days for early planting, plus 7 for mid and plus 28 for late. The numbers are the medians, over Veg Path's 120 plantings (`docs/validation/data/vegpath-potato-planting/`), of each planting date less that area's freeze date at its place's cell. Version 0.2 read the cell's own freeze date (−7, +7, +29 days); 0.3 averages over the area because the cell's own date picks up frost pockets (below). They replace D64's interim rule, the mean dates of the nearest of Veg Path's seven places within 40 km and none beyond, which drew circles on the early and late blight maps (Ben, 2026-11-26).
 
 The dates are climatological: one set per cell for every year. A rule on each year's own soil or air degree days missed Veg Path's dates by 10–12 days (2026-11-03 fit, `tmp/potato/planting.py`), a rule on each place's normal by about 6: a year's planting follows the place's usual spring more than that spring's weather.
 
@@ -47,19 +47,29 @@ The dates are climatological: one set per cell for every year. A rule on each ye
 `scripts/fit_potato_planting.py` on the development archive (Wisconsin), each place's dates predicted from the other six places' (held out by place); error is the estimate less Veg Path's date:
 
 <!-- prettier-ignore -->
-| Rule (each place's cell) | Mean absolute error, days | RMSE, days | Bias, days |
+| Rule (each place's cell, or the area around it) | Mean absolute error, days | RMSE, days | Bias, days |
 | --- | --- | --- | --- |
 | (a) Soil degree days above 0 °C from January 1, 4 cm, the archive's 2016–2025 mean (thresholds 119, 226, 468 °C·d) | 6.2 | 7.7 | −0.5 |
 | (b) Air degree days above 32 °F from January 1 (single sine), 30-year normal | 7.4 | 9.2 | −1.2 |
 | (b) Air degree days above 39.2 °F from January 1 (average), 30-year normal | 7.5 | 9.5 | −1.4 |
-| **Last 28 °F spring freeze, 30-year median, −7, +7, +29 days (chosen)** | **6.7** | **8.3** | **−0.5** |
-| Last 32 °F spring freeze, 30-year median | 8.6 | 10.0 | −0.7 |
-| Last 28 °F spring freeze, 10-year median | 10.3 | 12.7 | −2.3 |
-| Last 32 °F spring freeze, 10-year median | 10.0 | 11.8 | −1.4 |
+| **Last 28 °F spring freeze, 30-year median, over 50 km, −6, +7, +28 days (chosen, 0.3)** | **6.8** | **8.6** | **−1.5** |
+| Last 28 °F spring freeze, 30-year median, the cell's own, −7, +7, +29 days (0.2) | 6.7 | 8.3 | −0.5 |
+| Last 32 °F spring freeze, 30-year median, over 50 km | 7.5 | 9.2 | −1.3 |
+| Last 32 °F spring freeze, 30-year median, the cell's own | 8.6 | 10.0 | −0.7 |
+| Last 28 °F spring freeze, 10-year median, over 50 km | 9.1 | 11.7 | −2.3 |
+| Last 28 °F spring freeze, 10-year median, the cell's own | 10.3 | 12.7 | −2.3 |
+| Last 32 °F spring freeze, 10-year median, over 50 km | 8.5 | 10.8 | −2.1 |
+| Last 32 °F spring freeze, 10-year median, the cell's own | 10.0 | 11.8 | −1.4 |
 
-Soil degree days, the rule the plan named (Phase 6, "Cropland and planting estimates"), fit Wisconsin best, and the 28 °F freeze date is 0.5 days behind. Every rule has the same regional pattern. With the chosen rule, the central sands plant earlier than estimated (Grand Marsh +4.8 days, Hancock +7.0, Plover +1.4) and the north later (Antigo −8.4, Rhinelander −9.2); Spring Green −0.7 and Arlington −3.4. The soil rule's are Grand Marsh +3.4, Hancock +4.7, Plover +4.4, Antigo −8.4 and Rhinelander −7.3. Sandy, irrigated fields that warm and drain early, and the north's later-maturing seed and processing crops, are likely reasons; no rule here knows soil or market.
+Soil degree days, the rule the plan named (Phase 6, "Cropland and planting estimates"), fit Wisconsin best, and the 28 °F freeze date over the area is 0.6 days behind. Every rule has the same regional pattern. With the chosen rule, the central sands plant earlier than estimated (Grand Marsh +4.4 days, Hancock +3.7, Plover +2.8) and the north later (Antigo −11.7, Rhinelander −7.8); Spring Green −0.7 and Arlington −4.8. On the cell's own freeze date (0.2) they were Grand Marsh +4.8, Hancock +7.0, Plover +1.4, Antigo −8.4, Rhinelander −9.2, Spring Green −0.7 and Arlington −3.4: averaging takes Hancock's frost-pocket cell out (3 days nearer) and Antigo's cell, colder than the land around it, in (3 days further). The soil rule's are Grand Marsh +3.4, Hancock +4.7, Plover +4.4, Antigo −8.4 and Rhinelander −7.3. Sandy, irrigated fields that warm and drain early, and the north's later-maturing seed and processing crops, are likely reasons; no rule here knows soil or market.
 
-Ten years' freeze dates are too few for a median (10.0–10.3 days); the 30-year normal's are steadier.
+Ten years' freeze dates are too few for a median (8.5–10.3 days); the 30-year normal's are steadier.
+
+### The area's freeze date, not the cell's (D127)
+
+A 2.5 km cell's freeze date follows its ground: cold air settles in low ground, on sand and by bogs on clear nights, and a cell there can freeze two or three weeks after the farms a few miles off. Read cell by cell (0.2), these frost pockets speckled the early and late blight maps with late dates. Whether a place plants early or late is a trait of its area, so 0.3 averages the freeze date over the land within 50 km, nearer cells counting more (a Gaussian with σ 25 km, cut off at 50 km: the weighting of `agdata.areas`' `center`). Cells without a value (past the coverage) and open water (`regions.water`) are left out of the average and the weights of the rest renormalized, so the coast and the coverage's edge don't pull a cell's date. The development archive's normals cover Wisconsin only, so a border cell's average there lacks its neighbours across the line; the full archive's won't.
+
+Over the development archive's Wisconsin normals (43,055 land cells), mid planting on the cell's own freeze date differed from at least one of a cell's 8 neighbours by more than 3 days at 11.7 % of cells, and the largest step to a neighbour averaged 1.8 days. On the area's freeze date, 0.0 % and 0.6 days (`scripts/fit_potato_planting.py`'s speckle lines). The spread of mid dates across Wisconsin barely changes (SD 11.1 to 10.6 days): the north–south gradient stays, the speckle goes. The fit at Veg Path's places costs 0.1 day (6.8 against 6.7).
 
 ### Outside Wisconsin
 
@@ -77,7 +87,7 @@ The degree-day rules were fitted where the ground freezes all winter. Where it d
 | Jackson Co., IL | (none) | Feb 28 (early Feb 7) | Mar 5 (early Feb 19) | Mar 18 (early Mar 4) | Mar 28 (early Mar 15) |
 | Mid less NASS's middle: mean, spread across the 5 places (SD) | | −17, 12.6 | −17, 13.0 | −24, 6.3 | −18, 3.4 |
 
-Veg Path's tiers come earlier than NASS's percentages (in Wisconsin too), so the level of these differences says little; their spread across the states says whether a rule keeps NASS's geography. The degree-day rules put Ohio's mid planting at the end of March, 40 days before NASS's middle where Minnesota's and North Dakota's come 6–12 days before theirs, and plant Kentucky and southern Illinois in February. The freeze dates keep the states in NASS's order and put early planting in Kentucky and southern Illinois in March, as gardeners there plant. That is why the freeze date was chosen over the soil rule, at half a day's cost in Wisconsin. The 32 °F freeze kept NASS's geography best but missed Wisconsin's places by 8.6 days; the 28 °F one still puts Ohio about two weeks early relative to the others. These are point checks on Open-Meteo's weather, not on the 30-year normal the grid reads, and NASS's dates are state-wide and 20 years old.
+Veg Path's tiers come earlier than NASS's percentages (in Wisconsin too), so the level of these differences says little; their spread across the states says whether a rule keeps NASS's geography. The degree-day rules put Ohio's mid planting at the end of March, 40 days before NASS's middle where Minnesota's and North Dakota's come 6–12 days before theirs, and plant Kentucky and southern Illinois in February. The freeze dates keep the states in NASS's order and put early planting in Kentucky and southern Illinois in March, as gardeners there plant. That is why the freeze date was chosen over the soil rule, at half a day's cost in Wisconsin. The 32 °F freeze kept NASS's geography best but missed Wisconsin's places by 8.6 days; the 28 °F one still puts Ohio about two weeks early relative to the others. These are point checks on Open-Meteo's weather, not on the 30-year normal the grid reads, and NASS's dates are state-wide and 20 years old. Rerun for 0.3 (2026-11-26) with the same result: the check fits its own offsets on ERA5's points, whose 0.25° cells are already area averages about as wide as the grid's 50 km weighting, so averaging the grid's freeze dates doesn't change the states' order it measures. ERA5's last 28 °F freeze comes about a week later than the grid's area-averaged one at the southern Wisconsin places (Arlington April 18 against April 11, Hancock April 25 against 18) and its fitted offsets differ to match (−12, +2, +24); its 32 °F dates agree with the grid's within 4 days.
 
 ### Places with dates of their own
 
@@ -93,7 +103,7 @@ Early blight's P-days on July 1, 2026 at the mid tier, before (D64's circles) an
 - Planting depth, seed size, sprouting before planting and soil moisture all change emergence, and none is an input.
 - Only one threshold for all varieties.
 - **Cheapest independent comparison:** emergence counted in Wisconsin fields with known planting dates, from potato trials at UW–Madison's Hancock Agricultural Research Station, or from growers' and consultants' records, on the archive at each field's cell.
-- **Typical planting dates:** fitted at seven places in one state, to the newsletter's tiers rather than to a share of the area planted. Outside Wisconsin only state-wide NASS dates check them, at points on Open-Meteo's weather. The 28 °F freeze date follows frost pockets, where cold air settles on clear nights (the central sands have many), which may be one reason the sands plant earlier than estimated. The estimate moves by a day or so when the 30-year normal is rebuilt each January; the crop stages stored per tier follow at their next rebuild. The cheapest independent check: NASS's weekly crop progress for potatoes planted in Wisconsin, Minnesota, Michigan and North Dakota (state-wide percentages, 2016–2025), against the estimate averaged over each state's potato cells (the Cropland Data Layer's any-year potato share, D116).
+- **Typical planting dates:** fitted at seven places in one state, to the newsletter's tiers rather than to a share of the area planted. Outside Wisconsin only state-wide NASS dates check them, at points on Open-Meteo's weather. Averaging over 50 km (0.3) takes frost pockets out of the estimate but also blurs real differences within the area: a farm on a ridge or in a valley plants by its own ground, and growers on the central sands still plant a few days earlier than estimated. The estimate moves by a day or so when the 30-year normal is rebuilt each January; the crop stages stored per tier follow at their next rebuild. The cheapest independent check: NASS's weekly crop progress for potatoes planted in Wisconsin, Minnesota, Michigan and North Dakota (state-wide percentages, 2016–2025), against the estimate averaged over each state's potato cells (the Cropland Data Layer's any-year potato share, D116).
 
 ## Reproducing
 

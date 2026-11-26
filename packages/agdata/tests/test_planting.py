@@ -69,8 +69,10 @@ def test_the_table_is_consistent():
 
 
 def test_potato_dates_are_each_cells_estimate_from_its_freeze_normal(tmp_path):
-    """Potato's early, mid and late planting are the cell's median last 28 °F spring freeze (`last30`) plus fixed
-    days, at a point as on the map (one answer per cell); None where the normal doesn't reach or isn't built."""
+    """Potato's early, mid and late planting are the median last 28 °F spring freeze (`last30`) over the area around
+    the cell (D127) plus fixed days, at a point as on the map (one answer per cell); None where the normal doesn't
+    reach or isn't built."""
+    from agdata import springfreeze
     from agdata.grid import NDFD, Window
     from agdata.planting import planting_map
     from agdata.potatoplanting import OFFSETS
@@ -86,9 +88,11 @@ def test_potato_dates_are_each_cells_estimate_from_its_freeze_normal(tmp_path):
     plover = typical_planting("potato", 44.40, -89.50, data_dir=tmp_path)
     assert plover is not None and plover.level == "cell" and plover.area == f"{cell[0]},{cell[1]}"
     assert "28 °F" in plover.source and "Vegetable Pathology" in plover.source
-    freeze = date(2000, 1, 1).toordinal() + 105 + 12  # the window's middle cell: slot 117, April 27
+    area = springfreeze.at(tmp_path, springfreeze.SPRING_28, *cell)  # the freeze over the area around the cell
+    assert 115 < area < 119  # near the middle cell's own, slot 117 (April 27): the field rises evenly
+    freeze = date(2000, 1, 1).toordinal() + round(area)
     expected = [date.fromordinal(freeze + OFFSETS[t]).strftime("%m-%d") for t in ("early", "mid", "late")]
-    assert [plover.early, plover.typical, plover.late] == expected == ["04-20", "05-04", "05-26"]
+    assert [plover.early, plover.typical, plover.late] == expected
     for tier, field in (("early", "early"), ("mid", "typical"), ("late", "late")):
         found = planting_map("potato", tier, window, season=2026, data_dir=tmp_path)
         assert np.isnan(found[0, 0]) and np.isfinite(found[1:]).all()
