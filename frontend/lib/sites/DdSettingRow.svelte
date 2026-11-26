@@ -57,7 +57,7 @@
     const high = units.parse('degF', upper)
     const unit = units.label('degF')
     if (!low.ok || low.value === null) {
-      error = `Enter a base temperature in ${unit}, such as ${units.system === 'metric' ? '10' : '50'}.`
+      error = `Enter a base temperature in ${unit}, such as '${units.system === 'metric' ? '10' : '50'}'.`
       return
     }
     if (!high.ok) {
