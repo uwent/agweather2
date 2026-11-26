@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import Field
 
 from api.routes.discovery import StatusData
+from api.routes.methods import NormalsInfo
 from updates.props import AnnouncementProps, ChangelogEntryProps
 from web.inertia import Props
 
@@ -504,6 +505,7 @@ class MethodsProps(Props):
     sources: list[MethodsSource]
     corrections: list[MethodsCorrection]
     variables: list[MethodsVariable] = Field(description="Hourly, then daily, then running totals, as /variables.")
+    normals: NormalsInfo = Field(description="How the normals are made, as /api/v2/methods serves it (step 6.5).")
     api_methods_url: str
 
 

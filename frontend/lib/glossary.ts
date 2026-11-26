@@ -3,6 +3,7 @@
 // the glossary page. Definitions are for growers and consultants: plain words, a sentence or three,
 // no more precise than the models are (CLAUDE.md, Writing for the public).
 
+import { normalsHref } from '@/lib/methods'
 import { routes } from '@/lib/routes'
 
 export type GlossaryEntry = {
@@ -14,7 +15,11 @@ export type GlossaryEntry = {
    */
   matches: string[]
   definition: string
+  /** Where to read more, shown after the definition on the glossary page */
+  more?: { href: string; label: string }
 }
+
+const HOW_NORMALS = { href: normalsHref(), label: 'How we make normals' }
 
 export const GLOSSARY: GlossaryEntry[] = [
   {
@@ -73,6 +78,7 @@ export const GLOSSARY: GlossaryEntry[] = [
     matches: ['climate normals', 'climate normal', 'normals'],
     definition:
       "The usual weather for a place and time of year: the average over a run of recent years, the last 30 by default, or the last 10 or 5. We compute a place's normals from its own past years, so a normal total to a date is each year's own total, averaged.",
+    more: HOW_NORMALS,
   },
   {
     id: 'percentile',
@@ -80,6 +86,7 @@ export const GLOSSARY: GlossaryEntry[] = [
     matches: ['percentiles', 'percentile'],
     definition:
       'Where a value ranks among past years. The 50th percentile is the middle year; the 90th is a value only 1 year in 10 went above. The range from the 10th to the 90th percentile holds 8 years in 10, so a value outside it is unusual.',
+    more: HOW_NORMALS,
   },
   {
     id: 'departure',
@@ -87,6 +94,7 @@ export const GLOSSARY: GlossaryEntry[] = [
     matches: ['departures from normal', 'departure from normal', 'departures', 'departure'],
     definition:
       "How far a value is from its normal: this year's value less the normal. Above normal is positive and below normal negative.",
+    more: HOW_NORMALS,
   },
   {
     id: 'frost',
@@ -115,6 +123,7 @@ export const GLOSSARY: GlossaryEntry[] = [
     matches: ['frost-free seasons', 'frost-free season', 'season without a frost'],
     definition:
       "The days between the last frost of spring and the first frost of fall, when crops can grow without one. It's counted in each year, so its typical length isn't simply the time between the typical dates.",
+    more: HOW_NORMALS,
   },
   // --- Reference terms (Phase 7 step 7.4, the glossary page): models' scales, weather and the grid ---
   {

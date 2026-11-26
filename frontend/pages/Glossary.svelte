@@ -72,6 +72,9 @@
               >
                 <dt class="font-semibold">{entry.term}</dt>
                 <dd class="mt-1">{entry.definition}</dd>
+                {#if entry.more}
+                  <dd class="mt-1 text-sm"><a href={entry.more.href} class={link}>{entry.more.label}</a></dd>
+                {/if}
               </div>
             {/each}
           </dl>

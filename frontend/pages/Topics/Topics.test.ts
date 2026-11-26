@@ -79,4 +79,38 @@ describe('the methods page', () => {
     expect(document.getElementById('variable-total-precipitation')).not.toBeNull()
     expect(screen.getByText(/midnight to midnight Central Standard Time \(CST\) all year, 06:00 to 06:00 UTC/))
   })
+
+  it('describes how normals are made from its props, so a change in the code changes the page', () => {
+    const props = methods as MethodsProps
+    const { unmount } = render(Methods, props)
+    const section = screen.getByRole('region', { name: 'How normals are made' })
+    expect(within(section).getByRole('heading', { level: 3, name: 'The periods' })).toBeInTheDocument()
+    const periods = within(section).getByRole('table', {
+      name: 'The periods normals cover and where their years come from',
+    })
+    const thirty = within(periods).getByRole('row', { name: /Last 30 years/ })
+    expect(thirty).toHaveTextContent('1996–2025')
+    expect(thirty).toHaveTextContent('2016–2025')
+    expect(thirty).toHaveTextContent('1996–2015')
+    expect(within(section).getByText(/pools every year’s values for the 15 days centered on it/)).toBeInTheDocument()
+    expect(within(section).getByText('Days with a high of 93.2 °F or more')).toBeInTheDocument()
+    const insects = within(section).getByRole('table', { name: 'When each insect’s season opens' })
+    const borer = within(insects).getByRole('row', { name: /European corn borer/ })
+    expect(borer).toHaveTextContent('7 days before the first adult flight')
+    expect(borer).toHaveTextContent('395 °F degree days (modified average, 50 to 86 °F) from January 1')
+    expect(within(borer).getByRole('link', { name: 'European corn borer' })).toHaveAttribute(
+      'href',
+      '/models/european-corn-borer',
+    )
+    expect(within(insects).getByRole('row', { name: /Black cutworm/ })).toHaveTextContent('On April 15')
+    expect(screen.getByRole('navigation', { name: 'On this page' })).toBeTruthy()
+    unmount()
+
+    const changed = structuredClone(props)
+    changed.normals.pool_days = 21
+    changed.normals.area.radius_km = 40
+    render(Methods, changed)
+    expect(screen.getByText(/pools every year’s values for the 21 days centered on it/)).toBeInTheDocument()
+    expect(screen.getByText(/over the cells within 40 km/)).toBeInTheDocument()
+  })
 })

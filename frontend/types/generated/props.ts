@@ -452,6 +452,7 @@ export interface MethodsProps {
    * Hourly, then daily, then running totals, as /variables.
    */
   variables: MethodsVariable[]
+  normals: NormalsInfo
   api_methods_url: string
 }
 /**
@@ -500,6 +501,94 @@ export interface MethodsVariable {
    * Correction ids.
    */
   corrections: string[]
+}
+/**
+ * How the normals are made, as /api/v2/methods serves it (step 6.5).
+ */
+export interface NormalsInfo {
+  periods: NormalsPeriodInfo[]
+  pool_days: number
+  coverage: number
+  running_max_missing: number
+  daily_percentiles: number[]
+  daily_percentile_variables: string[]
+  decile_variables: string[]
+  decile_periods: string[]
+  counts: NormalsCountInfo[]
+  freeze: NormalsFreezeInfo
+  gridmet: NormalsGridmetInfo
+  area: NormalsAreaInfo
+  season_opens: NormalsSeasonOpeningInfo[]
+  region_percentile: number
+  evidence: string[]
+}
+export interface NormalsPeriodInfo {
+  period: string
+  first_year: number
+  last_year: number
+  archive_years: number[]
+  gridmet_years: number[]
+  missing_years: number[]
+  maps: boolean
+}
+export interface NormalsCountInfo {
+  variable: string
+  above: number | null
+  below: number | null
+  unit: string
+}
+export interface NormalsFreezeInfo {
+  thresholds: number[]
+  spring: string[]
+  fall: string[]
+  percentiles: number[]
+  max_missing_share: number
+}
+export interface NormalsGridmetInfo {
+  correction: string
+  adjust: NormalsAdjustInfo[]
+  pool_days: number
+  smooth_cells: number
+  ratio_limits: number[]
+  left_out: NormalsLeftOutInfo[]
+  fit_years: number[]
+  fitted: string | null
+}
+export interface NormalsAdjustInfo {
+  variable: string
+  kind: string
+}
+export interface NormalsLeftOutInfo {
+  variable: string
+  years: number[]
+}
+export interface NormalsAreaInfo {
+  radius_km: number
+  sigma_km: number
+  period: string
+  planting_freeze: number
+  planting_offsets: {
+    [k: string]: number
+  }
+}
+export interface NormalsSeasonOpeningInfo {
+  model: string
+  name: string
+  rule: string
+  event: string | null
+  lead_days: number
+  method: string | null
+  base: number | null
+  upper: number | null
+  start: string | null
+  degree_days: number | null
+  form_degree_days: number | null
+  form_below: number | null
+  form_through: string | null
+  crop_model: string | null
+  crop_model_name: string | null
+  planting: string | null
+  first_day: string
 }
 export interface ModelBiofix {
   /**
@@ -792,6 +881,23 @@ export interface ModelsIndexProps {
    * The groups in the order a crop lists them, with their public names.
    */
   groups: NamedId[]
+}
+export interface NormalsInfo1 {
+  periods: NormalsPeriodInfo[]
+  pool_days: number
+  coverage: number
+  running_max_missing: number
+  daily_percentiles: number[]
+  daily_percentile_variables: string[]
+  decile_variables: string[]
+  decile_periods: string[]
+  counts: NormalsCountInfo[]
+  freeze: NormalsFreezeInfo
+  gridmet: NormalsGridmetInfo
+  area: NormalsAreaInfo
+  season_opens: NormalsSeasonOpeningInfo[]
+  region_percentile: number
+  evidence: string[]
 }
 /**
  * Oak wilt (`/tools/oak-wilt`, track 5 T1 d): the `oak-wilt-vectors` model's content for its chart and guidance,

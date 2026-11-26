@@ -140,6 +140,41 @@ def test_the_methods_page_matches_the_apis_variables(client: Client):
     assert [(v["name"], v["kind"]) for v in props["variables"]] == [(v["name"], v["kind"]) for v in api]
 
 
+@pytest.mark.django_db
+def test_the_methods_page_describes_how_normals_are_made_from_the_code(client: Client, monkeypatch):
+    from agdata import climatology, normals, springfreeze
+
+    props = page(client, "/methods")["props"]["normals"]
+    assert props == client.get("/api/v2/methods").json()["data"]["normals"]  # the API and the page in step
+    assert [p["period"] for p in props["periods"]] == ["last30", "last20", "last10", "last5"]
+    assert props["pool_days"] == climatology.POOL_DAYS and props["area"]["radius_km"] == springfreeze.RADIUS_KM
+    assert len(props["counts"]) == len(normals.COUNTS) and props["freeze"]["thresholds"] == [32, 28, 24]
+    found = {o["model"]: o for o in props["season_opens"]}
+    assert found["european-corn-borer"]["degree_days"] == 395 and found["european-corn-borer"]["form_below"] == 1500
+    assert found["colorado-potato-beetle"]["rule"] == "crop_stage" and found["black-cutworm"]["rule"] == "calendar"
+    assert "western-flower-thrips" not in found  # retired
+    # A change in a constant changes the page
+    monkeypatch.setattr(climatology, "POOL_DAYS", 21)
+    monkeypatch.setattr(springfreeze, "RADIUS_KM", 40.0)
+    changed = page(client, "/methods")["props"]["normals"]
+    assert changed["pool_days"] == 21 and changed["area"]["radius_km"] == 40.0
+
+
+def test_a_periods_years_come_from_the_archive_and_gridmet(monkeypatch, tmp_path):
+    from datetime import date
+
+    from agdata import climatology
+    from api.routes import methods
+
+    monkeypatch.setattr(climatology, "available_years", lambda data_dir: [*range(1996, 2016), 2016, 2018])
+    monkeypatch.setattr(methods, "archive_years", lambda data_dir: [2016, 2018, 2026])
+    found = {p.period: p for p in methods.normals_info(tmp_path, date(2026, 3, 1)).periods}
+    assert (found["last30"].first_year, found["last30"].last_year) == (1996, 2025)
+    assert found["last30"].archive_years == [2016, 2018] and found["last30"].gridmet_years == list(range(1996, 2016))
+    assert found["last10"].missing_years == [2017, *range(2019, 2026)] and found["last10"].maps
+    assert not found["last20"].maps
+
+
 def test_the_variables_are_described_in_plain_words():
     # Public text (CLAUDE.md, "Writing for the public"): no code ids, "RH", "Jan 1" or "6 pm" in a name or its notes
     from web.methodspage import variables

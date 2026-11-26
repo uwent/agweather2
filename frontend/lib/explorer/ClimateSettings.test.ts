@@ -35,6 +35,7 @@ describe('ClimateSettings', () => {
     expect(screen.queryByText(/Normal from/)).not.toBeInTheDocument()
     await fireEvent.click(screen.getByRole('radio', { name: 'Departure' }))
     expect(onchange).toHaveBeenLastCalledWith({ climate: 'departure' })
+    expect(screen.getByRole('link', { name: 'How normals are made' })).toHaveAttribute('href', '/methods#normals')
   })
 
   it('shows the period, labelled with its years, and what the map now shows', async () => {
