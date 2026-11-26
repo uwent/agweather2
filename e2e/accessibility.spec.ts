@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { type Page } from '@playwright/test'
 
 import { SAVED, stubSiteData } from './sites'
+import { stubDataApi } from './dataApi'
 import { stubFeedApi, stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
@@ -12,7 +13,7 @@ import { expect, test } from './test'
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
 
-const PAGES = ['/', '/sites', '/changelog', '/api-use', '/map']
+const PAGES = ['/', '/sites', '/changelog', '/api-use', '/map', '/data']
 
 async function scan(page: Page, path: string, { reflow = true }: { reflow?: boolean } = {}) {
   await page.goto(path)
@@ -69,6 +70,17 @@ test('public pages in the other theme', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
   for (const path of PAGES) await scan(page, path, { reflow: false })
+})
+
+test('the data page with saved sites, a download and the yearly files', async ({ page }) => {
+  await stubDataApi(page)
+  await page.goto('/')
+  await page.evaluate((doc) => localStorage.setItem('agweather.sites', JSON.stringify(doc)), SAVED)
+  await scan(page, '/data')
+  await page.getByRole('button', { name: 'Choose all' }).click()
+  await expect(page.locator('#locations').getByRole('link', { name: 'Download CSV' })).toBeVisible()
+  await expect(page.getByRole('table', { name: /Yearly files by variable and year/ })).toBeVisible()
+  await axeOnly(page, '/data with a download built')
 })
 
 test('your sites with saved sites, and the add-site dialog', async ({ page }) => {

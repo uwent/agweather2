@@ -532,12 +532,9 @@ class ClimateProps(Props):
 
 
 class DataLimits(Props):
-    """The API's limits on one request, which `/data` checks before a download is asked for."""
+    """The API's limits on a map file, which `/data` checks before one is asked for (the limits at points are
+    in `lib/sites/dataRequest.ts`, which `test_datapage` holds to the API's)."""
 
-    points: int = Field(description="Locations a GET takes (`api.params.MAX_POINTS`).")
-    days: int = Field(description="Days at a location (`api.routes.weather.MAX_DAYS`).")
-    hours: int = Field(description="Hours at a location (`MAX_HOURS`).")
-    rows: int = Field(description="Rows of a point request: steps × locations (`MAX_ROWS`).")
     text_values: int = Field(description="Values a grid holds as JSON or CSV (`api.routes.grids.MAX_TEXT_VALUES`).")
     file_values: int = Field(description="Values a grid holds as NetCDF or GeoTIFF (`MAX_FILE_VALUES`).")
     map_days: int = Field(description="Days a map covers, returned or combined (`api.layermaps.MAX_DAYS`).")

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 
 import { SAVED, stubSiteData } from './sites'
+import { stubDataApi } from './dataApi'
 import { stubFeedApi, stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
@@ -351,6 +352,26 @@ test('the topics index opens a topic page, which links its model', async ({ page
 
 test('an unknown topic has no page', async ({ request }) => {
   expect((await request.get('/topics/no-such-topic')).status()).toBe(404)
+})
+
+// --- /data (track 7 step 7.1) ---------------------------------------------------------------------------------------
+
+test('the data page builds a download at saved sites and places, and lists the yearly files', async ({ page }) => {
+  await stubDataApi(page)
+  await page.goto('/')
+  await page.evaluate((doc) => localStorage.setItem('agweather.sites', JSON.stringify(doc)), SAVED)
+  await page.goto('/data')
+  await expect(page.getByRole('heading', { level: 1, name: 'Data and downloads' })).toBeVisible()
+  await page.getByRole('button', { name: 'Choose all' }).click()
+  await page.getByLabel('Add a place').fill('43.07, -89.40')
+  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await expect(page.getByText(/^\d+ locations chosen, of up to 50\./)).toBeVisible()
+  const address = page.locator('#locations').getByRole('textbox', { name: 'The request’s address, for a script' })
+  await expect(address).toHaveValue(/\/api\/v2\/weather\/daily\?format=csv&points=[^&]*43\.07%2C-89\.4/)
+  await expect(page.locator('#locations').getByRole('link', { name: 'Download CSV' })).toBeVisible()
+  // The test server's archive is empty, so there are no areas for a map file
+  await expect(page.getByText('Map files aren’t available yet: the archive has no data.')).toBeVisible()
+  await expect(page.getByRole('link', { name: /Air temperature at 2 m, daily max, 2025: \d+ MB NetCDF/ })).toBeVisible()
 })
 
 test('the methods page, linked from the footer and from a model’s inputs', async ({ page }) => {

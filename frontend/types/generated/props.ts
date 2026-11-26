@@ -130,25 +130,10 @@ export interface GridArea {
   cells: number
 }
 /**
- * The API's limits on one request, which `/data` checks before a download is asked for.
+ * The API's limits on a map file, which `/data` checks before one is asked for (the limits at points are
+ * in `lib/sites/dataRequest.ts`, which `test_datapage` holds to the API's).
  */
 export interface DataLimits {
-  /**
-   * Locations a GET takes (`api.params.MAX_POINTS`).
-   */
-  points: number
-  /**
-   * Days at a location (`api.routes.weather.MAX_DAYS`).
-   */
-  days: number
-  /**
-   * Hours at a location (`MAX_HOURS`).
-   */
-  hours: number
-  /**
-   * Rows of a point request: steps × locations (`MAX_ROWS`).
-   */
-  rows: number
   /**
    * Values a grid holds as JSON or CSV (`api.routes.grids.MAX_TEXT_VALUES`).
    */

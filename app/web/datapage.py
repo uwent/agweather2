@@ -4,8 +4,9 @@ areas a map file can cover, so the page says how large a download is, and whethe
 The areas are measured as `/grids` measures them (`api.routes.grids._area`): a region's cells are those whose
 county (`agdata.regions.cell_counties`) is in it, its file the rectangle around them over the archive's window, and
 `clip=true` keeps only its cells. A state is listed when at least half its cells (`counties.csv`'s whole-grid
-count) are in the window, so a development box over Wisconsin doesn't offer its neighbours' slivers; its counties
-with any cell in the window come with it.
+count) are covered (`regions.covered`: the launch mask, D105, whose window takes in slivers of 19 more states), so
+neither the launch window nor a development box over Wisconsin offers its neighbours' slivers; its counties with
+any cell in the window come with it.
 """
 
 from functools import cache
@@ -19,8 +20,7 @@ from agdata.places import counties
 from agdata.regrid import MIN_LATLON_RES
 from api import layermaps
 from api.errors import ApiError
-from api.params import MAX_POINTS
-from api.routes import grids, weather
+from api.routes import grids
 from web.props import DataAreas, DataLimits, GridArea, GridProjection
 
 STATE_SHARE = 0.5  # of a state's cells in the window, for it to be offered
@@ -28,10 +28,6 @@ STATE_SHARE = 0.5  # of a state's cells in the window, for it to be offered
 
 def limits() -> DataLimits:
     return DataLimits(
-        points=MAX_POINTS,
-        days=weather.MAX_DAYS,
-        hours=weather.MAX_HOURS,
-        rows=weather.MAX_ROWS,
         text_values=grids.MAX_TEXT_VALUES,
         file_values=grids.MAX_FILE_VALUES,
         map_days=layermaps.MAX_DAYS,
@@ -62,11 +58,12 @@ def areas() -> DataAreas | None:
         window = layermaps.archive_window(settings.DATA_DIR, series.Stores([]))
     except ApiError:
         return None
-    return _areas(window)
+    return _areas(window, settings.SERVICE_BOX)
 
 
 @cache
-def _areas(window: Window) -> DataAreas:
+def _areas(window: Window, coverage: str) -> DataAreas:
+    """Cached per window and coverage (`regions.covered` follows `SERVICE_BOX`)."""
     ids = regions.cell_counties(window)
     known = counties()
     n = len(known)
@@ -74,6 +71,7 @@ def _areas(window: Window) -> DataAreas:
     rows = np.repeat(np.arange(window.shape[0]), window.shape[1])
     cols = np.tile(np.arange(window.shape[1]), window.shape[0])
     cells = np.bincount(flat, minlength=n)
+    covered = np.bincount(flat[regions.covered(window).ravel()], minlength=n)
     j0, j1 = _extremes(flat, rows, n)
     i0, i1 = _extremes(flat, cols, n)
 
@@ -86,7 +84,7 @@ def _areas(window: Window) -> DataAreas:
     for code, ks in by_state.items():
         inside = [k for k in ks if cells[k] > 0]
         whole = sum(c.cells for k in ks if (c := known[k]) is not None)
-        if not inside or whole == 0 or sum(int(cells[k]) for k in inside) < STATE_SHARE * whole:
+        if not inside or whole == 0 or sum(int(covered[k]) for k in inside) < STATE_SHARE * whole:
             continue
         states.append(
             GridArea(

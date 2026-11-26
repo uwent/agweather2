@@ -16,7 +16,7 @@ INERTIA = {"X-Inertia": "true", "X-Inertia-Version": "dev"}
 def test_the_page_has_the_limits_at_once_and_the_areas_deferred(client, archive):
     page = client.get("/data", headers=INERTIA).json()
     props = page["props"]
-    assert props["limits"]["points"] == MAX_POINTS
+    assert props["limits"]["text_values"] == grids.MAX_TEXT_VALUES
     assert props["limits"]["file_values"] == grids.MAX_FILE_VALUES
     assert props["projection"]["lon0"] == -95 and props["projection"]["lat1"] == 25
     assert any(m["id"] == "late-blight-dsv" for m in props["models"])
@@ -27,6 +27,27 @@ def test_the_page_has_the_limits_at_once_and_the_areas_deferred(client, archive)
         headers={**INERTIA, "X-Inertia-Partial-Data": "areas", "X-Inertia-Partial-Component": "Data/Index"},
     ).json()["props"]
     assert partial["areas"]["window"] == [WINDOW.j0, WINDOW.j1, WINDOW.i0, WINDOW.i1]
+
+
+def test_the_point_downloads_limits_in_the_frontend_are_the_apis():
+    """`lib/sites/dataRequest.ts` keeps its own copy (a site's page has no `limits` prop)."""
+    import math
+    import re
+    from pathlib import Path
+
+    from api.routes import weather
+
+    source = (Path(__file__).parents[3] / "frontend/lib/sites/dataRequest.ts").read_text()
+    found = {
+        m[1]: math.prod(int(t) for t in m[2].replace("_", "").split("*"))
+        for m in re.finditer(r"export const (MAX_\w+) = ([\d_ *]+)\n", source)
+    }
+    assert found == {
+        "MAX_DAYS": weather.MAX_DAYS,
+        "MAX_HOURS": weather.MAX_HOURS,
+        "MAX_ROWS": weather.MAX_ROWS,
+        "MAX_POINTS": MAX_POINTS,
+    }
 
 
 def test_the_projection_places_cells_as_the_grid_does():
