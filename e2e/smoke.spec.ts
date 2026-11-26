@@ -538,3 +538,35 @@ test("a site's Climate tab", async ({ page }) => {
   await expect(page.getByRole('region', { name: 'Freeze dates' })).toBeVisible()
   await expect(page.locator('[data-chart] canvas')).toHaveCount(5)
 })
+
+// The climate explorer (track 6 step 6.4): a climate map reaches the tiles with its period, and a place brings up
+// its climate below the map, the site page's Climate tab's sections
+test('the climate explorer maps a departure from normal and shows a place’s climate', async ({ page }) => {
+  const asked: string[] = []
+  page.on('request', (request) => {
+    if (request.url().includes('/api/v2/tiles/')) asked.push(request.url())
+  })
+  await stubClimateApi(page)
+  await page.goto('/climate')
+  await expect(page.getByRole('heading', { level: 1, name: 'Climate' })).toBeVisible()
+  await page.getByRole('radio', { name: 'Average high, last 7 days' }).check()
+  await page.getByRole('radio', { name: /^10 years/ }).check({ force: true })
+  const highs = (url: string) =>
+    url.includes('/tiles/air_temperature_max') && url.includes('climate=departure') && url.includes('period=last10')
+  await expect.poll(() => asked.some(highs)).toBe(true)
+  await expect(page.getByRole('link', { name: 'Open in the map explorer' })).toHaveAttribute(
+    'href',
+    /^\/map\?layer=air_temperature_max&span=range&.*climate=departure&period=last10$/,
+  )
+
+  await page.goto('/climate?layer=last-freeze&at=44.12,-89.52&name=Hancock')
+  await expect(page.getByRole('heading', { level: 2, name: 'Climate at Hancock' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Open the site page' })).toHaveAttribute(
+    'href',
+    '/sites/44.12,-89.52?tab=climate&name=Hancock',
+  )
+  await page.getByRole('heading', { level: 2, name: 'This season so far' }).scrollIntoViewIfNeeded()
+  await expect(page.getByText(/^Degree days from Jan 1 through Nov 24:/)).toBeVisible()
+  await page.getByRole('heading', { level: 2, name: 'Normals' }).scrollIntoViewIfNeeded()
+  await expect(page.getByRole('region', { name: 'Normals by month' })).toBeVisible()
+})

@@ -21,6 +21,7 @@
     location = undefined,
     id = 'place',
     label = 'Choose a place',
+    siteHref = undefined,
   }: {
     place: Place | null
     onpick: (place: Place) => void
@@ -30,6 +31,8 @@
     id?: string
     /** The search's label */
     label?: string
+    /** Where "Open the site page" goes, where a page wants a tab of it (the site's Climate tab); left out, the page */
+    siteHref?: string
   } = $props()
 
   // /locate, when the page doesn't pass it
@@ -84,7 +87,7 @@
           </button>
         {/if}
         <a
-          href={placeSitePath({ ...place, name: saved ? null : place.name })}
+          href={siteHref ?? placeSitePath({ ...place, name: saved ? null : place.name })}
           class="text-sm text-brand-600 underline hover:text-brand-700"
         >
           Open the site page
