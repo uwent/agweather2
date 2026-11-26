@@ -22,9 +22,9 @@
 </script>
 
 <form class="flex flex-wrap items-end gap-2" onsubmit={go}>
-  <label class="flex flex-col gap-1 text-sm">
+  <label class="flex max-w-full min-w-0 flex-col gap-1 text-sm">
     <span class="font-medium">One model across your sites</span>
-    <select id="{id}-model" class="max-w-full min-w-0 rounded-md text-sm" bind:value={chosen}>
+    <select id="{id}-model" class="w-full max-w-sm min-w-0 rounded-md text-sm" bind:value={chosen}>
       {#each choices as model (model.id)}<option value={model.id}>{model.name}</option>{/each}
     </select>
   </label>

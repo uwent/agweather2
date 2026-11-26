@@ -248,7 +248,14 @@
         {download}
       />
 
-      <div class="overflow-x-auto">
+      <!-- Scrolls sideways on a phone; focusable so a keyboard can scroll it -->
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <div
+        class="overflow-x-auto focus-visible:outline-2 focus-visible:outline-brand-600"
+        role="region"
+        aria-label="Degree-day totals"
+        tabindex="0"
+      >
         <table class="w-full min-w-lg text-sm">
           <caption class="mb-2 text-left text-sm text-ink-muted">{`${startWords(view.from, start)}.`}</caption>
           <thead>
