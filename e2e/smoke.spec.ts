@@ -175,6 +175,24 @@ test('the map explorer shows a layer and a clicked cell', async ({ page }) => {
   await expect(page.getByRole('table', { name: /by county in Wisconsin/ })).toContainText('Dane County')
 })
 
+test('the map explorer saves the map as a PNG', async ({ page }) => {
+  await page.goto('/')
+  await page.evaluate((doc) => localStorage.setItem('agweather.sites', JSON.stringify(doc)), SAVED)
+  await page.goto('/map?layer=air_temperature_min&date=2026-11-20')
+  await expect(page.getByTestId('data-legend')).toBeVisible()
+  await page.getByRole('button', { name: 'Save image' }).first().click()
+  await expect(page.getByLabel('Name my saved sites on the map')).toBeChecked()
+  const download = page.waitForEvent('download')
+  await page.getByTestId('save-image').click()
+  const file = await download
+  expect(file.suggestedFilename()).toMatch(/^agweather-air_temperature_min-[\d-]+\.png$/)
+  const bytes = readFileSync(await file.path())
+  // A PNG's signature, then its header's width: twice the map's at least
+  expect(bytes.subarray(1, 4).toString('latin1')).toBe('PNG')
+  expect(bytes.readUInt32BE(16)).toBeGreaterThan(400)
+  await expect(page.getByText('Saved. Look for the image in your downloads.')).toBeVisible()
+})
+
 test('a site added is kept after a reload, and exported', async ({ page }) => {
   await stubSiteData(page)
   await page.goto('/sites')

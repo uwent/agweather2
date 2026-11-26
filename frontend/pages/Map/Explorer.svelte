@@ -23,6 +23,7 @@
   import { type CellSeries, readSeries, seriesRequest } from '@/lib/explorer/cellSeries'
   import LayerPicker from '@/lib/explorer/LayerPicker.svelte'
   import LayerSettings, { type ModelOption } from '@/lib/explorer/LayerSettings.svelte'
+  import SaveImageButton from '@/lib/explorer/SaveImageButton.svelte'
   import MapOptions from '@/lib/explorer/MapOptions.svelte'
   import { prefetchTiles } from '@/lib/explorer/prefetch'
   import TimeControls from '@/lib/explorer/TimeControls.svelte'
@@ -44,7 +45,9 @@
   import { dataThrough, timeWords } from '@/lib/explorer/words'
   import { shortTitle } from '@/lib/explorer/catalog'
   import DataMap, { type DataInfo, type DataPick, type DataScale } from '@/lib/map/DataMap.svelte'
+  import { imageFileName } from '@/lib/map/exportImage'
   import { motion } from '@/lib/motion'
+  import { siteLabel, sites } from '@/lib/sites.svelte'
   import { drawGroup, groupBounds } from '@/lib/sites/groupMap'
   import { currentUnits } from '@/lib/units'
   import { viewState } from '@/lib/viewState'
@@ -230,6 +233,27 @@
     }
     view.patch({ overlay: dataMap?.currentOverlay() ?? null })
     return view.shareUrl()
+  }
+
+  // Save image (F13): the map as on screen, with the title chip's text, the data's reach and the saved sites in view
+  async function saveImage({ labels }: { labels: boolean }) {
+    if (!dataMap || !shown) throw new Error('The map is still loading. Try again when it has drawn.')
+    const asked = info?.request ?? {}
+    const date =
+      typeof asked.date === 'string'
+        ? asked.date
+        : typeof asked.start === 'string' && typeof asked.end === 'string'
+          ? `${asked.start}..${asked.end}`
+          : shown.time
+    await dataMap.saveImage({
+      title,
+      subtitle: `${subtitle || when}${shownForecast ? ' · Forecast' : ''}`,
+      through: through ? `${through}.` : '',
+      fileName: imageFileName(shown.layer, date),
+      labels: labels
+        ? sites.map((site) => ({ id: site.key, text: siteLabel(site), lat: site.lat, lng: site.lng }))
+        : [],
+    })
   }
 
   // The phone's stepper, under the map: the same steps as the controls'
@@ -445,7 +469,12 @@
       <h1 class="text-xl font-semibold">Weather and pest maps</h1>
       <p class="text-sm text-ink-muted">Choose a map, a day and a place. Click the map for a cell's recent days.</p>
     </div>
-    {#if wide.current}<ShareButton url={shareUrl} />{/if}
+    {#if wide.current}
+      <div class="flex shrink-0 gap-2">
+        <SaveImageButton save={saveImage} sites={sites.length} disabled={!info} />
+        <ShareButton url={shareUrl} />
+      </div>
+    {/if}
   </div>
   {#if $view.group}
     <p class="flex flex-wrap items-center gap-x-3 text-sm" data-testid="map-group">
@@ -573,6 +602,7 @@
           </span>
           <span aria-hidden="true" class="text-ink-muted">▴</span>
         </button>
+        <SaveImageButton save={saveImage} sites={sites.length} disabled={!info} compact />
         <ShareButton url={shareUrl} />
       </div>
       {#if layer && stepWhen}
