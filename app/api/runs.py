@@ -81,6 +81,16 @@ def plan(
                 f"We have no typical {crop[1]} planting dates for this location, so it runs without a planting date."
             )
             planting = None
+    if not lenient and biofix is not None and crop is not None and crop[0] == spec.id:
+        # A crop model counting from planting (`GET /models/{id}` lists its biofix as the planting date): 'biofix'
+        # is its planting date, as for the models with a biofix of their own
+        if planting not in (None, "", biofix.isoformat()):
+            raise ApiError(
+                "conflict",
+                f"The {spec.name} model's biofix is its planting date, and this request gives two different ones. Give only {quoted('planting_date')}.",
+                "planting_date",
+            )
+        planting, biofix = biofix.isoformat(), None
     crop_spec = find_model(crop[0]).SPEC if crop and crop[0] != spec.id else None
     own = {o.name: option_values(o, params.get(o.name), warnings) for o in spec.options}
     _check_stage_date(spec, own, season)

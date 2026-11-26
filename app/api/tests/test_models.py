@@ -154,6 +154,23 @@ def test_a_crop_model_shows_its_stage_codes(client, archive):
     assert data["date"][0] == "2025-07-01" and "stage_code" in data and "risk_level" not in data
 
 
+@pytest.mark.parametrize("model_id", ["corn-stages", "soybean-stages", "potato-stages", "spring-wheat-stages"])
+def test_a_crop_models_biofix_is_its_planting_date(client, archive, model_id):
+    """`GET /models/{id}` lists a crop model's biofix as its planting date, so `biofix=` is one (it used to be
+    ignored without a word, running from the default May 10); a different `planting_date` beside it is refused."""
+    planted = get(client, model_id, planting_date="2025-07-02", end="2025-07-08").json()
+    fixed = get(client, model_id, biofix="2025-07-02", end="2025-07-08").json()
+    assert fixed["data"] == planted["data"] and fixed["data"]["date"][0] == "2025-07-02"
+    assert fixed["meta"]["request"]["planting_date"] == {"date": "2025-07-02"}
+    assert get(client, model_id, biofix="07-02", end="2025-07-08").json()["data"] == planted["data"]
+    same = get(client, model_id, biofix="2025-07-02", planting_date="2025-07-02", end="2025-07-08")
+    assert same.status_code == 200
+    both = get(client, model_id, biofix="2025-07-03", planting_date="2025-07-02", end="2025-07-08")
+    error = both.json()["errors"][0]
+    assert both.status_code == 422 and error["code"] == "conflict" and error["param"] == "planting_date"
+    assert "'planting_date'" in error["message"]
+
+
 def test_a_crop_model_lists_its_stages_thresholds(client, archive):
     """`meta.summary.stages`: each stage's code, name and where it starts in the model's running total, for the
     options given, in the units that column is shown in, so a chart can draw silking without the model's formula."""
