@@ -402,3 +402,35 @@ test('the day-of-year calendar converts a date and changes year', async ({ page 
   await page.getByRole('button', { name: 'Previous year' }).click()
   await expect(page.getByRole('heading', { name: 'The days of 2027' })).toBeVisible()
 })
+
+// --- The reference pages (track 7 step 7.4): about, accessibility, contact and the glossary
+
+test('the about, accessibility and contact pages, from the footer', async ({ page }) => {
+  await page.goto('/')
+  for (const [link, title] of [
+    ['About', 'About AgWeather'],
+    ['Accessibility', 'Accessibility'],
+    ['Contact', 'Contact us'],
+  ]) {
+    await page.getByRole('contentinfo').getByRole('link', { name: link, exact: true }).click()
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
+  }
+  await expect(page.getByRole('link', { name: 'agweather@cals.wisc.edu' }).first()).toHaveAttribute(
+    'href',
+    'mailto:agweather@cals.wisc.edu',
+  )
+})
+
+test('the glossary filters its terms, and a term on another page links to its entry', async ({ page }) => {
+  await page.goto('/glossary')
+  await expect(page.getByRole('heading', { level: 1, name: 'Glossary' })).toBeVisible()
+  await page.getByRole('searchbox', { name: 'Search the glossary' }).fill('fruit trees')
+  await expect(page.getByText('Chill hours', { exact: true })).toBeVisible()
+  await expect(page.getByText('Biofix', { exact: true })).toBeHidden()
+
+  await page.goto('/methods')
+  await page.getByRole('button', { name: 'degree days' }).first().click()
+  await page.getByRole('link', { name: 'See the glossary' }).click()
+  await expect(page).toHaveURL(/\/glossary#growing_degree_days$/)
+  await expect(page.locator('#growing_degree_days')).toBeInViewport()
+})

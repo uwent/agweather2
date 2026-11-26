@@ -548,9 +548,15 @@ class StatusPageProps(Props):
 
 
 class ContentPageProps(Props):
-    """A page of text from `content/pages` (`/about`, `/accessibility`, `/contact`, track 7)."""
+    """A page of text from `content/pages` (`/about`, `/accessibility`, `/contact`, track 7 step 7.4), rendered by
+    `web.contentpages`."""
 
+    id: str
     title: str
+    summary: str = Field(description="One or two sentences for the page's description; may be empty.")
+    draft: bool = Field(description="The text is a draft, still to be reviewed.")
+    updated: str | None = Field(description="The day the text last changed (YYYY-MM-DD).")
+    sections: list[ModelSection]
 
 
 class GlossaryProps(Props):

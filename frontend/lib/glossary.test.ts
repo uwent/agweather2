@@ -1,7 +1,7 @@
 // Ported from WISP 3 (adapted): app/frontend/lib/glossary.test.ts
 import { describe, expect, it } from 'vitest'
 
-import { GLOSSARY, glossaryEntry, markTerms } from './glossary'
+import { filterGlossary, GLOSSARY, glossaryByLetter, glossaryEntry, glossaryHref, markTerms } from './glossary'
 
 const marked = (text: string, seen?: Set<string>) =>
   markTerms(text, seen)
@@ -63,5 +63,36 @@ describe('glossary', () => {
       expect(entry.definition).toMatch(/^[A-Z].*\.$/)
       expect(entry.definition).not.toContain('!')
     }
+  })
+})
+
+describe('the glossary page’s helpers', () => {
+  it('links an entry to its anchor on the glossary page', () => {
+    expect(glossaryHref('biofix')).toBe('/glossary#biofix')
+  })
+
+  it('groups the terms A–Z by first letter, ignoring case', () => {
+    const groups = glossaryByLetter([
+      { id: 'b', term: 'beta', matches: [], definition: '' },
+      { id: 'a2', term: 'Apple', matches: [], definition: '' },
+      { id: 'a1', term: 'apex', matches: [], definition: '' },
+    ])
+    expect(groups.map((g) => [g.letter, g.entries.map((e) => e.id)])).toEqual([
+      ['A', ['a1', 'a2']],
+      ['B', ['b']],
+    ])
+  })
+
+  it('filters by every word, in the term, its wordings or its definition', () => {
+    const ids = (query: string) => filterGlossary(query).map((e) => e.id)
+    expect(ids('')).toHaveLength(GLOSSARY.length)
+    expect(ids('ET0')).toEqual(['et0'])
+    expect(ids('dairy MILK')).toEqual(['thi'])
+    expect(ids('dairy nothing-like-this')).toEqual([])
+  })
+
+  it('has the reference terms the glossary page promises', () => {
+    const ids = ['risk_level', 'et0', 'chill_portions', 'thi', 'planting_tiers', 'observed', 'forecast', 'estimated']
+    for (const id of [...ids, 'grid_cell', 'grid_day']) expect(glossaryEntry(id).definition).not.toBe('')
   })
 })

@@ -49,10 +49,36 @@ export interface ChangelogProps {
  */
 export interface ClimateProps {}
 /**
- * A page of text from `content/pages` (`/about`, `/accessibility`, `/contact`, track 7).
+ * A page of text from `content/pages` (`/about`, `/accessibility`, `/contact`, track 7 step 7.4), rendered by
+ * `web.contentpages`.
  */
 export interface ContentPageProps {
+  id: string
   title: string
+  /**
+   * One or two sentences for the page's description; may be empty.
+   */
+  summary: string
+  /**
+   * The text is a draft, still to be reviewed.
+   */
+  draft: boolean
+  /**
+   * The day the text last changed (YYYY-MM-DD).
+   */
+  updated: string | null
+  sections: ModelSection[]
+}
+/**
+ * A `##` section of the model's Markdown page, rendered with raw HTML off (safe for `{@html}`).
+ */
+export interface ModelSection {
+  id: string
+  /**
+   * The heading; empty for text before the first heading.
+   */
+  title: string
+  html: string
 }
 export interface CropEntry {
   id: string
@@ -437,17 +463,6 @@ export interface ModelPageProps {
    * Its layer on the map explorer (`/map?layer=`); None if it has none.
    */
   map_layer: string | null
-}
-/**
- * A `##` section of the model's Markdown page, rendered with raw HTML off (safe for `{@html}`).
- */
-export interface ModelSection {
-  id: string
-  /**
-   * The heading; empty for text before the first heading.
-   */
-  title: string
-  html: string
 }
 /**
  * A keyed source of the model's page, which the text cites by number (`[^key]`).

@@ -13,6 +13,8 @@ import { expect, test } from './test'
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
 
 const PAGES = ['/', '/sites', '/changelog', '/api-use', '/map']
+// The reference pages (track 7 step 7.4)
+PAGES.push('/about', '/accessibility', '/contact', '/glossary')
 
 async function scan(page: Page, path: string, { reflow = true }: { reflow?: boolean } = {}) {
   await page.goto(path)

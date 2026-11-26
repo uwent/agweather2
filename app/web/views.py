@@ -9,8 +9,8 @@ from agdata.series import archive_years
 from agmodels import croplist
 from agmodels.registry import all_models
 from updates.render import markdown_html
+from web import contentpages, methodspage, modelpages, topicpages
 from web import home as home_content
-from web import methodspage, modelpages, topicpages
 from web.catalog import crop_entries, model_entries
 from web.content import topics
 from web.inertia import render
@@ -19,7 +19,6 @@ from web.middleware import grid_today
 from web.props import (
     CalendarProps,
     ClimateProps,
-    ContentPageProps,
     DataPageProps,
     DegreeDaysToolProps,
     FreezeToolProps,
@@ -221,11 +220,8 @@ def status(request: HttpRequest):
     return render(request, "Status/Show", StatusPageProps())
 
 
-CONTENT_TITLES = {"about": "About AgWeather", "accessibility": "Accessibility", "contact": "Contact us"}
-
-
 def content_page(request: HttpRequest, page: str):
-    return render(request, "Content", ContentPageProps(title=CONTENT_TITLES[page]))
+    return render(request, "Content", contentpages.props_for(page))
 
 
 def glossary(request: HttpRequest):
