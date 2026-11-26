@@ -32,7 +32,7 @@
   import { routes } from '@/lib/routes'
   import { siteAt } from '@/lib/sites.svelte'
   import ClimateTab, { type ClimateView } from '@/lib/sites/ClimateTab.svelte'
-  import { request } from '@/lib/sites/request.svelte'
+  import { request } from '@/lib/request.svelte'
   import PlacePicker from '@/lib/tools/PlacePicker.svelte'
   import { PLACE_FIELDS, placeOf, placeTitle, placeView, type Place } from '@/lib/tools/place'
   import { currentUnits } from '@/lib/units'

@@ -5,6 +5,7 @@
   import { siteLabel, sites } from '../sites.svelte'
   import FindPlace from '../sites/FindPlace.svelte'
   import { MAX_POINTS } from '../sites/dataRequest'
+  import { plural } from '../words'
   import { addLocation, addLocations, type Chosen } from './locations'
   import { routes } from '@/lib/routes'
 
@@ -126,7 +127,7 @@
   <p class="text-sm" role="status">
     {chosen.length === 0
       ? 'No locations chosen yet.'
-      : `${chosen.length} ${chosen.length === 1 ? 'location' : 'locations'} chosen, of up to ${MAX_POINTS}.`}
+      : `${plural(chosen.length, 'location')} chosen, of up to ${MAX_POINTS}.`}
     {#if message}<span class="text-danger-ink">{` ${message}`}</span>{/if}
   </p>
 </div>

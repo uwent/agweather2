@@ -7,7 +7,7 @@
   import { riskSpanQuery } from '@/lib/riskSpan'
   import { DEFAULT_NORMAL_VARIABLE, NORMAL_VARIABLE_IDS } from '@/lib/climate/Normals.svelte'
   import { DEFAULT_PERIOD, NORMAL_PERIODS } from '@/lib/climate/periods'
-  import { request } from '@/lib/sites/request.svelte'
+  import { request } from '@/lib/request.svelte'
   import ClimateTab, { type ClimateView } from '@/lib/sites/ClimateTab.svelte'
   import DataTab, { type DataView } from '@/lib/sites/DataTab.svelte'
   import DegreeDaysTab, { type DegreeDaysView } from '@/lib/sites/DegreeDaysTab.svelte'

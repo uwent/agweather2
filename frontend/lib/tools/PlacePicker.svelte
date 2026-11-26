@@ -12,7 +12,7 @@
   import { type PickedPlace } from '../siteKey'
   import { addSite, siteAt, siteLabel, sites } from '../sites.svelte'
   import FindPlace from '../sites/FindPlace.svelte'
-  import { request } from '../sites/request.svelte'
+  import { request } from '../request.svelte'
   import { placeLine, placeSitePath, placeTitle, type Place } from './place'
   import { routes } from '@/lib/routes'
 

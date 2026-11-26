@@ -4,7 +4,7 @@
 // 7 days (midnight to midnight CST) around the newest hour, or around the chosen hour when that's further back.
 // Positions are indexes into the window; on the track, index i fills [i, i + 1) / count.
 
-import { addDays, daysBetween, formatDate } from '@/lib/dates'
+import { addDays, daysBetween, formatDate, SHORT_MONTHS } from '@/lib/dates'
 import type { LayerInfo } from '@/types/api'
 
 import { dayBounds, stepDay } from './view'
@@ -33,7 +33,6 @@ export type Timeline = {
 
 type Ranged = Pick<LayerInfo, 'range'>
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const clamp = (n: number, low: number, high: number) => Math.min(high, Math.max(low, n))
 
 /** An hour (`2026-11-25T20`, UTC) moved by `hours` */
@@ -118,7 +117,7 @@ export function dayTimeline(layer: Ranged, day: string): Timeline | null {
     observed: daysBetween(start, observed),
     ticks: [],
   }
-  t.ticks = MONTHS.map((label, m) => ({
+  t.ticks = SHORT_MONTHS.map((label, m) => ({
     at: edgeOf(t, daysBetween(start, `${year}-${String(m + 1).padStart(2, '0')}-01`)),
     label,
     minor: m % 2 === 1,
@@ -204,7 +203,7 @@ export function noYearTimeline(day: string): Timeline {
   const start = `${year}-01-01`
   const count = daysBetween(start, `${year + 1}-01-01`)
   const t: Timeline = { unit: 'day', start, count, min: 0, max: count - 1, observed: count - 1, ticks: [] }
-  t.ticks = MONTHS.map((label, m) => ({
+  t.ticks = SHORT_MONTHS.map((label, m) => ({
     at: edgeOf(t, daysBetween(start, `${year}-${String(m + 1).padStart(2, '0')}-01`)),
     label,
     minor: m % 2 === 1,

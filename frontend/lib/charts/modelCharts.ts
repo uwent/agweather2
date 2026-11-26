@@ -19,6 +19,7 @@ import { formatDate } from '../dates'
 import { riskStep, type RiskScale } from '../riskLevels'
 import { tableRows, type Day, type Table } from '../tableRows'
 import type { Units } from '../units'
+import { plural } from '../words'
 import type { EChartsCoreOption } from './echarts'
 import { band, bar, forecastBand, isForecast, lineStyle, point, rounded } from './kinds'
 import { baseOption, type Palette } from './palette'
@@ -711,14 +712,13 @@ export function modelSummary({
     }
   }
   const label = (name: string) => model.inputs.find((q) => q.name === name)?.label.toLowerCase() ?? name
-  const plural = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`
   // Counted from the rows: an input with no value on a day (a mean over no humid hours) isn't an estimate shown
   for (const q of model.inputs) {
     const n = days.filter((d) => d.kind !== 'projection' && d.estimated.has(q.name) && d.values[q.name] != null).length
-    if (n) sentences.push(`Includes ${plural(n)} of estimated ${label(q.name)}.`)
+    if (n) sentences.push(`Includes ${plural(n, 'day')} of estimated ${label(q.name)}.`)
   }
   for (const [name, n] of Object.entries(run.missingByInput))
-    if (n) sentences.push(`${plural(n)} of ${label(name)} are missing.`)
+    if (n) sentences.push(`${plural(n, 'day')} of ${label(name)} are missing.`)
   return sentences.join(' ')
 }
 

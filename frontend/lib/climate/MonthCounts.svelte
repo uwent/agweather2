@@ -5,9 +5,9 @@
 
   import { get, warningsOf } from '../api'
   import { compareTable } from '../charts/climateCharts'
-  import { formatDate } from '../dates'
-  import Failed from '../sites/Failed.svelte'
-  import { request } from '../sites/request.svelte'
+  import { formatDate, MONTH_NAMES, SHORT_MONTHS } from '../dates'
+  import Failed from '../components/Failed.svelte'
+  import { request } from '../request.svelte'
   import { currentUnits } from '../units'
   import {
     countColumn,
@@ -46,21 +46,6 @@
     queue?: Slots
   } = $props()
 
-  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  const MONTH_NAMES = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ]
   const units = $derived(currentUnits())
   const year = $derived(Number(today.slice(0, 4)))
   const thisMonth = $derived(Number(today.slice(5, 7)))
@@ -202,7 +187,7 @@
         <thead>
           <tr class="border-b border-line text-left text-xs text-ink-muted">
             <th scope="col" class="{sticky} py-1 pr-3 font-medium">Days</th>
-            {#each MONTHS as name, k (name)}
+            {#each SHORT_MONTHS as name, k (name)}
               <th scope="col" class="{head} {k + 1 === shown ? 'text-ink' : ''}">{name}</th>
             {/each}
           </tr>
@@ -212,7 +197,7 @@
             {@const values = typical.values[countColumn(count)] ?? []}
             <tr class="border-b border-line/60">
               <th scope="row" class="{sticky} py-1.5 pr-3 text-left font-normal">{countLabel(count, units)}</th>
-              {#each MONTHS as name, k (name)}
+              {#each SHORT_MONTHS as name, k (name)}
                 <td class="{cell} {k + 1 === shown ? 'font-medium' : ''}">{daysText(values[k], 1)}</td>
               {/each}
             </tr>

@@ -135,6 +135,30 @@ describe('the freeze tool', () => {
     expect(screen.getByRole('option', { name: '2010 (Open-Meteo)' })).toBeInTheDocument()
   })
 
+  it('shows the forecast’s coldest low only once the forecast for the query has come', async () => {
+    // No killing freeze yet this fall, so its row names the coldest low ahead
+    const noKilling = { ...freeze, data: { ...freeze.data, first_fall: ['2026-11-14', '2026-11-23', null] } }
+    let dailyAsked = 0
+    get.mockImplementation((path: string) => {
+      if (path === '/freeze') return Promise.resolve(noKilling)
+      // The second forecast never answers, as one still loading
+      if (path === '/weather/daily') return dailyAsked++ ? new Promise(() => {}) : Promise.resolve(daily)
+      return Promise.resolve(ANSWERS[path])
+    })
+    window.history.replaceState(null, '', '/tools/freeze?at=43.07,-89.4')
+    render(Freeze, { years })
+    const note = /^Coldest low in the forecast: 29 °F/
+    expect(await screen.findByText(note)).toBeVisible()
+    // Away to a past year and back: the forecast is asked again, and the last answer isn't shown meanwhile
+    const year = screen.getByRole('combobox', { name: 'Year' })
+    await fireEvent.change(year, { target: { value: '2025' } })
+    await vi.waitFor(() => expect(screen.queryByText(note)).toBeNull())
+    await fireEvent.change(year, { target: { value: '2026' } })
+    await vi.waitFor(() => expect(dailyAsked).toBe(2))
+    expect(await screen.findByText(/^2026: Nov 14/)).toBeVisible()
+    expect(screen.queryByText(note)).toBeNull()
+  })
+
   it('says what’s wrong with a temperature of the reader’s own', async () => {
     window.history.replaceState(null, '', '/tools/freeze?at=43.07,-89.4&temps=custom')
     render(Freeze, { years })

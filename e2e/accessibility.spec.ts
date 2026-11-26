@@ -14,11 +14,14 @@ import { expect, test } from './test'
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
 
-const PAGES = ['/', '/sites', '/changelog', '/api-use', '/map', '/data']
-// The reference pages (track 7 step 7.4)
-PAGES.push('/about', '/accessibility', '/contact', '/glossary')
-// Data status (track 7 step 7.2)
-PAGES.push('/status')
+// The pages that need no stubbed answers, in groups small enough that a test stays well inside its time limit
+const PAGES: Record<string, string[]> = {
+  'the main sections': ['/', '/sites', '/map', '/data'],
+  // Data status (track 7 step 7.2)
+  'the changelog, API-use form and data status': ['/changelog', '/api-use', '/status'],
+  // The reference pages (track 7 step 7.4)
+  'the reference pages': ['/about', '/accessibility', '/contact', '/glossary'],
+}
 
 async function scan(page: Page, path: string, { reflow = true }: { reflow?: boolean } = {}) {
   await page.goto(path)
@@ -66,16 +69,18 @@ async function reflows(page: Page, path: string) {
   await larger.evaluate((element) => (element as HTMLElement).remove())
 }
 
-test('public pages', async ({ page }) => {
-  for (const path of PAGES) await scan(page, path)
-})
+for (const [name, paths] of Object.entries(PAGES)) {
+  test(name, async ({ page }) => {
+    for (const path of paths) await scan(page, path)
+  })
 
-test('public pages in the other theme', async ({ page }) => {
-  // The desktop project is light and the phone dark: each also checks the other through the toggle
-  await page.goto('/')
-  await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
-  for (const path of PAGES) await scan(page, path, { reflow: false })
-})
+  test(`${name} in the other theme`, async ({ page }) => {
+    // The desktop project is light and the phone dark: each also checks the other through the toggle
+    await page.goto('/')
+    await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
+    for (const path of paths) await scan(page, path, { reflow: false })
+  })
+}
 
 test('the data page with saved sites, a download and the yearly files', async ({ page }) => {
   await stubDataApi(page)

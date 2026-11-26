@@ -31,8 +31,9 @@
     normalYearSummary,
     yearFromMonths,
   } from '../charts/climateNormals'
-  import Failed from '../sites/Failed.svelte'
-  import { request } from '../sites/request.svelte'
+  import Failed from '../components/Failed.svelte'
+  import { SHORT_MONTHS } from '../dates'
+  import { request } from '../request.svelte'
   import { currentUnits } from '../units'
   import { DEFAULT_PERIOD, periodWords, periodYears, type Period } from './periods'
   import { climateSlots, type Slots } from './slots'
@@ -61,7 +62,6 @@
     queue?: Slots
   } = $props()
 
-  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   const units = $derived(currentUnits())
   const chosen = $derived(NORMAL_VARIABLES.find((v) => v.id === variable) ?? NORMAL_VARIABLES[0])
 
@@ -140,7 +140,7 @@
         <thead>
           <tr class="border-b border-line text-left text-xs text-ink-muted">
             <th scope="col" class="{sticky} py-1 pr-3 font-medium">Normal</th>
-            {#each MONTHS as name, k (name)}
+            {#each SHORT_MONTHS as name, k (name)}
               <th scope="col" class="{head} {k + 1 === thisMonth ? 'text-ink' : ''}">{name}</th>
             {/each}
             <th scope="col" class={head}>Year</th>
@@ -153,7 +153,7 @@
               <th scope="row" class="{sticky} py-1.5 pr-3 text-left font-normal whitespace-nowrap">
                 {`${v.name} (${unitOf(v.id)})`}
               </th>
-              {#each MONTHS as name, k (name)}
+              {#each SHORT_MONTHS as name, k (name)}
                 <td class="{cell} {k + 1 === thisMonth ? 'font-medium' : ''}">{shown(v.id, values[k])}</td>
               {/each}
               <td class="{cell} font-medium">{shown(v.id, yearFromMonths(table.months, values, v.total))}</td>

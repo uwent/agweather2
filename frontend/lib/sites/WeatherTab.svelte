@@ -19,8 +19,8 @@
   import { addDays } from '../dates'
   import { tableRows } from '../tableRows'
   import { currentUnits } from '../units'
-  import Failed from './Failed.svelte'
-  import { request } from './request.svelte'
+  import Failed from '../components/Failed.svelte'
+  import { request } from '../request.svelte'
   import { rangeDays, type Range } from './text'
 
   export type WeatherView = {

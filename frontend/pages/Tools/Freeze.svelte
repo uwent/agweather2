@@ -16,8 +16,8 @@
   import { formatDate, today as gridToday } from '@/lib/dates'
   import { monthDay } from '@/lib/models/format'
   import { routes } from '@/lib/routes'
-  import Failed from '@/lib/sites/Failed.svelte'
-  import { request } from '@/lib/sites/request.svelte'
+  import Failed from '@/lib/components/Failed.svelte'
+  import { request } from '@/lib/request.svelte'
   import {
     coldestLow,
     CUSTOM_RANGE_F,
@@ -163,7 +163,9 @@
   // The answer belongs to the query it was asked with: an older one isn't shown while a new one loads
   const own = $derived(freeze.value.status === 'done' && yearQuery ? yearFreezes(freeze.value.data) : null)
   const openMeteo = $derived(freeze.value.status === 'done' ? fromOpenMeteo(freeze.value.data) : false)
-  const coldest = $derived(year === thisYear && daily.value.data ? coldestLow(daily.value.data, today) : null)
+  const coldest = $derived(
+    year === thisYear && daily.value.status === 'done' ? coldestLow(daily.value.data, today) : null,
+  )
 
   // --- The period's dates and odds, as FreezeOdds loads them
 

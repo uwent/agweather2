@@ -4,18 +4,9 @@
 <script lang="ts">
   import { onDestroy } from 'svelte'
 
-  import { today as gridToday } from '@/lib/dates'
+  import { today as gridToday, MONTH_NAMES, SHORT_MONTHS } from '@/lib/dates'
   import { longDate } from '@/lib/models/format'
-  import {
-    FIRST_YEAR,
-    LAST_YEAR,
-    MONTHS,
-    calendarRows,
-    dateOfDay,
-    dayOfYear,
-    daysInYear,
-    leapNote,
-  } from '@/lib/tools/calendar'
+  import { FIRST_YEAR, LAST_YEAR, calendarRows, dateOfDay, dayOfYear, daysInYear, leapNote } from '@/lib/tools/calendar'
   import { codecs, field, viewState } from '@/lib/viewState'
 
   const today = gridToday()
@@ -54,7 +45,6 @@
     { label: 'July to December', months: [6, 7, 8, 9, 10, 11] },
   ]
   const ALL = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-  const short = (m: number) => MONTHS[m].slice(0, 3)
   const button =
     'cursor-pointer rounded-md border border-line bg-surface px-3 py-1 text-sm hover:border-frame disabled:cursor-default disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-brand-600'
   const input = 'rounded-md border border-line bg-surface px-2 py-1 text-sm'
@@ -74,7 +64,7 @@
         </th>
         {#each months as m (m)}
           <th scope="col" class="p-1 font-semibold">
-            <abbr title={MONTHS[m]} class="no-underline">{short(m)}</abbr>
+            <abbr title={MONTH_NAMES[m]} class="no-underline">{SHORT_MONTHS[m]}</abbr>
           </th>
         {/each}
       </tr>

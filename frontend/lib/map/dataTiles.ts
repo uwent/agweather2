@@ -10,7 +10,7 @@ import type { ExpressionSpecification } from 'maplibre-gl'
 
 import type { PaletteInfo } from '@/types/api'
 
-import { tileAt } from './radar'
+import { tileAt, tilePixels } from './tiles'
 
 export const ZERO = 2 ** 23
 export const NONE_CODE = 1
@@ -256,23 +256,6 @@ export class Lru<K, V> {
   get count() {
     return this.#entries.size
   }
-}
-
-/** A tile's pixels, decoded without color management (the bytes are values, not colors) */
-export async function tilePixels(url: string, signal?: AbortSignal): Promise<ImageData> {
-  const response = await fetch(url, { signal })
-  if (!response.ok) throw new Error(`Data tile: ${response.status}`)
-  const bitmap = await createImageBitmap(await response.blob(), {
-    premultiplyAlpha: 'none',
-    colorSpaceConversion: 'none',
-  })
-  const canvas = document.createElement('canvas')
-  canvas.width = bitmap.width
-  canvas.height = bitmap.height
-  const context = canvas.getContext('2d', { willReadFrequently: true })!
-  context.drawImage(bitmap, 0, 0)
-  bitmap.close()
-  return context.getImageData(0, 0, canvas.width, canvas.height)
 }
 
 /** The value at a pixel of a decoded tile */

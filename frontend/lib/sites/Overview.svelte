@@ -10,8 +10,9 @@
   import { addDays, formatDate } from '../dates'
   import { isForecast, tableRows, unitSymbol, type Day, type Table } from '../tableRows'
   import { currentUnits } from '../units'
-  import Failed from './Failed.svelte'
-  import { request, type Request } from './request.svelte'
+  import Failed from '../components/Failed.svelte'
+  import { plural } from '../words'
+  import { request, type Request } from '../request.svelte'
   import RiskList from './RiskList.svelte'
   import { riskSpans, rowsOn } from '../riskSpan'
   import { siteKey } from '../siteKey'
@@ -126,11 +127,10 @@
   function noteText(body: TableResponse | null, column: string): string {
     const t = total(body, column)
     if (!t) return ''
-    const plural = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`
     const parts = []
-    if (t.estimated) parts.push(`includes ${plural(t.estimated)} estimated`)
+    if (t.estimated) parts.push(`includes ${plural(t.estimated, 'day')} estimated`)
     if (t.missing)
-      parts.push(`${plural(t.missing)} missing${column === 'precipitation_sum' ? ', counted as no rain' : ''}`)
+      parts.push(`${plural(t.missing, 'day')} missing${column === 'precipitation_sum' ? ', counted as no rain' : ''}`)
     return parts.length ? ` (${parts.join('; ')})` : ''
   }
 

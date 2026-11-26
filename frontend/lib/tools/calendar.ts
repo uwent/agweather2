@@ -1,23 +1,10 @@
 // The day-of-year calendar (`/calendar`, track 5; v1's `weather#doycal`): a date's day of the year and back, and
 // the 31 × 12 table of a year's days. Pure, in UTC calendar dates, for the years the page offers (1900–2100).
 
+import { MONTH_NAMES } from '../dates'
+
 export const FIRST_YEAR = 1900
 export const LAST_YEAR = 2100
-
-export const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-] as const
 
 export function isLeapYear(year: number): boolean {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
@@ -45,9 +32,9 @@ export function dateOfDay(year: number, day: number): string | null {
 
 /** The table's rows: for each day of the month (1–31), each month's day of the year, null past the month's end */
 export function calendarRows(year: number): (number | null)[][] {
-  const starts = MONTHS.map((_, m) => dayOfYear(`${year}-${String(m + 1).padStart(2, '0')}-01`))
+  const starts = MONTH_NAMES.map((_, m) => dayOfYear(`${year}-${String(m + 1).padStart(2, '0')}-01`))
   return Array.from({ length: 31 }, (_, d) =>
-    MONTHS.map((_, m) => (d + 1 <= daysInMonth(year, m + 1) ? starts[m] + d : null)),
+    MONTH_NAMES.map((_, m) => (d + 1 <= daysInMonth(year, m + 1) ? starts[m] + d : null)),
   )
 }
 

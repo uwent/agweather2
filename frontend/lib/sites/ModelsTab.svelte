@@ -7,9 +7,9 @@
   import { riskSpans, rowsOn, trendWords } from '../riskSpan'
   import { effectivePrefs, siteAt } from '../sites.svelte'
   import { siteKey, siteModelUrl } from '../siteKey'
-  import Failed from './Failed.svelte'
+  import Failed from '../components/Failed.svelte'
   import { modelShown } from './prefs'
-  import type { Request } from './request.svelte'
+  import type { Request } from '../request.svelte'
   import { riskRows } from './text'
 
   // The Models tab: one site across its models, grouped by crop, each with today's risk in words and its sparkline

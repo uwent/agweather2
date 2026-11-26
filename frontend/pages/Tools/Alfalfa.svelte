@@ -16,8 +16,8 @@
   import ShareButton from '@/lib/components/ShareButton.svelte'
   import { addDays, today as gridToday } from '@/lib/dates'
   import { routes } from '@/lib/routes'
-  import Failed from '@/lib/sites/Failed.svelte'
-  import { request } from '@/lib/sites/request.svelte'
+  import Failed from '@/lib/components/Failed.svelte'
+  import { request } from '@/lib/request.svelte'
   import {
     COUNTS,
     cutLine,

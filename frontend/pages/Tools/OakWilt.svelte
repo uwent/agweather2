@@ -12,8 +12,8 @@
   import { longDate } from '@/lib/models/format'
   import { riskColor } from '@/lib/riskLevels'
   import { routes } from '@/lib/routes'
-  import Failed from '@/lib/sites/Failed.svelte'
-  import { request } from '@/lib/sites/request.svelte'
+  import Failed from '@/lib/components/Failed.svelte'
+  import { request } from '@/lib/request.svelte'
   import {
     defaultMapDate,
     DNR_LINKS,

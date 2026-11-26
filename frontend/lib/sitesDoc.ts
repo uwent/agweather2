@@ -5,6 +5,7 @@
 import { readStored, writeStored } from './storage'
 import { cleanName, parseSitesCsv, uniqueName, type SkippedRow } from './sitesCsv'
 import { formatCoords, roundCoord, siteKey, validCoords } from './siteKey'
+import { plural } from './words'
 
 export const SITES_KEY = 'agweather.sites'
 export const VERSION = 1
@@ -324,8 +325,6 @@ export type ImportResult = {
   /** Set when nothing could be read from the file */
   error: string | null
 }
-
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
 /** Adds the sites in a CSV file to `doc` (changing it) after its own, creating the file's groups by name. A row whose
  * place is already saved, or past MAX_SITES, is left out and listed; a name already used gets " (2)". */
