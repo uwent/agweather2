@@ -185,6 +185,8 @@
   let tiles = $state<Tiles | null>(null)
   let loading = $state(false)
   let failure = $state<string | null>(null)
+  // Whether the same request could succeed later (a 503 while the map's data are being updated): then Try again
+  let retryable = $state(false)
   const requests = latestRequests()
 
   const settings = $derived(queryString({ stat, ...params }))
@@ -220,6 +222,7 @@
       if (isAbort(error) || k !== untrack(() => key)) return
       tiles = null
       failure = error instanceof ApiError ? error.message : String(error)
+      retryable = !(error instanceof ApiError) || error.retryable
     } finally {
       if (k === untrack(() => key)) loading = false
     }
@@ -622,6 +625,15 @@
       role="status"
     >
       {failure ?? 'Loading the map…'}
+      {#if failure && retryable}
+        <button
+          type="button"
+          class="pointer-events-auto ml-1 cursor-pointer text-brand-600 underline hover:text-brand-700"
+          onclick={() => describe(key, layer, time, settings)}
+        >
+          Try again
+        </button>
+      {/if}
     </p>
   {/if}
   {#if legend}

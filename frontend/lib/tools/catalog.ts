@@ -38,6 +38,12 @@ export const TOOLS: Tool[] = [
     href: routes.toolOakWilt(),
   },
   {
+    title: 'Potato volunteer survival',
+    question: 'Was the soil cold enough this winter to kill potato tubers left in my fields?',
+    text: 'Hours of soil below 27 °F at 2, 4 and 8 inches since November 1 at a place, the chance tubers survive, and a map for each winter since 2016–17.',
+    href: routes.toolPotatoVolunteer(),
+  },
+  {
     title: 'Day-of-year calendar',
     question: 'What day of the year is a date, and what date is a given day of the year?',
     text: 'Converts between dates and day-of-year numbers, with a printable table for any year from 1900 to 2100.',
