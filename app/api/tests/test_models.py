@@ -44,7 +44,7 @@ def test_a_disease_model_from_its_biofix_through_the_forecast(client, archive):
     assert data["pdays_total"][1] == pytest.approx(2 * OBSERVED_PDAYS, abs=0.001)
     assert data["risk_label"][0] == "Very low" and data["risk_level"][0] == 0
     assert data["in_season"][0] is True
-    assert meta["request"]["model"] == "early-blight-pdays" and meta["request"]["version"] == "0.3"
+    assert meta["request"]["model"] == "early-blight-pdays" and meta["request"]["version"] == "0.4"
     assert meta["request"]["biofix"] == "2025-07-02" and meta["request"]["planting_date"] is None
     assert meta["units"]["air_temperature_min"] == "°C" and "risk_label" not in meta["units"]
     assert meta["sources"][:1] == ["urma"] and meta["location"]["in_box"] is True
@@ -105,7 +105,7 @@ def test_a_typical_planting_date_comes_with_its_source(client, archive):
 
 
 def test_a_typical_potato_planting_date_is_the_cells_estimate(client, archive, monkeypatch):
-    """Potato's typical dates are estimated per grid cell from its normal last spring freeze (`agdata.potatoplanting`):
+    """Potato's typical dates are estimated per grid cell from the normal last spring freeze around it (`agdata.potatoplanting`):
     a point gets its cell's, named as such. This archive has no 30-year normals, so the freeze is stood in for."""
     from agdata import potatoplanting
 
@@ -120,7 +120,7 @@ def test_a_typical_potato_planting_date_is_the_cells_estimate(client, archive, m
         echo = body["meta"]["request"]["planting_date"]
         cell = NDFD.cell_of(LAT, LNG)
         assert cell is not None and echo["level"] == "cell" and echo["area"] == f"{cell[0]},{cell[1]}"
-        assert echo["date"] == "2025-05-08" and echo["typical"] == {"early": "04-24", "mid": "05-08", "late": "05-30"}
+        assert echo["date"] == "2025-05-08" and echo["typical"] == {"early": "04-25", "mid": "05-08", "late": "05-29"}
         assert "28 °F" in echo["source"]
         located = client.get("/api/v2/locate", {"lat": LAT, "lng": LNG}).json()["data"]["planting"]
         potato = next(p for p in located if p["crop"] == "potato")
