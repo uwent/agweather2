@@ -26,6 +26,7 @@ INSECT = Insect(
     id="corn-rootworm",
     name="Corn rootworm",
     season=("05-15", "09-30"),
+    opens="degree_days",
     crops=("corn", "sweet-corn"),
     # Apple, Walgenbach and Knee 1971's threshold: 52 °F (11.1 °C), from egg hatch's development rates (51.2 °F for
     # first hatch, 52.6 for median, averaging 51.9: "essentially" Chiang and Sisson 1968's 52; p. 855). Their field
@@ -64,7 +65,7 @@ INSECT = Insect(
             label="Dig and rate roots for larval injury", stage="Larvae feeding on roots", between=(0.5, 0.95)
         ),
     ),
-    version="0.4",
+    version="0.5",
     status="beta",
     # Apple et al.'s eggs at Madison (1967–1970) and Davis et al.'s 11 cornfields in Tompkins, Cayuga, Schuyler and
     # Cortland counties, New York (1991–1993)
@@ -89,6 +90,11 @@ INSECT = Insect(
             version="0.4",
             date="2026-11-26",
             note="In season from May 15 to September 30: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to the end of the month its latest activity ended in (September 2). Activity ends after September 30 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
+        ),
+        Change(
+            version="0.5",
+            date="2026-11-26",
+            note="The season opens at each place about a week before the first egg hatch in a typical year (the day the 30-year normal degree days, averaged over about 50 km, reach it), rather than on May 15 everywhere; where we don't have the normals, it still opens on May 15.",
         ),
     ),
     checks=(

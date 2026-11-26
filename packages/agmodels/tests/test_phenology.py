@@ -27,6 +27,7 @@ FLIGHT = LifeStage(label="Adult flight", start=250, peak=360, end=540)
 FEEDING = LifeStage(label="Larval feeding", start=400, peak=600, end=810, weight=0.5)
 AVOID = ActionWindow(label="Avoid planting during adult flight", stage="Adult flight")
 INSECT = Insect(
+    opens="calendar",
     id="test-maggot",
     name="Test maggot",
     crops=("Corn",),
@@ -74,6 +75,7 @@ def test_generations_add_the_generation_time_and_its_variance():
 def test_overlapping_generations_level_off_at_one_per_interval():
     """Once generations overlap fully, their sum tends to 1 / the interval (the renewal theorem)."""
     insect = Insect(
+        opens="calendar",
         id="x",
         name="x",
         crops=(),
@@ -155,6 +157,7 @@ def test_definitions_are_checked():
         LifeStage(label="x", start=300, peak=200, end=400)
     with pytest.raises(ValueError, match="unknown stage"):
         Insect(
+            opens="calendar",
             id="x",
             name="x",
             crops=(),
@@ -175,7 +178,7 @@ def test_spec_declares_every_output():
 
 LARVAE = DerivedStage(label="Larvae", follows="Adult flight", lag=80, duration=370)
 DERIVED = Insect(
-    id="derived", name="x", crops=(), base_f=39, upper_f=84.2, biofix="01-01", dd_method="average",
+    opens="calendar", id="derived", name="x", crops=(), base_f=39, upper_f=84.2, biofix="01-01", dd_method="average",
     life_stages=(FLIGHT, LARVAE), generation_dd=720,
 )  # fmt: skip
 
@@ -197,11 +200,20 @@ def test_a_derived_stage_is_present_from_its_lag_for_its_duration():
 def test_derived_stages_are_checked():
     with pytest.raises(ValueError, match="isn't a timed life stage"):
         Insect(
-            id="x", name="x", crops=(), base_f=50, upper_f=None, biofix="01-01",
+            opens="calendar", id="x", name="x", crops=(), base_f=50, upper_f=None, biofix="01-01",
             life_stages=(FLIGHT, DerivedStage(label="Larvae", follows="Eggs", lag=10, duration=100)),
         )  # fmt: skip
     with pytest.raises(ValueError, match="first life stage"):
-        Insect(id="x", name="x", crops=(), base_f=50, upper_f=None, biofix="01-01", life_stages=(LARVAE, FLIGHT))
+        Insect(
+            opens="calendar",
+            id="x",
+            name="x",
+            crops=(),
+            base_f=50,
+            upper_f=None,
+            biofix="01-01",
+            life_stages=(LARVAE, FLIGHT),
+        )
 
 
 def test_the_average_method_caps_both_temperatures():

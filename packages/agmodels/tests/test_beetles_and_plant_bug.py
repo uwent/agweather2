@@ -184,6 +184,7 @@ def test_tarnished_plant_bugs_young_nymphs_peak_at_275():
     """Simko's peak of first- and second-stage nymphs (USPest.org), as UW–Madison's newsletter uses it."""
     hatch = TPB.life_stages[0]
     young = Insect(
+        opens="calendar",
         id="young-nymphs",
         name="Young nymphs",
         crops=TPB.crops,

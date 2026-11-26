@@ -27,6 +27,7 @@ Model version 0.4, written 2026-11-21 and revised 2026-11-23 for generation weig
   - **Third, 0.5** (kept from version 0.3): it damages maturing bulbs near harvest (up to about 15 of 200 bulbs at Elba, Fig. 1, "an economically important late-season brood") and goes into storage with them, "the most destructive economically" in Ontario (Liu et al., p. 754), though harvest often comes before its peak (Liu et al.'s did). Half, rather than the spring generation's full weight, because the damage depends on whether onions are still in the field.
   - Version 0.3 weighted both summer generations 0.5; version 0.2 weighted every generation alike (D37).
 - **Action window:** "Protect onion seedlings during fly flight", from 5 % to 95 % of each flight (390–1,102 in spring): NEWA's advice to have treated seed, an in-furrow treatment or row covers in place before flies emerge and for three weeks past the peak.
+- **Season (D128):** its season opens at each place about a week before the area's 30-year normal degree days (its own method, from January 1) reach 251, the first adult flight (where a stage's activity first reaches 5 % of its first-generation peak), averaged over about 50 km: April 17 at Madison, April 24 at Hancock, May 4 at Rhinelander on the development archive's normals, and over Wisconsin's farmland (the 10th percentile of its cultivated cells) April 14. Where we don't have the normals it opens on April 1. It ends after October 31 whatever the weather.
 
 ## Checks
 

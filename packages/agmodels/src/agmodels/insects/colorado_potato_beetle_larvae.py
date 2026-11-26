@@ -1,12 +1,13 @@
 """Colorado potato beetle larvae, from VDIFN."""
 
 from agmodels.phenology import Insect
-from agmodels.spec import Change, Check, Citation
+from agmodels.spec import Change, Check, Citation, OpensOnCropStage
 
 INSECT = Insect(
     id="colorado-potato-beetle-larvae",
     name="Colorado potato beetle larvae (VDIFN)",
     season=("05-15", "09-30"),
+    opens=OpensOnCropStage(crop="potato-stages", stage="EM", event="early-planted potatoes emerge", planting="early"),
     crops=("eggplant", "potato", "tomato"),
     base_f=50,
     upper_f=86,
@@ -14,12 +15,17 @@ INSECT = Insect(
     generations=((485, 905, 2500),),
     topic="colorado-potato-beetle",
     status="retired",
-    version="0.2",
+    version="0.3",
     changelog=(
         Change(
             version="0.2",
             date="2026-11-18",
             note="Retired: `colorado-potato-beetle` now gives larvae as one of its outputs, from the scouting fits on degree days 52/86 °F.",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="The season opens at each place on the day early-planted potatoes emerge in a typical year (from the 30-year normal temperatures, averaged over about 50 km), rather than on May 15 everywhere; where we don't have the normals, it still opens on May 15.",
         ),
     ),
     citations=(

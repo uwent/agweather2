@@ -40,6 +40,7 @@ def test_the_sine_ramp_by_its_steps_matches_the_sine():
 def test_vdifn_generations_match_its_severity(array):
     rows = [r for r in vdifn("vdifn_insect_severity_sweep.csv") if r["array"] == array and r["freezing"] == "0"]
     insect = Insect(
+        opens="calendar",
         id="x",
         name="x",
         crops=(),

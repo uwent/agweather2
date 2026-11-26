@@ -8,6 +8,7 @@ INSECT = Insect(
     id="corn-earworm",
     name="Corn earworm",
     season=("08-01", "10-31"),
+    opens="calendar",
     crops=("beans", "corn", "sweet-corn"),
     # USPest.org's model (Hartstack et al. 1976; read 2026-11-21): single sine, 55 and 92 °F, from egg laying near
     # first silk (its default date August 1, its validation "partly validated" in the Pacific Northwest). UC IPM's

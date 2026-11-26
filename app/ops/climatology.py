@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
-from agdata import climatestore, normals
+from agdata import climatestore, normals, seasonopens
 from agdata.climatology import MAPPED, PERIODS
 from agdata.grid import Window
 from agdata.progress import Reporter
@@ -38,10 +38,19 @@ class Plan:
     drop_years: list[int] = field(default_factory=list)
     normals: dict[str, str] = field(default_factory=dict)  # period → why its normal maps need building
     archive: set[int] = field(default_factory=set)  # the archive's complete years
+    openings: str | None = None  # why the insect seasons' opening days (`agdata.seasonopens`, D128) need building
 
     @property
     def nothing(self) -> bool:
-        return not (self.fetch or self.refit or self.derive or self.drop_files or self.drop_years or self.normals)
+        return not (
+            self.fetch
+            or self.refit
+            or self.derive
+            or self.drop_files
+            or self.drop_years
+            or self.normals
+            or self.openings
+        )
 
 
 def plan(data_dir: Path, today: date, window: Window, refit: bool = False, rederive: bool = False) -> Plan:
@@ -88,6 +97,11 @@ def plan(data_dir: Path, today: date, window: Window, refit: bool = False, reder
             reason = "its gridMET years change in this run"
         if reason is not None:
             found.normals[name] = reason
+    found.openings = (
+        f"{seasonopens.PERIOD}'s normal maps are built in this run"
+        if seasonopens.PERIOD in found.normals
+        else seasonopens.status(data_dir)
+    )
     return found
 
 
@@ -111,6 +125,8 @@ def describe(p: Plan) -> list[str]:
         lines.append(f"derive {len(p.derive)} years ({_years(list(p.derive))}): {'; '.join(reasons)}")
     for name, reason in p.normals.items():
         lines.append(f"build {name}'s normal maps: {reason}")
+    if p.openings:
+        lines.append(f"work out the days insect seasons open from {seasonopens.PERIOD}: {p.openings}")
     if p.drop_files or p.drop_years:
         lines.append(f"drop {len(p.drop_files)} files and {len(p.drop_years)} derived years no longer in the period")
     if p.nothing:
@@ -206,4 +222,7 @@ def run(
             report.step(f"{name}'s normal maps stopped part way; its current maps stay until a rerun builds them")
             break
         report.step(f"{name}'s normal maps built ({_years(years)})")
+    if p.openings and not stopping() and not report.failures:
+        count = seasonopens.build(data_dir)
+        report.step(f"the days {count} insect seasons open, written to {seasonopens.path(data_dir)}")
     return derived

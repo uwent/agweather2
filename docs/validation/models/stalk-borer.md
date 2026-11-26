@@ -24,6 +24,7 @@ Model version 0.2, written 2026-11-21 (D98; part H, batch H4), its sources read 
 - **One stage:** "Caterpillars moving into corn", a PERT curve (1,100, 1,670, 2,100), weight 1: 10, 50 and 99 % at 1,390, 1,652 and 2,018. The middle sits a little after Lasack and Pedigo's 1,586 and 1,627 (1,650 in A3646 and Rice and Davis) and before Iowa State's 1,700. One generation a year; the moths fly from August to October, after the season this models.
 - **Window:** "Scout corn borders and treat if needed" from 3 % moved to 60 %, 1,292 to 1,704 degree days: the guides' scouting from 1,300 and spray window 1,400–1,700. Sprays work only while caterpillars are moving, before they bore in.
 - **Against VDIFN:** VDIFN's labels called these numbers moth flight; they are caterpillar movement. Its peak at 1,400 was the start of the spray window, not the peak of movement.
+- **Season (D128):** its season opens at each place about a week before the area's 30-year normal degree days (its own method, from January 1) reach 1,187, the first caterpillars moving into corn (where a stage's activity first reaches 5 % of its first-generation peak), averaged over about 50 km: June 6 at Madison, June 11 at Hancock, June 21 at Rhinelander on the development archive's normals, and over Wisconsin's farmland (the 10th percentile of its cultivated cells) June 2. Where we don't have the normals it opens on May 15. It ends after August 31 whatever the weather.
 
 ## Checks
 

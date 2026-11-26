@@ -1,4 +1,4 @@
-{"version": "0.3", "rows": [
+{"version": "0.4", "rows": [
 {"inputs":{"dd_total":0.0},"outputs":{"activity_egg_hatch":0.0,"generations_egg_hatch":0.0,"activity_larval_feeding":0.0,"generations_larval_feeding":0.0,"activity_pupae_in_cocoons":0.0,"generations_pupae_in_cocoons":0.0,"activity_new_adults":0.0,"generations_new_adults":0.0,"window_scout_stem_tips_for_larval_feeding":0.0,"risk":0.0}},
 {"inputs":{"dd_total":100.0},"outputs":{"activity_egg_hatch":0.344257601,"generations_egg_hatch":0.043357273,"activity_larval_feeding":0.050354717,"generations_larval_feeding":0.0,"activity_pupae_in_cocoons":0.0,"generations_pupae_in_cocoons":0.0,"activity_new_adults":0.0,"generations_new_adults":0.0,"window_scout_stem_tips_for_larval_feeding":0.0,"risk":0.050354717}},
 {"inputs":{"dd_total":200.0},"outputs":{"activity_egg_hatch":0.843398584,"generations_egg_hatch":0.247776108,"activity_larval_feeding":0.287764771,"generations_larval_feeding":0.0,"activity_pupae_in_cocoons":0.0,"generations_pupae_in_cocoons":0.0,"activity_new_adults":0.0,"generations_new_adults":0.0,"window_scout_stem_tips_for_larval_feeding":0.0,"risk":0.287764771}},

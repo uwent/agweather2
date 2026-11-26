@@ -140,15 +140,17 @@ def run(
     in_region: bool = True,
     gap_fill: Mapping[str, GapFill] | None = None,
     place: Mapping[str, float] | None = None,
+    season_opens: str | None = None,
 ) -> ModelRun:
     """Runs a model over consecutive `dates` (with `daily[name]` for each, as `required_inputs` lists) and returns
-    the days from `start` (default the first). `planting` is the crop's planting date, for stage gating and for a
-    biofix at a crop stage; without it, gated models aren't gated, unless the options give the gate's stage date
-    (`stage_date`, which replaces the crop's stages when given). `gap_fill` gives each input's estimate for
-    missing days (the catalog's `GAP_FILL`); inputs without one are passed as they are. `place` gives the place's
-    fixed values the model reads (`ModelSpec.place_normals`, by key); one missing or NaN is passed as NaN, and the
-    run carries its warning. A biofix other than the default for a model whose biofix is fixed raises
-    `FixedBiofixError` (`check_biofix`)."""
+        the days from `start` (default the first). `planting` is the crop's planting date, for stage gating and for a
+        biofix at a crop stage; without it, gated models aren't gated, unless the options give the gate's stage date
+        (`stage_date`, which replaces the crop's stages when given). `gap_fill` gives each input's estimate for
+        missing days (the catalog's `GAP_FILL`); inputs without one are passed as they are. `place` gives the place's
+        fixed values the model reads (`ModelSpec.place_normals`, by key); one missing or NaN is passed as NaN, and the
+        run carries its warning. `season_opens` (MM-DD) is the day the model's season opens at the place (`ModelSpec.opens`,
+    D128, from `agdata.seasonopens`); None: its calendar's first day. A biofix other than the default for a model whose biofix is fixed raises
+        `FixedBiofixError` (`check_biofix`)."""
     m = find_model(m) if isinstance(m, str) else m
     spec = m.SPEC
     check_biofix(spec, biofix)
@@ -160,7 +162,7 @@ def run(
         raise ValueError(f"start {start} isn't in the series")
     result = ModelRun(model_id=spec.id, version=spec.version, dates=dates[shown:], kinds=day_kinds[shown:])
     if spec.season is not None:  # the calendar, also for a run that doesn't start (refined below by its own end)
-        result.in_season = np.array([in_season(spec, d) for d in result.dates])
+        result.in_season = np.array([in_season(spec, d, opens=season_opens) for d in result.dates])
     if not in_region:
         result.reason = "outside the model's region"
         return result
@@ -225,7 +227,7 @@ def run(
         if ended.ndim > 1:  # a grid's days × cells: the calendar alone (maps say where each cell's season ended)
             ended = np.zeros(len(result.dates), dtype=bool)
         result.in_season = np.array(
-            [in_season(spec, d, ended=bool(e)) for d, e in zip(result.dates, ended, strict=True)]
+            [in_season(spec, d, ended=bool(e), opens=season_opens) for d, e in zip(result.dates, ended, strict=True)]
         )
     if isinstance(m, PhenologyModel) and next(iter(result.outputs.values())).ndim == 1:  # scenarios: per year
         for w in m.insect.action_windows:

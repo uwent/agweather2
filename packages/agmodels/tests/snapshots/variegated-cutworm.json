@@ -1,4 +1,4 @@
-{"version": "0.3", "rows": [
+{"version": "0.4", "rows": [
 {"inputs":{"dd_total":0.0},"outputs":{"activity_adult_flight":0.0,"generations_adult_flight":0.0,"activity_larvae":0.0,"generations_larvae":0.0,"window_scout_for_eggs_and_young_caterpillars":0.0,"risk":0.0}},
 {"inputs":{"dd_total":100.0},"outputs":{"activity_adult_flight":0.0,"generations_adult_flight":0.0,"activity_larvae":0.0,"generations_larvae":0.0,"window_scout_for_eggs_and_young_caterpillars":0.0,"risk":0.0}},
 {"inputs":{"dd_total":200.0},"outputs":{"activity_adult_flight":0.0,"generations_adult_flight":0.0,"activity_larvae":0.0,"generations_larvae":0.0,"window_scout_for_eggs_and_young_caterpillars":0.0,"risk":0.0}},

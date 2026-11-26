@@ -1,4 +1,4 @@
-{"version": "0.3", "rows": [
+{"version": "0.4", "rows": [
 {"inputs":{"dd_total":0.0},"outputs":{"activity_moth_flight_and_egg_laying":0.0,"generations_moth_flight_and_egg_laying":0.0,"activity_larvae_in_vines":0.0,"generations_larvae_in_vines":0.0,"window_protect_stems_during_egg_laying":0.0,"risk":0.0}},
 {"inputs":{"dd_total":100.0},"outputs":{"activity_moth_flight_and_egg_laying":0.0,"generations_moth_flight_and_egg_laying":0.0,"activity_larvae_in_vines":0.0,"generations_larvae_in_vines":0.0,"window_protect_stems_during_egg_laying":0.0,"risk":0.0}},
 {"inputs":{"dd_total":200.0},"outputs":{"activity_moth_flight_and_egg_laying":0.0,"generations_moth_flight_and_egg_laying":0.0,"activity_larvae_in_vines":0.0,"generations_larvae_in_vines":0.0,"window_protect_stems_during_egg_laying":0.0,"risk":0.0}},

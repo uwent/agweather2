@@ -26,6 +26,7 @@ from agdata import normals, seasonal, series
 from agdata import units as agunits
 from agdata.point import hourly_sources
 from agdata.projection import PROJECTION
+from agdata.seasonopens import normal_periods
 from agdata.series import FORECAST, PARTIAL, DailySeries, Forecast, archive_years, days_needed, runs_at_point, sliced
 from agmodels import seasons
 from agmodels.crops import MARGIN, NOT_SUSCEPTIBLE, SUSCEPTIBLE
@@ -1036,8 +1037,8 @@ def _revalidate(request, plans, computed, sites, first, last, now, projecting: b
     needed, names = days_needed([r for p in plans for r in p.runs], first)
     past = [y for y in archive_years(settings.DATA_DIR) if y < last.year] if projecting else []
     stamp = points.stamp(sites, needed, last, now, names=names, past_years=past, area=area)
-    periods = sorted({n.period for p in plans for n in p.model.SPEC.place_normals})
-    if stamp is not None and periods:  # a model reading normals of the place (`ModelSpec.place_normals`)
+    periods = sorted({n for p in plans for n in normal_periods(p.model.SPEC)})
+    if stamp is not None and periods:  # a model reading normals of the place, or opening its season by them
         stamp += "|" + "|".join(str(normals.stamp(settings.DATA_DIR, period)) for period in periods)
     etag = None if stamp is None else etag_for(request, computed, stamp)
     unchanged = None if etag is None else not_modified(request, etag)

@@ -582,6 +582,10 @@ export interface ModelPageProps {
    */
   season: string[] | null
   /**
+   * How an insect's season opens at each location (D128), completing 'Its season opens …'; None: on its season's first day.
+   */
+  season_opens: string | null
+  /**
    * A once-a-season map's first day, MM-DD; None: a daily model.
    */
   seasonal_appears: string | null
@@ -793,6 +797,10 @@ export interface SiteModelInfo {
    * MM-DD first and last day it runs, or None (all year).
    */
   season: string[] | null
+  /**
+   * How an insect's season opens at each location (D128), completing 'Its season opens …'; None: on its season's first day.
+   */
+  season_opens: string | null
   /**
    * State abbreviations where it's valid; empty: anywhere.
    */

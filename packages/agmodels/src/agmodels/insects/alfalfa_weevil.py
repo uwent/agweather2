@@ -9,6 +9,7 @@ INSECT = Insect(
     id="alfalfa-weevil",
     name="Alfalfa weevil",
     season=("04-01", "07-31"),
+    opens="degree_days",
     crops=("alfalfa",),
     # NEWA's method (D95): the simple average above 48 °F, no upper threshold, from January 1. Harcourt 1981, whose
     # numbers NEWA's table carries, counted single sine above 9 °C from April 1; on his own 1977–1980 validation dates
@@ -37,7 +38,7 @@ INSECT = Insect(
     action_windows=(ActionWindow(label="Scout stem tips for larval feeding", stage="Egg hatch", between=(0.5, 0.999)),),
     source=CRT,  # what 0.1 was ported from (its changelog line)
     status="beta",
-    version="0.3",
+    version="0.4",
     changelog=(
         Change(
             version="0.2",
@@ -48,6 +49,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-26",
             note="In season from April 1 to July 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to the end of the month its latest activity ended in (July 9). Activity ends after July 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="The season opens at each place about a week before the first egg hatch in a typical year (the day the 30-year normal degree days, averaged over about 50 km, reach it), rather than on April 1 everywhere; where we don't have the normals, it still opens on April 1.",
         ),
     ),
     trained=TrainingArea(

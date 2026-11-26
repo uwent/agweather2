@@ -35,6 +35,7 @@ INSECT = Insect(
     id="spotted-wing-drosophila",
     name="Spotted wing drosophila",
     season=("06-01", "10-31"),
+    opens="calendar",
     crops=("blackberry", "cherry", "raspberry"),
     base_f=45,
     upper_f=86,

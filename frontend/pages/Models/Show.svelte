@@ -159,7 +159,7 @@
           <div>
             <dt class="font-semibold">When</dt>
             <dd>
-              {seasonText(props.season)}
+              {seasonText(props.season, props.season_opens)}
               {#if props.seasonal_appears}
                 {` It makes one map a season, first shown on ${monthDay(props.seasonal_appears)}.`}
               {/if}

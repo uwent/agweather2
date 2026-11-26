@@ -22,6 +22,7 @@ Model version 0.3, written 2026-11-21 (D98, D101). The model: `packages/agmodels
 - **Risk:** the index over its peak (0.596 on degree days, 0.714 on the calendar), Low from 0.05, Moderate from 0.25, High from 0.5, Very high from 0.75 (the D36 defaults).
 - **Training area (D101):** Wisconsin, where the traps are (from Grant and Walworth counties in the south to Oneida County in the north); elsewhere the model runs with a warning.
 - **Degree days:** single sine, 39.2 °F (4 °C), cutoff 86 °F, from January 1; the 2024 fit used 39 °F.
+- **Season (D128):** a migrant, so its season opens on the calendar, April 1, everywhere, and ends after October 31.
 
 ## Checks
 

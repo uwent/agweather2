@@ -1,4 +1,4 @@
-{"version": "0.5", "rows": [
+{"version": "0.6", "rows": [
 {"inputs":{"dd_total":0.0},"outputs":{"activity_egg_laying":0.0,"generations_egg_laying":0.0,"activity_leaf_feeding_caterpillars":0.0,"generations_leaf_feeding_caterpillars":0.0,"activity_cutting_caterpillars":0.0,"generations_cutting_caterpillars":0.0,"window_scout_and_treat_while_caterpillars_can_cut_plants":0.0,"risk":0.0}},
 {"inputs":{"dd_total":100.0},"outputs":{"activity_egg_laying":0.795313918,"generations_egg_laying":0.610829611,"activity_leaf_feeding_caterpillars":0.015713278,"generations_leaf_feeding_caterpillars":0.0,"activity_cutting_caterpillars":0.0,"generations_cutting_caterpillars":0.0,"window_scout_and_treat_while_caterpillars_can_cut_plants":0.0,"risk":0.0}},
 {"inputs":{"dd_total":200.0},"outputs":{"activity_egg_laying":0.205083839,"generations_egg_laying":0.947583048,"activity_leaf_feeding_caterpillars":0.690510041,"generations_leaf_feeding_caterpillars":0.0,"activity_cutting_caterpillars":0.0,"generations_cutting_caterpillars":0.0,"window_scout_and_treat_while_caterpillars_can_cut_plants":0.0,"risk":0.0}},

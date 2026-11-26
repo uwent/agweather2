@@ -12,6 +12,7 @@
   import ModelOptions from '@/lib/sites/ModelOptions.svelte'
   import { decodeChosen, encodeChosen, runParams, settingNames, type Chosen } from '@/lib/sites/modelOptions'
   import ModelTable from '@/lib/sites/ModelTable.svelte'
+  import { seasonText } from '@/lib/models/format'
   import { answer, nextMilestone, seasonWords } from '@/lib/sites/modelText'
   import { request } from '@/lib/sites/request.svelte'
   import { coordinates } from '@/lib/sites/text'
@@ -109,7 +110,8 @@
   const where = $derived.by(() => {
     const items: string[] = []
     const season = seasonWords(model.season)
-    items.push(season ? `It runs each year from ${season}.` : 'It runs all year.')
+    if (model.season_opens && model.season) items.push(seasonText(model.season, model.season_opens))
+    else items.push(season ? `It runs each year from ${season}.` : 'It runs all year.')
     if (model.region.length)
       items.push(`It was developed for ${model.region.join(', ')}, and gives no output elsewhere.`)
     if (model.trained)

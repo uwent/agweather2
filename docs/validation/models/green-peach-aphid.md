@@ -20,6 +20,7 @@ Model version 0.1, written 2026-11-21 (D98, D101). The model: `packages/agmodels
 - **Count:** the typical year's fitted mean for a typical trap (the median across years and traps on the log scale), 1.47 green peach aphids per trap-week at the calendar peak, 0.91 at the degree-day peak.
 - **Risk:** the catch over its peak, with the D36 thresholds (Low from 0.05, Moderate 0.25, High 0.5, Very high 0.75).
 - **Training area (D101):** Wisconsin (traps from Grant and Walworth counties in the south to Oneida County in the north); elsewhere the model runs with a warning.
+- **Season (D128):** a migrant, so its season opens on the calendar, July 15, everywhere, and ends after October 31.
 
 ## Checks
 

@@ -6,7 +6,7 @@ from datetime import date, timedelta
 import numpy as np
 import pytest
 
-from agdata import croptiers, cumulative, modelgrid, modelmaps, seasonmaps
+from agdata import climatology, croptiers, cumulative, modelgrid, modelmaps, seasonmaps
 from agdata.catalog import DAILY_VARIABLES, GAP_FILL
 from agdata.grid import NDFD
 from agdata.store import DAILY, INGREDIENTS, GridStore
@@ -131,15 +131,23 @@ def test_a_maps_cell_is_the_model_run_at_that_cell(built, model_id):
             assert all(np.isnan(v).all() for v in found.outputs.values()), (model_id, day)
             continue
         assert found.reads > 0 and not found.stale
+        opens = modelgrid.season_opens(root, m.SPEC, WINDOW)  # an insect's season (D128): blank before it opens
         for y in range(WINDOW.shape[0]):
             for x in range(WINDOW.shape[1]):
+                closed = opens is not None and climatology.slot(day) < opens[y, x]
                 inside = found.in_region is None or bool(found.in_region[y, x])
                 point = _at_point(model_id, weather, y, x, day, in_region=inside)
                 if point.reason is not None:  # out of its region, or not started: missing on the map too
                     assert all(np.isnan(v[0, y, x]) for v in found.outputs.values()), (model_id, day, point.reason)
                     continue
                 pairs = {name: (found.outputs[name][0, y, x], point.outputs[name][-1]) for name in units}
-                if found.level is not None and point.level is not None:
+                if closed:  # the point marks the day out of season; the map leaves all but degree days blank
+                    assert point.in_season is not None and not point.in_season[-1]
+                    assert found.level is not None and np.isnan(found.level[0, y, x])
+                    blank = {n for n in pairs if units[n] not in ("degF_day", "degC_day")}
+                    assert blank and all(np.isnan(pairs[n][0]) for n in blank), (model_id, day)
+                    pairs = {n: pair for n, pair in pairs.items() if n not in blank}
+                elif found.level is not None and point.level is not None:
                     pairs["risk_level"] = (found.level[0, y, x], point.level[-1])
                 for name, (a, b) in pairs.items():
                     where = f"{model_id} {name} {day} cell {y},{x}"

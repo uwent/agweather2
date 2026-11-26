@@ -8,6 +8,7 @@ INSECT = Insect(
     id="stalk-borer",
     name="Stalk borer",
     season=("05-15", "08-31"),
+    opens="degree_days",
     crops=("corn", "sweet-corn"),
     # Levine 1983's method (D37): Allen's (1976) sine-wave degree days from January 1 above 5.1 °C (41.2 °F), the
     # threshold for development from egg to adult, which Lasack and Pedigo 1986 and the extension guides (Iowa State,
@@ -34,7 +35,7 @@ INSECT = Insect(
             label="Scout corn borders and treat if needed", stage="Caterpillars moving into corn", between=(0.03, 0.6)
         ),
     ),
-    version="0.3",
+    version="0.4",
     status="beta",
     # Lasack and Pedigo's two fields near Baxter, Jasper County, Iowa, sampled in 1984 and 1985 (p. 1697)
     trained=TrainingArea(
@@ -53,6 +54,11 @@ INSECT = Insect(
             version="0.3",
             date="2026-11-26",
             note="In season from May 15 to August 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to the end of the month its latest activity ended in (August 5). Activity ends after August 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="The season opens at each place about a week before the first caterpillars moving into corn in a typical year (the day the 30-year normal degree days, averaged over about 50 km, reach it), rather than on May 15 everywhere; where we don't have the normals, it still opens on May 15.",
         ),
     ),
     checks=(

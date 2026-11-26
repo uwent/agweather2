@@ -11,6 +11,7 @@ AREA = TrainingArea(description="trap counts in Wisconsin", years=(2016, 2023), 
 
 def _insect(*, clock: str = "degree_days", days: tuple[float, ...] = (150.0, 200.0, 250.0)) -> Insect:
     return Insect(
+        opens="calendar",
         id="test-fitted",
         name="Test insect",
         crops=("potato",),

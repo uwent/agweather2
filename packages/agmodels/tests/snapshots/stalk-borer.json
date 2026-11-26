@@ -1,4 +1,4 @@
-{"version": "0.3", "rows": [
+{"version": "0.4", "rows": [
 {"inputs":{"dd_total":0.0},"outputs":{"activity_caterpillars_moving_into_corn":0.0,"generations_caterpillars_moving_into_corn":0.0,"window_scout_corn_borders_and_treat_if_needed":0.0,"risk":0.0}},
 {"inputs":{"dd_total":100.0},"outputs":{"activity_caterpillars_moving_into_corn":0.0,"generations_caterpillars_moving_into_corn":0.0,"window_scout_corn_borders_and_treat_if_needed":0.0,"risk":0.0}},
 {"inputs":{"dd_total":200.0},"outputs":{"activity_caterpillars_moving_into_corn":0.0,"generations_caterpillars_moving_into_corn":0.0,"window_scout_corn_borders_and_treat_if_needed":0.0,"risk":0.0}},

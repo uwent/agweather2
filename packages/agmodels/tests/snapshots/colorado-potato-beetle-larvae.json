@@ -1,4 +1,4 @@
-{"version": "0.2", "rows": [
+{"version": "0.3", "rows": [
 {"inputs":{"dd_total":0.0},"outputs":{"severity":0.0,"stage":null}},
 {"inputs":{"dd_total":100.0},"outputs":{"severity":0.0,"stage":null}},
 {"inputs":{"dd_total":200.0},"outputs":{"severity":0.0,"stage":null}},

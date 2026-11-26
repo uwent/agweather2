@@ -8,6 +8,7 @@ INSECT = Insect(
     id="cabbage-maggot",
     name="Cabbage maggot",
     season=("04-01", "10-31"),
+    opens="degree_days",
     crops=("cole-crops",),
     # NEWA's method (D95): the day's simple average above 40 °F, no upper threshold, from January 1. Its table is
     # Jyoti, Shelton and Barnard 2003's degree days (the simple average above 4 °C, 39.2 °F, from January 1; upstate New
@@ -64,7 +65,7 @@ INSECT = Insect(
             label="Protect seedlings and transplants during fly flight", stage="Adult flight", between=(0.05, 0.95)
         ),
     ),
-    version="0.6",
+    version="0.7",
     status="beta",
     trained=TrainingArea(description="water-pan trap catches in upstate New York", years=(1999, 2000), states=("NY",)),
     changelog=(
@@ -92,6 +93,11 @@ INSECT = Insect(
             version="0.6",
             date="2026-11-26",
             note="In season from April 1 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
+        ),
+        Change(
+            version="0.7",
+            date="2026-11-26",
+            note="The season opens at each place about a week before the first adult flight in a typical year (the day the 30-year normal degree days, averaged over about 50 km, reach it), rather than on April 1 everywhere; where we don't have the normals, it still opens on April 1.",
         ),
     ),
     checks=(

@@ -10,6 +10,9 @@ from dataclasses import dataclass, field
 from datetime import date
 from urllib.parse import urlencode
 
+from django.conf import settings
+
+from agdata import seasonopens
 from agmodels import croplist, seasons
 from agmodels.spec import ModelSpec
 from web.catalog import specs
@@ -112,7 +115,9 @@ def models_in_season(today: date) -> list[CropModels]:
     for spec in specs():
         if spec.region and not (set(spec.region) & COVERED_STATES):
             continue
-        if seasons.in_season(spec, today):  # the rule /risk lists models by (at a place, also the weather's end)
+        # The rule /risk lists models by (at a place, also the weather's end); an insect's season opens on the
+        # region's day (D128: when it's open on a tenth of the farmland)
+        if seasons.in_season(spec, today, opens=seasonopens.region(settings.DATA_DIR, spec)):
             for crop in spec.crops:
                 by_crop.setdefault(crop, []).append(spec)
     order = list(croplist.CATEGORIES)

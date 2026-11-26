@@ -42,7 +42,7 @@ from django.conf import settings
 from django.http import HttpRequest
 from ninja import Schema
 
-from agdata import computed, modelgrid, modelmaps, normals, palettes, regions, rolling, seasonal, series
+from agdata import computed, modelgrid, modelmaps, normals, palettes, regions, rolling, seasonal, seasonopens, series
 from agdata import units as agunits
 from agdata.daily import days_from_hours
 from agdata.grid import Window
@@ -832,14 +832,13 @@ def _scale_asked(request: HttpRequest, a: "LayerAsk") -> ScaleAsked | None:
 
 def stamp(a: LayerAsk, now: datetime) -> Any:
     """The data stamp of what the map reads (`series.last_written`), for its ETag; with the normal maps' stamps for a
-    model that reads normals of the place (`ModelSpec.place_normals`)."""
+    model that reads normals of the place (`ModelSpec.place_normals`) or opens its season by them (D128)."""
     if a.climate is not None:
         own = climatemaps.stamp(a.climate)
         if a.stored_only:
             return own
         return [_weather_stamp(a, now), own]
-    if a.model is not None and a.model.spec.place_normals:
-        periods = sorted({n.period for n in a.model.spec.place_normals})
+    if a.model is not None and (periods := seasonopens.normal_periods(a.model.spec)):
         return [_weather_stamp(a, now), *(normals.stamp(_data_dir(), p) for p in periods)]
     return _weather_stamp(a, now)
 
@@ -1380,9 +1379,14 @@ def _model_compute(
             warnings.append(normal.missing)
     if found.in_season is not None and not any(found.in_season):
         first_md, last_md = model.spec.season or ("", "")
+        first_md = seasonopens.region(data_dir, model.spec) or first_md  # an insect's, over the region (D128)
         warnings.append(
             f"These dates are outside the model's season ({_month_day(first_md)} to {_month_day(last_md)})."
         )
+    elif found.opens is not None and (name not in found.outputs or name in modelgrid.blank_before_opening(model.spec)):
+        warning = seasonopens.map_warning(model.spec, found.opens, found.dates, regions.land(window))
+        if warning is not None:
+            warnings.append(warning)
     started = [b is not None and d >= b for d, b in zip(found.dates, found.biofix, strict=True)]
     if model.spec.accumulations and not any(started):
         warnings.append(

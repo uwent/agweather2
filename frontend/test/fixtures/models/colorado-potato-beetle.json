@@ -135,7 +135,8 @@
     }
   ],
   "region": [],
-  "season": null,
+  "season": ["05-01", "09-30"],
+  "season_opens": "on the day early-planted potatoes emerge in a typical year",
   "seasonal_appears": null,
   "biofix": {
     "default": "01-01",

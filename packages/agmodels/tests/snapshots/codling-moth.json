@@ -1,4 +1,4 @@
-{"version": "0.2", "rows": [
+{"version": "0.3", "rows": [
 {"inputs":{"dd_total":0.0},"outputs":{"activity_adult_flight":0.0,"generations_adult_flight":0.0,"activity_egg_hatch":0.0,"generations_egg_hatch":0.0,"window_protect_fruit_during_egg_hatch":0.0,"risk":0.0}},
 {"inputs":{"dd_total":100.0},"outputs":{"activity_adult_flight":0.908515689,"generations_adult_flight":0.149220434,"activity_egg_hatch":0.0,"generations_egg_hatch":0.0,"window_protect_fruit_during_egg_hatch":0.0,"risk":0.0}},
 {"inputs":{"dd_total":200.0},"outputs":{"activity_adult_flight":0.987820727,"generations_adult_flight":0.385675498,"activity_egg_hatch":0.0,"generations_egg_hatch":0.0,"window_protect_fruit_during_egg_hatch":0.0,"risk":0.0}},

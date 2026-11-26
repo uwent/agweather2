@@ -8,6 +8,7 @@ INSECT = Insect(
     id="western-flower-thrips",
     name="Western flower thrips",
     season=("04-15", "10-31"),
+    opens="calendar",
     crops=("cucumber", "eggplant", "pepper", "tomato"),
     base_f=45,
     upper_f=None,

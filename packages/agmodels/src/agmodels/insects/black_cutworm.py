@@ -19,7 +19,8 @@ PUPATION_F = 613
 INSECT = Insect(
     id="black-cutworm",
     name="Black cutworm",
-    season=("05-15", "07-31"),
+    season=("04-15", "07-31"),
+    opens="calendar",
     crops=(
         "asparagus",
         "beans",
@@ -88,7 +89,7 @@ INSECT = Insect(
             when="present",
         ),
     ),
-    version="0.5",
+    version="0.6",
     status="beta",
     trained=TrainingArea(
         description="caterpillar development measured outdoors in weather shelters in Iowa, the egg's in the laboratory in Illinois, and the default capture date from the first weeks with 9 or more moths in Wisconsin's black cutworm pheromone traps",
@@ -116,6 +117,11 @@ INSECT = Insect(
             version="0.5",
             date="2026-11-26",
             note="In season from May 15 to July 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to the end of the month its latest activity ended in (July 16). Activity ends after July 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
+        ),
+        Change(
+            version="0.6",
+            date="2026-11-26",
+            note="In season from April 15 (was May 15), so the season is open before moths arriving on spring storms start egg laying at the default biofix, May 1.",
         ),
     ),
     checks=(

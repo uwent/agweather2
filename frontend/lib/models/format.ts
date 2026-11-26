@@ -37,9 +37,11 @@ export function andList(items: string[]): string {
 }
 
 /** "From July 1 to August 15 each year"; a season over New Year says so */
-export function seasonText(season: string[] | null): string {
+export function seasonText(season: string[] | null, opens: string | null = null): string {
   if (!season) return 'All year.'
   const [first, last] = season
+  if (opens)
+    return `Its season opens at each location ${opens}, and runs to ${monthDay(last)}. Where we don’t have the 30-year normal temperatures, it opens on ${monthDay(first)}.`
   const across = last < first ? ', into the next year' : ''
   return `From ${monthDay(first)} to ${monthDay(last)} each year${across}.`
 }

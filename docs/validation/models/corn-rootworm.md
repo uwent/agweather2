@@ -33,6 +33,7 @@ Model version 0.3, written 2026-11-21 (D98; part H, batch H4), its sources read 
 - **One generation:** the eggs laid in August hatch the next spring. Extended diapause and the soybean-laying variant don't change the timing.
 - **Window:** "Dig and rate roots for larval injury", from half the larvae done feeding to 95 % (1,085–1,323; 885–1,123 in 0.2): UW Vegetable Entomology and A3646 advise digging in July or August, before root decay hides the injury.
 - **Against VDIFN:** VDIFN's window (329 to 636) put the end of larval feeding in late June. Its numbers turn out to be Davis et al.'s Mt. Pleasant, New York, totals in °C·d above 11 °C, used as °F·d, which put every stage far too early.
+- **Season (D128):** its season opens at each place about a week before the area's 30-year normal degree days (its own method, from January 1) reach 306, the first egg hatch (where a stage's activity first reaches 5 % of its first-generation peak), averaged over about 50 km: May 20 at Madison, May 24 at Hancock, June 2 at Rhinelander on the development archive's normals, and over Wisconsin's farmland (the 10th percentile of its cultivated cells) May 16. Where we don't have the normals it opens on May 15. It ends after September 30 whatever the weather.
 
 ## Checks
 

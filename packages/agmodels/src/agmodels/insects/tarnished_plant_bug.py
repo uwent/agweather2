@@ -24,6 +24,7 @@ INSECT = Insect(
     id="tarnished-plant-bug",
     name="Tarnished plant bug",
     season=("04-01", "10-31"),
+    opens="degree_days",
     crops=("beans", "celery", "leafy-greens", "pepper", "potato", "raspberry", "tomato"),
     # Single sine above 52 °F from January 1, no upper threshold: the setting of Simko's lygus bug model for seed
     # alfalfa in Oregon and Idaho (USPest.org); UW–Madison's vegetable newsletter (Groves 2021) gives only "275 DD52",
@@ -51,7 +52,7 @@ INSECT = Insect(
     generation_dd=640,
     # No cap: UW–Madison's fruit program counts four to five generations a year in the Midwest; the season's degree
     # days allow about four in southern Wisconsin and three in the north, and fall freezes end it
-    version="0.4",
+    version="0.5",
     status="retired",
     trained=TrainingArea(
         description="development of a laboratory colony from Stoneville, Mississippi, reared at constant temperatures, with spring timing from a lygus bug model for alfalfa grown for seed in Oregon and Idaho",
@@ -73,6 +74,11 @@ INSECT = Insect(
             version="0.4",
             date="2026-11-26",
             note="In season from April 1 to October 31: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to October 31, the end of Wisconsin's growing season. Activity ends after October 31 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
+        ),
+        Change(
+            version="0.5",
+            date="2026-11-26",
+            note="The season opens at each place about a week before the first egg hatch in a typical year (the day the 30-year normal degree days, averaged over about 50 km, reach it), rather than on April 1 everywhere; where we don't have the normals, it still opens on April 1.",
         ),
     ),
     checks=(

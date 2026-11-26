@@ -28,6 +28,7 @@ NEWA runs no corn earworm model, so D95 doesn't apply.
 - **One generation:** a generation is 873 (adult to adult), more than the 484–776 degree days DATCP's sites reached between August 15 and October 15 in 2021–2026 (median 652). The eggs' own moths rarely emerge, and pupae don't survive Wisconsin winters.
 - **No action window:** silks must be protected before eggs hatch, which depends on silking and trap catches the model can't see; the page points to the trap thresholds instead.
 - **VDIFN's ramp** (70, 275, 440, a single egg-laying day with the severity peak at 275) is replaced: its numbers were USPest's 73 and 437 rounded, with a peak of its own.
+- **Season (D128):** a migrant, so its season opens on the calendar, August 1, everywhere, and ends after October 31.
 
 ## Checks
 

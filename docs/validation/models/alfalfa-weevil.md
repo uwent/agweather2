@@ -26,6 +26,7 @@ Model version 0.2, written 2026-11-21 (D98; part H4 of `docs/plans/models.md`). 
 - **One generation;** the end-of-season freeze rule never matters (the weevil is gone by August).
 - **Against the Crop Risk Tool (0.1):** its sine 48.2/86 counts more in spring, so its steps (300, 595, 815) came 3–5 days before NEWA's 280, 600 and 815 on the NEWA stations (below).
 - **Training area:** Harcourt's data, eastern Ontario 1973–1980, set as New York (`trained`), where NEWA runs the same numbers; a Wisconsin point gets the training-area warning. Litsinger and Apple's Wisconsin larvae are only a check on one duration.
+- **Season (D128):** its season opens at each place about a week before the area's 30-year normal degree days (its own method, from January 1) reach 34, the first egg hatch (where a stage's activity first reaches 5 % of its first-generation peak), averaged over about 50 km: April 3 at Madison, April 8 at Hancock, April 21 at Rhinelander on the development archive's normals, and over Wisconsin's farmland (the 10th percentile of its cultivated cells) March 30. Where we don't have the normals it opens on April 1. It ends after July 31 whatever the weather.
 
 ## Checks
 

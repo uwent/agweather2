@@ -26,7 +26,7 @@ from pathlib import Path
 
 import numpy as np
 
-from agdata import computed, corrections, forecast, normals, pastyears, projection, timecopy
+from agdata import computed, corrections, forecast, normals, pastyears, projection, seasonopens, timecopy
 from agdata.areas import Area, Place, cells_of
 from agdata.areas import combine as combine_area
 from agdata.catalog import CUMULATIVE_VARIABLES, DAILY_VARIABLES, GAP_FILL, VARIABLES, Variable
@@ -931,7 +931,8 @@ def runs_at_point(
     running it alone. The region is checked against the county grid; `planting_default` gives a stage-gated model
     without a planting date the typical one (D34). A model that reads normals of the place (`ModelSpec.place_normals`)
     gets them at the point's cell from `data_dir`'s normal maps (`place_at`); without them it runs as its normal
-    says, with a warning."""
+    says, with a warning. An insect's season opens on the cell's own day (`agdata.seasonopens`, D128), or on its
+    calendar's first day, with a warning, where the cell has no normal."""
     if planting_default:
         runs = [with_planting(run, latitude, longitude, start, data_dir=data_dir) for run in runs]
     first, names = days_needed(runs, start)
@@ -947,6 +948,7 @@ def runs_at_point(
             names=runner.required_inputs(m),
         )
         in_region = not m.SPEC.region or (county is not None and county.state in m.SPEC.region)
+        opens, opens_warning = seasonopens.at_point(data_dir, m.SPEC, latitude, longitude)
         results.append(
             runner.run(
                 m,
@@ -962,8 +964,11 @@ def runs_at_point(
                 in_region=in_region,
                 gap_fill=GAP_FILL,
                 place=place(m.SPEC),
+                season_opens=opens,
             )
         )
+        if opens_warning is not None:
+            results[-1].place_warnings += (opens_warning,)
         results[-1].sources, results[-1].corrections = days.sources, days.corrections
         results[-1].forecast = days.forecast
         results[-1].outside_training_area = outside_training_area(m.SPEC, county)

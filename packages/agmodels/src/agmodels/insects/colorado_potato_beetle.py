@@ -16,7 +16,7 @@ import csv
 from pathlib import Path
 
 from agmodels.phenology import FittedStage, Insect
-from agmodels.spec import Change, Check, Citation, TrainingArea
+from agmodels.spec import Change, Check, Citation, OpensOnCropStage, TrainingArea
 
 FIT = Path(__file__).with_name("colorado_potato_beetle_fit.csv")
 FIT_CALENDAR = Path(__file__).with_name("colorado_potato_beetle_fit_calendar.csv")
@@ -64,6 +64,7 @@ INSECT = Insect(
     id="colorado-potato-beetle",
     name="Colorado potato beetle",
     season=("05-01", "09-30"),
+    opens=OpensOnCropStage(crop="potato-stages", stage="EM", event="early-planted potatoes emerge", planting="early"),
     crops=("potato", "tomato", "eggplant"),
     base_f=52,
     upper_f=86,
@@ -81,7 +82,7 @@ INSECT = Insect(
         _stage(label="Larvae", count_label="Larvae per 25 sweeps (typical count)", column="larvae", weight=0),
     ),
     source="the Crop Risk Tool",
-    version="0.4",
+    version="0.5",
     trained=TrainingArea(
         description="scouting counts in commercial potato fields in central Wisconsin, mostly the Central Sands",
         years=(2014, 2025),
@@ -102,6 +103,11 @@ INSECT = Insect(
             version="0.4",
             date="2026-11-26",
             note="In season from May 1 to September 30: from a week before its earliest activity on 2016–2025's weather at six Wisconsin places to the end of September, when the scouting data end and potato vines are killed. Activity ends after September 30 whatever the weather, as fall freezes end it, so a mild fall no longer holds a stalled curve's activity into winter.",
+        ),
+        Change(
+            version="0.5",
+            date="2026-11-26",
+            note="The season opens at each place on the day early-planted potatoes emerge in a typical year (from the 30-year normal temperatures, averaged over about 50 km), rather than on May 1 everywhere; where we don't have the normals, it still opens on May 1.",
         ),
     ),
     checks=(
