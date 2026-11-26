@@ -41,6 +41,8 @@ from web.sitemodel import model_info, model_settings, section, shown_spec
 
 # The model the oak wilt tool reads
 OAK_WILT = "oak-wilt-vectors"
+# The model the potato volunteer tool reads
+POTATO_VOLUNTEER = "potato-volunteer"
 
 # The longest `?name=` a site page shows from a link
 NAME_LENGTH = 80
@@ -223,7 +225,22 @@ def alfalfa_tool(request: HttpRequest):
 
 
 def potato_volunteer_tool(request: HttpRequest):
-    return render(request, "Tools/PotatoVolunteer", PotatoVolunteerToolProps())
+    """Potato volunteer survival (track 5 P1): the model's map by winter and its answer at a place, which the page
+    fetches; the model's content, the archive's years and the topic's management advice as props."""
+    spec = shown_spec(POTATO_VOLUNTEER)
+    if spec is None:
+        raise Http404("No such model")
+    page = topics().get("potato-volunteers")
+    management = section(page.body, "Managing volunteers") if page else None
+    return render(
+        request,
+        "Tools/PotatoVolunteer",
+        PotatoVolunteerToolProps(
+            model=model_info(spec),
+            years=_archive_years(),
+            management_html=markdown_html(re.sub(r"\[\^[\w-]+\]", "", management)) if management else None,
+        ),
+    )
 
 
 def calendar(request: HttpRequest):

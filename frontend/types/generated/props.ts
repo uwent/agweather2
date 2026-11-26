@@ -982,9 +982,22 @@ export interface SiteModelInfo {
   guidance_html: string | null
 }
 /**
- * Potato volunteer survival (`/tools/potato-volunteer`, track 5 P1).
+ * Potato volunteer survival (`/tools/potato-volunteer`, track 5 P1): the `potato-volunteer` model's content for
+ * its answer and chart, the years the archive holds (its winters, 2016–17 on) and the potato volunteers topic's
+ * management advice. The place's numbers and the map the page fetches from the API (`/models/potato-volunteer/run`,
+ * `/weather/daily`, the tiles; D117).
  */
-export interface PotatoVolunteerToolProps {}
+export interface PotatoVolunteerToolProps {
+  model: SiteModelInfo
+  /**
+   * The years with weather to run the model on, newest first.
+   */
+  years: number[]
+  /**
+   * The potato volunteers topic's 'Managing volunteers' section as HTML, without its citation markers; None without it.
+   */
+  management_html: string | null
+}
 export interface SharedProps {
   app: AppInfo
   /**

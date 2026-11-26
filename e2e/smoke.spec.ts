@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { SAVED, stubSiteData } from './sites'
 import { stubDataApi } from './dataApi'
 import { stubClimateApi } from './climateApi'
-import { stubFeedApi, stubFreezeApi, stubSiteApi } from './siteApi'
+import { stubFeedApi, stubFreezeApi, stubPotatoApi, stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
 // Every page loads with no console errors (a CSP violation shows as one) and no failed requests
@@ -390,6 +390,23 @@ test('freeze dates and odds: this year against the typical dates, the odds and a
   await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
   await expect(page.getByRole('heading', { name: 'Look up a date' })).toBeVisible()
   await expect(page.getByRole('link', { name: /typical first fall frost/ })).toBeVisible()
+})
+
+// The potato volunteer tool (track 5 P1)
+test('potato volunteer: a winter’s hours at each depth, the survival risk, its chart and map', async ({ page }) => {
+  await stubPotatoApi(page)
+  await page.goto('/tools/potato-volunteer')
+  await expect(page.getByRole('heading', { level: 1, name: 'Potato volunteer survival' })).toBeVisible()
+  await page.goto('/tools/potato-volunteer?at=44.12,-89.53&name=Hancock&winter=2025-26')
+  await expect(
+    page.getByText(
+      'Winter 2025–26 near Hancock: hours of soil below 27 °F at 2 in: 547; 4 in: 536; 8 in: 480. Tuber survival: Low.',
+    ),
+  ).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'January 24' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Winter 2025–26 on the map' })).toBeVisible()
+  await expect(page.locator('[data-chart] canvas').first()).toBeAttached()
+  await expect(page.getByRole('heading', { name: 'Managing volunteers' })).toBeVisible()
 })
 
 test('health check', async ({ request }) => {

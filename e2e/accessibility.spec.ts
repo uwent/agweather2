@@ -5,7 +5,7 @@ import { type Page } from '@playwright/test'
 import { SAVED, stubSiteData } from './sites'
 import { stubDataApi } from './dataApi'
 import { stubClimateApi } from './climateApi'
-import { stubFeedApi, stubFreezeApi, stubSiteApi } from './siteApi'
+import { stubFeedApi, stubFreezeApi, stubPotatoApi, stubSiteApi } from './siteApi'
 import { expect, test } from './test'
 
 // WCAG 2.1 A and AA checks (axe) on every page, in light (desktop) and dark (phone), and on desktop
@@ -259,6 +259,14 @@ test('the freeze tool, in both themes', async ({ page }) => {
   await scan(page, '/tools/freeze?at=43.07,-89.4')
   await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
   await scan(page, '/tools/freeze?at=43.07,-89.4', { reflow: false })
+})
+
+// The potato volunteer tool at a location, its run stubbed (track 5 P1)
+test('the potato volunteer tool, in both themes', async ({ page }) => {
+  await stubPotatoApi(page)
+  await scan(page, '/tools/potato-volunteer?at=44.12,-89.53&name=Hancock&winter=2025-26')
+  await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
+  await scan(page, '/tools/potato-volunteer?at=44.12,-89.53&name=Hancock&winter=2025-26', { reflow: false })
 })
 
 test('the settings dialog', async ({ page }) => {

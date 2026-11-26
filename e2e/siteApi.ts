@@ -53,3 +53,19 @@ export async function stubFreezeApi(page: Page) {
     return name ? route.fulfill({ json: climate(name) }) : route.fallback()
   })
 }
+
+/** The potato volunteer tool's answers (Hancock, winter 2025–26, recorded for frontend/test/fixtures/tools), with
+ * the site's */
+export async function stubPotatoApi(page: Page) {
+  await stubSiteApi(page)
+  const tools = (name: string) =>
+    JSON.parse(readFileSync(new URL(`../frontend/test/fixtures/tools/${name}.json`, import.meta.url), 'utf8'))
+  const answers: Record<string, string> = {
+    '/api/v2/models/potato-volunteer/run': 'potato-volunteer',
+    '/api/v2/weather/daily': 'potato-volunteer-air',
+  }
+  await page.route('**/api/v2/**', (route) => {
+    const name = answers[new URL(route.request().url()).pathname]
+    return name ? route.fulfill({ json: tools(name) }) : route.fallback()
+  })
+}
