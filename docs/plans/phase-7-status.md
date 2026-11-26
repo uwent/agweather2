@@ -2,7 +2,7 @@
 
 A running summary for Ben, kept current as agents' work merges (newest at the top of each list). The plan and its decisions are in [phase-7-web-app.md](phase-7-web-app.md); the handoff is PLAN.md's. Branch `phase-7` (from `main` after PR #1).
 
-Last updated: 2026-11-27, 00:45 CST.
+Last updated: 2026-11-27, 01:10 CST.
 
 ## Built (merged into `phase-7`)
 
@@ -45,8 +45,8 @@ Last updated: 2026-11-27, 00:45 CST.
 
 ## On deck (in order)
 
-1. **Running now:** review round 1 (frontend, backend); the crop GDD outlook and potato volunteer pages.
-2. **Next:** the alfalfa page (since the last cut and the season planner); a keyboard spec over the tools; the map explorer reading the counts from `/layers` instead of its own copy.
+1. **Running now:** review round 1 (frontend); the crop GDD outlook, potato volunteer and alfalfa pages.
+2. **Next:** a keyboard spec over the tools; the map explorer reading the counts from `/layers` instead of its own copy.
 3. **Reviews** (Ben, 2026-11-26): periodic review agents over what's been built (bugs, refactoring, duplication); findings and fixes below.
 4. **Small:** a flaky smoke test (the glossary not always scrolled to a linked term); count departures' colour scale ([0, 6.25] for days ≥ 90 °F, not centred on 0); climate endpoints' speed on a quiet server (`/climate/compare` 13 s under load); the legend at full strength while the map is at 80 % (Ben's call).
 5. **Ben:** the alfalfa planner's last cut lands on the 1-in-10 24 °F date (Nov 1 at Madison), later than most growers cut: should the season end earlier? About's drafts and credits; oak wilt's wording with DNR (their 2026 guidelines don't mention 231 °F·d); restart `bin/dev` after pulling; the interface design pass (map explorer plus bespoke model and topic pages in WISP 3's map-plus-feed frame).
@@ -58,4 +58,10 @@ Last updated: 2026-11-27, 00:45 CST.
 
 ## Reviews
 
-(None yet.)
+### Round 1, backend (2026-11-27; merged)
+
+Fixed: **the Open-Meteo fallback stopped reading its cell cache once a request's 10 s budget ran out** (or after one failed fetch), so later points in a multi-point request (the feed, `/data`, projections) lost their forecast fill even for cached cells — cache reads now always happen, with a test; `region=`'s unknown-region error now quotes its examples; one `shown_spec` and one `crops_named` (were copied three times); the home page's state list read from the coverage preset; stale comments.
+
+Left, recommended: `seasonopens` stores a never-reached event as Dec 25, not Dec 31 (cosmetic, every season ends by Oct 31; fix at the next version bump), and smoothing averages "never" with real days near the edge of an event's range (harmless now; a sentence for D128); `/data` lists states with half their cells covered while `region=` takes the preset's states (agree under the launch box; one rule); `_site_models` overlaps `model_entries`; Caddy's `/api` redirect stays 302 when Django's go 301; `NOT_OFFERED`'s reason for `temperature_mean_rain_7am_to_7pm` applies equally to the offered humid-hour temperatures (Ben: offer both or neither?).
+
+Checked without findings: legacy redirects (open-redirect safety, degree-day formats), `/status` gaps, the changelog and API-use form, downloads, climate routes, summaries, heavy slots, `/risk`, the season and planting logic, infra. Pages answer in 40–95 ms warm.
