@@ -882,7 +882,7 @@ class RunSpec:
     crop_options: Mapping[str, str] = field(default_factory=dict)
 
 
-def with_planting(run: RunSpec, latitude: float, longitude: float, start: date) -> RunSpec:
+def with_planting(run: RunSpec, latitude: float, longitude: float, start: date, data_dir: Path | None) -> RunSpec:
     """The run with the typical planting date (D34) for a stage-gated model given none, where one is published (not
     for a gate that runs only from a planting date the user gives, `Susceptibility.planting_given_only`)."""
     spec = find_model(run.model_id).SPEC
@@ -891,7 +891,7 @@ def with_planting(run: RunSpec, latitude: float, longitude: float, start: date) 
         return run  # a crop counted from January 1 (apple) has nothing planted
     if spec.susceptible is not None and spec.susceptible.planting_given_only and spec.biofix_stage is None:
         return run  # the crop model covers only some of the model's crops (wheat scab's spring wheat)
-    typical = typical_planting(crops[0].removesuffix("-stages"), latitude, longitude)
+    typical = typical_planting(crops[0].removesuffix("-stages"), latitude, longitude, data_dir=data_dir)
     if typical is None:
         return run
     month, day = (int(p) for p in typical.typical.split("-"))
@@ -933,7 +933,7 @@ def runs_at_point(
     gets them at the point's cell from `data_dir`'s normal maps (`place_at`); without them it runs as its normal
     says, with a warning."""
     if planting_default:
-        runs = [with_planting(run, latitude, longitude, start) for run in runs]
+        runs = [with_planting(run, latitude, longitude, start, data_dir=data_dir) for run in runs]
     first, names = days_needed(runs, start)
     days = read_days(first, end, names)
     county = county_at(latitude, longitude)

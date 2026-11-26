@@ -33,7 +33,7 @@ SPEC = ModelSpec(
     id="early-blight-pdays",
     name="Early blight P-days",
     group="disease",
-    version="0.2",
+    version="0.3",
     status="beta",
     summary="Potato physiological days from daily minimum and maximum temperature, accumulated from emergence to time the first fungicide spray for early blight (about 300 P-days).",
     topics=("early-blight",),
@@ -110,6 +110,11 @@ SPEC = ModelSpec(
             version="0.2",
             date="2026-11-03",
             note="P-day totals and their 7-day mean count from the biofix, as the risk does (were from the first day read).",
+        ),
+        Change(
+            version="0.3",
+            date="2026-11-26",
+            note="Maps at a planting tier start at emergence from each grid cell's estimated potato planting date (from its normal last spring freeze), where they took the nearest of UW Vegetable Pathology's seven places within 40 km and the default date beyond; a cell without an estimate is missing, as a location without one is refused.",
         ),
     ),
 )

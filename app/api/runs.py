@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
+from django.conf import settings
+
 from agdata.planting import CROPS, TIERS, PlantingDate, planting_crop, typical_planting
 from agdata.series import RunSpec
 from agmodels.registry import all_models
@@ -72,7 +74,9 @@ def plan(
     if lenient and planting:
         if crop is None or (spec.susceptible is not None and spec.susceptible.planting_given_only):
             planting = None  # wheat scab's gate is spring wheat's: a date given for several models isn't its
-        elif planting in (*TIERS, ALL) and (crop[1] not in CROPS or typical_planting(crop[1], lat, lng) is None):
+        elif planting in (*TIERS, ALL) and (
+            crop[1] not in CROPS or typical_planting(crop[1], lat, lng, data_dir=settings.DATA_DIR) is None
+        ):
             warnings.append(
                 f"We have no typical {crop[1]} planting dates for this location, so it runs without a planting date."
             )
@@ -228,7 +232,7 @@ def _plantings(
                 "planting_date",
             ) from None
     crop_name = crop[1]
-    found = typical_planting(crop_name, lat, lng) if crop_name in CROPS else None
+    found = typical_planting(crop_name, lat, lng, data_dir=settings.DATA_DIR) if crop_name in CROPS else None
     if found is None:
         raise ApiError(
             "no_estimate",

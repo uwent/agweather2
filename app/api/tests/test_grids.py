@@ -328,18 +328,20 @@ def test_layers_list_each_mapped_models_outputs_and_options(client, archive):
 
 
 def test_a_model_map_is_its_risk_level_per_cell(client, archive):
-    body = get(client, "late-blight-dsv", date="2025-07-08").json()
+    # no typical potato planting dates in this archive (no 30-year normals), so the spec's dates
+    body = get(client, "late-blight-dsv", date="2025-07-08", planting="none").json()
     data, meta = body["data"], body["meta"]
     assert len(data["lat"]) == WINDOW.size and set(data["kind"]) == {"observed"}
     assert all(level in (0, 1, 2, 3, 4) for level in data["late-blight-dsv"])
     assert meta["request"]["model"]["id"] == "late-blight-dsv" and meta["request"]["output"] == "risk_level"
+    assert meta["request"]["planting"] == "none"
     assert meta["summary"]["model"]["output"] == "risk_level" and meta["sources"] == ["urma"]
 
 
 def test_a_model_output_matches_the_point(client, archive):
     """The map's cell and `/models/{id}/run` at its center give the same severity total (the map from stored
     ingredients and running totals, the point from the hours)."""
-    total = get(client, "late-blight-dsv", date="2025-07-08", output="dsv_total").json()["data"]
+    total = get(client, "late-blight-dsv", date="2025-07-08", output="dsv_total", planting="none").json()["data"]
     row = _row_of(total, (LAT, LNG))
     run = client.get("/api/v2/models/late-blight-dsv/run", {"lat": LAT, "lng": LNG, "start": "2025-07-08"}).json()
     point = run["data"]["dsv_total"][0]
@@ -408,10 +410,19 @@ def test_a_crop_map_starts_at_each_places_planting_as_at_the_point(client, archi
         assert planting["dates"] == [point["planting_date"]["date"]] * 2 and planting["cells_without"] == 0
 
 
-def test_without_typical_planting_dates_a_map_warns_and_takes_the_defaults(client, archive):
-    body = get(client, "late-blight-dsv", date="2025-07-08").json()  # no Veg Path potato place near Fayette County
-    assert any("no typical potato planting dates in this area" in w for w in body["meta"]["warnings"])
+def test_without_typical_planting_dates_a_map_has_no_data_as_a_point_refuses(client, archive):
+    """Potato's dates come from the 30-year normals, which this archive doesn't have: the map is empty (not the
+    model's default dates), with a warning, as a point asked for a typical date refuses (`no_estimate`)."""
+    body = get(client, "late-blight-dsv", date="2025-07-08").json()
     assert body["meta"]["request"]["planting"] == "mid"
+    assert all(v is None for v in body["data"]["late-blight-dsv"])
+    warning = next(w for w in body["meta"]["warnings"] if "no typical potato planting date" in w)
+    assert "so the map shows no data" in warning and "/api/v2/models/late-blight-dsv/run" in warning
+    assert body["meta"]["summary"]["planting"]["dates"] is None
+    plain = get(client, "late-blight-dsv", date="2025-07-08", planting="none").json()  # the spec's dates, as asked
+    assert any(v is not None for v in plain["data"]["late-blight-dsv"])
+    point = client.get("/api/v2/models/late-blight-dsv/run", {"lat": LAT, "lng": LNG, "planting_date": "mid"})
+    assert point.status_code == 422 and point.json()["errors"][0]["code"] == "no_estimate"
 
 
 def test_wheat_scab_map_is_not_gated_by_spring_wheat(client, archive):

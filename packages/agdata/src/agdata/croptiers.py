@@ -92,7 +92,7 @@ def update(
         # Each tier with planting dates here and days to write: (its planting map, the first day written)
         tiers: dict[str, tuple[np.ndarray, date]] = {}
         for tier in modelmaps.TIERS:
-            sown = planting.planting_map(crop, tier, window, season=year)
+            sown = planting.planting_map(crop, tier, window, season=year, data_dir=data_dir)
             if not np.isfinite(sown).any():
                 continue
             planted_from = date.fromordinal(int(np.nanmin(sown)))

@@ -301,7 +301,7 @@ crop = "The crop."
 early = "An early planting date, as `MM-DD`: when about 10% of the crop is usually planted (the start of the busiest planting period where only state dates are known)."
 typical = "The typical planting date, as `MM-DD`: when about half the crop is usually planted."
 late = "A late planting date, as `MM-DD`: when about 90% of the crop is usually planted (the end of the busiest planting period where only state dates are known)."
-level = "What the dates describe: `county`, `state`, or for potatoes `location`, the nearest place with published dates."
+level = "What the dates describe: `county`, `state`, or for potatoes `cell`, an estimate for the grid cell from its 30-year normal date of the last spring freeze."
 source = "Where the dates come from."
 
 # --- /layers -------------------------------------------------------------------------------------------------------

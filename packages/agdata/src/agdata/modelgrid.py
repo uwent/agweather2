@@ -252,9 +252,10 @@ class _Planting:
     crop: str  # `agdata.planting`'s name
     tier: str
     window: Window
+    data_dir: Path  # its normals give potato's dates (`agdata.potatoplanting`)
 
     def __call__(self, day: date) -> np.ndarray:
-        return planting.planting_map(self.crop, self.tier, self.window, season=day.year)
+        return planting.planting_map(self.crop, self.tier, self.window, season=day.year, data_dir=self.data_dir)
 
 
 def model_map(
@@ -273,14 +274,65 @@ def model_map(
     """A model's map with each place's own settings (D66): with a planting `tier` (early, mid, late; None for none),
     a crop model starts at each cell's typical planting date (soybean's and spring wheat's stored per tier,
     `agdata.croptiers`), a stage-anchored biofix is the day the crop reaches that stage from it (not started until
-    then), and a stage-gated disease gets `susceptibility` (D33) from the crop's stages. Cells without a typical
-    date take the spec's defaults, as a point given no planting date (a stored crop has no stages there).
+    then), and a stage-gated disease gets `susceptibility` (D33) from the crop's stages. A cell without a typical
+    date for the tier is missing, as a point without one refuses (`no_estimate`; Ben 2026-11-26): the spec's default
+    dates there were a guess the map didn't show as one.
 
     A season-stored model (`modelmaps.SEASON_MODELS`, `agdata.seasonmaps`) is read from its stored season where it's
     stored through the days asked for, else computed as `compute` asks (the job storing it). A model computed on
     request (`ON_REQUEST`) runs a block at a time (`agdata.blocks`) and the blocks are put together: it reads a
     season of days, and over a whole launch-size window that was tens of GB (D109). Its blocks are computed inside
     `on_request()` if given: the web app's limit on heavy computations (`api.heavy`), which can refuse."""
+    found = _model_map(data_dir, model_id, first, last, window, options, tier, now, stores, compute, on_request)
+    crop = tiered(model_id)
+    if tier is not None and crop is not None:
+        _unplanted_missing(
+            found, planting=_Planting(crop_id=crop[0], crop=crop[1], tier=tier, window=window, data_dir=data_dir)
+        )
+    return found
+
+
+def _unplanted_missing(found: ModelDays, planting: "_Planting") -> None:
+    """Makes `found` missing, in place, in the cells with no typical planting date for its tier in each day's season."""
+    by_season: dict[int, np.ndarray] = {}
+    days = []
+    for k, d in enumerate(found.dates):
+        if d.year not in by_season:
+            by_season[d.year] = np.isnan(planting(d))
+        if by_season[d.year].any():
+            days.append(k)
+    if not days:
+        return
+
+    def blank(v: np.ndarray) -> np.ndarray:
+        if v.ndim != 3:
+            return v
+        if not (np.issubdtype(v.dtype, np.floating) and v.flags.writeable):
+            v = v.astype(np.result_type(v.dtype, np.float32))
+        for k in days:
+            v[k][by_season[found.dates[k].year]] = np.nan
+        return v
+
+    found.outputs = {name: blank(v) for name, v in found.outputs.items()}
+    found.accumulated = {name: blank(v) for name, v in found.accumulated.items()}
+    found.risk = None if found.risk is None else blank(found.risk)
+    found.level = None if found.level is None else blank(found.level)
+    found.missing_days = None if found.missing_days is None else blank(found.missing_days)
+
+
+def _model_map(
+    data_dir: Path,
+    model_id: str,
+    first: date,
+    last: date,
+    window: Window,
+    options: Mapping[str, str] | None,
+    tier: str | None,
+    now,
+    stores: series.Stores | None,
+    compute: bool,
+    on_request: Callable[[], AbstractContextManager[object]] | None,
+) -> ModelDays:
     if (
         model_id in modelmaps.SEASON_MODELS
         and not compute
@@ -302,7 +354,11 @@ def model_map(
             return _merged(window, parts, found)
     spec = find_model(model_id).SPEC
     crop = tiered(model_id)
-    sown = None if tier is None or crop is None else _Planting(crop_id=crop[0], crop=crop[1], tier=tier, window=window)
+    sown = (
+        None
+        if tier is None or crop is None
+        else _Planting(crop_id=crop[0], crop=crop[1], tier=tier, window=window, data_dir=data_dir)
+    )
     if model_id in modelmaps.TIER_MODELS:
         if sown is not None:
             return _stored_days(data_dir, sown, first, last, now, stores)
@@ -625,8 +681,11 @@ def _stage_reached(data_dir, sown: _Planting, code: str, last: date, now):
             if stored is None:
                 seasons[day.year] = np.where(np.isnan(p), np.nan, np.inf)
             else:
-                # As `update` kept them: a day after the request's last counts as not reached yet
-                seasons[day.year] = np.where(stored[k] > last.toordinal(), np.inf, stored[k])
+                # As `update` kept them: a day after the request's last counts as not reached yet, and a cell
+                # planted now that the store kept none for (built before its planting date was known) as not
+                # reached, not the spec's default
+                kept = np.where(stored[k] > last.toordinal(), np.inf, stored[k])
+                seasons[day.year] = np.where(np.isnan(p), np.nan, np.where(np.isnan(kept), np.inf, kept))
         return seasons[day.year]
 
     return biofix

@@ -623,7 +623,7 @@ def locate(request: HttpRequest, where: Query[PointsQuery]) -> HttpResponse:
             corners.append([round(corner_lat, 5), round(corner_lng, 5)])
     planting = []
     for crop in CROPS:
-        found = typical_planting(crop, lat, lng)
+        found = typical_planting(crop, lat, lng, data_dir=settings.DATA_DIR)
         if found is not None:
             planting.append(
                 PlantingInfo(

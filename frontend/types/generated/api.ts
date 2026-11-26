@@ -984,7 +984,7 @@ export interface PlantingInfo {
    */
   late: string
   /**
-   * What the dates describe: `county`, `state`, or for potatoes `location`, the nearest place with published dates.
+   * What the dates describe: `county`, `state`, or for potatoes `cell`, an estimate for the grid cell from its 30-year normal date of the last spring freeze.
    */
   level: string
   /**

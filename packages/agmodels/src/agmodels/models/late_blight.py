@@ -36,7 +36,7 @@ SPEC = ModelSpec(
     id="late-blight-dsv",
     name="Late blight disease severity values",
     group="disease",
-    version="0.3",
+    version="0.4",
     status="beta",
     summary="Daily disease severity values (0–4) from hours of high humidity and their temperature, accumulated from potato emergence (or a date you enter, such as tomato transplanting or the last spray) to time fungicide sprays for late blight of potato and tomato.",
     topics=("late-blight",),
@@ -128,6 +128,11 @@ SPEC = ModelSpec(
             version="0.3",
             date="2026-11-06",
             note="Humid hours and their temperature from the day from 6 pm CST (was 8 pm local, the Crop Risk Tool's), and days on CST all year (D74).",
+        ),
+        Change(
+            version="0.4",
+            date="2026-11-26",
+            note="Maps at a planting tier start at emergence from each grid cell's estimated potato planting date (from its normal last spring freeze), where they took the nearest of UW Vegetable Pathology's seven places within 40 km and the default date beyond; a cell without an estimate is missing, as a location without one is refused.",
         ),
     ),
 )
