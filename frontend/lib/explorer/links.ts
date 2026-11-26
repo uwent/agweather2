@@ -10,6 +10,15 @@ export function sitePath(lat: number, lng: number, name?: string | null): string
   return name ? `${path}?${new URLSearchParams({ name })}` : path
 }
 
+/** A site's Climate tab (`/sites/43.07,-89.4?tab=climate`), with the map's period where it isn't the default 30 years */
+export function siteClimatePath(lat: number, lng: number, name?: string | null, period?: string | null): string {
+  const path = routes.site({ lat: String(roundCoord(lat)), lng: String(roundCoord(lng)) })
+  const query = new URLSearchParams({ tab: 'climate' })
+  if (period && period !== 'last30') query.set('cperiod', period)
+  if (name) query.set('name', name)
+  return `${path}?${query}`
+}
+
 /** A model's page (`/models/late-blight-dsv`) */
 export const modelPath = (id: string): string => routes.model({ model_id: id })
 

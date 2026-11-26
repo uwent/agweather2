@@ -142,4 +142,64 @@ describe('TimeControls', () => {
     controls('air_temperature_hourly', { span: 'hour' })
     expect(screen.getByTestId('forecast-boundary')).toHaveTextContent('Observed through Nov 25, 2 p.m. CST')
   })
+
+  it('takes a month and day for a map by day of the year, stepping round the year without a forecast', async () => {
+    const onchange = controls('freeze_chance', { date: '2026-12-31' })
+    expect(screen.getByLabelText('Month')).toHaveValue('12')
+    expect(screen.getByLabelText('Day')).toHaveValue('31')
+    const slider = screen.getByRole('slider', { name: 'Day of the year on the timeline' })
+    expect(slider).toHaveAttribute('aria-valuetext', 'Dec 31')
+    expect(screen.queryByTestId('forecast-boundary')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('forecast-segment')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('forecast-badge')).not.toBeInTheDocument()
+    await fireEvent.click(screen.getByRole('button', { name: 'Forward 1 day' }))
+    expect(onchange).toHaveBeenLastCalledWith({ date: '2026-01-01' })
+    await fireEvent.change(screen.getByLabelText('Month'), { target: { value: '2' } })
+    expect(onchange).toHaveBeenLastCalledWith({ date: '2026-02-28' })
+    await fireEvent.click(screen.getByRole('button', { name: 'Today' }))
+    expect(onchange).toHaveBeenLastCalledWith({ date: '2026-11-25' })
+  })
+
+  it('has no date for the freeze dates', () => {
+    controls('freeze_dates', {})
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument()
+    expect(screen.getByText(/has no date/)).toBeInTheDocument()
+  })
+
+  it('counts days on a range where the counts’ normals are kept, in place of a statistic', async () => {
+    const onchange = controls('air_temperature_max', { span: 'range', date: '2026-07-14' })
+    const count = screen.getByLabelText('Count days')
+    expect([...count.querySelectorAll('option')].map((o) => o.textContent)).toEqual([
+      'No: combine the days',
+      'Days at or above 86 °F',
+      'Days at or above 90 °F',
+      'Days at or above 93 °F (heat days)',
+      'Days at or below 32 °F (days that stay freezing)',
+    ])
+    await fireEvent.change(count, { target: { value: 'days_above_90' } })
+    expect(onchange).toHaveBeenLastCalledWith({ count: 'days_above_90' })
+  })
+
+  it('leaves out the statistic while counting days', () => {
+    const onchange = vi.fn()
+    render(TimeControls, {
+      view: view({ layer: 'air_temperature_max', span: 'range', date: '2026-07-14', count: 'days_above_90' }),
+      layer: layer('air_temperature_max'),
+      today: '2026-11-25',
+      onchange,
+    })
+    expect(screen.queryByLabelText('Combine by')).not.toBeInTheDocument()
+  })
+
+  it('offers only a total or average while compared with normal', () => {
+    render(TimeControls, {
+      view: view({ layer: 'precipitation_sum', span: 'range', date: '2026-07-14' }),
+      layer: layer('precipitation_sum'),
+      today: '2026-11-25',
+      climate: 'departure',
+      onchange: vi.fn(),
+    })
+    const stat = screen.getByLabelText('Combine by')
+    expect([...stat.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['Total', 'Average'])
+  })
 })

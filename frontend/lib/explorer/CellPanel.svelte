@@ -17,7 +17,7 @@
   import SiteGroups from '@/lib/sites/SiteGroups.svelte'
   import { coordinates, placeName } from '@/lib/sites/text'
 
-  import { modelPath, sitePath, siteModelPath } from './links'
+  import { modelPath, siteClimatePath, sitePath, siteModelPath } from './links'
 
   // The clicked cell in words (Phase 7 track 2 step 6): its value first, then where it is ("Dane County, WI ·
   // 43.07° N, 89.40° W"), and links on: the cell's chart below, the site's page, saving it as a site, and for a
@@ -34,6 +34,10 @@
     model = null,
     group = null,
     outsideTraining = false,
+    words = null,
+    climate = false,
+    period = null,
+    chartLabel = "See this cell's recent days and forecast",
     onclear,
   }: {
     /** The point chosen (a click, or a place found by search) */
@@ -53,6 +57,14 @@
     group?: string | null
     /** Whether the cell is outside the area the map's model was fitted to (D101) */
     outsideTraining?: boolean
+    /** A climate map's value in words ("2.3 °F above normal (1996–2025)."), or null */
+    words?: string | null
+    /** Whether to link the site's Climate tab (a weather, degree-day or climate map) */
+    climate?: boolean
+    /** The map's period, carried to the Climate tab (`last10`); null: the default 30 years */
+    period?: string | null
+    /** The link to what's below the map for the cell */
+    chartLabel?: string
     onclear: () => void
   } = $props()
 
@@ -105,6 +117,7 @@
     </button>
   </div>
   <p class="mt-1 text-lg font-semibold">{value ?? 'Loading…'}</p>
+  {#if words}<p class="text-sm" data-testid="cell-words">{words}</p>{/if}
   <p class="text-sm">{when ? `${title}, ${when}` : title}</p>
   {#if searched}<p class="text-sm">{searched}</p>{/if}
   {#if where}<p class="text-sm text-ink-muted">{where}</p>{/if}
@@ -120,8 +133,15 @@
     </p>
   {/if}
   <ul class="mt-2 space-y-1 text-sm">
-    <li><a href="#cell-chart" class={linkClass}>See this cell's recent days and forecast</a></li>
+    <li><a href="#cell-chart" class={linkClass}>{chartLabel}</a></li>
     <li><Link href={sitePath(lat, lng, saved ? null : name)} class={linkClass}>Open this site</Link></li>
+    {#if climate}
+      <li>
+        <Link href={siteClimatePath(lat, lng, saved ? null : name, period)} class={linkClass}>
+          Climate at this location
+        </Link>
+      </li>
+    {/if}
     {#if model}
       <li>
         <Link href={siteModelPath(lat, lng, model.id, saved ? null : name)} class={linkClass}>

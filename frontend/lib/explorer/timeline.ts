@@ -197,6 +197,29 @@ export function hourTimeline(layer: Ranged, hour: string | null): Timeline | nul
   return t
 }
 
+/** A no-year layer's timeline (the chance of a freeze on a day of the year): January to December of `day`'s year,
+ * every day can be chosen, none of them observed or forecast */
+export function noYearTimeline(day: string): Timeline {
+  const year = Number(day.slice(0, 4))
+  const start = `${year}-01-01`
+  const count = daysBetween(start, `${year + 1}-01-01`)
+  const t: Timeline = { unit: 'day', start, count, min: 0, max: count - 1, observed: count - 1, ticks: [] }
+  t.ticks = MONTHS.map((label, m) => ({
+    at: edgeOf(t, daysBetween(start, `${year}-${String(m + 1).padStart(2, '0')}-01`)),
+    label,
+    minor: m % 2 === 1,
+  }))
+  return t
+}
+
+/** A no-year day moved by `days`, wrapping around within its year (December 31 + 1 is January 1) */
+export function stepNoYear(day: string, days: number): string {
+  const year = day.slice(0, 4)
+  const count = daysBetween(`${year}-01-01`, `${Number(year) + 1}-01-01`)
+  const index = (((daysBetween(`${year}-01-01`, day) + days) % count) + count) % count
+  return addDays(`${year}-01-01`, index)
+}
+
 /** The years a daily layer has, newest first */
 export function yearsOf(layer: Ranged): number[] {
   const { first, last } = dayBounds(layer)

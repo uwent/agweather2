@@ -204,6 +204,22 @@ test('topic and methods pages in the other theme', async ({ page }) => {
   for (const path of CONTENT_PAGES) await scan(page, path, { reflow: false })
 })
 
+// Climate on the map (track 6 step 6.3): a map compared with normal at a cell, and a freeze map's controls
+const MAP_CLIMATE_PAGES = [
+  '/map?layer=precipitation_total&climate=percentile&at=43.07,-89.4',
+  '/map?layer=freeze_chance&date=2026-05-01&threshold=28',
+]
+
+test('climate on the map', async ({ page }) => {
+  for (const path of MAP_CLIMATE_PAGES) await scan(page, path)
+})
+
+test('climate on the map in the other theme', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: /Switch to (light|dark) mode/ }).click()
+  for (const path of MAP_CLIMATE_PAGES) await scan(page, path, { reflow: false })
+})
+
 // The tools: the index, the calendar, and the degree-day calculator before and after a place is chosen (its API
 // answers stubbed)
 const TOOL_PAGES = [

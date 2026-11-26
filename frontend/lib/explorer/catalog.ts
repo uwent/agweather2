@@ -34,22 +34,38 @@ export const WEATHER_GROUPS: { id: string; label: string; prefixes: string[] }[]
 
 export const OTHER_GROUP = { id: 'other', label: 'Other' }
 
-/** Where each layer of `/layers` goes in the picker: a weather group, the degree-day tab, the models, or (for
- * the climate and terrain layers, which wait for their increment) `later` */
+/** The maps of the past years' climate alone (Phase 7 track 6 step 6.3): the chance of a freeze on a day of the
+ * year and the freeze dates; listed with the daily weather, after its groups */
+export const CLIMATE_GROUP = { id: 'climate', label: 'Climate' }
+
+/** The land's maps (elevation), with no date */
+export const LAND_GROUP = { id: 'land', label: 'Land' }
+
+/** Where each layer of `/layers` goes in the picker: a weather group (the climate and land groups among them), the
+ * degree-day tab or the models */
 export function placeOf(layer: Pick<LayerInfo, 'id' | 'group' | 'time_axis'>): string {
   if (layer.group === 'model') return 'models'
   if (layer.group === 'degree_days') return 'degree_days'
   if (layer.group === 'running_total' && layer.id.startsWith('dd_')) return 'degree_days'
-  if (layer.group === 'climate' || layer.group === 'terrain' || layer.time_axis === 'none') return 'later'
+  if (layer.group === 'climate') return CLIMATE_GROUP.id
+  if (layer.group === 'terrain') return LAND_GROUP.id
   const group = WEATHER_GROUPS.find((g) => g.prefixes.some((prefix) => layer.id.startsWith(prefix)))
   return group?.id ?? OTHER_GROUP.id
 }
 
+/** The axis a layer is listed under: hourly layers under Hourly, the rest (a day of the year, no date) under Daily */
+export const axisOf = (layer: Pick<LayerInfo, 'time_axis'>): 'day' | 'hour' =>
+  layer.time_axis === 'hour' ? 'hour' : 'day'
+
 /** The weather layers of one time axis (daily or hourly), by group, each group in `/layers`' order */
 export function weatherGroups(layers: readonly LayerInfo[], axis: 'day' | 'hour'): WeatherGroup[] {
-  const groups = [...WEATHER_GROUPS, OTHER_GROUP].map((g) => ({ id: g.id, label: g.label, layers: [] as LayerInfo[] }))
+  const groups = [...WEATHER_GROUPS, OTHER_GROUP, CLIMATE_GROUP, LAND_GROUP].map((g) => ({
+    id: g.id,
+    label: g.label,
+    layers: [] as LayerInfo[],
+  }))
   for (const layer of layers) {
-    if (layer.time_axis !== axis) continue
+    if (axisOf(layer) !== axis) continue
     const place = placeOf(layer)
     groups.find((g) => g.id === place)?.layers.push(layer)
   }

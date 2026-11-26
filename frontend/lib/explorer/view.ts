@@ -8,6 +8,16 @@ import { groupCodec, type MapGroup } from '@/lib/sites/groupMap'
 import { codecs, field, type Fields, type LatLng } from '@/lib/viewState'
 import type { LayerInfo } from '@/types/api'
 
+import {
+  CLIMATE_KINDS,
+  type ClimateKind,
+  climateKinds,
+  countsFor,
+  FREEZE_MAP_F,
+  MAP_PERIODS,
+  type MapPeriod,
+} from './climate'
+
 export const SPANS = ['day', 'hour', 'range', 'season'] as const
 export type Span = (typeof SPANS)[number]
 
@@ -60,6 +70,14 @@ export type ExplorerView = {
   overlay: OverlayId | null
   /** A group of sites shown on the map (F12): their coordinates and names, so a shared link shows them to anyone */
   group: MapGroup | null
+  /** Compare with normal (D86): the normal, the departure from it, or the percentile among the period's years */
+  climate: ClimateKind | null
+  /** The years a climate or freeze map's normal comes from */
+  period: MapPeriod
+  /** A freeze map's threshold, °F: 32, 28 or 24 */
+  threshold: number | null
+  /** A range's count of days within bounds, as `count=` takes it in US units (`days_above_86`) */
+  count: string | null
 }
 
 const option = {
@@ -106,6 +124,19 @@ export const VIEW_FIELDS: Fields<ExplorerView> = {
   z: field(codecs.number({ digits: 2, min: 0, max: 22 }), null),
   overlay: field(codecs.oneOf(OVERLAY_ORDER), null),
   group: field(groupCodec, null),
+  climate: field(codecs.oneOf(CLIMATE_KINDS), null),
+  period: field(codecs.oneOf(MAP_PERIODS as readonly MapPeriod[]), 'last30'),
+  threshold: field(
+    {
+      parse: (t: string) => (FREEZE_MAP_F.some((f) => String(f) === t) ? Number(t) : undefined),
+      format: (t: number) => String(t),
+    },
+    null,
+  ),
+  count: field(
+    { parse: (t: string) => (/^days_(above|below)_[\dp]+$/.test(t) ? t : undefined), format: (t: string) => t },
+    null,
+  ),
 }
 
 /** The degree-day setting a first visit and the Degree days tab start from */
@@ -122,6 +153,8 @@ export function firstView(today: string): Partial<ExplorerView> {
 /** What a layer's time controls offer */
 export function spansFor(layer: Pick<LayerInfo, 'group' | 'time_axis' | 'stats'>): Span[] {
   if (layer.time_axis === 'hour') return ['hour']
+  // A day of the year (the chance of a freeze): one day, whatever the year
+  if (layer.time_axis === 'day_of_year') return ['day']
   if (layer.time_axis !== 'day') return []
   if (layer.group === 'running_total') return ['day']
   if (layer.group === 'degree_days') return ['day', 'range', 'season']
@@ -164,6 +197,41 @@ export function rangeStart(view: Pick<ExplorerView, 'start'>, end: string): stri
   return start > end ? end : start
 }
 
+/** What a tile request reads beyond the view and the layer, where the page has it */
+export type TileContext = {
+  /** The grid's today: a no-year map's day when the view has none (else the API's latest day) */
+  today?: string
+  /** The degree-day settings with kept normals (`storedDd`); left out, any setting is compared */
+  stored?: readonly string[]
+}
+
+/** The comparison a view's map shows: the view's, where the map can show it */
+export function climateOf(view: ExplorerView, layer: LayerInfo, context: TileContext = {}): ClimateKind | null {
+  if (!view.climate) return null
+  const span = spanFor(view, layer)
+  const kinds = climateKinds({
+    layer,
+    span,
+    dd: layer.group === 'degree_days' ? (view.dd ?? DEFAULT_DD) : null,
+    biofix: view.biofix,
+    count: countOf(view, layer),
+    period: view.period,
+    stored: context.stored,
+  })
+  return kinds.includes(view.climate) ? view.climate : null
+}
+
+/** The count of days a view's map shows: the view's, on a range of a layer whose count's normals are kept */
+export function countOf(view: Pick<ExplorerView, 'count' | 'span'>, layer: LayerInfo): string | null {
+  if (!view.count || spanFor(view, layer) !== 'range') return null
+  return countsFor(layer).includes(view.count) ? view.count : null
+}
+
+/** A no-year day (`freeze_chance`): the view's day, else today, else the API's latest */
+export function noYearDay(view: Pick<ExplorerView, 'date'>, today?: string): string | null {
+  return view.date ?? today ?? null
+}
+
 export type TileRequest = {
   layer: string
   /** `{time}`: a day, an hour, `start..end` with a stat, or `latest` */
@@ -174,10 +242,20 @@ export type TileRequest = {
 }
 
 /** The statistic a range of a layer takes: the view's if the layer has it, else a sum where values add, else a mean */
-export function statFor(view: Pick<ExplorerView, 'stat'>, layer: Pick<LayerInfo, 'stats' | 'group'>): Stat {
-  const stats = layer.group === 'degree_days' ? ['sum', 'mean', 'min', 'max'] : layer.stats
+export function statFor(
+  view: Pick<ExplorerView, 'stat'>,
+  layer: Pick<LayerInfo, 'stats' | 'group'>,
+  climate: ClimateKind | null = null,
+): Stat {
+  const stats = statsFor(layer, climate)
   if (view.stat && stats.includes(view.stat)) return view.stat
   return stats.includes('sum') ? 'sum' : 'mean'
+}
+
+/** The statistics a range of a layer can be combined by: a climate map's only by its sum or mean */
+export function statsFor(layer: Pick<LayerInfo, 'stats' | 'group'>, climate: ClimateKind | null = null): Stat[] {
+  const stats = (layer.group === 'degree_days' ? ['sum', 'mean', 'min', 'max'] : layer.stats) as Stat[]
+  return climate ? stats.filter((s) => s === 'sum' || s === 'mean') : stats
 }
 
 /** Whether a layer can be smoothed by a window of days (daily weather, degree days by the day) */
@@ -189,15 +267,34 @@ export const rollable = (layer: Pick<LayerInfo, 'group' | 'time_axis'>, span: Sp
  * Degree days and model options are always written in US units (`units=us`), so a reader's metric setting
  * changes only what's shown. `null` when the layer can't be shown on its own (no time to show yet).
  */
-export function tileRequest(view: ExplorerView, layer: LayerInfo): TileRequest | null {
+export function tileRequest(view: ExplorerView, layer: LayerInfo, context: TileContext = {}): TileRequest | null {
   const span = spanFor(view, layer)
   const params: TileRequest['params'] = { units: 'us' }
   let time = 'latest'
   let stat: Stat | null = null
 
+  if (layer.outputs?.length)
+    params.output = view.output && layer.outputs.some((o) => o.name === view.output) ? view.output : null
+
+  // The freeze maps: a day of the year (or none), a threshold and a period
+  if (layer.group === 'climate') {
+    params.threshold = view.threshold !== null && view.threshold !== 32 ? view.threshold : null
+    params.period = view.period !== 'last30' ? view.period : null
+    if (layer.time_axis === 'day_of_year') time = noYearDay(view, context.today) ?? 'latest'
+    return { layer: layer.id, time, stat, params }
+  }
+  // Elevation: no date
+  if (layer.time_axis === 'none') return { layer: layer.id, time, stat, params }
+
+  const climate = climateOf(view, layer, context)
+  if (climate) {
+    params.climate = climate
+    params.period = view.period !== 'last30' ? view.period : null
+  }
+  const count = countOf(view, layer)
+
   if (layer.group === 'degree_days') params.dd = view.dd ?? DEFAULT_DD
   if (layer.group === 'model') {
-    params.output = view.output && layer.outputs?.some((o) => o.name === view.output) ? view.output : null
     if (layer.planting?.length && view.planting && layer.planting.includes(view.planting))
       params.planting = view.planting
     for (const pair of view.opts) {
@@ -220,12 +317,14 @@ export function tileRequest(view: ExplorerView, layer: LayerInfo): TileRequest |
     if (!end) return null
     const start = span === 'season' ? seasonStart(view, layer, end) : rangeStart(view, end)
     time = `${start}..${end}`
-    stat =
-      span === 'season'
-        ? layer.stats.includes('sum') || layer.group === 'degree_days'
-          ? 'sum'
-          : 'mean'
-        : statFor(view, layer)
+    if (count) params.count = count
+    else
+      stat =
+        span === 'season'
+          ? layer.stats.includes('sum') || layer.group === 'degree_days'
+            ? 'sum'
+            : 'mean'
+          : statFor(view, layer, climate)
   }
   return { layer: layer.id, time, stat, params }
 }

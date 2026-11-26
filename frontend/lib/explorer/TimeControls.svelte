@@ -1,10 +1,12 @@
 <script lang="ts">
   import SegmentedChoice from '@/lib/components/SegmentedChoice.svelte'
-  import { addDays } from '@/lib/dates'
+  import { addDays, daysBetween } from '@/lib/dates'
+  import { currentUnits } from '@/lib/units'
   import type { LayerInfo } from '@/types/api'
 
+  import { type ClimateKind, countLabel, countsFor, monthDayText } from './climate'
   import DateSlider from './DateSlider.svelte'
-  import { dayTimeline, hourTimeline, inYear, isRecent, recentTimeline, yearsOf } from './timeline'
+  import { dayTimeline, hourTimeline, inYear, isRecent, noYearTimeline, recentTimeline, yearsOf } from './timeline'
   import TimeStepper from './TimeStepper.svelte'
   import {
     dayBounds,
@@ -17,6 +19,7 @@
     spansFor,
     type Stat,
     statFor,
+    statsFor,
     stepTo,
   } from './view'
   import { availableWords, formatDay, formatHour, observedLabel } from './words'
@@ -25,18 +28,27 @@
   // a day, a range of days combined by a statistic, the season to date, or an hour of an hourly layer. The date as
   // typed, the year, a slider over the year's days (an hourly layer's week of hours) with the forecast's part
   // hatched and its boundary labelled, the stepper, and in words what the layer reaches: the archive's first day to
-  // the forecast's last.
+  // the forecast's last. A layer by day of the year (the chance of a freeze, track 6 step 6.3) takes a month and day
+  // with a slider over a year and no forecast; a range of a layer whose counts' normals are kept can count days.
   let {
     view,
     layer,
     today,
+    climate = null,
     onchange,
   }: {
     view: ExplorerView
     layer: LayerInfo
     today: string
+    /** The comparison with normal the map shows, which combines a range only by its total or mean */
+    climate?: ClimateKind | null
     onchange: (changes: Partial<ExplorerView>) => void
   } = $props()
+
+  const units = $derived(currentUnits())
+  const noYear = $derived(layer.time_axis === 'day_of_year')
+  const counts = $derived(countsFor(layer))
+  const count = $derived(view.count && counts.includes(view.count) ? view.count : '')
 
   const spans = $derived(spansFor(layer))
   const span = $derived(spanFor(view, layer))
@@ -54,8 +66,37 @@
     season: 'Season to date',
   }
   const STAT_LABELS: Record<Stat, string> = { sum: 'Total', mean: 'Average', min: 'Lowest', max: 'Highest' }
-  const stats = $derived((layer.group === 'degree_days' ? ['sum', 'mean', 'min', 'max'] : layer.stats) as Stat[])
+  const stats = $derived(statsFor(layer, climate))
   const QUICK = [7, 14, 30]
+
+  // A day of the year as a month and day, kept as a date in the view's year (the year is ignored)
+  const MONTH_NAMES = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ]
+  const yearDay = $derived(view.date ?? today)
+  const daysInMonth = $derived.by(() => {
+    const [y, m] = [Number(yearDay.slice(0, 4)), Number(yearDay.slice(5, 7))]
+    const next = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`
+    return daysBetween(`${yearDay.slice(0, 7)}-01`, next)
+  })
+  function setMonthDay(month: number, dayOfMonth: number) {
+    const y = Number(yearDay.slice(0, 4))
+    const next = month === 12 ? `${y + 1}-01-01` : `${y}-${String(month + 1).padStart(2, '0')}-01`
+    const last = daysBetween(`${y}-${String(month).padStart(2, '0')}-01`, next)
+    const d = Math.min(dayOfMonth, last)
+    onchange({ date: `${y}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}` })
+  }
 
   // An hour typed as a CST date and clock hour, kept in UTC
   const cstDate = $derived(hour ? new Date(Date.parse(`${hour}:00:00Z`) - 6 * 3600_000).toISOString() : '')
@@ -137,7 +178,44 @@
     />
   {/if}
 
-  {#if span === 'hour'}
+  {#if noYear}
+    <div class="flex flex-wrap items-end gap-2 text-sm">
+      <div class="space-y-1">
+        <label for="time-month" class="block font-medium">Month</label>
+        <select
+          id="time-month"
+          class="rounded-md sm:text-sm"
+          value={Number(yearDay.slice(5, 7))}
+          onchange={(event) => setMonthDay(Number(event.currentTarget.value), Number(yearDay.slice(8, 10)))}
+        >
+          {#each MONTH_NAMES as name, m (name)}<option value={m + 1}>{name}</option>{/each}
+        </select>
+      </div>
+      <div class="space-y-1">
+        <label for="time-month-day" class="block font-medium">Day</label>
+        <select
+          id="time-month-day"
+          class="rounded-md sm:text-sm"
+          value={Number(yearDay.slice(8, 10))}
+          onchange={(event) => setMonthDay(Number(yearDay.slice(5, 7)), Number(event.currentTarget.value))}
+        >
+          {#each Array.from({ length: daysInMonth }, (_, i) => i + 1) as d (d)}<option value={d}>{d}</option>{/each}
+        </select>
+      </div>
+    </div>
+    <DateSlider
+      timeline={noYearTimeline(yearDay)}
+      value={yearDay}
+      label="Day of the year on the timeline"
+      observed={null}
+      describe={monthDayText}
+      onchange={(next) => onchange({ date: next })}
+    />
+    <TimeStepper {layer} when={yearDay} {today} onstep={(next) => onchange({ date: next })} />
+    <p class="text-xs text-ink-muted">
+      This map comes from the past years’ records, so it is the same in any year. Choose a day of the year.
+    </p>
+  {:else if span === 'hour'}
     <div class="flex flex-wrap items-end gap-2 text-sm">
       <div class="space-y-1">
         <label for="time-hour-date" class="block font-medium">Date</label>
@@ -196,13 +274,27 @@
         />
       </div>
       {@render year()}
-      {#if stats.length}
+      {#if counts.length}
+        <div class="space-y-1">
+          <label for="time-count" class="block font-medium">Count days</label>
+          <select
+            id="time-count"
+            class="rounded-md sm:text-sm"
+            value={count}
+            onchange={(event) => onchange({ count: event.currentTarget.value || null })}
+          >
+            <option value="">No: combine the days</option>
+            {#each counts as c (c)}<option value={c}>{countLabel(layer.id, c, units)}</option>{/each}
+          </select>
+        </div>
+      {/if}
+      {#if stats.length && !count}
         <div class="space-y-1">
           <label for="time-stat" class="block font-medium">Combine by</label>
           <select
             id="time-stat"
             class="rounded-md sm:text-sm"
-            value={statFor(view, layer)}
+            value={statFor(view, layer, climate)}
             onchange={(event) => onchange({ stat: event.currentTarget.value as Stat })}
           >
             {#each stats as stat (stat)}<option value={stat}>{STAT_LABELS[stat]}</option>{/each}
@@ -248,7 +340,11 @@
     {@render slider(dayLine, day, span === 'season' ? 'Last day on the timeline' : 'Day on the timeline', toDay)}
     <TimeStepper {layer} when={day} {today} onstep={toDay} />
   {:else}
-    <p class="text-sm text-ink-muted">This map has no date.</p>
+    <p class="text-sm text-ink-muted">
+      {layer.group === 'climate'
+        ? 'This map comes from the past years’ records, so it has no date.'
+        : 'This map has no date.'}
+    </p>
   {/if}
 
   {#if span && available}<p class="text-xs text-ink-muted" data-testid="date-reach">{available}</p>{/if}

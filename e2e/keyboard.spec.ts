@@ -7,7 +7,7 @@ import { expect, test } from './test'
 
 const MAP = '/map?layer=air_temperature_min&date=2026-11-20'
 
-test('the controls run in order: find a map, kind of map, daily or hourly, the measure, the time', async ({
+test('the controls run in order: find a map, kind of map, daily or hourly, the measure, the comparison, the time', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'a phone holds the controls in a sheet (the next test)')
@@ -21,6 +21,9 @@ test('the controls run in order: find a map, kind of map, daily or hourly, the m
   await expect(page.getByRole('radio', { name: 'Daily' })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(page.getByRole('combobox', { name: 'Weather' })).toBeFocused()
+  // Compare with normal, under the map's settings (track 6 step 6.3)
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('radio', { name: 'Off' })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(page.getByRole('radio', { name: 'Day', exact: true })).toBeFocused()
   await page.keyboard.press('Tab')

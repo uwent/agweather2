@@ -194,6 +194,44 @@ test('the map explorer shows a layer and a clicked cell', async ({ page }) => {
   await expect(page.getByRole('table', { name: /by county in Wisconsin/ })).toContainText('Dane County')
 })
 
+// Climate on the map (track 6 step 6.3): a comparison with normal and its period reach the tiles, the cell's
+// Climate tab link carries the period; a freeze map takes a day of the year and a threshold
+test('the map explorer compares a map with normal and maps the chance of a freeze', async ({ page }, testInfo) => {
+  const asked: string[] = []
+  page.on('request', (request) => {
+    if (request.url().includes('/api/v2/tiles/')) asked.push(request.url())
+  })
+  // On a phone the controls are in a sheet
+  const sheet = page.getByRole('button', { name: /Layer and date/ })
+  const phone = testInfo.project.name === 'phone'
+  const openControls = async () => {
+    if (phone) await sheet.click()
+  }
+  const closeControls = async () => {
+    if (phone) await page.getByRole('button', { name: 'Show the map' }).click()
+  }
+  await page.goto('/map?layer=air_temperature_min&date=2026-11-20&climate=departure&period=last10&at=43.07,-89.4')
+  await expect(page.getByRole('link', { name: 'Climate at this location' })).toHaveAttribute(
+    'href',
+    /\/sites\/43\.07,-89\.4\?tab=climate&cperiod=last10/,
+  )
+  await openControls()
+  await expect(page.getByRole('radio', { name: 'Departure' })).toBeChecked()
+  await expect(page.getByRole('radio', { name: /^10 years/ })).toBeChecked()
+  await expect.poll(() => asked.some((url) => /climate=departure/.test(url) && /period=last10/.test(url))).toBe(true)
+
+  await page.goto('/map?layer=freeze_chance&date=2026-05-01&threshold=28')
+  await openControls()
+  await expect(page.getByRole('radio', { name: 'Hard freeze (28 °F)' })).toBeChecked()
+  await expect(page.getByLabel('Month')).toHaveValue('5')
+  await closeControls()
+  await page.getByRole('button', { name: 'Back 1 day' }).first().click()
+  await expect(page.getByText('Apr 30', { exact: true }).first()).toBeVisible()
+  await expect
+    .poll(() => asked.some((url) => url.includes('/tiles/freeze_chance') && url.includes('2026-04-30')))
+    .toBe(true)
+})
+
 test('the map explorer saves the map as a PNG', async ({ page }) => {
   await page.goto('/')
   await page.evaluate((doc) => localStorage.setItem('agweather.sites', JSON.stringify(doc)), SAVED)

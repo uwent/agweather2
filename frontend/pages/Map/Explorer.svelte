@@ -20,6 +20,10 @@
   import { stateCode } from '@/lib/explorer/counties'
   import CountyTable from '@/lib/explorer/CountyTable.svelte'
   import { buildCellChart, cellSummary, cellTable, shownValues } from '@/lib/explorer/cellChart'
+  import { climateValueWords, monthDayText, storedDd } from '@/lib/explorer/climate'
+  import ClimateSettings from '@/lib/explorer/ClimateSettings.svelte'
+  import FreezeOdds from '@/lib/climate/FreezeOdds.svelte'
+  import { parsePeriod } from '@/lib/climate/periods'
   import { type CellSeries, readSeries, seriesRequest } from '@/lib/explorer/cellSeries'
   import { type Bounds, downloadLinks } from '@/lib/explorer/downloads'
   import LayerPicker from '@/lib/explorer/LayerPicker.svelte'
@@ -57,6 +61,10 @@
   import type { LayerInfo, LayersResponse, PaletteInfo } from '@/types/api'
 
   const units = $derived(currentUnits())
+  // What a climate or count map's title adds to the days' own (the API's `name`)
+  const MAP_MADE_OF =
+    /, (departure from the \d+-year normal|\d+-year normal|percentile among the \d+-year period's years)$/
+  const COUNTED = /, days at or (above|below) .+$/
 
   // The API's description of its degree-day layer is written for developers
   const DEGREE_DAYS_ABOUT =
@@ -119,7 +127,9 @@
   })
 
   const layer = $derived(layers.find((l) => l.id === $view.layer))
-  const request = $derived(layer ? tileRequest($view, layer) : null)
+  // The degree-day settings whose normals are kept, so "Compare with normal" asks only for maps that exist
+  const stored = $derived(storedDd(layers))
+  const request = $derived(layer ? tileRequest($view, layer, { today, stored }) : null)
   const hourly = $derived(layer?.time_axis === 'hour')
 
   // The tiles follow the view 300 ms after it settles, so stepping through days asks only for the last
@@ -190,7 +200,15 @@
   let info = $state<DataInfo | null>(null)
 
   const title = $derived(info?.title ?? shownLayer?.title ?? layer?.title ?? 'Map')
-  const when = $derived(shown && shownLayer ? timeWords(shown.time, shown.stat, latestOf(shownLayer), hourly) : '')
+  const when = $derived(
+    shown && shownLayer
+      ? shownLayer.time_axis === 'day_of_year' && shown.time !== 'latest'
+        ? monthDayText(shown.time)
+        : shownLayer.time_axis === 'none'
+          ? ''
+          : timeWords(shown.time, shown.stat, latestOf(shownLayer), hourly)
+      : '',
+  )
   const through = $derived(layer ? dataThrough(layer) : null)
   const shownForecast = $derived(shown && shownLayer ? timeIsForecast(shown.time, shownLayer) : false)
   // What the map shows beyond its name, in the API's words (its `subtitle`); the date in words only until it comes
@@ -269,7 +287,10 @@
       title,
       subtitle: `${subtitle || when}${shownForecast ? ' · Forecast' : ''}`,
       through: through ? `${through}.` : '',
-      fileName: imageFileName(shown.layer, date),
+      fileName: imageFileName(
+        [shown.layer, shown.params.climate, shown.params.count, shown.params.output].filter(Boolean).join('-'),
+        shownLayer?.time_axis === 'day_of_year' ? date.slice(5, 10) : shownLayer?.time_axis === 'none' ? '' : date,
+      ),
       labels: labels
         ? sites.map((site) => ({ id: site.key, text: siteLabel(site), lat: site.lat, lng: site.lng }))
         : [],
@@ -310,10 +331,10 @@
   function prefetchNext() {
     prefetching?.abort()
     const m = map
-    if (!m || !layer || hourly || spanFor($view, layer) !== 'day' || !$view.date) return
+    if (!m || !layer || layer.time_axis !== 'day' || spanFor($view, layer) !== 'day' || !$view.date) return
     const next = stepDay($view.date, 1, layer)
     if (next === $view.date) return
-    const request = tileRequest({ ...$view, date: next }, layer)
+    const request = tileRequest({ ...$view, date: next }, layer, { today, stored })
     if (!request) return
     prefetching = new AbortController()
     const b = m.getBounds()
@@ -493,6 +514,24 @@
     )
   }
 
+  // A climate map's value at the cell in words, from the tiles' own request and the years the API names
+  const cellWords = $derived.by(() => {
+    if (!shown || !shownLayer || !picked || picked.value === null || picked.value === 'none') return null
+    const years = typeof info?.request?.years === 'string' ? info.request.years : null
+    return climateValueWords({
+      layer: shownLayer,
+      time: typeof info?.request?.date === 'string' && shown.time === 'latest' ? info.request.date : shown.time,
+      params: shown.params,
+      value: picked.value,
+      unit: picked.unit,
+      units,
+      years,
+    })
+  })
+  // Weather, degree-day and climate maps link the cell's Climate tab, with the map's period
+  const climateLink = $derived(!!shownLayer && shownLayer.group !== 'model' && shownLayer.group !== 'terrain')
+  const freezeMap = $derived(shownLayer?.group === 'climate')
+
   // The cell's days: the same settings as the map's tiles
   let series = $state<CellSeries | null>(null)
   let seriesError = $state<string | null>(null)
@@ -538,10 +577,13 @@
     return Array.from(names, (name, i) => name ?? `Level ${i}`)
   }
   const chart = $derived.by(() => {
+    // The series is the days themselves: its title drops what the map makes of them (a count, a comparison)
+    const seriesTitle = (text: string) => text.replace(MAP_MADE_OF, '').replace(COUNTED, '')
     if (!series || !seriesFor) return null
     const { values, unit } = shownValues(series, storedUnit, units)
     const digits = storedUnit ? units.digits(storedUnit) : 1
-    const name = seriesFor.daily ? `${title}, each day` : title
+    const base = seriesTitle(title)
+    const name = seriesFor.daily ? `${base}, each day` : base
     const marked = shown?.time === 'latest' ? null : (shown?.time.split('..').at(-1) ?? null)
     return {
       name,
@@ -606,6 +648,10 @@
       model={mapModel}
       {outsideTraining}
       group={$view.group?.name ?? null}
+      words={cellWords}
+      climate={climateLink}
+      period={typeof shown?.params.period === 'string' ? shown.params.period : null}
+      chartLabel={freezeMap ? "See this cell's freeze dates" : undefined}
       onclear={() => change({ at: null })}
     />
   {/if}
@@ -614,11 +660,22 @@
 {#snippet settings()}
   {#if layers.length}
     <LayerPicker view={$view} {layers} {models} {crops} {presets} onchange={change} />
-    {#if layer?.group === 'model'}
+    {#if layer && (layer.group === 'model' || layer.outputs?.length)}
       <LayerSettings view={$view} {layer} {options} onchange={change} />
     {/if}
     {#if layer}
-      <TimeControls view={$view} {layer} {today} onchange={change} />
+      <ClimateSettings view={$view} {layer} {layers} {today} onchange={change} />
+      <TimeControls
+        view={$view}
+        {layer}
+        {today}
+        climate={request?.params.climate === 'normal' ||
+        request?.params.climate === 'departure' ||
+        request?.params.climate === 'percentile'
+          ? request.params.climate
+          : null}
+        onchange={change}
+      />
       <MapOptions view={$view} {layer} {info} {palettes} onchange={change} />
       {#if downloads}<MapDownloads links={downloads} />{/if}
     {/if}
@@ -744,13 +801,25 @@
 </div>
 
 <div class="mx-auto w-full max-w-6xl space-y-8 px-4 py-8">
-  {#if $view.at}
+  {#if $view.at && freezeMap}
+    <section id="cell-chart" class="space-y-2" aria-labelledby="cell-chart-heading">
+      <h2 id="cell-chart-heading" class="text-lg font-semibold">This cell's freeze dates</h2>
+      <FreezeOdds
+        lat={$view.at.lat}
+        lng={$view.at.lng}
+        {today}
+        period={parsePeriod(typeof shown?.params.period === 'string' ? shown.params.period : null)}
+      />
+    </section>
+  {:else if $view.at}
     <section id="cell-chart" class="space-y-2" aria-labelledby="cell-chart-heading">
       <h2 id="cell-chart-heading" class="text-lg font-semibold">This cell's recent days</h2>
       {#if chart}
         <ChartCard
           title={chart.name}
-          info="The days before the map's date at the cell you chose, and the forecast where it reaches past today. The shaded days are a forecast."
+          info={shown?.params.climate || shown?.params.count
+            ? 'The days at the cell you chose as they were measured (and forecast, shaded), which the map compares with normal or counts. Climate at this location, linked above, has the cell’s normals.'
+            : "The days before the map's date at the cell you chose, and the forecast where it reaches past today. The shaded days are a forecast."}
           build={chart.build}
           height="18rem"
           summary={chart.summary}

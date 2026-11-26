@@ -60,4 +60,18 @@ describe('LayerPicker', () => {
     expect(screen.getByRole('radio', { name: 'Degree days' })).toBeChecked()
     expect(screen.queryByRole('combobox', { name: 'Weather' })).not.toBeInTheDocument()
   })
+
+  it('lists the freeze maps in a Climate group of the daily weather', async () => {
+    const onchange = picker({ layer: 'freeze_chance' })
+    expect(screen.getByRole('radio', { name: 'Weather' })).toBeChecked()
+    const select = screen.getByRole('combobox', { name: 'Weather' })
+    expect(select).toHaveValue('freeze_chance')
+    const climate = select.querySelector('optgroup[label="Climate"]')!
+    expect([...climate.querySelectorAll('option')].map((o) => o.textContent)).toEqual([
+      'Chance of a freeze',
+      'Freeze dates and season length',
+    ])
+    await fireEvent.change(select, { target: { value: 'freeze_dates' } })
+    expect(onchange).toHaveBeenCalledWith({ layer: 'freeze_dates', output: null })
+  })
 })

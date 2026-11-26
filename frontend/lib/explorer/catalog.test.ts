@@ -8,12 +8,14 @@ import type { LayerInfo } from '@/types/api'
 import {
   cropModels,
   cropOf,
+  CLIMATE_GROUP,
   cropsWithModels,
   type CropSummary,
   ddLabel,
   ddParts,
   ddSetting,
   filterLayers,
+  LAND_GROUP,
   OTHER_GROUP,
   orderedOutputs,
   placeOf,
@@ -27,7 +29,11 @@ const CROPS = crops.data as CropSummary[]
 
 describe('the layer catalog', () => {
   it('puts every layer of /layers somewhere', () => {
-    const places = new Set([...WEATHER_GROUPS.map((g) => g.id), 'models', 'degree_days', 'later'])
+    const places = new Set([
+      ...[...WEATHER_GROUPS, OTHER_GROUP, CLIMATE_GROUP, LAND_GROUP].map((g) => g.id),
+      'models',
+      'degree_days',
+    ])
     for (const layer of LAYERS) expect(places, layer.id).toContain(placeOf(layer))
   })
 
@@ -36,8 +42,17 @@ describe('the layer catalog', () => {
     expect(others).toEqual([])
     const added = { ...LAYERS[0], id: 'leaf_wetness_hours', title: 'Leaf wetness' }
     const groups = weatherGroups([...LAYERS, added], 'day')
-    expect(groups.at(-1)?.label).toBe('Other')
-    expect(groups.at(-1)?.layers.map((l) => l.id)).toEqual(['leaf_wetness_hours'])
+    expect(groups.find((g) => g.label === 'Other')?.layers.map((l) => l.id)).toEqual(['leaf_wetness_hours'])
+  })
+
+  it('lists the freeze maps in a Climate group and elevation under Land, after the daily weather', () => {
+    const groups = weatherGroups(LAYERS, 'day')
+    expect(groups.slice(-2).map((g) => [g.label, g.layers.map((l) => l.id)])).toEqual([
+      ['Climate', ['freeze_chance', 'freeze_dates']],
+      ['Land', ['elevation']],
+    ])
+    expect(weatherGroups(LAYERS, 'hour').some((g) => g.id === 'climate')).toBe(false)
+    expect(tabOf(LAYERS.find((l) => l.id === 'freeze_dates')!)).toBe('weather')
   })
 
   it('lists every daily and hourly weather layer once, and no degree-day total', () => {
