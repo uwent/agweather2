@@ -17,8 +17,10 @@ from web.inertia import render
 from web.legacy import legacy_target
 from web.middleware import grid_today
 from web.props import (
+    AlfalfaToolProps,
     CalendarProps,
     ClimateProps,
+    CropGddToolProps,
     DataPageProps,
     DegreeDaysToolProps,
     FreezeToolProps,
@@ -26,6 +28,7 @@ from web.props import (
     HomeProps,
     MapExplorerProps,
     OakWiltToolProps,
+    PotatoVolunteerToolProps,
     SiteCrop,
     SiteModel,
     SiteModelFeedProps,
@@ -208,6 +211,18 @@ def oak_wilt_tool(request: HttpRequest):
 
 def freeze_tool(request: HttpRequest):
     return render(request, "Tools/Freeze", FreezeToolProps())
+
+
+def crop_gdd_tool(request: HttpRequest):
+    return render(request, "Tools/CropGdd", CropGddToolProps())
+
+
+def alfalfa_tool(request: HttpRequest):
+    return render(request, "Tools/Alfalfa", AlfalfaToolProps())
+
+
+def potato_volunteer_tool(request: HttpRequest):
+    return render(request, "Tools/PotatoVolunteer", PotatoVolunteerToolProps())
 
 
 def calendar(request: HttpRequest):
