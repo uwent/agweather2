@@ -10,6 +10,13 @@ one `daily/grid.nc` beside the years (D71): with 2-D `lat` and `lon` in each fil
 terra on Windows opened a file given by an absolute path (`D:/…`, the drive's colon in the subdataset name) with
 the HDF5 driver, so without its CRS or its scale (Ben, 2026-11-05).
 
+What's offered is the explicit list `OFFERED` (track 7, 2026-11-26): the daily weather layers, soil moisture
+(D110), the day and night precipitation, the hours wet, the degree hours over 65 °F and the daily water balance
+(computed from precipitation and ET0 as it's built, `agdata.computed`). Every other daily variable is a model's
+working input or an estimate's working copy, listed in `NOT_OFFERED` with why; a test fails on a daily variable in
+neither. A file whose variable is no longer offered (dropped, or renamed out of the catalog) is deleted with its
+index entry (`prune`) before each build.
+
 `index.json` beside them lists each file with the store's write stamp it was built from (`GridStore.written`). A file
 is rebuilt when its store has been written since, the current year's at most weekly (`CURRENT_EVERY`), and any built
 in another layout (`FORMAT`), by `manage.py downloads` and the weekly `build_downloads` job. Reads only the daily
@@ -27,9 +34,9 @@ import h5netcdf
 import numpy as np
 
 from agdata import coverage
-from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, FILL
+from agdata.catalog import DAILY_STATISTICS, DAILY_VARIABLES, FILL, Variable
+from agdata.computed import DAILY_COMPUTED, Computed
 from agdata.grid import NDFD, Window
-from agdata.layers import NOT_LAYERS
 from agdata.pastyears import years_on_disk
 from agdata.store import DAILY, GridStore
 from agdata.timezones import window_timezones
@@ -38,13 +45,94 @@ from api.gridfiles import axis_attrs, cell_degrees, cf_lambert
 
 FOLDER = "downloads"
 # The files' layout; a file built in another is rebuilt. 1: int16 with lat/lon; 2: float32 with lat/lon; 3: int16,
-# one variable, lat/lon in grid.nc (D71)
-FORMAT = 3
+# one variable, lat/lon in grid.nc (D71); 4: the comment no longer calls the days local (they're CST, D74)
+FORMAT = 4
 GRID_FILE = "daily/grid.nc"
 CURRENT_EVERY = timedelta(days=7)  # the current year's files: rebuilt at most this often
 BLOCK_DAYS = 31  # days read and written at a time
 CF_STATS = {"min": "minimum", "max": "maximum", "mean": "mean", "sum": "sum"}
 EPOCH = date(1970, 1, 1)
+
+
+# The yearly files offered, in the order `/data` lists them. Daily stored variables, and computed ones
+# (`agdata.computed.DAILY_COMPUTED`), which `build` computes from their inputs.
+OFFERED: tuple[str, ...] = (
+    "air_temperature_min",
+    "air_temperature_max",
+    "air_temperature_mean",
+    "air_temperature_min_overnight",
+    "dew_point_min",
+    "dew_point_max",
+    "dew_point_mean",
+    "dew_point_depression_min",
+    "dew_point_depression_mean",
+    "dew_point_depression_max",
+    "relative_humidity_min",
+    "relative_humidity_max",
+    "relative_humidity_mean",
+    "wind_speed_mean",
+    "wind_speed_max",
+    "wind_gust_max",
+    "surface_pressure_mean",
+    "cloud_cover_mean",
+    "precipitation_sum",
+    "precipitation_7am_to_7pm",
+    "precipitation_8pm_to_6am",
+    "shortwave_radiation_sum",
+    "et0_sum",
+    "water_balance",
+    "soil_temperature_4cm_min",
+    "soil_temperature_4cm_max",
+    "soil_temperature_4cm_mean",
+    "soil_temperature_10cm_min",
+    "soil_temperature_10cm_max",
+    "soil_temperature_10cm_mean",
+    "soil_temperature_30cm_min",
+    "soil_temperature_30cm_max",
+    "soil_temperature_30cm_mean",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "snow_depth_max",
+    "snow_depth_mean",
+    "hours_temperature_over_20c",
+    "hours_temperature_over_30c",
+    "hours_rh_under_70",
+    "hours_rh_over_80",
+    "hours_rh_over_90",
+    "hours_rh_over_90_temperature_over_70f",
+    "hours_rh_over_80_from_6pm",
+    "hours_rh_over_90_from_6pm",
+    "hours_rh_over_80_night",
+    "hours_rh_over_90_night",
+    "hours_rh_over_90_7pm_to_6am",
+    "temperature_mean_rh_over_80_from_6pm",
+    "temperature_mean_rh_over_90_from_6pm",
+    "hours_wet",
+    "hours_soil_4cm_below_27f",
+    "hours_soil_10cm_below_27f",
+    "hours_soil_8in_below_27f",
+    "degree_hours_over_65f",
+    "chill_hours",
+    "utah_chill_units",
+    "thi_min",
+    "thi_mean",
+    "thi_max",
+    "hours_thi_over_68",
+    "hours_thi_over_72",
+    "cci_max",
+)
+
+# The daily variables not offered, and why
+NOT_OFFERED: dict[str, str] = {
+    "et0_sum_estimate": "a gap fill's working copy of ET0: et0_sum holds the values",
+    "scab_infection": "apple scab's working input (D96): its map shows the result",
+    "scab_wet_hours": "apple scab's working input (D96)",
+    "scab_wet_temperature": "apple scab's working input (D96)",
+    "scab_period_truncated": "apple scab's working flag (D96)",
+    "temperature_mean_rain_7am_to_7pm": "a disease model's working input, meaningful only beside its rain",
+    "cougarblight_risk_values": "fire blight's working input: its map shows the result",
+}
 
 
 class Stopped(Exception):
@@ -91,13 +179,14 @@ def wanted(data_dir: Path, now: datetime, variables: list[str] | None = None) ->
     """(variable, year, why) for each file to build: missing, or built from an older write of its store; the current
     year's only if it's also older than CURRENT_EVERY."""
     known = {(e.variable, e.year): e for e in read_index(data_dir)}
-    names = variables or [n for n in DAILY_VARIABLES if n not in NOT_LAYERS]  # models' inputs aren't downloads
+    names = variables or list(OFFERED)
+    stored = sorted({n for name in names for n in _inputs(name)})
     found = []
     for year in years_on_disk(data_dir, DAILY):
-        store = GridStore.open(data_dir, DAILY, year, [DAILY_VARIABLES[n] for n in names], add_missing=False)
+        store = GridStore.open(data_dir, DAILY, year, [DAILY_VARIABLES[n] for n in stored], add_missing=False)
         for name in names:
-            written = store.written(name)
-            if written is None or not store.has_data(name).any():
+            written, has = _written(store, name)
+            if written is None or not has.any():
                 continue  # nothing rolled up, as `build` judges it (2024's ET0 estimate: no day needed one)
             entry = known.get((name, year))
             if entry is None:
@@ -111,12 +200,40 @@ def wanted(data_dir: Path, now: datetime, variables: list[str] | None = None) ->
     return found
 
 
+def _inputs(name: str) -> tuple[str, ...]:
+    """The stored daily variables a file is made from: itself, or a computed variable's inputs."""
+    return DAILY_COMPUTED[name].inputs if name in DAILY_COMPUTED else (name,)
+
+
+def _variable(name: str) -> Variable:
+    return DAILY_COMPUTED[name].variable if name in DAILY_COMPUTED else DAILY_VARIABLES[name]
+
+
+def _written(store: GridStore, name: str) -> tuple[float | None, np.ndarray]:
+    """The write stamp a file of `name` is built from (a computed variable's newest input's; None if an input was
+    never written) and the days it has (a computed variable's: those every input has)."""
+    stamps = [store.written(n) for n in _inputs(name)]
+    has = np.logical_and.reduce([store.has_data(n) for n in _inputs(name)])
+    known = [stamp for stamp in stamps if stamp is not None]
+    return (max(known) if len(known) == len(stamps) else None), has
+
+
+def prune(data_dir: Path, dry_run: bool = False) -> list[Entry]:
+    """Delete the files whose variable isn't offered (`OFFERED`) and drop them from the index; the entries removed.
+    With `dry_run`, only say which."""
+    entries = read_index(data_dir)
+    gone = [e for e in entries if e.variable not in OFFERED]
+    if gone and not dry_run:
+        for e in gone:
+            (folder(data_dir) / e.path).unlink(missing_ok=True)
+        write_index(data_dir, [e for e in entries if e.variable in OFFERED])
+    return gone
+
+
 def build(data_dir: Path, name: str, year: int, now: datetime) -> Entry | None:
     """Write one variable's year (None if the store has no days of it) and return its index entry."""
-    v = DAILY_VARIABLES[name]
-    store = GridStore.open(data_dir, DAILY, year, [v])
-    written = store.written(name)
-    has = store.has_data(name)
+    store = GridStore.open(data_dir, DAILY, year, [DAILY_VARIABLES[n] for n in _inputs(name)])
+    written, has = _written(store, name)
     if written is None or not has.any():
         return None
     n = int(np.flatnonzero(has)[-1]) + 1  # through the last day with values
@@ -149,7 +266,9 @@ def build_wanted(
     variables: list[str] | None = None,
     progress: Callable[[int, int, str], None] | None = None,
 ) -> list[Entry]:
-    """Build every file `wanted` lists, updating the index after each; the entries built."""
+    """Remove the files no longer offered (`prune`), then build every file `wanted` lists, updating the index after
+    each; the entries built."""
+    prune(data_dir)
     todo = wanted(data_dir, now, variables)
     entries = {(e.variable, e.year): e for e in read_index(data_dir)}
     built = []
@@ -234,17 +353,20 @@ def _attrs(title: str, now: datetime) -> dict[str, str]:
 
 
 def _write(path: Path, store: GridStore, name: str, n: int, first: date, now: datetime) -> None:
-    v = DAILY_VARIABLES[name]
+    v = _variable(name)
+    computed = DAILY_COMPUTED.get(name)
     window = coverage.extent(store.window)  # the covered cells' rectangle, without a coverage window's margin (D107)
     ny, nx = window.shape
     statistic = DAILY_STATISTICS[name].stat if name in DAILY_STATISTICS else None  # hour counts aren't statistics
+    if computed is not None and computed.adds_up:
+        statistic = "sum"  # the water balance: a day's precipitation less its ET0, both totals
     with h5netcdf.File(path, "w") as f:
         f.dimensions = {"time": n}
         _grid(f, window)
         f.attrs.update(
             {
                 **_attrs(f"{v.long_name}, {first.year}", now),
-                "comment": "Each day is the local calendar day in the cell's time zone. Each cell's latitude, longitude and time zone are in grid.nc beside the yearly folders. Missing values are left missing, never set to zero.",
+                "comment": "Each cell's latitude, longitude and time zone are in grid.nc beside the yearly folders. Missing values are left missing, never set to zero.",
             }
         )
         time = f.create_variable("time", ("time",), np.int32, data=np.arange(n, dtype=np.int32) + _days(first))
@@ -276,7 +398,18 @@ def _write(path: Path, store: GridStore, name: str, n: int, first: date, now: da
             data.attrs["cell_methods"] = f"time: {CF_STATS[statistic]}"
         for start in range(0, n, BLOCK_DAYS):
             stop = min(start + BLOCK_DAYS, n)
-            data[start:stop] = store.read_packed(name, start, stop, window=window)
+            data[start:stop] = _packed_days(store, name, computed, v, start, stop, window)
+
+
+def _packed_days(
+    store: GridStore, name: str, computed: Computed | None, v: Variable, start: int, stop: int, window: Window
+) -> np.ndarray:
+    """Days start..stop-1 packed as the file holds them: a stored variable's int16 as stored, a computed one's
+    value from its inputs packed by its own scale and offset (missing wherever an input is)."""
+    if computed is None:
+        return store.read_packed(name, start, stop, window=window)
+    inputs = {n: store.read_steps(n, start, stop, window=window) for n in computed.inputs}
+    return v.encode(np.clip(computed.compute(inputs), v.valid_min, v.valid_max))
 
 
 def _packed(value: float, scale: float, offset: float) -> np.int16:

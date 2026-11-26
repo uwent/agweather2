@@ -1,6 +1,6 @@
 # Yearly data files
 
-Every daily weather variable as one NetCDF file per year, for downloading the archive in bulk. Each past year has a complete file, and the current year has a file covering the year to date, updated weekly. A file is rebuilt whenever the data behind it are revised, so check `built_at` to see whether you have the newest copy.
+Each daily weather variable as one NetCDF file per year, for downloading the archive in bulk: temperatures, humidity, wind, precipitation (the whole day, and the daytime and overnight hours), solar radiation, reference evapotranspiration and the daily water balance, soil temperature and moisture, snow, hour counts and livestock heat indexes. Each past year has a complete file, and the current year has a file covering the year to date, updated weekly. A file is rebuilt whenever the data behind it are revised, so check `built_at` to see whether you have the newest copy.
 
 Each entry gives the variable (as named in `/variables`), the year, the file's address and size, the first and last days it holds, and whether it covers the whole year.
 

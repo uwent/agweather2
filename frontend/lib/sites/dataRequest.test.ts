@@ -6,6 +6,12 @@ import type { VariableInfo } from '@/types/api'
 import {
   addsUp,
   dataRequest,
+  downloadBytes,
+  formatBytes,
+  MAX_POINTS,
+  MAX_ROWS,
+  pointsRequest,
+  sizeProblem,
   groupVariables,
   MAX_HOURS,
   OTHER_GROUP,
@@ -103,5 +109,47 @@ describe('the request', () => {
       'The end date is before the start date. Choose an end date on or after the start date.',
     )
     expect(dataRequest({ ...daily, vars: [] }, 44.12, -89.52, today).problem).toBe('Choose at least one variable.')
+  })
+})
+
+describe('several locations (/data)', () => {
+  const two = [
+    { lat: 43.07, lng: -89.4 },
+    { lat: 44.5, lng: -89.5 },
+  ]
+
+  it('asks for them as points, and one as lat and lng', () => {
+    const built = pointsRequest(daily, two, today)
+    expect(built.params).toMatchObject({ lat: null, lng: null, points: '43.07,-89.4;44.5,-89.5' })
+    expect(built.url).toContain('points=43.07%2C-89.4%3B44.5%2C-89.5')
+    expect(pointsRequest(daily, [two[0]], today).url).toContain('lat=43.07&lng=-89.4')
+  })
+
+  it('refuses more locations, or more rows, than the API takes', () => {
+    const many = Array.from({ length: MAX_POINTS + 1 }, (_, k) => ({ lat: 43 + k / 100, lng: -89 }))
+    expect(sizeProblem(daily, today, many.length)).toBe(
+      'You chose 51 locations; a request can include up to 50. Remove some, or download them in several requests.',
+    )
+    expect(sizeProblem(daily, today, 0)).toBe('Choose at least one location.')
+    // 50 locations × 2,200 days is 110,000 rows: the API's "This request would return 110,000 rows (50 locations)"
+    const long = { ...daily, start: '2020-01-01', end: '2026-01-08', forecast: false }
+    expect(sizeProblem(long, today, 50)).toBe(
+      `This request would return 110,000 rows (50 locations); a request can return up to ${MAX_ROWS.toLocaleString('en-US')}. Choose fewer locations or a shorter period.`,
+    )
+    expect(sizeProblem(long, today, 45)).toBeNull()
+    // Totals count the days read too
+    expect(sizeProblem({ ...long, kind: 'totals' }, today, 50)).toMatch(/^This request would return 110,000 rows/)
+  })
+
+  it('says about how large a download is', () => {
+    // A year of three daily variables at one location: the API's CSV was 14,644 bytes
+    const year = { ...daily, start: '2025-01-01', end: '2025-12-31', forecast: false }
+    const bytes = downloadBytes(year, today, 1)!
+    expect(bytes).toBeGreaterThan(12_000)
+    expect(bytes).toBeLessThan(18_000)
+    expect(downloadBytes(year, today, 2)! / bytes).toBeGreaterThan(1.8)
+    expect(formatBytes(bytes)).toMatch(/^about 1\d KB$/)
+    expect(formatBytes(2_480_000)).toBe('about 2.5 MB')
+    expect(formatBytes(500)).toBe('under 1 KB')
   })
 })

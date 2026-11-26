@@ -1,0 +1,109 @@
+{
+  "meta": {
+    "request": {},
+    "params": {},
+    "units": {},
+    "summary": {},
+    "sources": [],
+    "warnings": [],
+    "attribution": "AgWeather, University of Wisconsin\u2013Madison. Weather from NOAA (URMA, RTMA, HRRR, NBM), Open-Meteo (CC BY 4.0) and ECMWF; contains modified Copernicus Climate Change Service information 2026.",
+    "api_version": "2.0",
+    "generated_at": "2026-11-26T03:35:15Z",
+    "compute_ms": 1343
+  },
+  "data": {
+    "grid": "http://localhost:8000/downloads/daily/grid.nc",
+    "files": [
+      {
+        "variable": "air_temperature_max",
+        "year": 2024,
+        "url": "http://localhost:8000/downloads/daily/2024/air_temperature_max_2024.nc",
+        "bytes": 12605195,
+        "first": "2024-01-01",
+        "last": "2024-12-31",
+        "complete": true,
+        "built_at": "2026-11-10T15:46:40+00:00"
+      },
+      {
+        "variable": "air_temperature_max",
+        "year": 2025,
+        "url": "http://localhost:8000/downloads/daily/2025/air_temperature_max_2025.nc",
+        "bytes": 12754505,
+        "first": "2025-01-01",
+        "last": "2025-12-31",
+        "complete": true,
+        "built_at": "2026-11-10T15:46:40+00:00"
+      },
+      {
+        "variable": "air_temperature_max",
+        "year": 2026,
+        "url": "http://localhost:8000/downloads/daily/2026/air_temperature_max_2026.nc",
+        "bytes": 11119301,
+        "first": "2026-01-01",
+        "last": "2026-11-04",
+        "complete": false,
+        "built_at": "2026-11-06T01:01:40+00:00"
+      },
+      {
+        "variable": "hours_rh_over_90",
+        "year": 2024,
+        "url": "http://localhost:8000/downloads/daily/2024/hours_rh_over_90_2024.nc",
+        "bytes": 5009451,
+        "first": "2024-01-01",
+        "last": "2024-12-31",
+        "complete": true,
+        "built_at": "2026-11-10T15:46:40+00:00"
+      },
+      {
+        "variable": "hours_rh_over_90",
+        "year": 2025,
+        "url": "http://localhost:8000/downloads/daily/2025/hours_rh_over_90_2025.nc",
+        "bytes": 5028722,
+        "first": "2025-01-01",
+        "last": "2025-12-31",
+        "complete": true,
+        "built_at": "2026-11-10T15:46:40+00:00"
+      },
+      {
+        "variable": "hours_rh_over_90",
+        "year": 2026,
+        "url": "http://localhost:8000/downloads/daily/2026/hours_rh_over_90_2026.nc",
+        "bytes": 4412424,
+        "first": "2026-01-01",
+        "last": "2026-11-04",
+        "complete": false,
+        "built_at": "2026-11-06T01:01:40+00:00"
+      },
+      {
+        "variable": "precipitation_sum",
+        "year": 2024,
+        "url": "http://localhost:8000/downloads/daily/2024/precipitation_sum_2024.nc",
+        "bytes": 8832446,
+        "first": "2024-01-01",
+        "last": "2024-12-31",
+        "complete": true,
+        "built_at": "2026-11-10T15:46:40+00:00"
+      },
+      {
+        "variable": "precipitation_sum",
+        "year": 2025,
+        "url": "http://localhost:8000/downloads/daily/2025/precipitation_sum_2025.nc",
+        "bytes": 9153095,
+        "first": "2025-01-01",
+        "last": "2025-12-31",
+        "complete": true,
+        "built_at": "2026-11-10T15:46:40+00:00"
+      },
+      {
+        "variable": "precipitation_sum",
+        "year": 2026,
+        "url": "http://localhost:8000/downloads/daily/2026/precipitation_sum_2026.nc",
+        "bytes": 7765281,
+        "first": "2026-01-01",
+        "last": "2026-11-04",
+        "complete": false,
+        "built_at": "2026-11-06T01:01:40+00:00"
+      }
+    ]
+  }
+}

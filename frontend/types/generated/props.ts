@@ -101,9 +101,148 @@ export interface CropStageInfo {
   name: string
 }
 /**
- * Downloads (`/data`, track 7).
+ * The states and counties `/data` offers for a map file (`web.datapage.areas`).
  */
-export interface DataPageProps {}
+export interface DataAreas {
+  /**
+   * The archive's window, [j0, j1, i0, i1]: the whole area's file.
+   */
+  window: number[]
+  /**
+   * States with at least half their cells in the window, by name.
+   */
+  states: GridArea[]
+  /**
+   * Those states' counties with cells in the window, by name.
+   */
+  counties: GridArea[]
+}
+/**
+ * A state or county as `/grids`' `region` takes it: the rectangle around its cells (what a file holds) and
+ * how many cells it has (what `clip=true` keeps).
+ */
+export interface GridArea {
+  /**
+   * As `region=` takes it: a state's postal code or a county's FIPS code.
+   */
+  id: string
+  /**
+   * 'Wisconsin', 'Dane County'.
+   */
+  name: string
+  /**
+   * Its state's postal code.
+   */
+  state: string
+  /**
+   * The rectangle's first row (grid index).
+   */
+  j0: number
+  /**
+   * One past its last row.
+   */
+  j1: number
+  /**
+   * Its first column.
+   */
+  i0: number
+  /**
+   * One past its last column.
+   */
+  i1: number
+  /**
+   * Its cells in the archive's window.
+   */
+  cells: number
+}
+/**
+ * The API's limits on a map file, which `/data` checks before one is asked for (the limits at points are
+ * in `lib/sites/dataRequest.ts`, which `test_datapage` holds to the API's).
+ */
+export interface DataLimits {
+  /**
+   * Values a grid holds as JSON or CSV (`api.routes.grids.MAX_TEXT_VALUES`).
+   */
+  text_values: number
+  /**
+   * Values a grid holds as NetCDF or GeoTIFF (`MAX_FILE_VALUES`).
+   */
+  file_values: number
+  /**
+   * Days a map covers, returned or combined (`api.layermaps.MAX_DAYS`).
+   */
+  map_days: number
+  /**
+   * Hours a map covers (`api.layermaps.MAX_HOURS`).
+   */
+  map_hours: number
+  /**
+   * The largest `stride` (`MAX_STRIDE`).
+   */
+  stride: number
+  /**
+   * The finest lat/lng spacing in degrees (`agdata.regrid.MIN_LATLON_RES`).
+   */
+  res: number
+}
+/**
+ * Downloads (`/data`, track 7 step 7.1): weather at locations, maps as data files, the yearly files.
+ */
+export interface DataPageProps {
+  limits: DataLimits
+  projection: GridProjection
+  /**
+   * The models a download at locations can run, by name.
+   */
+  models: SiteModel[]
+  /**
+   * Deferred (loaded after the page shows; ~3 s the first time over the launch box), and None before the archive has a year.
+   */
+  areas?: DataAreas | null
+}
+/**
+ * The 2.5 km grid's Lambert projection (`agdata.grid.NDFD`), for finding the cells in a box in the browser.
+ */
+export interface GridProjection {
+  /**
+   * The central meridian, degrees east (−95).
+   */
+  lon0: number
+  /**
+   * The standard parallel and origin latitude, degrees (25).
+   */
+  lat1: number
+  /**
+   * The sphere's radius, meters.
+   */
+  radius: number
+  /**
+   * Projected x of cell (0, 0), meters.
+   */
+  x0: number
+  /**
+   * Projected y of cell (0, 0), meters.
+   */
+  y0: number
+  /**
+   * A cell's size, meters.
+   */
+  dx: number
+}
+/**
+ * A model in the site page's short catalog: what it's called and which crops it's for.
+ */
+export interface SiteModel {
+  id: string
+  name: string
+  group: string
+  crops: string[]
+  status: string
+  /**
+   * The words for its risk levels, lowest first; empty for a model without risk (crop stages).
+   */
+  risk_levels: string[]
+}
 /**
  * How current the data are (`web.status`): every page's "data through" line and the stale-data banner.
  */
@@ -678,20 +817,6 @@ export interface SharedProps {
 export interface SiteCrop {
   id: string
   name: string
-}
-/**
- * A model in the site page's short catalog: what it's called and which crops it's for.
- */
-export interface SiteModel {
-  id: string
-  name: string
-  group: string
-  crops: string[]
-  status: string
-  /**
-   * The words for its risk levels, lowest first; empty for a model without risk (crop stages).
-   */
-  risk_levels: string[]
 }
 /**
  * One model across your saved sites (`/sites/models/{id}`): the model's content. The sites are kept in the
