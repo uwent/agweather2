@@ -232,14 +232,14 @@ Visited 2026-11-06 with a headless browser (Playwright), late-blight-db added th
 - Improve: readers are told to "note the cumulative DSVs at your last spray and subtract"; v2's "since a date" (biofix) does that for them. The seven places become any location.
 - API: ✓ (`/models/run` for DSV and P-days, D64; `/weather/daily`). An embeddable chart for their WordPress site is F6.
 
-**[VDIFN](https://agweather.cals.wisc.edu/vdifn)** is AgWeather v1's interactive mapping interface (repo `../ag-vdifn`). Daily gridded weather feeds disease risk and insect development models, shown as color-coded risk; clicking a cell brings up its daily history.
+**[VDIFN](https://agweather.cals.wisc.edu/vdifn)** is AgWeather v1's interactive mapping interface (repo `../agweather-v1/vdifn`). Daily gridded weather feeds disease risk and insect development models, shown as color-coded risk; clicking a cell brings up its daily history.
 
 - Layout: left panel (Disease, Insect, Custom; Wisconsin or Upper Midwest; crop → model; date range with Past week, Past month, This year, Defaults; Tmin/Tmax for custom degree days; °C/°F; Submit), Google Maps right, palette Spectral or Viridis. Nothing shows until Submit.
 - Take: the crop-first model picker, quick date ranges, the custom degree-day model, the point popup.
 - Improve: no Submit (the map updates as settings change, data tiles make it instant); a default view on load (the most relevant in-season layer); the extent toggle becomes zoom.
 - API: ✓ throughout.
 
-**[AgWeather v1 site](https://agweather.cals.wisc.edu/)** (repo `../soils-ag-wx`): weather data maps and tables (temperature, precipitation, dew point, vapor pressure, high-humidity hours, ET), thermal models (degree days, disease risk, oak wilt), email subscriptions for saved sites, the free API.
+**[AgWeather v1 site](https://agweather.cals.wisc.edu/)** (repo `../agweather-v1/site`): weather data maps and tables (temperature, precipitation, dew point, vapor pressure, high-humidity hours, ET), thermal models (degree days, disease risk, oak wilt), email subscriptions for saved sites, the free API.
 
 - Pages are organized by data type (Weather, Thermal Models, Site Data, Emails); each map page is a server-rendered image plus a table. Also: the day-of-year calendar, NWS HYD reports, the corn development and pest pages.
 - Take: the plain home page that routes by task; "Sites" bookmarkable by coordinates (`/sites/43.07,-89.4`), kept as v2's site page, with v1's offer to save an unsaved site.
