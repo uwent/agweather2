@@ -486,7 +486,7 @@
   <section aria-labelledby="alfalfa-about" class="space-y-2">
     <h2 id="alfalfa-about" class="text-lg font-semibold">About these numbers</h2>
     <p class="max-w-prose">
-      {`GDD here are single-sine degree days with a base of ${deg(41)} and an upper threshold of ${deg(86)}, counted from January 1 or from the day after a cut. The cutting window of ${windowText(WINDOW_F, units)} comes from the UW alfalfa cutting tool this planner replaces. The fall rule (under ${gddText(360, units)} or over ${gddText(900, units)} of regrowth before the killing freeze) is from UW–Madison Extension’s guidance on fall cutting.`}
+      {`GDD here are single-sine degree days with a base of ${deg(41)} and an upper threshold of ${deg(86)}, counted from January 1 or from a cut. The cutting window of ${windowText(WINDOW_F, units)} comes from the UW alfalfa cutting tool this planner replaces. The fall rule (under ${gddText(360, units)} or over ${gddText(900, units)} of regrowth before the killing freeze) is from UW–Madison Extension’s guidance on fall cutting.`}
     </p>
     <p class="text-sm">
       <a href={routes.model({ model_id: 'alfalfa-growth' })} class="text-brand-600 underline hover:text-brand-700">
