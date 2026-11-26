@@ -1,10 +1,23 @@
 <!-- The glossary (/glossary, track 7 step 7.4): every term in lib/glossary.ts A–Z, each at its own anchor (#id), which
      a term's popup in running text links to (Term.svelte), with a filter by words. -->
 <script lang="ts">
+  import { onMount } from 'svelte'
+
   import SearchFilter from '@/lib/components/SearchFilter.svelte'
   import { filterGlossary, glossaryByLetter } from '@/lib/glossary'
 
   let query = $state('')
+
+  // A link to a term (`/glossary#growing_degree_days`, from a term's popup) opens at its entry. Left to the browser and
+  // Inertia, which go to the anchor as the page first draws, the entry often ended 300 px too far down the page, above
+  // the window (measured in Playwright; going there again on the next frame wasn't enough): the page goes to it
+  // again once the web fonts are in, when the entries above it have their final height
+  onMount(() => {
+    const id = decodeURIComponent(location.hash.slice(1))
+    if (!id) return
+    const go = () => requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView())
+    void (document.fonts?.ready ?? Promise.resolve()).then(go)
+  })
 
   const groups = $derived(glossaryByLetter(filterGlossary(query)))
   const count = $derived(groups.reduce((n, g) => n + g.entries.length, 0))

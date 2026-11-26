@@ -18,18 +18,14 @@ import type { TableResponse } from '@/types/api'
 import { daysAheadWords, ordinal, percentileWords, shareOfYears, thresholdLabel, thresholdNoun } from '../climate/words'
 import { periodWords, summaryYears, type PeriodYears } from '../climate/periods'
 import { formatDate } from '../dates'
-import { unitSymbol, type Kind } from '../tableRows'
+import { columnsOf, unitSymbol, type Kind } from '../tableRows'
 import type { Units } from '../units'
 import type { EChartsCoreOption } from './echarts'
-import { band, rowLabel, thresholdLine, todayLine } from './kinds'
+import { band, rounded, rowLabel, thresholdLine, todayLine } from './kinds'
 import { baseOption, type Palette } from './palette'
 import { forecastShading } from './shading'
 
 type Body = Pick<TableResponse, 'meta' | 'data'>
-type Columns = Record<string, (number | string | boolean | null)[]>
-
-const columnsOf = (body: Body): Columns => (Array.isArray(body.data) ? {} : (body.data as Columns))
-const rounded = (value: number | null) => (value === null ? null : Number(value.toFixed(3)))
 
 /**
  * A normal as a dashed line over its spread: the band between `low` and `high` (the 10th and 90th percentiles),

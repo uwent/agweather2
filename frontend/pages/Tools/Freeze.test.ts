@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/svelte'
+import { flushSync } from 'svelte'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import chances from '@/test/fixtures/climate/chances.json'
@@ -6,6 +7,7 @@ import freeze from '@/test/fixtures/climate/freeze.json'
 import frost from '@/test/fixtures/climate/frost.json'
 import locate from '@/test/fixtures/site/locate.json'
 import presets from '@/test/fixtures/site/presets.json'
+import { setUnitSystem } from '@/lib/unitSystem.svelte'
 
 vi.mock('@inertiajs/svelte', async () => {
   const fake = await import('@/test/page.svelte')
@@ -142,5 +144,20 @@ describe('the freeze tool', () => {
     expect(screen.getByText('Choose a temperature from −20 °F to 40 °F.')).toBeVisible()
     await fireEvent.change(box, { target: { value: '30' } })
     await vi.waitFor(() => expect(asked('/freeze').at(-1)).toMatchObject({ thresholds: [30] }))
+  })
+
+  it('writes the reader’s own temperature again when the units change', () => {
+    window.history.replaceState(null, '', '/tools/freeze?at=43.07,-89.4&temps=custom&temp=28')
+    render(Freeze, { years })
+    const box = screen.getByRole('textbox', { name: 'Temperature' })
+    expect(box).toHaveValue('28')
+    try {
+      setUnitSystem('metric')
+      flushSync()
+      expect(box).toHaveValue('-2.2')
+      expect(screen.queryByText(/Choose a temperature from/)).toBeNull()
+    } finally {
+      setUnitSystem('imperial')
+    }
   })
 })

@@ -235,7 +235,7 @@
       </ul>
       <p class="max-w-prose text-sm text-ink-muted">
         Charts and maps show a missing hour as a gap. Running totals, such as degree days, fill short gaps with an
-        estimate and say so; precipitation is never estimated. <a href="/methods#gaps" class={link}>
+        estimate and say so; precipitation is never estimated. <a href={`${routes.methods()}#gaps`} class={link}>
           How we handle missing data
         </a>.
       </p>

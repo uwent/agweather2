@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { andList, longDate, modelMapUrl, monthDay, seasonText, siteModelUrl, unitLabel } from './format'
+import { andList, longDate, modelMapUrl, monthDay, seasonText, unitLabel } from './format'
 
 describe('model page words', () => {
   it('writes dates out', () => {
@@ -33,8 +33,7 @@ describe('model page words', () => {
     expect(unitLabel('no-such-unit', 'imperial')).toBe('')
   })
 
-  it('links to the map and to the model at a site', () => {
+  it('links to the model’s map', () => {
     expect(modelMapUrl('tar-spot')).toBe('/map?layer=tar-spot')
-    expect(siteModelUrl('43.07,-89.4', 'tar-spot')).toBe('/sites/43.07,-89.4/models/tar-spot')
   })
 })

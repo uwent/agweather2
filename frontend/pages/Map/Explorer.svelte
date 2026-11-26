@@ -390,10 +390,14 @@
     })
   })
 
+  // Reading a value can wait for its tile, so a read superseded by a newer one (another cell, newer tiles) is dropped
+  let reads = 0
   async function readValue() {
     const at = $view.at
     if (!at || !dataMap) return
-    picked = await dataMap.valueAt(at.lat, at.lng)
+    const read = ++reads
+    const value = await dataMap.valueAt(at.lat, at.lng)
+    if (read === reads) picked = value
   }
 
   function updated() {
@@ -407,6 +411,7 @@
       place = null
       placeError = null
       picked = null
+      reads++
       if (!at) return
       readValue()
       cellRequests
@@ -542,15 +547,18 @@
     untrack(() => {
       series = null
       seriesError = null
+      seriesLoading = !!asked
       if (!asked) return
-      seriesLoading = true
       cellRequests
         .run('series', (signal) => get<Parameters<typeof readSeries>[1]>(asked.path, asked.params, { signal }))
         .then((body) => (series = readSeries(asked, body)))
         .catch((error) => {
           if (!isAbort(error)) seriesError = error instanceof ApiError ? error.message : String(error)
         })
-        .finally(() => (seriesLoading = false))
+        // A superseded request ends after its successor started: the successor's loading stays shown
+        .finally(() => {
+          if (seriesFor === asked) seriesLoading = false
+        })
     })
   })
   onDestroy(() => {

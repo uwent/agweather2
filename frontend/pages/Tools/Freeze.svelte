@@ -99,10 +99,11 @@
   const thresholdsKey = $derived(JSON.stringify(thresholds))
 
   let customText = $state('')
+  // Written again when the temperature or the reader's units change (28 °F becomes -2.2 °C, not 28 read as °C)
   $effect(() => {
-    const t = $view.temp
+    const [t, u] = [$view.temp, units]
     untrack(() => {
-      customText = units.input('degF', t, units.system === 'metric' ? 1 : 0)
+      customText = u.input('degF', t, u.system === 'metric' ? 1 : 0)
     })
   })
   const customError = $derived.by(() => {

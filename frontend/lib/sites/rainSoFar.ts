@@ -79,8 +79,21 @@ export function sumSoFar(
   }
 }
 
-/** Today so far at each point of a `/weather/hourly` answer (`precipitation` in mm; one point or `points=`) */
-export function rainSoFarByPoint(body: TableResponse, count: number, today: string): (RainSoFar | null)[] {
+/** The calendar date on the zone's clock at an instant */
+export function dateIn(at: number, timeZone: string): string {
+  // en-CA writes dates as YYYY-MM-DD
+  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(at)
+}
+
+/** Today so far at each point of a `/weather/hourly` answer (`precipitation` in mm; one point or `points=`). `today`
+ * is the grid's (inside the area we cover); a point outside it takes today on its own clock at `now`, which can be a
+ * day either side of the grid's around midnight. */
+export function rainSoFarByPoint(
+  body: TableResponse,
+  count: number,
+  today: string,
+  now: number = Date.now(),
+): (RainSoFar | null)[] {
   const data = body.data as Record<string, unknown[]>
   const meta = body.meta as { location?: DayBasis; locations?: DayBasis[] }
   const bases = meta.locations ?? (meta.location ? [meta.location] : [])
@@ -96,7 +109,8 @@ export function rainSoFarByPoint(body: TableResponse, count: number, today: stri
         forecast: data.kind?.[i] === 'forecast',
       }))
       .filter((h) => h.point === k)
-    return sumSoFar(hours, dayStart(today, basis), basis.timezone ?? 'America/Chicago')
+    const day = basis.in_box || !basis.timezone ? today : dateIn(now, basis.timezone)
+    return sumSoFar(hours, dayStart(day, basis), basis.timezone ?? 'America/Chicago')
   })
 }
 

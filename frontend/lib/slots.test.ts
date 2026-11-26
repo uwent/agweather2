@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { isAbort } from '../api'
+import { isAbort } from './api'
 import { slots } from './slots'
 
 // A promise and the functions that settle it

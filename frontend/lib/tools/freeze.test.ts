@@ -121,6 +121,12 @@ describe('the answer', () => {
     ).toBe(
       'There has been no frost (32 °F) yet this fall. In half the years the first came by October 21. The coldest low in the forecast is 35 °F, on Mon, Oct 5.',
     )
+    expect(answer({ own: { spring: '2026-04-07', fall: null }, today: '2026-10-22' })).toBe(
+      'There has been no frost (32 °F) yet this fall. In half the years the first came by October 21, 1 day ago.',
+    )
+    expect(answer({ own: { spring: '2026-04-07', fall: null }, today: '2026-11-05' })).toBe(
+      'There has been no frost (32 °F) yet this fall. In half the years the first came by October 21, 15 days ago.',
+    )
     expect(answer({ own: { spring: '2026-04-07', fall: null }, typical: null })).toBe(
       'There has been no frost (32 °F) yet this fall.',
     )

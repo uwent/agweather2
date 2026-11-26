@@ -33,7 +33,7 @@
         query.trim(),
         view && [view.getWest(), view.getSouth(), view.getEast(), view.getNorth()],
       )
-      if (found.length === 0) searchError = 'No places found. Try adding the state, such as Hancock, WI.'
+      if (found.length === 0) searchError = "No places found. Try adding the state, such as 'Hancock, WI'."
       else if (found.length === 1) goTo(found[0])
       else places = found
     } catch {

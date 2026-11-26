@@ -15,19 +15,16 @@ import type { TableResponse } from '@/types/api'
 
 import { periodWords, summaryYears, type PeriodYears } from '../climate/periods'
 import { formatDate } from '../dates'
-import { unitSymbol, type Kind } from '../tableRows'
+import { columnsOf, unitSymbol, type Kind } from '../tableRows'
 import type { Units } from '../units'
 import { bandName, normalBand, normalName } from './climateCharts'
 import type { EChartsCoreOption } from './echarts'
-import { rowLabel, todayLine } from './kinds'
+import { rounded, rowLabel, todayLine } from './kinds'
 import { baseOption, type Palette } from './palette'
 import { forecastShading } from './shading'
 
 type Body = Pick<TableResponse, 'meta' | 'data'>
-type Columns = Record<string, (number | string | boolean | null)[]>
 
-const columnsOf = (body: Body): Columns => (Array.isArray(body.data) ? {} : (body.data as Columns))
-const rounded = (value: number | null) => (value === null ? null : Number(value.toFixed(3)))
 const numberOrNull = (value: unknown) => (typeof value === 'number' ? value : null)
 const row = (name: string, value: string) =>
   `<tr><td style="padding-right:12px">${name}</td><td style="text-align:right">${value}</td></tr>`

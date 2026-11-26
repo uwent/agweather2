@@ -45,7 +45,7 @@
     searching = true
     try {
       const found = await searchPlaces(text)
-      if (found.length === 0) message = 'No places found. Try adding the state, such as Hancock, WI.'
+      if (found.length === 0) message = "No places found. Try adding the state, such as 'Hancock, WI'."
       else if (found.length === 1) pick(found[0])
       else places = found
     } catch {

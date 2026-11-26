@@ -9,6 +9,7 @@
   import PrefsPanel from './PrefsPanel.svelte'
   import SiteGroups from './SiteGroups.svelte'
   import { coordinates, dayBasisWords, placeName, sourceWords } from './text'
+  import { routes } from '@/lib/routes'
 
   // The site page's header: the site's name (saved, else the shared link's, else "Unsaved location") with Save
   // this site, where it is (county and state, coordinates, the grid cell), whose days it uses, where its
@@ -99,7 +100,9 @@
     </div>
   </div>
   <p class="text-sm" role="status">
-    {#if status}{status}{' '}<a href="/sites" class="text-brand-600 underline hover:text-brand-700">Your sites</a>{/if}
+    {#if status}{status}{' '}<a href={routes.sites()} class="text-brand-600 underline hover:text-brand-700">
+        Your sites
+      </a>{/if}
   </p>
   <ul class="space-y-0.5 text-sm text-ink-muted">
     {#if location?.in_box && location.cell}
@@ -122,7 +125,9 @@
       <h2 id="site-groups-h" class="mb-2 text-base font-semibold">Groups</h2>
       <SiteGroups siteKey={saved.key} label={saved.name || coordinates(lat, lng)} />
       <p class="mt-2 text-sm">
-        <a href="/sites#groups" class="text-brand-600 underline hover:text-brand-700">Manage your groups</a>
+        <a href={`${routes.sites()}#groups`} class="text-brand-600 underline hover:text-brand-700">
+          Manage your groups
+        </a>
       </p>
     </section>
   {/if}

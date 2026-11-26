@@ -25,11 +25,9 @@
     periodText,
     RESTRICTED_DD_F,
   } from '@/lib/tools/oakWilt'
-  // TO BE REPLACED by '@/lib/tools/PlacePicker.svelte' (w7-tools) once it merges: same props
   import PlacePicker from '@/lib/tools/PlacePicker.svelte'
-  // TO BE REPLACED by '@/lib/tools/place' (w7-tools) once it merges: same names
   import { PLACE_FIELDS, placeOf, placeView, type Place } from '@/lib/tools/place'
-  import { currentUnits } from '@/lib/units'
+  import { convert, currentUnits } from '@/lib/units'
   import { codecs, field, viewState } from '@/lib/viewState'
   import type { OakWiltToolProps } from '@/types'
   import type { TableResponse } from '@/types/api'
@@ -97,7 +95,10 @@
       get<TableResponse>(`/models/${model.id}/run`, { ...p, units: 'metric', projection: true }, { signal }),
     )
   }
+  // Again for each place and season: going from one place still short of 231 to another, wantsProjection stays true
+  // (the first place's answer stays on screen while the second's loads), and the first's projection would be shown
   $effect(() => {
+    void runKey
     if (wantsProjection) untrack(loadProjection)
   })
   const projectedResult = $derived(
@@ -117,7 +118,14 @@
   const panels = $derived(shown ? modelPanels(model, shown) : [])
   const guides = $derived({
     dates: [{ date: `${year}-${END}`, label: 'July 15' }],
-    values: [{ column: 'dd_total', value: RESTRICTED_DD_F / 1.8, label: units.format('degF_day', RESTRICTED_DD_F) }],
+    values: [
+      {
+        column: 'dd_total',
+        // In the run's own unit (°C·d: it's asked for in metric), as the chart takes guides
+        value: convert(RESTRICTED_DD_F, 'degF_day', shown?.table.units.dd_total ?? 'degC_day') as number,
+        label: units.format('degF_day', RESTRICTED_DD_F),
+      },
+    ],
   })
   const chartHeight = $derived(`${layout(panels).height}px`)
 

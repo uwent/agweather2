@@ -20,7 +20,7 @@ import { riskStep, type RiskScale } from '../riskLevels'
 import { tableRows, type Day, type Table } from '../tableRows'
 import type { Units } from '../units'
 import type { EChartsCoreOption } from './echarts'
-import { band, bar, forecastBand, isForecast, lineStyle, point } from './kinds'
+import { band, bar, forecastBand, isForecast, lineStyle, point, rounded } from './kinds'
 import { baseOption, type Palette } from './palette'
 
 // --- The run ------------------------------------------------------------------------------------------------------
@@ -592,8 +592,6 @@ export function modelOption({
     series: [...series, ...shading.series],
   }
 }
-
-const rounded = (value: number | null) => (value === null ? null : Number(value.toFixed(3)))
 
 function valuesTitle(panel: Extract<ModelPanel, { kind: 'values' }>, table: Table, units: Units): string {
   const unit = shownUnit(table, units, panel.series[0].column)

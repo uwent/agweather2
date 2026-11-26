@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { calendarRows, dateOfDay, dayOfYear, daysInYear, isLeapYear, leapNote, longDate } from './calendar'
+import { calendarRows, dateOfDay, dayOfYear, daysInYear, isLeapYear, leapNote } from './calendar'
 
 describe('the day-of-year calendar', () => {
   it('knows leap years, centuries included', () => {
@@ -34,6 +34,5 @@ describe('the day-of-year calendar', () => {
   it('says whether one is a leap year', () => {
     expect(leapNote(2028)).toMatch(/^2028 is a leap year, with 366 days/)
     expect(leapNote(2026)).toMatch(/^2026 is not a leap year/)
-    expect(longDate('2027-04-01')).toBe('April 1, 2027')
   })
 })

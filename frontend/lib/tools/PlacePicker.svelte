@@ -14,6 +14,7 @@
   import FindPlace from '../sites/FindPlace.svelte'
   import { request } from '../sites/request.svelte'
   import { placeLine, placeSitePath, placeTitle, type Place } from './place'
+  import { routes } from '@/lib/routes'
 
   let {
     place,
@@ -104,7 +105,7 @@
       </div>
     </div>
     <p class="text-sm" role="status">
-      {#if status}{status}{' '}<a href="/sites" class="text-brand-600 underline hover:text-brand-700">
+      {#if status}{status}{' '}<a href={routes.sites()} class="text-brand-600 underline hover:text-brand-700">
           Your sites
         </a>{/if}
     </p>
