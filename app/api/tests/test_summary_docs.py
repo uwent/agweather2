@@ -118,6 +118,7 @@ def test_climate_summary_keys_are_listed(client, climate_archive):
     check("climate_frost_chances", client.get("/api/v2/climate/frost/chances", {**metric, "date": "2025-01-05"}).json())
     compare = {**metric, "start": "2025-07-01", "end": "2025-07-31", "dd": "modified_10_30"}
     check("climate_compare", client.get("/api/v2/climate/compare", compare).json())
+    check("alfalfa_plan", client.get("/api/v2/models/alfalfa-growth/plan", metric).json())
 
 
 def test_the_list_parser_reads_nested_items():

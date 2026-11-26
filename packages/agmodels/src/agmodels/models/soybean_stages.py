@@ -210,6 +210,11 @@ def stages(**options: str) -> tuple[CropStage, ...]:
     return STAGES
 
 
+def stage_thresholds(**options: str) -> None:
+    """None: stages come from temperature and day length together, not from a degree-day total."""
+    return None
+
+
 def temperature_response(t, cardinal) -> np.ndarray:
     """Wang and Engel's (1998) beta function of temperature: 1 at the optimum, 0 at and beyond the limits."""
     t_min, t_opt, t_max = cardinal

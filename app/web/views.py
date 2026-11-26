@@ -17,8 +17,10 @@ from web.inertia import render
 from web.legacy import legacy_target
 from web.middleware import grid_today
 from web.props import (
+    AlfalfaToolProps,
     CalendarProps,
     ClimateProps,
+    CropGddToolProps,
     DataPageProps,
     DegreeDaysToolProps,
     FreezeToolProps,
@@ -26,6 +28,7 @@ from web.props import (
     HomeProps,
     MapExplorerProps,
     OakWiltToolProps,
+    PotatoVolunteerToolProps,
     SiteCrop,
     SiteModel,
     SiteModelFeedProps,
@@ -209,6 +212,18 @@ def freeze_tool(request: HttpRequest):
     """Freeze dates and odds (track 5): the page fetches the place's dates and odds; the archive's years as props,
     so a year before them is named as Open-Meteo's."""
     return render(request, "Tools/Freeze", FreezeToolProps(years=_archive_years()))
+
+
+def crop_gdd_tool(request: HttpRequest):
+    return render(request, "Tools/CropGdd", CropGddToolProps())
+
+
+def alfalfa_tool(request: HttpRequest):
+    return render(request, "Tools/Alfalfa", AlfalfaToolProps())
+
+
+def potato_volunteer_tool(request: HttpRequest):
+    return render(request, "Tools/PotatoVolunteer", PotatoVolunteerToolProps())
 
 
 def calendar(request: HttpRequest):

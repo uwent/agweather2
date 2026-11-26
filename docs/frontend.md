@@ -102,7 +102,7 @@ Priorities follow project-plan.md's launch table (P0 for April 1, 2027; P1 durin
 | --- | --- | --- |
 | Degree-day calculator: location, dates or biofix, one or several settings (method, base, upper), totals table and chart, link to the map | v1, NEWA, Wisconet GDD calculators | ✓ `/degree-days`, `/degree-days/table` |
 | Crop GDD outlook: this year against normal with its spread, projection to the year's end, stages by maturity (silking, black layer), first fall freeze odds, comparison years (P1) | MRCC's U2U Corn GDD, HPRCC CliGrow | ◐ `/degree-days` with projection ✓, `corn-stages` ✓ beta; normals, spread and freeze odds ✓ (`/climate/*`); years before the archive from Open-Meteo (D87) |
-| Alfalfa: growth since the last cut, and the season planner (target interval or number of cuts, editable and lockable cut dates, killing freeze odds) (P1) | alfalfa tool's Growth Projection and Season Planning | ◐ `alfalfa-growth` and projection ✓; killing freeze odds ✓ (`/climate/frost`); the planner's logic ✗ (F5) |
+| Alfalfa: growth since the last cut, and the season planner (target interval or number of cuts, editable and lockable cut dates, killing freeze odds) (P1) | alfalfa tool's Growth Projection and Season Planning | ✓ `alfalfa-growth` and projection ✓; killing freeze odds ✓ (`/climate/frost`); the planner ✓ (`GET /models/alfalfa-growth/plan`, F5, D129) |
 | Potato volunteer: season map, killing hours at 2, 4 and 8 in by location, air and soil charts (P1) | potato volunteer map | ✓ `potato-volunteer` layer and run, D68 seasons |
 | Oak wilt: vector flight risk with the pruning guidance | v1 Oak Wilt page, emails | ✓ `oak-wilt-vectors` |
 | Freeze dates: last spring and first fall freeze this year at a location, and the odds by date (P2 for the grid maps) | v1 frost maps, MRCC freeze tools | ✓ `/freeze`, `/climate/frost` |
@@ -312,7 +312,7 @@ Visited 2026-11-06 with a headless browser (Playwright), late-blight-db added th
 - Season Planning: weather year, climate period, target interval (GDD) or number of cuts (2–6); cut dates as editable, lockable and removable cards; a chart of cumulative GDD (observed and projected against the climate average), GDD since the last cut as a sawtooth, cut markers with days and GDD, the green cut window, and the cumulative killing freeze probability on a second axis.
 - Downloads: the whole grid as shown, or one location's weather and climate.
 - Take: all of the above. The planner is the strongest single tool among the peers; v2 keeps its interaction (lockable cut dates, target interval or count) and splits its chart into a GDD panel and a freeze-odds panel.
-- API: map ✓ with climate layers; charts ✓ with normals and frost; growth ✓; planner ◐ (F5); downloads ✓.
+- API: map ✓ with climate layers; charts ✓ with normals and frost; growth ✓; planner ✓ (`/models/alfalfa-growth/plan`, D129); downloads ✓.
 
 ### Other state and regional services
 

@@ -125,6 +125,11 @@ def stages(**options: str) -> tuple[CropStage, ...]:
     return STAGES
 
 
+def stage_thresholds(**options: str) -> np.ndarray:
+    """Degree days since January 1 at which each stage starts (`dd_total`)."""
+    return np.array(THRESHOLDS)
+
+
 def ingredients(inputs: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
     lo, hi = (np.asarray(inputs[k], dtype=float) * 1.8 + 32 for k in ("air_temperature_min", "air_temperature_max"))
     return {"dd": degree_days_sine(lo, hi, BASE_F)}

@@ -181,6 +181,15 @@ def test_layers_say_what_climate_they_take(client, climate_archive):
     assert found["freeze_chance"]["parameters"] == ["threshold"]
     assert found["elevation"]["time_axis"] == "none"
     assert [o["name"] for o in found["elevation"]["outputs"]] == ["mean", "min", "max", "spread"]
+    # The counts of days whose normals are kept (D88), as `count=` takes them, with their names
+    heat = {"count": "days_above_93p2", "name": "heat days", "low": 93.2, "high": None, "unit": "degF"}
+    assert heat in found["air_temperature_max"]["counts"] and len(found["air_temperature_max"]["counts"]) == 4
+    assert [c["count"] for c in found["precipitation_sum"]["counts"]] == [
+        "days_below_0p01",
+        "days_above_0p5",
+        "days_above_1",
+    ]
+    assert found["air_temperature_mean"]["counts"] == [] and found["degree_days"]["counts"] == []
 
 
 def test_tiles_images_and_summaries(client, climate_archive):

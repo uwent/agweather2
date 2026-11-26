@@ -546,6 +546,18 @@ class FreezeToolProps(Props):
     years: list[int] = Field(description="The years with weather in our archive, newest first.")
 
 
+class CropGddToolProps(Props):
+    """Crop growing degree days (`/tools/crop-gdd`, track 5 P1)."""
+
+
+class AlfalfaToolProps(Props):
+    """The alfalfa cutting planner (`/tools/alfalfa`, track 5 P1)."""
+
+
+class PotatoVolunteerToolProps(Props):
+    """Potato volunteer survival (`/tools/potato-volunteer`, track 5 P1)."""
+
+
 class CalendarProps(Props):
     """The day-of-year calendar (`/calendar`, track 5)."""
 

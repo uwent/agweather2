@@ -819,6 +819,28 @@ export interface InputInfo {
    */
   corrections: string[]
 }
+export interface LayerCount {
+  /**
+   * The count, as `count` takes it with `units=us`, such as `days_above_93p2`.
+   */
+  count: string
+  /**
+   * The name the days are known by, such as `heat days`. Null when they have none.
+   */
+  name: string | null
+  /**
+   * The lowest value counted, inclusive, in `unit`. Null when the count has no lower bound.
+   */
+  low: number | null
+  /**
+   * The highest value counted, inclusive, in `unit`. Null when the count has no upper bound.
+   */
+  high: number | null
+  /**
+   * The unit the bounds are written in.
+   */
+  unit: string
+}
 export interface LayerInfo {
   /**
    * The layer's id, as `/grids/{layer}`, the tiles and the map images name it.
@@ -894,6 +916,10 @@ export interface LayerInfo {
    * What `climate` takes for this layer: `normal`, `departure` or `percentile`. Empty when it can't be compared with the climate.
    */
   climate?: string[]
+  /**
+   * For a daily weather layer: the counts of days that can be compared with the climate (with `count` and `climate`), each as `count` takes it with `units=us`, the name the days are known by where they have one, and its bounds in `unit`. Empty for other layers.
+   */
+  counts?: LayerCount[]
 }
 export interface LayerRange {
   /**

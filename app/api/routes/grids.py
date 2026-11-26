@@ -18,7 +18,7 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from ninja import Field, Query, Router, Schema
 
-from agdata import modelgrid, palettes, seasonal, series, terrain
+from agdata import modelgrid, normals, palettes, seasonal, series, terrain
 from agdata import units as agunits
 from agdata.catalog import DAILY_STATISTICS
 from agdata.grid import NDFD, Box, Window
@@ -73,6 +73,14 @@ class LayerOutputInfo(Schema):
     domain: list[float] | None  # what the palette's ends stand for, in the stored unit; None: from the map's values
 
 
+class LayerCount(Schema):
+    count: str  # as `count=` takes it with `units=us`: `days_above_93p2`
+    name: str | None  # the name a grower knows the days by ("heat days"); None without one
+    low: float | None  # the bounds, inclusive, in `unit`; None where open
+    high: float | None
+    unit: str
+
+
 class LayerInfo(Schema):
     id: str
     name: str
@@ -95,6 +103,7 @@ class LayerInfo(Schema):
     planting: list[str] = Field(default_factory=list)
     seasons: list[str] = Field(default_factory=list)  # a seasonal product's (`season=`), oldest first
     climate: list[str] = Field(default_factory=list)  # what `climate=` takes (D86): normal, departure, percentile
+    counts: list[LayerCount] = Field(default_factory=list)  # the counts of days whose normals are kept (D88)
 
 
 class LayersResponse(Schema):
@@ -148,10 +157,22 @@ def layers(request: HttpRequest) -> HttpResponse:
             planting=["early", "mid", "late", "none"] if layer.planting else [],
             seasons=_seasons_held(layer, observed),
             climate=list(layer.climate),
+            counts=_stored_counts(layer),
         )
         for layer in LAYERS.values()
     ]
     return respond(request, Result(request={}, data=[f.model_dump() for f in found]))
+
+
+def _stored_counts(layer: Layer) -> list[LayerCount]:
+    """The counts of days a daily weather layer keeps normals for (`agdata.normals.COUNTS`, D88)."""
+    if layer.group != "weather" or layer.time_axis != "day":
+        return []
+    return [
+        LayerCount(count=c.count, name=c.label, low=c.low, high=c.high, unit=c.unit)
+        for c in normals.COUNTS
+        if c.variable == layer.id
+    ]
 
 
 def _layer_domain(layer: Layer) -> list[float] | None:

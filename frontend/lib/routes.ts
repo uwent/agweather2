@@ -50,12 +50,18 @@ export const routes = {
   sitesModelFeed: (params: { model_id: string }): string => `/sites/models/${part(params.model_id)}`,
   /** status: /status */
   status: (): string => '/status',
+  /** tool-alfalfa: /tools/alfalfa */
+  toolAlfalfa: (): string => '/tools/alfalfa',
+  /** tool-crop-gdd: /tools/crop-gdd */
+  toolCropGdd: (): string => '/tools/crop-gdd',
   /** tool-degree-days: /tools/degree-days */
   toolDegreeDays: (): string => '/tools/degree-days',
   /** tool-freeze: /tools/freeze */
   toolFreeze: (): string => '/tools/freeze',
   /** tool-oak-wilt: /tools/oak-wilt */
   toolOakWilt: (): string => '/tools/oak-wilt',
+  /** tool-potato-volunteer: /tools/potato-volunteer */
+  toolPotatoVolunteer: (): string => '/tools/potato-volunteer',
   /** tools: /tools */
   tools: (): string => '/tools',
   /** topic: /topics/<topic_id> */

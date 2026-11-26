@@ -88,6 +88,13 @@ class StoredCount:
     low: float | None = None
     high: float | None = None
     unit: str
+    label: str | None = None  # the name a grower knows the days by ("heat days"), for the map's choices
+
+    @property
+    def count(self) -> str:
+        """As `count=` takes it in `unit` (`units=us` for temperature and precipitation): `days_above_93p2`."""
+        side, value = ("above", self.low) if self.low is not None else ("below", self.high)
+        return f"days_{side}_{value:g}".replace(".", "p")
 
     @property
     def name(self) -> str:
@@ -104,16 +111,17 @@ class StoredCount:
 COUNTS = (
     StoredCount(variable="air_temperature_max", low=86, unit="degF"),  # corn's upper threshold
     StoredCount(variable="air_temperature_max", low=90, unit="degF"),
-    StoredCount(variable="air_temperature_max", low=93.2, unit="degF"),  # FACTS's heat days
-    StoredCount(variable="air_temperature_max", high=32, unit="degF"),  # days that stay below freezing
-    StoredCount(variable="air_temperature_min", high=32, unit="degF"),  # freeze days
-    StoredCount(variable="air_temperature_min", high=28, unit="degF"),
-    StoredCount(variable="air_temperature_min", low=70, unit="degF"),  # warm nights
-    StoredCount(variable="precipitation_sum", high=0.01, unit="in"),  # dry days: FACTS's < 0.25 mm on 0.1 mm values
+    StoredCount(variable="air_temperature_max", low=93.2, unit="degF", label="heat days"),  # FACTS's
+    StoredCount(variable="air_temperature_max", high=32, unit="degF", label="days that stay freezing"),
+    StoredCount(variable="air_temperature_min", high=32, unit="degF", label="frost"),  # freeze days
+    StoredCount(variable="air_temperature_min", high=28, unit="degF", label="hard freeze"),
+    StoredCount(variable="air_temperature_min", low=70, unit="degF", label="warm nights"),
+    # dry days: FACTS's < 0.25 mm on 0.1 mm values
+    StoredCount(variable="precipitation_sum", high=0.01, unit="in", label="dry days"),
     StoredCount(variable="precipitation_sum", low=0.5, unit="in"),
-    StoredCount(variable="precipitation_sum", low=1, unit="in"),  # heavy rain
-    StoredCount(variable="shortwave_radiation_sum", low=20, unit="MJ_m2"),  # sunny
-    StoredCount(variable="shortwave_radiation_sum", high=10, unit="MJ_m2"),  # cloudy
+    StoredCount(variable="precipitation_sum", low=1, unit="in", label="heavy rain"),
+    StoredCount(variable="shortwave_radiation_sum", low=20, unit="MJ_m2", label="sunny days"),
+    StoredCount(variable="shortwave_radiation_sum", high=10, unit="MJ_m2", label="cloudy days"),
 )
 FREEZE_QUANTILES = (0.1, 0.5, 0.9)
 Progress = Callable[[int, int], None]

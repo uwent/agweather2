@@ -17,7 +17,7 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 
 - **Degree days:** single sine with a horizontal cutoff, 41/86 °F. The tool subtracts the sine above 86 °F from the sine above 41 °F, which is the same quantity (D26). Its `gdd_sine` has one ordering slip: when the minimum is above the base it returns the plain mean less the base without cutting the maximum at the upper threshold. The tool only calls it with its default upper of 150 °F, which no day reaches, so on real days its values match ours (the plans, `docs/plans/`).
 - **Stages:** Growing, Ready to cut (900–1100 GDD), Past the cut window (over 1100). The tool's own text gives 800–1100 in one place and 900–1100 in the others; we follow 900–1100.
-- **Not yet ported:** the fall rule and the tool's cut scheduling, which need the climatology and a projection to the end of the season (Phase 6). The tool's text puts the upper fall figure at 800 GDD; Newell's article at 900.
+- **The cut planner** (D129, 2026-11-26): the tool's cut scheduling and the fall rule are ported as `agmodels.alfalfa_plan`, served as `GET /models/alfalfa-growth/plan`, with five intended differences from the tool, (a)–(e) in D129 and the module's docstring: its end-of-season clamp that compared a day of the year to a GDD total, its freeze chances that treated days as independent, its kills projected wherever the chance passed 95 %, its inconsistent thresholds (the tool's text puts the upper fall figure at 800 GDD; Newell's article at 900, which we use), and future days from the normal's mean rather than D63's past-year paths (kept, by Ben's choice, with the fall rule checked against each year's own freeze instead).
 - **Against Enviroweather (MSU):** MSU's first-cutting model uses the simple average, base 41 °F without an upper, from March 1, with targets of 680, 750 and 970 GDD by silo type and fiber (`docs/enviroweather-models.md`). The averaging method gives fewer GDD on cool spring days, which partly explains its lower targets; which thresholds to keep is part F of `docs/plans/models.md`.
 
 ## Checks
@@ -28,15 +28,20 @@ Model version 0.1, written 2026-11-18 (D98). The model: `packages/agmodels/src/a
 
 `packages/agmodels/tests/test_degree_days.py::test_matches_the_old_api`: our single sine matches the old AgWeather API's calculator within 0.000001 °F·d. The tool read its daily minimum and maximum from the old API's grid; at Waunakee, January 1 to October 31, 2026, v2's archive gave 3,184 single-sine 50/86 °F degree days against the old API's 3,203 (−0.6 %; `docs/validation/legacy/v1-dd-table.md`). The old API is a reference, not the truth (D54).
 
+### The cut planner against the UW alfalfa tool
+
+`packages/agmodels/tests/test_alfalfa_plan.py::test_schedule_matches_the_tools`, run in CI: the tool's `schedule_cut_dates`, run in R on a made-up season (`packages/agmodels/tests/fixtures/make_alfalfa_plan.R`, which copies the function and makes its Shiny inputs arguments), and our `alfalfa_plan.schedule` on the same season give the same cut days in all 15 cases: intervals of 800 to 1,200 GDD, 2 to 6 cuts, and one or two held cuts by interval and by number, including a held cut too close to the season's end for another. The season's start and end are given to both, so the test covers the segment arithmetic, which should match; how the season's start and end are found is where we differ on purpose (D129 (b), (c)). The rest of the planner (its season, the cuts' status and the fall check) is tested on known answers in the same file and through the endpoint in `app/api/tests/test_alfalfa_plan.py`.
+
 ## Limits and open questions
 
 - The 900–1100 window is a rule of thumb for forage quality and regrowth; no comparison with measured quality (RFV, NDF) or stage at cutting has been made.
 - GDD from January 1 count warm winter days before green-up.
-- The fall rule and the cut schedule aren't available yet.
+- The planner places the last cut on the date by which one year in ten has had its first fall killing freeze, as the tool did. At Madison that is November 1 (on the 2026 archive, 30-year normal), later than most Wisconsin growers take a last cut; the fall check then finds the regrowth under 360 GDD in 25 of 30 years and the freeze before the cut in the other 5, so the plan keeps to Newell's rule, but whether a cut that late is worth taking is an agronomic question the rule doesn't answer.
 - **Cheapest independent comparison:** county Scissors Cut programs' spring samples in Wisconsin (the date and forage quality of fields before first cutting), against GDD from January 1 on the archive at each field.
 
 ## Reproducing
 
 ```bash
-uv run pytest packages/agmodels/tests/test_crops.py packages/agmodels/tests/test_degree_days.py
+uv run pytest packages/agmodels/tests/test_crops.py packages/agmodels/tests/test_degree_days.py packages/agmodels/tests/test_alfalfa_plan.py
+Rscript packages/agmodels/tests/fixtures/make_alfalfa_plan.R  # the tool's schedules, again
 ```

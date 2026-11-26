@@ -154,6 +154,42 @@ def test_a_crop_model_shows_its_stage_codes(client, archive):
     assert data["date"][0] == "2025-07-01" and "stage_code" in data and "risk_level" not in data
 
 
+def test_a_crop_model_lists_its_stages_thresholds(client, archive):
+    """`meta.summary.stages`: each stage's code, name and where it starts in the model's running total, for the
+    options given, in the units that column is shown in, so a chart can draw silking without the model's formula."""
+    from agmodels.models import corn_stages
+
+    body = get(client, "corn-stages", planting_date="2025-07-01", end="2025-07-05", black_layer_gdd="2700").json()
+    stages = body["meta"]["summary"]["stages"]
+    expected = corn_stages.thresholds(2700)
+    assert [s["code"] for s in stages] == [s.code for s in corn_stages.STAGES]
+    silking = next(s for s in stages if s["code"] == "R1")
+    assert silking == {
+        "code": "R1",
+        "name": "Silking",
+        "estimated": False,
+        "progress": "gdd_total",
+        "threshold": pytest.approx(expected[[s.code for s in corn_stages.STAGES].index("R1")], abs=0.05),
+    }
+    assert stages[-1]["code"] == "R6" and stages[-1]["threshold"] == 2700
+    assert next(s for s in stages if s["code"] == "V24")["threshold"] is None  # past tasseling: a leaf it never has
+    metric = get(client, "corn-stages", planting_date="2025-07-01", end="2025-07-05", units="metric").json()
+    assert metric["meta"]["summary"]["stages"][-1]["threshold"] == pytest.approx(2500 / 1.8, abs=0.05)
+    # Several option sets: each its own stages, by `option_set`
+    many = get(client, "corn-stages", planting_date="2025-07-01", end="2025-07-05", black_layer_gdd="all").json()
+    found = many["meta"]["summary"]["stages"]
+    r6 = [s["threshold"] for s in found if s["code"] == "R6"]
+    assert r6 == [2100, 2300, 2500, 2700, 2900, 3100] and {s["option_set"] for s in found} == set(range(6))
+    # Potato's degree days are kept in °C·d and shown in °F·d; soybean's stages have no one total; a disease none
+    potato = get(client, "potato-stages", planting_date="2025-07-01", end="2025-07-05").json()["meta"]["summary"]
+    assert potato["stages"][1]["progress"] == "dd_total" and potato["stages"][1]["threshold"] > 0
+    soybean = get(client, "soybean-stages", planting_date="2025-07-01", end="2025-07-05").json()["meta"]["summary"]
+    assert {s["threshold"] for s in soybean["stages"]} == {None}
+    assert "stages" not in get(client, "early-blight-pdays", end="2025-07-05").json()["meta"]["summary"]
+    nested = several(client, models="corn-stages", start="2025-07-05", end="2025-07-06").json()
+    assert nested["data"]["corn-stages"]["meta"]["summary"]["stages"][0]["code"] == "VE"
+
+
 def test_a_stage_biofix_not_reached_is_a_warning(client, archive):
     emerging = get(client, "early-blight-pdays", planting_date="2025-07-08").json()  # the warm forecast: up July 19
     assert emerging["meta"]["request"]["biofix"] == "2025-07-19" and emerging["meta"]["warnings"] == []
