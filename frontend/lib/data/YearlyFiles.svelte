@@ -8,9 +8,9 @@
 
   import { get } from '../api'
   import { formatDate } from '../dates'
-  import Failed from '../sites/Failed.svelte'
+  import Failed from '../components/Failed.svelte'
   import { formatBytes } from '../sites/dataRequest'
-  import { request } from '../sites/request.svelte'
+  import { request } from '../request.svelte'
   import { shortSize, yearlyTable } from './yearlyFiles'
 
   const listing = request<[DownloadsResponse, VariablesResponse]>()

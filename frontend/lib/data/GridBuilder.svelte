@@ -10,8 +10,8 @@
   import { get } from '../api'
   import SegmentedChoice from '../components/SegmentedChoice.svelte'
   import { addDays } from '../dates'
-  import Failed from '../sites/Failed.svelte'
-  import { request } from '../sites/request.svelte'
+  import Failed from '../components/Failed.svelte'
+  import { request } from '../request.svelte'
   import { currentUnits } from '../units'
   import { layerGroups } from './gridLayers'
   import {

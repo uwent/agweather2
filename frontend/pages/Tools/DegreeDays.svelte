@@ -10,7 +10,7 @@
   import { today as gridToday } from '@/lib/dates'
   import { routes } from '@/lib/routes'
   import DegreeDaysTab, { type DegreeDaysView } from '@/lib/sites/DegreeDaysTab.svelte'
-  import { request } from '@/lib/sites/request.svelte'
+  import { request } from '@/lib/request.svelte'
   import { effectivePrefs, setPrefs, siteAt } from '@/lib/sites.svelte'
   import PlacePicker from '@/lib/tools/PlacePicker.svelte'
   import { PLACE_FIELDS, placeOf, placeView } from '@/lib/tools/place'

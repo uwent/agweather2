@@ -12,8 +12,8 @@
   import { riskColor } from '@/lib/riskLevels'
   import { routes } from '@/lib/routes'
   import { placeName } from '@/lib/sites/text'
-  import Failed from '@/lib/sites/Failed.svelte'
-  import { request } from '@/lib/sites/request.svelte'
+  import Failed from '@/lib/components/Failed.svelte'
+  import { request } from '@/lib/request.svelte'
   import PlacePicker from '@/lib/tools/PlacePicker.svelte'
   import { PLACE_FIELDS, placeOf, placeView, type Place } from '@/lib/tools/place'
   import {

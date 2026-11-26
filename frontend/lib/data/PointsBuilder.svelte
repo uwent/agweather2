@@ -19,8 +19,8 @@
     type DataKind,
     type Point,
   } from '../sites/dataRequest'
-  import Failed from '../sites/Failed.svelte'
-  import { request } from '../sites/request.svelte'
+  import Failed from '../components/Failed.svelte'
+  import { request } from '../request.svelte'
   import { currentUnits, formatNumber } from '../units'
 
   // A download builder for one location or several (../sites/dataRequest.ts): a site's Data tab (track 3 step 10)

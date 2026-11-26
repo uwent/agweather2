@@ -6,8 +6,8 @@
   import { get, warningsOf } from '../api'
   import { compareTable } from '../charts/climateCharts'
   import { formatDate } from '../dates'
-  import Failed from '../sites/Failed.svelte'
-  import { request } from '../sites/request.svelte'
+  import Failed from '../components/Failed.svelte'
+  import { request } from '../request.svelte'
   import { currentUnits } from '../units'
   import {
     countColumn,

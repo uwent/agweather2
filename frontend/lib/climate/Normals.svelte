@@ -31,8 +31,8 @@
     normalYearSummary,
     yearFromMonths,
   } from '../charts/climateNormals'
-  import Failed from '../sites/Failed.svelte'
-  import { request } from '../sites/request.svelte'
+  import Failed from '../components/Failed.svelte'
+  import { request } from '../request.svelte'
   import { currentUnits } from '../units'
   import { DEFAULT_PERIOD, periodWords, periodYears, type Period } from './periods'
   import { climateSlots, type Slots } from './slots'

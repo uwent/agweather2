@@ -1,8 +1,8 @@
-// A section's request on the site page, as state a component reads: loading, its answer, or the failure in the
+// A page section's request (sites, tools, climate, data), as state a component reads: loading, its answer, or the failure in the
 // API's words with whether trying again could help. Each `load` supersedes the last (lib/api's latestRequests),
 // so a setting changed quickly never shows an older answer over a newer one.
 
-import { ApiError, isAbort, latestRequests, NETWORK_MESSAGE } from '../api'
+import { ApiError, isAbort, latestRequests, NETWORK_MESSAGE } from './api'
 
 export type Loaded<T> =
   | { status: 'loading'; data: T | null }

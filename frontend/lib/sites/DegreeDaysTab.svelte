@@ -31,8 +31,8 @@
     startWords,
     type CountFrom,
   } from './degreeDays'
-  import Failed from './Failed.svelte'
-  import { request } from './request.svelte'
+  import Failed from '../components/Failed.svelte'
+  import { request } from '../request.svelte'
 
   export type DegreeDaysView = {
     /** The settings compared: preset ids or settings (`corn;sine_41_86`) */

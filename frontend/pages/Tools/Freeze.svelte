@@ -16,8 +16,8 @@
   import { formatDate, today as gridToday } from '@/lib/dates'
   import { monthDay } from '@/lib/models/format'
   import { routes } from '@/lib/routes'
-  import Failed from '@/lib/sites/Failed.svelte'
-  import { request } from '@/lib/sites/request.svelte'
+  import Failed from '@/lib/components/Failed.svelte'
+  import { request } from '@/lib/request.svelte'
   import {
     coldestLow,
     CUSTOM_RANGE_F,

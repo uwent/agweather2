@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import type { Loaded } from '../sites/request.svelte'
+  import type { Loaded } from '../request.svelte'
   import type { TableResponse as Answer } from '@/types/api'
 
   /** The component's three answers as they load: `/climate/frost`, `/climate/frost/chances` and the year's `/freeze` */
@@ -26,8 +26,8 @@
   } from '../charts/climateCharts'
   import GlossaryText from '../components/GlossaryText.svelte'
   import { formatDate } from '../dates'
-  import Failed from '../sites/Failed.svelte'
-  import { request } from '../sites/request.svelte'
+  import Failed from '../components/Failed.svelte'
+  import { request } from '../request.svelte'
   import { currentUnits } from '../units'
   import { DEFAULT_PERIOD, periodWords, periodYears, type Period } from './periods'
   import type { Slots } from './slots'
