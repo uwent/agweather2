@@ -27,7 +27,9 @@ FIELDS: dict[Key, tuple[str, str]] = {
     ("PRES", "surface"): ("surface_pressure", "Pa"),
     ("TCDC", "entire atmosphere (considered as a single layer)"): ("cloud_cover", "percent"),
 }
-PRECIP: Key = ("APCP", "surface")
+# Hourly precip's message: URMA's files and RTMA's until July 2020 file it at the surface, RTMA's since (between July 15
+# and August 1, 2020) at "0 m above mean sea level", the same field under another level name
+PRECIP_KEYS: tuple[Key, ...] = (("APCP", "surface"), ("APCP", "0 m above mean sea level"))
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -79,10 +81,11 @@ class AnalysisSource:
         self, when: datetime, window: Window, session: requests.Session | None = None
     ) -> np.ndarray | None:
         """Precip (mm) in the hour ending at `when` over a window, or None where this product has none."""
-        found = _first_existing(self.precip_urls(when), [PRECIP], session or requests.Session())
-        if not found or PRECIP not in found:
+        found = _first_existing(self.precip_urls(when), PRECIP_KEYS, session or requests.Session())
+        field = next((found[key] for key in PRECIP_KEYS if key in found), None) if found else None
+        if field is None:
             return None
-        return convert(place(found[PRECIP], window), "kg_m2", variable("precipitation").unit)
+        return convert(place(field, window), "kg_m2", variable("precipitation").unit)
 
 
 def _first_existing(urls: list[str], keys, session: requests.Session):
