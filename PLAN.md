@@ -70,8 +70,9 @@ Not for the 2027 launch: a v1 API shim (v1 URLs redirect to the old server, whic
 
 ## Ben's open choices
 
-- **Potato planting (D126):** the 28 °F last-spring-freeze rule (6.7 days held out; keeps NASS's state order) chosen over soil degree days (6.2 days in Wisconsin, but Kentucky in February); confirm, or prefer the 32 °F freeze if Ohio, Kentucky and the south matter more.
-- **Insect seasons (D125, provisional):** derived from our runs at six Wisconsin places; check against NEWA's and the sources' activity periods, and the early starts (seedcorn maggot Feb 15, crucifer flea beetle Mar 15). Topic titles in `content/topics` keep title case ("Spotted Wing Drosophila") where model names are now sentence case.
+- **Potato planting (D126), Ben 2026-11-26:** smooth the freeze over ~50 km, center-weighted, against frost pockets (wave 6 agent w6-spring building it; D127 to record).
+- **Insect seasons (D125, provisional), Ben 2026-11-26:** start each from the same per-cell last-frost determination; Feb 15 (seedcorn maggot) and Mar 15 (crucifer flea beetle) far too early, asparagus not before May. w6-spring writes the design and per-insect offsets for Ben.
+- **Ben, 2026-11-26:** content fixes from the topic and methods pages go ahead; today's rain shows the total so far with its time and a clear "not real time" note; 2- and 3-level risk scales take steps of the 5-level palette; the map's data layer gets transparency (harsh colours). Track 5's plan (phase-7-web-app.md) awaits his go.
 - **Generation weights** are judgments (TODO.md): the looper's halve the season's only caterpillar peak north of Arlington.
 - **The Crop Risk Tool audit's questions for the authors** (`tmp/crt-model-audit.md`).
 - **Cabbage maggot transplant timing:** UW's pages against A3422.
