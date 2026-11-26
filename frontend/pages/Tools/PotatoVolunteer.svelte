@@ -20,6 +20,7 @@
     beforeMap,
     currentWinter,
     DEPTHS,
+    FIRST_WINTER_YEAR,
     depthRows,
     depthText,
     KILLING_F,
@@ -33,6 +34,7 @@
     winterChoices,
     winterCodec,
     winterLabel,
+    winterName,
     winterYear,
     withAir,
   } from '@/lib/tools/potatoVolunteer'
@@ -170,10 +172,7 @@
       <ShareButton url={() => view.shareUrl()} />
     </div>
     <p class="max-w-prose">
-      Potato tubers left in a field after harvest can survive the winter and come up the next season as volunteers,
-      which can carry late blight, viruses and insect pests into new crops. Tubers die when the soil around them stays
-      below 27 °F for long enough. Choose a location to see how cold the soil has been there this winter, or in any
-      winter since 2016–17.
+      {`Potato tubers left in a field after harvest can survive the winter and come up the next season as volunteers, which can carry late blight, viruses and insect pests into new crops. Tubers die when the soil around them stays below ${units.format('degF', KILLING_F)} for long enough. Choose a location to see how cold the soil has been there this winter, or in any winter since ${winterLabel(winters.at(-1) ?? winterName(FIRST_WINTER_YEAR))}.`}
     </p>
   </header>
 

@@ -195,6 +195,17 @@ describe('the plan', () => {
     expect(fallWords({ ...plan, fall: null }, us).check).toEqual([])
   })
 
+  it('names a past year’s plan by its year, not “this year”', () => {
+    const season = seasonWords(plan, us, 2027)
+    expect(season).toContain('from 2026’s last spring killing freeze')
+    expect(season).not.toContain('this year')
+    expect(fallWords(plan, us, 2027).check.at(-1)).toBe('In 2026 it came on November 24, after 183 GDD of regrowth.')
+    const none = { ...plan, springFreeze: { date: null, basis: 'none' as const } }
+    expect(seasonWords(none, us, 2027)).toContain('There was no spring killing freeze (24 °F or colder) in 2026,')
+    const option = planOption({ plan, units: us, palette, today: '2027-03-01' }) as { legend: { data: string[] } }
+    expect(option.legend.data[0]).toBe('2026’s weather')
+  })
+
   it('asks for a schedule, or checks the reader’s dates', () => {
     const base = { year: 2026, thisYear: 2026, period: 'last30' as const, target: null, held: [] as string[] }
     expect(planQuery({ ...base, by: 'interval', cuts: [] })).toEqual({

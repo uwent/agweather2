@@ -157,7 +157,7 @@
 
   const planned = $derived(place && plan.value.data ? parsePlan(plan.value.data) : null)
   const planLoading = $derived(plan.value.status === 'loading')
-  const fall = $derived(planned ? fallWords(planned, units) : null)
+  const fall = $derived(planned ? fallWords(planned, units, thisYear) : null)
   const periodShown = $derived(planned?.years ?? periodYears(period, today))
 
   function apply() {
@@ -374,7 +374,7 @@
 
       {#if planned}
         <div class="space-y-4" aria-busy={planLoading}>
-          <p class="max-w-prose text-sm">{seasonWords(planned, units)}</p>
+          <p class="max-w-prose text-sm">{seasonWords(planned, units, thisYear)}</p>
           <ol class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Cuts">
             {#each planned.cuts as cut, k (`${k}-${cut.date}`)}
               <li class="rounded-lg border border-l-4 border-line {statusClass(cut.status)} bg-surface-raised p-3">
@@ -445,7 +445,7 @@
             info="Top: growing degree days since the season began or the last cut, falling to zero after each cut (the diamonds; filled ones are held). The band is the cutting window. This year’s weather is solid, the forecast shaded; the dashed line is the normal. Bottom: from January through June, the chance that a killing freeze is still to come after each date; from July through December, the chance that one has come by it."
             height={PLAN_CHART_HEIGHT}
             build={(palette) => planOption({ plan: planned, units, palette, today })}
-            summary={planSummary(planned, units)}
+            summary={planSummary(planned, units, thisYear)}
             table={() => planTable(planned, units)}
           />
           {#if planned.warnings.length}
@@ -486,7 +486,7 @@
   <section aria-labelledby="alfalfa-about" class="space-y-2">
     <h2 id="alfalfa-about" class="text-lg font-semibold">About these numbers</h2>
     <p class="max-w-prose">
-      {`GDD here are single-sine degree days with a base of ${deg(41)} and an upper threshold of ${deg(86)}, counted from January 1 or from the day after a cut. The cutting window of ${windowText(WINDOW_F, units)} comes from the UW alfalfa cutting tool this planner replaces. The fall rule (under ${gddText(360, units)} or over ${gddText(900, units)} of regrowth before the killing freeze) is from UW–Madison Extension’s guidance on fall cutting.`}
+      {`GDD here are single-sine degree days with a base of ${deg(41)} and an upper threshold of ${deg(86)}, counted from January 1 or from a cut. The cutting window of ${windowText(WINDOW_F, units)} comes from the UW alfalfa cutting tool this planner replaces. The fall rule (under ${gddText(360, units)} or over ${gddText(900, units)} of regrowth before the killing freeze) is from UW–Madison Extension’s guidance on fall cutting.`}
     </p>
     <p class="text-sm">
       <a href={routes.model({ model_id: 'alfalfa-growth' })} class="text-brand-600 underline hover:text-brand-700">
