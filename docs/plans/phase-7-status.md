@@ -2,7 +2,7 @@
 
 A running summary for Ben, kept current as agents' work merges (newest at the top of each list). The plan and its decisions are in [phase-7-web-app.md](phase-7-web-app.md); the handoff is PLAN.md's. Branch `phase-7` (from `main` after PR #1).
 
-Last updated: 2026-11-27, 03:45 CST.
+Last updated: 2026-11-27, 04:10 CST.
 
 ## Built (merged into `phase-7`)
 
@@ -49,11 +49,11 @@ Last updated: 2026-11-27, 03:45 CST.
 
 ## On deck (in order)
 
-1. **Running now:** review round 2 (the P1 tools and normals; round 1's refactors); backend fixes (crop runs projecting from a future planting date, corn-stages ignoring `biofix=`, the Madison cell's degree days by year, count departures' colour scale).
+1. **Running now:** review round 2's refactors and small fixes; backend fixes (crop runs projecting from a future planting date, corn-stages ignoring `biofix=`, the Madison cell's degree days by year, count departures' colour scale).
 2. **Next:** review round 2 over waves 9–10 (the climate pages and the P1 tools); a full Playwright and CI run.
 3. **Reviews** (Ben, 2026-11-26): periodic review agents over what's been built (bugs, refactoring, duplication); findings and fixes below.
 4. **Done overnight:** the map explorer reads counts from `/layers`; a keyboard spec over every tool (focus outlines fixed on the place search fields; focus kept when a place is found). **Small:** the API serves the current winter's potato volunteer map before January 1 though the model says it appears then (the page waits); count departures' colour scale ([0, 6.25] for days ≥ 90 °F, not centred on 0); climate endpoints' speed on a quiet server (`/climate/compare` 13 s under load); the legend at full strength while the map is at 80 % (Ben's call).
-5. **Ben:** **the Madison cell (and the row beside it) is treated as lake water by URMA itself since 2017**, so its degree days ran 300–380 below Madison's airport in 2017–2020 and about even since 2021 (cool maxima, warm minima, changing over the years; the airport's own cell tracks the station within ~2 % every year): leave the data and (b) suggest `radius` or `land_only` on pages when a location's cell is mostly water (Madison 24 %), (c) note that normals and projections at inland-lake cells mix the periods (ties to the Lake Winnebago normals question), (d) record the 2017 and ~2021 changes in a weather validation report — which? The alfalfa planner's season end stays on the typical 1-in-10 date even when this year's own freeze came later (Nov 24 and 26 in 2026 and 2024) — as D129's rule says, but readers may ask; the alfalfa planner's last cut lands on the 1-in-10 24 °F date (Nov 1 at Madison), later than most growers cut: should the season end earlier? About's drafts and credits; oak wilt's wording with DNR (their 2026 guidelines don't mention 231 °F·d); restart `bin/dev` after pulling; the interface design pass (map explorer plus bespoke model and topic pages in WISP 3's map-plus-feed frame).
+5. **Ben:** the alfalfa tool's two sections count GDD from different days ("since the last cut" includes the cut's day, the season plan starts the day after, as the Shiny tool did; ~10–20 GDD): pick one; the planner offers intervals from 800, which can't reach the 900 window (six "early" cuts at 800): raise the minimum to 900? **The Madison cell (and the row beside it) is treated as lake water by URMA itself since 2017**, so its degree days ran 300–380 below Madison's airport in 2017–2020 and about even since 2021 (cool maxima, warm minima, changing over the years; the airport's own cell tracks the station within ~2 % every year): leave the data and (b) suggest `radius` or `land_only` on pages when a location's cell is mostly water (Madison 24 %), (c) note that normals and projections at inland-lake cells mix the periods (ties to the Lake Winnebago normals question), (d) record the 2017 and ~2021 changes in a weather validation report — which? The alfalfa planner's season end stays on the typical 1-in-10 date even when this year's own freeze came later (Nov 24 and 26 in 2026 and 2024) — as D129's rule says, but readers may ask; the alfalfa planner's last cut lands on the 1-in-10 24 °F date (Nov 1 at Madison), later than most growers cut: should the season end earlier? About's drafts and credits; oak wilt's wording with DNR (their 2026 guidelines don't mention 231 °F·d); restart `bin/dev` after pulling; the interface design pass (map explorer plus bespoke model and topic pages in WISP 3's map-plus-feed frame).
 6. **Later:** accounts and email (track 8, when SES is set up); Phase 9's observed phenologies.
 
 ## Data jobs
@@ -61,6 +61,10 @@ Last updated: 2026-11-27, 03:45 CST.
 - Ingredients rebuild for D127, apple scab 0.2, oak wilt 0.3 and D128, all years (`tmp/w8-ingredients2.log`); blight and potato maps answer "updating" until done.
 
 ## Reviews
+
+### Round 2, P1 tools and normals (2026-11-27; merged)
+
+Fixed: the alfalfa plan API refused metric intervals at both ends of the range it states (444 and 667 °C·d), and gave the base in °F to metric requests; a past year's plan said "this year" (now "2024's"); the potato volunteer intro said "27 °F" to metric readers; alfalfa's About text said GDD count from the day after a cut (the run counts the cut's day); crop GDD uses the shared helpers. Checked without bugs: the planner's leap years, held cuts at a segment's ends, a year without a spring killing freeze, outside the coverage, metric thresholds; stage thresholds in metric; `/methods#normals` against the API; crop GDD and potato volunteer words against the API. Left for r2-fixes (running): the planner's cut GDD past the fall freeze and before the season; potato chart depth colours, a raw-hex marker, a late marker; crop GDD's rows after the forecast and an empty notes line; one `record()` helper.
 
 ### Round 1, frontend (2026-11-27; merged)
 
