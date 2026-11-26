@@ -27,14 +27,6 @@ from web.props import (
 GUIDANCE = "How to read it"
 
 
-def shown_spec(model_id: str) -> ModelSpec | None:
-    """The spec of a model a site's page shows: any but a retired one."""
-    found = all_models().get(model_id)
-    if found is None or found.SPEC.status == "retired":
-        return None
-    return found.SPEC
-
-
 def _quantity(q: Quantity | Input) -> ModelQuantity:
     return ModelQuantity(name=q.name, label=q.label, unit=q.unit, description=q.description)
 
@@ -127,7 +119,7 @@ def model_info(spec: ModelSpec) -> SiteModelInfo:
         id=spec.id,
         name=spec.name,
         group=spec.group,
-        status=spec.status,  # type: ignore[arg-type]  # never retired here (shown_spec)
+        status=spec.status,  # type: ignore[arg-type]  # never retired here (web.catalog.shown_spec)
         version=spec.version,
         summary=spec.summary,
         crops=croplist.names(spec.crops),

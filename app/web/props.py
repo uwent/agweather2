@@ -514,8 +514,7 @@ class SiteModelFeedProps(Props):
     model: SiteModelInfo
 
 
-# Stubs for the pages of tracks 5–7 (2026-11-26), so the waves' agents share one set of routes; each agent fills in its
-# page's props.
+# The pages of tracks 5–7. Those without fields fetch everything they show from the API in the browser (D117).
 
 
 class ToolsIndexProps(Props):

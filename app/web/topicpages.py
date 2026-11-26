@@ -13,6 +13,7 @@ from agdata.layers import LAYERS
 from agmodels import croplist
 from agmodels.pages import Page
 from agmodels.registry import all_models
+from web.catalog import crops_named
 from web.content import topics
 from web.modelpages import keyed_sources, sections
 from web.props import NamedId, TopicEntry, TopicModel, TopicPageProps, TopicsIndexProps
@@ -49,9 +50,7 @@ def image_alt(credit: str) -> str:
 
 def index_props() -> TopicsIndexProps:
     found = sorted(topics().values(), key=lambda p: str(p.front["title"]).lower())
-    named = {c for p in found for c in p.front.get("crops") or []}
-    order = list(croplist.CATEGORIES)
-    crops = sorted((c for c in croplist.CROPS.values() if c.id in named), key=lambda c: order.index(c.category))
+    crops = crops_named(c for p in found for c in p.front.get("crops") or [])
     return TopicsIndexProps(
         topics=[
             TopicEntry(
