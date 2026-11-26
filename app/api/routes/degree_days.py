@@ -512,6 +512,11 @@ def freeze_thresholds(thresholds: str | None, units: str, warnings: list[str]) -
     return given, [temperature_threshold(t, units, FREEZE, "thresholds", warnings) for t in given]
 
 
+def threshold_column(values: list[float], units: str) -> Column:
+    """The `threshold` column as the request gave it, named in its unit in `meta.units` (the request's system)."""
+    return Column(name="threshold", values=values, unit="degC" if units == "metric" else "degF")
+
+
 @router.get("/freeze", response=responses(TableResponse), summary="Freezes at points")
 def freeze(
     request: HttpRequest,
@@ -570,7 +575,11 @@ def freeze(
             rows["first_fall"].append(fall[0] if fall else None)
             rows["missing_days"].append(int((~np.isfinite(tmin_f)).sum()))
     columns = [Column(name="point", values=rows["point"])] if where.points is not None else []
-    columns += [Column(name=name, values=rows[name]) for name in rows if name != "point"]
+    columns += [
+        threshold_column(rows[name], output.units) if name == "threshold" else Column(name=name, values=rows[name])
+        for name in rows
+        if name != "point"
+    ]
     if found and trim_end:
         computed["end"] = max((days.dates[n - 1] for days, n in found if n), default=last)
     return respond(

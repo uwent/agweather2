@@ -22,7 +22,7 @@ from agdata.layers import DD_STEP
 from agdata.rolling import label, roll
 from agmodels.gaps import MAX_GAP_DAYS, fill_short_gaps
 from api import climate, clock, points, rolled
-from api.envelope import Column, Result, catalog_column, not_modified, respond
+from api.envelope import CLIMATE_CACHE, Column, Result, catalog_column, not_modified, respond
 from api.errors import ApiError, quoted
 from api.params import (
     AreaQuery,
@@ -34,7 +34,7 @@ from api.params import (
     check_vars,
     degree_day_settings,
 )
-from api.routes.degree_days import degree_days, freeze_thresholds, temperatures_of
+from api.routes.degree_days import degree_days, freeze_thresholds, temperatures_of, threshold_column
 from api.routes.weather import (
     FORECAST_DAYS,
     CountColumn,
@@ -150,7 +150,7 @@ def normals_at_points(
     computed |= {"count": [f"{c.variable}:{c.count.name}" for c in wanted_counts] or None}
     computed |= {**rolls.echo(), **area.echo()}
     etag = answer_etag(request, computed, asked.stamp(read, now))
-    if etag is not None and (unchanged := not_modified(request, etag)) is not None:
+    if etag is not None and (unchanged := not_modified(request, etag, CLIMATE_CACHE)) is not None:
         return unchanged
     locations = located(where, today, today, area=around)  # the dates are calendar days, not reads
     year = first.year
@@ -262,6 +262,7 @@ def normals_at_points(
             warnings=warnings,
             filename=f"agweather-normals-{q.period}-{first}-{last}",
             etag=etag,
+            cache_control=CLIMATE_CACHE,
         ),
     )
 
@@ -321,7 +322,7 @@ def frost(
     computed = {**where.echo(), "thresholds": given, "probabilities": chances, **q.echo(), "units": output.units}
     computed |= {"threshold_units": "°C" if output.units == "metric" else "°F", **area.echo()}
     etag = answer_etag(request, computed, asked.stamp(["air_temperature_min"], now))
-    if etag is not None and (unchanged := not_modified(request, etag)) is not None:
+    if etag is not None and (unchanged := not_modified(request, etag, CLIMATE_CACHE)) is not None:
         return unchanged
     locations = located(where, today, today, area=around)
     rows: dict[str, list] = {"point": [], "threshold": []}
@@ -352,7 +353,10 @@ def frost(
             rows["years_fall"].append(int(fz.years_fall))
             rows["years_without_spring"].append(int((fz.spring == climatology.NONE_SPRING).sum()))
             rows["years_without_fall"].append(int((fz.fall == climatology.NONE_FALL).sum()))
-    columns = [Column(name=name, values=values) for name, values in rows.items()]
+    columns = [
+        threshold_column(values, output.units) if name == "threshold" else Column(name=name, values=values)
+        for name, values in rows.items()
+    ]
     if where.points is None:
         columns = columns[1:]
     return respond(
@@ -366,6 +370,7 @@ def frost(
             warnings=warnings,
             filename=f"agweather-frost-{q.period}",
             etag=etag,
+            cache_control=CLIMATE_CACHE,
         ),
     )
 
@@ -399,7 +404,7 @@ def frost_chances(
     computed = {**where.echo(), "start": first, "end": last, "thresholds": given, **q.echo(), "units": output.units}
     computed |= {"threshold_units": "°C" if output.units == "metric" else "°F", **area.echo()}
     etag = answer_etag(request, computed, asked.stamp(["air_temperature_min"], now))
-    if etag is not None and (unchanged := not_modified(request, etag)) is not None:
+    if etag is not None and (unchanged := not_modified(request, etag, CLIMATE_CACHE)) is not None:
         return unchanged
     locations = located(where, today, today, area=around)
     dates = [first + timedelta(days=k) for k in range((last - first).days + 1)]
@@ -425,6 +430,8 @@ def frost_chances(
     columns = [
         Column(name=name, values=values, unit="percent", step=1)
         if name == "chance"
+        else threshold_column(values, output.units)
+        if name == "threshold"
         else Column(name=name, values=values)
         for name, values in rows.items()
     ]
@@ -441,6 +448,7 @@ def frost_chances(
             warnings=warnings,
             filename=f"agweather-frost-chances-{q.period}-{first}-{last}",
             etag=etag,
+            cache_control=CLIMATE_CACHE,
         ),
     )
 
@@ -513,7 +521,14 @@ def compare(
     settings_found = degree_day_settings(dd, output.units, warnings) if dd is not None else []
     del count  # repeatable: read from request.GET
     wanted_counts = climate_counts(request, output.units, q.period, NORMAL_VARIABLES)
-    alone = (settings_found or wanted_counts) and vars is None
+    unasked = vars is None or not vars.strip()  # `vars=` sent empty: degree days or counts alone, as when left out
+    if vars is not None and unasked and not (settings_found or wanted_counts):
+        raise ApiError(
+            "missing",
+            "The 'vars' list is empty and nothing else was asked for. Name the totals to compare, such as 'vars=precipitation_sum', or give 'dd' or 'count'.",
+            "vars",
+        )
+    alone = (settings_found or wanted_counts) and unasked
     names = check_vars(vars, COMPARE_VARIABLES, [] if alone else ["precipitation_sum"])
     spread = (
         climate.percents(percentiles, "percentiles", "percentiles=10,90") if percentiles is not None else [10.0, 90.0]
