@@ -67,6 +67,27 @@ def test_changelog_page_shows_published_entries_escaped(client):
     (shown,) = response["props"]["entries"]
     assert shown["title"] == "Shown" and shown["kind_label"] == "Data and sources"
     assert "<script>" not in shown["body_html"] and "<em>there</em>" in shown["body_html"]
+    kinds = response["props"]["kinds"]
+    assert [k["value"] for k in kinds] == ["api", "model", "data", "outage", "announcement"]
+    assert kinds[3]["label"] == "Outage or delay"
+
+
+@pytest.mark.django_db
+def test_entries_with_a_banner_reach_every_page_until_its_time(client):
+    now = timezone.now()
+    shown = ChangelogEntry.objects.create(
+        title="Maintenance Saturday",
+        body="We'll be *down* an hour.",
+        published=True,
+        banner_until=now + timedelta(days=1),
+    )
+    ChangelogEntry.objects.create(title="Over", published=True, banner_until=now - timedelta(hours=1))
+    ChangelogEntry.objects.create(title="Draft", published=False, banner_until=now + timedelta(days=1))
+    ChangelogEntry.objects.create(title="No banner", published=True)
+    for path in ("/", "/changelog", "/status"):
+        (banner,) = page_props(client, path)["announcements"]
+        assert banner["id"] == shown.pk and banner["title"] == "Maintenance Saturday"
+        assert "<em>down</em>" in banner["body_html"] and banner["until"].startswith(str(now.year))
 
 
 @pytest.mark.django_db

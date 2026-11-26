@@ -44,6 +44,8 @@ class Coverage:
 
     window: Window
     mask: np.ndarray
+    # A preset's states (postal codes), which it covers whole; None for a box, which covers a rectangle
+    states: tuple[str, ...] | None = None
 
     def contains(self, j: int, i: int) -> bool:
         return self.window.contains(j, i) and bool(self.mask[j - self.window.j0, i - self.window.i0])
@@ -78,8 +80,9 @@ def preset(name: str) -> Coverage:
         j0, j1, i0, i1 = (int(v) for v in f["window"])
         window = Window(j0=j0, j1=j1, i0=i0, i1=i1)
         mask = np.unpackbits(f["packed"])[: window.size].reshape(window.shape).astype(bool)
+        states = tuple(str(s) for s in f["states"])
     mask.flags.writeable = False
-    return Coverage(window=window, mask=mask)
+    return Coverage(window=window, mask=mask, states=states)
 
 
 @cache

@@ -1,5 +1,5 @@
 // Ported from WISP 3 (adapted): app/frontend/test/page.svelte.ts
-import type { DataStatus, FlashData } from '@/types'
+import type { AnnouncementProps, DataStatus, FlashData } from '@/types'
 
 // A reactive stand-in for Inertia's `page`, so a component test can change its
 // props after mounting: vi.mock('@inertiajs/svelte', () => import('@/test/page.svelte'))
@@ -11,6 +11,7 @@ export const page = $state({
     app: { version: 'dev', service_box: 'wisconsin' },
     today: '2026-07-01',
     status: null as DataStatus | null,
+    announcements: [] as AnnouncementProps[],
   },
 })
 

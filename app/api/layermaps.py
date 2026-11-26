@@ -1184,6 +1184,40 @@ def find_region(text: str) -> regions.Region:
     return found
 
 
+def offered_region(text: str) -> regions.Region:
+    """`region=`'s state or county, refused (`outside_box`, naming the states offered) for a state the service
+    doesn't cover (`regions.offered_states`): the store window reaches past the coverage, so a state across its edge
+    would otherwise answer with a strip of cells or none."""
+    region = find_region(text)
+    if regions.is_state(region) and not regions.region_states(region) & set(regions.offered_states()):
+        raise ApiError(
+            "outside_box", f"{region.name} is outside the area we cover. {offered_states_sentence()}", "region"
+        )
+    return region
+
+
+def offered_states_sentence() -> str:
+    """The sentence naming the states `region=` takes, for its errors."""
+    names = sorted(regions.STATES[code] for code in regions.offered_states())
+    if len(names) == 1:
+        return f"We cover {names[0]} only: choose it or one of its counties."
+    return f"We cover {', '.join(names[:-1])} and {names[-1]}: choose one of them, or a county in one of them."
+
+
+def region_cells(text: str, window: Window) -> tuple[regions.Region, np.ndarray]:
+    """`region=`'s region (`offered_region`) and its covered cells over `window` (y, x): a covered state's or
+    county's cells outside the coverage mask (D105) are left out. ApiError (`outside_box`) when none is left."""
+    region = offered_region(text)
+    inside = regions.mask(region, window) & regions.covered(window)
+    if not inside.any():
+        raise ApiError(
+            "outside_box",
+            f"{region.name} is outside the area we cover, so it has no grid cells here. {offered_states_sentence()}",
+            "region",
+        )
+    return region, inside
+
+
 def window_around(archive: Window, mask: np.ndarray) -> tuple[Window, np.ndarray]:
     """The smallest window holding `mask`'s cells (a mask over `archive`, with at least one), and the mask over it."""
     rows, cols = np.flatnonzero(mask.any(axis=1)), np.flatnonzero(mask.any(axis=0))

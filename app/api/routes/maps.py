@@ -25,7 +25,7 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from ninja import Field, Query, Router
 
-from agdata import mapimage, regions, series
+from agdata import mapimage, series
 from agdata import units as agunits
 from agdata.grid import Window
 from api import clock, layermaps, maptitles
@@ -200,12 +200,7 @@ def _draw(
     states = layermaps.event_states(computed)  # a first or last day's none and no data (D78)
     window, region, inside = archive, None, None
     if q.region is not None:
-        region = layermaps.find_region(q.region)
-        inside = regions.mask(region, archive)
-        if not inside.any():
-            raise ApiError(
-                "outside_box", f"{region.name} is outside the area we cover, so it has no grid cells here.", "region"
-            )
+        region, inside = layermaps.region_cells(q.region, archive)
         if q.clip:
             values = np.where(inside, values, np.nan)
         if states is not None:

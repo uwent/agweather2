@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import Field
 
+from api.routes.discovery import StatusData
+from updates.props import AnnouncementProps, ChangelogEntryProps
 from web.inertia import Props
 
 
@@ -40,6 +42,9 @@ class SharedProps(Props):
         description="The grid's current day: midnight to midnight Central Standard Time all year (D74)."
     )
     status: DataStatus | None = Field(description="None until the archive's status has first been read.")
+    announcements: list[AnnouncementProps] = Field(
+        description="Changelog entries shown as a banner until their `banner_until`, newest first (`ChangelogEntry.banners()`).",
+    )
 
 
 class ModelEntry(Props):
@@ -606,8 +611,23 @@ class DataPageProps(Props):
     )
 
 
+class StatusSource(Props):
+    """A source of observed hours as the status page lists it (`web.statuspage`)."""
+
+    id: str = Field(description="As `/api/v2/status` names it in `last_hour_by_source`.")
+    name: str
+    url: str
+    provides: str = Field(description="What it gives the archive, in a phrase.")
+    normal_lag_hours: float = Field(description="How far behind it normally runs before it counts as late.")
+
+
 class StatusPageProps(Props):
-    """Data status (`/status`, track 7)."""
+    """Data status (`/status`, track 7 step 7.2)."""
+
+    report: StatusData  # `/api/v2/status`'s data when the page was made; the page asks again
+    sources: list[StatusSource]
+    outages: list[ChangelogEntryProps] = Field(description="The changelog's outage notices of the last 90 days.")
+    refresh_seconds: int
 
 
 class ContentPageProps(Props):

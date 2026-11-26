@@ -28,6 +28,9 @@ def test_status_reports_what_the_archive_and_forecast_hold(client, archive):
     }
     assert "ETag" not in client.get("/api/v2/status")  # read fresh each time
     assert not {"jobs", "lock", "failures"} & set(data)  # internals stay on /up and manage.py jobs
+    gaps = data["gaps"]
+    assert [v["variable"] for v in gaps["variables"]][:2] == ["air_temperature", "precipitation"]
+    assert all(v["days"] == [] for v in gaps["variables"])
 
 
 @pytest.mark.django_db

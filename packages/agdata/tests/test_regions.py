@@ -108,3 +108,20 @@ def test_area_stats_skip_missing_cells_and_count_levels_and_nones():
     present = np.isfinite(values) | (labels == 2)  # area 2's missing cell is an answer of none
     with_none = regions.area_stats(values, labels, n=4, present=present)
     assert with_none.with_data[2] == 3 and with_none.none[2] == 1 and with_none.mean[2] == 1.0
+
+
+def test_the_states_offered_are_a_presets_own_or_those_a_box_reaches():
+    """A preset's buffer reaches into states around it (Pennsylvania, Tennessee), but only its own are offered."""
+    kept = regions._coverage_spec  # the app's, when the app's tests share this process
+    try:
+        regions.use_coverage(lambda: "upper_midwest")
+        midwest = regions.offered_states()
+        assert len(midwest) == 13 and {"WI", "KY", "ND"} <= set(midwest) and "PA" not in midwest
+        regions.use_coverage(lambda: "42.84,-91.69,42.866,-91.627")  # a few cells of northeast Iowa
+        assert regions.offered_states() == ("IA",)
+        regions.use_coverage(None)
+        assert len(regions.offered_states()) == len(regions.STATES)
+    finally:
+        regions.use_coverage(kept)
+    assert regions.is_state(region("WI")) and not regions.is_state(region("55025"))
+    assert regions.region_states(region("Dane, WI")) == {"WI"}

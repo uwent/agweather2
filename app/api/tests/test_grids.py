@@ -142,6 +142,34 @@ def test_bbox_region_and_stride_choose_the_cells(client, archive):
     assert get(client, "air_temperature_max", date="2025-07-05", region="19065").status_code == 200
     error = get(client, "air_temperature_max", date="2025-07-05", region="WI").json()["errors"][0]
     assert error["code"] == "outside_box" and error["param"] == "region"
+    assert (
+        error["message"]
+        == "Wisconsin is outside the area we cover. We cover Iowa only: choose it or one of its counties."
+    )
+
+
+def test_a_region_is_kept_to_the_coverage(client, archive, monkeypatch):
+    """A state the service covers serves only its covered cells (D105); one it doesn't is refused by name, the same on
+    `/maps` and `/summaries`, even where the store's window reaches into it."""
+    from agdata import regions
+
+    def corner(window):  # coverage of one cell of the window
+        found = np.zeros(window.shape, dtype=bool)
+        found[0, 0] = True
+        return found
+
+    monkeypatch.setattr(regions, "covered", corner)
+    body = get(client, "air_temperature_max", date="2025-07-05", region="IA", cells="true").json()
+    assert (body["data"]["j"], body["data"]["i"]) == ([WINDOW.j0], [WINDOW.i0])
+    monkeypatch.setattr(regions, "offered_states", lambda: ("MN", "WI"))
+    for path in ("/api/v2/grids/air_temperature_max", "/api/v2/summaries/air_temperature_max"):
+        refused = client.get(path, {"date": "2025-07-05", "region": "iowa"})
+        assert refused.status_code == 422, path
+        error = refused.json()["errors"][0]
+        assert error["code"] == "outside_box" and error["param"] == "region"
+        assert "We cover Minnesota and Wisconsin" in error["message"]
+    refused = client.get("/api/v2/maps/air_temperature_max.png", {"date": "2025-07-05", "region": "IA"})
+    assert refused.status_code == 422 and refused.json()["errors"][0]["code"] == "outside_box"
 
 
 def test_a_latlon_grid_takes_the_cell_under_each_point(client, archive):
@@ -550,14 +578,14 @@ def test_water_balance_is_a_map_of_rain_less_et0(client, archive):
 
 
 def test_clip_serves_the_regions_cells_or_the_rectangle_around_them(client, archive, monkeypatch):
-    from api.routes import grids
+    from agdata import regions
 
     def diagonal(region, window):  # a region whose cells are (0, 0) and (1, 1) of the 2 × 3 window
         found = np.zeros(window.shape, dtype=bool)
         found[0, 0] = found[1, 1] = True
         return found
 
-    monkeypatch.setattr(grids.regions, "mask", diagonal)
+    monkeypatch.setattr(regions, "mask", diagonal)
     whole = get(client, "air_temperature_max", date="2025-07-05", region="IA", cells="true").json()
     clipped = get(client, "air_temperature_max", date="2025-07-05", region="IA", clip="true", cells="true").json()
     assert len(whole["data"]["j"]) == 4 and whole["meta"]["request"]["clip"] is False  # the 2 × 2 around them
