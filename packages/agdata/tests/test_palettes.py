@@ -163,3 +163,16 @@ def test_colors_follow_the_domain():
     assert tuple(risk[1, :3]) == palettes.rgb("#a50026") and risk[2, 3] == 0
     assert palettes.auto_domain(np.array([3.0, 870.0, 1234.0, np.nan])) == (0.0, 1250.0)
     assert palettes.auto_domain(np.array([-3.2, 1.1]), centered=True) == (-3.25, 3.25)
+
+
+def test_potato_volunteer_survival_reads_as_every_risk_does():
+    """Its risk falls through the winter (`Risk.falls`), but a level means the same as any model's: Very high (the
+    most tubers surviving) is the risk palette's top color, dark red, and Low its blue (Ben noticed the gradient)."""
+    from agmodels.registry import model
+
+    spec = model("potato-volunteer").SPEC
+    assert spec.risk is not None and spec.risk.falls and spec.risk.levels[-1] == "Very high"
+    layer = LAYERS["potato-volunteer"]
+    p = palettes.use_palette(layer.use)
+    assert not palettes.USES[layer.use].reverse
+    assert p.colors[-1] == "#a50026" and p.colors[0] == "#4575b4"

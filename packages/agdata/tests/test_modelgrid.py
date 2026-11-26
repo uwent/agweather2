@@ -552,6 +552,42 @@ def test_a_map_counts_each_cells_days_missing_past_the_fill(built, long_hole, mo
     assert clean.missing_days is not None and np.nanmax(clean.missing_days) == 0  # three days: filled
 
 
+DRY_SPELL = (date(2025, 6, 20), date(2025, 7, 1))  # twelve days at one cell without humid hours, wet periods or rain
+
+
+@pytest.fixture(scope="module")
+def dry_spell(built, tmp_path_factory):
+    """`built`'s weather with cell (0, 0) dry through DRY_SPELL: no humid hours, wet period or rainy hours, so their
+    temperatures are null (the answer, not missing data)."""
+    root = tmp_path_factory.mktemp("dry")
+    weather = {name: v.copy() for name, v in built[1].items()}
+    dry = [k for k, d in enumerate(SPAN) if DRY_SPELL[0] <= d <= DRY_SPELL[1]]
+    at = np.ix_(dry, [0], [0])
+    for name in ("hours_rh_over_90_from_6pm", "scab_wet_hours", "scab_infection", "precipitation_7am_to_7pm"):
+        weather[name][at] = 0.0
+    for name in ("temperature_mean_rh_over_90_from_6pm", "scab_wet_temperature", "temperature_mean_rain_7am_to_7pm"):
+        weather[name][at] = np.nan
+    store = GridStore.create(root, DAILY, 2025, WINDOW, DAILY_VARIABLES.values())
+    store.write(FIRST, weather, source="test")
+    cumulative.rebuild_year(root, WINDOW, 2025)
+    modelmaps.update(root, WINDOW, FIRST, LAST, keys=["late-blight-dsv.dsv"])
+    return root, weather
+
+
+@pytest.mark.parametrize("model_id", ["late-blight-dsv", "apple-scab"])
+def test_a_conditional_means_null_on_a_dry_day_is_not_a_missing_day(dry_spell, model_id):
+    """A day without humid hours (or a wet period, or rainy hours) has no temperature for them: no day is missing,
+    from a stored ingredient's count (late blight) or a model computed on request (apple scab), as at a point."""
+    root, weather = dry_spell
+    found = modelgrid.model_map(root, model_id, DRY_SPELL[0], date(2025, 7, 10), WINDOW, tier=None)
+    assert found.missing_days is not None and np.nanmax(found.missing_days) == 0
+    k0 = DATES.index(FIRST)
+    daily = {name: np.concatenate([WEATHER[name][:k0], weather[name][:, 0, 0]]) for name in WEATHER}
+    dates = DATES[: k0 + len(SPAN)]
+    point = runner.run(model_id, dates=dates, daily=daily, latitude=43.0, start=DRY_SPELL[0], gap_fill=GAP_FILL)
+    assert point.estimated == {} and point.missing == {}
+
+
 def test_a_stored_season_keeps_its_days_missing_past_the_fill(long_hole, tmp_path):
     import shutil
 

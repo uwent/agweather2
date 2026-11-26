@@ -87,12 +87,12 @@ def _dynamic(path: str, post: bool, kwargs: dict[str, Any]) -> frozenset[str] | 
         model_id = kwargs.get("model_id")
         if model_id is not None and model_id not in all_models():
             return None
-        options = _model_options(model_id) if model_id is not None else _every_option()
+        options = _model_options(model_id) if model_id is not None else every_option()
         return frozenset(POST_FIELDS) | options
     if "model_id" in kwargs:
         return None if kwargs["model_id"] not in all_models() else _model_options(kwargs["model_id"])
     if path.lstrip("/") in ("models/run", "risk"):
-        return _every_option()
+        return every_option()
     if "layer" in kwargs:
         return _layer_options(kwargs["layer"])
     return frozenset()
@@ -112,7 +112,7 @@ def _model_options(model_id: str) -> frozenset[str]:
 
 
 @cache
-def _every_option() -> frozenset[str]:
+def every_option() -> frozenset[str]:
     """Every model's options: requests for several models apply each option to the models that have it."""
     return frozenset(name for model_id in all_models() for name in _model_options(model_id))
 

@@ -79,6 +79,9 @@ class Risk:
     # Lower bounds of levels[1:] when `risk()` returns a continuous value (insects' summed activity, D36); empty when
     # it returns the level itself
     thresholds: tuple[float, ...] = ()
+    # The risk starts at its top level and only falls through the season (potato volunteer survival, as the winter's
+    # cold kills tubers): its milestones are the days it fell to each lower level, not those it rose to each higher
+    falls: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)

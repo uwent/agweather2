@@ -1671,10 +1671,25 @@ _maps_lock = threading.Lock()
 _computing: dict[str, threading.Lock] = {}  # maps being computed, by key: one at a time each
 
 
+def _map_key(a: LayerAsk, window: Window, data_stamp: Any) -> str:
+    # The bounds as resolved: `days_above_86` or `below_10` mean another bound in another `units`
+    return json.dumps([a.echo(), a.count_bounds, data_stamp, [window.j0, window.j1, window.i0, window.i1]], default=str)
+
+
+def is_kept(a: LayerAsk, window: Window, data_stamp: Any) -> bool:
+    """Whether `cached` has this map over `window` kept (in memory or on disk) or being computed, so reading it costs
+    no computation of its own: the county table reads the tiles' map this way (`routes.summaries`)."""
+    key = _map_key(a, window, data_stamp)
+    with _maps_lock:
+        if key in _maps or key in _computing:
+            return True
+    path = _disk_path(key)
+    return path is not None and path.exists()
+
+
 def cached(a: LayerAsk, window: Window, now: datetime, data_stamp: Any) -> Computed:
     """`compute` over `window`, kept for the next request asking the same of the same data."""
-    # The bounds as resolved: `days_above_86` or `below_10` mean another bound in another `units`
-    key = json.dumps([a.echo(), a.count_bounds, data_stamp, [window.j0, window.j1, window.i0, window.i1]], default=str)
+    key = _map_key(a, window, data_stamp)
     with _maps_lock:
         found = _kept(a, key)
         if found is not None:

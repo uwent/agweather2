@@ -261,3 +261,19 @@ def test_the_gap_fill_skips_only_cells_it_would_leave_as_they_are(method, monkey
     inside = modelmaps.interior_gaps(values.reshape(30, -1)).reshape(6, 7)
     assert inside[1, 1] and inside[2, 3] and inside[3, 3] and inside[4, 4]
     assert inside.sum() == 4
+
+
+def test_the_grids_fill_leaves_a_conditional_means_no_value_days_as_a_points_does():
+    from agmodels.gaps import fill_inputs
+
+    rng = np.random.default_rng(3)
+    hours = rng.integers(0, 4, (30, 3, 4)).astype(np.float32)  # many days without humid hours
+    temperature = np.where(hours > 0, rng.uniform(5, 25, hours.shape), np.nan).astype(np.float32)
+    hours[12:14, 1, 2] = temperature[12:14, 1, 2] = np.nan  # a short gap in the data
+    raw = {"hours_rh_over_90_from_6pm": hours, "temperature_mean_rh_over_90_from_6pm": temperature}
+    found, blank = modelmaps.filled_inputs({name: v.copy() for name, v in raw.items()})
+    expected, _ = fill_inputs(raw, {name: modelmaps.GAP_FILL[name] for name in raw})
+    for name in raw:
+        np.testing.assert_allclose(found[name], expected[name], rtol=1e-6, equal_nan=True)
+    assert (blank["temperature_mean_rh_over_90_from_6pm"] == (hours == 0)).all()
+    assert np.isfinite(found["temperature_mean_rh_over_90_from_6pm"][12:14, 1, 2]).all()  # the gap: filled

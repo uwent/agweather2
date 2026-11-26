@@ -580,17 +580,27 @@ def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Win
         days = [a + timedelta(days=k) for k in range((last - a).days + 1)]
         raw = {q.name: reader.days(DAILY, q.name, days) for q in spec.inputs}
         series_ = {name: np.stack([v[d] for d in days]) for name, v in raw.items()}
-        filled = {name: modelmaps._filled(name, v.copy()) for name, v in series_.items()}
+        filled, blank = modelmaps.filled_inputs({name: v.copy() for name, v in series_.items()})
         # Cells in biofix order, so each group is a run of columns (days, cells): picking a group's cells out of
         # (days, y, x) with a mask took ~2 s an array over a block, and a model with many biofix days has many groups
         order = np.argsort(cells.ravel(), kind="stable")
         ranked = cells.ravel()[order]
         nd = len(days)
         by_cell = {name: np.take(v.reshape(nd, -1), order, axis=1) for name, v in filled.items()}
-        missing = {name: np.isnan(np.take(v.reshape(nd, -1), order, axis=1)) for name, v in series_.items()}
+        # The days each input's fill estimated (`<input>_estimated`, as the runner's): a no-value day isn't one
+        missing = {
+            name: np.take((np.isnan(v) & np.isfinite(filled[name])).reshape(nd, -1), order, axis=1)
+            for name, v in series_.items()
+        }
         place_by_cell = {key: v.ravel()[order] for key, v in place.items()}
         ranked_out = {q.name: np.full((n, cells.size), np.nan) for q in spec.outputs}
-        gone = _gone(list(by_cell.values()))
+        gone = _gone(
+            list(by_cell.values()),
+            answered=[
+                None if (b := blank.get(name)) is None else np.take(b.reshape(nd, -1), order, axis=1)
+                for name in by_cell
+            ],
+        )
         ranked_gone = np.full((n, cells.size), np.nan)
         for u in starts:
             biofix = date.fromordinal(int(u))
@@ -646,10 +656,12 @@ def _anchored_days(data_dir, model_id: str, first: date, last: date, window: Win
     )
 
 
-def _gone(inputs: list[np.ndarray]) -> np.ndarray:
+def _gone(inputs: list[np.ndarray], answered: list[np.ndarray | None] | None = None) -> np.ndarray:
     """(days, cells): the days any input (filled) is in a gap the fill didn't reach, with data on each side (D56), as
-    a point counts them (`runner.unfilled_gaps`): days before the data start or after they end aren't a gap."""
-    return np.any([unfilled_gaps(v) for v in inputs], axis=0)
+    a point counts them (`runner.unfilled_gaps`): days before the data start or after they end aren't a gap. `answered`,
+    beside each input, marks its nulls that are the day's answer (a conditional mean's, `agmodels.gaps.no_value`)."""
+    marks: list[np.ndarray | None] = list(answered) if answered else [None] * len(inputs)
+    return np.any([unfilled_gaps(v, answered=a) for v, a in zip(inputs, marks, strict=True)], axis=0)
 
 
 def _crop_stages(data_dir, sown: _Planting, first: date, last: date, now) -> np.ndarray:

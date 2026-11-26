@@ -222,6 +222,25 @@ def test_a_fixed_biofix_is_refused_in_a_posted_run(client, archive):
     assert same.status_code == 200 and same.json()["data"] == plain.json()["data"]
 
 
+def test_a_models_setting_beside_options_is_refused_not_ignored(client, archive):
+    """A top-level `"biofix"` in a JSON body was ignored without a word (only `options.biofix` is read): refused, saying
+    where it goes; any other unknown field is refused naming the fields taken."""
+    for path in ("models/early-blight-pdays/run", "models/run"):
+        refused = post(client, path, _june(range(0), biofix="2025-06-01"))
+        error = refused.json()["errors"][0]
+        assert refused.status_code == 422 and (error["code"], error["param"]) == ("unknown_parameter", "biofix")
+        assert (
+            error["message"]
+            == """Put 'biofix' inside 'options', such as '"options": {"biofix": "2025-06-01"}': in a JSON body, a model's settings go there."""
+        )
+    typo = post(client, "models/early-blight-pdays/run", _june(range(0), dialy={})).json()["errors"][0]
+    assert typo["param"] == "dialy" and "Did you mean 'daily'?" in typo["message"] and "'models'" not in typo["message"]
+    several = post(
+        client, "models/run", _june(range(0), models=["early-blight-pdays"], options={"biofix": "2025-06-01"})
+    )
+    assert several.status_code == 200, several.json()
+
+
 def _june(hole: range, **rest) -> dict:
     """June 1–25, 2025 at 10–25 °C, without the days in `hole` (day numbers)."""
     days = [f"2025-06-{d:02d}" for d in range(1, 26)]

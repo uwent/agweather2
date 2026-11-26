@@ -376,3 +376,23 @@ def test_wheat_scab_gate_keeps_missing_days_missing():
     assert gated.susceptibility is not None and (gated.susceptibility[k : k + 8] == SUSCEPTIBLE).all()
     assert gated.level is not None
     assert np.isnan(gated.outputs["probability"][k]) and np.isnan(gated.level[k])  # not 0, not Low
+
+
+def test_a_null_humid_temperature_on_a_day_without_humid_hours_is_neither_estimated_nor_missing():
+    """Late blight's humid-hour temperature is null on a day with no humid hours: the answer, not a gap (wave 4 found
+    `estimated_by_input` counting those days). A day whose hours are missing too is a gap, filled and flagged."""
+    m = model("late-blight-dsv")
+    start = date(2025, 6, 1)
+    k = DATES.index(start)
+    daily = {name: values.copy() for name, values in WEATHER.items()}
+    hours, t = daily["hours_rh_over_90_from_6pm"], daily["temperature_mean_rh_over_90_from_6pm"]
+    dry = list(range(k + 2, k + 14))  # twelve dry days: longer than the fill bridges
+    hours[dry], t[dry] = 0.0, np.nan
+    hours[k + 20], t[k + 20] = np.nan, np.nan  # a day missing its data
+    methods: dict[str, GapFill] = {q.name: "interpolate" for q in m.SPEC.inputs}
+    result = runner.run(m, dates=DATES, daily=daily, latitude=LATITUDE, start=start, gap_fill=methods)
+    assert result.estimated["temperature_mean_rh_over_90_from_6pm"].nonzero()[0].tolist() == [20]
+    assert result.estimated["hours_rh_over_90_from_6pm"].nonzero()[0].tolist() == [20]
+    assert result.missing == {} and result.missing_before == {}
+    assert (result.outputs["dsv"][2:14] == 0).all()  # no humid hours, no severity values
+    assert np.isfinite(result.outputs["dsv"][20])

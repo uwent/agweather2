@@ -68,7 +68,7 @@ SPEC = ModelSpec(
     id="apple-scab",
     name="Apple scab",
     group="disease",
-    version="0.1",
+    version="0.2",
     status="beta",
     summary="Primary apple scab infection periods from wet hours and temperature, with the share of the season's ascospores mature and released, from green tip until they're released.",
     topics=("apple-scab",),
@@ -184,7 +184,14 @@ SPEC = ModelSpec(
     season=("03-01", "07-31"),
     biofix=Biofix(default="04-15", label="Green tip (50% of McIntosh buds showing green)"),
     biofix_stage=("apple-stages", "GT"),
-    changelog=(Change(version="0.1", date="2026-11-18", note="First version."),),
+    changelog=(
+        Change(version="0.1", date="2026-11-18", note="First version."),
+        Change(
+            version="0.2",
+            date="2026-11-25",
+            note="A day without a wet period shows no wet-period temperature, and a day without rainy hours from 7 am to 7 pm has no temperature for them: neither is estimated from the days around it any more.",
+        ),
+    ),
 )
 
 

@@ -18,6 +18,7 @@ from django.http import HttpRequest, HttpResponse
 from ninja import Field, Query, Router
 
 from agdata import regions
+from agdata.grid import Window
 from api import clock, layermaps
 from api.envelope import Column, Result, etag_for, not_modified, requested_format, respond
 from api.errors import ApiError
@@ -78,11 +79,20 @@ def summary(request: HttpRequest, layer: str, query: Query[SummaryQuery], output
         **({"interval": query.interval} if query.interval else {}),
         "format": fmt,
     }
-    etag = etag_for(request, computed, layermaps.stamp(a, now))
+    data_stamp = layermaps.stamp(a, now)
+    etag = etag_for(request, computed, data_stamp)
     if (unchanged := not_modified(request, etag)) is not None:
         return unchanged
 
     window, crop = layermaps.window_around(archive, inside)
+    # The map the tiles read (`layermaps.cached`, over the whole archive window) when it's kept or being computed, as it
+    # is when the map explorer's county table asks with the tiles' settings: cut to the region rather than computed
+    # again over it (~0.3–1 s a state; Phase 7 wave 6). The whole box's one map is kept for the tiles that follow. Else
+    # (several steps or months, or a region before its tiles) the region's own window, as before.
+    whole = None
+    one_map = len(periods) == 1 and (a.stat is not None or a.steps == 1)
+    if one_map and (query.region is None or layermaps.is_kept(a, archive, data_stamp)):
+        whole = _cut(layermaps.cached(a, archive, now, data_stamp), archive, window)
     rows_in = slice(window.j0 - archive.j0, window.j1 - archive.j0)
     cols_in = slice(window.i0 - archive.i0, window.i1 - archive.i0)
     labels_in = np.where(crop, labels[rows_in, cols_in], 0)
@@ -96,7 +106,7 @@ def summary(request: HttpRequest, layer: str, query: Query[SummaryQuery], output
     kinds_seen: list[str | None] = []
     notes: list[str] = []
     for label, p in periods:
-        c = layermaps.compute(p, window, now)
+        c = whole if whole is not None else layermaps.compute(p, window, now)
         if (note := layermaps.missing_note(c, labels_in > 0)) is not None and note not in notes:
             notes.append(note)
         compute_ms += c.ms
@@ -135,6 +145,19 @@ def summary(request: HttpRequest, layer: str, query: Query[SummaryQuery], output
     result.columns = rows.columns(time_axis=a.layer.time_axis, interval=query.interval)
     result.timings["read_and_shape"] = (time.perf_counter() - started) * 1000 - compute_ms
     return respond(request, result)
+
+
+def _cut(c: layermaps.Computed, archive: Window, window: Window) -> layermaps.Computed:
+    """A map over the archive window cut to `window` (inside it): its values, per-cell counts and days behind."""
+    rows = slice(window.j0 - archive.j0, window.j1 - archive.j0)
+    cols = slice(window.i0 - archive.i0, window.i1 - archive.i0)
+    return replace(
+        c,
+        values=c.values[:, rows, cols],
+        extra={name: v[..., rows, cols] for name, v in c.extra.items()},
+        behind=None if c.behind is None else c.behind[rows, cols],
+        ms=0.0,
+    )
 
 
 def _plural(by: str) -> str:

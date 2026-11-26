@@ -1,6 +1,6 @@
 import numpy as np
 
-from agmodels.gaps import MAX_GAP_DAYS, fill_inputs, fill_short_gaps, fill_zero
+from agmodels.gaps import MAX_GAP_DAYS, fill_inputs, fill_short_gaps, fill_zero, no_value
 
 NAN = np.nan
 
@@ -38,3 +38,22 @@ def test_inputs_without_a_method_pass_through():
     assert filled["air_temperature_min"][1] == 2.0 and np.isnan(filled["other"][1])
     assert estimated["air_temperature_min"].tolist() == [False, True, False]
     assert not estimated["other"].any()
+
+
+def test_a_conditional_means_null_on_a_day_without_its_hours_is_no_gap():
+    # Humid hours' temperature: none on days 1 and 5 (no humid hours: the answer), missing on day 3 (no data)
+    hours = np.array([5.0, 0.0, 6.0, NAN, 4.0, 0.0])
+    temperature = np.array([15.0, NAN, 17.0, NAN, 19.0, NAN])
+    t = "temperature_mean_rh_over_90_from_6pm"
+    daily = {"hours_rh_over_90_from_6pm": hours, t: temperature}
+    assert no_value(daily)[t].tolist() == [False, True, False, False, False, True]
+    filled, estimated = fill_inputs(daily, dict.fromkeys(daily, "interpolate"))
+    np.testing.assert_allclose(filled[t], [15, NAN, 17, 18, 19, NAN], equal_nan=True)
+    assert estimated[t].tolist() == [False, False, False, True, False, False]
+    assert estimated["hours_rh_over_90_from_6pm"].tolist() == [False, False, False, True, False, False]
+
+
+def test_a_conditional_mean_read_without_its_companion_is_filled_as_any_input():
+    t = "temperature_mean_rh_over_90_from_6pm"
+    filled, estimated = fill_inputs({t: np.array([15.0, NAN, 17.0])}, {t: "interpolate"})
+    assert filled[t][1] == 16 and estimated[t][1]

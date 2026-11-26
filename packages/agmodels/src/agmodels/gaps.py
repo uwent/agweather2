@@ -7,6 +7,12 @@ estimated days"; the inputs layer it shows keeps the raw values with their gaps.
 - `interpolate`: linear in time across gaps up to MAX_GAP_DAYS (temperature, humidity, wind, cloud, shortwave,
   ET0, soil and hour counts). Longer gaps stay missing.
 - `zero`: no rain where there's no data (precipitation is never estimated), across gaps of any length.
+
+A conditional mean (the temperature of a day's humid hours, of its wet period, of its rainy hours) has no value on a
+day without such hours: its null there is an answer, not a gap. Where its companion (`NO_VALUE_WITH`: the count or
+total from the same hours) is known, the null is left as it is, never filled nor counted as estimated or missing
+(`no_value`); where the companion is missing too, the day's data are missing and the fill applies. A gap's length
+counts the no-value days inside it, so a gap among them is bridged only if the whole run fits in MAX_GAP_DAYS.
 """
 
 from collections.abc import Mapping
@@ -16,6 +22,15 @@ import numpy as np
 
 GapFill = Literal["interpolate", "zero"]
 MAX_GAP_DAYS = 7  # as the running totals' bridges (D25)
+
+# Daily features (`agmodels.features`) that are null on a day without the hours they average, each with the daily
+# variable from the same hours whose known value says the day had data
+NO_VALUE_WITH: dict[str, str] = {
+    "temperature_mean_rh_over_80_from_6pm": "hours_rh_over_80_from_6pm",
+    "temperature_mean_rh_over_90_from_6pm": "hours_rh_over_90_from_6pm",
+    "scab_wet_temperature": "scab_wet_hours",
+    "temperature_mean_rain_7am_to_7pm": "precipitation_7am_to_7pm",
+}
 
 
 def fill_short_gaps(values: np.ndarray, max_gap: int) -> tuple[np.ndarray, np.ndarray]:
@@ -53,13 +68,25 @@ def fill_zero(values: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return values, fill
 
 
+def no_value(daily: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
+    """For each conditional mean in `daily` whose companion is there too (`NO_VALUE_WITH`), the days its null is the
+    answer (none of the hours it averages) rather than a gap: null where the companion is known (raw values, time on
+    axis 0)."""
+    return {
+        name: np.isnan(np.asarray(daily[name], dtype=float)) & np.isfinite(np.asarray(daily[companion], dtype=float))
+        for name, companion in NO_VALUE_WITH.items()
+        if name in daily and companion in daily
+    }
+
+
 def fill_inputs(
     daily: Mapping[str, np.ndarray], methods: Mapping[str, GapFill]
 ) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
     """Each input filled by its method (inputs without one are left as they are), and a mask per input of the
-    days filled (time on axis 0)."""
+    days filled (time on axis 0). A conditional mean's no-value days (`no_value`) stay null and aren't filled."""
     filled: dict[str, np.ndarray] = {}
     estimated: dict[str, np.ndarray] = {}
+    blank = no_value(daily)
     for name, values in daily.items():
         method = methods.get(name)
         if method == "interpolate":
@@ -69,4 +96,7 @@ def fill_inputs(
         else:
             filled[name] = np.asarray(values, dtype=float)
             estimated[name] = np.zeros(np.shape(values), dtype=bool)
+        if name in blank and blank[name].any():
+            filled[name][blank[name]] = np.nan
+            estimated[name] = estimated[name] & ~blank[name]
     return filled, estimated

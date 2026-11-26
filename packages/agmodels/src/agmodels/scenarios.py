@@ -193,8 +193,9 @@ def reached(what: str, name: str, days: Sequence[date | None]) -> Reached:
 
 
 def milestones(m: Model, runs: Sequence[ModelRun], **crop_options: str) -> list[Reached]:
-    """When each crop stage, each risk level above the lowest, and each action window's first opening comes, across
-    scenarios (the runs share dates)."""
+    """When each crop stage, each risk level above the lowest (below the highest, for a risk that falls: `Risk.falls`,
+    the day it fell to that level or lower), and each action window's first opening comes, across scenarios (the runs
+    share dates)."""
     if not runs or not runs[0].dates:
         return []
     dates = runs[0].dates
@@ -203,7 +204,11 @@ def milestones(m: Model, runs: Sequence[ModelRun], **crop_options: str) -> list[
     if spec.group == "crop" and all("stage" in r.outputs for r in runs):
         for k, s in enumerate(cast(CropModel, m).stages(**crop_options)):
             out.append(reached("stage", s.code, first_days(dates, [r.outputs["stage"] >= k for r in runs])))
-    if spec.risk is not None:
+    if spec.risk is not None and spec.risk.falls:  # each level below the top, the first day it fell to it or lower
+        for level in range(len(spec.risk.levels) - 2, -1, -1):
+            flags = [np.zeros(len(dates)) if r.level is None else r.level <= level for r in runs]
+            out.append(reached("risk", spec.risk.levels[level], first_days(dates, flags)))
+    elif spec.risk is not None:
         for level, label in enumerate(spec.risk.levels[1:], start=1):
             flags = [np.zeros(len(dates)) if r.level is None else r.level >= level for r in runs]
             out.append(reached("risk", label, first_days(dates, flags)))
